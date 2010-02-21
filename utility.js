@@ -13,6 +13,9 @@ String.prototype.parseTimer = function() { var a=this.split(':'),b=0,i; for(i=0;
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
+if(typeof GM_debug === 'undefined') {
+	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
+}
 var WorkerByName = function(name) { // Get worker object by Worker.name
 	for (var i in Workers) {
 		if (Workers[i].name === name) {

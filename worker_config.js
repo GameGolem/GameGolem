@@ -1,6 +1,8 @@
 /********** Worker.Config **********
 * Has everything to do with the config
 */
+var $configWindow = null;
+
 Config = new Worker('Config');
 Config.data = null;
 Config.option = '({top:60,left:25,width:250,height:"auto",active:false})';

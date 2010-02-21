@@ -25,6 +25,8 @@ new Worker(name,pages)
 
 If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 */
+var Workers = [];
+
 function Worker(name,pages) {
 	this.id = Workers.push(this);
 	this.name = name;

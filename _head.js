@@ -19,13 +19,5 @@ var debug = true;
 var VERSION = 10;
 var APP = '46755028429';
 var PREFIX = 'golem'+APP+'_';
-
-// Private data
-var Workers = [];
-var $configWindow = null;
 var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
-
-if(typeof GM_debug === 'undefined') {
-	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
-}
