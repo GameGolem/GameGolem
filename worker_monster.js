@@ -6,15 +6,23 @@ Monster.option = {
 	fortify: 50,
 	choice: 'Random'
 };
+Monster.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'fortify',
+		label:'Fortify Below',
+		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+		after:'%'
+	},{
+		label:'Random only (for now)...'
+	},{
+		id:'choice',
+		label:'Attack',
+		select:['Random', 'Strongest', 'Weakest']
+	}
+];
 Monster.uid = null;
-Monster.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Work in progress...');
-	panel.select('fortify', 'Fortify Below:', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], {after:'%'});
-	panel.info('Random only...');
-	panel.select('choice', 'Attack:', ['Random', 'Strongest', 'Weakest']);
-	return panel.show;
-};
 Monster.parse = function(change) {
 	var i, user, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster

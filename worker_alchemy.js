@@ -6,6 +6,17 @@ Alchemy.data = {
 	ingredients:{},
 	recipe:{}
 };
+Alchemy.display = [
+	{
+		id:'perform',
+		label:'Automatically Perform',
+		checkbox:true
+	},{
+		id:'hearts',
+		label:'Use Battle Hearts',
+		checkbox:true
+	}
+];
 Alchemy.parse = function(change) {
 	var ingredients = Alchemy.data.ingredients = {}, recipe = Alchemy.data.recipe = {};
 	$('div.ingredientUnit').each(function(i,el){
@@ -26,12 +37,6 @@ Alchemy.parse = function(change) {
 		});
 		recipe[title] = me;
 	});
-};
-Alchemy.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('perform', 'Automatically Perform');
-	panel.checkbox('hearts', 'Use Battle Hearts');
-	return panel.show;
 };
 Alchemy.work = function(state) {
 	if (!Alchemy.option.perform) {

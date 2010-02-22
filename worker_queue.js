@@ -12,6 +12,31 @@ Queue.option = {
 	stamina: 0,
 	energy: 0
 };
+Queue.display = [
+	{
+		label:'Drag the other panels into the order you wish them run.'
+	},{
+		id:'delay',
+		label:'Delay Between Events',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'clickdelay',
+		label:'Delay After Mouse Click',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'stamina',
+		label:'Keep Stamina',
+		select:'stamina'
+	},{
+		id:'energy',
+		label:'Keep Energy',
+		select:'energy'
+	}
+];
 Queue.runfirst = [];
 Queue.unsortable = true;
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
@@ -47,8 +72,6 @@ Queue.onload = function() {
 		}
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
-};
-Queue.display = function() {
 	$btn = $('<button id="golem_pause">pause</button>')
 		.button({ text:false, icons:{primary:(Queue.option.pause?'ui-icon-play':'ui-icon-pause')} })
 		.click(function() {
@@ -59,13 +82,6 @@ Queue.display = function() {
 			Config.updateOptions();
 		});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
-	var panel = new Panel(this.name);
-	panel.info('Drag the other panels into the order you wish them run.');
-	panel.text('delay', 'Delay Between Events', {after:'secs', size:3});
-	panel.text('clickdelay', 'Delay After Mouse Click', {after:'secs', size:3});
-	panel.select('stamina', 'Keep Stamina:', Player.data.maxstamina);
-	panel.select('energy', 'Keep Energy:', Player.data.maxenergy);
-	return panel.show;
 };
 Queue.run = function() {
 	var i, worker, found = false, now = Date.now();

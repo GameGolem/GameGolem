@@ -4,7 +4,7 @@
 var Debug = new Worker('Debug');
 Debug.data = null;
 Debug.option = null;
-Debug.display = function() {
+Debug.onload = function() {
 	if (!debug) {
 		return null; // Only add the button if debug is default on
 	}

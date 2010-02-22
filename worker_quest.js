@@ -9,8 +9,21 @@ Quest.option = {
 };
 Quest.land = ['fire', 'earth', 'mist', 'water', 'demon', 'undead'];
 Quest.current = null;
-Quest.current_id = null;
-Quest.what_id = null;
+Quest.display = [
+	{
+		id:'general',
+		label:'General',
+		select:['any', 'Under Level 4', 'Influence']
+	},{
+		id:'what',
+		label:'Quest for',
+		select:'quest_reward'
+	},{
+		id:'current',
+		label:'Current',
+		info:'None'
+	}
+];
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
 	switch(Page.page) {
@@ -86,18 +99,20 @@ Quest.parse = function(change) {
 	}
 	return false;
 };
-Quest.display = function() {
-	var i, list = [], panel;
+Quest.select = function() {
+	var i, list = ['Nothing', 'Influence', 'Experience', 'Cash'];
 	for (i in Quest.data) {
 		if (Quest.data[i].item) {
 			list.push(Quest.data[i].item);
 		}
 	}
-	panel = new Panel(this.name);
-	panel.select('general', 'General:', ['any', 'Under Level 4', 'Influence']);
-	Quest.what_id = panel.select('what', 'Quest for:', Array.concat(['Nothing', 'Influence', 'Experience', 'Cash'], unique(list.sort())));
-	Quest.current_id = panel.info('None', 'current', 'Current:');
-	return panel.show;
+	$('select.golem_quest_reward').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
+		for (i=0; i<list.length; i++) {
+			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
+		}
+	});
 };
 Quest.work = function(state) {
 	var i, list, best = null;
@@ -133,7 +148,7 @@ Quest.work = function(state) {
 		Quest.current = best;
 		if (best) {
 			GM_debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
-			$('#'+Quest.current_id).html('<strong>Current:</strong> '+best+' (energy: '+Quest.data[best].energy+')');
+			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
@@ -175,18 +190,5 @@ Quest.work = function(state) {
 		Page.reload();
 	}
 	return true;
-};
-Quest.select = function() {
-	var i, def = ['Nothing', 'Influence', 'Experience', 'Cash'], list = [];
-	for (i in Quest.data) {
-		if (Quest.data[i].item) {
-			list.push(Quest.data[i].item);
-		}
-	}
-	list = def.concat(unique(list.sort()));
-	$('#'+Quest.what_id).empty();
-	for (i in list) {
-		$('#'+Quest.what_id).append('<option value="'+list[i]+'"'+(list[i]===Quest.option.what ? ' selected' : '')+'>'+list[i]+'</value>');
-	}
 };
 

@@ -5,6 +5,15 @@ var Upgrade = new Worker('Upgrade', 'keep_stats');
 Upgrade.data = {
 	run: 0
 };
+Upgrade.display = [
+	{
+		label:'Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)'
+	},{
+		id:'order',
+		label:'Stats',
+		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
+	}
+];
 Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (Upgrade.data.working && result.length && result.text().match(/You just upgraded your/i)) {
@@ -15,12 +24,6 @@ Upgrade.parse = function(change) {
 		}
 	}
 	return false;
-};
-Upgrade.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)');
-	panel.multiple('order', 'Stats:', ['Energy', 'Stamina', 'Attack', 'Defense', 'Health']);
-	return panel.show;
 };
 Upgrade.work = function(state) {
 	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade) {

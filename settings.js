@@ -22,7 +22,7 @@ var Settings = {
 				v = v.replace(/^"|"$/g,'');
 			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, eval(v), d);
+					v = $.extend(true, {}, d, eval(v));
 				} else {
 					v = eval(v);
 				}

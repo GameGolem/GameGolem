@@ -13,6 +13,27 @@ Battle.option = {
 	monster: true,
 	type: 'Invade'
 };
+Battle.display = [
+	{
+		label:'NOTE: Attacks at a loss up to 5 times more than a win'
+	},{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'type',
+		label:'Battle Type',
+		select:['Invade', 'Duel']
+	},{
+		id:'points',
+		label:'Always Get Demi-Points',
+		checkbox:true
+	},{
+		id:'monster',
+		label:'Fight Monsters First',
+		checkbox:true
+	}
+];
 Battle.parse = function(change) {
 	var i, data, uid, info;
 	if (Page.page === 'battle_battle') {
@@ -62,15 +83,6 @@ Battle.parse = function(change) {
 	}
 //	GM_debug('Battle: '+Battle.data.toSource());
 	return false;
-};
-Battle.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('NOTE: Attacks at a loss up to 5 times more than a win');
-	panel.checkbox('general', 'Use Best General');
-	panel.select('type', 'Battle Type', ['Invade', 'Duel']);
-	panel.checkbox('points', 'Always Get Demi-Points');
-	panel.checkbox('monster', 'Fight Monsters First');
-	return panel.show;
 };
 Battle.work = function(state) {
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {

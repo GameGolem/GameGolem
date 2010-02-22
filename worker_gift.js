@@ -8,6 +8,15 @@ Gift.data = {
 	todo: {},
 	gifts: {}
 };
+Gift.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'type',
+		label:'Return Gifts',
+		select:['None', 'Random', 'Same as Received']
+	}
+];
 Gift.lookup = {
 	'eq_gift_mystic_mystery.jpg':	'Mystic Armor',
 	'eq_drakehelm_mystery.jpg':		'Drake Helm',
@@ -70,12 +79,6 @@ Gift.parse = function(change) {
 		});
 	}
 	return false;
-};
-Gift.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Work in progress...');
-	panel.select('type', 'Return Gifts:', ['None', 'Random', 'Same as Received']);
-	return panel.show;
 };
 Gift.work = function(state) {
 	if (!state) {

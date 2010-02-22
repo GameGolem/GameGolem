@@ -9,14 +9,25 @@ Bank.option = {
 	hand: 0,
 	keep: 10000
 };
-Bank.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('general', 'Use Best General:');
-	panel.text('above', 'Bank Above:');
-	panel.text('hand', 'Keep in Cash:');
-	panel.text('keep', 'Keep in Bank:');
-	return panel.show;
-};
+Bank.display = [
+	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'above',
+		label:'Bank Above',
+		text:true
+	},{
+		id:'hand',
+		label:'Keep in Cash',
+		text:true
+	},{
+		id:'keep',
+		label:'Keep in Bank',
+		text:true
+	}
+];
 Bank.work = function(state) {
 	if (Player.data.cash < Bank.option.above) {
 		return false;

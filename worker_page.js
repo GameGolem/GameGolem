@@ -13,34 +13,46 @@ Page.lastclick = null;
 Page.when = null;
 Page.retry = 0;
 Page.checking = true;
-Page.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('timeout', 'Retry after ', [10, 15, 30, 60], {after:' seconds'});
-	panel.select('retry', 'Reload after ', [2, 3, 5, 10], {after:' tries'});
-	return panel.show;
-};
+Page.display = [
+	{
+		id:'timeout',
+		label:'Retry after',
+		select:[10, 15, 30, 60],
+		after:'seconds'
+	},{
+		id:'retry',
+		label:'Reload after',
+		select:[2, 3, 5, 10],
+		after:'tries'
+	}
+];
 Page.work = function(state) {
-	if (!state) {
-		if (Page.checking) {
-			return true;
-		}
+	if (!Page.checking) {
 		return false;
 	}
-	var i, l, list;
-	for (i in Workers) {
+	var i, l, list, found = null;
+	for (i=0; i<Workers.length && !found; i++) {
 		if (!Workers[i].pages || Workers[i].pages==='*') {
 			continue;
 		}
 		list = Workers[i].pages.split(' ');
 		for (l=0; l<list.length; l++) {
-			if (Page.pageNames[list[l]] && !Page.data[list[l]]) {
-				if (list[l].indexOf('_active') === -1 && !Page.to(list[l])) {
-					return true;
-				}
+			if (Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+				found = list[l];
+				break;
 			}
 		}
 	}
-	Page.checking = false;
+	if (!state) {
+		if (found) {
+			return true;
+		}
+		Page.checking = false;
+		return false;
+	}
+	if (found && !Page.to(found)) {
+		return true;
+	}
 	return false;
 };
 Page.pageNames = {

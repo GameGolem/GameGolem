@@ -8,6 +8,19 @@ Town.data = {
 	magic: {},
 	land: {}
 };
+Town.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'general',
+		label:'Buy Number:',
+		select:['None', 'Maximum', 'Match Army']
+	},{
+		id:'units',
+		label:'Buy Type:',
+		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
+	}
+];
 Town.units = {};
 Town.cache = {}; // for quick sorting
 Town.table = null; // table units are in
@@ -106,14 +119,6 @@ Town.parse = function(change) {
 		}
 	}
 	return true;
-};
-Town.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('In progress...');
-	panel.checkbox('general', 'Use Best General:');
-	panel.select('number', 'Buy Number:', ['None', 'Maximum', 'Match Army']);
-	panel.select('units', 'Buy Type:', ['All', 'Best Offense', 'Best Defense', 'Best of Both']);
-	return panel.show;
 };
 Town.work = function(state) {
 	if (!Town.option.number) {

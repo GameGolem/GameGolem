@@ -12,18 +12,39 @@ Idle.option = {
 	town: 'Never',
 	battle: 'Daily'
 };
-Idle.display = function() {
-	var panel = new Panel(this.name), when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
-	panel.info('<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.');
-	panel.general('general', 'Idle General', 'any');
-	panel.info('Check Pages:');
-	panel.select('index', 'Home Page', when);
-	panel.select('alchemy', 'Alchemy', when);
-	panel.select('quests', 'Quests', when);
-	panel.select('town', 'Town', when);
-	panel.select('battle', 'Battle', when);
-	return panel.show;
-};
+Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
+Idle.display = [
+	{
+		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
+	},{
+		id:'general',
+		label:'Idle General',
+		select:'generals'
+	},{
+		label:'Check Pages:'
+	},{
+		id:'index',
+		label:'Home Page',
+		select:Idle.when
+	},{
+		id:'alchemy',
+		label:'Alchemy',
+		select:Idle.when
+	},{
+		id:'quests',
+		label:'Quests',
+		select:Idle.when
+	},{
+		id:'town',
+		label:'Town',
+		select:Idle.when
+	},{
+		id:'battle',
+		label:'Battle',
+		select:Idle.when
+	}
+];
+
 Idle.work = function(state) {
 	var i, p, time, pages = {
 		index:['index'],

@@ -6,6 +6,11 @@ Blessing.option = {
 	which: 'Stamina'
 };
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
+Blessing.display = [{
+	id:'which',
+	label:'Which',
+	select:Blessing.which
+}];
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
 	if (result.length) {
@@ -17,11 +22,6 @@ Blessing.parse = function(change) {
 		}
 	}
 	return false;
-};
-Blessing.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('which', 'Which:', Blessing.which);
-	return panel.show;
 };
 Blessing.work = function(state) {
 	if (!Blessing.option.which || Blessing.option.which === 'None' || Date.now() <= Blessing.data.when) {

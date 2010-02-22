@@ -8,12 +8,19 @@ Heal.option = {
 	stamina: 0,
 	health: 0
 };
-Heal.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('stamina', 'Heal Above', Player.data.maxstamina, {after:' stamina'});
-	panel.select('health', '...And Below', Player.data.maxhealth, {after:' health'});
-	return panel.show;
-};
+Heal.display = [
+	{
+		id:'stamina',
+		label:'Heal Above',
+		after:'stamina',
+		select:'stamina'
+	},{
+		id:'health',
+		label:'...And Below',
+		after:'health',
+		select:'health'
+	}
+];
 Heal.work = function(state) {
 	if (Player.data.health >= Player.data.maxhealth || Player.data.stamina < Heal.option.stamina || Player.data.health >= Heal.option.health) {
 		return false;

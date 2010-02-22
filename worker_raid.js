@@ -5,13 +5,19 @@ Raid = new Worker('Raid', 'battle_raid', {stamina:true});
 Raid.onload = function() {
 	if (!Raid.option.type) Raid.option.type = 'Invade';
 }
-Raid.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('In progress...');
-	panel.select('type', 'Attack Type:', ['Invade', 'Duel']);
-	panel.general('general', 'General:');
-	return panel.show;
-}
+Raid.display = [
+	{
+		label:'Work in progress... Will be merged with main Monster section later'
+	},{
+		id:'general',
+		label:'General',
+		select:'generals'
+	},{
+		id:'type',
+		label:'Attack Type',
+		select:['Invade', 'Duel']
+	}
+];
 Raid.parse = function(change) {
 	if ($('input[name="help with raid"]').length) { // In a raid
 		var user = $('img[linked="true"][size="square"]').attr('uid');

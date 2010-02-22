@@ -75,124 +75,6 @@ $(document).ready(function() {
 	}
 });
 
-/********** Panel **********
-* Create an instance of a panel for creating the display
-* This code is a total mess...
-*/
-function Panel(name) {
-	this.name = name;
-	this.show = $('<div style="font-size:smaller;padding:12px;"></div>');
-	this.options = function(opts) {
-		opts		= opts || {};
-		opts.before	= opts.before || '';
-		opts.after	= opts.after || '';
-		opts.suffix	= opts.suffix || '';
-		opts.between= opts.between || 'to';
-		opts.size	= opts.size || 7;
-		opts.min	= opts.min || 0;
-		opts.max	= opts.max || 100;
-		return opts;
-	};
-	this.checkbox = function(id,label,opts) {
-		var value = (WorkerByName(this.name).option[id] || false);
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		opts = this.options(opts);
-		$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;text-align:right">'+opts.before+'<input type="checkbox" id="'+id+'" '+(value?' checked':'')+'>'+opts.after+'</span></div>');
-		return id;
-	};
-	this.text = function(id,label,opts) {
-		var value = (WorkerByName(this.name).option[id] || '');
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		opts = this.options(opts);
-		$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;text-align:right">'+opts.before+'<input type="text" id="'+id+'" size="'+opts.size+'" value="'+value+'">'+opts.after+'</span></div>');
-		return id;
-	};
-	this.select = function(id,label,list,opts) {
-		var value = (WorkerByName(this.name).option[id] || null);
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		var options = [];
-		opts = this.options(opts);
-		if (!list) list = [];
-		if (typeof list == 'number') { // Give us a selection of numbers
-			var step = Divisor(list), max = list;
-			list = [];
-			for (var i=0; i<=max; i+=step) list.push(i);
-		}
-		for (var i in list) {
-			if (typeof list[i] == 'object') options[i] = '<option value="'+list[i][0]+'"'+(value==list[i][0]?' selected':'')+'>'+list[i][0]+' ('+list[i][1]+opts.suffix+')</option>';
-			else options[i] = '<option value="'+list[i]+'"'+(value==list[i]?' selected':'')+'>'+list[i]+opts.suffix+'</option>';
-		}
-		$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;text-align:right">'+opts.before+'<select id="'+id+'">'+options.join('')+'</select>'+opts.after+'</span></div>');
-		return id;
-	};
-	this.multiple = function(id,label,list,opts) {
-		var value = (WorkerByName(this.name).option[id] || []);
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		var options = [], values = [];
-		opts = this.options(opts);
-		if (!list) list = [];
-		for (var i in list) {
-			if (typeof list[i] == 'object') options[i] = '<option value="'+list[i][0]+'">'+list[i][0]+' ('+list[i][1]+')</option>';
-			else options[i] = '<option value="'+list[i]+'">'+list[i]+'</option>';
-		}
-		for (var i in value) {
-			values[i] = '<option value="'+value[i]+'">'+value[i]+'</option>';
-		}
-		var $obj = $('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;text-align:right"><select style="width:100%" class="golem_multiple" multiple id="'+id+'">'+values.join('')+'</select><br><select class="golem_select">'+options.join('')+'</select><input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" /></span></div>');
-		$('input.golem_addselect', $obj).click(function(){
-			$('select.golem_multiple', $(this).parent()).append('<option>'+$('select.golem_select', $(this).parent()).val()+'</option>');
-			Config.updateOptions();
-		});
-		$('input.golem_delselect', $obj).click(function(){
-			$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
-			Config.updateOptions();
-		});
-		$(this.show).append($obj);
-		return id;
-	};
-	this.range = function(id,label,opts) {	// Would prefer to use jQueryUI .slider instead, but doesn't like GM
-		var value1 = (WorkerByName(this.name).option[id+'_min'] || 0);
-		var value2 = (WorkerByName(this.name).option[id+'_max'] || 100);
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		opts = this.options(opts);//<input type="text" id="' + id + '" size="'+opts.size+'" value="'+value+'">
-		var step = Divisor(opts.max-opts.min), list1 = [], list2 = [];
-		if (typeof value1 == 'number') value1 -= value1 % step;
-		if (typeof value2 == 'number') value2 -= value2 % step;
-		for (var i=opts.min; i<=opts.max; i+=step) {
-			list1.push('<option value="'+i+'"'+(value1==i?' selected':'')+'>'+i+'</option>');
-			list2.push('<option value="'+i+'"'+(value2==i?' selected':'')+'>'+i+'</option>');
-		}
-		list1.unshift('<option value="None"'+(value1=='None'?' selected':'')+'>None</option>');
-		list2.push('<option value="All"'+(value2=='All'?' selected':'')+'>All</option>');
-		$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;text-align:right">'+opts.before+'<select id="'+id+'_min">'+list1.join('')+'</select> '+opts.between+' <select id="'+id+'_max">'+list2.join('')+'</select>'+opts.after+'</span></div>');
-		return id;
-	};
-	this.general = function(id,label,options) {
-		var id = PREFIX + this.name + '_' + id;
-		var label = label.replace(' ','&nbsp;');
-		$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;"><select id="'+id+'" class="golem_generals" alt="'+options+'"></select></span></div>');
-	};
-	this.div = function(id,text) {
-		var id = PREFIX + this.name + '_' + id;
-		$(this.show).append('<div id="'+id+'" style="clear:both">'+text+'<br /><br /></div>');
-		return id;
-	};
-	this.info = function(text,id,label) {
-		if (id && label) {
-			var id = PREFIX + this.name + '_' + id;
-			var label = label.replace(' ','&nbsp;');
-			$(this.show).append('<div style="clear:both"><span style="float:left;">'+label+'</span><span style="float:right;" id="'+id+'">'+text+'</span></div>');
-			return id;
-		} else {
-			$(this.show).append('<div style="clear:both">'+text+'<br /><br /></div>');
-		}
-	};
-}
 /********** Settings **********
 * Used for storing prefs, prefer to use this over GM_set/getValue
 * Should never be called by anyone directly - let the main function do it when needed
@@ -217,7 +99,7 @@ var Settings = {
 				v = v.replace(/^"|"$/g,'');
 			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, eval(v), d);
+					v = $.extend(true, {}, d, eval(v));
 				} else {
 					v = eval(v);
 				}
@@ -470,6 +352,241 @@ function Worker(name,pages) {
 	this.priv_since = 0;
 	this.priv_id = null;
 }
+/********** Worker.Config **********
+* Has everything to do with the config
+* Named with a double dash to ensure it comes early as other workers rely on it's onload() function!
+*/
+var Config = new Worker('Config');
+Config.data = null;
+Config.option = {
+	top: 60,
+	left: 25,
+	width: 250,
+	height: "auto",
+	active:false
+};
+Config.panel = null;
+Config.onload = function() {
+	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
+	var $btn, $golem_config, $newPanel, i, panel, pos = 'top:'+Config.option.top+'px;left:'+Config.option.left+'px;width:'+Config.option.width+'px;height:auto;';
+//<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
+	Config.panel = $('<div class="ui-widget-content" style="'+pos+'padding:0;position:absolute;overflow:hidden;overflow-y:auto;"><div class="ui-widget-header" id="golem_title" style="padding:4px;cursor:move;overflow:hidden;">Castle Age Golem v'+VERSION+'</div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div>');
+	$('#content').append(Config.panel);
+	$(Config.panel)
+		.draggable({ containment:'parent', handle:'#golem_title', stop:function(){
+			Config.saveWindow();
+		} })
+		.resizable({ containment:'parent', handles:'se', minWidth:100, resize:function(){
+			$('#golem_config').height($(Config.panel).height()-$('#golem_config').position().top-8);
+		}, stop:function(){
+			Config.saveWindow();
+		} });
+//	$('.ui-resizable-se', Config.panel).last().dblclick(function(){$(Config.panel).css('height','auto');});
+	$golem_config = $('#golem_config');
+	$golem_config
+		.sortable({axis:"y"});//, items:'div', handle:'h3'
+	for (i in Workers) { // Load the display panels up
+		panel = Config.makePanel(Workers[i]);
+		if (panel) {
+			$golem_config.append(panel);
+		}
+	}
+	$golem_config
+		.accordion({ autoHeight:false, clearStyle:true, active:false, collapsible:true, header:'div > h3', change:function(){Config.saveWindow();} });
+	$golem_config.children(':not(.golem_unsortable)')
+		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
+refreshPositions:true, stop:function(){Config.updateOptions();} })
+		.droppable({ tolerance:'pointer', over:function(e,ui) {
+			if (Config.getPlace($(this).attr('id')) < Config.getPlace($(ui.draggable).attr('id'))) {
+				$(this).before(ui.draggable);
+			} else {
+				$(this).after(ui.draggable);
+			}
+		} });
+	for (i in Workers) { // Update all select elements
+		if (Workers[i].select) {
+			Workers[i].select();
+		}
+	}
+	$('input.golem_addselect').click(function(){
+		$('select.golem_multiple', $(this).parent()).append('<option>'+$('select.golem_select', $(this).parent()).val()+'</option>');
+		Config.updateOptions();
+	});
+	$('input.golem_delselect').click(function(){
+		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
+		Config.updateOptions();
+	});
+	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
+	//	$(Config.panel).css({display:'block'});
+};
+Config.makePanel = function(worker) {
+	var i, o, x, id, step, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
+		before: '',
+		after: '',
+		suffix: '',
+		className: '',
+		between: 'to',
+		size: 7,
+		min: 0,
+		max: 100
+	};
+	if (!display) {
+		return false;
+	}
+	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
+	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3><a>'+(worker.unsortable?'<img "class="ui-icon ui-icon-locked" style="left:2em;width:16px;height:16px" />&nbsp;&nbsp;&nbsp;&nbsp;':'')+worker.name+'</a></h3></div>');
+	switch (typeof display) {
+		case 'array':
+		case 'object':
+			for (i in display) {
+				txt = [];
+				list = [];
+				o = $.extend(true, {}, options, display[i]);
+				o.real_id = PREFIX + worker.name + '_' + o.id;
+				o.value = worker.option[o.id] || null;
+				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+				if (o.label) {
+					txt.push('<span style="float:left;">'+o.label.replace(' ','&nbsp;')+'</span>');
+				}
+				txt.push('<span style="float:right;">');
+				if (o.before) {
+					txt.push(o.before+' ');
+				}
+				// our different types of input elements
+				if (o.info) {
+					if (o.id) {
+						txt.push('<span id="' + o.real_id + '">' + o.info + '</span>');
+					} else {
+						txt.push(o.info);
+					}
+				} else if (o.text) {
+					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || '') + '">');
+				} else if (o.checkbox) {
+					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+				} else if (o.select) {
+					switch (typeof o.select) {
+						case 'string':
+							o.className = ' class="golem_'+o.select+'"';
+							break;
+						case 'number':
+							step = Divisor(o.select);
+							for (x=0; x<=o.select; x+=step) {
+								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
+							}
+							break;
+						case 'array':
+						case 'object':
+							for (x in o.select) {
+								list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							}
+							break;
+					}
+					txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
+				} else if (o.multiple) {
+					if (typeof o.value === 'array' || typeof o.value === 'object') {
+						for (i in o.value) {
+							list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
+						}
+					}
+					txt.push('<select style="width:100%" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
+					list = [];
+					switch (typeof o.multiple) {
+						case 'string':
+							o.className = ' class="golem_'+o.select+'"';
+							break;
+						case 'number':
+							step = Divisor(o.select);
+							for (x=0; x<=o.multiple; x+=step) {
+								list.push('<option>' + x + '</option>');
+							}
+							break;
+						case 'array':
+							for (x=0; x<o.multiple.length; x++) {
+								list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							}
+							break;
+						case 'object':
+							for (x in o.multiple) {
+								list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							}
+							break;
+					}
+					txt.push('<select class="golem_select">'+list.join('')+'</select><input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+				}
+				if (o.after) {
+					txt.push(' '+o.after);
+				}
+				txt.push('</span>');
+				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
+			}
+			$head.append('<div style="font-size:smaller;padding:12px;">' + panel.join('') + '</div>');
+			return $head;
+//		case 'function':
+//			$panel = display();
+//			if ($panel) {
+//				$head.append($panel);
+//				return $head;
+//			}
+//			return null;
+		default:
+			return null;
+	}
+};
+Config.saveWindow = function() {
+	Config.option.top = $(Config.panel).offset().top;
+	Config.option.left = $(Config.panel).offset().left;
+	Config.option.width = $(Config.panel).width();
+	Config.option.height = $(Config.panel).height();
+	Config.option.active = $('#golem_config h3.ui-state-active').parent().attr('id');
+//	Config.option.active = $('#golem_config').accordion('option','active'); // Accordian is still bugged at the time of writing...
+	Settings.Save('option', Config);
+};
+Config.updateOptions = function() {
+	GM_debug('Options changed');
+	// Get order of panels first
+	var found = {};
+	Queue.option.queue = [];
+	$('#golem_config > div').each(function(i,el){
+		var name = WorkerById($(el).attr('id')).name;
+		if (!found[name]) {
+			Queue.option.queue.push(name);
+		}
+		found[name] = true;
+	});
+	// Now save the contents of all elements with the right id style
+	$('#golem_config :input').each(function(i,el){
+		if ($(el).attr('id')) {
+			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
+			if (!tmp) {
+				return;
+			}
+			if ($(el).attr('type') === 'checkbox') {
+				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
+			} else if ($(el).attr('multiple')) {
+				val = [];
+				$('option', el).each(function(i,el){ val.push($(el).text()); });
+				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			} else {
+				val = $(el).attr('value') || ($(el).val() || null);
+				if (val && val.search(/[^0-9.]/) === -1) {
+					val = parseFloat(val);
+				}
+				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			}
+		}
+	});
+	Settings.Save('option');
+};
+Config.getPlace = function(id) {
+	var place = -1;
+	$('#golem_config > div').each(function(i,el){
+		if ($(el).attr('id') === id && place === -1) {
+			place = i;
+		}
+	});
+	return place;
+};
+
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
 */
@@ -478,6 +595,17 @@ Alchemy.data = {
 	ingredients:{},
 	recipe:{}
 };
+Alchemy.display = [
+	{
+		id:'perform',
+		label:'Automatically Perform',
+		checkbox:true
+	},{
+		id:'hearts',
+		label:'Use Battle Hearts',
+		checkbox:true
+	}
+];
 Alchemy.parse = function(change) {
 	var ingredients = Alchemy.data.ingredients = {}, recipe = Alchemy.data.recipe = {};
 	$('div.ingredientUnit').each(function(i,el){
@@ -498,12 +626,6 @@ Alchemy.parse = function(change) {
 		});
 		recipe[title] = me;
 	});
-};
-Alchemy.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('perform', 'Automatically Perform');
-	panel.checkbox('hearts', 'Use Battle Hearts');
-	return panel.show;
 };
 Alchemy.work = function(state) {
 	if (!Alchemy.option.perform) {
@@ -545,14 +667,25 @@ Bank.option = {
 	hand: 0,
 	keep: 10000
 };
-Bank.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('general', 'Use Best General:');
-	panel.text('above', 'Bank Above:');
-	panel.text('hand', 'Keep in Cash:');
-	panel.text('keep', 'Keep in Bank:');
-	return panel.show;
-};
+Bank.display = [
+	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'above',
+		label:'Bank Above',
+		text:true
+	},{
+		id:'hand',
+		label:'Keep in Cash',
+		text:true
+	},{
+		id:'keep',
+		label:'Keep in Bank',
+		text:true
+	}
+];
 Bank.work = function(state) {
 	if (Player.data.cash < Bank.option.above) {
 		return false;
@@ -613,6 +746,27 @@ Battle.option = {
 	monster: true,
 	type: 'Invade'
 };
+Battle.display = [
+	{
+		label:'NOTE: Attacks at a loss up to 5 times more than a win'
+	},{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'type',
+		label:'Battle Type',
+		select:['Invade', 'Duel']
+	},{
+		id:'points',
+		label:'Always Get Demi-Points',
+		checkbox:true
+	},{
+		id:'monster',
+		label:'Fight Monsters First',
+		checkbox:true
+	}
+];
 Battle.parse = function(change) {
 	var i, data, uid, info;
 	if (Page.page === 'battle_battle') {
@@ -662,15 +816,6 @@ Battle.parse = function(change) {
 	}
 //	GM_debug('Battle: '+Battle.data.toSource());
 	return false;
-};
-Battle.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('NOTE: Attacks at a loss up to 5 times more than a win');
-	panel.checkbox('general', 'Use Best General');
-	panel.select('type', 'Battle Type', ['Invade', 'Duel']);
-	panel.checkbox('points', 'Always Get Demi-Points');
-	panel.checkbox('monster', 'Fight Monsters First');
-	return panel.show;
 };
 Battle.work = function(state) {
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
@@ -737,6 +882,11 @@ Blessing.option = {
 	which: 'Stamina'
 };
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
+Blessing.display = [{
+	id:'which',
+	label:'Which',
+	select:Blessing.which
+}];
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
 	if (result.length) {
@@ -748,11 +898,6 @@ Blessing.parse = function(change) {
 		}
 	}
 	return false;
-};
-Blessing.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('which', 'Which:', Blessing.which);
-	return panel.show;
 };
 Blessing.work = function(state) {
 	if (!Blessing.option.which || Blessing.option.which === 'None' || Date.now() <= Blessing.data.when) {
@@ -766,124 +911,6 @@ Blessing.work = function(state) {
 	}
 	Page.click('#app'+APP+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
 	return false;
-};
-
-/********** Worker.Config **********
-* Has everything to do with the config
-*/
-var $configWindow = null;
-
-var Config = new Worker('Config');
-Config.data = null;
-Config.option = {
-	top: 60,
-	left: 25,
-	width: 250,
-	height: "auto",
-	active:false
-};
-Config.panel = null;
-Config.onload = function() {
-	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $golem_config, $newPanel, i, panel, pos = 'top:'+Config.option.top+'px;left:'+Config.option.left+'px;width:'+Config.option.width+'px;height:auto;';
-//<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="ui-widget-content" style="'+pos+'padding:0;position:absolute;overflow:hidden;overflow-y:auto;"><div class="ui-widget-header" id="golem_title" style="padding:4px;cursor:move;overflow:hidden;">Castle Age Golem v'+VERSION+'</div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div>');
-	$('#content').append(Config.panel);
-	$(Config.panel)
-		.draggable({ containment:'parent', handle:'#golem_title', stop:function(){
-			Config.saveWindow();
-		} })
-		.resizable({ containment:'parent', handles:'se', minWidth:100, resize:function(){
-			$('#golem_config').height($(Config.panel).height()-$('#golem_config').position().top-8);
-		}, stop:function(){
-			Config.saveWindow();
-		} });
-//	$('.ui-resizable-se', Config.panel).last().dblclick(function(){$(Config.panel).css('height','auto');});
-	$golem_config = $('#golem_config');
-	$golem_config
-		.sortable({axis:"y"});//, items:'div', handle:'h3'
-	for (i in Workers) {	// Load the display panels up
-		if (Workers[i].display) {
-//			GM_debug(Workers[i].name + '.display()');
-			panel = Workers[i].display();
-			if (panel) { // <span class="ui-icon ui-icon-arrow-1-n"></span><span class="ui-icon ui-icon-arrow-1-s"></span>
-				Workers[i].priv_id = 'golem_panel_'+Workers[i].name.toLowerCase().replace(/[^0-9a-z]/,'_');
-				// <input type="checkbox" id="'+Workers[i].priv_id+'_disabled" '+(true?' checked':'')+'>
-				$newPanel = $('<div id="'+Workers[i].priv_id+'"'+(Workers[i].unsortable?' class="golem_unsortable"':'')+' name="'+Workers[i].name+'"><h3><a>'+(Workers[i].unsortable?'<img "class="ui-icon ui-icon-locked" style="left:2em;width:16px;height:16px" />&nbsp;&nbsp;&nbsp;&nbsp;':'')+Workers[i].name+'</a></h3></div>');
-				$newPanel.append(panel);
-				$golem_config.append($newPanel);
-			}
-		}
-	}
-	$golem_config
-		.accordion({ autoHeight:false, clearStyle:true, active:false, collapsible:true, header:'div > h3', change:function(){Config.saveWindow();} });
-	$golem_config.children(':not(.golem_unsortable)')
-		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
-refreshPositions:true, stop:function(){Config.updateOptions();} })
-		.droppable({ tolerance:'pointer', over:function(e,ui) {
-			if (Config.getPlace($(this).attr('id')) < Config.getPlace($(ui.draggable).attr('id'))) {
-				$(this).before(ui.draggable);
-			} else {
-				$(this).after(ui.draggable);
-			}
-		} });
-	Generals.select();
-	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
-//	$(Config.panel).css({display:'block'});
-};
-Config.saveWindow = function() {
-	Config.option.top = $(Config.panel).offset().top;
-	Config.option.left = $(Config.panel).offset().left;
-	Config.option.width = $(Config.panel).width();
-	Config.option.height = $(Config.panel).height();
-	Config.option.active = $('#golem_config h3.ui-state-active').parent().attr('id');
-//	Config.option.active = $('#golem_config').accordion('option','active'); // Accordian is still bugged at the time of writing...
-	Settings.Save('option', Config);
-};
-Config.updateOptions = function() {
-	GM_debug('Options changed');
-	// Get order of panels first
-	var found = {};
-	Queue.option.queue = [];
-	$('#golem_config > div').each(function(i,el){
-		var name = WorkerById($(el).attr('id')).name;
-		if (!found[name]) {
-			Queue.option.queue.push(name);
-		}
-		found[name] = true;
-	});
-	// Now save the contents of all elements with the right id style
-	$('#golem_config :input').each(function(i,el){
-		if ($(el).attr('id')) {
-			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
-			if (!tmp) {
-				return;
-			}
-			if ($(el).attr('type') === 'checkbox') {
-				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
-			} else if ($(el).attr('multiple')) {
-				val = [];
-				$('option', el).each(function(i,el){ val.push($(el).text()); });
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
-			} else {
-				val = ($(el).val() || null);
-				if (val && val.search(/[^0-9.]/)) {
-					val = parseFloat(val);
-				}
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
-			}
-		}
-	});
-	Settings.Save('option');
-};
-Config.getPlace = function(id) {
-	var place = -1;
-	$('#golem_config > div').each(function(i,el){
-		if ($(el).attr('id') === id && place === -1) {
-			place = i;
-		}
-	});
-	return place;
 };
 
 /********** Worker.Dashboard **********
@@ -908,7 +935,7 @@ Dashboard.parse = function(change) {
 var Debug = new Worker('Debug');
 Debug.data = null;
 Debug.option = null;
-Debug.display = function() {
+Debug.onload = function() {
 	if (!debug) {
 		return null; // Only add the button if debug is default on
 	}
@@ -1112,6 +1139,15 @@ Gift.data = {
 	todo: {},
 	gifts: {}
 };
+Gift.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'type',
+		label:'Return Gifts',
+		select:['None', 'Random', 'Same as Received']
+	}
+];
 Gift.lookup = {
 	'eq_gift_mystic_mystery.jpg':	'Mystic Armor',
 	'eq_drakehelm_mystery.jpg':		'Drake Helm',
@@ -1175,12 +1211,6 @@ Gift.parse = function(change) {
 	}
 	return false;
 };
-Gift.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Work in progress...');
-	panel.select('type', 'Return Gifts:', ['None', 'Random', 'Same as Received']);
-	return panel.show;
-};
 Gift.work = function(state) {
 	if (!state) {
 		if (!Gift.data.uid.length) {
@@ -1217,12 +1247,19 @@ Heal.option = {
 	stamina: 0,
 	health: 0
 };
-Heal.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('stamina', 'Heal Above', Player.data.maxstamina, {after:' stamina'});
-	panel.select('health', '...And Below', Player.data.maxhealth, {after:' health'});
-	return panel.show;
-};
+Heal.display = [
+	{
+		id:'stamina',
+		label:'Heal Above',
+		after:'stamina',
+		select:'stamina'
+	},{
+		id:'health',
+		label:'...And Below',
+		after:'health',
+		select:'health'
+	}
+];
 Heal.work = function(state) {
 	if (Player.data.health >= Player.data.maxhealth || Player.data.stamina < Heal.option.stamina || Player.data.health >= Heal.option.health) {
 		return false;
@@ -1256,18 +1293,39 @@ Idle.option = {
 	town: 'Never',
 	battle: 'Daily'
 };
-Idle.display = function() {
-	var panel = new Panel(this.name), when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
-	panel.info('<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.');
-	panel.general('general', 'Idle General', 'any');
-	panel.info('Check Pages:');
-	panel.select('index', 'Home Page', when);
-	panel.select('alchemy', 'Alchemy', when);
-	panel.select('quests', 'Quests', when);
-	panel.select('town', 'Town', when);
-	panel.select('battle', 'Battle', when);
-	return panel.show;
-};
+Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
+Idle.display = [
+	{
+		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
+	},{
+		id:'general',
+		label:'Idle General',
+		select:'generals'
+	},{
+		label:'Check Pages:'
+	},{
+		id:'index',
+		label:'Home Page',
+		select:Idle.when
+	},{
+		id:'alchemy',
+		label:'Alchemy',
+		select:Idle.when
+	},{
+		id:'quests',
+		label:'Quests',
+		select:Idle.when
+	},{
+		id:'town',
+		label:'Town',
+		select:Idle.when
+	},{
+		id:'battle',
+		label:'Battle',
+		select:Idle.when
+	}
+];
+
 Idle.work = function(state) {
 	var i, p, time, pages = {
 		index:['index'],
@@ -1309,13 +1367,22 @@ Income.option = {
 	bank: true,
 	margin: 30
 };
-Income.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('general', 'Use Best General:');
-	panel.checkbox('bank', 'Automatically Bank:');
-	panel.select('margin', 'Safety Margin', [15,30,45,60], {suffix:' seconds'});
-	return panel.show;
-};
+Income.display = [
+	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'bank',
+		label:'Automatically Bank',
+		checkbox:true
+	},{
+		id:'margin',
+		label:'Safety Margin',
+		select:[15,30,45,60],
+		suffix:'seconds'
+	}
+];
 
 Income.work = function(state) {
 	if (!Income.option.margin) {
@@ -1339,7 +1406,7 @@ Income.work = function(state) {
 	if (Income.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	GM_debug('Income: Waiting for Income...');
+	GM_debug('Income: Waiting for Income... ('+when+' seconds)');
 	return true;
 };
 
@@ -1351,15 +1418,23 @@ Monster.option = {
 	fortify: 50,
 	choice: 'Random'
 };
+Monster.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'fortify',
+		label:'Fortify Below',
+		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+		after:'%'
+	},{
+		label:'Random only (for now)...'
+	},{
+		id:'choice',
+		label:'Attack',
+		select:['Random', 'Strongest', 'Weakest']
+	}
+];
 Monster.uid = null;
-Monster.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Work in progress...');
-	panel.select('fortify', 'Fortify Below:', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], {after:'%'});
-	panel.info('Random only...');
-	panel.select('choice', 'Attack:', ['Random', 'Strongest', 'Weakest']);
-	return panel.show;
-};
 Monster.parse = function(change) {
 	var i, user, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
@@ -1473,34 +1548,46 @@ Page.lastclick = null;
 Page.when = null;
 Page.retry = 0;
 Page.checking = true;
-Page.display = function() {
-	var panel = new Panel(this.name);
-	panel.select('timeout', 'Retry after ', [10, 15, 30, 60], {after:' seconds'});
-	panel.select('retry', 'Reload after ', [2, 3, 5, 10], {after:' tries'});
-	return panel.show;
-};
+Page.display = [
+	{
+		id:'timeout',
+		label:'Retry after',
+		select:[10, 15, 30, 60],
+		after:'seconds'
+	},{
+		id:'retry',
+		label:'Reload after',
+		select:[2, 3, 5, 10],
+		after:'tries'
+	}
+];
 Page.work = function(state) {
-	if (!state) {
-		if (Page.checking) {
-			return true;
-		}
+	if (!Page.checking) {
 		return false;
 	}
-	var i, l, list;
-	for (i in Workers) {
+	var i, l, list, found = null;
+	for (i=0; i<Workers.length && !found; i++) {
 		if (!Workers[i].pages || Workers[i].pages==='*') {
 			continue;
 		}
 		list = Workers[i].pages.split(' ');
 		for (l=0; l<list.length; l++) {
-			if (Page.pageNames[list[l]] && !Page.data[list[l]]) {
-				if (list[l].indexOf('_active') === -1 && !Page.to(list[l])) {
-					return true;
-				}
+			if (Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+				found = list[l];
+				break;
 			}
 		}
 	}
-	Page.checking = false;
+	if (!state) {
+		if (found) {
+			return true;
+		}
+		Page.checking = false;
+		return false;
+	}
+	if (found && !Page.to(found)) {
+		return true;
+	}
 	return false;
 };
 Page.pageNames = {
@@ -1699,6 +1786,32 @@ Player.work = function(state) {
 	Player.data.stamina			= $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 	Player.data.stamina_timer	= $('#app'+APP+'_stamina_time_value').text().parseTimer();
 };
+Player.select = function() {
+	var step = Divisor(Player.data.maxstamina)
+	$('select.golem_stamina').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
+		for (i=0; i<=Player.data.maxstamina; i+=step) {
+			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
+		}
+	});
+	step = Divisor(Player.data.maxenergy)
+	$('select.golem_energy').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
+		for (i=0; i<=Player.data.maxenergy; i+=step) {
+			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
+		}
+	});
+	step = Divisor(Player.data.maxhealth)
+	$('select.golem_health').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
+		for (i=0; i<=Player.data.maxhealth; i+=step) {
+			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
+		}
+	});
+};
 
 /********** Worker.Quest **********
 * Completes quests with a choice of general
@@ -1711,8 +1824,21 @@ Quest.option = {
 };
 Quest.land = ['fire', 'earth', 'mist', 'water', 'demon', 'undead'];
 Quest.current = null;
-Quest.current_id = null;
-Quest.what_id = null;
+Quest.display = [
+	{
+		id:'general',
+		label:'General',
+		select:['any', 'Under Level 4', 'Influence']
+	},{
+		id:'what',
+		label:'Quest for',
+		select:'quest_reward'
+	},{
+		id:'current',
+		label:'Current',
+		info:'None'
+	}
+];
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
 	switch(Page.page) {
@@ -1788,18 +1914,20 @@ Quest.parse = function(change) {
 	}
 	return false;
 };
-Quest.display = function() {
-	var i, list = [], panel;
+Quest.select = function() {
+	var i, list = ['Nothing', 'Influence', 'Experience', 'Cash'];
 	for (i in Quest.data) {
 		if (Quest.data[i].item) {
 			list.push(Quest.data[i].item);
 		}
 	}
-	panel = new Panel(this.name);
-	panel.select('general', 'General:', ['any', 'Under Level 4', 'Influence']);
-	Quest.what_id = panel.select('what', 'Quest for:', Array.concat(['Nothing', 'Influence', 'Experience', 'Cash'], unique(list.sort())));
-	Quest.current_id = panel.info('None', 'current', 'Current:');
-	return panel.show;
+	$('select.golem_quest_reward').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
+		for (i=0; i<list.length; i++) {
+			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
+		}
+	});
 };
 Quest.work = function(state) {
 	var i, list, best = null;
@@ -1835,7 +1963,7 @@ Quest.work = function(state) {
 		Quest.current = best;
 		if (best) {
 			GM_debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
-			$('#'+Quest.current_id).html('<strong>Current:</strong> '+best+' (energy: '+Quest.data[best].energy+')');
+			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
@@ -1878,19 +2006,6 @@ Quest.work = function(state) {
 	}
 	return true;
 };
-Quest.select = function() {
-	var i, def = ['Nothing', 'Influence', 'Experience', 'Cash'], list = [];
-	for (i in Quest.data) {
-		if (Quest.data[i].item) {
-			list.push(Quest.data[i].item);
-		}
-	}
-	list = def.concat(unique(list.sort()));
-	$('#'+Quest.what_id).empty();
-	for (i in list) {
-		$('#'+Quest.what_id).append('<option value="'+list[i]+'"'+(list[i]===Quest.option.what ? ' selected' : '')+'>'+list[i]+'</value>');
-	}
-};
 
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
@@ -1906,6 +2021,31 @@ Queue.option = {
 	stamina: 0,
 	energy: 0
 };
+Queue.display = [
+	{
+		label:'Drag the other panels into the order you wish them run.'
+	},{
+		id:'delay',
+		label:'Delay Between Events',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'clickdelay',
+		label:'Delay After Mouse Click',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'stamina',
+		label:'Keep Stamina',
+		select:'stamina'
+	},{
+		id:'energy',
+		label:'Keep Energy',
+		select:'energy'
+	}
+];
 Queue.runfirst = [];
 Queue.unsortable = true;
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
@@ -1941,8 +2081,6 @@ Queue.onload = function() {
 		}
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
-};
-Queue.display = function() {
 	$btn = $('<button id="golem_pause">pause</button>')
 		.button({ text:false, icons:{primary:(Queue.option.pause?'ui-icon-play':'ui-icon-pause')} })
 		.click(function() {
@@ -1953,13 +2091,6 @@ Queue.display = function() {
 			Config.updateOptions();
 		});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
-	var panel = new Panel(this.name);
-	panel.info('Drag the other panels into the order you wish them run.');
-	panel.text('delay', 'Delay Between Events', {after:'secs', size:3});
-	panel.text('clickdelay', 'Delay After Mouse Click', {after:'secs', size:3});
-	panel.select('stamina', 'Keep Stamina:', Player.data.maxstamina);
-	panel.select('energy', 'Keep Energy:', Player.data.maxenergy);
-	return panel.show;
 };
 Queue.run = function() {
 	var i, worker, found = false, now = Date.now();
@@ -2022,13 +2153,19 @@ Raid = new Worker('Raid', 'battle_raid', {stamina:true});
 Raid.onload = function() {
 	if (!Raid.option.type) Raid.option.type = 'Invade';
 }
-Raid.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('In progress...');
-	panel.select('type', 'Attack Type:', ['Invade', 'Duel']);
-	panel.general('general', 'General:');
-	return panel.show;
-}
+Raid.display = [
+	{
+		label:'Work in progress... Will be merged with main Monster section later'
+	},{
+		id:'general',
+		label:'General',
+		select:'generals'
+	},{
+		id:'type',
+		label:'Attack Type',
+		select:['Invade', 'Duel']
+	}
+];
 Raid.parse = function(change) {
 	if ($('input[name="help with raid"]').length) { // In a raid
 		var user = $('img[linked="true"][size="square"]').attr('uid');
@@ -2082,6 +2219,19 @@ Town.data = {
 	magic: {},
 	land: {}
 };
+Town.display = [
+	{
+		label:'Work in progress...'
+	},{
+		id:'general',
+		label:'Buy Number:',
+		select:['None', 'Maximum', 'Match Army']
+	},{
+		id:'units',
+		label:'Buy Type:',
+		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
+	}
+];
 Town.units = {};
 Town.cache = {}; // for quick sorting
 Town.table = null; // table units are in
@@ -2180,14 +2330,6 @@ Town.parse = function(change) {
 		}
 	}
 	return true;
-};
-Town.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('In progress...');
-	panel.checkbox('general', 'Use Best General:');
-	panel.select('number', 'Buy Number:', ['None', 'Maximum', 'Match Army']);
-	panel.select('units', 'Buy Type:', ['All', 'Best Offense', 'Best Defense', 'Best of Both']);
-	return panel.show;
 };
 Town.work = function(state) {
 	if (!Town.option.number) {
@@ -2343,6 +2485,15 @@ var Upgrade = new Worker('Upgrade', 'keep_stats');
 Upgrade.data = {
 	run: 0
 };
+Upgrade.display = [
+	{
+		label:'Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)'
+	},{
+		id:'order',
+		label:'Stats',
+		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
+	}
+];
 Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (Upgrade.data.working && result.length && result.text().match(/You just upgraded your/i)) {
@@ -2353,12 +2504,6 @@ Upgrade.parse = function(change) {
 		}
 	}
 	return false;
-};
-Upgrade.display = function() {
-	var panel = new Panel(this.name);
-	panel.info('Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)');
-	panel.multiple('order', 'Stats:', ['Energy', 'Stamina', 'Attack', 'Defense', 'Health']);
-	return panel.show;
 };
 Upgrade.work = function(state) {
 	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade) {

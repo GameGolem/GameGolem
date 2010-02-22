@@ -9,13 +9,22 @@ Income.option = {
 	bank: true,
 	margin: 30
 };
-Income.display = function() {
-	var panel = new Panel(this.name);
-	panel.checkbox('general', 'Use Best General:');
-	panel.checkbox('bank', 'Automatically Bank:');
-	panel.select('margin', 'Safety Margin', [15,30,45,60], {suffix:' seconds'});
-	return panel.show;
-};
+Income.display = [
+	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'bank',
+		label:'Automatically Bank',
+		checkbox:true
+	},{
+		id:'margin',
+		label:'Safety Margin',
+		select:[15,30,45,60],
+		suffix:'seconds'
+	}
+];
 
 Income.work = function(state) {
 	if (!Income.option.margin) {
@@ -39,7 +48,7 @@ Income.work = function(state) {
 	if (Income.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	GM_debug('Income: Waiting for Income...');
+	GM_debug('Income: Waiting for Income... ('+when+' seconds)');
 	return true;
 };
 
