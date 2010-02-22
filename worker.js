@@ -31,7 +31,7 @@ function Worker(name,pages) {
 	this.id = Workers.push(this);
 	this.name = name;
 	this.pages = pages;
-	this.unsortable = false
+	this.unsortable = false;
 	this.data = {};
 	this.option = {};
 	this.onload = null;

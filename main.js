@@ -24,14 +24,17 @@ function main() {
 		}
 		$('#app'+APP+'_nvbar_div_end').append('<br id="secret_golem_check" style="display:none"/>');
 		Page.identify();
-		for (var i in Workers) {
-			if (Workers[i].pages && (Workers[i].pages=='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+		var i;
+		for (i in Workers) {
+			if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 //				GM_debug(Workers[i].name + '.parse(false)');
 				Workers[i].priv_parse = Workers[i].parse(false);
-			} else Workers[i].priv_parse = false;
+			} else {
+				Workers[i].priv_parse = false;
+			}
 		}
 		Settings.Save('data');
-		for (var i in Workers) {
+		for (i in Workers) {
 			if (Workers[i].priv_parse) {
 //				GM_debug(Workers[i].name + '.parse(true)');
 				Workers[i].parse(true);
@@ -50,7 +53,9 @@ $(document).ready(function() {
 	Settings.Load('option');
 	if (window.location.href.indexOf('castle_age') >= 0) {
 		for (var i in Workers) {
-			if (Workers[i].onload) Workers[i].onload();
+			if (Workers[i].onload) {
+				Workers[i].onload();
+			}
 		}
 		main(); // Call once to get the ball rolling...
 		window.setInterval(function(){main();},1000);

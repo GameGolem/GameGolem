@@ -1,7 +1,7 @@
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
 */
-Dashboard = new Worker('Dashboard', '*');
+var Dashboard = new Worker('Dashboard', '*');
 Dashboard.parse = function(change) {
 //	if (!change) return true; // Ok, so we're lying...
 	if (!$('#golem_dashboard').length) {
@@ -12,4 +12,5 @@ Dashboard.parse = function(change) {
 		$('#golem_toggle_config').toggle(function(){$('#golem_title').parent().hide();}, function(){$('#golem_title').parent().show();});
 	}
 	return false;
-}
+};
+

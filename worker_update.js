@@ -1,7 +1,7 @@
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
 */
-Update = new Worker('Update');
+var Update = new Worker('Update');
 Update.data = null;
 Update.option = null;
 Update.found = false;
@@ -9,7 +9,7 @@ Update.onload = function() {
 	var $btn = $('<button name="Script Update" id="golem_update">Check</button>')
 		.button().click(function(){Update.now(true);});
 	$('#golem_buttons').append($btn);
-}
+};
 Update.now = function(force) {
 	if (Update.found) {
 		window.location.href = 'http://userscripts.org/scripts/source/67412.user.js';
@@ -23,10 +23,11 @@ Update.now = function(force) {
 			method: "GET",
 			url: 'http://userscripts.org/scripts/show/67412',
 			onload: function(evt) {
-				if ((evt.readyState == 4) && (evt.status == 200)) {
-					var tmp = $(evt.responseText);
-					if (force) $('#golem_request').remove();
-					var remoteVersion = $('#summary', tmp).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
+				if (evt.readyState === 4 && evt.status === 200) {
+					var tmp = $(evt.responseText), remoteVersion = $('#summary', tmp).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
+					if (force) {
+						$('#golem_request').remove();
+					}
 					if (remoteVersion>VERSION) {
 						Update.found = true;
 						$('#golem_update span').text('Install');
@@ -43,4 +44,5 @@ Update.now = function(force) {
 			}
 		});
 	}
-}
+};
+
