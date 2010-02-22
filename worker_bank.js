@@ -5,9 +5,9 @@ var Bank = new Worker('Bank');
 Bank.data = null;
 Bank.option = {
 	general: true,
-	above: 0,
+	above: 10000,
 	hand: 0,
-	keep: 0
+	keep: 10000
 };
 Bank.display = function() {
 	var panel = new Panel(this.name);

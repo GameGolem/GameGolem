@@ -73,18 +73,6 @@ Battle.display = function() {
 	return panel.show;
 };
 Battle.work = function(state) {
-	if (!length(Battle.data.rank)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		Page.to('battle_battlerank');
-	}
-	if (!length(Battle.data.points)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		Page.to('battle_battle');
-	}
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
 		return false;
 	}

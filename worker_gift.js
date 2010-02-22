@@ -78,14 +78,6 @@ Gift.display = function() {
 	return panel.show;
 };
 Gift.work = function(state) {
-	if (!length(Gift.data.gifts)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('army_gifts')) {
-			return true;
-		}
-	}
 	if (!state) {
 		if (!Gift.data.uid.length) {
 			return false;

@@ -48,9 +48,6 @@ Player.parse = function(change) {
 	return false;
 };
 Player.work = function(state) {
-	if (!Player.data.attack) {
-		Page.to('keep_stats'); // Only ever run it once the first time we're loaded - no check for state
-	}
 	// These can change every second - so keep them in mind
 	Player.data.cash = parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 // Very innacurate!!!

@@ -57,12 +57,6 @@ Generals.parse = function(change) {
 	}
 	return true;
 };
-Generals.work = function(state) {
-	if (!length(Generals.data)) {
-		Page.to('heroes_generals'); // Only ever run it once the first time we're loaded - can't be blocked
-	}
-	return false;
-};
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
 		return true;

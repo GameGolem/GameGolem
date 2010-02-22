@@ -1,7 +1,8 @@
 /********** Worker.Quest **********
 * Completes quests with a choice of general
 */
-var Quest = new Worker('Quest', 'quests_quest quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
+// Should also look for quests_quest but that should never be used unless there's a new area
+var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
 Quest.option = {
 	general: 'Under Level 4',
 	what: 'Influence'
@@ -100,24 +101,6 @@ Quest.display = function() {
 };
 Quest.work = function(state) {
 	var i, list, best = null;
-	if (Quest.option.firstrun || !length(Quest.data)) {
-		list = Quest.pages.split(' ');
-		if (!state) {
-			Quest.option.firstrun = 1; // Skip quests_quest
-			Settings.Save('option', Quest);
-			return true;
-		}
-		i = Quest.option.firstrun++;
-		if (list[i]) {
-			Settings.Save('option', Quest);
-			Page.to(list[i]);
-			return true;
-		}
-		delete Quest.option.firstrun;
-		Settings.Save('option', Quest);
-		Quest.select();
-		return false;
-	}
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}

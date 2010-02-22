@@ -12,11 +12,36 @@ Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
 Page.when = null;
 Page.retry = 0;
+Page.checking = true;
 Page.display = function() {
 	var panel = new Panel(this.name);
 	panel.select('timeout', 'Retry after ', [10, 15, 30, 60], {after:' seconds'});
 	panel.select('retry', 'Reload after ', [2, 3, 5, 10], {after:' tries'});
 	return panel.show;
+};
+Page.work = function(state) {
+	if (!state) {
+		if (Page.checking) {
+			return true;
+		}
+		return false;
+	}
+	var i, l, list;
+	for (i in Workers) {
+		if (!Workers[i].pages || Workers[i].pages==='*') {
+			continue;
+		}
+		list = Workers[i].pages.split(' ');
+		for (l=0; l<list.length; l++) {
+			if (Page.pageNames[list[l]] && !Page.data[list[l]]) {
+				if (list[l].indexOf('_active') === -1 && !Page.to(list[l])) {
+					return true;
+				}
+			}
+		}
+	}
+	Page.checking = false;
+	return false;
 };
 Page.pageNames = {
 	index:					{url:'index.php', image:null},

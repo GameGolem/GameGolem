@@ -34,11 +34,9 @@ Alchemy.display = function() {
 	return panel.show;
 };
 Alchemy.work = function(state) {
-	if (!length(Alchemy.data.ingredients)) { // Need to parse it at least once
-		if (!state) {return true;}
-		if (!Page.to('keep_alchemy')) {return true;}
+	if (!Alchemy.option.perform) {
+		return false;
 	}
-	if (!Alchemy.option.perform) {return false;}
 	var found = null, recipe = Alchemy.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {

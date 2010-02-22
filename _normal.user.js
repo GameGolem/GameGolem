@@ -506,11 +506,9 @@ Alchemy.display = function() {
 	return panel.show;
 };
 Alchemy.work = function(state) {
-	if (!length(Alchemy.data.ingredients)) { // Need to parse it at least once
-		if (!state) {return true;}
-		if (!Page.to('keep_alchemy')) {return true;}
+	if (!Alchemy.option.perform) {
+		return false;
 	}
-	if (!Alchemy.option.perform) {return false;}
 	var found = null, recipe = Alchemy.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {
@@ -543,9 +541,9 @@ var Bank = new Worker('Bank');
 Bank.data = null;
 Bank.option = {
 	general: true,
-	above: 0,
+	above: 10000,
 	hand: 0,
-	keep: 0
+	keep: 10000
 };
 Bank.display = function() {
 	var panel = new Panel(this.name);
@@ -675,18 +673,6 @@ Battle.display = function() {
 	return panel.show;
 };
 Battle.work = function(state) {
-	if (!length(Battle.data.rank)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		Page.to('battle_battlerank');
-	}
-	if (!length(Battle.data.points)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		Page.to('battle_battle');
-	}
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
 		return false;
 	}
@@ -992,12 +978,6 @@ Generals.parse = function(change) {
 	}
 	return true;
 };
-Generals.work = function(state) {
-	if (!length(Generals.data)) {
-		Page.to('heroes_generals'); // Only ever run it once the first time we're loaded - can't be blocked
-	}
-	return false;
-};
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
 		return true;
@@ -1202,14 +1182,6 @@ Gift.display = function() {
 	return panel.show;
 };
 Gift.work = function(state) {
-	if (!length(Gift.data.gifts)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('army_gifts')) {
-			return true;
-		}
-	}
 	if (!state) {
 		if (!Gift.data.uid.length) {
 			return false;
@@ -1500,11 +1472,36 @@ Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
 Page.when = null;
 Page.retry = 0;
+Page.checking = true;
 Page.display = function() {
 	var panel = new Panel(this.name);
 	panel.select('timeout', 'Retry after ', [10, 15, 30, 60], {after:' seconds'});
 	panel.select('retry', 'Reload after ', [2, 3, 5, 10], {after:' tries'});
 	return panel.show;
+};
+Page.work = function(state) {
+	if (!state) {
+		if (Page.checking) {
+			return true;
+		}
+		return false;
+	}
+	var i, l, list;
+	for (i in Workers) {
+		if (!Workers[i].pages || Workers[i].pages==='*') {
+			continue;
+		}
+		list = Workers[i].pages.split(' ');
+		for (l=0; l<list.length; l++) {
+			if (Page.pageNames[list[l]] && !Page.data[list[l]]) {
+				if (list[l].indexOf('_active') === -1 && !Page.to(list[l])) {
+					return true;
+				}
+			}
+		}
+	}
+	Page.checking = false;
+	return false;
 };
 Page.pageNames = {
 	index:					{url:'index.php', image:null},
@@ -1685,9 +1682,6 @@ Player.parse = function(change) {
 	return false;
 };
 Player.work = function(state) {
-	if (!Player.data.attack) {
-		Page.to('keep_stats'); // Only ever run it once the first time we're loaded - no check for state
-	}
 	// These can change every second - so keep them in mind
 	Player.data.cash = parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 // Very innacurate!!!
@@ -1709,7 +1703,8 @@ Player.work = function(state) {
 /********** Worker.Quest **********
 * Completes quests with a choice of general
 */
-var Quest = new Worker('Quest', 'quests_quest quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
+// Should also look for quests_quest but that should never be used unless there's a new area
+var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
 Quest.option = {
 	general: 'Under Level 4',
 	what: 'Influence'
@@ -1808,24 +1803,6 @@ Quest.display = function() {
 };
 Quest.work = function(state) {
 	var i, list, best = null;
-	if (Quest.option.firstrun || !length(Quest.data)) {
-		list = Quest.pages.split(' ');
-		if (!state) {
-			Quest.option.firstrun = 1; // Skip quests_quest
-			Settings.Save('option', Quest);
-			return true;
-		}
-		i = Quest.option.firstrun++;
-		if (list[i]) {
-			Settings.Save('option', Quest);
-			Page.to(list[i]);
-			return true;
-		}
-		delete Quest.option.firstrun;
-		Settings.Save('option', Quest);
-		Quest.select();
-		return false;
-	}
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
@@ -2213,30 +2190,6 @@ Town.display = function() {
 	return panel.show;
 };
 Town.work = function(state) {
-	if (!length(Town.data.soldiers)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_soldiers')) {
-			return true;
-		}
-	}
-	if (!length(Town.data.blacksmith)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_blacksmith')) {
-			return true;
-		}
-	}
-	if (!length(Town.data.magic)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_magic')) {
-			return true;
-		}
-	}
 	if (!Town.option.number) {
 		return false;
 	}

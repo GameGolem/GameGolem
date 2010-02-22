@@ -116,30 +116,6 @@ Town.display = function() {
 	return panel.show;
 };
 Town.work = function(state) {
-	if (!length(Town.data.soldiers)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_soldiers')) {
-			return true;
-		}
-	}
-	if (!length(Town.data.blacksmith)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_blacksmith')) {
-			return true;
-		}
-	}
-	if (!length(Town.data.magic)) { // Need to parse it at least once
-		if (!state) {
-			return true;
-		}
-		if (!Page.to('town_magic')) {
-			return true;
-		}
-	}
 	if (!Town.option.number) {
 		return false;
 	}
