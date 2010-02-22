@@ -45,7 +45,7 @@ Gift.parse = function(change) {
 			}
 		}
 		// Check for gifts
-		GM_debug('Gift: Checking for new to accept');
+		GM_debug('Gift: Checking for new gift to accept');
 		uid = Gift.data.uid = [];
 		if ($('div.messages').text().indexOf('gift') >= 0) {
 			GM_debug('Gift: Found gift div');
@@ -56,9 +56,9 @@ Gift.parse = function(change) {
 		}
 	} else if (Page.page === 'army_gifts') {
 		gifts = Gift.data.gifts = {};
-		GM_debug('Gifts found: '+$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').length);
+//		GM_debug('Gifts found: '+$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').length);
 		$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').each(function(i,el){
-			GM_debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
+//			GM_debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!','');
 			if (!gifts[id]) {
 				gifts[id] = {};
