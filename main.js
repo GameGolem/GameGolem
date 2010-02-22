@@ -2,6 +2,16 @@
 // Elite army
 // http://apps.facebook.com/castle_age/party.php?twt=jneg&jneg=true&user=44404517
 
+// User changeable
+var debug = true;
+
+// Shouldn't touch
+var VERSION = 10;
+var APP = '46755028429';
+var PREFIX = 'golem'+APP+'_';
+var userID = unsafeWindow.Env.user; // Facebook userid
+var script_started = Date.now();
+
 /********** main() **********
 * Runs every second, only does something when the page changes
 */
