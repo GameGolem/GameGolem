@@ -2,7 +2,7 @@
 // @name           Rycochet's Castle Age Golem
 // @namespace      golem
 // @description    Auto player for castle age game
-// @version        10
+// @version        11
 // @include        http*://apps.*facebook.com/castle_age/*
 // @require        http://cloutman.com/jquery-latest.min.js
 // @require        http://cloutman.com/jquery-ui-latest.min.js
@@ -11,7 +11,7 @@
 // -- @include        http://www.facebook.com/reqs.php#confirm_46755028429_0
 // -- @include        http://www.facebook.com/home.php
 // -- @include        http://www.facebook.com/home.php*filter=app_46755028429*
-var debug=true,VERSION=10,APP="46755028429",PREFIX="golem"+APP+"_",userID=unsafeWindow.Env.user,script_started=Date.now();
+var debug=true,VERSION=11,APP="46755028429",PREFIX="golem"+APP+"_",userID=unsafeWindow.Env.user,script_started=Date.now();
 function main(){if(!Page.loading()&&!$("#secret_golem_check").length){if(!$("#app"+APP+"_nvbar_div_end").length){Page.reload();return}$("#app"+APP+"_nvbar_div_end").append('<br id="secret_golem_check" style="display:none"/>');Page.identify();var b;for(b in Workers)Workers[b].priv_parse=Workers[b].pages&&(Workers[b].pages==="*"||Page.page&&Workers[b].pages.indexOf(Page.page)>=0)&&Workers[b].parse?Workers[b].parse(false):false;Settings.Save("data");for(b in Workers)Workers[b].priv_parse&&Workers[b].parse(true)}Queue.run()}
 $(document).ready(function(){Page.identify();Settings.Load("data");Settings.Load("option");if(window.location.href.indexOf("castle_age")>=0){for(var b in Workers)Workers[b].onload&&Workers[b].onload();main();window.setInterval(function(){main()},1E3)}});
 var Settings={userID:unsafeWindow.Env.user,SetValue:function(b,a){switch(typeof a){case "boolean":case "number":return GM_setValue(Settings.userID+"."+b,a);case "string":return GM_setValue(Settings.userID+"."+b,'"'+a+'"');case "array":case "object":return GM_setValue(Settings.userID+"."+b,a.toSource());default:GM_debug("Unknown variable type: "+b)}return null},GetValue:function(b,a){v=GM_getValue(Settings.userID+"."+b,a);if(typeof v==="string")if(v.charAt(0)==='"')v=v.replace(/^"|"$/g,"");else if(v.charAt(0)===
