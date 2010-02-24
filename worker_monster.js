@@ -23,6 +23,14 @@ Monster.display = [
 	}
 ];
 Monster.uid = null;
+Monster.count = 0;
+Monster.onload = function() {
+	for (var i in Monster.data) {
+		if (Monster.data[i].state === 'engage') {
+			Monster.count++;
+		}
+	}
+}
 Monster.parse = function(change) {
 	var i, user, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
@@ -65,9 +73,12 @@ Monster.parse = function(change) {
 				default: Monster.data[user].type = 'unknown'; break;
 			}
 		});
+		Monster.count = 0;
 		for (i in Monster.data) {
 			if (!Monster.data[i].state) {
 				delete Monster.data[i];
+			} else if (Monster.data[i].state === 'engage') {
+				Monster.count++;
 			}
 		}
 	}

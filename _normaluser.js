@@ -763,7 +763,7 @@ Bank.worth = function() { // Anything withdrawing should check this first!
 /********** Worker.Battle **********
 * Battling other players (NOT raid)
 */
-var Battle = new Worker('Battle', 'battle_battle battle_rank');
+var Battle = new Worker('Battle', 'battle_rank battle_battle');
 Battle.data = {
 	user: {},
 	rank: {},
@@ -773,12 +773,12 @@ Battle.option = {
 	general: true,
 	points: true,
 	monster: true,
-	type: 'Invade'
+	losses: 5,
+	type: 'Invade',
+	bp: 'Always'
 };
 Battle.display = [
 	{
-		label:'NOTE: Attacks at a loss up to 5 times more than a win'
-	},{
 		id:'general',
 		label:'Use Best General',
 		checkbox:true
@@ -787,6 +787,11 @@ Battle.display = [
 		label:'Battle Type',
 		select:['Invade', 'Duel']
 	},{
+		id:'losses',
+		label:'Attack Until',
+		select:[1,2,3,4,5,6,7,8,9,10],
+		after:'Losses'
+	},{
 		id:'points',
 		label:'Always Get Demi-Points',
 		checkbox:true
@@ -794,17 +799,26 @@ Battle.display = [
 		id:'monster',
 		label:'Fight Monsters First',
 		checkbox:true
+	},{
+		id:'bp',
+		label:'Get Battle Points<br>(Clears Cache)',
+		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		id:'cache',
+		label:'Limit Cache Length',
+		select:[100,200,300,400,500]
 	}
 ];
 Battle.parse = function(change) {
-	var i, data, uid, info;
-	if (Page.page === 'battle_battle') {
+	var i, data, uid, info, count = 0, list = [];
+	if (Page.page === 'battle_rank') {
+		data = Battle.data.rank = {0:{name:'Squire',points:0}};
+		$('tr[height="23"]').each(function(i,el){
+			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
+			data[info[0]] = {name:info[1], points:info[2]};
+		});
+	} else if (Page.page === 'battle_battle') {
 		data = Battle.data.user;
-		for (i in data) {
-			if (Player.data.rank - data[i].rank >= 5) {
-				delete data[i]; // Forget low rank - no points
-			}
-		}
 		if (Battle.data.attacking) {
 			uid = Battle.data.attacking;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
@@ -823,8 +837,12 @@ Battle.parse = function(change) {
 		}
 		Battle.data.points = $('#app'+APP+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
 		$('#app'+APP+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i);
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
+				return;
+			}
+			rank = Battle.rank(info[1]);
+			if ((Battle.option.bp === 'Always' && Player.data.rank - rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - rank <= 5)) {
 				return;
 			}
 			if (!data[uid]) {
@@ -832,16 +850,26 @@ Battle.parse = function(change) {
 			}
 			data[uid].name = $('a', el).text().trim();
 			data[uid].level = info[0];
-			data[uid].rank = Battle.rank(info[1]);
+			data[uid].rank = rank;
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});
-	} else if (Page.page === 'battle_rank') {
-		data = Battle.data.rank = {0:{name:'Squire',points:0}};
-		$('tr[height="23"]').each(function(i,el){
-			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
-			data[info[0]] = {name:info[1], points:info[2]};
-		});
+		for (i in data) { // Forget low or high rank - no points or too many points
+			if ((Battle.option.bp === 'Always' && Player.data.rank - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - data[i].rank <= 5)) {
+				delete data[i];
+			} else {
+				count++;
+			}
+		}
+		if (count > Battle.option.cache) { // Need to prune our attack cache
+			GM_debug('Battle: Pruning target cache');
+			for (i in data) {
+				list.push(i);
+			}
+			list.sort(function(a,b) {
+				return (data[a].win - data[a].loss) - (data[b].win - data[b].loss);
+			});
+		}
 	}
 //	GM_debug('Battle: '+Battle.data.toSource());
 	return false;
@@ -858,19 +886,20 @@ Battle.work = function(state) {
 			}
 		}
 	}
-	if ((!Battle.option.points || !points.length) && Battle.option.monster && Monster.uid) {
+	if ((!Battle.option.points || !points.length) && Battle.option.monster && Monster.count) {
 		return false;
 	}
 	for (i in user) {
 		if (user[i].dead && user[i].dead + 1800000 < Date.now()) {
 			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
 		}
-		if ((user[i].win || 0) - (user[i].loss || 0) < 5) {
+		if ((user[i].loss || 0) - (user[i].win || 0) >= Battle.option.losses) {
 			continue; // Don't attack someone who wins more often
 		}
 		if (!Battle.option.points || !points.length || typeof points[user[i].align] !== 'undefined') {
 			list.push(i);
 		}
+		else GM_debug('Battle: Not adding target '+i);
 	}
 	if (!list.length) {
 		return false;
@@ -1464,6 +1493,14 @@ Monster.display = [
 	}
 ];
 Monster.uid = null;
+Monster.count = 0;
+Monster.onload = function() {
+	for (var i in Monster.data) {
+		if (Monster.data[i].state === 'engage') {
+			Monster.count++;
+		}
+	}
+}
 Monster.parse = function(change) {
 	var i, user, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
@@ -1506,9 +1543,12 @@ Monster.parse = function(change) {
 				default: Monster.data[user].type = 'unknown'; break;
 			}
 		});
+		Monster.count = 0;
 		for (i in Monster.data) {
 			if (!Monster.data[i].state) {
 				delete Monster.data[i];
+			} else if (Monster.data[i].state === 'engage') {
+				Monster.count++;
 			}
 		}
 	}
@@ -2534,13 +2574,10 @@ Upgrade.parse = function(change) {
 	return false;
 };
 Upgrade.work = function(state) {
-	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade) {
+	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.data.upgrade<2)) {
 		return false;
 	}
-	if (!state) {
-		return true;
-	}
-	if (!Page.to('keep_stats')) {
+	if (!state || !Page.to('keep_stats')) {
 		return true;
 	}
 	Upgrade.data.working = true;
