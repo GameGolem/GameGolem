@@ -360,15 +360,22 @@ var Config = new Worker('Config');
 Config.data = null;
 Config.option = {
 	display:'block',
-	active:false
+	active:false,
+	fixed:true
 };
 Config.panel = null;
 Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/golem/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="ui-widget-content" style="float:right;width:196px;margin:0;padding:0;overflow:hidden;overflow-y:auto;display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;cursor:move;overflow:hidden;">Castle Age Golem v'+VERSION+'</div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content" style="display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;overflow:hidden;">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
+	$('#golem_fixed').click(function(){
+			Queue.option.fixed ^= true;
+			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
+			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
+			Settings.Save('option', Config);
+	});
 	$golem_config = $('#golem_config');
 	for (i in Workers) {
 		$golem_config.append(Config.makePanel(Workers[i]));
