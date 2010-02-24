@@ -14,22 +14,28 @@ Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/golem/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content" style="display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;overflow:hidden;">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content" style="display:'+Config.option.display+';"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_fixed').click(function(){
 			Config.option.fixed ^= true;
 			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
+			Config.option.active = [];
 			Settings.Save('option', Config);
 	});
 	$golem_config = $('#golem_config');
 	for (i in Workers) {
 		$golem_config.append(Config.makePanel(Workers[i]));
 	}
-	$golem_config
-		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
-		.accordion({ autoHeight:false, clearStyle:true, active:(Config.option.active ? $('#'+Config.option.active, $golem_config) : false), collapsible:true, header:'div > h3', change:function(){Config.saveWindow();} });
-	$golem_config.children(':not(.golem_unsortable)')
+	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
+	$('.golem-panel > h3').click(function(event){
+		$(this).parent().toggleClass('golem-panel-show');
+		$(this).toggleClass('ui-corner-all ui-corner-top');
+		Config.option.active = [];
+		$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+		Settings.Save('option', Config);
+	});
+	$golem_config.children('.golem-panel-sortable')
 		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
 refreshPositions:true, stop:function(){Config.updateOptions();} })
 		.droppable({ tolerance:'pointer', over:function(e,ui) {
@@ -56,7 +62,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 	//	$(Config.panel).css({display:'block'});
 };
 Config.makePanel = function(worker) {
-	var i, o, x, id, step, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
+	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
 		before: '',
 		after: '',
 		suffix: '',
@@ -70,7 +76,8 @@ Config.makePanel = function(worker) {
 		return false;
 	}
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3 style="width:186px;">'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
+	show = findInArray(Config.option.active, worker.priv_id);
+	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="'+(show?' ui-corner-top':'ui-corner-all')+'"><span class="ui-icon golem-icon"></span>'+worker.name+'<span class="ui-icon golem-locked"></span></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -159,7 +166,7 @@ Config.makePanel = function(worker) {
 				}
 				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
 			}
-			$head.append('<div style="font-size:smaller;">' + panel.join('') + '</div>');
+			$head.append('<div class="ui-corner-bottom" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
 //		case 'function':
 //			$panel = display();
@@ -171,17 +178,6 @@ Config.makePanel = function(worker) {
 		default:
 			return null;
 	}
-};
-Config.saveWindow = function() {
-	Config.option.top = Config.panel.offset().top;
-	Config.option.left = Config.panel.offset().left;
-	if (Config.panel.width() && Config.panel.height()) {
-		Config.option.width = Config.panel.width();
-		Config.option.height = Config.panel.height();
-	}
-	Config.option.active = $('#golem_config h3.ui-state-active').parent().attr('id');
-//	Config.option.active = $('#golem_config').accordion('option','active'); // Accordian is still bugged at the time of writing...
-	Settings.Save('option', Config);
 };
 Config.updateOptions = function() {
 	GM_debug('Options changed');

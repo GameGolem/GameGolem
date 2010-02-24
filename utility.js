@@ -127,6 +127,17 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 	return a;
 };
 
+var findInArray = function(list, value) {
+	if (typeof list === 'array' || typeof list === 'object') {
+		for (var i in list) {
+			if (list[i] === value) {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
 	for (i in list) {

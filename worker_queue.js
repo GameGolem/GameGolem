@@ -66,7 +66,7 @@ Queue.onload = function() {
 		if (worker && worker.priv_id) {
 			if (Queue.data.current && worker.name === Queue.data.current) {
 				GM_debug('Queue: Trigger '+worker.name+' (continue after load)');
-				$('#'+worker.priv_id+' > h3 > a').css('font-weight', 'bold');
+				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.priv_id));
 		}
@@ -109,7 +109,7 @@ Queue.run = function() {
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
 				if (worker.priv_id) {
-					$('#'+worker.priv_id+' > h3 > a').css('font-weight', 'normal');
+					$('#'+worker.priv_id+' > h3').css('font-weight', 'normal');
 				}
 				GM_debug('Queue: End '+worker.name);
 			}
@@ -125,12 +125,12 @@ Queue.run = function() {
 			if (Queue.data.current) {
 				GM_debug('Queue: Interrupt '+Queue.data.current);
 				if (WorkerByName(Queue.data.current).priv_id) {
-					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3 > a').css('font-weight', 'normal');
+					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3').css('font-weight', 'normal');
 				}
 			}
 			Queue.data.current = worker.name;
 			if (worker.priv_id) {
-				$('#'+worker.priv_id+' > h3 > a').css('font-weight', 'bold');
+				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
 			GM_debug('Queue: Trigger '+worker.name);
 		}
