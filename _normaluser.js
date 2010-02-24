@@ -986,10 +986,12 @@ Dashboard.parse = function(change) {
 		$('#golem_toggle_dash').click(function(){
 			Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 			$('#golem_dashboard').toggle('drop');
+			Settings.Save('option', Dashboard);
 		});
 		$('#golem_toggle_config').click(function(){
 			Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 			$('.golem-config > div').toggle(Config.option.fixed?null:'blind');
+			Settings.Save('option', Config);
 		});
 	}
 	return false;
