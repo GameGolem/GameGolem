@@ -17,7 +17,7 @@ Config.onload = function() {
 	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content" style="display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;overflow:hidden;">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_fixed').click(function(){
-			Queue.option.fixed ^= true;
+			Config.option.fixed ^= true;
 			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
 			Settings.Save('option', Config);
@@ -70,7 +70,7 @@ Config.makePanel = function(worker) {
 		return false;
 	}
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3>'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3 style="width:186px;">'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':

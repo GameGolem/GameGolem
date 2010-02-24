@@ -371,7 +371,7 @@ Config.onload = function() {
 	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content" style="display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;overflow:hidden;">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_fixed').click(function(){
-			Queue.option.fixed ^= true;
+			Config.option.fixed ^= true;
 			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
 			Settings.Save('option', Config);
@@ -424,7 +424,7 @@ Config.makePanel = function(worker) {
 		return false;
 	}
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3>'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3 style="width:186px;">'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -920,7 +920,7 @@ Dashboard.parse = function(change) {
 		$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
 		$('<div id="golem_dashboard" style="position:absolute;width:600px;height:185px;margin:0;border-left:1px solid black;border-right:1px solid black;padding4px;overflow:hidden;overflow-y:auto;background:white;z-index:1;display:none;">Dashboard...</div>').prependTo('#app'+APP+'_main_bn_container');
 		$('#golem_toggle_dash').click(function(){$('#golem_dashboard').toggle('drop');});
-		$('#golem_toggle_config').click(function(){$('#golem_title').parent().toggle('blind');});
+		$('#golem_toggle_config').click(function(){$('#golem_title').parent().toggle(Config.option.fixed?null:'blind');});
 	}
 	return false;
 };
