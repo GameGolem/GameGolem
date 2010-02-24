@@ -6,7 +6,6 @@ var Config = new Worker('Config');
 Config.data = null;
 Config.option = {
 	display:'block',
-	active:false,
 	fixed:true
 };
 Config.panel = null;
