@@ -79,12 +79,7 @@ Monster.parse = function(change) {
 		damage = {};
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-			GM_debug('Damage: '+dmg);
-			if (fort) {
-				damage[user] = [dmg, fort];
-			} else {
-				damage[user] = dmg;
-			}
+			damage[user] = (fort ? [dmg, fort] : dmg);
 		});
 		Monster.data[uid][type].damage = damage;
 	} else if (Page.page === 'keep_monster') { // Check monster list
