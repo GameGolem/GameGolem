@@ -394,8 +394,14 @@ Config.onload = function() {
 	}
 	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
 	$('.golem-panel > h3').click(function(event){
-		$(this).parent().toggleClass('golem-panel-show');
-		$(this).toggleClass('ui-corner-all ui-corner-top');
+//		$(this).parent().toggleClass('golem-panel-show');
+//		$(this).toggleClass('ui-corner-all ui-corner-top');
+		if ($(this).parent().hasClass('golem-panel-show')) {
+			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+		} else {
+			$(this).parent().toggleClass('golem-panel-show');
+			$(this).next().show('blind');
+		}
 		Config.option.active = [];
 		$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
 		Settings.Save('option', Config);
@@ -442,7 +448,7 @@ Config.makePanel = function(worker) {
 	}
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.priv_id);
-	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="'+(show?' ui-corner-top':'ui-corner-all')+'"><span class="ui-icon golem-icon"></span>'+worker.name+'<span class="ui-icon golem-locked"></span></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><span class="ui-icon golem-icon"></span>'+worker.name+'<span class="ui-icon golem-locked"></span></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -531,7 +537,7 @@ Config.makePanel = function(worker) {
 				}
 				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
 			}
-			$head.append('<div class="ui-corner-bottom" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
+			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
 //		case 'function':
 //			$panel = display();
