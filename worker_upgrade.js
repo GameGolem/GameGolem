@@ -10,7 +10,6 @@ Upgrade.display = [
 		label:'Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)'
 	},{
 		id:'order',
-		label:'Stats',
 		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
 	}
 ];

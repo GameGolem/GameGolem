@@ -5,40 +5,23 @@
 var Config = new Worker('Config');
 Config.data = null;
 Config.option = {
-	top: 60,
-	left: 25,
-	width: 250,
-	height: "auto",
+	display:'block',
 	active:false
 };
 Config.panel = null;
 Config.onload = function() {
-	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i, panel, pos = 'top:'+Config.option.top+'px;left:'+Config.option.left+'px;width:'+Config.option.width+'px;height:auto;';
+	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/golem/jquery-ui.css" type="text/css" />');
+	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="ui-widget-content" style="'+pos+'padding:0;position:absolute;overflow:hidden;overflow-y:auto;"><div class="ui-widget-header" id="golem_title" style="padding:4px;cursor:move;overflow:hidden;">Castle Age Golem v'+VERSION+'</div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div>');
-	$('#content').append(Config.panel);
-	$(Config.panel)
-		.draggable({ containment:'parent', handle:'#golem_title', stop:function(){
-			Config.saveWindow();
-		} })
-		.resizable({ containment:'parent', handles:'se', minWidth:100, resize:function(){
-			$('#golem_config').height($(Config.panel).height()-$('#golem_config').position().top-8);
-		}, stop:function(){
-			Config.saveWindow();
-		} });
-//	$('.ui-resizable-se', Config.panel).last().dblclick(function(){$(Config.panel).css('height','auto');});
+	Config.panel = $('<div class="ui-widget-content" style="float:right;width:196px;margin:0;padding:0;overflow:hidden;overflow-y:auto;display:'+Config.option.display+';"><div class="ui-widget-header" id="golem_title" style="padding:4px;cursor:move;overflow:hidden;">Castle Age Golem v'+VERSION+'</div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="margin:4px;overflow:hidden;overflow-y:auto;"></div></div>');
+	$('div.UIStandardFrame_Content').after(Config.panel);
 	$golem_config = $('#golem_config');
-	$golem_config
-		.sortable({axis:"y"});//, items:'div', handle:'h3'
-	for (i in Workers) { // Load the display panels up
-		panel = Config.makePanel(Workers[i]);
-		if (panel) {
-			$golem_config.append(panel);
-		}
+	for (i in Workers) {
+		$golem_config.append(Config.makePanel(Workers[i]));
 	}
 	$golem_config
-		.accordion({ autoHeight:false, clearStyle:true, active:false, collapsible:true, header:'div > h3', change:function(){Config.saveWindow();} });
+		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
+		.accordion({ autoHeight:false, clearStyle:true, active:(Config.option.active ? $('#'+Config.option.active, $golem_config) : false), collapsible:true, header:'div > h3', change:function(){Config.saveWindow();} });
 	$golem_config.children(':not(.golem_unsortable)')
 		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
 refreshPositions:true, stop:function(){Config.updateOptions();} })
@@ -80,7 +63,7 @@ Config.makePanel = function(worker) {
 		return false;
 	}
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3><a>'+(worker.unsortable?'<img "class="ui-icon ui-icon-locked" style="left:2em;width:16px;height:16px" />&nbsp;&nbsp;&nbsp;&nbsp;':'')+worker.name+'</a></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'"'+(worker.unsortable?' class="golem_unsortable"':'')+' name="'+worker.name+'"><h3>'+(worker.unsortable?'<span class="ui-icon ui-icon-locked" style="float:right;"></span>':'')+'<a>'+worker.name+'</a></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -92,14 +75,16 @@ Config.makePanel = function(worker) {
 				o.value = worker.option[o.id] || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.label) {
-					txt.push('<span style="float:left;">'+o.label.replace(' ','&nbsp;')+'</span>');
+					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
+					if (o.text || o.checkbox || o.select || o.multiple) {
+						txt.push('<span style="float:right;">');
+					}
 				}
-				txt.push('<span style="float:right;">');
 				if (o.before) {
 					txt.push(o.before+' ');
 				}
 				// our different types of input elements
-				if (o.info) {
+				if (o.info) { // only useful for externally changed
 					if (o.id) {
 						txt.push('<span id="' + o.real_id + '">' + o.info + '</span>');
 					} else {
@@ -162,10 +147,12 @@ Config.makePanel = function(worker) {
 				if (o.after) {
 					txt.push(' '+o.after);
 				}
-				txt.push('</span>');
+				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
+					txt.push('</span>');
+				}
 				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
 			}
-			$head.append('<div style="font-size:smaller;padding:12px;">' + panel.join('') + '</div>');
+			$head.append('<div style="font-size:smaller;">' + panel.join('') + '</div>');
 			return $head;
 //		case 'function':
 //			$panel = display();
@@ -179,10 +166,12 @@ Config.makePanel = function(worker) {
 	}
 };
 Config.saveWindow = function() {
-	Config.option.top = $(Config.panel).offset().top;
-	Config.option.left = $(Config.panel).offset().left;
-	Config.option.width = $(Config.panel).width();
-	Config.option.height = $(Config.panel).height();
+	Config.option.top = Config.panel.offset().top;
+	Config.option.left = Config.panel.offset().left;
+	if (Config.panel.width() && Config.panel.height()) {
+		Config.option.width = Config.panel.width();
+		Config.option.height = Config.panel.height();
+	}
 	Config.option.active = $('#golem_config h3.ui-state-active').parent().attr('id');
 //	Config.option.active = $('#golem_config').accordion('option','active'); // Accordian is still bugged at the time of writing...
 	Settings.Save('option', Config);
