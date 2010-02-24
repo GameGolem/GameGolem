@@ -25,13 +25,10 @@ Upgrade.parse = function(change) {
 	return false;
 };
 Upgrade.work = function(state) {
-	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade) {
+	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.data.upgrade<2)) {
 		return false;
 	}
-	if (!state) {
-		return true;
-	}
-	if (!Page.to('keep_stats')) {
+	if (!state || !Page.to('keep_stats')) {
 		return true;
 	}
 	Upgrade.data.working = true;
