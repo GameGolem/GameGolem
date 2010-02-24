@@ -22,6 +22,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
+#golem-dashboard { position: absolute; top: 218px; width: 600px; height: 181px; margin: 0; border-left: 1px solid black; border-right:1px solid black; padding: 2px; overflow: hidden; overflow-y: auto; background: white; z-index: 1; }\
 .golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
 .golem-panel .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-panel .golem-icon { float: left; background-position: -32px -16px; }\
@@ -978,22 +979,23 @@ var Dashboard = new Worker('Dashboard', '*');
 Dashboard.option = {
 	display:'none'
 };
+Dashboard.div = null;
+Dashboard.onload = function() {
+	Dashboard.div = $('<div id="golem-dashboard" style="display:'+Dashboard.option.display+';">Dashboard...</div>').prependTo('.UIStandardFrame_Content');
+}
 Dashboard.parse = function(change) {
-	if (!$('#golem_dashboard').length) {
-		$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
-		$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
-		$('<div id="golem_dashboard" style="position:absolute;width:600px;height:185px;margin:0;border-left:1px solid black;border-right:1px solid black;padding4px;overflow:hidden;overflow-y:auto;background:white;z-index:1;display:'+Dashboard.option.display+';">Dashboard...</div>').prependTo('#app'+APP+'_main_bn_container');
-		$('#golem_toggle_dash').click(function(){
-			Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-			$('#golem_dashboard').toggle('drop');
-			Settings.Save('option', Dashboard);
-		});
-		$('#golem_toggle_config').click(function(){
-			Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-			$('.golem-config > div').toggle(Config.option.fixed?null:'blind');
-			Settings.Save('option', Config);
-		});
-	}
+	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
+	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
+	$('#golem_toggle_dash').click(function(){
+		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
+		$('#golem_dashboard').toggle('drop');
+		Settings.Save('option', Dashboard);
+	});
+	$('#golem_toggle_config').click(function(){
+		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
+		$('.golem-config > div').toggle(Config.option.fixed?null:'blind');
+		Settings.Save('option', Config);
+	});
 	return false;
 };
 
@@ -1103,28 +1105,22 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att >= Generals.data[best].invade.att)) {
-					if (Generals.data[i].invade.att > Generals.data[best].invade.att || best !== Player.data.general) {
-						best = i;
-					}
+				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
+					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att >= Generals.data[best].duel.att)) {
-					if (Generals.data[i].duel.att > Generals.data[best].duel.att || best !== Player.data.general) {
-						best = i;
-					}
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
+					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def >= Generals.data[best].duel.def)) {
-					if (Generals.data[i].duel.def > Generals.data[best].duel.def || best !== Player.data.general) {
-						best = i;
-					}
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
+					best = i;
 				}
 			}
 			return (best || 'any');

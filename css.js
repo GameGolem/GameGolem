@@ -9,6 +9,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
+#golem-dashboard { position: absolute; top: 218px; width: 600px; height: 181px; margin: 0; border-left: 1px solid black; border-right:1px solid black; padding: 2px; overflow: hidden; overflow-y: auto; background: white; z-index: 1; }\
 .golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
 .golem-panel .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-panel .golem-icon { float: left; background-position: -32px -16px; }\
