@@ -19,113 +19,160 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['Random', 'Strongest', 'Weakest']
+		select:['Random', 'Strongest', 'Weakest', 'Shortest', 'In Turn']
 	}
 ];
-Monster.uid = null;
+Monster.types = {
+	colossus: {
+		list:'stone_giant_list',
+		image:'stone_giant',
+		mpool:1
+	},
+	legion: {
+		list:'castle_siege_list',
+		image:'castle_siege',
+		mpool:3
+	},
+	raid: {
+		list:'deathrune_list2',
+		image:'deathrune',
+		mpool:1
+	},
+	serpent: {
+		list:'seamonster_list_red',
+		image:'seamonster_red',
+		mpool:2
+	}
+};
 Monster.count = 0;
 Monster.onload = function() {
-	for (var i in Monster.data) {
-		if (Monster.data[i].state === 'engage') {
-			Monster.count++;
+	var i, j;
+	for (i in Monster.data) {
+		for (j in Monster.data[i]) {
+			if (Monster.data[i][j].state === 'engage') {
+				Monster.count++;
+			}
 		}
 	}
 }
 Monster.parse = function(change) {
-	var i, user, $health, $defense, damage;
+	var i, j, uid, type, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
-//	if ($('input[src$="attack_monster_button2.jpg"]').length || $('input[src$="attack_monster_button3.jpg"]').length) { // In a monster
-		user = $('img[linked="true"][size="square"]').attr('uid');
-		$health = $('img[src$="monster_health_background.jpg"]').parent();
-		Monster.data[user].health = Math.ceil($health.width() / $health.parent().width() * 100);
-		if ($('img[src$="seamonster_ship_health.jpg"]').length) {
-			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
-			Monster.data[user].defense = Math.ceil($defense.width() / ($defense.width() + $defense.next().width()) * 100);
+		uid = $('img[linked="true"][size="square"]').attr('uid');
+		for (i in Monster.types) {
+			if ($('img[src*="'+Monster.types[i].image+'"]').length) {
+				type = i;
+				break;
+			}
 		}
-		Monster.data[user].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
+		if (!uid || !type) {
+			GM_debug('Monster: Unknown monster');
+			return false;
+		}
+		$health = $('img[src$="monster_health_background.jpg"]').parent();
+		Monster.data[uid][type].health = ($health.width() / $health.parent().width() * 100);
+		$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
+		if ($defense.length) {
+			Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+		}
+		Monster.data[uid][type].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
 		damage = {};
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
-			var uid = $(el).attr('href').regex(/user=([0-9]+)/i);
-			damage[uid] = parseInt($(el).parent().next().text().replace(/[^0-9]/g,''), 10);
+			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
+			GM_debug('Damage: '+dmg);
+			if (fort) {
+				damage[user] = [dmg, fort];
+			} else {
+				damage[user] = dmg;
+			}
 		});
-		Monster.data[user].damage = damage;
-//		GM_debug('Raid: '+Raid.data[user].toSource());
+		Monster.data[uid][type].damage = damage;
 	} else if (Page.page === 'keep_monster') { // Check monster list
 		for (i in Monster.data) {
-			Monster.data[i].state = null;
+			for (j in Monster.data[i]) {
+				Monster.data[i][j].state = null;
+			}
 		}
 		$('img[src*="dragon_list_btn_"]').each(function(i,el){
-			var user = $(el).parent().attr('href').regex(/user=([0-9]+)/i);
-			if (!Monster.data[user]) {
-				Monster.data[user] = {};
+			var i, uid = $(el).parent().attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().parent().prev().prev().html().regex(/graphics\/(.*)\./i), type = 'unknown';
+			for (i in Monster.types) {
+				if (tmp === Monster.types[i].list) {
+					type = i;
+					break;
+				}
 			}
+			if (!uid || type === 'unknown') {
+				return;
+			}
+			Monster.data[uid] = Monster.data[uid] || {};
+			Monster.data[uid][type] = Monster.data[uid][type] || {};
 			switch($(el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
-				case 2: Monster.data[user].state = 'reward'; break;
-				case 3: Monster.data[user].state = 'engage'; break;
-				case 4: Monster.data[user].state = 'complete'; break;
-				default: Monster.data[user].state = 'unknown'; break; // Should probably delete, but keep it on the list...
-			}
-			switch($(el).parent().parent().parent().prev().prev().html().regex(/graphics\/(.*)\./i)) {
-				case 'castle_siege_list':	Monster.data[user].type = 'legion'; break;
-				case 'stone_giant_list':	Monster.data[user].type = 'colossus'; break;
-				case 'seamonster_list_red':	Monster.data[user].type = 'serpent'; break;
-				case 'deathrune_list2':		Monster.data[user].type = 'raid'; break;
-				default: Monster.data[user].type = 'unknown'; break;
+				case 2: Monster.data[uid][type].state = 'reward'; break;
+				case 3: Monster.data[uid][type].state = 'engage'; break;
+				case 4: Monster.data[uid][type].state = 'complete'; break;
+				default: Monster.data[uid][type].state = 'unknown'; break; // Should probably delete, but keep it on the list...
 			}
 		});
 		Monster.count = 0;
 		for (i in Monster.data) {
-			if (!Monster.data[i].state) {
+			for (j in Monster.data[i]) {
+				if (!Monster.data[i][j].state) {
+					delete Monster.data[i][j];
+				} else if (Monster.data[i][j].state === 'engage') {
+					Monster.count++;
+				}
+			}
+			if (!length(Monster.data[i])) {
 				delete Monster.data[i];
-			} else if (Monster.data[i].state === 'engage') {
-				Monster.count++;
 			}
 		}
 	}
 	return false;
 };
 Monster.work = function(state) {
-	var list = [], uid, btn, i;
+	var list = [], uid = Monster.option.uid, type = Monster.option.type, btn, best;
 	if (!state) {
-		Monster.uid = null;
+		Monster.option.uid = null;
+		Monster.option.type = null;
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
 	}
-	if (!Monster.uid || !Monster.data[Monster.uid] || Monster.data[Monster.uid] !== 'engage') {
-		Monster.uid = null;
-		for (i in Monster.data) {
-			if (Monster.data[i].state === 'engage') {
-				list.push(i);
+	if (!uid || !type || !Monster.data[uid] || Monster.data[uid][type].state !== 'engage') {
+		for (uid in Monster.data) {
+			for (type in Monster.data[uid]) {
+				if (Monster.data[uid][type].state === 'engage') {
+					list.push([uid, type]);
+				}
 			}
 		}
 		if (!list.length) {
 			return false;
 		}
-		Monster.uid = list[Math.floor(Math.random()*list.length)];
+		best = Math.floor(Math.random()*list.length);
+		uid  = Monster.option.uid  = list[best][0];
+		type = Monster.option.type = list[best][1];
 	}
-	if (Queue.burn.stamina < 5) {
-		if (Queue.burn.energy < 10 || typeof Monster.data[Monster.uid].defense === 'undefined' || Monster.data[Monster.uid].defense >= Monster.option.fortify) {
-			return false;
-		}
+	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense >= Monster.option.fortify)) {
+		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (Monster.data[Monster.uid].defense && Monster.data[Monster.uid].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
+	if (Monster.data[uid][type].defense && Monster.data[uid][type].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
-		GM_debug('Monster: Fortify '+Monster.uid);
-		btn = $('input[src$="attack_monster_button3.jpg"]:first');
+		GM_debug('Monster: Fortify '+uid);
+		btn = $('input[src$="attack_monster_button3.jpg"],input[src$="seamonster_fortify.gif"]').eq(0);
 	} else {
 		if (!Generals.to(Generals.best('duel'))) {
 			return true;
 		}
-		GM_debug('Monster: Attack '+Monster.uid);
-		btn = $('input[src$="attack_monster_button2.jpg"]:first');
+		GM_debug('Monster: Attack '+uid);
+		btn = $('input[src$="attack_monster_button2.jpg"],input[src$="seamonster_power.gif"],input[src$="attack_monster_button.jpg"]').eq(0);
 	}
-	if (!btn.length && !Page.to('keep_monster', '?user='+Monster.uid+'&mpool=3')) {
+	if (!btn.length && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
 		return true; // Reload if we can't find the button
 	}
 	Page.click(btn);

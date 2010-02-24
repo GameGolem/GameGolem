@@ -87,22 +87,28 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att)) {
-					best = i;
+				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att >= Generals.data[best].invade.att)) {
+					if (Generals.data[i].invade.att > Generals.data[best].invade.att || best !== Player.data.general) {
+						best = i;
+					}
 				}
 			}
 			return (best || 'any');
 		case 'duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att)) {
-					best = i;
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att >= Generals.data[best].duel.att)) {
+					if (Generals.data[i].duel.att > Generals.data[best].duel.att || best !== Player.data.general) {
+						best = i;
+					}
 				}
 			}
 			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def)) {
-					best = i;
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def >= Generals.data[best].duel.def)) {
+					if (Generals.data[i].duel.def > Generals.data[best].duel.def || best !== Player.data.general) {
+						best = i;
+					}
 				}
 			}
 			return (best || 'any');
