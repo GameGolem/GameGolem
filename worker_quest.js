@@ -183,6 +183,4 @@ Quest.work = function(state) {
 	}
 	return true;
 };
-Quest.dashboard = function() {
-};
 

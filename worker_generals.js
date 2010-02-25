@@ -3,9 +3,10 @@
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('General', 'heroes_generals');
+var Generals = new Worker('Generals', 'heroes_generals');
 Generals.data = {};
 Generals.best_id = null;
+Generals.sort = null;
 Generals.parse = function(change) {
 	var data, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (!change) {
@@ -54,6 +55,7 @@ Generals.parse = function(change) {
 			var $child = $(el).children(), name = $child.eq(0).text().trim();
 			$child.eq(1).prepend('<div style="position:absolute;margin-left:8px;margin-top:2px;font-size:smaller;text-align:left;z-index:100;color:#ffd200;text-shadow:black 1px 1px 2px;"><strong>Invade</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].invade.att===iatt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.att)+(data[name].invade.att===iatt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].invade.def===idef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.def)+(data[name].invade.def===idef?'</span>':'')+'<br><strong>Duel</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].duel.att===datt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.att)+(data[name].duel.att===datt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].duel.def===ddef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.def)+(data[name].duel.def===ddef?'</span>':'')+'<br></div>');
 		});
+		Generals.dashboard();
 	}
 	return true;
 };
@@ -87,21 +89,21 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
 					best = i;
 				}
 			}
@@ -180,4 +182,29 @@ Generals.select = function() {
 		}
 	});
 };
+Generals.dashboard = function() {
+	var i, output = [], list = [];
+	for (i in Generals.data) {
+		list.push(i);
+	}
+	list.sort(function(a,b) {
+		if (Generals.sort == 'duel_att') {
+			return Generals.data[a].duel.att - Generals.data[a].duel.att;
+		} else if (Generals.sort == 'duel_def') {
+			return Generals.data[a].duel.def - Generals.data[a].duel.def;
+		} else if (Generals.sort == 'invade_att') {
+			return Generals.data[a].invade.att - Generals.data[a].invade.att;
+		} else if (Generals.sort == 'invade_def') {
+			return Generals.data[a].invade.def - Generals.data[a].invade.def;
+		} else {
+			return list[a] - list[b];
+		}
+	});
+	output.push('<table cellspacing="0"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	for (i in Generals.data) {
+		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
+	}
+	output.push('</tbody></table>');
+	$('#golem-dashboard-Generals').html(output.join(''));
+}
 

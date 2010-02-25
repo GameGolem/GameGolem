@@ -23,6 +23,8 @@ $('head').append("<style type=\"text/css\">\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; overflow-y: auto; background: white; z-index: 1; }\
+#golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
+#golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
 #golem-dashboard > div { padding: 2px; border-top: 1px solid #d3d3d3; }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
@@ -1069,9 +1071,10 @@ Debug.onload = function() {
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('General', 'heroes_generals');
+var Generals = new Worker('Generals', 'heroes_generals');
 Generals.data = {};
 Generals.best_id = null;
+Generals.sort = null;
 Generals.parse = function(change) {
 	var data, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (!change) {
@@ -1120,6 +1123,7 @@ Generals.parse = function(change) {
 			var $child = $(el).children(), name = $child.eq(0).text().trim();
 			$child.eq(1).prepend('<div style="position:absolute;margin-left:8px;margin-top:2px;font-size:smaller;text-align:left;z-index:100;color:#ffd200;text-shadow:black 1px 1px 2px;"><strong>Invade</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].invade.att===iatt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.att)+(data[name].invade.att===iatt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].invade.def===idef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.def)+(data[name].invade.def===idef?'</span>':'')+'<br><strong>Duel</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].duel.att===datt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.att)+(data[name].duel.att===datt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].duel.def===ddef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.def)+(data[name].duel.def===ddef?'</span>':'')+'<br></div>');
 		});
+		Generals.dashboard();
 	}
 	return true;
 };
@@ -1153,21 +1157,21 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
 					best = i;
 				}
 			}
@@ -1246,6 +1250,31 @@ Generals.select = function() {
 		}
 	});
 };
+Generals.dashboard = function() {
+	var i, output = [], list = [];
+	for (i in Generals.data) {
+		list.push(i);
+	}
+	list.sort(function(a,b) {
+		if (Generals.sort == 'duel_att') {
+			return Generals.data[a].duel.att - Generals.data[a].duel.att;
+		} else if (Generals.sort == 'duel_def') {
+			return Generals.data[a].duel.def - Generals.data[a].duel.def;
+		} else if (Generals.sort == 'invade_att') {
+			return Generals.data[a].invade.att - Generals.data[a].invade.att;
+		} else if (Generals.sort == 'invade_def') {
+			return Generals.data[a].invade.def - Generals.data[a].invade.def;
+		} else {
+			return list[a] - list[b];
+		}
+	});
+	output.push('<table cellspacing="0"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	for (i in Generals.data) {
+		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
+	}
+	output.push('</tbody></table>');
+	$('#golem-dashboard-Generals').html(output.join(''));
+}
 
 /********** Worker.Gift() **********
 * Auto accept gifts and return if needed
@@ -2205,8 +2234,6 @@ Quest.work = function(state) {
 	}
 	return true;
 };
-Quest.dashboard = function() {
-};
 
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
@@ -2634,7 +2661,7 @@ Town.getValues = function() {
 };
 
 var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Gloves:4, Armor:5, Amulet:6, Magic:7};
+	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Armor:4, Amulet:5, Gloves:6, Magic:7};
 	if (name) {
 		output.push('<div class="golem-panel"><h3 class="golem-panel-header">'+name+'</h3><div class="golem-panel-content">');
 	}
@@ -2645,7 +2672,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		units.sort(function(a,b) {
 			return order[list[a].type] - order[list[b].type];
 		});
-	} else if (list[units[0]].skills) {
+	} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
 		units.sort(function(a,b) {
 			return (list[b][type][x] || 0) - (list[a][type][x] || 0);
 		});
@@ -2655,7 +2682,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		});
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
-		if (list[units[0]].skills || list[units[i]].use && list[units[i]].use[type+'_'+x]) {
+		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
 			output.push('<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+list[units[i]].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+(list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '')+units[i]+' ('+list[units[i]].att+' / '+list[units[i]].def+')'+(list[units[i]].cost?'<br>$'+addCommas(list[units[i]].cost):'')+'</div>');
 		}
 	}
@@ -2680,7 +2707,7 @@ Town.dashboard = function() {
 			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'att', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, listpush, 'att', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, listpush, 'att', 'duel')
 			+	makeTownDash(Town.data.magic, listpush, 'att', 'duel')
 			+'</div></div></div>';
@@ -2692,7 +2719,7 @@ Town.dashboard = function() {
 			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'def', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, listpush, 'def', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, listpush, 'def', 'duel')
 			+	makeTownDash(Town.data.magic, listpush, 'def', 'duel')
 			+'</div></div></div>';
