@@ -27,9 +27,7 @@ Config.onload = function() {
 		$golem_config.append(Config.makePanel(Workers[i]));
 	}
 	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
-	$('.golem-panel > h3').click(function(event){
-//		$(this).parent().toggleClass('golem-panel-show');
-//		$(this).toggleClass('ui-corner-all ui-corner-top');
+	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
 			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
 		} else {

@@ -27,13 +27,13 @@ $('head').append("<style type=\"text/css\">\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 .golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
-.golem-panel .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
-.golem-panel .golem-panel-header .golem-icon { float: left; background-position: -32px -16px; }\
-.golem-panel .golem-panel-header .golem-locked { float: right; background-position: -192px -96px; }\
-.golem-panel .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
-.golem-panel-show  .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
-.golem-panel-show  .golem-panel-header .golem-icon { background-position: -64px -16px; }\
-.golem-panel-show  .golem-panel-content { display: block; }\
+.golem-panel > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel > .golem-panel-header .golem-icon { float: left; background-position: -32px -16px; }\
+.golem-panel > .golem-panel-header .golem-locked { float: right; background-position: -192px -96px; }\
+.golem-panel > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
+.golem-panel-show  > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
+.golem-panel-show  > .golem-panel-header .golem-icon { background-position: -64px -16px; }\
+.golem-panel-show  > .golem-panel-content { display: block; }\
 .golem-panel-sortable .golem-locked { display: none; }\
 </style>");
 
@@ -425,9 +425,7 @@ Config.onload = function() {
 		$golem_config.append(Config.makePanel(Workers[i]));
 	}
 	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
-	$('.golem-panel > h3').click(function(event){
-//		$(this).parent().toggleClass('golem-panel-show');
-//		$(this).toggleClass('ui-corner-all ui-corner-top');
+	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
 			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
 		} else {
@@ -638,13 +636,15 @@ Dashboard.option = {
 };
 Dashboard.div = null;
 Dashboard.onload = function() {
-	var id, tabs = [], divs = [], found = Dashboard.option.active;
+	var id, tabs = [], divs = [], active = Dashboard.option.active;
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+Workers[i].name;
-			tabs.push('<h3 name="golem-dashboard-'+Workers[i].name+'" class="golem-tab-header'+((!found || found===id) ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
-			divs.push('<div id="'+id+'"'+((!found || found===id) ? '' : ' style="display:none;"')+'></div>');
-			found = id;
+			if (!active) {
+				active = id;
+			}
+			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
+			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 		}
 	}
 	Dashboard.div = $('<div id="golem-dashboard" style="top:'+$('#app'+APP+'_main_bn').offset().top+'px;display:'+Dashboard.option.display+';">'+tabs.join('')+divs.join('')+'</div>').prependTo('.UIStandardFrame_Content');
@@ -660,6 +660,14 @@ Dashboard.onload = function() {
 		$(this).addClass('golem-tab-header-active');
 		$('#'+Dashboard.option.active).show();
 		Settings.Save('option', Dashboard);
+	});
+	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
+		if ($(this).parent().hasClass('golem-panel-show')) {
+			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+		} else {
+			$(this).parent().toggleClass('golem-panel-show');
+			$(this).next().show('blind');
+		}
 	});
 
 	window.setInterval(function(){
@@ -2480,6 +2488,7 @@ Town.parse = function(change) {
 						unit[name].buy.push(parseInt($(el).val(), 10));
 					});
 				}
+				unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
 				unit[name].own = $('div.eq_buy_costs span:first-child', el).text().regex(/([0-9]+)/);
 				unit[name].att = $('div.eq_buy_stats div:first-child', el).text().regex(/([0-9]+)/);
 				unit[name].def = $('div.eq_buy_stats div:last-child', el).text().regex(/([0-9]+)/);
@@ -2520,6 +2529,7 @@ Town.parse = function(change) {
 			$('#sort_attack', tmp).click(function(){Town.sortBy('att');});
 			$('#sort_defense', tmp).click(function(){Town.sortBy('def');});
 			$(this.table).prepend(tmp);
+			Town.dashboard();
 		}
 	}
 	return true;
@@ -2622,6 +2632,73 @@ Town.getValues = function() {
 	};
 //	GM_debug('Town Invade: '+Town.data.invade.toSource()+', Town Duel: '+Town.data.duel.toSource());
 };
+
+var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Gloves:4, Armor:5, Amulet:6, Magic:7};
+	if (name) {
+		output.push('<div class="golem-panel"><h3 class="golem-panel-header">'+name+'</h3><div class="golem-panel-content">');
+	}
+	for (i in list) {
+		unitfunc(units, i, list);
+	}
+	if (type === 'duel' && list[units[0]].type) {
+		units.sort(function(a,b) {
+			return order[list[a].type] - order[list[b].type];
+		});
+	} else if (list[units[0]].skills) {
+		units.sort(function(a,b) {
+			return (list[b][type][x] || 0) - (list[a][type][x] || 0);
+		});
+	} else {
+		units.sort(function(a,b) {
+			return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
+		});
+	}
+	for (i=0; i<(count ? count : units.length); i++) {
+		if (list[units[0]].skills || list[units[i]].use && list[units[i]].use[type+'_'+x]) {
+			output.push('<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+list[units[i]].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+(list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '')+units[i]+' ('+list[units[i]].att+' / '+list[units[i]].def+')'+(list[units[i]].cost?'<br>$'+addCommas(list[units[i]].cost):'')+'</div>');
+		}
+	}
+	if (name) {
+		output.push('</div></div>');
+	}
+	return output.join('');
+};
+
+
+Town.dashboard = function() {
+	var left, right, duel = {}, best;
+	var listpush = function(list,i){list.push(i);},
+		listpushweapon = function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}},
+		listpushnotweapon = function(list,i,units){if (units[i].type !== 'Weapon'){list.push(i);}};
+
+	best = Generals.best('duel');
+	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	makeTownDash(Generals.data, listpush, 'att', 'invade', 'Heroes')
+			+	makeTownDash(Town.data.soldiers, listpush, 'att', 'invade', 'Soldiers')
+			+	makeTownDash(Town.data.blacksmith, listpushweapon, 'att', 'invade', 'Weapons')
+			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'att', 'invade', 'Equipment')
+			+	makeTownDash(Town.data.magic, listpush, 'att', 'invade', 'Magic')
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	makeTownDash(Town.data.blacksmith, listpush, 'att', 'duel')
+			+	makeTownDash(Town.data.magic, listpush, 'att', 'duel')
+			+'</div></div></div>';
+	best = Generals.best('defend');
+	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	makeTownDash(Generals.data, listpush, 'def', 'invade', 'Heroes')
+			+	makeTownDash(Town.data.soldiers, listpush, 'def', 'invade', 'Soldiers')
+			+	makeTownDash(Town.data.blacksmith, listpushweapon, 'def', 'invade', 'Weapons')
+			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'def', 'invade', 'Equipment')
+			+	makeTownDash(Town.data.magic, listpush, 'def', 'invade', 'Magic')
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	makeTownDash(Town.data.blacksmith, listpush, 'def', 'duel')
+			+	makeTownDash(Town.data.magic, listpush, 'def', 'duel')
+			+'</div></div></div>';
+
+	$('#golem-dashboard-Town').html(left+right);
+}
 
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.

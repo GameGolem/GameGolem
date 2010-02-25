@@ -8,13 +8,15 @@ Dashboard.option = {
 };
 Dashboard.div = null;
 Dashboard.onload = function() {
-	var id, tabs = [], divs = [], found = Dashboard.option.active;
+	var id, tabs = [], divs = [], active = Dashboard.option.active;
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+Workers[i].name;
-			tabs.push('<h3 name="golem-dashboard-'+Workers[i].name+'" class="golem-tab-header'+((!found || found===id) ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
-			divs.push('<div id="'+id+'"'+((!found || found===id) ? '' : ' style="display:none;"')+'></div>');
-			found = id;
+			if (!active) {
+				active = id;
+			}
+			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
+			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 		}
 	}
 	Dashboard.div = $('<div id="golem-dashboard" style="top:'+$('#app'+APP+'_main_bn').offset().top+'px;display:'+Dashboard.option.display+';">'+tabs.join('')+divs.join('')+'</div>').prependTo('.UIStandardFrame_Content');
@@ -30,6 +32,14 @@ Dashboard.onload = function() {
 		$(this).addClass('golem-tab-header-active');
 		$('#'+Dashboard.option.active).show();
 		Settings.Save('option', Dashboard);
+	});
+	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
+		if ($(this).parent().hasClass('golem-panel-show')) {
+			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+		} else {
+			$(this).parent().toggleClass('golem-panel-show');
+			$(this).next().show('blind');
+		}
 	});
 
 	window.setInterval(function(){

@@ -76,6 +76,7 @@ Town.parse = function(change) {
 						unit[name].buy.push(parseInt($(el).val(), 10));
 					});
 				}
+				unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
 				unit[name].own = $('div.eq_buy_costs span:first-child', el).text().regex(/([0-9]+)/);
 				unit[name].att = $('div.eq_buy_stats div:first-child', el).text().regex(/([0-9]+)/);
 				unit[name].def = $('div.eq_buy_stats div:last-child', el).text().regex(/([0-9]+)/);
@@ -116,6 +117,7 @@ Town.parse = function(change) {
 			$('#sort_attack', tmp).click(function(){Town.sortBy('att');});
 			$('#sort_defense', tmp).click(function(){Town.sortBy('def');});
 			$(this.table).prepend(tmp);
+			Town.dashboard();
 		}
 	}
 	return true;
@@ -218,4 +220,71 @@ Town.getValues = function() {
 	};
 //	GM_debug('Town Invade: '+Town.data.invade.toSource()+', Town Duel: '+Town.data.duel.toSource());
 };
+
+var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Gloves:4, Armor:5, Amulet:6, Magic:7};
+	if (name) {
+		output.push('<div class="golem-panel"><h3 class="golem-panel-header">'+name+'</h3><div class="golem-panel-content">');
+	}
+	for (i in list) {
+		unitfunc(units, i, list);
+	}
+	if (type === 'duel' && list[units[0]].type) {
+		units.sort(function(a,b) {
+			return order[list[a].type] - order[list[b].type];
+		});
+	} else if (list[units[0]].skills) {
+		units.sort(function(a,b) {
+			return (list[b][type][x] || 0) - (list[a][type][x] || 0);
+		});
+	} else {
+		units.sort(function(a,b) {
+			return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
+		});
+	}
+	for (i=0; i<(count ? count : units.length); i++) {
+		if (list[units[0]].skills || list[units[i]].use && list[units[i]].use[type+'_'+x]) {
+			output.push('<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+list[units[i]].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+(list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '')+units[i]+' ('+list[units[i]].att+' / '+list[units[i]].def+')'+(list[units[i]].cost?'<br>$'+addCommas(list[units[i]].cost):'')+'</div>');
+		}
+	}
+	if (name) {
+		output.push('</div></div>');
+	}
+	return output.join('');
+};
+
+
+Town.dashboard = function() {
+	var left, right, duel = {}, best;
+	var listpush = function(list,i){list.push(i);},
+		listpushweapon = function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}},
+		listpushnotweapon = function(list,i,units){if (units[i].type !== 'Weapon'){list.push(i);}};
+
+	best = Generals.best('duel');
+	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	makeTownDash(Generals.data, listpush, 'att', 'invade', 'Heroes')
+			+	makeTownDash(Town.data.soldiers, listpush, 'att', 'invade', 'Soldiers')
+			+	makeTownDash(Town.data.blacksmith, listpushweapon, 'att', 'invade', 'Weapons')
+			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'att', 'invade', 'Equipment')
+			+	makeTownDash(Town.data.magic, listpush, 'att', 'invade', 'Magic')
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	makeTownDash(Town.data.blacksmith, listpush, 'att', 'duel')
+			+	makeTownDash(Town.data.magic, listpush, 'att', 'duel')
+			+'</div></div></div>';
+	best = Generals.best('defend');
+	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	makeTownDash(Generals.data, listpush, 'def', 'invade', 'Heroes')
+			+	makeTownDash(Town.data.soldiers, listpush, 'def', 'invade', 'Soldiers')
+			+	makeTownDash(Town.data.blacksmith, listpushweapon, 'def', 'invade', 'Weapons')
+			+	makeTownDash(Town.data.blacksmith, listpushnotweapon, 'def', 'invade', 'Equipment')
+			+	makeTownDash(Town.data.magic, listpush, 'def', 'invade', 'Magic')
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'<div style="height:25px;margin:1px;"><img src="'+Player.data.imagepath+Generals.data[best].img+'" style="width:25px;height:25px;float:left;margin-right:4px;">'+best+' ('+Generals.data[best].att+' / '+Generals.data[best].def+')</div>'
+			+	makeTownDash(Town.data.blacksmith, listpush, 'def', 'duel')
+			+	makeTownDash(Town.data.magic, listpush, 'def', 'duel')
+			+'</div></div></div>';
+
+	$('#golem-dashboard-Town').html(left+right);
+}
 
