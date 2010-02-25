@@ -26,11 +26,13 @@ Monster.types = {
 	colossus: {
 		list:'stone_giant_list',
 		image:'stone_giant',
+		timer:259200, // 72 hours
 		mpool:1
 	},
 	legion: {
 		list:'castle_siege_list',
 		image:'castle_siege',
+		timer:604800, // 168 hours
 		mpool:3
 	},
 	raid: {
@@ -41,6 +43,7 @@ Monster.types = {
 	serpent: {
 		list:'seamonster_list_red',
 		image:'seamonster_red',
+		timer:259200, // 72 hours
 		mpool:2
 	}
 };
@@ -54,6 +57,7 @@ Monster.onload = function() {
 			}
 		}
 	}
+	Monster.Dashboard();
 }
 Monster.parse = function(change) {
 	var i, j, uid, type, $health, $defense, damage;
@@ -122,6 +126,7 @@ Monster.parse = function(change) {
 			}
 		}
 	}
+	Monster.Dashboard();
 	return false;
 };
 Monster.work = function(state) {
@@ -172,5 +177,27 @@ Monster.work = function(state) {
 	}
 	Page.click(btn);
 	return true;
+};
+Monster.Dashboard = function() {
+	var i, j, k, dam, txt, list = [], dps, total, ttk;
+	list.push('<table><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	for (i in Monster.data) {
+		dam = 0;
+		for (j in Monster.data[i]) {
+			for (k in Monster.data[i][j].damage) {
+				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
+			}
+			if (Monster.data[i][j].state === 'engage') {
+				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
+				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
+				ttk = Math.floor(total / dps);
+				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td><span class="golem-timer">'+makeTimer(ttk) + '</span></td></tr>');
+			} else {
+				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');
+			}
+		}
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-monster').html(list.join(''));
 };
 

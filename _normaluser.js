@@ -230,6 +230,11 @@ if(typeof GM_debug === 'undefined') {
 	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
 }
 
+var makeTimer = function(sec) {
+	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
+	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
+};
+
 var WorkerByName = function(name) { // Get worker object by Worker.name
 	for (var i in Workers) {
 		if (Workers[i].name === name) {
@@ -981,14 +986,19 @@ Dashboard.option = {
 };
 Dashboard.div = null;
 Dashboard.onload = function() {
-	Dashboard.div = $('<div id="golem-dashboard" style="display:'+Dashboard.option.display+';">Dashboard...</div>').prependTo('.UIStandardFrame_Content');
+	Dashboard.div = $('<div id="golem-dashboard" style="display:'+Dashboard.option.display+';"><span>Monsters</span><div id="golem-dashboard-monster"></div></div>').prependTo('.UIStandardFrame_Content');
+	window.setInterval(function(){
+		$('.golem-timer').each(function(i,el){
+			$(el).text(makeTimer($(el).text().parseTimer() - 1));
+		});
+	},1000);
 }
 Dashboard.parse = function(change) {
 	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
 	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
 	$('#golem_toggle_dash').click(function(){
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-		$('#golem_dashboard').toggle('drop');
+		$('#golem-dashboard').toggle('drop');
 		Settings.Save('option', Dashboard);
 	});
 	$('#golem_toggle_config').click(function(){
@@ -1508,11 +1518,13 @@ Monster.types = {
 	colossus: {
 		list:'stone_giant_list',
 		image:'stone_giant',
+		timer:259200, // 72 hours
 		mpool:1
 	},
 	legion: {
 		list:'castle_siege_list',
 		image:'castle_siege',
+		timer:604800, // 168 hours
 		mpool:3
 	},
 	raid: {
@@ -1523,6 +1535,7 @@ Monster.types = {
 	serpent: {
 		list:'seamonster_list_red',
 		image:'seamonster_red',
+		timer:259200, // 72 hours
 		mpool:2
 	}
 };
@@ -1536,6 +1549,7 @@ Monster.onload = function() {
 			}
 		}
 	}
+	Monster.Dashboard();
 }
 Monster.parse = function(change) {
 	var i, j, uid, type, $health, $defense, damage;
@@ -1604,6 +1618,7 @@ Monster.parse = function(change) {
 			}
 		}
 	}
+	Monster.Dashboard();
 	return false;
 };
 Monster.work = function(state) {
@@ -1654,6 +1669,28 @@ Monster.work = function(state) {
 	}
 	Page.click(btn);
 	return true;
+};
+Monster.Dashboard = function() {
+	var i, j, k, dam, txt, list = [], dps, total, ttk;
+	list.push('<table><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	for (i in Monster.data) {
+		dam = 0;
+		for (j in Monster.data[i]) {
+			for (k in Monster.data[i][j].damage) {
+				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
+			}
+			if (Monster.data[i][j].state === 'engage') {
+				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
+				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
+				ttk = Math.floor(total / dps);
+				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td><span class="golem-timer">'+makeTimer(ttk) + '</span></td></tr>');
+			} else {
+				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');
+			}
+		}
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-monster').html(list.join(''));
 };
 
 /********** Worker.Page() **********
@@ -1957,6 +1994,10 @@ Quest.display = [
 		label:'Quest for',
 		select:'quest_reward'
 	},{
+		id:'monster',
+		label:'Fortify Monsters First',
+		checkbox:true
+	},{
 		id:'current',
 		label:'Current',
 		info:'None'
@@ -2055,6 +2096,9 @@ Quest.select = function() {
 Quest.work = function(state) {
 	var i, list, best = null;
 	if (Quest.option.what === 'Nothing') {
+		return false;
+	}
+	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
 		return false;
 	}
 	for (i in Quest.data) {

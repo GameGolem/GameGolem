@@ -60,6 +60,11 @@ if(typeof GM_debug === 'undefined') {
 	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
 }
 
+var makeTimer = function(sec) {
+	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
+	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
+};
+
 var WorkerByName = function(name) { // Get worker object by Worker.name
 	for (var i in Workers) {
 		if (Workers[i].name === name) {

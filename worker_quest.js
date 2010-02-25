@@ -5,7 +5,8 @@
 var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
 Quest.option = {
 	general: 'Under Level 4',
-	what: 'Influence'
+	what: 'Influence',
+	monster:true
 };
 Quest.land = ['fire', 'earth', 'mist', 'water', 'demon', 'undead'];
 Quest.current = null;
@@ -18,6 +19,10 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward'
+	},{
+		id:'monster',
+		label:'Fortify Monsters First',
+		checkbox:true
 	},{
 		id:'current',
 		label:'Current',
@@ -117,6 +122,9 @@ Quest.select = function() {
 Quest.work = function(state) {
 	var i, list, best = null;
 	if (Quest.option.what === 'Nothing') {
+		return false;
+	}
+	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
 		return false;
 	}
 	for (i in Quest.data) {
