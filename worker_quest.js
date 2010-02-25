@@ -124,9 +124,6 @@ Quest.work = function(state) {
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
-	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
-		return false;
-	}
 	for (i in Quest.data) {
 		switch(Quest.option.what) {
 			case 'Influence':
@@ -158,6 +155,9 @@ Quest.work = function(state) {
 			GM_debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
+	}
+	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
+		return false;
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
 		return false;

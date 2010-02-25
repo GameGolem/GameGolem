@@ -105,7 +105,7 @@ Config.makePanel = function(worker) {
 				// our different types of input elements
 				if (o.info) { // only useful for externally changed
 					if (o.id) {
-						txt.push('<span id="' + o.real_id + '">' + o.info + '</span>');
+						txt.push('<span style="float:right" id="' + o.real_id + '">' + o.info + '</span>');
 					} else {
 						txt.push(o.info);
 					}

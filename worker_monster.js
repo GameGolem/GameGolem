@@ -4,7 +4,7 @@
 var Monster = new Worker('Monster', 'keep_monster keep_monster_active');
 Monster.option = {
 	fortify: 50,
-	choice: 'Random'
+	choice: 'All'
 };
 Monster.display = [
 	{
@@ -15,11 +15,11 @@ Monster.display = [
 		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 		after:'%'
 	},{
-		label:'Random only (for now)...'
+		label:'"All" is currently Random...'
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['Random', 'Strongest', 'Weakest', 'Shortest', 'In Turn']
+		select:['All', 'Strongest', 'Weakest', 'Shortest']
 	}
 ];
 Monster.types = {
@@ -130,7 +130,7 @@ Monster.parse = function(change) {
 	return false;
 };
 Monster.work = function(state) {
-	var list = [], uid = Monster.option.uid, type = Monster.option.type, btn, best;
+	var list = [], uid = Monster.option.uid, type = Monster.option.type, btn, best = null
 	if (!state) {
 		Monster.option.uid = null;
 		Monster.option.type = null;
@@ -141,17 +141,26 @@ Monster.work = function(state) {
 	if (!uid || !type || !Monster.data[uid] || Monster.data[uid][type].state !== 'engage') {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
-				if (Monster.data[uid][type].state === 'engage') {
-					list.push([uid, type]);
+				if (Monster.data[uid][type].state === 'engage'){
+					if (Monster.option.choice === 'All') {
+						list.push([uid, type]);
+					} else if (!best
+					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
+					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
+					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)) {
+						best = [uid, type];
+					}
 				}
 			}
 		}
-		if (!list.length) {
+		if (Monster.option.choice === 'All' && list.length) {
+			best = list[Math.floor(Math.random()*list.length)];
+		}
+		if (!best) {
 			return false;
 		}
-		best = Math.floor(Math.random()*list.length);
-		uid  = Monster.option.uid  = list[best][0];
-		type = Monster.option.type = list[best][1];
+		uid  = Monster.option.uid  = best[0];
+		type = Monster.option.type = best[1];
 	}
 	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense >= Monster.option.fortify)) {
 		return false;
