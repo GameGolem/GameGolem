@@ -2,13 +2,13 @@
 * Completes quests with a choice of general
 */
 // Should also look for quests_quest but that should never be used unless there's a new area
-var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_demiquests quests_atlantis');
+var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis');
 Quest.option = {
 	general: 'Under Level 4',
 	what: 'Influence',
 	monster:true
 };
-Quest.land = ['fire', 'earth', 'mist', 'water', 'demon', 'undead'];
+Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
 Quest.current = null;
 Quest.display = [
 	{
@@ -105,12 +105,13 @@ Quest.parse = function(change) {
 	return false;
 };
 Quest.select = function() {
-	var i, list = ['Nothing', 'Influence', 'Experience', 'Cash'];
+	var i, list = [];
 	for (i in Quest.data) {
 		if (Quest.data[i].item) {
 			list.push(Quest.data[i].item);
 		}
 	}
+	list = ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort());
 	$('select.golem_quest_reward').each(function(a,el){
 		$(el).empty();
 		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
@@ -125,29 +126,12 @@ Quest.work = function(state) {
 		return false;
 	}
 	for (i in Quest.data) {
-		switch(Quest.option.what) {
-			case 'Influence':
-				if (Quest.data[i].influence >= 100 || best && Quest.data[i].energy >= Quest.data[best].energy) {
-					continue;
-				}
-				break;
-			case 'Experience':
-				if (best && (Quest.data[i].energy / Quest.data[i].exp) >= (Quest.data[best].energy / Quest.data[best].exp)) {
-					continue;
-				}
-				break;
-			case 'Cash':
-				if (best && (Quest.data[i].energy / Quest.data[i].reward) >= (Quest.data[best].energy / Quest.data[best].reward)) {
-					continue;
-				}
-				break;
-			default: // We're going for an item instead
-				if (!Quest.data[i].item || Quest.data[i].item !== Quest.option.what || (best && (Quest.data[i].energy > Quest.data[best].energy))) {
-					continue;
-				}
-				break;
+		if ((Quest.option.what === 'Influence' && Quest.data[i].influence < 100 && (!best || Quest.data[i].energy < Quest.data[best].energy))
+		|| (Quest.option.what === 'Experience' && (!best || (Quest.data[i].energy / Quest.data[i].exp) < (Quest.data[best].energy / Quest.data[best].exp)))
+		|| (Quest.option.what === 'Cash' && (!best && (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
+		|| (Quest.option.what !== 'Influence' && Quest.option.what !== 'Experience' && Quest.option.what !== 'Cash' && Quest.data[i].item === Quest.option.what && (!best || (Quest.data[i].energy < Quest.data[best].energy)))) {
+			best = i;
 		}
-		best = i;
 	}
 	if (best !== Quest.current) {
 		Quest.current = best;
@@ -198,5 +182,7 @@ Quest.work = function(state) {
 		Page.reload();
 	}
 	return true;
+};
+Quest.dashboard = function() {
 };
 

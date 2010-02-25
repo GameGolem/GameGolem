@@ -57,7 +57,6 @@ Monster.onload = function() {
 			}
 		}
 	}
-	Monster.Dashboard();
 }
 Monster.parse = function(change) {
 	var i, j, uid, type, $health, $defense, damage;
@@ -126,7 +125,7 @@ Monster.parse = function(change) {
 			}
 		}
 	}
-	Monster.Dashboard();
+	Monster.dashboard();
 	return false;
 };
 Monster.work = function(state) {
@@ -187,7 +186,7 @@ Monster.work = function(state) {
 	Page.click(btn);
 	return true;
 };
-Monster.Dashboard = function() {
+Monster.dashboard = function() {
 	var i, j, k, dam, txt, list = [], dps, total, ttk;
 	list.push('<table><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
@@ -207,6 +206,6 @@ Monster.Dashboard = function() {
 		}
 	}
 	list.push('</tbody></table>');
-	$('#golem-dashboard-monster').html(list.join(''));
+	$('#golem-dashboard-Monster').html(list.join(''));
 };
 

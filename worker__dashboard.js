@@ -3,11 +3,35 @@
 */
 var Dashboard = new Worker('Dashboard', '*');
 Dashboard.option = {
-	display:'none'
+	display:'none',
+	active:null
 };
 Dashboard.div = null;
 Dashboard.onload = function() {
-	Dashboard.div = $('<div id="golem-dashboard" style="display:'+Dashboard.option.display+';"><span>Monsters</span><div id="golem-dashboard-monster"></div></div>').prependTo('.UIStandardFrame_Content');
+	var id, tabs = [], divs = [], found = Dashboard.option.active;
+	for (i in Workers) {
+		if (Workers[i].dashboard) {
+			id = 'golem-dashboard-'+Workers[i].name;
+			tabs.push('<h3 name="golem-dashboard-'+Workers[i].name+'" class="golem-tab-header'+((!found || found===id) ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
+			divs.push('<div id="'+id+'"'+((!found || found===id) ? '' : ' style="display:none;"')+'></div>');
+			found = id;
+		}
+	}
+	Dashboard.div = $('<div id="golem-dashboard" style="top:'+$('#app'+APP+'_main_bn').offset().top+'px;display:'+Dashboard.option.display+';">'+tabs.join('')+divs.join('')+'</div>').prependTo('.UIStandardFrame_Content');
+	$('.golem-tab-header').click(function(){
+		if ($(this).hasClass('golem-tab-header-active')) {
+			return;
+		}
+		if (Dashboard.option.active) {
+			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
+			$('#'+Dashboard.option.active).hide();
+		}
+		Dashboard.option.active = $(this).attr('name');
+		$(this).addClass('golem-tab-header-active');
+		$('#'+Dashboard.option.active).show();
+		Settings.Save('option', Dashboard);
+	});
+
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){
 			$(el).text(makeTimer($(el).text().parseTimer() - 1));
@@ -24,7 +48,7 @@ Dashboard.parse = function(change) {
 	});
 	$('#golem_toggle_config').click(function(){
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-		$('.golem-config > div').toggle(Config.option.fixed?null:'blind');
+		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
 		Settings.Save('option', Config);
 	});
 	return false;

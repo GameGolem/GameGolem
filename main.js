@@ -56,6 +56,9 @@ $(document).ready(function() {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
+			if (Workers[i].dashboard) {
+				Workers[i].dashboard();
+			}
 		}
 		main(); // Call once to get the ball rolling...
 		window.setInterval(function(){main();},1000);
