@@ -2745,8 +2745,8 @@ Update.now = function(force) {
 		return;
 	}
 	var lastUpdateCheck = Settings.GetValue("lastUpdateCheck", 0);
-	if (force || Date.now() - lastUpdateCheck > 86400000) {
-		// 24+ hours since last check (60x60x24x1000ms)
+	if (force || Date.now() - lastUpdateCheck > 21600000) {
+		// 6+ hours since last check (60x60x6x1000ms)
 		Settings.SetValue("lastUpdateCheck", Date.now().toString());
 		GM_xmlhttpRequest({
 			method: "GET",
