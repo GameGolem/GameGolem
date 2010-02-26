@@ -1613,6 +1613,12 @@ Monster.types = {
 		image:'deathrune',
 		mpool:1
 	},
+	sylvanus: {
+		list:'boss_sylvanus_list',
+		image:'boss_sylvanus_large',
+		timer:172800, // 48 hours
+		mpool:1
+	},
 	serpent: {
 		list:'seamonster_list_red',
 		image:'seamonster_red',
@@ -1643,6 +1649,10 @@ Monster.parse = function(change) {
 		}
 		if (!uid || !type) {
 			GM_debug('Monster: Unknown monster');
+			return false;
+		}
+		if ($('input[src*="collect_reward_button.jpg"]').length) {
+			Monster.data[uid].state = 'reward';
 			return false;
 		}
 		$health = $('img[src$="monster_health_background.jpg"]').parent();
@@ -1763,8 +1773,8 @@ Monster.dashboard = function() {
 	var i, j, k, dam, txt, list = [], dps, total, ttk;
 	list.push('<table cellspacing="0"><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
-		dam = 0;
 		for (j in Monster.data[i]) {
+			dam = 0;
 			for (k in Monster.data[i][j].damage) {
 				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
 			}
@@ -1773,7 +1783,7 @@ Monster.dashboard = function() {
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
 				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
-				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td><span class="golem-timer">'+makeTimer(ttk) + '</span></td></tr>');
+				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (Monster.data[i][j].health===100 ? '?' : (total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td>'+(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' + '</td></tr>');
 			} else {
 				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');
 			}
