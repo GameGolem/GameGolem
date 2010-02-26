@@ -22,22 +22,29 @@ $('head').append("<style type=\"text/css\">\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
-#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; overflow-y: auto; background: white; z-index: 1; }\
+#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; overflow-y: scroll; background: white; z-index: 1; }\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
 #golem-dashboard > div { padding: 2px; border-top: 1px solid #d3d3d3; }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
+\
 .golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
-.golem-panel > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
-.golem-panel > .golem-panel-header .golem-icon { float: left; background-position: -32px -16px; }\
-.golem-panel > .golem-panel-header .golem-locked { float: right; background-position: -192px -96px; }\
-.golem-panel > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
-.golem-panel-show  > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
-.golem-panel-show  > .golem-panel-header .golem-icon { background-position: -64px -16px; }\
-.golem-panel-show  > .golem-panel-content { display: block; }\
-.golem-panel-sortable .golem-locked { display: none; }\
+\
+.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
+.golem-panel-show  > .golem-panel-header, .golem-panel-show  > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
+.golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
+.golem-panel-sortable .golem-lock { display: none; }\
+\
+.golem-title .golem-fixed-off { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF3t7e3d3dY2NjVVVVAAAAIwZ7MQAAAAV0Uk5T%2F%2F%2F%2F%2FwD7tg5TAAAALklEQVR42mJgQQMMZAswM4EYTEgCEIAswIQkAJZkwqcCqxlMjKi2UMPpCAAQYAAAegPHJBcwkQAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
+.golem-title .golem-fixed-on { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF3t7e3d3dY2NjVVVVAAAAIwZ7MQAAAAV0Uk5T%2F%2F%2F%2F%2FwD7tg5TAAAANUlEQVR42mJgQQMMxAkwMYMAE5IKsAALKQKMzExMTMwMeAxlZkbogbmDGd1hhAVI8BxAgAEA%2FjkDx9SMVaMAAAAASUVORK5CYII%3D) no-repeat; }\
+.golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAIklEQVR42mJgRAMM1BNgwBBgwBBgwBBgIKSCkC0UOR0gwACBDgDx3iWVvgAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
+.golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAMUlEQVR42mJgRAMMRAswMDCgCDAwwETgAowoAgwMcCW4BRgJCqBqwbSWHL%2FAAUCAAQBuEQDPfStrmwAAAABJRU5ErkJggg%3D%3D) no-repeat;}\
+.golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAIklEQVR42mJgRAMMNBNggAAkFQg%2BTAucz4hO09BhyAAgwAB%2F3gDxzGOmYgAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
 </style>");
+
+//.golem-panel > .golem-panel-header .golem-icon { float: left; background-position: -32px -16px; }\
 
 // Elite army
 // http://apps.facebook.com/castle_age/party.php?twt=jneg&jneg=true&user=44404517
@@ -413,11 +420,11 @@ Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_fixed').click(function(){
 			Config.option.fixed ^= true;
-			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
+			$(this).toggleClass('golem-fixed-on golem-fixed-off');
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
 			Config.option.active = [];
 			Settings.Save('option', Config);
@@ -429,14 +436,19 @@ Config.onload = function() {
 	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+			$(this).next().hide('blind',function(){
+				$(this).parent().toggleClass('golem-panel-show');
+				Config.option.active = [];
+				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+				Settings.Save('option', Config);
+			});
 		} else {
 			$(this).parent().toggleClass('golem-panel-show');
 			$(this).next().show('blind');
+			Config.option.active = [];
+			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+			Settings.Save('option', Config);
 		}
-		Config.option.active = [];
-		$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-		Settings.Save('option', Config);
 	});
 	$golem_config.children('.golem-panel-sortable')
 		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
@@ -478,9 +490,11 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
+// padlock = data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAMUlEQVR42mJgRAMMRAswMDCgCDAwwETgAowoAgwMcCW4BRgJCqBqwbSWHL%2FAAUCAAQBuEQDPfStrmwAAAABJRU5ErkJggg%3D%3D
+// arrow-right
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.priv_id);
-	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><span class="ui-icon golem-icon"></span>'+worker.name+'<span class="ui-icon golem-locked"></span></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -1747,7 +1761,7 @@ Monster.work = function(state) {
 };
 Monster.dashboard = function() {
 	var i, j, k, dam, txt, list = [], dps, total, ttk;
-	list.push('<table><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0"><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		dam = 0;
 		for (j in Monster.data[i]) {
@@ -1757,7 +1771,8 @@ Monster.dashboard = function() {
 			if (Monster.data[i][j].state === 'engage') {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
-				ttk = Math.floor(total / dps);
+				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
+				ttk = Math.floor((total - dam) / dps);
 				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td><span class="golem-timer">'+makeTimer(ttk) + '</span></td></tr>');
 			} else {
 				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');

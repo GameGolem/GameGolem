@@ -188,7 +188,7 @@ Monster.work = function(state) {
 };
 Monster.dashboard = function() {
 	var i, j, k, dam, txt, list = [], dps, total, ttk;
-	list.push('<table><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0"><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		dam = 0;
 		for (j in Monster.data[i]) {
@@ -198,7 +198,8 @@ Monster.dashboard = function() {
 			if (Monster.data[i][j].state === 'engage') {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
-				ttk = Math.floor(total / dps);
+				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
+				ttk = Math.floor((total - dam) / dps);
 				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td><span class="golem-timer">'+makeTimer(ttk) + '</span></td></tr>');
 			} else {
 				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');

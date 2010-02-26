@@ -13,11 +13,11 @@ Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="ui-icon ui-icon-pin-'+(Config.option.fixed?'s':'w')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_fixed').click(function(){
 			Config.option.fixed ^= true;
-			$(this).toggleClass('ui-icon-pin-w ui-icon-pin-s');
+			$(this).toggleClass('golem-fixed-on golem-fixed-off');
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
 			Config.option.active = [];
 			Settings.Save('option', Config);
@@ -29,14 +29,19 @@ Config.onload = function() {
 	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+			$(this).next().hide('blind',function(){
+				$(this).parent().toggleClass('golem-panel-show');
+				Config.option.active = [];
+				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+				Settings.Save('option', Config);
+			});
 		} else {
 			$(this).parent().toggleClass('golem-panel-show');
 			$(this).next().show('blind');
+			Config.option.active = [];
+			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+			Settings.Save('option', Config);
 		}
-		Config.option.active = [];
-		$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-		Settings.Save('option', Config);
 	});
 	$golem_config.children('.golem-panel-sortable')
 		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
@@ -78,9 +83,11 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
+// padlock = data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAMUlEQVR42mJgRAMMRAswMDCgCDAwwETgAowoAgwMcCW4BRgJCqBqwbSWHL%2FAAUCAAQBuEQDPfStrmwAAAABJRU5ErkJggg%3D%3D
+// arrow-right
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.priv_id);
-	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><span class="ui-icon golem-icon"></span>'+worker.name+'<span class="ui-icon golem-locked"></span></h3></div>');
+	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
