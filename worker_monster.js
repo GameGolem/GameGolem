@@ -24,30 +24,30 @@ Monster.display = [
 ];
 Monster.types = {
 	colossus: {
-		list:'stone_giant_list',
+		list:'stone_giant_list.jpg',
 		image:'stone_giant',
 		timer:259200, // 72 hours
 		mpool:1
 	},
 	legion: {
-		list:'castle_siege_list',
+		list:'castle_siege_list.jpg',
 		image:'castle_siege',
 		timer:604800, // 168 hours
 		mpool:3
 	},
 	raid: {
-		list:'deathrune_list2',
+		list:'deathrune_list2.jpg',
 		image:'deathrune',
 		mpool:1
 	},
 	sylvanus: {
-		list:'boss_sylvanus_list',
+		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large',
 		timer:172800, // 48 hours
 		mpool:1
 	},
 	serpent: {
-		list:'seamonster_list_red',
+		list:'seamonster_list_red.jpg',
 		image:'seamonster_red',
 		timer:259200, // 72 hours
 		mpool:2
@@ -197,10 +197,11 @@ Monster.work = function(state) {
 	return true;
 };
 Monster.dashboard = function() {
-	var i, j, k, dam, txt, list = [], dps, total, ttk;
-	list.push('<table cellspacing="0"><thead><tr><th>UserID</th><th>State</th><th>Type</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	var i, j, k, dam, txt, list = [], dps, total, ttk, output;
+	list.push('<table cellspacing="0"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
+			output = [];
 			dam = 0;
 			for (k in Monster.data[i][j].damage) {
 				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
@@ -210,9 +211,16 @@ Monster.dashboard = function() {
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
 				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
-				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td><td title="Damage: ' + dam + ' (' + Math.floor(100 - Monster.data[i][j].health) + '%)">' + (Monster.data[i][j].health===100 ? '?' : (total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)</td><td>' + (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') + '</td><td><span class="golem-timer">'+makeTimer(Monster.data[i][j].timer) + '</span></td><td>'+(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' + '</td></tr>');
+				output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
+				output.push(i);
+				output.push(Monster.data[i][j].state);
+				output.push((Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
+				output.push((Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : ''));
+				output.push('<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>');
+				output.push((Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>');
+				list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 			} else {
-				list.push('<tr><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>' + j + '</td></tr>');
+				list.push('<tr><td><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '"></td><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>Dead</td></tr>');
 			}
 		}
 	}
