@@ -23,17 +23,17 @@ Monster.display = [
 	}
 ];
 Monster.types = {
-	colossus: {
-		list:'stone_giant_list.jpg',
-		image:'stone_giant',
-		timer:259200, // 72 hours
-		mpool:1
-	},
 	legion: {
 		list:'castle_siege_list.jpg',
 		image:'castle_siege',
 		timer:604800, // 168 hours
 		mpool:3
+	},
+	colossus: {
+		list:'stone_giant_list.jpg',
+		image:'stone_giant',
+		timer:259200, // 72 hours
+		mpool:1
 	},
 	raid: {
 		list:'deathrune_list2.jpg',
@@ -42,7 +42,7 @@ Monster.types = {
 	},
 	sylvanus: {
 		list:'boss_sylvanus_list.jpg',
-		image:'boss_sylvanus_large',
+		image:'boss_sylvanus_large.jpg',
 		timer:172800, // 48 hours
 		mpool:1
 	},
@@ -71,7 +71,6 @@ Monster.parse = function(change) {
 		for (i in Monster.types) {
 			if ($('img[src*="'+Monster.types[i].image+'"]').length) {
 				type = i;
-				break;
 			}
 		}
 		if (!uid || !type) {
@@ -101,8 +100,8 @@ Monster.parse = function(change) {
 				Monster.data[i][j].state = null;
 			}
 		}
-		$('img[src*="dragon_list_btn_"]').each(function(i,el){
-			var i, uid = $(el).parent().attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().parent().prev().prev().html().regex(/graphics\/(.*)\./i), type = 'unknown';
+		$('#app'+APP+'_app_body div.imgButton').each(function(i,el){
+			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
 			for (i in Monster.types) {
 				if (tmp === Monster.types[i].list) {
 					type = i;
@@ -114,7 +113,7 @@ Monster.parse = function(change) {
 			}
 			Monster.data[uid] = Monster.data[uid] || {};
 			Monster.data[uid][type] = Monster.data[uid][type] || {};
-			switch($(el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
+			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
 				case 4: Monster.data[uid][type].state = 'complete'; break;
@@ -210,7 +209,7 @@ Monster.dashboard = function() {
 			if (alive) {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
-				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
+//				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
 			}
 			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
