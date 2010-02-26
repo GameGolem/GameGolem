@@ -197,31 +197,30 @@ Monster.work = function(state) {
 	return true;
 };
 Monster.dashboard = function() {
-	var i, j, k, dam, txt, list = [], dps, total, ttk, output;
-	list.push('<table cellspacing="0"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	var i, j, k, dam, txt, list = [], dps, total, ttk, output, alive;
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			output = [];
 			dam = 0;
+			alive = (Monster.data[i][j].state === 'engage');
 			for (k in Monster.data[i][j].damage) {
 				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
 			}
-			if (Monster.data[i][j].state === 'engage') {
+			if (alive) {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
 				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
-				output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
-				output.push(i);
-				output.push(Monster.data[i][j].state);
-				output.push((Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-				output.push((Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : ''));
-				output.push('<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>');
-				output.push((Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>');
-				list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
-			} else {
-				list.push('<tr><td><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '"></td><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>Dead</td></tr>');
 			}
+			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
+			output.push(i);
+			output.push(Monster.data[i][j].state);
+			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');
+			output.push(alive ? (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') : '');
+			output.push(alive ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '');
+			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' : '');
+			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
 	}
 	list.push('</tbody></table>');

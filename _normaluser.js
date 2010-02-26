@@ -1282,7 +1282,7 @@ Generals.dashboard = function() {
 			return list[a] - list[b];
 		}
 	});
-	output.push('<table cellspacing="0"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	output.push('<table cellspacing="0" style="width:100%"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
 	for (i in Generals.data) {
 		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
 	}
@@ -1770,31 +1770,30 @@ Monster.work = function(state) {
 	return true;
 };
 Monster.dashboard = function() {
-	var i, j, k, dam, txt, list = [], dps, total, ttk, output;
-	list.push('<table cellspacing="0"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	var i, j, k, dam, txt, list = [], dps, total, ttk, output, alive;
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			output = [];
 			dam = 0;
+			alive = (Monster.data[i][j].state === 'engage');
 			for (k in Monster.data[i][j].damage) {
 				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
 			}
-			if (Monster.data[i][j].state === 'engage') {
+			if (alive) {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
 				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
-				output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
-				output.push(i);
-				output.push(Monster.data[i][j].state);
-				output.push((Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-				output.push((Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : ''));
-				output.push('<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>');
-				output.push((Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>');
-				list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
-			} else {
-				list.push('<tr><td><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '"></td><td>' + i + '</td><td>' + Monster.data[i][j].state + '</td><td>Dead</td></tr>');
 			}
+			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
+			output.push(i);
+			output.push(Monster.data[i][j].state);
+			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');
+			output.push(alive ? (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') : '');
+			output.push(alive ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '');
+			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' : '');
+			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
 	}
 	list.push('</tbody></table>');
@@ -2498,12 +2497,12 @@ Town.cache = {}; // for quick sorting
 Town.table = null; // table units are in
 Town.header = {};
 Town.blacksmith = { // Shield must come after armor (currently)
-	Weapon:	/avenger|axe|blade|bow|dagger|halberd|mace|morningstar|rod|spear|staff|stave|sword|talon|trident|wand|Dragonbane|Ironhart's Might|Judgement|Oathkeeper/i,
-	Shield:	/buckler|shield|dreadnought|Defender|Sword of Redemption/i,
+	Weapon:	/avenger|axe|blade|bow|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
+	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|The Dreadnought/i,
 	Helmet:	/cowl|crown|helm|horns|mask|veil/i,
-	Gloves:	/gauntlet|glove|hand/i,
-	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe/i,
-	Amulet:	/amulet|bauble|charm|jewel|memento|orb|shard|trinket|Paladin's Oath|Poseidons Horn/i
+	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
+	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe|Blood Vestment|Faerie Wings|Ogre Raiments/i,
+	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
 Town.parse = function(change) {
 	var land, landlist, unit, unitlist, tmp;

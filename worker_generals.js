@@ -200,7 +200,7 @@ Generals.dashboard = function() {
 			return list[a] - list[b];
 		}
 	});
-	output.push('<table cellspacing="0"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	output.push('<table cellspacing="0" style="width:100%"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
 	for (i in Generals.data) {
 		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
 	}

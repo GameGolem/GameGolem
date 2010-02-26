@@ -26,12 +26,12 @@ Town.cache = {}; // for quick sorting
 Town.table = null; // table units are in
 Town.header = {};
 Town.blacksmith = { // Shield must come after armor (currently)
-	Weapon:	/avenger|axe|blade|bow|dagger|halberd|mace|morningstar|rod|spear|staff|stave|sword|talon|trident|wand|Dragonbane|Ironhart's Might|Judgement|Oathkeeper/i,
-	Shield:	/buckler|shield|dreadnought|Defender|Sword of Redemption/i,
+	Weapon:	/avenger|axe|blade|bow|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
+	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|The Dreadnought/i,
 	Helmet:	/cowl|crown|helm|horns|mask|veil/i,
-	Gloves:	/gauntlet|glove|hand/i,
-	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe/i,
-	Amulet:	/amulet|bauble|charm|jewel|memento|orb|shard|trinket|Paladin's Oath|Poseidons Horn/i
+	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
+	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe|Blood Vestment|Faerie Wings|Ogre Raiments/i,
+	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
 Town.parse = function(change) {
 	var land, landlist, unit, unitlist, tmp;
