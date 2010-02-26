@@ -6,7 +6,7 @@
 var debug = true;
 
 // Shouldn't touch
-var VERSION = 12;
+var VERSION = 13;
 var APP = '46755028429';
 var PREFIX = 'golem'+APP+'_';
 var userID = unsafeWindow.Env.user; // Facebook userid
