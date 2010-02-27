@@ -25,30 +25,33 @@ Monster.display = [
 Monster.types = {
 	legion: {
 		list:'castle_siege_list.jpg',
-		image:'castle_siege',
+		image:'castle_siege.jpg',
+		name:'Battle of the Dark Legion',
 		timer:604800, // 168 hours
 		mpool:3
 	},
 	colossus: {
 		list:'stone_giant_list.jpg',
-		image:'stone_giant',
+		image:'stone_giant.jpg',
 		timer:259200, // 72 hours
 		mpool:1
 	},
 	raid: {
 		list:'deathrune_list2.jpg',
-		image:'deathrune',
+		image:'deathrune.jpg',
 		mpool:1
 	},
 	sylvanus: {
 		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large.jpg',
+		name:'Sylvanas the Sorceress Queen',
 		timer:172800, // 48 hours
 		mpool:1
 	},
 	serpent: {
 		list:'seamonster_list_red.jpg',
-		image:'seamonster_red',
+		image:'seamonster_red.jpg',
+		name:'Ancient Sea Serpent',
 		timer:259200, // 72 hours
 		mpool:2
 	}
@@ -212,7 +215,7 @@ Monster.dashboard = function() {
 //				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
 			}
-			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
+			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
 			output.push(i);
 			output.push(Monster.data[i][j].state);
 			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');

@@ -902,7 +902,7 @@ Battle.display = [
 	}
 ];
 Battle.parse = function(change) {
-	var i, data, uid, info, count = 0, list = [];
+	var i, data, uid, info, count = 0, list = [], changed = false;
 	if (Page.page === 'battle_rank') {
 		data = Battle.data.rank = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -916,6 +916,7 @@ Battle.parse = function(change) {
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
+				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
 			} else if ($('img[src*="battle_victory"]').length) {
 				data[uid].win = (data[uid].win || 0) + 1;
@@ -938,6 +939,7 @@ Battle.parse = function(change) {
 				return;
 			}
 			if (!data[uid]) {
+				changed = true;
 				data[uid] = {};
 			}
 			data[uid].name = $('a', el).text().trim();
@@ -948,6 +950,7 @@ Battle.parse = function(change) {
 		});
 		for (i in data) { // Forget low or high rank - no points or too many points
 			if ((Battle.option.bp === 'Always' && Player.data.rank - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - data[i].rank <= 5)) {
+				changed = true;
 				delete data[i];
 			} else {
 				count++;
@@ -959,8 +962,24 @@ Battle.parse = function(change) {
 				list.push(i);
 			}
 			list.sort(function(a,b) {
-				return (data[a].win - data[a].loss) - (data[b].win - data[b].loss);
+				var weight = 0;
+					 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
+				else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
+					 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
+				else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
+					 if (data[a].army > data[b].army) { weight += 1; }
+				else if (data[a].army < data[b].army) { weight -= 1; }
+				if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
+				if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
+				weight += (data[a].level - data[b].level) / 10;
+				return weight;
 			});
+			while (list.length > Battle.option.cache) {
+				delete data[list.pop()];
+			}
+		}
+		if (changed) {
+			Battle.dashboard();
 		}
 	}
 //	GM_debug('Battle: '+Battle.data.toSource());
@@ -1023,6 +1042,57 @@ Battle.rank = function(name) {
 	}
 	return 0;
 };
+Battle.order = [];
+Battle.dashboard = function(sort, rev) {
+	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
+	for (i in Battle.data.user) {
+		points[Battle.data.user[i].align]++;
+	}
+	if (typeof sort === 'undefined') {
+		Battle.order = [];
+		for (i in Battle.data.user) {
+			Battle.order.push(i);
+		}
+		sort = 1; // Default = sort by name
+	}
+	if (typeof sorttype[sort] === 'string') {
+		Battle.order.sort(function(a,b) {
+			var aa = (Battle.data.user[a][sorttype[sort]] || 0), bb = (Battle.data.user[b][sorttype[sort]] || 0);
+			if (typeof aa === 'string' || typeof bb === 'string') {
+				return (rev ? bb > aa : bb < aa);
+			}
+			return (rev ? aa - bb : bb - aa);
+		});
+	}
+	list.push('<div style="text-align:center;"><strong>Targets:</strong> '+length(Battle.data.user)+', <strong>By Alignment:</strong>');
+	for (i=1; i<6; i++ ) {
+		list.push(' <img src="' + Player.data.imagepath + 'symbol_tiny_' + i +'.jpg" alt="'+demi[i-1]+'" title="'+demi[i-1]+'"> '+points[i]);
+	}
+	list.push('</div><hr>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><th>Align</th><th>Name</th><th>Level</th><th>Rank</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
+	for (o=0; o<Battle.order.length; o++) {
+		i = Battle.order[o];
+		output = [];
+		output.push('<img src="' + Player.data.imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
+		output.push('<span title="'+i+'">' + Battle.data.user[i].name + '</span>');
+		output.push(Battle.data.user[i].level);
+		output.push(Battle.data.rank[Battle.data.user[i].rank].name);
+		output.push(Battle.data.user[i].army);
+		output.push(Battle.data.user[i].win);
+		output.push(Battle.data.user[i].loss);
+		output.push(Battle.data.user[i].hide);
+		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Battle').html(list.join(''));
+	$('#golem-dashboard-Battle thead th').css('cursor', 'pointer').click(function(event){
+		Battle.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+	$('#golem-dashboard-Battle tbody tr td:nth-child(2)').css('text-align', 'left');
+	if (typeof sort !== 'undefined') {
+		$('#golem-dashboard-Battle thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	}
+}
 
 /********** Worker.Blessing **********
 * Automatically receive blessings
@@ -1264,30 +1334,51 @@ Generals.select = function() {
 		}
 	});
 };
-Generals.dashboard = function() {
-	var i, output = [], list = [];
-	for (i in Generals.data) {
-		list.push(i);
-	}
-	list.sort(function(a,b) {
-		if (Generals.sort == 'duel_att') {
-			return Generals.data[a].duel.att - Generals.data[a].duel.att;
-		} else if (Generals.sort == 'duel_def') {
-			return Generals.data[a].duel.def - Generals.data[a].duel.def;
-		} else if (Generals.sort == 'invade_att') {
-			return Generals.data[a].invade.att - Generals.data[a].invade.att;
-		} else if (Generals.sort == 'invade_def') {
-			return Generals.data[a].invade.def - Generals.data[a].invade.def;
-		} else {
-			return list[a] - list[b];
+Generals.order = [];
+Generals.dashboard = function(sort, rev) {
+	var i, o, output = [], list = [];
+
+	if (typeof sort === 'undefined') {
+		Generals.order = [];
+		for (i in Generals.data) {
+			Generals.order.push(i);
 		}
-	});
-	output.push('<table cellspacing="0" style="width:100%"><thead><tr><th>&nbsp;</th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
-	for (i in Generals.data) {
+		sort = 1; // Default = sort by name
+	}
+	if (typeof sort !== 'undefined') {
+		Generals.order.sort(function(a,b) {
+			var aa, bb, type, x;
+			if (sort == 1) {
+				aa = a;
+				bb = b;
+			} else if (sort == 2) {
+				aa = (Generals.data[a].level || 0);
+				bb = (Generals.data[b].level || 0);
+			} else {
+				type = (sort<5 ? 'invade' : 'duel');
+				x = (sort%2 ? 'att' : 'def');
+				aa = (Generals.data[a][type][x] || 0);
+				bb = (Generals.data[b][type][x] || 0);
+			}
+			if (typeof aa === 'string' || typeof bb === 'string') {
+				return (rev ? bb > aa : bb < aa);
+			}
+			return (rev ? aa - bb : bb - aa);
+		});
+	}
+	output.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	for (o=0; o<Generals.order.length; o++) {
+		i = Generals.order[o];
 		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
 	}
 	output.push('</tbody></table>');
 	$('#golem-dashboard-Generals').html(output.join(''));
+	$('#golem-dashboard-Generals thead th').css('cursor', 'pointer').click(function(event){
+		Generals.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+	if (typeof sort !== 'undefined') {
+		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	}
 }
 
 /********** Worker.Gift() **********
@@ -1598,30 +1689,33 @@ Monster.display = [
 Monster.types = {
 	legion: {
 		list:'castle_siege_list.jpg',
-		image:'castle_siege',
+		image:'castle_siege.jpg',
+		name:'Battle of the Dark Legion',
 		timer:604800, // 168 hours
 		mpool:3
 	},
 	colossus: {
 		list:'stone_giant_list.jpg',
-		image:'stone_giant',
+		image:'stone_giant.jpg',
 		timer:259200, // 72 hours
 		mpool:1
 	},
 	raid: {
 		list:'deathrune_list2.jpg',
-		image:'deathrune',
+		image:'deathrune.jpg',
 		mpool:1
 	},
 	sylvanus: {
 		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large.jpg',
+		name:'Sylvanas the Sorceress Queen',
 		timer:172800, // 48 hours
 		mpool:1
 	},
 	serpent: {
 		list:'seamonster_list_red.jpg',
-		image:'seamonster_red',
+		image:'seamonster_red.jpg',
+		name:'Ancient Sea Serpent',
 		timer:259200, // 72 hours
 		mpool:2
 	}
@@ -1785,7 +1879,7 @@ Monster.dashboard = function() {
 //				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
 			}
-			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + j + '">');
+			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
 			output.push(i);
 			output.push(Monster.data[i][j].state);
 			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');
