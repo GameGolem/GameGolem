@@ -51,6 +51,7 @@ Page.work = function(state) {
 		return false;
 	}
 	if (found && !Page.to(found)) {
+		Page.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
 		return true;
 	}
 	return false;
