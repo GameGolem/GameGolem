@@ -105,7 +105,6 @@ Queue.run = function() {
 			continue;
 		}
 		if (!worker.work(Queue.data.current === worker.name)) {
-			Settings.Save(worker);
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
 				if (worker.priv_id) {
@@ -115,7 +114,6 @@ Queue.run = function() {
 			}
 			continue;
 		}
-		Settings.Save(worker);
 		if (!found) { // We will work(false) everything, but only one gets work(true) at a time
 			found = true;
 			if (Queue.data.current === worker.name) {
@@ -135,5 +133,5 @@ Queue.run = function() {
 			GM_debug('Queue: Trigger '+worker.name);
 		}
 	}
-	Settings.Save(Queue);
+	Settings.Save();
 };
