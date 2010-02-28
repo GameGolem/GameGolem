@@ -844,7 +844,7 @@ Bank.stash = function(amount) {
 	return true;
 };
 Bank.retrieve = function(amount) {
-	amount -= Player.data.gold;
+	amount -= Player.data.cash;
 	if (amount <= 0) {
 		return true;
 	}
@@ -854,12 +854,16 @@ Bank.retrieve = function(amount) {
 	if (!Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="get_gold"]').val(amount);
+	$('input[name="get_gold"]').val(amount.toString());
 	Page.click('input[value="Retrieve"]');
 	return true;
 };
-Bank.worth = function() { // Anything withdrawing should check this first!
-	return Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
+Bank.worth = function(amount) { // Anything withdrawing should check this first!
+	var worth = Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
+	if (typeof amount !== 'undefined') {
+		return (amount <= worth);
+	}
+	return worth;
 };
 
 /********** Worker.Battle **********
@@ -1740,6 +1744,79 @@ Income.work = function(state) {
 	return true;
 };
 
+/********** Worker.Land **********
+* Auto-buys property
+*/
+var Land = new Worker('Land', 'town_land');
+Land.option = {
+	buy:true
+};
+Land.display = [
+	{
+		id:'buy',
+		label:'Auto-Buy Land',
+		checkbox:true
+	}
+];
+Land.parse = function(change) {
+	if (!change) {
+		$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
+			var name = $('img', el).attr('alt'), tmp;
+			Land.data[name] = {};
+			Land.data[name].income = $('.land_buy_info .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			Land.data[name].max = $('.land_buy_info', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
+			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
+			if (tmp) {
+				Land.data[name].buy = tmp;
+			}
+			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+		});
+	}
+};
+Land.work = function(state) {
+	if (!Land.option.buy) {
+		return false;
+	}
+	var i, max = 0, best = null, value, bestvalue;
+	for (i in Land.data) {
+		if (Land.data[i].buy) {
+			max = Math.max(max, Land.data[i].cost * Land.data[i].buy / Player.data.income); // Maximum buy time in income hours
+		}
+	}
+	if (!max) {
+		return false;
+	}
+	for (i in Land.data) {
+		if (Land.data[i].buy) {
+			value = (max - (Land.data[i].cost * Land.data[i].buy / Player.data.income) + 1) * ((Land.data[i].income * Land.data[i].buy) + Player.data.income);
+			if (!best || value > bestvalue) {
+				bestvalue = value;
+				best = i;
+			}
+		}
+	}
+	if (!best || !Bank.worth(Land.data[best].buy * Land.data[best].cost)) {
+		return false;
+	}
+	if (!state) {
+		return true;
+	}
+	if (!Bank.retrieve(Land.data[best].buy * Land.data[best].cost)) {
+		return true;
+	}
+	if (!Page.to('town_land')) return true;
+	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
+		var name = $('img', el).attr('alt'), tmp;
+		if (name === best) {
+			GM_debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.data[best].buy);
+			Page.click($('.land_buy_costs input[name="Buy"]', el));
+		}
+	});
+	return true;
+};
+
 /********** Worker.Monster **********
 * Automates Monster
 */
@@ -2383,6 +2460,10 @@ Player.parse = function(change) {
 			data.attack = $(stats).eq(2).text().regex(/([0-9]+)/);
 			data.defense = $(stats).eq(3).text().regex(/([0-9]+)/);
 			data.bank = parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10);
+			stats = $('td.statsTMainback tr tr').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
+			data.maxincome = stats[0];
+			data.upkeep = stats[1];
+			data.income = stats[2];
 		}
 	}
 	return false;
@@ -2597,7 +2678,7 @@ Quest.work = function(state) {
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
-	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
+	if (Quest.option.monster && Monster.count && Queue.burn.energy <= Quest.data[i].energy + 10) { // Always leave 10 energy spare for Monsters...
 		return false;
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
@@ -2720,7 +2801,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Elite", "Property", "Idle", "Raid"],
 	stamina: 0,
 	energy: 0
 };
@@ -2914,7 +2995,7 @@ Raid.work = function(state) {
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic town_land');
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {
 	soldiers: {},
 	blacksmith: {},

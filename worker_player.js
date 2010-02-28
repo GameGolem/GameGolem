@@ -43,6 +43,10 @@ Player.parse = function(change) {
 			data.attack = $(stats).eq(2).text().regex(/([0-9]+)/);
 			data.defense = $(stats).eq(3).text().regex(/([0-9]+)/);
 			data.bank = parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10);
+			stats = $('td.statsTMainback tr tr').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
+			data.maxincome = stats[0];
+			data.upkeep = stats[1];
+			data.income = stats[2];
 		}
 	}
 	return false;

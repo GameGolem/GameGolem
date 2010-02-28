@@ -55,7 +55,7 @@ Bank.stash = function(amount) {
 	return true;
 };
 Bank.retrieve = function(amount) {
-	amount -= Player.data.gold;
+	amount -= Player.data.cash;
 	if (amount <= 0) {
 		return true;
 	}
@@ -65,11 +65,15 @@ Bank.retrieve = function(amount) {
 	if (!Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="get_gold"]').val(amount);
+	$('input[name="get_gold"]').val(amount.toString());
 	Page.click('input[value="Retrieve"]');
 	return true;
 };
-Bank.worth = function() { // Anything withdrawing should check this first!
-	return Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
+Bank.worth = function(amount) { // Anything withdrawing should check this first!
+	var worth = Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
+	if (typeof amount !== 'undefined') {
+		return (amount <= worth);
+	}
+	return worth;
 };
 

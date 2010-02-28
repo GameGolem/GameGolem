@@ -163,7 +163,7 @@ Quest.work = function(state) {
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
-	if (Quest.option.monster && Monster.count && Queue.burn.energy <= 10) { // Basically - we'll let monsters have first pop with energy
+	if (Quest.option.monster && Monster.count && Queue.burn.energy <= Quest.data[i].energy + 10) { // Always leave 10 energy spare for Monsters...
 		return false;
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
