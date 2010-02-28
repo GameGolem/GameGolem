@@ -133,5 +133,6 @@ Queue.run = function() {
 			GM_debug('Queue: Trigger '+worker.name);
 		}
 	}
-	Settings.Save();
+	Settings.Save('option');
+	Settings.Save('data');
 };
