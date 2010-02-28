@@ -123,8 +123,13 @@ Page.to = function(page, args) {
 	}
 	if (page && Page.pageNames[page] && Page.pageNames[page].url) {
 		Page.clear();
-		Page.last = Page.pageNames[page].url+args;
+		Page.last = Page.pageNames[page].url;
 		Page.when = Date.now();
+		if (args.indexOf('?') === 0 && Page.last.indexOf('?') > 0) {
+			Page.last = Page.last.substr(0, Page.last.indexOf('?')) + args;
+		} else {
+			Page.last = Page.last + args;
+		}
 		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
 		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
 			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");

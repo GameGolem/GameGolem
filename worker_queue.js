@@ -8,7 +8,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Idle", "Raid"],
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
 	stamina: 0,
 	energy: 0
 };

@@ -1159,6 +1159,68 @@ Debug.onload = function() {
 	return null;
 };
 
+/********** Worker.Elite() **********
+* Build your elite army
+*/
+var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy');
+Elite.data = {};
+Elite.option = {
+	fill:true
+};
+Elite.display = [
+	{
+		id:'fill',
+		label:'Fill Elite Guard:',
+		checkbox:true
+	}
+];
+Elite.parse = function(change) {
+	var i;
+	$('span.result_body').each(function(i,el){
+		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
+			Elite.data[$('img', el).attr('uid')] = Date.now + 86400000;
+		} else if ($(el).text().match(/'s Elite Guard is FULL!/i)) {
+			Elite.data[$('img', el).attr('uid')] = Date.now + 86400000;
+		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
+			Elite.option.wait = Date.now() + 86400000;
+			GM_debug('Elite guard full, wait 24 hours');
+		}
+	});
+	if (Page.page === 'army_viewarmy') {
+		$('img[linked="true"][size="square"]').each(function(i,el){
+			Elite.data[$(el).attr('uid')] = Elite.data[$(el).attr('uid')] || 0;
+		});
+	}
+	return false;
+};
+Elite.work = function(state) {
+	var i, found = null;
+	if (!Elite.option.fill || (Elite.option.wait && Elite.option.wait > Date.now())) {
+		return false;
+	}
+	for(i in Elite.data) {
+		if (!Elite.data[i] || Elite.data[i] < Date.now()) {
+			if (!found) {
+				found = i;
+			}
+		}
+	}
+	if ((!found && length(Elite.data))) {
+		return false;
+	}
+	if (!state) {
+		return true;
+	}
+	if (!found && !length(Elite.data) && !Page.to('army_viewarmy')) {
+		return true;
+	}
+	GM_debug('Elite: Add member '+found);
+	if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + found)) {
+		return true;
+	}
+	return false;
+};
+
 /********** Worker.Generals **********
 * Updates the list of Generals
 * Finds best General for other classes
@@ -2159,8 +2221,13 @@ Page.to = function(page, args) {
 	}
 	if (page && Page.pageNames[page] && Page.pageNames[page].url) {
 		Page.clear();
-		Page.last = Page.pageNames[page].url+args;
+		Page.last = Page.pageNames[page].url;
 		Page.when = Date.now();
+		if (args.indexOf('?') === 0 && Page.last.indexOf('?') > 0) {
+			Page.last = Page.last.substr(0, Page.last.indexOf('?')) + args;
+		} else {
+			Page.last = Page.last + args;
+		}
 		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
 		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
 			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
@@ -2606,7 +2673,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Idle", "Raid"],
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Bank", "Alchemy", "Town", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
 	stamina: 0,
 	energy: 0
 };
