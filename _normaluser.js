@@ -1696,44 +1696,147 @@ Monster.display = [
 	}
 ];
 Monster.types = {
-	legion: {
-		list:'castle_siege_list.jpg',
-		image:'castle_siege.jpg',
-		name:'Battle of the Dark Legion',
-		timer:604800, // 168 hours
-		mpool:3
+	// Special (level 5) - not under Monster tab
+	kull: {
+		name:'Kull, the Orc Captain',
+		timer:259200 // 72 hours
 	},
+	// Raid
+	raid_easy: {
+		list:'deathrune_list.jpg',
+		image:'raid_1_large.jpg',
+		mpool:1
+	},
+	raid_advanced: {
+		list:'deathrune_list2.jpg',
+		image:'deathrune.jpg',
+		mpool:1
+	},
+	// Epic Boss
 	colossus: {
+		name:'Colossus of Terra',
 		list:'stone_giant_list.jpg',
 		image:'stone_giant.jpg',
 		timer:259200, // 72 hours
 		mpool:1
 	},
-	dragon_red: {
-		list:'dragon_list_red.jpg',
-		image:'dragon_monster_red.jpg',
-		name:'Ancient Red Dragon',
+	gildamesh: {
+		name:'Gildamesh, the Orc King',
+		list:'orc_boss_list.jpg',
+		list:'orc_boss.jpg',
 		timer:259200, // 72 hours
-		mpool:2
-	},
-	raid: {
-		list:'deathrune_list2.jpg',
-		image:'deathrune.jpg',
 		mpool:1
 	},
-	sylvanus: {
-		list:'boss_sylvanus_list.jpg',
-		image:'boss_sylvanus_large.jpg',
-		name:'Sylvanas the Sorceress Queen',
+	keira: {
+		name:'Keira, the Dread Knight',
+		list:'boss_keira_list.jpg',
+		image:'boss_keira.jpg',
 		timer:172800, // 48 hours
 		mpool:1
 	},
-	serpent: {
-		list:'seamonster_list_red.jpg',
-		image:'seamonster_red.jpg',
-		name:'Ancient Sea Serpent',
+	lotus: {
+		name:'Lotus Ravenmoore',
+		list:'boss_lotus_list.jpg',
+		image:'boss_lotus.jpg',
+		timer:172800, // 48 hours
+		mpool:1
+	},
+	mephistopheles: {
+		name:'Mephistopheles',
+		list:'boss_mephistopheles_list.jpg',
+		image:'boss_mephistopheles_large.jpg',
+		timer:172800, // 48 hours
+		mpool:1
+	},
+	skaar: {
+		name:'Skaar Deathrune',
+		mpool:1
+	},
+	sylvanus: {
+		name:'Sylvanas the Sorceress Queen',
+		list:'boss_sylvanus_list.jpg',
+		image:'boss_sylvanus_large.jpg',
+		timer:172800, // 48 hours
+		mpool:1
+	},
+	// Epic Team
+	dragon_emerald: {
+		name:'Emerald Dragon',
+		list:'dragon_list_green.jpg',
+		image:'dragon_monster_green.jpg',
 		timer:259200, // 72 hours
 		mpool:2
+	},
+	dragon_frost: {
+		name:'Frost Dragon',
+		list:'dragon_list_blue.jpg',
+		image:'dragon_monster_blue.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	dragon_gold: {
+		name:'Gold Dragon',
+		list:'dragon_list_gold.jpg',
+		image:'dragon_monster_gold.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	dragon_red: {
+		name:'Ancient Red Dragon',
+		list:'dragon_list_red.jpg',
+		image:'dragon_monster_red.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	serpent_amethyst: {
+		name:'Amethyst Sea Serpent',
+		list:'seamonster_list_purple.jpg',
+		image:'seamonster_purple.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	serpent_ancient: {
+		name:'Ancient Sea Serpent',
+		list:'seamonster_list_red.jpg',
+		image:'seamonster_red.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	serpent_emerald: {
+		name:'Emerald Sea Serpent',
+		list:'seamonster_list_green.jpg',
+		image:'seamonster_green.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	serpent_sapphire: {
+		name:'Sapphire Sea Serpent',
+		list:'seamonster_list_blue.jpg',
+		image:'seamonster_blue.jpg',
+		timer:259200, // 72 hours
+		mpool:2
+	},
+	// Epic World
+	cronus: {
+		name:'Cronus, The World Hydra',
+		list:'hydra_head.jpg',
+		image:'hydra_large.jpg',
+		timer:604800, // 168 hours
+		mpool:3
+	},
+	legion: {
+		name:'Battle of the Dark Legion',
+		list:'castle_siege_list.jpg',
+		image:'castle_siege.jpg',
+		timer:604800, // 168 hours
+		mpool:3
+	},
+	genersis: {
+		name:'Genesis, The Earth Elemental',
+		list:'earth_element_list.jpg',
+		image:'earth_element_large.jpg',
+		timer:604800, // 168 hours
+		mpool:3
 	}
 };
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
@@ -1799,6 +1902,12 @@ Monster.parse = function(change) {
 			}
 			Monster.data[uid] = Monster.data[uid] || {};
 			Monster.data[uid][type] = Monster.data[uid][type] || {};
+			if (uid === Player.data.FBID) {
+				Monster.data[uid][type].name = 'You';
+			} else {
+				tmp = $(el).parent().parent().children().eq(2).text().trim();
+				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+			}
 			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
@@ -1893,7 +2002,7 @@ Monster.work = function(state) {
 };
 Monster.dashboard = function() {
 	var i, j, k, dam, txt, list = [], dps, total, ttk, output, alive;
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>UserID</th><th>State</th><th title="(estimated)">Health</th><th>Fortify</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			output = [];
@@ -1905,19 +2014,18 @@ Monster.dashboard = function() {
 			if (alive) {
 				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
 				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
-//				GM_debug('Timer: '+Monster.types[j].timer+', dam / dps = '+Math.floor(total / dps)+', left: '+Monster.data[i][j].timer);
 				ttk = Math.floor((total - dam) / dps);
 			}
-			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
-			output.push(i);
-			output.push(Monster.data[i][j].state);
+			output.push('<strong style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
+			output.push(Monster.data[i][j].name);
 			if (alive) {
 				output.push(Monster.data[i][j].health===100 ? '?' : addCommas(total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
 				output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+				output.push(addCommas(Monster.data[i][j].damage[Player.data.FBID]));
 				output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
 				output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk)+'</span>');
 			} else {
-				output.push('', '', '', '');
+				output.push('', '', '', '', '');
 			}
 			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
