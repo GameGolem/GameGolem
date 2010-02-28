@@ -66,6 +66,7 @@ Monster.types = {
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
+Monster.uid = null;
 Monster.onload = function() {
 	var i, j;
 	for (i in Monster.data) {
@@ -79,7 +80,7 @@ Monster.onload = function() {
 Monster.parse = function(change) {
 	var i, j, uid, type, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
-		uid = $('img[linked="true"][size="square"]').attr('uid');
+		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if ($('img[src*="'+Monster.types[i].image+'"]').length) {
 				type = i;
@@ -211,8 +212,8 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
-		return true; // Reload if we can't find the button
+	if ((!btn || uid !== Monster.uid) && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
+		return true; // Reload if we can't find the button or we're on the wrong monster
 	}
 	Page.click(btn);
 	return true;

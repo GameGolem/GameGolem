@@ -4,29 +4,34 @@
 */
 var Settings = {
 	userID: unsafeWindow.Env.user,
+	cache: {},
 	SetValue:function(n,v) {
-		switch(typeof v) {
-			case 'boolean':
-			case 'number':	return GM_setValue(Settings.userID + '.' + n, v);
-			case 'string':	return GM_setValue(Settings.userID + '.' + n, '"' + v + '"');
-			case 'array':
-			case 'object':	return GM_setValue(Settings.userID + '.' + n, v.toSource());
-			default:		GM_debug("Unknown variable type: "+n);
+		if (typeof v === 'string') {
+			v = '"' + v + '"';
+		} else if (typeof v === 'array' || typeof v === 'object') {
+			v = v.toSource();
 		}
-		return null;
+		if (typeof Settings.cache[n] !== 'undefined' && v !== Settings.cache[n]) {
+			Settings.cache[n] = v;
+			return GM_setValue(Settings.userID + '.' + n, v);
+		}
 	},
 	GetValue:function(n,d) {
-		v = GM_getValue(Settings.userID + '.' + n, d);
-		if (typeof v === 'string') {
-			if (v.charAt(0) === '"') {
-				v = v.replace(/^"|"$/g,'');
-			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
+		var v = null;
+		Settings.cache[n] = GM_getValue(Settings.userID + '.' + n, d);
+		if (typeof Settings.cache[n] === 'string') {
+			if (Settings.cache[n].charAt(0) === '"') {
+				v = Settings.cache[n].replace(/^"|"$/g,'');
+			} else if (Settings.cache[n].charAt(0) === '(' || Settings.cache[n].charAt(0) === '[') {
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, {}, d, eval(v));
+					v = $.extend(true, {}, d, eval(Settings.cache[n]));
 				} else {
-					v = eval(v);
+					v = eval(Settings.cache[n]);
 				}
 			}
+		}
+		if (v === null) {
+			v = Settings.cache[n];
 		}
 		return v;
 	},

@@ -118,29 +118,34 @@ $(document).ready(function() {
 */
 var Settings = {
 	userID: unsafeWindow.Env.user,
+	cache: {},
 	SetValue:function(n,v) {
-		switch(typeof v) {
-			case 'boolean':
-			case 'number':	return GM_setValue(Settings.userID + '.' + n, v);
-			case 'string':	return GM_setValue(Settings.userID + '.' + n, '"' + v + '"');
-			case 'array':
-			case 'object':	return GM_setValue(Settings.userID + '.' + n, v.toSource());
-			default:		GM_debug("Unknown variable type: "+n);
+		if (typeof v === 'string') {
+			v = '"' + v + '"';
+		} else if (typeof v === 'array' || typeof v === 'object') {
+			v = v.toSource();
 		}
-		return null;
+		if (typeof Settings.cache[n] !== 'undefined' && v !== Settings.cache[n]) {
+			Settings.cache[n] = v;
+			return GM_setValue(Settings.userID + '.' + n, v);
+		}
 	},
 	GetValue:function(n,d) {
-		v = GM_getValue(Settings.userID + '.' + n, d);
-		if (typeof v === 'string') {
-			if (v.charAt(0) === '"') {
-				v = v.replace(/^"|"$/g,'');
-			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
+		var v = null;
+		Settings.cache[n] = GM_getValue(Settings.userID + '.' + n, d);
+		if (typeof Settings.cache[n] === 'string') {
+			if (Settings.cache[n].charAt(0) === '"') {
+				v = Settings.cache[n].replace(/^"|"$/g,'');
+			} else if (Settings.cache[n].charAt(0) === '(' || Settings.cache[n].charAt(0) === '[') {
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, {}, d, eval(v));
+					v = $.extend(true, {}, d, eval(Settings.cache[n]));
 				} else {
-					v = eval(v);
+					v = eval(Settings.cache[n]);
 				}
 			}
+		}
+		if (v === null) {
+			v = Settings.cache[n];
 		}
 		return v;
 	},
@@ -1734,6 +1739,7 @@ Monster.types = {
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
+Monster.uid = null;
 Monster.onload = function() {
 	var i, j;
 	for (i in Monster.data) {
@@ -1747,7 +1753,7 @@ Monster.onload = function() {
 Monster.parse = function(change) {
 	var i, j, uid, type, $health, $defense, damage;
 	if (Page.page === 'keep_monster_active') { // In a monster
-		uid = $('img[linked="true"][size="square"]').attr('uid');
+		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if ($('img[src*="'+Monster.types[i].image+'"]').length) {
 				type = i;
@@ -1879,8 +1885,8 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
-		return true; // Reload if we can't find the button
+	if ((!btn || uid !== Monster.uid) && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
+		return true; // Reload if we can't find the button or we're on the wrong monster
 	}
 	Page.click(btn);
 	return true;
@@ -2386,7 +2392,7 @@ Quest.work = function(state) {
 	}
 	switch(Quest.data[best].area) {
 		case 'quest':
-			if (!Page.to('quests_quest'+Quest.data[best].land)) {
+			if (!Page.to('quests_quest' + (Quest.data[best].land + 1))) {
 				return true;
 			}
 			break;
@@ -2436,8 +2442,8 @@ Quest.dashboard = function(sort, rev) {
 				aa = a;
 				bb = b;
 			} else if (sort == 2) { // area
-				aa = Quest.data[a].land ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-				bb = Quest.data[b].land ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+				aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+				bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
 			} else if (sort == 3) { // level
 				aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 				bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
