@@ -2069,38 +2069,80 @@ Monster.work = function(state) {
 	Page.click(btn);
 	return true;
 };
-Monster.dashboard = function() {
-	var i, j, k, dam, txt, list = [], dps, total, ttk, output, alive;
+Monster.order = null;
+Monster.dashboard = function(sort, rev) {
+	var i, j, k, o, list = [], output, sorttype = [null, 'name', 'health', 'fortify', null, 'timer', 'ttk'];
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
-	for (i in Monster.data) {
-		for (j in Monster.data[i]) {
-			output = [];
-			dam = 0;
-			alive = (Monster.data[i][j].state === 'engage');
-			for (k in Monster.data[i][j].damage) {
-				dam += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
+	if (typeof sort === 'undefined') {
+		sort = 1; // Default = sort by name
+		Monster.order = [];
+		for (i in Monster.data) {
+			for (j in Monster.data[i]) {
+				if (Monster.data[i][j].state === 'engage') {
+					Monster.data[i][j].damage_total = 0;
+					for (k in Monster.data[i][j].damage) {
+						Monster.data[i][j].damage_total += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
+					}
+					Monster.data[i][j].dps = Monster.data[i][j].damage_total / (Monster.types[j].timer - Monster.data[i][j].timer);
+					Monster.data[i][j].total = Math.floor(Monster.data[i][j].damage_total / (100 - Monster.data[i][j].health) * 100);
+					Monster.data[i][j].ttk = Math.floor((Monster.data[i][j].total - Monster.data[i][j].damage_total) / Monster.data[i][j].dps);
+				} else {
+					delete Monster.data[i][j].damage_total;
+					delete Monster.data[i][j].dps;
+					delete Monster.data[i][j].total;
+					delete Monster.data[i][j].ttk;
+				}
+				Monster.order.push([i, j]);
 			}
-			if (alive) {
-				dps = dam / (Monster.types[j].timer - Monster.data[i][j].timer);
-				total = Math.floor(dam / (100 - Monster.data[i][j].health) * 100);
-				ttk = Math.floor((total - dam) / dps);
-			}
-			output.push('<strong style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
-			output.push(Monster.data[i][j].name);
-			if (alive) {
-				output.push(Monster.data[i][j].health===100 ? '?' : addCommas(total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-				output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
-				output.push(addCommas(Monster.data[i][j].damage[Player.data.FBID]));
-				output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
-				output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk)+'</span>');
-			} else {
-				output.push('', '', '', '', '');
-			}
-			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
+	}
+	Monster.order.sort(function(a,b) {
+		var aa, bb;
+		if (Monster.data[a[0]][a[1]].state !== 'engage') {
+			if (Monster.data[b[0]][b[1]].state === 'engage') {
+				return 1;
+			}
+		} else if (Monster.data[b[0]][b[1]].state !== 'engage') {
+			return -1;
+		}
+		if (typeof sorttype[sort] === 'string') {
+			aa = Monster.data[a[0]][a[1]][sorttype[sort]];
+			bb = Monster.data[b[0]][b[1]][sorttype[sort]];
+		} else if (sort == 4) { // damage
+			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[Player.data.FBID] : 0;
+			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[Player.data.FBID] : 0;
+		}
+		if (typeof aa === 'string' || typeof bb === 'string') {
+			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+		}
+		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+	});
+	for (o=0; o<Monster.order.length; o++) {
+		i = Monster.order[o][0];
+		j = Monster.order[o][1];
+		output = [];
+		output.push('<strong style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
+		output.push(Monster.data[i][j].name);
+		if (Monster.data[i][j].state === 'engage') {
+			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
+			output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+			output.push(addCommas(Monster.data[i][j].damage[Player.data.FBID]));
+			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
+			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(Monster.data[i][j].ttk)+'</span>');
+		} else {
+			output.push('', '', '', '', '');
+		}
+		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
+	$('#golem-dashboard-Monster thead th').css('cursor', 'pointer').click(function(event){
+		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');
+	if (typeof sort !== 'undefined') {
+		$('#golem-dashboard-Monster thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	}
 };
 
 /********** Worker.Page() **********
@@ -2614,37 +2656,35 @@ Quest.dashboard = function(sort, rev) {
 		}
 		sort = 1; // Default = sort by name
 	}
-	if (typeof sort !== 'string') {
-		Quest.order.sort(function(a,b) {
-			var aa, bb;
-			if (sort == 0 || sort == 7) { // general and item
-				aa = Quest.data[a].item || 'zzz';
-				bb = Quest.data[b].item || 'zzz';
-			} else if (sort == 1) { // name
-				aa = a;
-				bb = b;
-			} else if (sort == 2) { // area
-				aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-				bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
-			} else if (sort == 3) { // level
-				aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
-				bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
-			} else if (sort == 4) { // energy
-				aa = Quest.data[a].energy;
-				bb = Quest.data[b].energy;
-			} else if (sort == 5) { // exp
-				aa = Quest.data[a].exp / Quest.data[a].energy;
-				bb = Quest.data[b].exp / Quest.data[b].energy;
-			} else if (sort == 6) { // reward
-				aa = Quest.data[a].reward / Quest.data[a].energy;
-				bb = Quest.data[b].reward / Quest.data[b].energy;
-			}
-			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
-			}
-			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
-		});
-	}
+	Quest.order.sort(function(a,b) {
+		var aa, bb;
+		if (sort == 0 || sort == 7) { // general and item
+			aa = Quest.data[a].item || 'zzz';
+			bb = Quest.data[b].item || 'zzz';
+		} else if (sort == 1) { // name
+			aa = a;
+			bb = b;
+		} else if (sort == 2) { // area
+			aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+		} else if (sort == 3) { // level
+			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
+			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
+		} else if (sort == 4) { // energy
+			aa = Quest.data[a].energy;
+			bb = Quest.data[b].energy;
+		} else if (sort == 5) { // exp
+			aa = Quest.data[a].exp / Quest.data[a].energy;
+			bb = Quest.data[b].exp / Quest.data[b].energy;
+		} else if (sort == 6) { // reward
+			aa = Quest.data[a].reward / Quest.data[a].energy;
+			bb = Quest.data[b].reward / Quest.data[b].energy;
+		}
+		if (typeof aa === 'string' || typeof bb === 'string') {
+			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+		}
+		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+	});
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>General</th><th>Name</th><th>Area</th><th>Level</th><th>Energy</th><th>@&nbsp;Exp</th><th>@&nbsp;Reward</th><th>Item</th></tr></thead><tbody>');
 	for (o=0; o<Quest.order.length; o++) {
 		i = Quest.order[o];

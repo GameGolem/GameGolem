@@ -222,37 +222,35 @@ Quest.dashboard = function(sort, rev) {
 		}
 		sort = 1; // Default = sort by name
 	}
-	if (typeof sort !== 'string') {
-		Quest.order.sort(function(a,b) {
-			var aa, bb;
-			if (sort == 0 || sort == 7) { // general and item
-				aa = Quest.data[a].item || 'zzz';
-				bb = Quest.data[b].item || 'zzz';
-			} else if (sort == 1) { // name
-				aa = a;
-				bb = b;
-			} else if (sort == 2) { // area
-				aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-				bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
-			} else if (sort == 3) { // level
-				aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
-				bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
-			} else if (sort == 4) { // energy
-				aa = Quest.data[a].energy;
-				bb = Quest.data[b].energy;
-			} else if (sort == 5) { // exp
-				aa = Quest.data[a].exp / Quest.data[a].energy;
-				bb = Quest.data[b].exp / Quest.data[b].energy;
-			} else if (sort == 6) { // reward
-				aa = Quest.data[a].reward / Quest.data[a].energy;
-				bb = Quest.data[b].reward / Quest.data[b].energy;
-			}
-			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
-			}
-			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
-		});
-	}
+	Quest.order.sort(function(a,b) {
+		var aa, bb;
+		if (sort == 0 || sort == 7) { // general and item
+			aa = Quest.data[a].item || 'zzz';
+			bb = Quest.data[b].item || 'zzz';
+		} else if (sort == 1) { // name
+			aa = a;
+			bb = b;
+		} else if (sort == 2) { // area
+			aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+		} else if (sort == 3) { // level
+			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
+			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
+		} else if (sort == 4) { // energy
+			aa = Quest.data[a].energy;
+			bb = Quest.data[b].energy;
+		} else if (sort == 5) { // exp
+			aa = Quest.data[a].exp / Quest.data[a].energy;
+			bb = Quest.data[b].exp / Quest.data[b].energy;
+		} else if (sort == 6) { // reward
+			aa = Quest.data[a].reward / Quest.data[a].energy;
+			bb = Quest.data[b].reward / Quest.data[b].energy;
+		}
+		if (typeof aa === 'string' || typeof bb === 'string') {
+			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+		}
+		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+	});
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>General</th><th>Name</th><th>Area</th><th>Level</th><th>Energy</th><th>@&nbsp;Exp</th><th>@&nbsp;Reward</th><th>Item</th></tr></thead><tbody>');
 	for (o=0; o<Quest.order.length; o++) {
 		i = Quest.order[o];
