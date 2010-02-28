@@ -36,6 +36,13 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:1
 	},
+	dragon_red: {
+		list:'dragon_list_red.jpg',
+		image:'dragon_monster_red.jpg',
+		name:'Ancient Red Dragon',
+		timer:259200, // 72 hours
+		mpool:2
+	},
 	raid: {
 		list:'deathrune_list2.jpg',
 		image:'deathrune.jpg',
@@ -56,6 +63,8 @@ Monster.types = {
 		mpool:2
 	}
 };
+Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
 Monster.onload = function() {
 	var i, j;
@@ -141,7 +150,7 @@ Monster.parse = function(change) {
 	return false;
 };
 Monster.work = function(state) {
-	var list = [], uid = Monster.option.uid, type = Monster.option.type, btn, best = null
+	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state) {
 		Monster.option.uid = null;
 		Monster.option.type = null;
@@ -184,15 +193,25 @@ Monster.work = function(state) {
 			return true;
 		}
 		GM_debug('Monster: Fortify '+uid);
-		btn = $('input[src$="attack_monster_button3.jpg"],input[src$="seamonster_fortify.gif"]').eq(0);
+		for (i=0; i<Monster.fortify.length; i++) {
+			if ($(Monster.fortify[i]).length) {
+				btn = $(Monster.fortify[i]);
+				break;
+			}
+		}
 	} else {
 		if (!Generals.to(Generals.best('duel'))) {
 			return true;
 		}
 		GM_debug('Monster: Attack '+uid);
-		btn = $('input[src$="attack_monster_button2.jpg"],input[src$="seamonster_power.gif"],input[src$="attack_monster_button.jpg"]').eq(0);
+		for (i=0; i<Monster.attack.length; i++) {
+			if ($(Monster.attack[i]).length) {
+				btn = $(Monster.attack[i]);
+				break;
+			}
+		}
 	}
-	if (!btn.length && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
+	if (!btn && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
 		return true; // Reload if we can't find the button
 	}
 	Page.click(btn);
@@ -218,10 +237,14 @@ Monster.dashboard = function() {
 			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
 			output.push(i);
 			output.push(Monster.data[i][j].state);
-			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');
-			output.push(alive ? (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') : '');
-			output.push(alive ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '');
-			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' : '');
+			if (alive) {
+				output.push(Monster.data[i][j].health===100 ? '?' : addCommas(total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
+				output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+				output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
+				output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk)+'</span>');
+			} else {
+				output.push('', '', '', '');
+			}
 			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
 	}

@@ -238,5 +238,5 @@ Battle.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Battle thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
-}
+};
 

@@ -238,6 +238,10 @@ String.prototype.parseTimer = function() {
 	return b;
 };
 
+Number.prototype.round = function(dec) {
+	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+}
+
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
@@ -1092,7 +1096,7 @@ Battle.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Battle thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
-}
+};
 
 /********** Worker.Blessing **********
 * Automatically receive blessings
@@ -1700,6 +1704,13 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:1
 	},
+	dragon_red: {
+		list:'dragon_list_red.jpg',
+		image:'dragon_monster_red.jpg',
+		name:'Ancient Red Dragon',
+		timer:259200, // 72 hours
+		mpool:2
+	},
 	raid: {
 		list:'deathrune_list2.jpg',
 		image:'deathrune.jpg',
@@ -1720,6 +1731,8 @@ Monster.types = {
 		mpool:2
 	}
 };
+Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
 Monster.onload = function() {
 	var i, j;
@@ -1805,7 +1818,7 @@ Monster.parse = function(change) {
 	return false;
 };
 Monster.work = function(state) {
-	var list = [], uid = Monster.option.uid, type = Monster.option.type, btn, best = null
+	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state) {
 		Monster.option.uid = null;
 		Monster.option.type = null;
@@ -1848,15 +1861,25 @@ Monster.work = function(state) {
 			return true;
 		}
 		GM_debug('Monster: Fortify '+uid);
-		btn = $('input[src$="attack_monster_button3.jpg"],input[src$="seamonster_fortify.gif"]').eq(0);
+		for (i=0; i<Monster.fortify.length; i++) {
+			if ($(Monster.fortify[i]).length) {
+				btn = $(Monster.fortify[i]);
+				break;
+			}
+		}
 	} else {
 		if (!Generals.to(Generals.best('duel'))) {
 			return true;
 		}
 		GM_debug('Monster: Attack '+uid);
-		btn = $('input[src$="attack_monster_button2.jpg"],input[src$="seamonster_power.gif"],input[src$="attack_monster_button.jpg"]').eq(0);
+		for (i=0; i<Monster.attack.length; i++) {
+			if ($(Monster.attack[i]).length) {
+				btn = $(Monster.attack[i]);
+				break;
+			}
+		}
 	}
-	if (!btn.length && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
+	if (!btn && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
 		return true; // Reload if we can't find the button
 	}
 	Page.click(btn);
@@ -1882,10 +1905,14 @@ Monster.dashboard = function() {
 			output.push('<img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
 			output.push(i);
 			output.push(Monster.data[i][j].state);
-			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : addCommas(total - dam)) + ' (' + Math.floor(Monster.data[i][j].health) + '%)' : '');
-			output.push(alive ? (Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '') : '');
-			output.push(alive ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '');
-			output.push(alive ? (Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk))+'</span>' : '');
+			if (alive) {
+				output.push(Monster.data[i][j].health===100 ? '?' : addCommas(total - dam) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
+				output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+				output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
+				output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(ttk)+'</span>');
+			} else {
+				output.push('', '', '', '');
+			}
 			list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 		}
 	}
@@ -2183,9 +2210,11 @@ var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quest
 Quest.option = {
 	general: 'Under Level 4',
 	what: 'Influence',
+	unique: true,
 	monster:true
 };
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
+Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
 Quest.display = [
 	{
@@ -2196,6 +2225,10 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward'
+	},{
+		id:'unique',
+		label:'Get Unique Items First',
+		checkbox:true
 	},{
 		id:'monster',
 		label:'Fortify Monsters First',
@@ -2208,53 +2241,45 @@ Quest.display = [
 ];
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
-	switch(Page.page) {
-		case 'quests_quest':
-		case 'quests_quest1':
-		case 'quests_quest2':
-		case 'quests_quest3':
-		case 'quests_quest4':
-		case 'quests_quest5':
-		case 'quests_quest6':
-			area = 'quest';
-			land = $('div.title_tab_selected img[id^="app'+APP+'_land_image"]').attr('id').regex(/_image([0-9]+)$/,'');
-			break;
-		case 'quests_demiquests':
-			area = 'demiquest';
-			break;
-		case 'quests_atlantis':
-			area = 'atlantis';
-			break;
-		default: // Unknown quest area :-(
-			return false;
+	if (Page.page === 'quests_demiquests') {
+		area = 'demiquest';
+	} else if (Page.page === 'quests_atlantis') {
+		area = 'atlantis';
+	} else {
+		area = 'quest';
+		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
 	if (!change) { // Parse first
-		$('div.quests_background,div.quests_background_sub').each(function(i,el){
-			var name, influence, reward, units, energy;
+		$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
+			var name, level, influence, reward, units, energy;
 			if ($(el).hasClass('quests_background')) { // Main quest
 				name = $('div.qd_1 b', el).text().trim();
-				influence = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+) INFLUENCE: ([0-9]+)%/i);
+				level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+				influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
 				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
 				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
-			} else { // Subquest
+			} else if ($(el).hasClass('quests_background_sub')) { // Subquest
 				name = $('div.quest_sub_title', el).text().trim();
-				influence = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+) INFLUENCE: ([0-9]+)%/i);
+				level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+				influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
 				reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
 				energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
+			} else if ($(el).hasClass('quests_background_special')) { // Special Quest
+				name = $('div.qd_1 b', el).text().trim();
+				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
 			}
 			if (!name) {
 				return;
 			}
 			quest[name] = {};
 			quest[name].area = area;
-			if (land) {
+			if (typeof land === 'number') {
 				quest[name].land = land;
 			}
-			if (influence) {
-				quest[name].level = influence[0];
-				quest[name].influence = influence[1];
-			} else {
-				quest[name].level = quest[name].influence = 0;
+			if (typeof influence === 'number') {
+				quest[name].level = (level || 0);
+				quest[name].influence = influence;
 			}
 			quest[name].exp = reward.shift();
 			quest[name].reward = (reward[0] + reward[1]) / 2;
@@ -2262,6 +2287,7 @@ Quest.parse = function(change) {
 			if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
 				if ($('div.qd_1 img', el).attr('title')) {
 					quest[name].item = $('div.qd_1 img', el).attr('title').trim();
+					quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
 				}
 				if ($('div.quest_act_gen img', el).attr('title')) {
 					quest[name].general = $('div.quest_act_gen img', el).attr('title');
@@ -2275,16 +2301,31 @@ Quest.parse = function(change) {
 					quest[name].units = units;
 				}
 //				GM_debug('Quest: '+name+' = '+quest[name].toSource());
+			} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
+				quest[name].unique = true;
+				if ($('div.qd_1 img', el).last().length) {
+					quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
+					quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
+				}
+				units = {};
+				$('div.quest_req > div > div > div', el).each(function(i,el){
+					var title = $('img', el).attr('title');
+					units[title] = $(el).text().regex(/([0-9]+)/);
+				});
+				if (units.length) {
+					quest[name].units = units;
+				}
 			}
 		});
 		Quest.select();
+		Quest.dashboard();
 	}
 	return false;
 };
 Quest.select = function() {
 	var i, list = [];
 	for (i in Quest.data) {
-		if (Quest.data[i].item) {
+		if (Quest.data[i].item && !Quest.data[i].unique) {
 			list.push(Quest.data[i].item);
 		}
 	}
@@ -2302,12 +2343,21 @@ Quest.work = function(state) {
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
-	for (i in Quest.data) {
-		if ((Quest.option.what === 'Influence' && Quest.data[i].influence < 100 && (!best || Quest.data[i].energy < Quest.data[best].energy))
-		|| (Quest.option.what === 'Experience' && (!best || (Quest.data[i].energy / Quest.data[i].exp) < (Quest.data[best].energy / Quest.data[best].exp)))
-		|| (Quest.option.what === 'Cash' && (!best && (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
-		|| (Quest.option.what !== 'Influence' && Quest.option.what !== 'Experience' && Quest.option.what !== 'Cash' && Quest.data[i].item === Quest.option.what && (!best || (Quest.data[i].energy < Quest.data[best].energy)))) {
-			best = i;
+	if (Quest.option.unique) {
+		for (i in Quest.data) {
+			if (Quest.data[i].unique && !Alchemy.data.ingredients[Quest.data[i].itemimg] && (!best || Quest.data[i].energy < Quest.data[best].energy)) {
+				best = i;
+			}
+		}
+	}
+	if (!best) {
+		for (i in Quest.data) {
+			if ((Quest.option.what === 'Influence' && typeof Quest.data[i].influence !== 'undefined' && Quest.data[i].influence < 100 && (!best || Quest.data[i].energy < Quest.data[best].energy))
+			|| (Quest.option.what === 'Experience' && (!best || (Quest.data[i].energy / Quest.data[i].exp) < (Quest.data[best].energy / Quest.data[best].exp)))
+			|| (Quest.option.what === 'Cash' && (!best && (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
+			|| (Quest.option.what !== 'Influence' && Quest.option.what !== 'Experience' && Quest.option.what !== 'Cash' && Quest.data[i].item === Quest.option.what && (!best || Quest.data[i].energy < Quest.data[best].energy))) {
+				best = i;
+			}
 		}
 	}
 	if (best !== Quest.current) {
@@ -2358,8 +2408,79 @@ Quest.work = function(state) {
 	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
 		Page.reload();
 	}
+	if (Quest.option.unique && Quest.data[best].unique) {
+		if (!Page.to('keep_alchemy')) {
+			return true;
+		}
+	}
 	return true;
 };
+
+Quest.order = [];
+Quest.dashboard = function(sort, rev) {
+	var i, o, list = [], output;
+	if (typeof sort === 'undefined') {
+		Quest.order = [];
+		for (i in Quest.data) {
+			Quest.order.push(i);
+		}
+		sort = 1; // Default = sort by name
+	}
+	if (typeof sort !== 'string') {
+		Quest.order.sort(function(a,b) {
+			var aa, bb;
+			if (sort == 0 || sort == 7) { // general and item
+				aa = Quest.data[a].item || 'zzz';
+				bb = Quest.data[b].item || 'zzz';
+			} else if (sort == 1) { // name
+				aa = a;
+				bb = b;
+			} else if (sort == 2) { // area
+				aa = Quest.data[a].land ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+				bb = Quest.data[b].land ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+			} else if (sort == 3) { // level
+				aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
+				bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
+			} else if (sort == 4) { // energy
+				aa = Quest.data[a].energy;
+				bb = Quest.data[b].energy;
+			} else if (sort == 5) { // exp
+				aa = Quest.data[a].exp / Quest.data[a].energy;
+				bb = Quest.data[b].exp / Quest.data[b].energy;
+			} else if (sort == 6) { // reward
+				aa = Quest.data[a].reward / Quest.data[a].energy;
+				bb = Quest.data[b].reward / Quest.data[b].energy;
+			}
+			if (typeof aa === 'string' || typeof bb === 'string') {
+				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			}
+			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+		});
+	}
+	list.push('<table cellspacing="0" style="width:100%"><thead><th>General</th><th>Name</th><th>Area</th><th>Level</th><th>Energy</th><th>@&nbsp;Exp</th><th>@&nbsp;Reward</th><th>Item</th></tr></thead><tbody>');
+	for (o=0; o<Quest.order.length; o++) {
+		i = Quest.order[o];
+		output = [];
+		output.push(Generals.data[Quest.data[i].general] ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Generals.data[Quest.data[i].general].img+'" alt="'+Quest.data[i].general+'" title="'+Quest.data[i].general+'">' : '');
+		output.push(i);
+		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
+		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
+		output.push(Quest.data[i].energy);
+		output.push('<span title="Total = ' + Quest.data[i].exp + '">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
+		output.push('<span title="Total = $' + addCommas(Quest.data[i].reward) + '">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
+		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
+		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Quest').html(list.join(''));
+	$('#golem-dashboard-Quest thead th').css('cursor', 'pointer').click(function(event){
+		Quest.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+	$('#golem-dashboard-Quest tbody tr td:nth-child(2)').css('text-align', 'left');
+	if (typeof sort !== 'undefined') {
+		$('#golem-dashboard-Quest thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	}
+}
 
 /********** Worker.Queue() **********
 * Keeps track of the worker queue

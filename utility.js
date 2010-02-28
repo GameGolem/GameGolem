@@ -53,6 +53,10 @@ String.prototype.parseTimer = function() {
 	return b;
 };
 
+Number.prototype.round = function(dec) {
+	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+}
+
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
