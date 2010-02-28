@@ -1,7 +1,7 @@
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic town_land');
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {
 	soldiers: {},
 	blacksmith: {},
@@ -32,47 +32,33 @@ Town.blacksmith = { // Shield must come after armor (currently)
 Town.parse = function(change) {
 	var land, landlist, unit, unitlist, tmp;
 	if (!change) {
-		if (Page.page === 'town_land') {
-			land = Town.data.land = {};
-			landlist = $('tr.land_buy_row,tr.land_buy_row_unique');
-			landlist.each(function(i,el){
-				var name = $('img', el).attr('alt');
-				land[name] = {};
-				land[name].income = $('.land_buy_info .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-				land[name].max = $('.land_buy_info', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
-				land[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-				land[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			});
-			GM_debug('Land: '+Town.data.land.toSource());
-		} else {
-			unit = {};
-			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
-				var i, name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
-					cost = $('div.eq_buy_costs strong:first-child', el).text().replace(/[^0-9]/g, '');
-				unit[name] = {};
-				if (cost) {
-					unit[name].cost = parseInt(cost, 10);
-					unit[name].buy = [];
-					$('div.eq_buy_costs select[name="amount"]:first option', el).each(function(i,el){
-						unit[name].buy.push(parseInt($(el).val(), 10));
-					});
-				}
-				unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-				unit[name].own = $('div.eq_buy_costs span:first-child', el).text().regex(/Owned: ([0-9]+)/i);
-				unit[name].att = $('div.eq_buy_stats div:first-child', el).text().regex(/([0-9]+)/);
-				unit[name].def = $('div.eq_buy_stats div:last-child', el).text().regex(/([0-9]+)/);
-				if (Page.page==='town_blacksmith') {
-					for (i in Town.blacksmith) {
-						if (name.match(Town.blacksmith[i])) {
-							unit[name].type = i;
-						}
+		unit = {};
+		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
+			var i, name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
+				cost = $('div.eq_buy_costs strong:first-child', el).text().replace(/[^0-9]/g, '');
+			unit[name] = {};
+			if (cost) {
+				unit[name].cost = parseInt(cost, 10);
+				unit[name].buy = [];
+				$('div.eq_buy_costs select[name="amount"]:first option', el).each(function(i,el){
+					unit[name].buy.push(parseInt($(el).val(), 10));
+				});
+			}
+			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
+			unit[name].own = $('div.eq_buy_costs span:first-child', el).text().regex(/Owned: ([0-9]+)/i);
+			unit[name].att = $('div.eq_buy_stats div:first-child', el).text().regex(/([0-9]+)/);
+			unit[name].def = $('div.eq_buy_stats div:last-child', el).text().regex(/([0-9]+)/);
+			if (Page.page==='town_blacksmith') {
+				for (i in Town.blacksmith) {
+					if (name.match(Town.blacksmith[i])) {
+						unit[name].type = i;
 					}
 				}
-			});
-			Town.data[Page.page.substr(5)] = unit;
-			Town.dashboard();
-		}
-	} else if (Page.page !== 'town_land') {
+			}
+		});
+		Town.data[Page.page.substr(5)] = unit;
+		Town.dashboard();
+	} else {
 		if (Page.page==='town_blacksmith') {
 			unit = Town.data.blacksmith;
 			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
