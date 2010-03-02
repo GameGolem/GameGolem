@@ -71,7 +71,7 @@ Bank.retrieve = function(amount) {
 };
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
 	var worth = Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
-	if (typeof amount !== 'undefined') {
+	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}
 	return worth;

@@ -3,13 +3,23 @@
 */
 var Land = new Worker('Land', 'town_land');
 Land.option = {
-	buy:true
+	buy:true,
+	wait:48
 };
 Land.display = [
 	{
 		id:'buy',
 		label:'Auto-Buy Land',
 		checkbox:true
+	},{
+		id:'wait',
+		label:'Maximum Wait Time',
+		select:[0, 24, 36, 48],
+		suffix:'hours'
+	},{
+		id:'current',
+		label:'Want to buy',
+		info:'None'
 	}
 ];
 Land.parse = function(change) {
@@ -32,31 +42,32 @@ Land.work = function(state) {
 	if (!Land.option.buy) {
 		return false;
 	}
-	var i, max = 0, best = null, value, bestvalue;
-	for (i in Land.data) {
+	var i, best = null, worth = Bank.worth(), buy = 0;
+	for (var i in Land.data) {
 		if (Land.data[i].buy) {
-			max = Math.max(max, Land.data[i].cost * Land.data[i].buy / Player.data.income); // Maximum buy time in income hours
-		}
-	}
-	if (!max) {
-		return false;
-	}
-	for (i in Land.data) {
-		if (Land.data[i].buy) {
-			value = (max - (Land.data[i].cost * Land.data[i].buy / Player.data.income) + 1) * ((Land.data[i].income * Land.data[i].buy) + Player.data.income);
-			if (!best || value > bestvalue) {
-				bestvalue = value;
+			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + land[i].income)))) {
 				best = i;
 			}
 		}
 	}
-	if (!best || !Bank.worth(Land.data[best].buy * Land.data[best].cost)) {
+	if (!best) {
+		return false;
+	}
+	if ((Land.data[best].cost * 10) >= worth || (Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
+		buy = 10;
+	} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
+		buy = 5;
+	} else if (Land.data[best].cost >= worth){
+		buy = 1;
+	}
+	$('#'+PREFIX+'Land_current').text(buy + 'x ' + best + ' for $' + addCommas(buy * Land.data[best].cost));
+	if (!buy || (buy * Land.data[best].cost) > worth) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!Bank.retrieve(Land.data[best].buy * Land.data[best].cost)) {
+	if (!Bank.retrieve(buy * Land.data[best].cost)) {
 		return true;
 	}
 	if (!Page.to('town_land')) return true;
@@ -64,7 +75,7 @@ Land.work = function(state) {
 		var name = $('img', el).attr('alt'), tmp;
 		if (name === best) {
 			GM_debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.data[best].buy);
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(buy);
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 		}
 	});

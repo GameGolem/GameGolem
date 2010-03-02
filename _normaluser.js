@@ -860,7 +860,7 @@ Bank.retrieve = function(amount) {
 };
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
 	var worth = Player.data.cash + Math.max(0,Player.data.bank - Bank.option.keep);
-	if (typeof amount !== 'undefined') {
+	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}
 	return worth;
@@ -1749,13 +1749,23 @@ Income.work = function(state) {
 */
 var Land = new Worker('Land', 'town_land');
 Land.option = {
-	buy:true
+	buy:true,
+	wait:48
 };
 Land.display = [
 	{
 		id:'buy',
 		label:'Auto-Buy Land',
 		checkbox:true
+	},{
+		id:'wait',
+		label:'Maximum Wait Time',
+		select:[0, 24, 36, 48],
+		suffix:'hours'
+	},{
+		id:'current',
+		label:'Want to buy',
+		info:'None'
 	}
 ];
 Land.parse = function(change) {
@@ -1778,31 +1788,32 @@ Land.work = function(state) {
 	if (!Land.option.buy) {
 		return false;
 	}
-	var i, max = 0, best = null, value, bestvalue;
-	for (i in Land.data) {
+	var i, best = null, worth = Bank.worth(), buy = 0;
+	for (var i in Land.data) {
 		if (Land.data[i].buy) {
-			max = Math.max(max, Land.data[i].cost * Land.data[i].buy / Player.data.income); // Maximum buy time in income hours
-		}
-	}
-	if (!max) {
-		return false;
-	}
-	for (i in Land.data) {
-		if (Land.data[i].buy) {
-			value = (max - (Land.data[i].cost * Land.data[i].buy / Player.data.income) + 1) * ((Land.data[i].income * Land.data[i].buy) + Player.data.income);
-			if (!best || value > bestvalue) {
-				bestvalue = value;
+			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + land[i].income)))) {
 				best = i;
 			}
 		}
 	}
-	if (!best || !Bank.worth(Land.data[best].buy * Land.data[best].cost)) {
+	if (!best) {
+		return false;
+	}
+	if ((Land.data[best].cost * 10) >= worth || (Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
+		buy = 10;
+	} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
+		buy = 5;
+	} else if (Land.data[best].cost >= worth){
+		buy = 1;
+	}
+	$('#'+PREFIX+'Land_current').text(buy + 'x ' + best + ' for $' + addCommas(buy * Land.data[best].cost));
+	if (!buy || (buy * Land.data[best].cost) > worth) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!Bank.retrieve(Land.data[best].buy * Land.data[best].cost)) {
+	if (!Bank.retrieve(buy * Land.data[best].cost)) {
 		return true;
 	}
 	if (!Page.to('town_land')) return true;
@@ -1810,7 +1821,7 @@ Land.work = function(state) {
 		var name = $('img', el).attr('alt'), tmp;
 		if (name === best) {
 			GM_debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.data[best].buy);
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(buy);
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 		}
 	});
@@ -1839,6 +1850,10 @@ Monster.display = [
 		id:'choice',
 		label:'Attack',
 		select:['All', 'Strongest', 'Weakest', 'Shortest']
+	},{
+		id:'assist',
+		label:'Auto-Assist',
+		checkbox:true
 	}
 ];
 Monster.types = {
@@ -2000,7 +2015,7 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, $health, $defense, damage;
+	var i, j, uid, type, tmp, $health, $defense;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -2009,12 +2024,24 @@ Monster.parse = function(change) {
 			}
 		}
 		if (!uid || !type) {
-			GM_debug('Monster: Unknown monster');
+			GM_debug('Monster: Unknown monster (probably dead)');
 			return false;
 		}
+		Monster.data[uid] = Monster.data[uid] || {};
+		Monster.data[uid][type] = Monster.data[uid][type] || {};
 		if ($('input[src*="collect_reward_button.jpg"]').length) {
-			Monster.data[uid].state = 'reward';
+			Monster.data[uid][type].state = 'reward';
 			return false;
+		}
+		if (!Monster.data[uid][type].state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
+			if ($('span.result_body').text().match(/for your help in summoning/i)) {
+				Monster.data[uid][type].assist = Date.now();
+			}
+			Monster.data[uid][type].state = 'assist';
+		}
+		if (!Monster.data[uid][type].name) {
+			tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
+			Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
 		}
 		$health = $('img[src$="monster_health_background.jpg"]').parent();
 		Monster.data[uid][type].health = ($health.width() / $health.parent().width() * 100);
@@ -2023,18 +2050,23 @@ Monster.parse = function(change) {
 			Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
 		}
 		Monster.data[uid][type].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
-		damage = {};
+		Monster.data[uid][type].finish = Date.now() + (Monster.data[uid][type].timer * 1000);
+		Monster.data[uid][type].damage_total = 0;
+		Monster.data[uid][type].damage = {};
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-			damage[user] = (fort ? [dmg, fort] : dmg);
+			Monster.data[uid][type].damage[user]  = (fort ? [dmg, fort] : dmg);
+			Monster.data[uid][type].damage_total += dmg;
 		});
-		Monster.data[uid][type].damage = damage;
+		Monster.data[uid][type].dps = Monster.data[uid][type].damage_total / (Monster.types[type].timer - Monster.data[uid][type].timer);
+		Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+		Monster.data[uid][type].eta = Date.now() + (Math.floor((Monster.data[uid][type].total - Monster.data[uid][type].damage_total) / Monster.data[uid][type].dps) * 1000);
 	} else if (Page.page === 'keep_monster') { // Check monster list
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				Monster.data[i][j].state = null;
-			}
-		}
+//		for (i in Monster.data) {
+//			for (j in Monster.data[i]) {
+//				Monster.data[i][j].state = null;
+//			}
+//		}
 		$('#app'+APP+'_app_body div.imgButton').each(function(i,el){
 			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
 			for (i in Monster.types) {
@@ -2148,38 +2180,23 @@ Monster.work = function(state) {
 };
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, k, o, list = [], output, sorttype = [null, 'name', 'health', 'fortify', null, 'timer', 'ttk'];
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left...</th><th title="(estimated)">Kill In...</th></tr></thead><tbody>');
+	var i, j, k, o, list = [], output, sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {engage:0, assist:1, complete:2, reward:3};
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
-				if (Monster.data[i][j].state === 'engage') {
-					Monster.data[i][j].damage_total = 0;
-					for (k in Monster.data[i][j].damage) {
-						Monster.data[i][j].damage_total += (typeof Monster.data[i][j].damage[k] === 'number' ? Monster.data[i][j].damage[k] : Monster.data[i][j].damage[k][0]);
-					}
-					Monster.data[i][j].dps = Monster.data[i][j].damage_total / (Monster.types[j].timer - Monster.data[i][j].timer);
-					Monster.data[i][j].total = Math.floor(Monster.data[i][j].damage_total / (100 - Monster.data[i][j].health) * 100);
-					Monster.data[i][j].ttk = Math.floor((Monster.data[i][j].total - Monster.data[i][j].damage_total) / Monster.data[i][j].dps);
-				} else {
-					delete Monster.data[i][j].damage_total;
-					delete Monster.data[i][j].dps;
-					delete Monster.data[i][j].total;
-					delete Monster.data[i][j].ttk;
-				}
 				Monster.order.push([i, j]);
 			}
 		}
 	}
 	Monster.order.sort(function(a,b) {
 		var aa, bb;
-		if (Monster.data[a[0]][a[1]].state !== 'engage') {
-			if (Monster.data[b[0]][b[1]].state === 'engage') {
-				return 1;
-			}
-		} else if (Monster.data[b[0]][b[1]].state !== 'engage') {
+		if (state[Monster.data[a[0]][a[1]].state] > state[Monster.data[b[0]][b[1]].state]) {
+			return 1;
+		}
+		if (state[Monster.data[a[0]][a[1]].state] < state[Monster.data[b[0]][b[1]].state]) {
 			return -1;
 		}
 		if (typeof sorttype[sort] === 'string') {
@@ -2198,14 +2215,14 @@ Monster.dashboard = function(sort, rev) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
 		output = [];
-		output.push('<strong style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
+		output.push('<strong style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;" uid="'+i+'" mpool="'+Monster.types[j].mpool+'">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '">');
 		output.push(Monster.data[i][j].name);
-		if (Monster.data[i][j].state === 'engage') {
+		if (Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') {
 			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
 			output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
-			output.push(addCommas(Monster.data[i][j].damage[Player.data.FBID]));
-			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer(Monster.data[i][j].timer) + '</span>' : '?');
-			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer(Monster.data[i][j].ttk)+'</span>');
+			output.push(Monster.data[i][j].state === 'engage' ? addCommas(Monster.data[i][j].damage[Player.data.FBID]) + ' (' + (Monster.data[i][j].damage[Player.data.FBID] / Monster.data[i][j].total * 100).round(1) + '%)' : '');
+			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
+			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');
 		} else {
 			output.push('', '', '', '', '');
 		}
@@ -2215,6 +2232,14 @@ Monster.dashboard = function(sort, rev) {
 	$('#golem-dashboard-Monster').html(list.join(''));
 	$('#golem-dashboard-Monster thead th').css('cursor', 'pointer').click(function(event){
 		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+	$('#golem-dashboard-Monster tbody td strong').css('cursor', 'pointer').click(function(event){
+	//http://apps.facebook.com/castle_age/battle_monster.php?twt2=hydra&user=729566583&action=doObjective&mpool=3&lka=729566583&ref=nf
+		if ($(this).text() == 'assist') {
+			Page.to('keep_monster', '?user='+$(this).attr('uid')+'&action=doObjective&mpool='+$(this).attr('mpool'))
+		} else {
+			Page.to('keep_monster', '?user='+$(this).attr('uid')+'&mpool='+$(this).attr('mpool'))
+		}
 	});
 	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
@@ -2650,7 +2675,7 @@ Quest.select = function() {
 	});
 };
 Quest.work = function(state) {
-	var i, list, best = null;
+	var i, j, list, best = null;
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
@@ -2678,8 +2703,14 @@ Quest.work = function(state) {
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
-	if (Quest.option.monster && Monster.count && Queue.burn.energy <= Quest.data[i].energy + 10) { // Always leave 10 energy spare for Monsters...
-		return false;
+	if (Quest.option.monster) {
+		for (i in Monster.data) {
+			for (j in Monster.data[i]) {
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
+					return false;
+				}
+			}
+		}
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
 		return false;

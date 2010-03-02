@@ -135,7 +135,7 @@ Quest.select = function() {
 	});
 };
 Quest.work = function(state) {
-	var i, list, best = null;
+	var i, j, list, best = null;
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
@@ -163,8 +163,14 @@ Quest.work = function(state) {
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
-	if (Quest.option.monster && Monster.count && Queue.burn.energy <= Quest.data[i].energy + 10) { // Always leave 10 energy spare for Monsters...
-		return false;
+	if (Quest.option.monster) {
+		for (i in Monster.data) {
+			for (j in Monster.data[i]) {
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
+					return false;
+				}
+			}
+		}
 	}
 	if (!best || Quest.data[best].energy > Queue.burn.energy) {
 		return false;
