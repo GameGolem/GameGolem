@@ -23,9 +23,9 @@ Elite.parse = function(change) {
 	var i;
 	$('span.result_body').each(function(i,el){
 		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
-			Elite.data[$('img', el).attr('uid')] = Date.now + 86400000; // 24 hours
+			Elite.data[$('img', el).attr('uid')] = Date.now() + 86400000; // 24 hours
 		} else if ($(el).text().match(/'s Elite Guard is FULL!/i)) {
-			Elite.data[$('img', el).attr('uid')] = Date.now + 3600000; // 1 hour
+			Elite.data[$('img', el).attr('uid')] = Date.now() + 3600000; // 1 hour
 		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.option.wait = Date.now();
 			GM_debug('Elite guard full, wait 24 hours');
@@ -44,7 +44,7 @@ Elite.work = function(state) {
 		return false;
 	}
 	for(i in Elite.data) {
-		if (!Elite.data[i] || Elite.data[i] < Date.now()) {
+		if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
 			if (!found) {
 				found = i;
 			}

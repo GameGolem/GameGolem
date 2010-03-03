@@ -53,9 +53,9 @@ Land.work = function(state) {
 	if (!best) {
 		return false;
 	}
-	if ((Land.data[best].cost * 10) >= worth || (Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
+	if ((Land.data[best].cost * 10) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
 		buy = 10;
-	} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
+	} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
 		buy = 5;
 	} else if (Land.data[best].cost >= worth){
 		buy = 1;
