@@ -113,18 +113,20 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 	for (i in list) {
 		unitfunc(units, i, list);
 	}
-	if (type === 'duel' && list[units[0]].type) {
-		units.sort(function(a,b) {
-			return order[list[a].type] - order[list[b].type];
-		});
-	} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
-		units.sort(function(a,b) {
-			return (list[b][type][x] || 0) - (list[a][type][x] || 0);
-		});
-	} else {
-		units.sort(function(a,b) {
-			return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
-		});
+	if (list[units[0]]) {
+		if (type === 'duel' && list[units[0]].type) {
+			units.sort(function(a,b) {
+				return order[list[a].type] - order[list[b].type];
+			});
+		} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
+			units.sort(function(a,b) {
+				return (list[b][type][x] || 0) - (list[a][type][x] || 0);
+			});
+		} else {
+			units.sort(function(a,b) {
+				return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
+			});
+		}
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
 		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
