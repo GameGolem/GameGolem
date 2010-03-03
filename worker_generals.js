@@ -184,7 +184,7 @@ Generals.select = function() {
 };
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var i, o, output = [], list = [];
+	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0;
 
 	if (typeof sort === 'undefined') {
 		Generals.order = [];
@@ -214,16 +214,31 @@ Generals.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	output.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	for (i in Generals.data) {
+		iatt = Math.max(iatt, Generals.data[i].invade.att);
+		idef = Math.max(idef, Generals.data[i].invade.def);
+		datt = Math.max(datt, Generals.data[i].duel.att);
+		ddef = Math.max(ddef, Generals.data[i].duel.def);
+	}
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
-		output.push('<tr><td><img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;">' + '</td><td style="text-align:left;">' + i + '</td><td>' + Generals.data[i].level + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.att) : '?') + '</td><td>' + (Generals.data[i].invade ? addCommas(Generals.data[i].invade.def) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.att) : '?') + '</td><td>' + (Generals.data[i].duel ? addCommas(Generals.data[i].duel.def) : '?') + '</td></tr>');
+		output = [];
+		output.push('<img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
+		output.push(i);
+		output.push(Generals.data[i].level);
+		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
+		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (datt == Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt == Generals.data[i].duel.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (ddef == Generals.data[i].duel.def ? '<strong>' : '') + addCommas(Generals.data[i].duel.def) + (ddef == Generals.data[i].duel.def ? '</strong>' : '') : '?');
+		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
-	output.push('</tbody></table>');
-	$('#golem-dashboard-Generals').html(output.join(''));
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Generals').html(list.join(''));
 	$('#golem-dashboard-Generals thead th').css('cursor', 'pointer').click(function(event){
 		Generals.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
+	$('#golem-dashboard-Generals tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}

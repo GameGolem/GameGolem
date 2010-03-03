@@ -37,6 +37,7 @@ Land.parse = function(change) {
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		});
 	}
+	return false;
 };
 Land.work = function(state) {
 	if (!Land.option.buy) {

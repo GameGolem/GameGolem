@@ -33,7 +33,6 @@ Player.parse = function(change) {
 	data.upgrade	= ($('a[href*=keep.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/) || 0);
 	data.general	= $('div.general_name_div3').first().text().trim();
 	data.imagepath	= $('div.general_pic_div3 img').attr('src').pathpart();
-	// Keep page
 	if (Page.page==='keep_stats') {
 		keep = $('div.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
@@ -48,6 +47,10 @@ Player.parse = function(change) {
 			data.upkeep = stats[1];
 			data.income = stats[2];
 		}
+	}
+	if (Page.page==='town_land') {
+		stats = $('.mContTMainback div:last-child');
+		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
 	return false;
 };
