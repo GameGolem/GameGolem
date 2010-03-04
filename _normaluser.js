@@ -1836,11 +1836,12 @@ Land.work = function(state) {
 /********** Worker.Monster **********
 * Automates Monster
 */
-var Monster = new Worker('Monster', 'keep_monster keep_monster_active');
+var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid');
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
-	choice: 'All'
+	choice: 'All',
+	raid: 'Invade x5'
 };
 Monster.display = [
 	{
@@ -1862,6 +1863,10 @@ Monster.display = [
 		label:'Attack',
 		select:['All', 'Strongest', 'Weakest', 'Shortest']
 	},{
+		id:'raid',
+		label:'Raid',
+		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+	},{
 		id:'assist',
 		label:'Auto-Assist',
 		checkbox:true
@@ -1874,15 +1879,13 @@ Monster.types = {
 		timer:259200 // 72 hours
 	},
 	// Raid
-	raid_easy: {
-		list:'deathrune_list.jpg',
-		image:'raid_1_large.jpg',
-		mpool:1
-	},
-	raid_advanced: {
+	raid: {
+		name:'The Deathrune Siege',
 		list:'deathrune_list2.jpg',
-		image:'deathrune.jpg',
-		mpool:1
+		list2:'deathrune_list1.jpg',
+		image:'raid_1_large.jpg',
+		image2:'raid_b1_large.jpg',
+		raid:true
 	},
 	// Epic Boss
 	colossus: {
@@ -2039,11 +2042,13 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, raid = false;;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if (Monster.types[i].image && $('img[src*="'+Monster.types[i].image+'"]').length) {
+				type = i;
+			} else if (Monster.types[i].image2 && $('img[src*="'+Monster.types[i].image2+'"]').length) {
 				type = i;
 			} else if (Monster.types[i].dead && $('img[src*="'+Monster.types[i].dead+'"]').length) {
 				type = i;
@@ -2098,14 +2103,16 @@ Monster.parse = function(change) {
 			Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
 			Monster.data[uid][type].eta = Date.now() + (Math.floor((Monster.data[uid][type].total - Monster.data[uid][type].damage_total) / Monster.data[uid][type].dps) * 1000);
 		}
-	} else if (Page.page === 'keep_monster') { // Check monster list
+	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
 		if (!$('#app'+APP+'_app_body div.imgButton').length) {
-			// Try and fool us with an empty page eh?
 			return false;
+		}
+		if (Page.page === 'battle_raid') {
+			raid = true;
 		}
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
-				if (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now())) {
+				if (raid === Monster.types[j].raid && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
 					Monster.data[i][j].state = null;
 				}
 			}
@@ -2113,7 +2120,7 @@ Monster.parse = function(change) {
 		$('#app'+APP+'_app_body div.imgButton').each(function(i,el){
 			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
 			for (i in Monster.types) {
-				if (tmp === Monster.types[i].list) {
+				if (tmp === Monster.types[i].list || tmp === Monster.types[i].lis2) {
 					type = i;
 					break;
 				}
@@ -2194,7 +2201,26 @@ Monster.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (Monster.data[uid][type].defense && Monster.data[uid][type].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
+	if (Monster.types[type].raid) {
+		if (!Generals.to(Generals.best(Monster.option.raid.indexOf('Invade') ? 'invade' : 'duel'))) {
+			return true;
+		}
+		GM_debug('Raid: '+Monster.option.raid+' '+uid);
+		switch(Monster.option.raid) {
+			case 'Invade':
+				btn = $('input[src$="raid_attack_button.gif"]:first');
+				break;
+			case 'Invade x5':
+				btn = $('input[src$="raid_attack_button3.gif"]:first');
+				break;
+			case 'Duel':
+				btn = $('input[src$="raid_attack_button2.gif"]:first');
+				break;
+			case 'Duel x5':
+				btn = $('input[src$="raid_attack_button4.gif"]:first');
+				break;
+		}
+	} else if (Monster.data[uid][type].defense && Monster.data[uid][type].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
@@ -2228,8 +2254,8 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if ((!btn || uid !== Monster.uid) && !Page.to('keep_monster', '?user='+uid+'&mpool='+Monster.types[type].mpool)) {
-		return true; // Reload if we can't find the button or we're on the wrong monster
+	if ((!btn || !btn.length || uid !== Monster.uid) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
+		return true; // Reload if we can't find the button or we're on the wrong page
 	}
 	Page.click(btn);
 	return true;
@@ -2276,12 +2302,14 @@ Monster.dashboard = function(sort, rev) {
 		output = [];
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
+		// http://apps.facebook.com/castle_age/raid.php?user=00000
+		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
 		if (Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') {
-			url = '?user=' + i + '&action=doObjective&mpool=' + Monster.types[j].mpool + '&lka=' + i + '&ref=nf';
+			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
 		} else {
-			url = '?user=' + i + '&mpool=' + Monster.types[j].mpool;
+			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
 		}
-		output.push('<a href="http://apps.facebook.com/castle_age/battle_monster.php' + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
+		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
 		output.push(Monster.data[i][j].name);
 		if ((Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') && Monster.data[i][j].total) {
 			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
@@ -2301,7 +2329,8 @@ Monster.dashboard = function(sort, rev) {
 		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 	$('#golem-dashboard-Monster tbody td a').click(function(event){
-		Page.to('keep_monster', $(this).attr('href').substr($(this).attr('href').indexOf('?')))
+		var url = $(this).attr('href').substr($(this).attr('href'));
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.indexOf('?'));
 		return false;
 	});
 	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');
@@ -2567,6 +2596,7 @@ Player.parse = function(change) {
 			+ (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0)
 			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
+			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0)
 			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
 			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
 	});
@@ -2582,7 +2612,7 @@ Player.parse = function(change) {
 			data.average += data.history[i];
 		}
 	}
-	data.average /= hour - best + 169;
+	data.average = Math.floor(data.average / (hour - best + 169));
 	if (Settings.Save(Player)) {
 		Player.select();
 	}
@@ -3083,69 +3113,6 @@ Queue.run = function() {
 	Settings.Save('option');
 	Settings.Save('data');
 };
-/********** Worker.Raid **********
-* Automates Raids
-*/
-Raid = new Worker('Raid', 'battle_raid', {stamina:true});
-Raid.onload = function() {
-	if (!Raid.option.type) Raid.option.type = 'Invade';
-}
-Raid.display = [
-	{
-		label:'Work in progress... Will be merged with main Monster section later'
-	},{
-		id:'general',
-		label:'General',
-		select:'generals'
-	},{
-		id:'type',
-		label:'Attack Type',
-		select:['Invade', 'Duel']
-	}
-];
-Raid.parse = function(change) {
-	if ($('input[name="help with raid"]').length) { // In a raid
-		var user = $('img[linked="true"][size="square"]').attr('uid');
-		var $health = $('img[src$="monster_health_background.jpg"]').parent();
-		Raid.data[user].health = Math.ceil($health.width() / $health.parent().width() * 100);
-		Raid.data[user].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
-		var damage = {};
-		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
-			var uid = $(el).attr('href').regex(/user=([0-9]+)/i);
-			damage[uid] = parseInt($(el).parent().next().text().replace(/[^0-9]/g,''));
-		});
-		Raid.data[user].damage = damage;
-//		GM_debug('Raid: '+Raid.data[user].toSource());
-	} else { // Check raid list
-		var data = {};
-		$('img[src$="dragon_list_btn_3.jpg"]').each(function(i,el){
-			var user = $(el).parent().attr('href').regex(/user=([0-9]+)/i);
-			data[user] = {};
-		});
-		for (var i in data) if (!Raid.data[i]) Raid.data[i] = {};
-		for (var i in Raid.data) if (!data[i]) delete Raid.data[i];
-	}
-	return false;
-}
-Raid.work = function(state) {
-	if (!length(Raid.data)) return false;
-	if (Player.data.health <= 10) return false;
-	var best = null;
-	for (var i in Raid.data) {
-		best = i;
-	}
-	if (!best) return false;
-	if (!state) return true;
-	if (!Generals.to(Raid.option.general)) return true;
-	if (Raid.option.type == 'Invade') var btn = $('input[src$="raid_attack_button.gif"]:first');
-	else var btn = $('input[src$="raid_attack_button2.gif"]:first');
-	if (!btn.length && !Page.to('battle_raid', '?user='+best)) return true;
-	//http://image2.castleagegame.com/1288/graphics/raid_attack_button.gif
-	if (Raid.option.type == 'Invade') var btn = $('input[src$="raid_attack_button.gif"]:first');
-	else var btn = $('input[src$="raid_attack_button2.gif"]:first');
-	Page.click(btn);
-	return true;
-}
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */

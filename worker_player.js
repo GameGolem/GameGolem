@@ -62,6 +62,7 @@ Player.parse = function(change) {
 			+ (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0)
 			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
+			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0)
 			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
 			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
 	});
