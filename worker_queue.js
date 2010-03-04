@@ -9,7 +9,9 @@ Queue.option = {
 	delay: 5,
 	clickdelay: 5,
 	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	start_stamina: 0,
 	stamina: 0,
+	start_energy: 0,
 	energy: 0
 };
 Queue.display = [
@@ -28,13 +30,25 @@ Queue.display = [
 		after:'secs',
 		size:3
 	},{
+		id:'start_stamina',
+		before:'Save',
+		select:'stamina',
+		after:'Stamina Before Using'
+	},{
 		id:'stamina',
-		label:'Keep Stamina',
-		select:'stamina'
+		before:'Always Keep',
+		select:'stamina',
+		after:'Stamina'
+	},{
+		id:'start_energy',
+		before:'Save',
+		select:'energy',
+		after:'Energy Before Using'
 	},{
 		id:'energy',
-		label:'Keep Energy',
-		select:'energy'
+		before:'Always Keep',
+		select:'energy',
+		after:'Energy'
 	}
 ];
 Queue.runfirst = [];
@@ -92,8 +106,15 @@ Queue.run = function() {
 	if (Page.loading()) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
-	Queue.burn.stamina	= Math.max(0, Player.data.stamina - Queue.option.stamina);
-	Queue.burn.energy	= Math.max(0, Player.data.energy - Queue.option.energy);
+	Queue.burn.stamina = Queue.burn.energy = 0;
+	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
+		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
+		Queue.option.burn_stamina = Queue.burn.stamina > 0;
+	}
+	if (Queue.option.burn_energy || Player.data.energy >= Queue.option.start_energy) {
+		Queue.burn.energy = Math.max(0, Player.data.energy - Queue.option.energy);
+		Queue.option.burn_energy = Queue.burn.energy > 0;
+	}
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 			Workers[i].work(false);

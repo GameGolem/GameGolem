@@ -52,6 +52,9 @@ Player.parse = function(change) {
 		stats = $('.mContTMainback div:last-child');
 		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
+	if (Settings.Save(Player)) {
+		Player.select();
+	}
 	return false;
 };
 Player.work = function(state) {

@@ -125,9 +125,12 @@ var Settings = {
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof Settings.cache[n] !== 'undefined' && v !== Settings.cache[n]) {
+		if (typeof Settings.cache[n] !== 'undefined' && Settings.cache[n] !== v) {
 			Settings.cache[n] = v;
-			return GM_setValue(Settings.userID + '.' + n, v);
+			GM_setValue(Settings.userID + '.' + n, v);
+			return true;
+		} else {
+			return false;
 		}
 	},
 	GetValue:function(n,d) {
@@ -150,7 +153,7 @@ var Settings = {
 		return v;
 	},
 	Save:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null;
+		var i, type = 'data', worker = null, change = 0;
 		for (i=0; i<arguments.length; i++) {
 			if (typeof arguments[i] === 'object') {
 				worker = arguments[i];
@@ -159,14 +162,14 @@ var Settings = {
 			}
 		}
 		if (worker && worker[type]) {
-			Settings.SetValue(type + '.' + worker.name, worker[type]);
-		} else {
-			for (i=0; i<Workers.length; i++) {
-				if (Workers[i][type]) {
-					Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
-				}
+			return Settings.SetValue(type + '.' + worker.name, worker[type]);
+		}
+		for (i=0; i<Workers.length; i++) {
+			if (Workers[i][type]) {
+				change += Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
 			}
 		}
+		return change;
 	},
 	Load:function() { // type (string - 'data'|'option'), worker (object)
 		var i, type = 'data', worker = null;
@@ -916,7 +919,7 @@ Battle.display = [
 	}
 ];
 Battle.parse = function(change) {
-	var i, data, uid, info, count = 0, list = [], changed = false;
+	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
 		data = Battle.data.rank = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -953,7 +956,6 @@ Battle.parse = function(change) {
 				return;
 			}
 			if (!data[uid]) {
-				changed = true;
 				data[uid] = {};
 			}
 			data[uid].name = $('a', el).text().trim();
@@ -964,13 +966,10 @@ Battle.parse = function(change) {
 		});
 		for (i in data) { // Forget low or high rank - no points or too many points
 			if ((Battle.option.bp === 'Always' && Player.data.rank - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - data[i].rank <= 5)) {
-				changed = true;
 				delete data[i];
-			} else {
-				count++;
 			}
 		}
-		if (count > Battle.option.cache) { // Need to prune our attack cache
+		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
 			GM_debug('Battle: Pruning target cache');
 			for (i in data) {
 				list.push(i);
@@ -992,11 +991,10 @@ Battle.parse = function(change) {
 				delete data[list.pop()];
 			}
 		}
-		if (changed) {
-			Battle.dashboard();
-		}
 	}
-//	GM_debug('Battle: '+Battle.data.toSource());
+	if (Settings.Save(Battle)) {
+		Battle.dashboard();
+	}
 	return false;
 };
 Battle.work = function(state) {
@@ -1024,7 +1022,6 @@ Battle.work = function(state) {
 		if (!Battle.option.points || !points.length || typeof points[user[i].align] !== 'undefined') {
 			list.push(i);
 		}
-		else GM_debug('Battle: Not adding target '+i);
 	}
 	if (!list.length) {
 		return false;
@@ -1242,56 +1239,48 @@ Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
-	var data, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	if (!change) {
-		data = {};
-		$('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2').each(function(i,el){
-			var $child = $(el).children(), name = $child.eq(0).text().trim();
-			if (name) {
-				data[name] = {};
-				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
-				data[name].level	= $child.eq(3).text().regex(/Level ([0-9]+)/i); // Might only be 4 so far, however...
-				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	if ($elements.length < length(Generals.data)) {
+		Page.to('heroes_generals', ''); // Force reload
+		return false;
+	}
+	$elements.each(function(i,el){
+		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
+		if (name) {
+			if (!Generals.data[name] || Generals.data[name].level !== level) {
+				Generals.data[name] = Generals.data[name] || {};
+				Generals.data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
+				Generals.data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
+				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				Generals.data[name].level	= level; // Might only be 4 so far, however...
+				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
 			}
-		});
-		if (length(data) >= length(Generals.data)) { // Assume we never sell!
-			Generals.data = data;
-			Generals.select();
-		} else {
-			Page.to('heroes_generals', ''); // Force reload
 		}
-	} else if (length(Town.data.invade)) {
-		data = Generals.data;
-		for (i in data) {
-			attack = Player.data.attack + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.data.defense + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
-			};
-			data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (attack * 0.7))
-			};
-		}
+	});
+	if (length(Town.data.invade)) {
 		for (i in Generals.data) {
-			iatt = Math.max(iatt, Generals.data[i].invade.att);
-			idef = Math.max(idef, Generals.data[i].invade.def);
-			datt = Math.max(datt, Generals.data[i].duel.att);
-			ddef = Math.max(ddef, Generals.data[i].duel.def);
+			attack = Player.data.attack + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.data.defense + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (Generals.data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(Generals.data, listpush, 'def', Math.floor(army / 5));
+			Generals.data[i].invade = {
+				att: Math.floor(Town.data.invade.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(Town.data.invade.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + ((defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+			};
+			Generals.data[i].duel = {
+				att: Math.floor(Town.data.duel.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(Town.data.duel.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + defend + (attack * 0.7))
+			};
 		}
-		$('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2').each(function(i,el){
-			var $child = $(el).children(), name = $child.eq(0).text().trim();
-			$child.eq(1).prepend('<div style="position:absolute;margin-left:8px;margin-top:2px;font-size:smaller;text-align:left;z-index:100;color:#ffd200;text-shadow:black 1px 1px 2px;"><strong>Invade</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].invade.att===iatt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.att)+(data[name].invade.att===iatt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].invade.def===idef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.def)+(data[name].invade.def===idef?'</span>':'')+'<br><strong>Duel</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].duel.att===datt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.att)+(data[name].duel.att===datt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].duel.def===ddef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.def)+(data[name].duel.def===ddef?'</span>':'')+'<br></div>');
-		});
+	}
+	if (Settings.Save(Generals)) {
+		GM_debug('Updating Generals Dashboard');
+		Generals.select();
 		Generals.dashboard();
 	}
-	return true;
+	return false;
 };
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
@@ -1449,10 +1438,10 @@ Generals.dashboard = function(sort, rev) {
 		});
 	}
 	for (i in Generals.data) {
-		iatt = Math.max(iatt, Generals.data[i].invade.att);
-		idef = Math.max(idef, Generals.data[i].invade.def);
-		datt = Math.max(datt, Generals.data[i].duel.att);
-		ddef = Math.max(ddef, Generals.data[i].duel.def);
+		iatt = Math.max(iatt, Generals.data[i].invade ? Generals.data[i].invade.att : 1);
+		idef = Math.max(idef, Generals.data[i].invade ? Generals.data[i].invade.def : 1);
+		datt = Math.max(datt, Generals.data[i].duel ? Generals.data[i].duel.att : 1);
+		ddef = Math.max(ddef, Generals.data[i].duel ? Generals.data[i].duel.def : 1);
 	}
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
@@ -1850,6 +1839,7 @@ Land.work = function(state) {
 var Monster = new Worker('Monster', 'keep_monster keep_monster_active');
 Monster.option = {
 	fortify: 50,
+	dispel: 50,
 	choice: 'All'
 };
 Monster.display = [
@@ -1858,6 +1848,11 @@ Monster.display = [
 	},{
 		id:'fortify',
 		label:'Fortify Below',
+		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+		after:'%'
+	},{
+		id:'dispel',
+		label:'Dispel Above',
 		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 		after:'%'
 	},{
@@ -2027,6 +2022,7 @@ Monster.types = {
 		mpool:3
 	}
 };
+Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
@@ -2042,7 +2038,7 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, dead = false;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -2065,6 +2061,8 @@ Monster.parse = function(change) {
 		}
 		if (dead && Monster.data[uid][type].state === 'assist') {
 			Monster.data[uid][type].state = null;
+		} else if (dead && Monster.data[uid][type].state === 'engage') {
+			Monster.data[uid][type].state = 'reward';
 		} else {
 			if (!Monster.data[uid][type].state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
 				if ($('span.result_body').text().match(/for your help in summoning/i)) {
@@ -2081,6 +2079,10 @@ Monster.parse = function(change) {
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
 			if ($defense.length) {
 				Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+			}
+			$dispel = $('img[src$="bar_dispel.gif"]').parent();
+			if ($dispel.length) {
+				Monster.data[uid][type].dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
 			}
 			Monster.data[uid][type].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
 			Monster.data[uid][type].finish = Date.now() + (Monster.data[uid][type].timer * 1000);
@@ -2147,22 +2149,24 @@ Monster.parse = function(change) {
 			delete Monster.data[i];
 		}
 	}
-	Monster.dashboard();
+	if (Settings.Save(Monster)) {
+		Monster.dashboard();
+	}
 	return false;
 };
 Monster.work = function(state) {
 	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
-	if (!state) {
+	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.option.uid = null;
 		Monster.option.type = null;
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
 	}
-	if (!uid || !type || !Monster.data[uid] || Monster.data[uid][type].state !== 'engage') {
+	if (!uid || !type || !Monster.data[uid] || !Monster.data[uid][type]) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
-				if (Monster.data[uid][type].state === 'engage'){
+				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
 					if (Monster.option.choice === 'All') {
 						list.push([uid, type]);
 					} else if (!best
@@ -2183,7 +2187,7 @@ Monster.work = function(state) {
 		uid  = Monster.option.uid  = best[0];
 		type = Monster.option.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify)) {
+	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {
@@ -2197,6 +2201,17 @@ Monster.work = function(state) {
 		for (i=0; i<Monster.fortify.length; i++) {
 			if ($(Monster.fortify[i]).length) {
 				btn = $(Monster.fortify[i]);
+				break;
+			}
+		}
+	} else if (Monster.data[uid][type].dispel && Monster.data[uid][type].dispel >= Monster.option.dispel && Queue.burn.energy >= 10) {
+		if (!Generals.to(Generals.best('defend'))) {
+			return true;
+		}
+		GM_debug('Monster: Dispel '+uid);
+		for (i=0; i<Monster.dispel.length; i++) {
+			if ($(Monster.dispel[i]).length) {
+				btn = $(Monster.dispel[i]);
 				break;
 			}
 		}
@@ -2220,8 +2235,8 @@ Monster.work = function(state) {
 };
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
+	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
@@ -2254,6 +2269,9 @@ Monster.dashboard = function(sort, rev) {
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
+		if (!Monster.types[j]) {
+			continue;
+		}
 		output = [];
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
@@ -2264,9 +2282,10 @@ Monster.dashboard = function(sort, rev) {
 		}
 		output.push('<a href="http://apps.facebook.com/castle_age/battle_monster.php' + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
 		output.push(Monster.data[i][j].name);
-		if (Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') {
+		if ((Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') && Monster.data[i][j].total) {
 			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-			output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+			output.push(typeof Monster.data[i][j].defense === 'number' ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+			output.push(typeof Monster.data[i][j].dispel === 'number' ? Math.floor(Monster.data[i][j].dispel)+'%' : '');
 			output.push(Monster.data[i][j].state === 'engage' ? addCommas(Monster.data[i][j].damage[Player.data.FBID][0]) + ' (' + (Monster.data[i][j].damage[Player.data.FBID][0] / Monster.data[i][j].total * 100).round(1) + '%)' : '');
 			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
 			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');
@@ -2537,6 +2556,9 @@ Player.parse = function(change) {
 		stats = $('.mContTMainback div:last-child');
 		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
+	if (Settings.Save(Player)) {
+		Player.select();
+	}
 	return false;
 };
 Player.work = function(state) {
@@ -2631,74 +2653,74 @@ Quest.parse = function(change) {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
-	if (!change) { // Parse first
-		$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-			var name, level, influence, reward, units, energy;
-			if ($(el).hasClass('quests_background')) { // Main quest
-				name = $('div.qd_1 b', el).text().trim();
-				level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-				influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
-			} else if ($(el).hasClass('quests_background_sub')) { // Subquest
-				name = $('div.quest_sub_title', el).text().trim();
-				level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-				influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-				reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
-			} else if ($(el).hasClass('quests_background_special')) { // Special Quest
-				name = $('div.qd_1 b', el).text().trim();
-				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
+		var name, level, influence, reward, units, energy;
+		if ($(el).hasClass('quests_background')) { // Main quest
+			name = $('div.qd_1 b', el).text().trim();
+			level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		} else if ($(el).hasClass('quests_background_sub')) { // Subquest
+			name = $('div.quest_sub_title', el).text().trim();
+			level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
+		} else if ($(el).hasClass('quests_background_special')) { // Special Quest
+			name = $('div.qd_1 b', el).text().trim();
+			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		}
+		if (!name) {
+			return;
+		}
+		quest[name] = {};
+		quest[name].area = area;
+		if (typeof land === 'number') {
+			quest[name].land = land;
+		}
+		if (typeof influence === 'number') {
+			quest[name].level = (level || 0);
+			quest[name].influence = influence;
+		}
+		quest[name].exp = reward.shift();
+		quest[name].reward = (reward[0] + reward[1]) / 2;
+		quest[name].energy = energy;
+		if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
+			if ($('div.qd_1 img', el).attr('title')) {
+				quest[name].item = $('div.qd_1 img', el).attr('title').trim();
+				quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
 			}
-			if (!name) {
-				return;
+			if ($('div.quest_act_gen img', el).attr('title')) {
+				quest[name].general = $('div.quest_act_gen img', el).attr('title');
 			}
-			quest[name] = {};
-			quest[name].area = area;
-			if (typeof land === 'number') {
-				quest[name].land = land;
+			units = {};
+			$('div.quest_req > div > div > div', el).each(function(i,el){
+				var title = $('img', el).attr('title');
+				units[title] = $(el).text().regex(/([0-9]+)/);
+			});
+			if (units.length) {
+				quest[name].units = units;
 			}
-			if (typeof influence === 'number') {
-				quest[name].level = (level || 0);
-				quest[name].influence = influence;
-			}
-			quest[name].exp = reward.shift();
-			quest[name].reward = (reward[0] + reward[1]) / 2;
-			quest[name].energy = energy;
-			if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
-				if ($('div.qd_1 img', el).attr('title')) {
-					quest[name].item = $('div.qd_1 img', el).attr('title').trim();
-					quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
-				}
-				if ($('div.quest_act_gen img', el).attr('title')) {
-					quest[name].general = $('div.quest_act_gen img', el).attr('title');
-				}
-				units = {};
-				$('div.quest_req > div > div > div', el).each(function(i,el){
-					var title = $('img', el).attr('title');
-					units[title] = $(el).text().regex(/([0-9]+)/);
-				});
-				if (units.length) {
-					quest[name].units = units;
-				}
 //				GM_debug('Quest: '+name+' = '+quest[name].toSource());
-			} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
-				quest[name].unique = true;
-				if ($('div.qd_1 img', el).last().length) {
-					quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
-					quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
-				}
-				units = {};
-				$('div.quest_req > div > div > div', el).each(function(i,el){
-					var title = $('img', el).attr('title');
-					units[title] = $(el).text().regex(/([0-9]+)/);
-				});
-				if (units.length) {
-					quest[name].units = units;
-				}
+		} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
+			quest[name].unique = true;
+			if ($('div.qd_1 img', el).last().length) {
+				quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
+				quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
 			}
-		});
+			units = {};
+			$('div.quest_req > div > div > div', el).each(function(i,el){
+				var title = $('img', el).attr('title');
+				units[title] = $(el).text().regex(/([0-9]+)/);
+			});
+			if (units.length) {
+				quest[name].units = units;
+			}
+		}
+	});
+	if (Settings.Save(Quest)) {
 		Quest.select();
 		Quest.dashboard();
 	}
@@ -2823,8 +2845,8 @@ Quest.dashboard = function(sort, rev) {
 			aa = a;
 			bb = b;
 		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
 		} else if (sort == 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
@@ -2879,7 +2901,9 @@ Queue.option = {
 	delay: 5,
 	clickdelay: 5,
 	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	start_stamina: 0,
 	stamina: 0,
+	start_energy: 0,
 	energy: 0
 };
 Queue.display = [
@@ -2898,13 +2922,25 @@ Queue.display = [
 		after:'secs',
 		size:3
 	},{
+		id:'start_stamina',
+		before:'Save',
+		select:'stamina',
+		after:'Stamina Before Using'
+	},{
 		id:'stamina',
-		label:'Keep Stamina',
-		select:'stamina'
+		before:'Always Keep',
+		select:'stamina',
+		after:'Stamina'
+	},{
+		id:'start_energy',
+		before:'Save',
+		select:'energy',
+		after:'Energy Before Using'
 	},{
 		id:'energy',
-		label:'Keep Energy',
-		select:'energy'
+		before:'Always Keep',
+		select:'energy',
+		after:'Energy'
 	}
 ];
 Queue.runfirst = [];
@@ -2962,8 +2998,15 @@ Queue.run = function() {
 	if (Page.loading()) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
-	Queue.burn.stamina	= Math.max(0, Player.data.stamina - Queue.option.stamina);
-	Queue.burn.energy	= Math.max(0, Player.data.energy - Queue.option.energy);
+	Queue.burn.stamina = Queue.burn.energy = 0;
+	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
+		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
+		Queue.option.burn_stamina = Queue.burn.stamina > 0;
+	}
+	if (Queue.option.burn_energy || Player.data.energy >= Queue.option.start_energy) {
+		Queue.burn.energy = Math.max(0, Player.data.energy - Queue.option.energy);
+		Queue.option.burn_energy = Queue.burn.energy > 0;
+	}
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 			Workers[i].work(false);
@@ -3128,7 +3171,9 @@ Town.parse = function(change) {
 			}
 		});
 		Town.data[Page.page.substr(5)] = unit;
-		Town.dashboard();
+		if (Settings.Save(Town)) {
+			Town.dashboard();
+		}
 	} else {
 		if (Page.page==='town_blacksmith') {
 			unit = Town.data.blacksmith;

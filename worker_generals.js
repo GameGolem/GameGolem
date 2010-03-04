@@ -8,56 +8,48 @@ Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
-	var data, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	if (!change) {
-		data = {};
-		$('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2').each(function(i,el){
-			var $child = $(el).children(), name = $child.eq(0).text().trim();
-			if (name) {
-				data[name] = {};
-				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
-				data[name].level	= $child.eq(3).text().regex(/Level ([0-9]+)/i); // Might only be 4 so far, however...
-				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	if ($elements.length < length(Generals.data)) {
+		Page.to('heroes_generals', ''); // Force reload
+		return false;
+	}
+	$elements.each(function(i,el){
+		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
+		if (name) {
+			if (!Generals.data[name] || Generals.data[name].level !== level) {
+				Generals.data[name] = Generals.data[name] || {};
+				Generals.data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
+				Generals.data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
+				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				Generals.data[name].level	= level; // Might only be 4 so far, however...
+				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
 			}
-		});
-		if (length(data) >= length(Generals.data)) { // Assume we never sell!
-			Generals.data = data;
-			Generals.select();
-		} else {
-			Page.to('heroes_generals', ''); // Force reload
 		}
-	} else if (length(Town.data.invade)) {
-		data = Generals.data;
-		for (i in data) {
-			attack = Player.data.attack + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.data.defense + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
-			};
-			data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (attack * 0.7))
-			};
-		}
+	});
+	if (length(Town.data.invade)) {
 		for (i in Generals.data) {
-			iatt = Math.max(iatt, Generals.data[i].invade.att);
-			idef = Math.max(idef, Generals.data[i].invade.def);
-			datt = Math.max(datt, Generals.data[i].duel.att);
-			ddef = Math.max(ddef, Generals.data[i].duel.def);
+			attack = Player.data.attack + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.data.defense + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (Generals.data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(Generals.data, listpush, 'def', Math.floor(army / 5));
+			Generals.data[i].invade = {
+				att: Math.floor(Town.data.invade.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(Town.data.invade.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + ((defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+			};
+			Generals.data[i].duel = {
+				att: Math.floor(Town.data.duel.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(Town.data.duel.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + defend + (attack * 0.7))
+			};
 		}
-		$('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2').each(function(i,el){
-			var $child = $(el).children(), name = $child.eq(0).text().trim();
-			$child.eq(1).prepend('<div style="position:absolute;margin-left:8px;margin-top:2px;font-size:smaller;text-align:left;z-index:100;color:#ffd200;text-shadow:black 1px 1px 2px;"><strong>Invade</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].invade.att===iatt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.att)+(data[name].invade.att===iatt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].invade.def===idef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].invade.def)+(data[name].invade.def===idef?'</span>':'')+'<br><strong>Duel</strong><br>&nbsp;&nbsp;&nbsp;Atk: '+(data[name].duel.att===datt?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.att)+(data[name].duel.att===datt?'</span>':'')+'<br>&nbsp;&nbsp;&nbsp;Def: '+(data[name].duel.def===ddef?'<span style="font-weight:bold;color:#00ff00;">':'')+addCommas(data[name].duel.def)+(data[name].duel.def===ddef?'</span>':'')+'<br></div>');
-		});
+	}
+	if (Settings.Save(Generals)) {
+		GM_debug('Updating Generals Dashboard');
+		Generals.select();
 		Generals.dashboard();
 	}
-	return true;
+	return false;
 };
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
@@ -215,10 +207,10 @@ Generals.dashboard = function(sort, rev) {
 		});
 	}
 	for (i in Generals.data) {
-		iatt = Math.max(iatt, Generals.data[i].invade.att);
-		idef = Math.max(idef, Generals.data[i].invade.def);
-		datt = Math.max(datt, Generals.data[i].duel.att);
-		ddef = Math.max(ddef, Generals.data[i].duel.def);
+		iatt = Math.max(iatt, Generals.data[i].invade ? Generals.data[i].invade.att : 1);
+		idef = Math.max(idef, Generals.data[i].invade ? Generals.data[i].invade.def : 1);
+		datt = Math.max(datt, Generals.data[i].duel ? Generals.data[i].duel.att : 1);
+		ddef = Math.max(ddef, Generals.data[i].duel ? Generals.data[i].duel.def : 1);
 	}
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {

@@ -11,9 +11,12 @@ var Settings = {
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof Settings.cache[n] !== 'undefined' && v !== Settings.cache[n]) {
+		if (typeof Settings.cache[n] !== 'undefined' && Settings.cache[n] !== v) {
 			Settings.cache[n] = v;
-			return GM_setValue(Settings.userID + '.' + n, v);
+			GM_setValue(Settings.userID + '.' + n, v);
+			return true;
+		} else {
+			return false;
 		}
 	},
 	GetValue:function(n,d) {
@@ -36,7 +39,7 @@ var Settings = {
 		return v;
 	},
 	Save:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null;
+		var i, type = 'data', worker = null, change = 0;
 		for (i=0; i<arguments.length; i++) {
 			if (typeof arguments[i] === 'object') {
 				worker = arguments[i];
@@ -45,14 +48,14 @@ var Settings = {
 			}
 		}
 		if (worker && worker[type]) {
-			Settings.SetValue(type + '.' + worker.name, worker[type]);
-		} else {
-			for (i=0; i<Workers.length; i++) {
-				if (Workers[i][type]) {
-					Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
-				}
+			return Settings.SetValue(type + '.' + worker.name, worker[type]);
+		}
+		for (i=0; i<Workers.length; i++) {
+			if (Workers[i][type]) {
+				change += Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
 			}
 		}
+		return change;
 	},
 	Load:function() { // type (string - 'data'|'option'), worker (object)
 		var i, type = 'data', worker = null;

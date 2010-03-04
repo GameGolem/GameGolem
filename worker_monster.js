@@ -4,6 +4,7 @@
 var Monster = new Worker('Monster', 'keep_monster keep_monster_active');
 Monster.option = {
 	fortify: 50,
+	dispel: 50,
 	choice: 'All'
 };
 Monster.display = [
@@ -12,6 +13,11 @@ Monster.display = [
 	},{
 		id:'fortify',
 		label:'Fortify Below',
+		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+		after:'%'
+	},{
+		id:'dispel',
+		label:'Dispel Above',
 		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 		after:'%'
 	},{
@@ -181,6 +187,7 @@ Monster.types = {
 		mpool:3
 	}
 };
+Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
 Monster.count = 0;
@@ -196,7 +203,7 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, dead = false;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -219,6 +226,8 @@ Monster.parse = function(change) {
 		}
 		if (dead && Monster.data[uid][type].state === 'assist') {
 			Monster.data[uid][type].state = null;
+		} else if (dead && Monster.data[uid][type].state === 'engage') {
+			Monster.data[uid][type].state = 'reward';
 		} else {
 			if (!Monster.data[uid][type].state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
 				if ($('span.result_body').text().match(/for your help in summoning/i)) {
@@ -235,6 +244,10 @@ Monster.parse = function(change) {
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
 			if ($defense.length) {
 				Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+			}
+			$dispel = $('img[src$="bar_dispel.gif"]').parent();
+			if ($dispel.length) {
+				Monster.data[uid][type].dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
 			}
 			Monster.data[uid][type].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
 			Monster.data[uid][type].finish = Date.now() + (Monster.data[uid][type].timer * 1000);
@@ -301,22 +314,24 @@ Monster.parse = function(change) {
 			delete Monster.data[i];
 		}
 	}
-	Monster.dashboard();
+	if (Settings.Save(Monster)) {
+		Monster.dashboard();
+	}
 	return false;
 };
 Monster.work = function(state) {
 	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
-	if (!state) {
+	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.option.uid = null;
 		Monster.option.type = null;
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
 	}
-	if (!uid || !type || !Monster.data[uid] || Monster.data[uid][type].state !== 'engage') {
+	if (!uid || !type || !Monster.data[uid] || !Monster.data[uid][type]) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
-				if (Monster.data[uid][type].state === 'engage'){
+				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
 					if (Monster.option.choice === 'All') {
 						list.push([uid, type]);
 					} else if (!best
@@ -337,7 +352,7 @@ Monster.work = function(state) {
 		uid  = Monster.option.uid  = best[0];
 		type = Monster.option.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify)) {
+	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {
@@ -351,6 +366,17 @@ Monster.work = function(state) {
 		for (i=0; i<Monster.fortify.length; i++) {
 			if ($(Monster.fortify[i]).length) {
 				btn = $(Monster.fortify[i]);
+				break;
+			}
+		}
+	} else if (Monster.data[uid][type].dispel && Monster.data[uid][type].dispel >= Monster.option.dispel && Queue.burn.energy >= 10) {
+		if (!Generals.to(Generals.best('defend'))) {
+			return true;
+		}
+		GM_debug('Monster: Dispel '+uid);
+		for (i=0; i<Monster.dispel.length; i++) {
+			if ($(Monster.dispel[i]).length) {
+				btn = $(Monster.dispel[i]);
 				break;
 			}
 		}
@@ -374,8 +400,8 @@ Monster.work = function(state) {
 };
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
+	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
@@ -408,6 +434,9 @@ Monster.dashboard = function(sort, rev) {
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
+		if (!Monster.types[j]) {
+			continue;
+		}
 		output = [];
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
@@ -418,9 +447,10 @@ Monster.dashboard = function(sort, rev) {
 		}
 		output.push('<a href="http://apps.facebook.com/castle_age/battle_monster.php' + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
 		output.push(Monster.data[i][j].name);
-		if (Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') {
+		if ((Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') && Monster.data[i][j].total) {
 			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-			output.push(Monster.data[i][j].defense ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+			output.push(typeof Monster.data[i][j].defense === 'number' ? Math.floor(Monster.data[i][j].defense)+'%' : '');
+			output.push(typeof Monster.data[i][j].dispel === 'number' ? Math.floor(Monster.data[i][j].dispel)+'%' : '');
 			output.push(Monster.data[i][j].state === 'engage' ? addCommas(Monster.data[i][j].damage[Player.data.FBID][0]) + ' (' + (Monster.data[i][j].damage[Player.data.FBID][0] / Monster.data[i][j].total * 100).round(1) + '%)' : '');
 			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
 			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');

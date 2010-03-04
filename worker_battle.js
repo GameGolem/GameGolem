@@ -48,7 +48,7 @@ Battle.display = [
 	}
 ];
 Battle.parse = function(change) {
-	var i, data, uid, info, count = 0, list = [], changed = false;
+	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
 		data = Battle.data.rank = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -85,7 +85,6 @@ Battle.parse = function(change) {
 				return;
 			}
 			if (!data[uid]) {
-				changed = true;
 				data[uid] = {};
 			}
 			data[uid].name = $('a', el).text().trim();
@@ -96,13 +95,10 @@ Battle.parse = function(change) {
 		});
 		for (i in data) { // Forget low or high rank - no points or too many points
 			if ((Battle.option.bp === 'Always' && Player.data.rank - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - data[i].rank <= 5)) {
-				changed = true;
 				delete data[i];
-			} else {
-				count++;
 			}
 		}
-		if (count > Battle.option.cache) { // Need to prune our attack cache
+		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
 			GM_debug('Battle: Pruning target cache');
 			for (i in data) {
 				list.push(i);
@@ -124,11 +120,10 @@ Battle.parse = function(change) {
 				delete data[list.pop()];
 			}
 		}
-		if (changed) {
-			Battle.dashboard();
-		}
 	}
-//	GM_debug('Battle: '+Battle.data.toSource());
+	if (Settings.Save(Battle)) {
+		Battle.dashboard();
+	}
 	return false;
 };
 Battle.work = function(state) {
@@ -156,7 +151,6 @@ Battle.work = function(state) {
 		if (!Battle.option.points || !points.length || typeof points[user[i].align] !== 'undefined') {
 			list.push(i);
 		}
-		else GM_debug('Battle: Not adding target '+i);
 	}
 	if (!list.length) {
 		return false;

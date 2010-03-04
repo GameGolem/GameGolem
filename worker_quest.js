@@ -45,74 +45,74 @@ Quest.parse = function(change) {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
-	if (!change) { // Parse first
-		$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-			var name, level, influence, reward, units, energy;
-			if ($(el).hasClass('quests_background')) { // Main quest
-				name = $('div.qd_1 b', el).text().trim();
-				level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-				influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
-			} else if ($(el).hasClass('quests_background_sub')) { // Subquest
-				name = $('div.quest_sub_title', el).text().trim();
-				level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-				influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-				reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
-			} else if ($(el).hasClass('quests_background_special')) { // Special Quest
-				name = $('div.qd_1 b', el).text().trim();
-				reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-				energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
+		var name, level, influence, reward, units, energy;
+		if ($(el).hasClass('quests_background')) { // Main quest
+			name = $('div.qd_1 b', el).text().trim();
+			level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		} else if ($(el).hasClass('quests_background_sub')) { // Subquest
+			name = $('div.quest_sub_title', el).text().trim();
+			level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
+		} else if ($(el).hasClass('quests_background_special')) { // Special Quest
+			name = $('div.qd_1 b', el).text().trim();
+			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		}
+		if (!name) {
+			return;
+		}
+		quest[name] = {};
+		quest[name].area = area;
+		if (typeof land === 'number') {
+			quest[name].land = land;
+		}
+		if (typeof influence === 'number') {
+			quest[name].level = (level || 0);
+			quest[name].influence = influence;
+		}
+		quest[name].exp = reward.shift();
+		quest[name].reward = (reward[0] + reward[1]) / 2;
+		quest[name].energy = energy;
+		if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
+			if ($('div.qd_1 img', el).attr('title')) {
+				quest[name].item = $('div.qd_1 img', el).attr('title').trim();
+				quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
 			}
-			if (!name) {
-				return;
+			if ($('div.quest_act_gen img', el).attr('title')) {
+				quest[name].general = $('div.quest_act_gen img', el).attr('title');
 			}
-			quest[name] = {};
-			quest[name].area = area;
-			if (typeof land === 'number') {
-				quest[name].land = land;
+			units = {};
+			$('div.quest_req > div > div > div', el).each(function(i,el){
+				var title = $('img', el).attr('title');
+				units[title] = $(el).text().regex(/([0-9]+)/);
+			});
+			if (units.length) {
+				quest[name].units = units;
 			}
-			if (typeof influence === 'number') {
-				quest[name].level = (level || 0);
-				quest[name].influence = influence;
-			}
-			quest[name].exp = reward.shift();
-			quest[name].reward = (reward[0] + reward[1]) / 2;
-			quest[name].energy = energy;
-			if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
-				if ($('div.qd_1 img', el).attr('title')) {
-					quest[name].item = $('div.qd_1 img', el).attr('title').trim();
-					quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
-				}
-				if ($('div.quest_act_gen img', el).attr('title')) {
-					quest[name].general = $('div.quest_act_gen img', el).attr('title');
-				}
-				units = {};
-				$('div.quest_req > div > div > div', el).each(function(i,el){
-					var title = $('img', el).attr('title');
-					units[title] = $(el).text().regex(/([0-9]+)/);
-				});
-				if (units.length) {
-					quest[name].units = units;
-				}
 //				GM_debug('Quest: '+name+' = '+quest[name].toSource());
-			} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
-				quest[name].unique = true;
-				if ($('div.qd_1 img', el).last().length) {
-					quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
-					quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
-				}
-				units = {};
-				$('div.quest_req > div > div > div', el).each(function(i,el){
-					var title = $('img', el).attr('title');
-					units[title] = $(el).text().regex(/([0-9]+)/);
-				});
-				if (units.length) {
-					quest[name].units = units;
-				}
+		} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
+			quest[name].unique = true;
+			if ($('div.qd_1 img', el).last().length) {
+				quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
+				quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
 			}
-		});
+			units = {};
+			$('div.quest_req > div > div > div', el).each(function(i,el){
+				var title = $('img', el).attr('title');
+				units[title] = $(el).text().regex(/([0-9]+)/);
+			});
+			if (units.length) {
+				quest[name].units = units;
+			}
+		}
+	});
+	if (Settings.Save(Quest)) {
 		Quest.select();
 		Quest.dashboard();
 	}
@@ -237,8 +237,8 @@ Quest.dashboard = function(sort, rev) {
 			aa = a;
 			bb = b;
 		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
 		} else if (sort == 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
