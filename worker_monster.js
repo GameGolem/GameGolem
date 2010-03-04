@@ -94,6 +94,7 @@ Monster.types = {
 		list:'death_list.jpg',
 		image:'death_large.jpg',
 		dead:'death_dead.jpg',
+		timer:345000, // 95 hours, 50 minutes
 		mpool:1
 	},
 	sylvanus: {
