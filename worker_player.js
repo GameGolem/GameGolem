@@ -2,6 +2,10 @@
 * Gets all current stats we can see
 */
 var Player = new Worker('Player', '*');
+Player.data = {
+	history:{},
+	average:0
+};
 Player.option = null;
 Player.panel = null;
 Player.onload = function() {
@@ -16,7 +20,7 @@ Player.parse = function(change) {
 		Page.reload();
 		return false;
 	}
-	var data = Player.data, keep, stats;
+	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), best = 0;
 	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	data.energy		= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
@@ -52,6 +56,28 @@ Player.parse = function(change) {
 		stats = $('.mContTMainback div:last-child');
 		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
+	$('span.result_body').each(function(i,el){
+		var txt = $(el).text().replace(/,|\s+|\n/g, '');
+		data.history[hour] = (data.history[hour] || 0)
+			+ (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0)
+			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
+			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
+			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
+			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
+	});
+	hour -= 168; // 24x7
+	data.average = 0;
+	for (var i in data.history) {
+		if (i < hour) {
+			delete data.history[i];
+		} else {
+			if (!best || i < best) {
+				best = i;
+			}
+			data.average += data.history[i];
+		}
+	}
+	data.average = Math.floor(data.average / (hour - best + 169));
 	if (Settings.Save(Player)) {
 		Player.select();
 	}
@@ -101,4 +127,11 @@ Player.select = function() {
 		}
 	});
 };
+Player.income = function() {
+	var amount = 0;
+	for (var i in incomecache) {
+		amount += incomecache[i];
+	}
+	return amount / (24 * 7);
+}
 
