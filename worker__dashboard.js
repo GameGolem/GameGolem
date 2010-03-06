@@ -14,7 +14,7 @@ Dashboard.onload = function() {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+Workers[i].name;
 			if (!active) {
-				active = id;
+				Dashboard.option.active = active = id;
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');

@@ -207,7 +207,7 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, raid = false;;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -265,7 +265,11 @@ Monster.parse = function(change) {
 				Monster.data[uid][type].damage_total += dmg;
 			});
 			Monster.data[uid][type].dps = Monster.data[uid][type].damage_total / (Monster.types[type].timer - Monster.data[uid][type].timer);
-			Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+			if (Monster.types[type].raid) {
+				Monster.data[uid][type].total = Monster.data[uid][type].damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
+			} else {
+				Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+			}
 			Monster.data[uid][type].eta = Date.now() + (Math.floor((Monster.data[uid][type].total - Monster.data[uid][type].damage_total) / Monster.data[uid][type].dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
@@ -277,7 +281,7 @@ Monster.parse = function(change) {
 		}
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
-				if (raid === Monster.types[j].raid && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
+				if (((Page.page === 'battle_raid' && Monster.types[j].raid) || (Page.page === 'keep_monster' && !Monster.types[j].raid)) && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
 					Monster.data[i][j].state = null;
 				}
 			}

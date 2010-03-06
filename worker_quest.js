@@ -237,8 +237,8 @@ Quest.dashboard = function(sort, rev) {
 			aa = a;
 			bb = b;
 		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+			aa = typeof Quest.data[a].land === 'number' < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
 		} else if (sort == 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);

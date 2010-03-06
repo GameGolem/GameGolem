@@ -5,8 +5,7 @@ var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {
 	soldiers: {},
 	blacksmith: {},
-	magic: {},
-	land: {}
+	magic: {}
 };
 Town.display = [
 	{
@@ -30,9 +29,8 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
 Town.parse = function(change) {
-	var land, landlist, unit, unitlist, tmp;
 	if (!change) {
-		unit = {};
+		var unit = {};
 		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
 			var i, name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
 				cost = $('div.eq_buy_costs strong:first-child', el).text().replace(/[^0-9]/g, '');
@@ -62,11 +60,10 @@ Town.parse = function(change) {
 		}
 	} else {
 		if (Page.page==='town_blacksmith') {
-			unit = Town.data.blacksmith;
 			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
 				var name = $('div.eq_buy_txt strong:first-child', el).text().trim();
-				if (unit[name].type) {
-					$('div.eq_buy_txt strong:first-child', el).parent().append('<br>'+unit[name].type);
+				if (Town.data.blacksmith[name].type) {
+					$('div.eq_buy_txt strong:first-child', el).parent().append('<br>'+Town.data.blacksmith[name].type);
 				}
 			});
 		}

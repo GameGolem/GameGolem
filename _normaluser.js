@@ -670,7 +670,7 @@ Dashboard.onload = function() {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+Workers[i].name;
 			if (!active) {
-				active = id;
+				Dashboard.option.active = active = id;
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
@@ -1796,7 +1796,7 @@ Land.work = function(state) {
 	var i, best = null, worth = Bank.worth(), buy = 0;
 	for (var i in Land.data) {
 		if (Land.data[i].buy) {
-			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + land[i].income)))) {
+			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + Land[i].income)))) {
 				best = i;
 			}
 		}
@@ -2042,7 +2042,7 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, raid = false;;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -2100,7 +2100,11 @@ Monster.parse = function(change) {
 				Monster.data[uid][type].damage_total += dmg;
 			});
 			Monster.data[uid][type].dps = Monster.data[uid][type].damage_total / (Monster.types[type].timer - Monster.data[uid][type].timer);
-			Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+			if (Monster.types[type].raid) {
+				Monster.data[uid][type].total = Monster.data[uid][type].damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
+			} else {
+				Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+			}
 			Monster.data[uid][type].eta = Date.now() + (Math.floor((Monster.data[uid][type].total - Monster.data[uid][type].damage_total) / Monster.data[uid][type].dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
@@ -2112,7 +2116,7 @@ Monster.parse = function(change) {
 		}
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
-				if (raid === Monster.types[j].raid && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
+				if (((Page.page === 'battle_raid' && Monster.types[j].raid) || (Page.page === 'keep_monster' && !Monster.types[j].raid)) && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
 					Monster.data[i][j].state = null;
 				}
 			}
@@ -2909,8 +2913,8 @@ Quest.dashboard = function(sort, rev) {
 			aa = a;
 			bb = b;
 		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+			aa = typeof Quest.data[a].land === 'number' < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
 		} else if (sort == 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
@@ -3120,8 +3124,7 @@ var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {
 	soldiers: {},
 	blacksmith: {},
-	magic: {},
-	land: {}
+	magic: {}
 };
 Town.display = [
 	{
@@ -3145,9 +3148,8 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
 Town.parse = function(change) {
-	var land, landlist, unit, unitlist, tmp;
 	if (!change) {
-		unit = {};
+		var unit = {};
 		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
 			var i, name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
 				cost = $('div.eq_buy_costs strong:first-child', el).text().replace(/[^0-9]/g, '');
@@ -3177,11 +3179,10 @@ Town.parse = function(change) {
 		}
 	} else {
 		if (Page.page==='town_blacksmith') {
-			unit = Town.data.blacksmith;
 			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
 				var name = $('div.eq_buy_txt strong:first-child', el).text().trim();
-				if (unit[name].type) {
-					$('div.eq_buy_txt strong:first-child', el).parent().append('<br>'+unit[name].type);
+				if (Town.data.blacksmith[name].type) {
+					$('div.eq_buy_txt strong:first-child', el).parent().append('<br>'+Town.data.blacksmith[name].type);
 				}
 			});
 		}
