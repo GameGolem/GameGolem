@@ -22,10 +22,11 @@ $('head').append("<style type=\"text/css\">\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
-#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; overflow-y: scroll; background: white; z-index: 1; }\
+#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 1; }\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
-#golem-dashboard > div { padding: 2px; border-top: 1px solid #d3d3d3; }\
+#golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; } \
+#golem-dashboard > div > div { padding: 2px; }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 \
@@ -432,8 +433,13 @@ Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"><button id="golem_options">Options...</button></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
+	$('#golem_options').button().click(function(){
+		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
+		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
+		Settings.Save('option', Config);
+	});
 	$('#golem_fixed').click(function(){
 			Config.option.fixed ^= true;
 			$(this).toggleClass('golem-fixed-on golem-fixed-off');
@@ -660,7 +666,7 @@ Config.getPlace = function(id) {
 var Dashboard = new Worker('Dashboard', '*');
 Dashboard.data = null;
 Dashboard.option = {
-	display:'none',
+	display:'block',
 	active:null
 };
 Dashboard.div = null;
@@ -676,7 +682,7 @@ Dashboard.onload = function() {
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 		}
 	}
-	Dashboard.div = $('<div id="golem-dashboard" style="top:'+$('#app'+APP+'_main_bn').offset().top+'px;display:'+Dashboard.option.display+';">'+tabs.join('')+divs.join('')+'</div>').prependTo('.UIStandardFrame_Content');
+	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APP+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
@@ -707,7 +713,7 @@ Dashboard.onload = function() {
 }
 Dashboard.parse = function(change) {
 	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
-	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
+	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
 	$('#golem_toggle_dash').click(function(){
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		$('#golem-dashboard').toggle('drop');
@@ -833,7 +839,7 @@ Bank.work = function(state) {
 	return false;
 };
 Bank.stash = function(amount) {
-	if (!amount || !Player.data.cash) {
+	if (!amount || !Player.data.cash || Math.min(Player.data.cash,amount) <= 10) {
 		return true;
 	}
 	if (Bank.option.general && !Generals.to('Aeris')) {
@@ -1142,23 +1148,6 @@ Blessing.work = function(state) {
 	}
 	Page.click('#app'+APP+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
 	return false;
-};
-
-/********** Worker.Debug() **********
-* Turns on/off the debug flag - doesn't save
-*/
-var Debug = new Worker('Debug');
-Debug.data = null;
-Debug.option = null;
-Debug.onload = function() {
-	if (!debug) {
-		return null; // Only add the button if debug is default on
-	}
-	var $btn = $('<button>Debug</button>')
-		.button()
-		.click(function(){debug^=true;GM_log('Debug '+(debug?'on':'off'));$('span', this).css('text-decoration', (debug?'none':'line-through'));});
-	$('#golem_buttons').append($btn);
-	return null;
 };
 
 /********** Worker.Elite() **********
@@ -2114,10 +2103,10 @@ Monster.parse = function(change) {
 		if (Page.page === 'battle_raid') {
 			raid = true;
 		}
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				if (((Page.page === 'battle_raid' && Monster.types[j].raid) || (Page.page === 'keep_monster' && !Monster.types[j].raid)) && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
-					Monster.data[i][j].state = null;
+		for (uid in Monster.data) {
+			for (type in Monster.data[uid]) {
+				if (((Page.page === 'battle_raid' && Monster.types[type].raid) || (Page.page === 'keep_monster' && !Monster.types[type].raid)) && (Monster.data[uid][type].state !== 'assist' || (Monster.data[uid][type].state === 'assist' && Monster.data[uid][type].finish < Date.now()))) {
+					Monster.data[uid][type].state = null;
 				}
 			}
 		}
@@ -2143,7 +2132,13 @@ Monster.parse = function(change) {
 			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
-				case 4: Monster.data[uid][type].state = 'complete'; break;
+				case 4:
+					if (Monster.types[type].raid && Monster.data[uid][type].health) {
+						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+					} else {
+						Monster.data[uid][type].state = 'complete';
+					}
+					break;
 				default: Monster.data[uid][type].state = 'unknown'; break; // Should probably delete, but keep it on the list...
 			}
 		});
@@ -2174,6 +2169,16 @@ Monster.work = function(state) {
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
+	}
+	for (uid in Monster.data) {
+		for (type in Monster.data[uid]) {
+			if (!Monster.data[uid][type].health && Monster.data[uid][type].state === 'engage') {
+				if (state) {
+					Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''));
+				}
+				return true;
+			}
+		}
 	}
 	if (!uid || !type || !Monster.data[uid] || !Monster.data[uid][type]) {
 		for (uid in Monster.data) {
@@ -2333,8 +2338,8 @@ Monster.dashboard = function(sort, rev) {
 		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 	$('#golem-dashboard-Monster tbody td a').click(function(event){
-		var url = $(this).attr('href').substr($(this).attr('href'));
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.indexOf('?'));
+		var url = $(this).attr('href');
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
 	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');
@@ -2558,7 +2563,7 @@ Player.parse = function(change) {
 		Page.reload();
 		return false;
 	}
-	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), best = 0;
+	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000);
 	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	data.energy		= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
@@ -2594,15 +2599,22 @@ Player.parse = function(change) {
 		stats = $('.mContTMainback div:last-child');
 		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
+	if (typeof data.history[hour] === 'number') {
+		data.history[hour] = {income:data.history[hour]};
+	} else {
+		data.history[hour] = data.history[hour] || {};
+	}
+	data.history[hour].bank = Player.data.bank;
+	data.history[hour].exp = Player.data.exp;
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
-		data.history[hour] = (data.history[hour] || 0)
+		data.history[hour].income = (data.history[hour].income || 0)
 			+ (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0)
 			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
-			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0)
-			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
-			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
+			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0);
+//			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
+//			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
 	});
 	hour -= 168; // 24x7
 	data.average = 0;
@@ -2610,15 +2622,13 @@ Player.parse = function(change) {
 		if (i < hour) {
 			delete data.history[i];
 		} else {
-			if (!best || i < best) {
-				best = i;
-			}
-			data.average += data.history[i];
+			data.average += (data.history[i].income || 0);
 		}
 	}
-	data.average = Math.floor(data.average / (hour - best + 169));
+	data.average = Math.floor(data.average / length(data.average));
 	if (Settings.Save(Player)) {
 		Player.select();
+		Player.dashboard();
 	}
 	return false;
 };
@@ -2666,12 +2676,42 @@ Player.select = function() {
 		}
 	});
 };
-Player.income = function() {
-	var amount = 0;
-	for (var i in incomecache) {
-		amount += incomecache[i];
+Player.dashboard = function() {
+	var i, max = 0, list = [], output = [];
+	list.push('<table cellspacing="0" cellpadding="0" style="height:100px;">');
+	list.push(Player.makeGraph('income', 'Income', true, 0));
+	list.push(Player.makeGraph('bank', 'Bank', true));
+	list.push(Player.makeGraph('exp', 'Experience', false));
+	list.push('</table>');
+	$('#golem-dashboard-Player').html(list.join(''));
+}
+Player.makeGraph = function(type, title, iscash, min) {
+	var i, max = 0, max_s, min_s, count = 0, list = [], output = [], hour = Math.floor(Date.now() / 3600000);
+	list.push('<tr>');
+	for (i=hour-72; i<=hour; i++) {
+		if (Player.data.history[i] && Player.data.history[i][type]) {
+			min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type]);
+			max = Math.max(max, Player.data.history[i][type]);
+		}
 	}
-	return amount / (24 * 7);
+	if (max >= 1000000000) {max = Math.ceil(max / 1000000000) * 1000000000;max_s = addCommas(max / 1000000000)+'b';}
+	else if (max >= 1000000) {max = Math.ceil(max / 1000000) * 1000000;max_s = (max / 1000000)+'m';}
+	else if (max >= 1000) {max = Math.ceil(max / 1000) * 1000;max_s = (max / 1000)+'k';}
+	else {max_s = max;}
+	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
+	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
+	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
+	else {min_s = min;}
+	list.push('<th style="text-align:right;max-width:75px;"><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + max_s + '</div><div style="line-height:60px;height:60px;">' + title + '</div><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + min_s + '</div></th>')
+	for (i=hour-72; i<=hour; i++) {
+		if (Player.data.history[i] && Player.data.history[i][type]) {
+			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(Player.data.history[i][type]) + '"><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.ceil((Player.data.history[i][type] - min) / (max - min) * 100)+'px;border-top:1px solid blue;"></div></td>');
+		} else {
+			list.push('<td style="margin:0;padding:0;width:5px;border-bottom:1px solid blue;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
+		}
+	}
+	list.push('</tr>');
+	return list.join('');
 }
 
 /********** Worker.Quest **********
@@ -2811,7 +2851,7 @@ Quest.select = function() {
 	});
 };
 Quest.work = function(state) {
-	var i, j, list, best = null;
+	var i, j, best = null;
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
@@ -2906,25 +2946,25 @@ Quest.dashboard = function(sort, rev) {
 	}
 	Quest.order.sort(function(a,b) {
 		var aa, bb;
-		if (sort == 0 || sort == 7) { // general and item
+		if (sort === 0 || sort === 7) { // general and item
 			aa = Quest.data[a].item || 'zzz';
 			bb = Quest.data[b].item || 'zzz';
-		} else if (sort == 1) { // name
+		} else if (sort === 1) { // name
 			aa = a;
 			bb = b;
-		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
-		} else if (sort == 3) { // level
+		} else if (sort === 2) { // area
+			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+		} else if (sort === 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
-		} else if (sort == 4) { // energy
+		} else if (sort === 4) { // energy
 			aa = Quest.data[a].energy;
 			bb = Quest.data[b].energy;
-		} else if (sort == 5) { // exp
+		} else if (sort === 5) { // exp
 			aa = Quest.data[a].exp / Quest.data[a].energy;
 			bb = Quest.data[b].exp / Quest.data[b].energy;
-		} else if (sort == 6) { // reward
+		} else if (sort === 6) { // reward
 			aa = Quest.data[a].reward / Quest.data[a].energy;
 			bb = Quest.data[b].reward / Quest.data[b].energy;
 		}
@@ -2956,7 +2996,7 @@ Quest.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Quest thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
-}
+};
 
 /********** Worker.Queue() **********
 * Keeps track of the worker queue

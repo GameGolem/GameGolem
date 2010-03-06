@@ -279,10 +279,10 @@ Monster.parse = function(change) {
 		if (Page.page === 'battle_raid') {
 			raid = true;
 		}
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				if (((Page.page === 'battle_raid' && Monster.types[j].raid) || (Page.page === 'keep_monster' && !Monster.types[j].raid)) && (Monster.data[i][j].state !== 'assist' || (Monster.data[i][j].state === 'assist' && Monster.data[i][j].finish < Date.now()))) {
-					Monster.data[i][j].state = null;
+		for (uid in Monster.data) {
+			for (type in Monster.data[uid]) {
+				if (((Page.page === 'battle_raid' && Monster.types[type].raid) || (Page.page === 'keep_monster' && !Monster.types[type].raid)) && (Monster.data[uid][type].state !== 'assist' || (Monster.data[uid][type].state === 'assist' && Monster.data[uid][type].finish < Date.now()))) {
+					Monster.data[uid][type].state = null;
 				}
 			}
 		}
@@ -308,7 +308,13 @@ Monster.parse = function(change) {
 			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
-				case 4: Monster.data[uid][type].state = 'complete'; break;
+				case 4:
+					if (Monster.types[type].raid && Monster.data[uid][type].health) {
+						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+					} else {
+						Monster.data[uid][type].state = 'complete';
+					}
+					break;
 				default: Monster.data[uid][type].state = 'unknown'; break; // Should probably delete, but keep it on the list...
 			}
 		});
@@ -339,6 +345,16 @@ Monster.work = function(state) {
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
+	}
+	for (uid in Monster.data) {
+		for (type in Monster.data[uid]) {
+			if (!Monster.data[uid][type].health && Monster.data[uid][type].state === 'engage') {
+				if (state) {
+					Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''));
+				}
+				return true;
+			}
+		}
 	}
 	if (!uid || !type || !Monster.data[uid] || !Monster.data[uid][type]) {
 		for (uid in Monster.data) {
@@ -498,8 +514,8 @@ Monster.dashboard = function(sort, rev) {
 		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 	$('#golem-dashboard-Monster tbody td a').click(function(event){
-		var url = $(this).attr('href').substr($(this).attr('href'));
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.indexOf('?'));
+		var url = $(this).attr('href');
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
 	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');

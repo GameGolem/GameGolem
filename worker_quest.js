@@ -135,7 +135,7 @@ Quest.select = function() {
 	});
 };
 Quest.work = function(state) {
-	var i, j, list, best = null;
+	var i, j, best = null;
 	if (Quest.option.what === 'Nothing') {
 		return false;
 	}
@@ -230,25 +230,25 @@ Quest.dashboard = function(sort, rev) {
 	}
 	Quest.order.sort(function(a,b) {
 		var aa, bb;
-		if (sort == 0 || sort == 7) { // general and item
+		if (sort === 0 || sort === 7) { // general and item
 			aa = Quest.data[a].item || 'zzz';
 			bb = Quest.data[b].item || 'zzz';
-		} else if (sort == 1) { // name
+		} else if (sort === 1) { // name
 			aa = a;
 			bb = b;
-		} else if (sort == 2) { // area
-			aa = typeof Quest.data[a].land === 'number' < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
-		} else if (sort == 3) { // level
+		} else if (sort === 2) { // area
+			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
+			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
+		} else if (sort === 3) { // level
 			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
 			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
-		} else if (sort == 4) { // energy
+		} else if (sort === 4) { // energy
 			aa = Quest.data[a].energy;
 			bb = Quest.data[b].energy;
-		} else if (sort == 5) { // exp
+		} else if (sort === 5) { // exp
 			aa = Quest.data[a].exp / Quest.data[a].energy;
 			bb = Quest.data[b].exp / Quest.data[b].energy;
-		} else if (sort == 6) { // reward
+		} else if (sort === 6) { // reward
 			aa = Quest.data[a].reward / Quest.data[a].energy;
 			bb = Quest.data[b].reward / Quest.data[b].energy;
 		}
@@ -280,5 +280,5 @@ Quest.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Quest thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
-}
+};
 

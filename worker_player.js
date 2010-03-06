@@ -20,7 +20,7 @@ Player.parse = function(change) {
 		Page.reload();
 		return false;
 	}
-	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), best = 0;
+	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000);
 	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	data.energy		= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
@@ -56,15 +56,22 @@ Player.parse = function(change) {
 		stats = $('.mContTMainback div:last-child');
 		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
+	if (typeof data.history[hour] === 'number') {
+		data.history[hour] = {income:data.history[hour]};
+	} else {
+		data.history[hour] = data.history[hour] || {};
+	}
+	data.history[hour].bank = Player.data.bank;
+	data.history[hour].exp = Player.data.exp;
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
-		data.history[hour] = (data.history[hour] || 0)
+		data.history[hour].income = (data.history[hour].income || 0)
 			+ (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0)
 			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
-			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0)
-			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
-			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
+			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0);
+//			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
+//			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
 	});
 	hour -= 168; // 24x7
 	data.average = 0;
@@ -72,15 +79,13 @@ Player.parse = function(change) {
 		if (i < hour) {
 			delete data.history[i];
 		} else {
-			if (!best || i < best) {
-				best = i;
-			}
-			data.average += data.history[i];
+			data.average += (data.history[i].income || 0);
 		}
 	}
-	data.average = Math.floor(data.average / (hour - best + 169));
+	data.average = Math.floor(data.average / length(data.average));
 	if (Settings.Save(Player)) {
 		Player.select();
+		Player.dashboard();
 	}
 	return false;
 };
@@ -128,11 +133,41 @@ Player.select = function() {
 		}
 	});
 };
-Player.income = function() {
-	var amount = 0;
-	for (var i in incomecache) {
-		amount += incomecache[i];
+Player.dashboard = function() {
+	var i, max = 0, list = [], output = [];
+	list.push('<table cellspacing="0" cellpadding="0" style="height:100px;">');
+	list.push(Player.makeGraph('income', 'Income', true, 0));
+	list.push(Player.makeGraph('bank', 'Bank', true));
+	list.push(Player.makeGraph('exp', 'Experience', false));
+	list.push('</table>');
+	$('#golem-dashboard-Player').html(list.join(''));
+}
+Player.makeGraph = function(type, title, iscash, min) {
+	var i, max = 0, max_s, min_s, count = 0, list = [], output = [], hour = Math.floor(Date.now() / 3600000);
+	list.push('<tr>');
+	for (i=hour-72; i<=hour; i++) {
+		if (Player.data.history[i] && Player.data.history[i][type]) {
+			min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type]);
+			max = Math.max(max, Player.data.history[i][type]);
+		}
 	}
-	return amount / (24 * 7);
+	if (max >= 1000000000) {max = Math.ceil(max / 1000000000) * 1000000000;max_s = addCommas(max / 1000000000)+'b';}
+	else if (max >= 1000000) {max = Math.ceil(max / 1000000) * 1000000;max_s = (max / 1000000)+'m';}
+	else if (max >= 1000) {max = Math.ceil(max / 1000) * 1000;max_s = (max / 1000)+'k';}
+	else {max_s = max;}
+	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
+	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
+	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
+	else {min_s = min;}
+	list.push('<th style="text-align:right;max-width:75px;"><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + max_s + '</div><div style="line-height:60px;height:60px;">' + title + '</div><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + min_s + '</div></th>')
+	for (i=hour-72; i<=hour; i++) {
+		if (Player.data.history[i] && Player.data.history[i][type]) {
+			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(Player.data.history[i][type]) + '"><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.ceil((Player.data.history[i][type] - min) / (max - min) * 100)+'px;border-top:1px solid blue;"></div></td>');
+		} else {
+			list.push('<td style="margin:0;padding:0;width:5px;border-bottom:1px solid blue;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
+		}
+	}
+	list.push('</tr>');
+	return list.join('');
 }
 

@@ -4,7 +4,7 @@
 var Dashboard = new Worker('Dashboard', '*');
 Dashboard.data = null;
 Dashboard.option = {
-	display:'none',
+	display:'block',
 	active:null
 };
 Dashboard.div = null;
@@ -20,7 +20,7 @@ Dashboard.onload = function() {
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 		}
 	}
-	Dashboard.div = $('<div id="golem-dashboard" style="top:'+$('#app'+APP+'_main_bn').offset().top+'px;display:'+Dashboard.option.display+';">'+tabs.join('')+divs.join('')+'</div>').prependTo('.UIStandardFrame_Content');
+	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APP+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
@@ -51,7 +51,7 @@ Dashboard.onload = function() {
 }
 Dashboard.parse = function(change) {
 	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
-	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_config"><span class="hover_header">Config</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
+	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
 	$('#golem_toggle_dash').click(function(){
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		$('#golem-dashboard').toggle('drop');

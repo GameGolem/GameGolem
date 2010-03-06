@@ -41,7 +41,7 @@ Bank.work = function(state) {
 	return false;
 };
 Bank.stash = function(amount) {
-	if (!amount || !Player.data.cash) {
+	if (!amount || !Player.data.cash || Math.min(Player.data.cash,amount) <= 10) {
 		return true;
 	}
 	if (Bank.option.general && !Generals.to('Aeris')) {
