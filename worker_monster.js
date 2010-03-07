@@ -50,6 +50,7 @@ Monster.types = {
 		list2:'deathrune_list1.jpg',
 		image:'raid_1_large.jpg',
 		image2:'raid_b1_large.jpg',
+		dead:'raid_1_large_victory.jpg',
 		raid:true
 	},
 	// Epic Boss
@@ -246,7 +247,7 @@ Monster.parse = function(change) {
 				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
 			}
 			$health = $('img[src$="monster_health_background.jpg"]').parent();
-			Monster.data[uid][type].health = ($health.width() / $health.parent().width() * 100);
+			Monster.data[uid][type].health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
 			if ($defense.length) {
 				Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);

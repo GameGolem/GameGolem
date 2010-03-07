@@ -712,8 +712,8 @@ Dashboard.onload = function() {
 	},1000);
 }
 Dashboard.parse = function(change) {
-	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
-	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div><div><div class="nvbar_start"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
+//	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
+	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
 	$('#golem_toggle_dash').click(function(){
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		$('#golem-dashboard').toggle('drop');
@@ -1874,6 +1874,7 @@ Monster.types = {
 		list2:'deathrune_list1.jpg',
 		image:'raid_1_large.jpg',
 		image2:'raid_b1_large.jpg',
+		dead:'raid_1_large_victory.jpg',
 		raid:true
 	},
 	// Epic Boss
@@ -2070,7 +2071,7 @@ Monster.parse = function(change) {
 				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
 			}
 			$health = $('img[src$="monster_health_background.jpg"]').parent();
-			Monster.data[uid][type].health = ($health.width() / $health.parent().width() * 100);
+			Monster.data[uid][type].health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
 			if ($defense.length) {
 				Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
@@ -2613,8 +2614,9 @@ Player.parse = function(change) {
 			+ (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Youreceived\$([0-9]+)/i) || 0)
 			+ (txt.regex(/Yougained\$([0-9]+)/i) || 0);
-//			+ (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0)
-//			+ (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
+		if (txt.regex(/incomepaymentof\$([0-9]+)gold/i)) {
+			data.history[hour].land = (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0);
+		}
 	});
 	hour -= 168; // 24x7
 	data.average = 0;
@@ -2678,34 +2680,54 @@ Player.select = function() {
 };
 Player.dashboard = function() {
 	var i, max = 0, list = [], output = [];
-	list.push('<table cellspacing="0" cellpadding="0" style="height:100px;">');
-	list.push(Player.makeGraph('income', 'Income', true, 0));
+	list.push('<table cellspacing="0" cellpadding="0" style="height:100px;"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
+	list.push(Player.makeGraph(['income', 'land'], 'Income', true));
 	list.push(Player.makeGraph('bank', 'Bank', true));
 	list.push(Player.makeGraph('exp', 'Experience', false));
-	list.push('</table>');
+	list.push('</tbody></table>');
 	$('#golem-dashboard-Player').html(list.join(''));
 }
 Player.makeGraph = function(type, title, iscash, min) {
-	var i, max = 0, max_s, min_s, count = 0, list = [], output = [], hour = Math.floor(Date.now() / 3600000);
+	var i, j, max = 0, max_s, min_s, count = 0, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
 	list.push('<tr>');
 	for (i=hour-72; i<=hour; i++) {
-		if (Player.data.history[i] && Player.data.history[i][type]) {
-			min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type]);
-			max = Math.max(max, Player.data.history[i][type]);
+		if (typeof type === 'string') {
+			value[i] = 0;
+			if (typeof Player.data.history[i] !== 'undefined' && typeof Player.data.history[i][type] !== 'undefined') {
+				min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type]);
+				max = Math.max(max, Player.data.history[i][type]);
+				value[i] = Player.data.history[i][type];
+			}
+		} else if (typeof type === 'object') {
+			value[i] = [0, 0];
+			if (typeof Player.data.history[i] !== 'undefined') {
+				if (typeof Player.data.history[i][type[0]] !== 'undefined') {
+					min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type[0]]);
+					max = Math.max(max, Player.data.history[i][type[0]]);
+					value[i][0] = Player.data.history[i][type[0]];
+				}
+				if (typeof Player.data.history[i][type[1]] !== 'undefined') {
+					min = Math.min((typeof min === 'number' ? min : Number.POSITIVE_INFINITY), Player.data.history[i][type[1]]);
+					max = Math.max(max, Player.data.history[i][type[1]]);
+					value[i][1] = Player.data.history[i][type[1]];
+				}
+			}
 		}
 	}
 	if (max >= 1000000000) {max = Math.ceil(max / 1000000000) * 1000000000;max_s = addCommas(max / 1000000000)+'b';}
 	else if (max >= 1000000) {max = Math.ceil(max / 1000000) * 1000000;max_s = (max / 1000000)+'m';}
 	else if (max >= 1000) {max = Math.ceil(max / 1000) * 1000;max_s = (max / 1000)+'k';}
-	else {max_s = max;}
+	else {max_s = max || 0;}
 	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
 	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
 	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
-	else {min_s = min;}
+	else {min_s = min || 0;}
 	list.push('<th style="text-align:right;max-width:75px;"><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + max_s + '</div><div style="line-height:60px;height:60px;">' + title + '</div><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + min_s + '</div></th>')
 	for (i=hour-72; i<=hour; i++) {
-		if (Player.data.history[i] && Player.data.history[i][type]) {
-			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(Player.data.history[i][type]) + '"><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.ceil((Player.data.history[i][type] - min) / (max - min) * 100)+'px;border-top:1px solid blue;"></div></td>');
+		if (typeof type === 'string' && value[i]) {
+			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.ceil((value[i] - min) / (max - min) * 100)+'px;border-top:1px solid blue;"></div></td>');
+		} else if (typeof type === 'object' && (value[i][0] || value[i][1])) {
+			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"><div style="margin:0;padding:0;background:#00aa00;width:5px;height:'+Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100) - 1, 0)+'px;border-top:1px solid blue;"></div><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100) - 1, 0)+'px;border-top:1px solid blue;"></div></td>');
 		} else {
 			list.push('<td style="margin:0;padding:0;width:5px;border-bottom:1px solid blue;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
 		}
@@ -2866,7 +2888,7 @@ Quest.work = function(state) {
 		for (i in Quest.data) {
 			if ((Quest.option.what === 'Influence' && typeof Quest.data[i].influence !== 'undefined' && Quest.data[i].influence < 100 && (!best || Quest.data[i].energy < Quest.data[best].energy))
 			|| (Quest.option.what === 'Experience' && (!best || (Quest.data[i].energy / Quest.data[i].exp) < (Quest.data[best].energy / Quest.data[best].exp)))
-			|| (Quest.option.what === 'Cash' && (!best && (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
+			|| (Quest.option.what === 'Cash' && (!best || (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
 			|| (Quest.option.what !== 'Influence' && Quest.option.what !== 'Experience' && Quest.option.what !== 'Cash' && Quest.data[i].item === Quest.option.what && (!best || Quest.data[i].energy < Quest.data[best].energy))) {
 				best = i;
 			}
