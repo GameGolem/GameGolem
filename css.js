@@ -12,8 +12,15 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 1; }\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
-#golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; } \
+#golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
+table.golem-graph { height: 100px }\
+table.golem-graph tbody th { text-align: right; max-width: 75px; }\
+table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
+table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-child { line-height: 20px; height: 20px; }\
+table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid white; }\
+table.golem-graph tbody td div { margin: 0; padding: 0; background: #00aa00; width: 5px; border-top: 1px solid blue; }\
+table.golem-graph tbody td div:last-child { background: #00ff00; }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 \

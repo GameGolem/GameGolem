@@ -136,7 +136,7 @@ Player.select = function() {
 };
 Player.dashboard = function() {
 	var i, max = 0, list = [], output = [];
-	list.push('<table cellspacing="0" cellpadding="0" style="height:100px;"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
 	list.push(Player.makeGraph(['income', 'land'], 'Income', true));
 	list.push(Player.makeGraph('bank', 'Bank', true));
 	list.push(Player.makeGraph('exp', 'Experience', false));
@@ -144,7 +144,7 @@ Player.dashboard = function() {
 	$('#golem-dashboard-Player').html(list.join(''));
 }
 Player.makeGraph = function(type, title, iscash, min) {
-	var i, j, max = 0, max_s, min_s, count = 0, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
+	var i, j, max = 0, max_s, min_s, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
 	list.push('<tr>');
 	for (i=hour-72; i<=hour; i++) {
 		if (typeof type === 'string') {
@@ -178,14 +178,14 @@ Player.makeGraph = function(type, title, iscash, min) {
 	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
 	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
 	else {min_s = min || 0;}
-	list.push('<th style="text-align:right;max-width:75px;"><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + max_s + '</div><div style="line-height:60px;height:60px;">' + title + '</div><div style="line-height:20px;height:20px;">' + (iscash ? '$' : '') + min_s + '</div></th>')
+	list.push('<th><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
 	for (i=hour-72; i<=hour; i++) {
 		if (typeof type === 'string' && value[i]) {
-			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.ceil((value[i] - min) / (max - min) * 100)+'px;border-top:1px solid blue;"></div></td>');
+			list.push('<td title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"><div style="height:'+Math.ceil((value[i] - min) / (max - min) * 100)+'px;"></div></td>');
 		} else if (typeof type === 'object' && (value[i][0] || value[i][1])) {
-			list.push('<td style="margin:0;padding:0;vertical-align:bottom;width:5px;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"><div style="margin:0;padding:0;background:#00aa00;width:5px;height:'+Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100) - 1, 0)+'px;border-top:1px solid blue;"></div><div style="margin:0;padding:0;background:#00ff00;width:5px;height:'+Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100) - 1, 0)+'px;border-top:1px solid blue;"></div></td>');
+			list.push('<td title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"><div style="height:'+Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100) - 1, 0)+'px;"></div><div style="height:'+Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100) - 1, 0)+'px;"></div></td>');
 		} else {
-			list.push('<td style="margin:0;padding:0;width:5px;border-bottom:1px solid blue;border-right:1px solid white;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
+			list.push('<td style="border-bottom:1px solid blue;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
 		}
 	}
 	list.push('</tr>');

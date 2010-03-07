@@ -1,58 +1,74 @@
-
-// Elite army
-// http://apps.facebook.com/castle_age/party.php?twt=jneg&jneg=true&user=44404517
-
 // User changeable
 var debug = true;
 
 // Shouldn't touch
 var VERSION = 20;
-var APP = '46755028429';
-var PREFIX = 'golem'+APP+'_';
 var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
+
+// "Fake" constants - more to be added later, just not yet...
+var constants = {
+	'castle_age':{
+		appid:'46755028429',
+		appname:'Castle Age'
+	}
+};
+var APP = null;
+var APPID = null;
+var APPNAME = null;
+var PREFIX = null;
 
 /********** main() **********
 * Runs every second, only does something when the page changes
 */
-function main() {
-	// First - check if the page has changed...
-	if (!Page.loading() && !$('#secret_golem_check').length) {
-		if (!$('#app'+APP+'_nvbar_div_end').length) {
-			Page.reload();
-			return;
-		}
-		$('#app'+APP+'_nvbar_div_end').append('<br id="secret_golem_check" style="display:none"/>');
-		Page.identify();
-		var i;
-		for (i in Workers) {
-			if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-//				GM_debug(Workers[i].name + '.parse(false)');
-				Workers[i].priv_parse = Workers[i].parse(false);
-			} else {
-				Workers[i].priv_parse = false;
-			}
-		}
-		Settings.Save('data');
-		for (i in Workers) {
-			if (Workers[i].priv_parse) {
-//				GM_debug(Workers[i].name + '.parse(true)');
-				Workers[i].parse(true);
-			}
+function parse_all() {
+	// Basic check to reload the page if needed...
+	Page.identify();
+	if (!Page.page || !$('#app'+APP+'_nvbar_div_end').length) {
+		Page.reload();
+		return;
+	}
+	var i;
+	for (i in Workers) {
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+//			GM_debug(Workers[i].name + '.parse(false)');
+			Workers[i].priv_parse = Workers[i].parse(false);
+		} else {
+			Workers[i].priv_parse = false;
 		}
 	}
-	Queue.run();
+	Settings.Save('data');
+	for (i in Workers) {
+		if (Workers[i].priv_parse) {
+//			GM_debug(Workers[i].name + '.parse(true)');
+			Workers[i].parse(true);
+		}
+	}
 }
 
 /********** $(document).ready() **********
 * Runs when the page has finished loading, but the external data might still be coming in
 */
+var node_trigger = null;
 $(document).ready(function() {
+	var i, app = window.location.href.regex(/^https?:\/\/[^\/]+\.facebook\.[^\/]+\/([^\/]+)\//i);
+	for (i in constants) {
+		if (app === i) {
+			APP = constants[i].appid;
+			APPID = i;
+			APPNAME = constants[i].appname;
+			PREFIX = 'golem'+APP+'_';
+		}
+	}
+	if (!APP) {
+		// Don't know where we are, but we're not home!!!
+		return;
+	}
 	Page.identify();
 	Settings.Load('data');
 	Settings.Load('option');
-	if (window.location.href.indexOf('castle_age') >= 0) {
-		for (var i in Workers) {
+	if (APPID === 'castle_age') {
+		for (i in Workers) {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
@@ -60,8 +76,16 @@ $(document).ready(function() {
 				Workers[i].dashboard();
 			}
 		}
-		main(); // Call once to get the ball rolling...
-		window.setInterval(function(){main();},1000);
+		parse_all(); // Call once to get the ball rolling...
+		$('body').bind('DOMNodeInserted', function(event){
+			// Only perform the check on the two id's referenced in get_cached_ajax()
+			// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
+			if (!node_trigger && ($(event.target).attr('id') === 'app'+APP+'_app_body_container' || $(event.target).attr('id') === 'app'+APP+'_globalContainer')) {
+				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
+			}
+		});
+		// Running the queue every second, options within it give more delay
+		window.setInterval(function(){Queue.run();},1000);
 	}
 });
 
