@@ -6,8 +6,7 @@ Update.data = null;
 Update.option = null;
 Update.found = false;
 Update.onload = function() {
-	var $btn = $('<button name="Script Update" id="golem_update">Check</button>')
-		.button().click(function(){Update.now(true);});
+	var $btn = $('<span class="golem-button" name="Script Update" id="golem_update">Check</span>').click(function(){Update.now(true);});
 	$('#golem_buttons').append($btn);
 };
 Update.now = function(force) {
@@ -30,7 +29,7 @@ Update.now = function(force) {
 					}
 					if (remoteVersion>VERSION) {
 						Update.found = true;
-						$('#golem_update span').text('Install');
+						$('#golem_update').text('Install');
 						if (force) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });

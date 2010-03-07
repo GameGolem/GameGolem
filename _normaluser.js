@@ -34,6 +34,9 @@ table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-
 table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid white; }\
 table.golem-graph tbody td div { margin: 0; padding: 0; background: #00aa00; width: 5px; border-top: 1px solid blue; }\
 table.golem-graph tbody td div:last-child { background: #00ff00; }\
+.golem-button { border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+img.golem-button { margin-bottom: -6px }\
+.golem-button:hover { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 \
@@ -86,7 +89,7 @@ function parse_all() {
 	var i;
 	for (i in Workers) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-			GM_debug(Workers[i].name + '.parse(false)');
+//			GM_debug(Workers[i].name + '.parse(false)');
 			Workers[i].priv_parse = Workers[i].parse(false);
 		} else {
 			Workers[i].priv_parse = false;
@@ -95,7 +98,7 @@ function parse_all() {
 	Settings.Save('data');
 	for (i in Workers) {
 		if (Workers[i].priv_parse) {
-			GM_debug(Workers[i].name + '.parse(true)');
+//			GM_debug(Workers[i].name + '.parse(true)');
 			Workers[i].parse(true);
 		}
 	}
@@ -464,9 +467,9 @@ Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
 //<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"><button id="golem_options">Options...</button></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"><span class="golem-button" id="golem_options">Options</span></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
-	$('#golem_options').button().click(function(){
+	$('#golem_options').click(function(){
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
 		Settings.Save('option', Config);
@@ -702,7 +705,7 @@ Dashboard.option = {
 };
 Dashboard.div = null;
 Dashboard.onload = function() {
-	var id, tabs = [], divs = [], active = Dashboard.option.active;
+	var id, $btn, tabs = [], divs = [], active = Dashboard.option.active;
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+Workers[i].name;
@@ -735,28 +738,18 @@ Dashboard.onload = function() {
 			$(this).next().show('blind');
 		}
 	});
-
+	$('#golem_buttons').append('<span class="golem-button" id="golem_toggle_dash">Stats</span>');
+	$('#golem_toggle_dash').click(function(){
+		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
+		$('#golem-dashboard').toggle('drop');
+		Settings.Save('option', Dashboard);
+	});
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){
 			$(el).text(makeTimer($(el).text().parseTimer() - 1));
 		});
 	},1000);
 }
-Dashboard.parse = function(change) {
-//	$('#app'+APP+'_nvbar_nvl').css({width:'760px', 'padding-left':0, 'margin':'auto'});
-	$('<div><div class="nvbar_start"></div><div class="nvbar_middle"><a id="golem_toggle_dash"><span class="hover_header">Dashboard</span></a></div><div class="nvbar_end"></div></div>').prependTo('#app'+APP+'_nvbar_nvl > div:last-child');
-	$('#golem_toggle_dash').click(function(){
-		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-		$('#golem-dashboard').toggle('drop');
-		Settings.Save('option', Dashboard);
-	});
-	$('#golem_toggle_config').click(function(){
-		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
-		Settings.Save('option', Config);
-	});
-	return false;
-};
 
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
@@ -3139,12 +3132,14 @@ Queue.onload = function() {
 		}
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
-	$btn = $('<button id="golem_pause">pause</button>')
-		.button({ text:false, icons:{primary:(Queue.option.pause?'ui-icon-play':'ui-icon-pause')} })
+	var play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82';
+	var pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82'
+
+	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">')
 		.click(function() {
 			Queue.option.pause ^= true;
 			GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
-			$(this).button('option', { icons:{primary:(Queue.option.pause?'ui-icon-play':'ui-icon-pause')} });
+			$(this).attr('src', (Queue.option.pause?play:pause));
 			Page.clear();
 			Config.updateOptions();
 		});
@@ -3427,8 +3422,7 @@ Update.data = null;
 Update.option = null;
 Update.found = false;
 Update.onload = function() {
-	var $btn = $('<button name="Script Update" id="golem_update">Check</button>')
-		.button().click(function(){Update.now(true);});
+	var $btn = $('<span class="golem-button" name="Script Update" id="golem_update">Check</span>').click(function(){Update.now(true);});
 	$('#golem_buttons').append($btn);
 };
 Update.now = function(force) {
@@ -3451,7 +3445,7 @@ Update.now = function(force) {
 					}
 					if (remoteVersion>VERSION) {
 						Update.found = true;
-						$('#golem_update span').text('Install');
+						$('#golem_update').text('Install');
 						if (force) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
