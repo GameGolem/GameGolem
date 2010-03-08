@@ -3033,7 +3033,9 @@ Quest.display = [
 ];
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
-	if (Page.page === 'quests_demiquests') {
+	if (Page.page === 'quests_quest') {
+		return false; // This is if we're looking at a page we don't have access to yet...
+	} else if (Page.page === 'quests_demiquests') {
 		area = 'demiquest';
 	} else if (Page.page === 'quests_atlantis') {
 		area = 'atlantis';
