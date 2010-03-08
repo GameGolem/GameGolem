@@ -13,10 +13,11 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
 table.golem-graph { height: 100px }\
-table.golem-graph tbody th { text-align: right; max-width: 75px; }\
+table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
 table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-child { line-height: 20px; height: 20px; }\
 table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid white; }\
+table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
 table.golem-graph tbody td div { margin: 0; padding: 0; background: #00aa00; width: 5px; border-top: 1px solid blue; }\
 table.golem-graph tbody td div:last-child { background: #00ff00; }\
 .golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
