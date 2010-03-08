@@ -747,7 +747,7 @@ Dashboard.onload = function() {
 }
 Dashboard.update = function(worker) {
 	var id = 'golem-dashboard-'+worker.name;
-	if (active === id) {
+	if (Dashboard.option.active === id) {
 		worker.dashboard();
 	} else {
 		$('#'+id).empty();
