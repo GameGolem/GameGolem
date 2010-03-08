@@ -8,7 +8,7 @@ Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
-	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
 	if ($elements.length < length(Generals.data)) {
 		Page.to('heroes_generals', ''); // Force reload
@@ -24,10 +24,11 @@ Generals.parse = function(change) {
 				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
 				Generals.data[name].level	= level; // Might only be 4 so far, however...
 				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+				change = true;
 			}
 		}
 	});
-	if (length(Town.data.invade)) {
+	if (change && length(Town.data.invade)) {
 		for (i in Generals.data) {
 			attack = Player.data.attack + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
 			defend = Player.data.defense + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);

@@ -1653,7 +1653,7 @@ Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
-	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
 	if ($elements.length < length(Generals.data)) {
 		Page.to('heroes_generals', ''); // Force reload
@@ -1669,10 +1669,11 @@ Generals.parse = function(change) {
 				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
 				Generals.data[name].level	= level; // Might only be 4 so far, however...
 				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+				change = true;
 			}
 		}
 	});
-	if (length(Town.data.invade)) {
+	if (change && length(Town.data.invade)) {
 		for (i in Generals.data) {
 			attack = Player.data.attack + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
 			defend = Player.data.defense + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
@@ -2326,10 +2327,11 @@ Monster.types = {
 		timer:172800, // 48 hours
 		mpool:1
 	},
-	lotus: { // DEAD image ???
+	lotus: {
 		name:'Lotus Ravenmoore',
 		list:'boss_lotus_list.jpg',
 		image:'boss_lotus.jpg',
+		dead:'boss_lotus_big_dead.jpg',
 		timer:172800, // 48 hours
 		mpool:1
 	},
@@ -2587,19 +2589,19 @@ Monster.parse = function(change) {
 	return false;
 };
 Monster.work = function(state) {
-	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
+	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
-		Monster.option.uid = null;
-		Monster.option.type = null;
+		Monster.option.uid = uid = null;
+		Monster.option.type = type = null;
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
 	}
-	for (uid in Monster.data) {
-		for (type in Monster.data[uid]) {
-			if (!Monster.data[uid][type].health && Monster.data[uid][type].state === 'engage') {
+	for (i in Monster.data) {
+		for (j in Monster.data[i]) {
+			if (!Monster.data[i][j].health && Monster.data[i][j].state === 'engage') {
 				if (state) {
-					Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''));
+					Page.to(Monster.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (Monster.types[j].mpool ? '&mpool='+Monster.types[j].mpool : ''));
 				}
 				return true;
 			}
@@ -3228,8 +3230,8 @@ Quest.dashboard = function(sort, rev) {
 		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
 		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
 		output.push(Quest.data[i].energy);
-		output.push('<span title="Total = ' + Quest.data[i].exp + '">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
-		output.push('<span title="Total = $' + addCommas(Quest.data[i].reward) + '">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
+		output.push('<span title="' + Quest.data[i].exp + ' total, ' + (Quest.data[i].exp / Quest.data[i].energy * 12).round(2) + ' per hour">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
+		output.push('<span title="$' + addCommas(Quest.data[i].reward) + ' total, $' + addCommas((Quest.data[i].reward / Quest.data[i].energy * 12).round()) + ' per hour">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
 		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
 		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
 	}

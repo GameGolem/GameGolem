@@ -78,10 +78,11 @@ Monster.types = {
 		timer:172800, // 48 hours
 		mpool:1
 	},
-	lotus: { // DEAD image ???
+	lotus: {
 		name:'Lotus Ravenmoore',
 		list:'boss_lotus_list.jpg',
 		image:'boss_lotus.jpg',
+		dead:'boss_lotus_big_dead.jpg',
 		timer:172800, // 48 hours
 		mpool:1
 	},
@@ -339,19 +340,19 @@ Monster.parse = function(change) {
 	return false;
 };
 Monster.work = function(state) {
-	var i, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
+	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
-		Monster.option.uid = null;
-		Monster.option.type = null;
+		Monster.option.uid = uid = null;
+		Monster.option.type = type = null;
 	}
 	if (!length(Monster.data) || Player.data.health <= 10) {
 		return false;
 	}
-	for (uid in Monster.data) {
-		for (type in Monster.data[uid]) {
-			if (!Monster.data[uid][type].health && Monster.data[uid][type].state === 'engage') {
+	for (i in Monster.data) {
+		for (j in Monster.data[i]) {
+			if (!Monster.data[i][j].health && Monster.data[i][j].state === 'engage') {
 				if (state) {
-					Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''));
+					Page.to(Monster.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (Monster.types[j].mpool ? '&mpool='+Monster.types[j].mpool : ''));
 				}
 				return true;
 			}

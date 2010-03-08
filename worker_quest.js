@@ -255,8 +255,8 @@ Quest.dashboard = function(sort, rev) {
 		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
 		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
 		output.push(Quest.data[i].energy);
-		output.push('<span title="Total = ' + Quest.data[i].exp + '">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
-		output.push('<span title="Total = $' + addCommas(Quest.data[i].reward) + '">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
+		output.push('<span title="' + Quest.data[i].exp + ' total, ' + (Quest.data[i].exp / Quest.data[i].energy * 12).round(2) + ' per hour">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
+		output.push('<span title="$' + addCommas(Quest.data[i].reward) + ' total, $' + addCommas((Quest.data[i].reward / Quest.data[i].energy * 12).round()) + ' per hour">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
 		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
 		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
 	}
