@@ -57,7 +57,7 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
 Queue.onload = function() {
-	var i, worker, found = {};
+	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
 	for (i=0; i<Queue.option.queue.length; i++) { // First find what we've already got
 		worker = WorkerByName(Queue.option.queue[i]);
 		if (worker) {
@@ -86,17 +86,14 @@ Queue.onload = function() {
 		}
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
-	var play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82';
-	var pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82'
 
-	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">')
-		.click(function() {
-			Queue.option.pause ^= true;
-			GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
-			$(this).attr('src', (Queue.option.pause?play:pause));
-			Page.clear();
-			Config.updateOptions();
-		});
+	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
+		Queue.option.pause ^= true;
+		GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
+		$(this).attr('src', (Queue.option.pause?play:pause));
+		Page.clear();
+		Config.updateOptions();
+	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 };
 Queue.run = function() {

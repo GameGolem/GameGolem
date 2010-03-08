@@ -15,8 +15,6 @@
 * Gets pushed into the <head> on loading
 */
 
-/*background: #66401B url("http://image2.castleagegame.com/1393/graphics/bg_jobs_tile.jpg") 0 0 repeat;*/
-
 $('head').append("<style type=\"text/css\">\
 .golem-config { float: none; margin-right: 0; }\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
@@ -34,9 +32,9 @@ table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-
 table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid white; }\
 table.golem-graph tbody td div { margin: 0; padding: 0; background: #00aa00; width: 5px; border-top: 1px solid blue; }\
 table.golem-graph tbody td div:last-child { background: #00ff00; }\
-.golem-button { border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
-img.golem-button { margin-bottom: -6px }\
-.golem-button:hover { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
+.golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
+img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 \
@@ -47,15 +45,11 @@ img.golem-button { margin-bottom: -6px }\
 .golem-panel-show  > .golem-panel-header, .golem-panel-show  > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
 .golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
 .golem-panel-sortable .golem-lock { display: none; }\
-\
-.golem-title .golem-fixed-off { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF3t7e3d3dY2NjVVVVAAAAIwZ7MQAAAAV0Uk5T%2F%2F%2F%2F%2FwD7tg5TAAAALklEQVR42mJgQQMMZAswM4EYTEgCEIAswIQkAJZkwqcCqxlMjKi2UMPpCAAQYAAAegPHJBcwkQAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
-.golem-title .golem-fixed-on { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF3t7e3d3dY2NjVVVVAAAAIwZ7MQAAAAV0Uk5T%2F%2F%2F%2F%2FwD7tg5TAAAANUlEQVR42mJgQQMMxAkwMYMAE5IKsAALKQKMzExMTMwMeAxlZkbogbmDGd1hhAVI8BxAgAEA%2FjkDx9SMVaMAAAAASUVORK5CYII%3D) no-repeat; }\
-.golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAIklEQVR42mJgRAMM1BNgwBBgwBBgwBBgIKSCkC0UOR0gwACBDgDx3iWVvgAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
-.golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAMUlEQVR42mJgRAMMRAswMDCgCDAwwETgAowoAgwMcCW4BRgJCqBqwbSWHL%2FAAUCAAQBuEQDPfStrmwAAAABJRU5ErkJggg%3D%3D) no-repeat;}\
-.golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAIklEQVR42mJgRAMMNBNggAAkFQg%2BTAucz4hO09BhyAAgwAB%2F3gDxzGOmYgAAAABJRU5ErkJggg%3D%3D) no-repeat; }\
+.golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C%D4%13%60%C0%10%60%C0%10%60%C0%10%60%20%A4%82%90-%149%1D%20%C0%00%81%0E%00%F1%DE%25%95%BE%00%00%00%00IEND%AEB%60%82) no-repeat; }\
+.golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url(data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%001IDATx%DAb%60D%03%0CD%0B000%A0%0800%C0D%E0%02%8C(%02%0C%0Cp%25%B8%05%18%09%0A%A0j%C1%B4%96%1C%BF%C0%01%40%80%01%00n%11%00%CF%7D%2Bk%9B%00%00%00%00IEND%AEB%60%82) no-repeat;}\
+.golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url(data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82) no-repeat; }\
 </style>");
 
-//.golem-panel > .golem-panel-header .golem-icon { float: left; background-position: -32px -16px; }\
 // User changeable
 var debug = true;
 
@@ -465,20 +459,22 @@ Config.option = {
 Config.panel = null;
 Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i;
-//<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
-	Config.panel = $('<div class="golem-config'+(Config.option.fixed?' golem-config-fixed':'')+'"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v'+VERSION+'<span id="golem_fixed" class="golem-fixed'+(Config.option.fixed?'-on':'-off')+'" style="float:right;margin-top:-2px;"></span></div><div id="golem_buttons" style="margin:4px;"><span class="golem-button" id="golem_options">Options</span></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	var $btn, $golem_config, $newPanel, i, pin1 = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82', pin2 = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82';
+
+	
+	//<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
+	Config.panel = $('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed" style="float:right;margin:-2px;" src="' + (Config.option.fixed?pin2:pin1) + '"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_options').click(function(){
+		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
 		Settings.Save('option', Config);
 	});
 	$('#golem_fixed').click(function(){
 			Config.option.fixed ^= true;
-			$(this).toggleClass('golem-fixed-on golem-fixed-off');
+			$(this).attr('src', Config.option.fixed?pin2:pin1);
 			$(this).parent().parent().parent().toggleClass('golem-config-fixed');
-			Config.option.active = [];
 			Settings.Save('option', Config);
 	});
 	$golem_config = $('#golem_config');
@@ -738,8 +734,9 @@ Dashboard.onload = function() {
 			$(this).next().show('blind');
 		}
 	});
-	$('#golem_buttons').append('<span class="golem-button" id="golem_toggle_dash">Stats</span>');
+	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
 	$('#golem_toggle_dash').click(function(){
+		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		$('#golem-dashboard').toggle('drop');
 		Settings.Save('option', Dashboard);
@@ -751,6 +748,357 @@ Dashboard.onload = function() {
 	},1000);
 }
 
+/********** Worker.Page() **********
+* All navigation including reloading
+*/
+var Page = new Worker('Page');
+Page.unsortable = true;
+Page.option = {
+	timeout: 15,
+	retry: 5
+};
+Page.page = '';
+Page.last = null; // Need to have an "auto retry" after a period
+Page.lastclick = null;
+Page.when = null;
+Page.retry = 0;
+Page.checking = true;
+Page.display = [
+	{
+		id:'timeout',
+		label:'Retry after',
+		select:[10, 15, 30, 60],
+		after:'seconds'
+	},{
+		id:'retry',
+		label:'Reload after',
+		select:[2, 3, 5, 10],
+		after:'tries'
+	}
+];
+Page.work = function(state) {
+	if (!Page.checking) {
+		return false;
+	}
+	var i, l, list, found = null;
+	for (i=0; i<Workers.length && !found; i++) {
+		if (!Workers[i].pages || Workers[i].pages==='*') {
+			continue;
+		}
+		list = Workers[i].pages.split(' ');
+		for (l=0; l<list.length; l++) {
+			if (Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+				found = list[l];
+				break;
+			}
+		}
+	}
+	if (!state) {
+		if (found) {
+			return true;
+		}
+		Page.checking = false;
+		return false;
+	}
+	if (found && !Page.to(found)) {
+		Page.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
+		return true;
+	}
+	return false;
+};
+Page.pageNames = {
+	index:					{url:'index.php', image:null},
+	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+	town_land:				{url:'land.php', image:'tab_land_on.gif'},
+	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
+	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
+	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
+	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
+	army_invite:			{url:'army.php', image:'invite_on.gif'},
+	army_gifts:				{url:'gift.php', image:null},
+	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'}
+};
+Page.identify = function() {
+	Page.page = '';
+	$('#app'+APP+'_app_body img').each(function(i,el){
+		var p, filename = $(el).attr('src').filepart();
+		for (p in Page.pageNames) {
+			if (filename === Page.pageNames[p].image) {
+				Page.page = p; return;
+			}
+		}
+	});
+	if ($('#app'+APP+'_indexNewFeaturesBox').length) {
+		Page.page = 'index';
+	} else if ($('div[style*="giftpage_title.jpg"]').length) {
+		Page.page = 'army_gifts';
+	}
+	if (Page.page !== '') {
+		Page.data[Page.page] = Date.now();
+	}
+//	GM_debug('Page.identify("'+Page.page+'")');
+	return Page.page;
+};
+Page.to = function(page, args) {
+	if (page === Page.page && typeof args === 'undefined') {
+		return true;
+	}
+	if (!args) {
+		args = '';
+	}
+	if (page && Page.pageNames[page] && Page.pageNames[page].url) {
+		Page.clear();
+		Page.last = Page.pageNames[page].url;
+		Page.when = Date.now();
+		if (args.indexOf('?') === 0 && Page.last.indexOf('?') > 0) {
+			Page.last = Page.last.substr(0, Page.last.indexOf('?')) + args;
+		} else {
+			Page.last = Page.last + args;
+		}
+		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
+		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
+			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+		} else {
+			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
+		}
+	}
+	return false;
+};
+Page.click = function(el) {
+	if (!$(el).length) {
+		GM_debug('Page.click: Unable to find element - '+el);
+		return false;
+	}
+	var e = document.createEvent("MouseEvents");
+	e.initEvent("click", true, true);
+	$(el).get(0).wrappedJSObject.dispatchEvent(e);
+	Page.clear();
+	Page.lastclick = el;
+	Page.when = Date.now();
+	return true;
+};
+Page.clear = function() {
+	Page.last = Page.lastclick = Page.when = null;
+	Page.retry = 0;
+};
+Page.loading = function() {
+	if (!unsafeWindow['a'+APP+'_get_cached_ajax']) {
+		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
+			Page.when = Date.now();
+			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
+		}
+		GM_debug('Page not loaded correctly, reloading.');
+		return true;
+	}
+	if ($('#app'+APP+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
+		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
+			Page.clear();
+		}
+		return false;
+	}
+	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
+		GM_debug('Page.loading for 15+ seconds - retrying...');
+		Page.when = Date.now();
+		if (Page.retry++ >= Page.option.retry) {
+			GM_debug('Page.loading for 1+ minutes - reloading...');
+			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
+		} else if (Page.last) {
+			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+		} else if (Page.lastclick) {
+			Page.click(Page.lastclick);
+		}
+	}
+	return true;
+};
+Page.reload = function() {
+	if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) {
+		Page.to((Page.page || 'index'), '');
+	}
+};
+
+/********** Worker.Queue() **********
+* Keeps track of the worker queue
+*/
+var Queue = new Worker('Queue', '*');
+Queue.data = {
+	current: null
+};
+Queue.option = {
+	delay: 5,
+	clickdelay: 5,
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	start_stamina: 0,
+	stamina: 0,
+	start_energy: 0,
+	energy: 0
+};
+Queue.display = [
+	{
+		label:'Drag the other panels into the order you wish them run.'
+	},{
+		id:'delay',
+		label:'Delay Between Events',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'clickdelay',
+		label:'Delay After Mouse Click',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'start_stamina',
+		before:'Save',
+		select:'stamina',
+		after:'Stamina Before Using'
+	},{
+		id:'stamina',
+		before:'Always Keep',
+		select:'stamina',
+		after:'Stamina'
+	},{
+		id:'start_energy',
+		before:'Save',
+		select:'energy',
+		after:'Energy Before Using'
+	},{
+		id:'energy',
+		before:'Always Keep',
+		select:'energy',
+		after:'Energy'
+	}
+];
+Queue.runfirst = [];
+Queue.unsortable = true;
+Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
+Queue.lastrun = Date.now();		// Last time we ran
+Queue.burn = {stamina:false, energy:false};
+Queue.onload = function() {
+	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
+	for (i=0; i<Queue.option.queue.length; i++) { // First find what we've already got
+		worker = WorkerByName(Queue.option.queue[i]);
+		if (worker) {
+			found[worker.name] = true;
+		}
+	}
+	for (i in Workers) { // Second add any new workers that have a display (ie, sortable)
+		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
+			continue;
+		}
+		GM_log('Adding '+Workers[i].name+' to Queue');
+		if (Workers[i].unsortable) {
+			Queue.option.queue.unshift(Workers[i].name);
+		} else {
+			Queue.option.queue.push(Workers[i].name);
+		}
+	}
+	for (i=0; i<Queue.option.queue.length; i++) {	// Third put them in saved order
+		worker = WorkerByName(Queue.option.queue[i]);
+		if (worker && worker.priv_id) {
+			if (Queue.data.current && worker.name === Queue.data.current) {
+				GM_debug('Queue: Trigger '+worker.name+' (continue after load)');
+				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
+			}
+			$('#golem_config').append($('#'+worker.priv_id));
+		}
+	}
+	$(document).click(function(){Queue.lastclick=Date.now();});
+
+	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
+		Queue.option.pause ^= true;
+		GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
+		$(this).attr('src', (Queue.option.pause?play:pause));
+		Page.clear();
+		Config.updateOptions();
+	});
+	$('#golem_buttons').prepend($btn); // Make sure it comes first
+};
+Queue.run = function() {
+	var i, worker, found = false, now = Date.now();
+	if (Queue.option.pause || now - Queue.lastclick < Queue.option.clickdelay * 1000 || now - Queue.lastrun < Queue.option.delay * 1000) {
+		return;
+	}
+	Queue.lastrun = now;
+	if (Page.loading()) {
+		return; // We want to wait xx seconds after the page has loaded
+	}
+	Queue.burn.stamina = Queue.burn.energy = 0;
+	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
+		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
+		Queue.option.burn_stamina = Queue.burn.stamina > 0;
+	}
+	if (Queue.option.burn_energy || Player.data.energy >= Queue.option.start_energy) {
+		Queue.burn.energy = Math.max(0, Player.data.energy - Queue.option.energy);
+		Queue.option.burn_energy = Queue.burn.energy > 0;
+	}
+	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
+		if (Workers[i].work && !Workers[i].display) {
+			Workers[i].work(false);
+		}
+	}
+	for (i=0; i<Queue.option.queue.length; i++) {
+		worker = WorkerByName(Queue.option.queue[i]);
+		if (!worker || !worker.work || !worker.display) {
+			continue;
+		}
+		if (!worker.work(Queue.data.current === worker.name)) {
+			if (Queue.data.current === worker.name) {
+				Queue.data.current = null;
+				if (worker.priv_id) {
+					$('#'+worker.priv_id+' > h3').css('font-weight', 'normal');
+				}
+				GM_debug('Queue: End '+worker.name);
+			}
+			continue;
+		}
+		if (!found) { // We will work(false) everything, but only one gets work(true) at a time
+			found = true;
+			if (Queue.data.current === worker.name) {
+				continue;
+			}
+			worker.priv_since = now;
+			if (Queue.data.current) {
+				GM_debug('Queue: Interrupt '+Queue.data.current);
+				if (WorkerByName(Queue.data.current).priv_id) {
+					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3').css('font-weight', 'normal');
+				}
+			}
+			Queue.data.current = worker.name;
+			if (worker.priv_id) {
+				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
+			}
+			GM_debug('Queue: Trigger '+worker.name);
+		}
+	}
+	Settings.Save('option');
+	Settings.Save('data');
+};
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
 */
@@ -2373,199 +2721,6 @@ Monster.dashboard = function(sort, rev) {
 	}
 };
 
-/********** Worker.Page() **********
-* All navigation including reloading
-*/
-var Page = new Worker('Page');
-Page.unsortable = true;
-Page.option = {
-	timeout: 15,
-	retry: 5
-};
-Page.page = '';
-Page.last = null; // Need to have an "auto retry" after a period
-Page.lastclick = null;
-Page.when = null;
-Page.retry = 0;
-Page.checking = true;
-Page.display = [
-	{
-		id:'timeout',
-		label:'Retry after',
-		select:[10, 15, 30, 60],
-		after:'seconds'
-	},{
-		id:'retry',
-		label:'Reload after',
-		select:[2, 3, 5, 10],
-		after:'tries'
-	}
-];
-Page.work = function(state) {
-	if (!Page.checking) {
-		return false;
-	}
-	var i, l, list, found = null;
-	for (i=0; i<Workers.length && !found; i++) {
-		if (!Workers[i].pages || Workers[i].pages==='*') {
-			continue;
-		}
-		list = Workers[i].pages.split(' ');
-		for (l=0; l<list.length; l++) {
-			if (Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
-				found = list[l];
-				break;
-			}
-		}
-	}
-	if (!state) {
-		if (found) {
-			return true;
-		}
-		Page.checking = false;
-		return false;
-	}
-	if (found && !Page.to(found)) {
-		Page.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
-		return true;
-	}
-	return false;
-};
-Page.pageNames = {
-	index:					{url:'index.php', image:null},
-	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-	town_land:				{url:'land.php', image:'tab_land_on.gif'},
-	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
-	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
-	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
-	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
-	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', image:null},
-	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'}
-};
-Page.identify = function() {
-	Page.page = '';
-	$('#app'+APP+'_app_body img').each(function(i,el){
-		var p, filename = $(el).attr('src').filepart();
-		for (p in Page.pageNames) {
-			if (filename === Page.pageNames[p].image) {
-				Page.page = p; return;
-			}
-		}
-	});
-	if ($('#app'+APP+'_indexNewFeaturesBox').length) {
-		Page.page = 'index';
-	} else if ($('div[style*="giftpage_title.jpg"]').length) {
-		Page.page = 'army_gifts';
-	}
-	if (Page.page !== '') {
-		Page.data[Page.page] = Date.now();
-	}
-//	GM_debug('Page.identify("'+Page.page+'")');
-	return Page.page;
-};
-Page.to = function(page, args) {
-	if (page === Page.page && typeof args === 'undefined') {
-		return true;
-	}
-	if (!args) {
-		args = '';
-	}
-	if (page && Page.pageNames[page] && Page.pageNames[page].url) {
-		Page.clear();
-		Page.last = Page.pageNames[page].url;
-		Page.when = Date.now();
-		if (args.indexOf('?') === 0 && Page.last.indexOf('?') > 0) {
-			Page.last = Page.last.substr(0, Page.last.indexOf('?')) + args;
-		} else {
-			Page.last = Page.last + args;
-		}
-		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
-		} else {
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
-		}
-	}
-	return false;
-};
-Page.click = function(el) {
-	if (!$(el).length) {
-		GM_debug('Page.click: Unable to find element - '+el);
-		return false;
-	}
-	var e = document.createEvent("MouseEvents");
-	e.initEvent("click", true, true);
-	$(el).get(0).wrappedJSObject.dispatchEvent(e);
-	Page.clear();
-	Page.lastclick = el;
-	Page.when = Date.now();
-	return true;
-};
-Page.clear = function() {
-	Page.last = Page.lastclick = Page.when = null;
-	Page.retry = 0;
-};
-Page.loading = function() {
-	if (!unsafeWindow['a'+APP+'_get_cached_ajax']) {
-		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
-			Page.when = Date.now();
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		}
-		GM_debug('Page not loaded correctly, reloading.');
-		return true;
-	}
-	if ($('#app'+APP+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
-		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
-			Page.clear();
-		}
-		return false;
-	}
-	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
-		GM_debug('Page.loading for 15+ seconds - retrying...');
-		Page.when = Date.now();
-		if (Page.retry++ >= Page.option.retry) {
-			GM_debug('Page.loading for 1+ minutes - reloading...');
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		} else if (Page.last) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
-		} else if (Page.lastclick) {
-			Page.click(Page.lastclick);
-		}
-	}
-	return true;
-};
-Page.reload = function() {
-	if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) {
-		Page.to((Page.page || 'index'), '');
-	}
-};
-
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
@@ -2990,30 +3145,29 @@ Quest.dashboard = function(sort, rev) {
 		}
 		sort = 1; // Default = sort by name
 	}
-	Quest.order.sort(function(a,b) {
-		var aa, bb;
-		if (sort === 0 || sort === 7) { // general and item
-			aa = Quest.data[a].item || 'zzz';
-			bb = Quest.data[b].item || 'zzz';
-		} else if (sort === 1) { // name
-			aa = a;
-			bb = b;
-		} else if (sort === 2) { // area
-			aa = typeof Quest.data[a].land === 'number' && Quest.data[a].land < Quest.land.length ? Quest.land[Quest.data[a].land] : Quest.area[Quest.data[a].area];
-			bb = typeof Quest.data[b].land === 'number' && Quest.data[b].land < Quest.land.length ? Quest.land[Quest.data[b].land] : Quest.area[Quest.data[b].area];
-		} else if (sort === 3) { // level
-			aa = (typeof Quest.data[a].level !== 'undefined' ? Quest.data[a].level : -1) * 100 + (Quest.data[a].influence || 0);
-			bb = (typeof Quest.data[b].level !== 'undefined' ? Quest.data[b].level : -1) * 100 + (Quest.data[b].influence || 0);
-		} else if (sort === 4) { // energy
-			aa = Quest.data[a].energy;
-			bb = Quest.data[b].energy;
-		} else if (sort === 5) { // exp
-			aa = Quest.data[a].exp / Quest.data[a].energy;
-			bb = Quest.data[b].exp / Quest.data[b].energy;
-		} else if (sort === 6) { // reward
-			aa = Quest.data[a].reward / Quest.data[a].energy;
-			bb = Quest.data[b].reward / Quest.data[b].energy;
+	function getValue(q){
+		switch(sort) {
+			case 0:	// general
+				return Quest.data[q].general || 'zzz';
+			case 1: // name
+				return q;
+			case 2: // area
+				return typeof Quest.data[q].land === 'number' && typeof Quest.land[Quest.data[q].land] !== 'undefined' ? Quest.land[Quest.data[q].land] : Quest.area[Quest.data[q].area];
+			case 3: // level
+				return (typeof Quest.data[q].level !== 'undefined' ? Quest.data[q].level : -1) * 100 + (Quest.data[q].influence || 0);
+			case 4: // energy
+				return Quest.data[q].energy;
+			case 5: // exp
+				return Quest.data[q].exp / Quest.data[q].energy;
+			case 6: // reward
+				return Quest.data[q].reward / Quest.data[q].energy;
+			case 7: // item
+				return Quest.data[q].item || 'zzz';
 		}
+		return 0; // unknown
+	}
+	Quest.order.sort(function(a,b) {
+		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
 			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
 		}
@@ -3044,167 +3198,6 @@ Quest.dashboard = function(sort, rev) {
 	}
 };
 
-/********** Worker.Queue() **********
-* Keeps track of the worker queue
-*/
-var Queue = new Worker('Queue', '*');
-Queue.data = {
-	current: null
-};
-Queue.option = {
-	delay: 5,
-	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
-	start_stamina: 0,
-	stamina: 0,
-	start_energy: 0,
-	energy: 0
-};
-Queue.display = [
-	{
-		label:'Drag the other panels into the order you wish them run.'
-	},{
-		id:'delay',
-		label:'Delay Between Events',
-		text:true,
-		after:'secs',
-		size:3
-	},{
-		id:'clickdelay',
-		label:'Delay After Mouse Click',
-		text:true,
-		after:'secs',
-		size:3
-	},{
-		id:'start_stamina',
-		before:'Save',
-		select:'stamina',
-		after:'Stamina Before Using'
-	},{
-		id:'stamina',
-		before:'Always Keep',
-		select:'stamina',
-		after:'Stamina'
-	},{
-		id:'start_energy',
-		before:'Save',
-		select:'energy',
-		after:'Energy Before Using'
-	},{
-		id:'energy',
-		before:'Always Keep',
-		select:'energy',
-		after:'Energy'
-	}
-];
-Queue.runfirst = [];
-Queue.unsortable = true;
-Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
-Queue.lastrun = Date.now();		// Last time we ran
-Queue.burn = {stamina:false, energy:false};
-Queue.onload = function() {
-	var i, worker, found = {};
-	for (i=0; i<Queue.option.queue.length; i++) { // First find what we've already got
-		worker = WorkerByName(Queue.option.queue[i]);
-		if (worker) {
-			found[worker.name] = true;
-		}
-	}
-	for (i in Workers) { // Second add any new workers that have a display (ie, sortable)
-		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
-			continue;
-		}
-		GM_log('Adding '+Workers[i].name+' to Queue');
-		if (Workers[i].unsortable) {
-			Queue.option.queue.unshift(Workers[i].name);
-		} else {
-			Queue.option.queue.push(Workers[i].name);
-		}
-	}
-	for (i=0; i<Queue.option.queue.length; i++) {	// Third put them in saved order
-		worker = WorkerByName(Queue.option.queue[i]);
-		if (worker && worker.priv_id) {
-			if (Queue.data.current && worker.name === Queue.data.current) {
-				GM_debug('Queue: Trigger '+worker.name+' (continue after load)');
-				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
-			}
-			$('#golem_config').append($('#'+worker.priv_id));
-		}
-	}
-	$(document).click(function(){Queue.lastclick=Date.now();});
-	var play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82';
-	var pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%19tEXtSoftware%00Adobe%20ImageReadyq%C9e%3C%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82'
-
-	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">')
-		.click(function() {
-			Queue.option.pause ^= true;
-			GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
-			$(this).attr('src', (Queue.option.pause?play:pause));
-			Page.clear();
-			Config.updateOptions();
-		});
-	$('#golem_buttons').prepend($btn); // Make sure it comes first
-};
-Queue.run = function() {
-	var i, worker, found = false, now = Date.now();
-	if (Queue.option.pause || now - Queue.lastclick < Queue.option.clickdelay * 1000 || now - Queue.lastrun < Queue.option.delay * 1000) {
-		return;
-	}
-	Queue.lastrun = now;
-	if (Page.loading()) {
-		return; // We want to wait xx seconds after the page has loaded
-	}
-	Queue.burn.stamina = Queue.burn.energy = 0;
-	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
-		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
-		Queue.option.burn_stamina = Queue.burn.stamina > 0;
-	}
-	if (Queue.option.burn_energy || Player.data.energy >= Queue.option.start_energy) {
-		Queue.burn.energy = Math.max(0, Player.data.energy - Queue.option.energy);
-		Queue.option.burn_energy = Queue.burn.energy > 0;
-	}
-	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display) {
-			Workers[i].work(false);
-		}
-	}
-	for (i=0; i<Queue.option.queue.length; i++) {
-		worker = WorkerByName(Queue.option.queue[i]);
-		if (!worker || !worker.work || !worker.display) {
-			continue;
-		}
-		if (!worker.work(Queue.data.current === worker.name)) {
-			if (Queue.data.current === worker.name) {
-				Queue.data.current = null;
-				if (worker.priv_id) {
-					$('#'+worker.priv_id+' > h3').css('font-weight', 'normal');
-				}
-				GM_debug('Queue: End '+worker.name);
-			}
-			continue;
-		}
-		if (!found) { // We will work(false) everything, but only one gets work(true) at a time
-			found = true;
-			if (Queue.data.current === worker.name) {
-				continue;
-			}
-			worker.priv_since = now;
-			if (Queue.data.current) {
-				GM_debug('Queue: Interrupt '+Queue.data.current);
-				if (WorkerByName(Queue.data.current).priv_id) {
-					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3').css('font-weight', 'normal');
-				}
-			}
-			Queue.data.current = worker.name;
-			if (worker.priv_id) {
-				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
-			}
-			GM_debug('Queue: Trigger '+worker.name);
-		}
-	}
-	Settings.Save('option');
-	Settings.Save('data');
-};
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
@@ -3422,7 +3415,7 @@ Update.data = null;
 Update.option = null;
 Update.found = false;
 Update.onload = function() {
-	var $btn = $('<span class="golem-button" name="Script Update" id="golem_update">Check</span>').click(function(){Update.now(true);});
+	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){Update.now(true);});
 	$('#golem_buttons').append($btn);
 };
 Update.now = function(force) {
@@ -3445,7 +3438,7 @@ Update.now = function(force) {
 					}
 					if (remoteVersion>VERSION) {
 						Update.found = true;
-						$('#golem_update').text('Install');
+						$('#golem_update').attr('src', 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C8%C8%C8%C1%C1%C1%BA%BA%BA%F1%F1%F1ggg%FF%FF%FF%40%40%40%FF%FF%FF%7D%5C%EC%14%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00OIDATx%DA%8C%8FA%0A%C0%20%0C%04W%8D%EB%FF%7F%AC1%5BQi%A1s%0A%C3%24%10%B4%0B%7C%89%9COa%A4%ED%22q%906a%2CE%09%14%D4%AA%04%BA0%8AH%5C%80%02%12%3E%FB%0A%19b%06%BE2%13D%F0%F0.~%3E%B7%E8%02%0C%00Z%03%06Q9dE%25%00%00%00%00IEND%AEB%60%82').toggleClass('golem-button golem-button-active');
 						if (force) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
