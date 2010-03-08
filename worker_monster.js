@@ -311,11 +311,11 @@ Monster.parse = function(change) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
 				case 4:
-					if (Monster.types[type].raid && Monster.data[uid][type].health) {
-						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
-					} else {
+//					if (Monster.types[type].raid && Monster.data[uid][type].health) {
+//						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+//					} else {
 						Monster.data[uid][type].state = 'complete';
-					}
+//					}
 					break;
 				default: Monster.data[uid][type].state = 'unknown'; break; // Should probably delete, but keep it on the list...
 			}
@@ -506,7 +506,7 @@ Monster.dashboard = function(sort, rev) {
 			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
 			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');
 		} else {
-			output.push('', '', '', '', '');
+			output.push('', '', '', '', '', '');
 		}
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}

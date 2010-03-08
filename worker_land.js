@@ -46,7 +46,7 @@ Land.work = function(state) {
 	var i, best = null, worth = Bank.worth(), buy = 0;
 	for (var i in Land.data) {
 		if (Land.data[i].buy) {
-			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + Land[i].income)))) {
+			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + Land.data[i].income)))) {
 				best = i;
 			}
 		}

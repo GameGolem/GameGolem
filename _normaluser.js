@@ -702,7 +702,7 @@ Dashboard.onload = function() {
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
-			if (active === id) {
+			if (active === id && Dashboard.option.display === 'block') {
 				Workers[i].dashboard();
 			}
 		}
@@ -736,6 +736,9 @@ Dashboard.onload = function() {
 	$('#golem_toggle_dash').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
+		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
+			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
+		}
 		$('#golem-dashboard').toggle('drop');
 		Settings.Save('option', Dashboard);
 	});
@@ -747,7 +750,7 @@ Dashboard.onload = function() {
 }
 Dashboard.update = function(worker) {
 	var id = 'golem-dashboard-'+worker.name;
-	if (Dashboard.option.active === id) {
+	if (Dashboard.option.active === id && Dashboard.option.display === 'block') {
 		worker.dashboard();
 	} else {
 		$('#'+id).empty();
@@ -2210,7 +2213,7 @@ Land.work = function(state) {
 	var i, best = null, worth = Bank.worth(), buy = 0;
 	for (var i in Land.data) {
 		if (Land.data[i].buy) {
-			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + Land[i].income)))) {
+			if (!best || ((Land.data[best].cost / Player.data.income) + (Land.data[i].cost / Player.data.income + Land.data[best].income)) > ((Land.data[i].cost / Player.data.income) + (Land.data[best].cost / (Player.data.income + Land.data[i].income)))) {
 				best = i;
 			}
 		}
@@ -2560,11 +2563,11 @@ Monster.parse = function(change) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
 				case 3: Monster.data[uid][type].state = 'engage'; break;
 				case 4:
-					if (Monster.types[type].raid && Monster.data[uid][type].health) {
-						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
-					} else {
+//					if (Monster.types[type].raid && Monster.data[uid][type].health) {
+//						Monster.data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+//					} else {
 						Monster.data[uid][type].state = 'complete';
-					}
+//					}
 					break;
 				default: Monster.data[uid][type].state = 'unknown'; break; // Should probably delete, but keep it on the list...
 			}
@@ -2755,7 +2758,7 @@ Monster.dashboard = function(sort, rev) {
 			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
 			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');
 		} else {
-			output.push('', '', '', '', '');
+			output.push('', '', '', '', '', '');
 		}
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
