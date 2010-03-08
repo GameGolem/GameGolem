@@ -46,23 +46,25 @@ Quest.parse = function(change) {
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-		var name, level, influence, reward, units, energy;
-		if ($(el).hasClass('quests_background')) { // Main quest
-			name = $('div.qd_1 b', el).text().trim();
-			level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-			influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
-		} else if ($(el).hasClass('quests_background_sub')) { // Subquest
-			name = $('div.quest_sub_title', el).text().trim();
-			level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-			influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-			reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
-		} else if ($(el).hasClass('quests_background_special')) { // Special Quest
-			name = $('div.qd_1 b', el).text().trim();
-			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		var name, level, influence, reward, units, energy, tmp, type = 0;
+		if ($(el).hasClass('quests_background_sub')) { // Subquest
+			name = $('.quest_sub_title', el).text().trim();
+			reward = $('.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
+			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			type = 2;
+		} else {
+			name = $('.qd_1 b', el).text().trim();
+			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('.quest_req b', el).text().regex(/([0-9]+)/);
+			if ($(el).hasClass('quests_background')) { // Main quest
+				level = $('.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+				influence = $('.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+				type = 1;
+			} else { // Special Quest
+				type = 3;
+			}
 		}
 		if (!name) {
 			return;
@@ -79,42 +81,30 @@ Quest.parse = function(change) {
 		quest[name].exp = reward.shift();
 		quest[name].reward = (reward[0] + reward[1]) / 2;
 		quest[name].energy = energy;
-		if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
-			if ($('div.qd_1 img', el).attr('title')) {
-				quest[name].item = $('div.qd_1 img', el).attr('title').trim();
-				quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
-			}
-			if ($('div.quest_act_gen img', el).attr('title')) {
-				quest[name].general = $('div.quest_act_gen img', el).attr('title');
-			}
-			units = {};
-			$('div.quest_req > div > div > div', el).each(function(i,el){
-				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/([0-9]+)/);
-			});
-			if (units.length) {
-				quest[name].units = units;
-			}
-//				GM_debug('Quest: '+name+' = '+quest[name].toSource());
-		} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
-			quest[name].unique = true;
-			if ($('div.qd_1 img', el).last().length) {
-				quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
-				quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
-			}
-			units = {};
-			$('div.quest_req > div > div > div', el).each(function(i,el){
-				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/([0-9]+)/);
-			});
-			if (units.length) {
-				quest[name].units = units;
-			}
+		if (type === 2) { // Main quest has some extra stuff
+			return;
+		}
+		tmp = $('.qd_1 img', el).last();
+		if (tmp.length && tmp.attr('title')) {
+			quest[name].item	= tmp.attr('title').trim();
+			quest[name].itemimg	= tmp.attr('src').filepart();
+		}
+		units = {};
+		$('.quest_req > div > div > div', el).each(function(i,el){
+			var title = $('img', el).attr('title');
+			units[title] = $(el).text().regex(/([0-9]+)/);
+		});
+		if (units.length) {
+			quest[name].units = units;
+		}
+		tmp = $('.quest_act_gen img', el);
+		if (tmp.length && tmp.attr('title')) {
+			quest[name].general = tmp.attr('title');
 		}
 	});
 	if (Settings.Save(Quest)) {
 		Quest.select();
-		Quest.dashboard();
+		Dashboard.update(Quest);
 	}
 	return false;
 };

@@ -81,21 +81,15 @@ function parse_all() {
 		Page.reload();
 		return;
 	}
-	var i;
+	var i, list = [];
 	for (i in Workers) {
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-//			GM_debug(Workers[i].name + '.parse(false)');
-			Workers[i].priv_parse = Workers[i].parse(false);
-		} else {
-			Workers[i].priv_parse = false;
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
+			list.push(Workers[i]);
 		}
 	}
 	Settings.Save('data');
-	for (i in Workers) {
-		if (Workers[i].priv_parse) {
-//			GM_debug(Workers[i].name + '.parse(true)');
-			Workers[i].parse(true);
-		}
+	for (i in list) {
+		list[i].parse(true);
 	}
 }
 
@@ -443,7 +437,6 @@ function Worker(name,pages) {
 	this.display = null; //function(added) {return false;};
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
-	this.priv_parse = false;
 	this.priv_since = 0;
 	this.priv_id = null;
 }
@@ -709,12 +702,18 @@ Dashboard.onload = function() {
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			if (active === id) {
+				Workers[i].dashboard();
+			}
 		}
 	}
 	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APP+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
+		}
+		if (!$('#'+$(this).attr('name')).children().length) {
+			WorkerByName($(this).attr('name').substr(16)).dashboard();
 		}
 		if (Dashboard.option.active) {
 			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
@@ -745,6 +744,14 @@ Dashboard.onload = function() {
 			$(el).text(makeTimer($(el).text().parseTimer() - 1));
 		});
 	},1000);
+}
+Dashboard.update = function(worker) {
+	var id = 'golem-dashboard-'+worker.name;
+	if (active === id) {
+		worker.dashboard();
+	} else {
+		$('#'+id).empty();
+	}
 }
 
 /********** Worker.Page() **********
@@ -1417,7 +1424,7 @@ Battle.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Battle)) {
-		Battle.dashboard();
+		Dashboard.update(Battle);
 	}
 	return false;
 };
@@ -1683,9 +1690,8 @@ Generals.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Generals)) {
-		GM_debug('Updating Generals Dashboard');
 		Generals.select();
-		Generals.dashboard();
+		Dashboard.update(Generals);
 	}
 	return false;
 };
@@ -2576,7 +2582,7 @@ Monster.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Monster)) {
-		Monster.dashboard();
+		Dashboard.update(Monster);
 	}
 	return false;
 };
@@ -2789,17 +2795,21 @@ Player.parse = function(change) {
 		Page.reload();
 		return false;
 	}
-	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000);
+	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-	data.energy		= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxenergy	= $('#app'+APP+'_energy_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.health		= $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxhealth	= $('#app'+APP+'_health_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.stamina	= $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxstamina	= $('#app'+APP+'_stamina_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.exp		= $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxexp		= $('#app'+APP+'_st_2_5').text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.energy		= tmp[0] || 0;
+	data.maxenergy	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.health		= tmp[0] || 0;
+	data.maxhealth	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.stamina	= tmp[0] || 0;
+	data.maxstamina	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.exp		= tmp[0] || 0;
+	data.maxexp		= tmp[1] || 0;
 	data.level		= $('#app'+APP+'_st_5').text().regex(/Level: ([0-9]+)!/i);
 	data.armymax	= $('a[href*=army.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/);
 	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
@@ -2855,7 +2865,7 @@ Player.parse = function(change) {
 	data.average = Math.floor(data.average / length(data.average));
 	if (Settings.Save(Player)) {
 		Player.select();
-		Player.dashboard();
+		Dashboard.update(Player);
 	}
 	return false;
 };
@@ -3009,23 +3019,25 @@ Quest.parse = function(change) {
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-		var name, level, influence, reward, units, energy;
-		if ($(el).hasClass('quests_background')) { // Main quest
-			name = $('div.qd_1 b', el).text().trim();
-			level = $('div.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-			influence = $('div.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
-		} else if ($(el).hasClass('quests_background_sub')) { // Subquest
-			name = $('div.quest_sub_title', el).text().trim();
-			level = $('div.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-			influence = $('div.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-			reward = $('div.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.qd_3_sub', el).text().regex(/([0-9]+)/);
-		} else if ($(el).hasClass('quests_background_special')) { // Special Quest
-			name = $('div.qd_1 b', el).text().trim();
-			reward = $('div.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('div.quest_req b', el).text().regex(/([0-9]+)/);
+		var name, level, influence, reward, units, energy, tmp, type = 0;
+		if ($(el).hasClass('quests_background_sub')) { // Subquest
+			name = $('.quest_sub_title', el).text().trim();
+			reward = $('.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
+			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			type = 2;
+		} else {
+			name = $('.qd_1 b', el).text().trim();
+			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			energy = $('.quest_req b', el).text().regex(/([0-9]+)/);
+			if ($(el).hasClass('quests_background')) { // Main quest
+				level = $('.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
+				influence = $('.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+				type = 1;
+			} else { // Special Quest
+				type = 3;
+			}
 		}
 		if (!name) {
 			return;
@@ -3042,42 +3054,30 @@ Quest.parse = function(change) {
 		quest[name].exp = reward.shift();
 		quest[name].reward = (reward[0] + reward[1]) / 2;
 		quest[name].energy = energy;
-		if ($(el).hasClass('quests_background')) { // Main quest has some extra stuff
-			if ($('div.qd_1 img', el).attr('title')) {
-				quest[name].item = $('div.qd_1 img', el).attr('title').trim();
-				quest[name].itemimg = $('div.qd_1 img', el).attr('src').filepart();
-			}
-			if ($('div.quest_act_gen img', el).attr('title')) {
-				quest[name].general = $('div.quest_act_gen img', el).attr('title');
-			}
-			units = {};
-			$('div.quest_req > div > div > div', el).each(function(i,el){
-				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/([0-9]+)/);
-			});
-			if (units.length) {
-				quest[name].units = units;
-			}
-//				GM_debug('Quest: '+name+' = '+quest[name].toSource());
-		} else if ($(el).hasClass('quests_background_special') && $('input', el).length) { // Special quests have some extra stuff
-			quest[name].unique = true;
-			if ($('div.qd_1 img', el).last().length) {
-				quest[name].item = $('div.qd_1 img', el).last().attr('title').trim(); // We only want the last one
-				quest[name].itemimg = $('div.qd_1 img', el).last().attr('src').filepart();
-			}
-			units = {};
-			$('div.quest_req > div > div > div', el).each(function(i,el){
-				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/([0-9]+)/);
-			});
-			if (units.length) {
-				quest[name].units = units;
-			}
+		if (type === 2) { // Main quest has some extra stuff
+			return;
+		}
+		tmp = $('.qd_1 img', el).last();
+		if (tmp.length && tmp.attr('title')) {
+			quest[name].item	= tmp.attr('title').trim();
+			quest[name].itemimg	= tmp.attr('src').filepart();
+		}
+		units = {};
+		$('.quest_req > div > div > div', el).each(function(i,el){
+			var title = $('img', el).attr('title');
+			units[title] = $(el).text().regex(/([0-9]+)/);
+		});
+		if (units.length) {
+			quest[name].units = units;
+		}
+		tmp = $('.quest_act_gen img', el);
+		if (tmp.length && tmp.attr('title')) {
+			quest[name].general = tmp.attr('title');
 		}
 	});
 	if (Settings.Save(Quest)) {
 		Quest.select();
-		Quest.dashboard();
+		Dashboard.update(Quest);
 	}
 	return false;
 };
@@ -3302,7 +3302,7 @@ Town.parse = function(change) {
 		});
 		Town.data[Page.page.substr(5)] = unit;
 		if (Settings.Save(Town)) {
-			Town.dashboard();
+			Dashboard.update(Town);
 		}
 	} else {
 		if (Page.page==='town_blacksmith') {

@@ -20,17 +20,21 @@ Player.parse = function(change) {
 		Page.reload();
 		return false;
 	}
-	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000);
+	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-	data.energy		= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxenergy	= $('#app'+APP+'_energy_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.health		= $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxhealth	= $('#app'+APP+'_health_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.stamina	= $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxstamina	= $('#app'+APP+'_stamina_current_value').parent().text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
-	data.exp		= $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	data.maxexp		= $('#app'+APP+'_st_2_5').text().regex(/[0-9]+\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.energy		= tmp[0] || 0;
+	data.maxenergy	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.health		= tmp[0] || 0;
+	data.maxhealth	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.stamina	= tmp[0] || 0;
+	data.maxstamina	= tmp[1] || 0;
+	tmp = $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.exp		= tmp[0] || 0;
+	data.maxexp		= tmp[1] || 0;
 	data.level		= $('#app'+APP+'_st_5').text().regex(/Level: ([0-9]+)!/i);
 	data.armymax	= $('a[href*=army.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/);
 	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
@@ -86,7 +90,7 @@ Player.parse = function(change) {
 	data.average = Math.floor(data.average / length(data.average));
 	if (Settings.Save(Player)) {
 		Player.select();
-		Player.dashboard();
+		Dashboard.update(Player);
 	}
 	return false;
 };

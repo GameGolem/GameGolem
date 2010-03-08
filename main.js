@@ -28,21 +28,15 @@ function parse_all() {
 		Page.reload();
 		return;
 	}
-	var i;
+	var i, list = [];
 	for (i in Workers) {
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-//			GM_debug(Workers[i].name + '.parse(false)');
-			Workers[i].priv_parse = Workers[i].parse(false);
-		} else {
-			Workers[i].priv_parse = false;
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
+			list.push(Workers[i]);
 		}
 	}
 	Settings.Save('data');
-	for (i in Workers) {
-		if (Workers[i].priv_parse) {
-//			GM_debug(Workers[i].name + '.parse(true)');
-			Workers[i].parse(true);
-		}
+	for (i in list) {
+		list[i].parse(true);
 	}
 }
 

@@ -56,7 +56,7 @@ Town.parse = function(change) {
 		});
 		Town.data[Page.page.substr(5)] = unit;
 		if (Settings.Save(Town)) {
-			Town.dashboard();
+			Dashboard.update(Town);
 		}
 	} else {
 		if (Page.page==='town_blacksmith') {

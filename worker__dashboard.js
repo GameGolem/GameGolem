@@ -18,12 +18,18 @@ Dashboard.onload = function() {
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header'+(active===id ? ' golem-tab-header-active' : '')+'">'+Workers[i].name+'</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			if (active === id) {
+				Workers[i].dashboard();
+			}
 		}
 	}
 	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APP+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
+		}
+		if (!$('#'+$(this).attr('name')).children().length) {
+			WorkerByName($(this).attr('name').substr(16)).dashboard();
 		}
 		if (Dashboard.option.active) {
 			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
@@ -54,5 +60,13 @@ Dashboard.onload = function() {
 			$(el).text(makeTimer($(el).text().parseTimer() - 1));
 		});
 	},1000);
+}
+Dashboard.update = function(worker) {
+	var id = 'golem-dashboard-'+worker.name;
+	if (active === id) {
+		worker.dashboard();
+	} else {
+		$('#'+id).empty();
+	}
 }
 

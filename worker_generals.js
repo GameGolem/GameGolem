@@ -45,9 +45,8 @@ Generals.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Generals)) {
-		GM_debug('Updating Generals Dashboard');
 		Generals.select();
-		Generals.dashboard();
+		Dashboard.update(Generals);
 	}
 	return false;
 };

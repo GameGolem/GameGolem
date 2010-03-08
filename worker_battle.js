@@ -122,7 +122,7 @@ Battle.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Battle)) {
-		Battle.dashboard();
+		Dashboard.update(Battle);
 	}
 	return false;
 };

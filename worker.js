@@ -38,7 +38,6 @@ function Worker(name,pages) {
 	this.display = null; //function(added) {return false;};
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
-	this.priv_parse = false;
 	this.priv_since = 0;
 	this.priv_id = null;
 }

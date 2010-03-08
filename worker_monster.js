@@ -334,7 +334,7 @@ Monster.parse = function(change) {
 		}
 	}
 	if (Settings.Save(Monster)) {
-		Monster.dashboard();
+		Dashboard.update(Monster);
 	}
 	return false;
 };
