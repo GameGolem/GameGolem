@@ -2,7 +2,7 @@
 var debug = true;
 
 // Shouldn't touch
-var VERSION = 23.1;
+var VERSION = 24;
 var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
 

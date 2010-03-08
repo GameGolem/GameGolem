@@ -2,7 +2,7 @@
 // @name           Rycochet's Castle Age Golem
 // @namespace      golem
 // @description    Auto player for castle age game
-// @version        23.1
+// @version        24
 // @include        http*://apps.*facebook.com/castle_age/*
 // @require        http://cloutman.com/jquery-latest.min.js
 // @require        http://cloutman.com/jquery-ui-latest.min.js
@@ -55,7 +55,7 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 var debug = true;
 
 // Shouldn't touch
-var VERSION = 23.1;
+var VERSION = 24;
 var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
 
