@@ -44,13 +44,27 @@ Monster.types = {
 		timer:259200 // 72 hours
 	},
 	// Raid
+/*
+	raid_easy: {
+		name:'The Deathrune Siege',
+		list:'deathrune_list1.jpg',
+		image:'raid_1_large.jpg',// ???
+		image:'raid_2_large.jpg',// ???
+		
+		timer:216000, // 60 hours
+		timer:302400, // 84 hours
+		raid:true
+	},
+*/
 	raid: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list2.jpg',
-		list2:'deathrune_list1.jpg',
-		image:'raid_1_large.jpg',
-		image2:'raid_b1_large.jpg',
+		// raid_b1_large.jpg
+		image:'raid_map_1.jpg',
+		image2:'raid_map_2.jpg',
 		dead:'raid_1_large_victory.jpg',
+		timer:319920, // 88 hours, 52 minutes
+		timer2:519960, // 144 hours, 26 minutes
 		raid:true
 	},
 	// Epic Boss
@@ -209,16 +223,19 @@ Monster.onload = function() {
 	}
 }
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false;
+	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
-			if (Monster.types[i].image && $('img[src*="'+Monster.types[i].image+'"]').length) {
+			if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
 				type = i;
-			} else if (Monster.types[i].image2 && $('img[src*="'+Monster.types[i].image2+'"]').length) {
+				timer = Monster.types[i].timer;
+			} else if (Monster.types[i].image2 && $('img[src$="'+Monster.types[i].image2+'"]').length) {
 				type = i;
-			} else if (Monster.types[i].dead && $('img[src*="'+Monster.types[i].dead+'"]').length) {
+				timer = Monster.types[i].timer2 || Monster.types[i].timer;
+			} else if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
 				type = i;
+				timer = Monster.types[i].timer;
 				dead = true;
 			}
 		}
@@ -228,51 +245,52 @@ Monster.parse = function(change) {
 		}
 		Monster.data[uid] = Monster.data[uid] || {};
 		Monster.data[uid][type] = Monster.data[uid][type] || {};
+		monster = Monster.data[uid][type];
 		if ($('input[src*="collect_reward_button.jpg"]').length) {
-			Monster.data[uid][type].state = 'reward';
+			monster.state = 'reward';
 			return false;
 		}
-		if (dead && Monster.data[uid][type].state === 'assist') {
-			Monster.data[uid][type].state = null;
-		} else if (dead && Monster.data[uid][type].state === 'engage') {
-			Monster.data[uid][type].state = 'reward';
+		if (dead && monster.state === 'assist') {
+			monster.state = null;
+		} else if (dead && monster.state === 'engage') {
+			monster.state = 'reward';
 		} else {
-			if (!Monster.data[uid][type].state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
+			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
 				if ($('span.result_body').text().match(/for your help in summoning/i)) {
-					Monster.data[uid][type].assist = Date.now();
+					monster.assist = Date.now();
 				}
-				Monster.data[uid][type].state = 'assist';
+				monster.state = 'assist';
 			}
-			if (!Monster.data[uid][type].name) {
+			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
-				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+				monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
 			}
 			$health = $('img[src$="monster_health_background.jpg"]').parent();
-			Monster.data[uid][type].health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
+			monster.health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
 			if ($defense.length) {
-				Monster.data[uid][type].defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+				monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
 			}
 			$dispel = $('img[src$="bar_dispel.gif"]').parent();
 			if ($dispel.length) {
-				Monster.data[uid][type].dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
+				monster.dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
 			}
-			Monster.data[uid][type].timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
-			Monster.data[uid][type].finish = Date.now() + (Monster.data[uid][type].timer * 1000);
-			Monster.data[uid][type].damage_total = 0;
-			Monster.data[uid][type].damage = {};
+			monster.timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
+			monster.finish = Date.now() + (monster.timer * 1000);
+			monster.damage_total = 0;
+			monster.damage = {};
 			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 				var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-				Monster.data[uid][type].damage[user]  = (fort ? [dmg, fort] : [dmg]);
-				Monster.data[uid][type].damage_total += dmg;
+				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
+				monster.damage_total += dmg;
 			});
-			Monster.data[uid][type].dps = Monster.data[uid][type].damage_total / (Monster.types[type].timer - Monster.data[uid][type].timer);
+			monster.dps = monster.damage_total / (timer - monster.timer);
 			if (Monster.types[type].raid) {
-				Monster.data[uid][type].total = Monster.data[uid][type].damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
+				monster.total = monster.damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
 			} else {
-				Monster.data[uid][type].total = Math.floor(Monster.data[uid][type].damage_total / (100 - Monster.data[uid][type].health) * 100);
+				monster.total = Math.floor(monster.damage_total / (100 - monster.health) * 100);
 			}
-			Monster.data[uid][type].eta = Date.now() + (Math.floor((Monster.data[uid][type].total - Monster.data[uid][type].damage_total) / Monster.data[uid][type].dps) * 1000);
+			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
 		if (!$('#app'+APP+'_app_body div.imgButton').length) {
@@ -283,7 +301,7 @@ Monster.parse = function(change) {
 		}
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
-				if (((Page.page === 'battle_raid' && Monster.types[type].raid) || (Page.page === 'keep_monster' && !Monster.types[type].raid)) && (Monster.data[uid][type].state !== 'assist' || (Monster.data[uid][type].state === 'assist' && Monster.data[uid][type].finish < Date.now()))) {
+				if (((Page.page === 'battle_raid' && Monster.types[type].raid) || (Page.page === 'keep_monster' && !Monster.types[type].raid)) && (Monster.data[uid][type].state === 'complete' || (Monster.data[uid][type].state === 'assist' && Monster.data[uid][type].finish < Date.now()))) {
 					Monster.data[uid][type].state = null;
 				}
 			}

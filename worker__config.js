@@ -24,7 +24,7 @@ Config.onload = function() {
 	});
 	$('#golem_fixed').click(function(){
 		Config.option.fixed ^= true;
-		$(this).parent().parent().parent().toggleClass('golem-config-fixed');
+		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
 		Settings.Save('option', Config);
 	});
 	$golem_config = $('#golem_config');
