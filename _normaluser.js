@@ -55,12 +55,7 @@ var userID = 0;
 * Runs whenever the page contents changes
 */
 function parse_all() {
-	// Basic check to reload the page if needed...
 	Page.identify();
-	if (!Page.page || !$('#app'+APPID+'_nvbar_div_end').length) {
-		Page.reload();
-		return;
-	}
 	var i, list = [];
 	for (i in Workers) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
@@ -81,8 +76,6 @@ if (typeof APP !== 'undefined') {
 	$(document).ready(function() {
 		var i;
 		userID = $('head').html().regex(/user:([0-9]+),/i);
-//			userID = unsafeWindow.Env.user;
-		log(userID);
 		do_css();
 		Page.identify();
 		Settings.Load('data');
@@ -780,11 +773,6 @@ Page.display = [
 		label:'Retry after',
 		select:[10, 15, 30, 60],
 		after:'seconds'
-	},{
-		id:'retry',
-		label:'Reload after',
-		select:[2, 3, 5, 10],
-		after:'tries'
 	}
 ];
 Page.work = function(state) {
@@ -856,6 +844,10 @@ Page.pageNames = {
 };
 Page.identify = function() {
 	Page.page = '';
+	if (!$('#app'+APPID+'_globalContainer').length) {
+		Page.reload();
+		return null;
+	}
 	$('#app'+APPID+'_app_body img').each(function(i,el){
 		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
@@ -875,6 +867,7 @@ Page.identify = function() {
 //	debug('Page.identify("'+Page.page+'")');
 	return Page.page;
 };
+Page.loading = false;
 Page.to = function(page, args) {
 	if (page === Page.page && typeof args === 'undefined') {
 		return true;
@@ -892,13 +885,36 @@ Page.to = function(page, args) {
 			Page.last = Page.last + args;
 		}
 		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		if (unsafeWindow['a'+APPID+'_get_cached_ajax']) {
-			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
-		} else {
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
-		}
+		Page.load();
 	}
 	return false;
+}
+Page.load = function() {
+	$.ajax({
+		cache:false,
+		dataType:'text',
+		timeout:Page.option.timeout * 1000,
+		url:'http://apps.facebook.com/castle_age/'+Page.last,
+		error:function() {
+			debug('Page not loaded correctly, reloading.');
+			Page.load();
+		},
+		success:function(data){
+			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
+				Page.loading = false;
+				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
+				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
+			} else {
+				debug('Page not loaded correctly, reloading.');
+				Page.load();
+			}
+		}
+	});
+	Page.loading = true;
+	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
+}
+Page.reload = function() {
+	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
 };
 Page.click = function(el) {
 	if (!$(el).length) {
@@ -916,40 +932,6 @@ Page.click = function(el) {
 Page.clear = function() {
 	Page.last = Page.lastclick = Page.when = null;
 	Page.retry = 0;
-};
-Page.loading = function() {
-	if (!unsafeWindow['a'+APPID+'_get_cached_ajax']) {
-		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
-			Page.when = Date.now();
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		}
-		debug('Page not loaded correctly, reloading.');
-		return true;
-	}
-	if ($('#app'+APPID+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
-		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
-			Page.clear();
-		}
-		return false;
-	}
-	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
-		debug('Page.loading for 15+ seconds - retrying...');
-		Page.when = Date.now();
-		if (Page.retry++ >= Page.option.retry) {
-			debug('Page.loading for 1+ minutes - reloading...');
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		} else if (Page.last) {
-			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
-		} else if (Page.lastclick) {
-			Page.click(Page.lastclick);
-		}
-	}
-	return true;
-};
-Page.reload = function() {
-	if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) {
-		Page.to((Page.page || 'index'), '');
-	}
 };
 
 /********** Worker.Queue() **********
@@ -1056,7 +1038,7 @@ Queue.run = function() {
 		return;
 	}
 	Queue.lastrun = now;
-	if (Page.loading()) {
+	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
 	Queue.burn.stamina = Queue.burn.energy = 0;
@@ -1449,7 +1431,7 @@ Battle.work = function(state) {
 		return false;
 	}
 	for (i in user) {
-		if (user[i].dead && user[i].dead + 1800000 < Date.now()) {
+		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
 			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
 		}
 		if ((user[i].loss || 0) - (user[i].win || 0) >= Battle.option.losses) {
@@ -2487,16 +2469,16 @@ Monster.parse = function(change) {
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
-			if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
+			if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
+				type = i;
+				timer = Monster.types[i].timer;
+				dead = true;
+			} else if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
 				type = i;
 				timer = Monster.types[i].timer;
 			} else if (Monster.types[i].image2 && $('img[src$="'+Monster.types[i].image2+'"]').length) {
 				type = i;
 				timer = Monster.types[i].timer2 || Monster.types[i].timer;
-			} else if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
-				type = i;
-				timer = Monster.types[i].timer;
-				dead = true;
 			}
 		}
 		if (!uid || !type) {
@@ -2822,10 +2804,6 @@ Player.onload = function() {
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
 Player.parse = function(change) {
-	if (!$('#app'+APPID+'_app_body_container').length) {
-		Page.reload();
-		return false;
-	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -3203,7 +3181,7 @@ Quest.work = function(state) {
 	}
 	debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
 	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
-		Page.reload();
+		Page.reload(); // Shouldn't happen
 	}
 	if (Quest.option.unique && Quest.data[best].unique) {
 		if (!Page.to('keep_alchemy')) {
@@ -3549,7 +3527,7 @@ Upgrade.work = function(state) {
 			}
 			break;
 	}
-	Page.reload(); // We should never get to this point!
+	Page.reload(); // Only get here if we can't click!
 	return true;
 };
 

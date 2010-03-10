@@ -16,10 +16,6 @@ Player.onload = function() {
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
 Player.parse = function(change) {
-	if (!$('#app'+APPID+'_app_body_container').length) {
-		Page.reload();
-		return false;
-	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);

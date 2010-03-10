@@ -227,16 +227,16 @@ Monster.parse = function(change) {
 	if (Page.page === 'keep_monster_active') { // In a monster
 		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
-			if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
+			if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
+				type = i;
+				timer = Monster.types[i].timer;
+				dead = true;
+			} else if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
 				type = i;
 				timer = Monster.types[i].timer;
 			} else if (Monster.types[i].image2 && $('img[src$="'+Monster.types[i].image2+'"]').length) {
 				type = i;
 				timer = Monster.types[i].timer2 || Monster.types[i].timer;
-			} else if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
-				type = i;
-				timer = Monster.types[i].timer;
-				dead = true;
 			}
 		}
 		if (!uid || !type) {

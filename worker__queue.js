@@ -102,7 +102,7 @@ Queue.run = function() {
 		return;
 	}
 	Queue.lastrun = now;
-	if (Page.loading()) {
+	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
 	Queue.burn.stamina = Queue.burn.energy = 0;

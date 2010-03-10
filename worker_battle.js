@@ -142,7 +142,7 @@ Battle.work = function(state) {
 		return false;
 	}
 	for (i in user) {
-		if (user[i].dead && user[i].dead + 1800000 < Date.now()) {
+		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
 			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
 		}
 		if ((user[i].loss || 0) - (user[i].win || 0) >= Battle.option.losses) {

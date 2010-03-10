@@ -42,12 +42,7 @@ var userID = 0;
 * Runs whenever the page contents changes
 */
 function parse_all() {
-	// Basic check to reload the page if needed...
 	Page.identify();
-	if (!Page.page || !$('#app'+APPID+'_nvbar_div_end').length) {
-		Page.reload();
-		return;
-	}
 	var i, list = [];
 	for (i in Workers) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
@@ -68,7 +63,6 @@ if (typeof APP !== 'undefined') {
 	$(document).ready(function() {
 		var i;
 		userID = $('head').html().regex(/user:([0-9]+),/i);
-		log(userID);
 		do_css();
 		Page.identify();
 		Settings.Load('data');

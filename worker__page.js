@@ -19,11 +19,6 @@ Page.display = [
 		label:'Retry after',
 		select:[10, 15, 30, 60],
 		after:'seconds'
-	},{
-		id:'retry',
-		label:'Reload after',
-		select:[2, 3, 5, 10],
-		after:'tries'
 	}
 ];
 Page.work = function(state) {
@@ -95,6 +90,10 @@ Page.pageNames = {
 };
 Page.identify = function() {
 	Page.page = '';
+	if (!$('#app'+APPID+'_globalContainer').length) {
+		Page.reload();
+		return null;
+	}
 	$('#app'+APPID+'_app_body img').each(function(i,el){
 		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
@@ -114,6 +113,7 @@ Page.identify = function() {
 //	debug('Page.identify("'+Page.page+'")');
 	return Page.page;
 };
+Page.loading = false;
 Page.to = function(page, args) {
 	if (page === Page.page && typeof args === 'undefined') {
 		return true;
@@ -131,13 +131,36 @@ Page.to = function(page, args) {
 			Page.last = Page.last + args;
 		}
 		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		if (unsafeWindow['a'+APPID+'_get_cached_ajax']) {
-			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
-		} else {
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
-		}
+		Page.load();
 	}
 	return false;
+}
+Page.load = function() {
+	$.ajax({
+		cache:false,
+		dataType:'text',
+		timeout:Page.option.timeout * 1000,
+		url:'http://apps.facebook.com/castle_age/'+Page.last,
+		error:function() {
+			debug('Page not loaded correctly, reloading.');
+			Page.load();
+		},
+		success:function(data){
+			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
+				Page.loading = false;
+				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
+				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
+			} else {
+				debug('Page not loaded correctly, reloading.');
+				Page.load();
+			}
+		}
+	});
+	Page.loading = true;
+	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
+}
+Page.reload = function() {
+	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
 };
 Page.click = function(el) {
 	if (!$(el).length) {
@@ -155,39 +178,5 @@ Page.click = function(el) {
 Page.clear = function() {
 	Page.last = Page.lastclick = Page.when = null;
 	Page.retry = 0;
-};
-Page.loading = function() {
-	if (!unsafeWindow['a'+APPID+'_get_cached_ajax']) {
-		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
-			Page.when = Date.now();
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		}
-		debug('Page not loaded correctly, reloading.');
-		return true;
-	}
-	if ($('#app'+APPID+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
-		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
-			Page.clear();
-		}
-		return false;
-	}
-	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
-		debug('Page.loading for 15+ seconds - retrying...');
-		Page.when = Date.now();
-		if (Page.retry++ >= Page.option.retry) {
-			debug('Page.loading for 1+ minutes - reloading...');
-			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
-		} else if (Page.last) {
-			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
-		} else if (Page.lastclick) {
-			Page.click(Page.lastclick);
-		}
-	}
-	return true;
-};
-Page.reload = function() {
-	if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) {
-		Page.to((Page.page || 'index'), '');
-	}
 };
 

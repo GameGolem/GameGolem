@@ -62,7 +62,7 @@ Upgrade.work = function(state) {
 			}
 			break;
 	}
-	Page.reload(); // We should never get to this point!
+	Page.reload(); // Only get here if we can't click!
 	return true;
 };
 

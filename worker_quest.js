@@ -200,7 +200,7 @@ Quest.work = function(state) {
 	}
 	debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
 	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
-		Page.reload();
+		Page.reload(); // Shouldn't happen
 	}
 	if (Quest.option.unique && Quest.data[best].unique) {
 		if (!Page.to('keep_alchemy')) {
