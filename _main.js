@@ -3,26 +3,40 @@ var show_debug = true;
 
 // Shouldn't touch
 var VERSION = 24;
-var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
 
 // Decide which facebook app we're in...
-if (window.location.pathname.indexOf('castle_age') === 1) { // "/castle_age/blah"
-	var APP = 'castle_age';
-	var APPID = '46755028429';
-	var APPNAME = 'Castle Age';
-	var PREFIX = 'golem'+APP+'_';
+var applications = {
+	'castle_age':['46755028429', 'Castle Age']
+};
+
+if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
+	for (var i in applications) {
+		if (window.location.pathname.indexOf(i) === 1) {
+			var APP = i;
+			var APPID = applications[i][0];
+			var APPNAME = applications[i][1];
+			var PREFIX = 'golem'+APP+'_';
+			break;
+		}
+	}
 }
 
-function log(txt) {
+var log = function(txt) {
 	console.log(txt);
-}
+};
 
-function debug(txt) {
+var debug = function(txt) {
 	if (show_debug) {
 		console.log(txt);
 	}
+};
+
+if (typeof unsafeWindow === 'undefined') {
+	unsafeWindow = window;
 }
+
+var userID = 0;
 
 /********** parse_all() **********
 * Runs whenever the page contents changes
@@ -46,13 +60,16 @@ function parse_all() {
 	}
 }
 
-/********** $(document).ready() **********
+/********** main() **********
 * Runs when the page has finished loading, but the external data might still be coming in
 */
 if (typeof APP !== 'undefined') {
 	var node_trigger = null;
 	$(document).ready(function() {
 		var i;
+		userID = $('head').html().regex(/user:([0-9]+),/i);
+		log(userID);
+		do_css();
 		Page.identify();
 		Settings.Load('data');
 		Settings.Load('option');

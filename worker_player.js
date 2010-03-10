@@ -21,7 +21,6 @@ Player.parse = function(change) {
 		return false;
 	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
-	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;

@@ -11,13 +11,110 @@
 // -- @include        http://www.facebook.com/reqs.php#confirm_46755028429_0
 // -- @include        http://www.facebook.com/home.php
 // -- @include        http://www.facebook.com/home.php*filter=app_46755028429*
+// User changeable
+var show_debug = true;
+
+// Shouldn't touch
+var VERSION = 24;
+var script_started = Date.now();
+
+// Decide which facebook app we're in...
+var applications = {
+	'castle_age':['46755028429', 'Castle Age']
+};
+
+if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
+	for (var i in applications) {
+		if (window.location.pathname.indexOf(i) === 1) {
+			var APP = i;
+			var APPID = applications[i][0];
+			var APPNAME = applications[i][1];
+			var PREFIX = 'golem'+APP+'_';
+			break;
+		}
+	}
+}
+
+var log = function(txt) {
+	console.log(txt);
+};
+
+var debug = function(txt) {
+	if (show_debug) {
+		console.log(txt);
+	}
+};
+
+if (typeof unsafeWindow === 'undefined') {
+	unsafeWindow = window;
+}
+
+var userID = 0;
+
+/********** parse_all() **********
+* Runs whenever the page contents changes
+*/
+function parse_all() {
+	// Basic check to reload the page if needed...
+	Page.identify();
+	if (!Page.page || !$('#app'+APPID+'_nvbar_div_end').length) {
+		Page.reload();
+		return;
+	}
+	var i, list = [];
+	for (i in Workers) {
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
+			list.push(Workers[i]);
+		}
+	}
+	Settings.Save('data');
+	for (i in list) {
+		list[i].parse(true);
+	}
+}
+
+/********** main() **********
+* Runs when the page has finished loading, but the external data might still be coming in
+*/
+if (typeof APP !== 'undefined') {
+	var node_trigger = null;
+	$(document).ready(function() {
+		var i;
+		userID = $('head').html().regex(/user:([0-9]+),/i);
+//			userID = unsafeWindow.Env.user;
+		log(userID);
+		do_css();
+		Page.identify();
+		Settings.Load('data');
+		Settings.Load('option');
+		for (i in Workers) {
+			if (Workers[i].onload) {
+				Workers[i].onload();
+			}
+			if (Workers[i].dashboard) {
+				Workers[i].dashboard();
+			}
+		}
+		parse_all(); // Call once to get the ball rolling...
+		$('body').bind('DOMNodeInserted', function(event){
+			// Only perform the check on the two id's referenced in get_cached_ajax()
+			// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
+			if (!node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
+				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
+			}
+		});
+		// Running the queue every second, options within it give more delay
+		window.setInterval(function(){Queue.run();},1000);
+	});
+}
+
 /********** CSS code **********
 * Gets pushed into the <head> on loading
 */
-
+function do_css(){
 $('head').append("<style type=\"text/css\">\
 .golem-config { float: none; margin-right: 0; }\
-.golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto;  }\
+.golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
@@ -43,93 +140,14 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
 .golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
-.golem-panel-show  > .golem-panel-header, .golem-panel-show  > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
+.golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
 .golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
 .golem-panel-sortable .golem-lock { display: none; }\
 .golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C%D4%13%60%C0%10%60%C0%10%60%C0%10%60%20%A4%82%90-%149%1D%20%C0%00%81%0E%00%F1%DE%25%95%BE%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%001IDATx%DAb%60D%03%0CD%0B000%A0%0800%C0D%E0%02%8C(%02%0C%0Cp%25%B8%05%18%09%0A%A0j%C1%B4%96%1C%BF%C0%01%40%80%01%00n%11%00%CF%7D%2Bk%9B%00%00%00%00IEND%AEB%60%82') no-repeat;}\
 .golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 </style>");
-
-// User changeable
-var show_debug = true;
-
-// Shouldn't touch
-var VERSION = 24;
-var userID = unsafeWindow.Env.user; // Facebook userid
-var script_started = Date.now();
-
-// Decide which facebook app we're in...
-if (window.location.pathname.indexOf('castle_age') === 1) { // "/castle_age/blah"
-	var APP = 'castle_age';
-	var APPID = '46755028429';
-	var APPNAME = 'Castle Age';
-	var PREFIX = 'golem'+APP+'_';
 }
-
-function log(txt) {
-	console.log(txt);
-}
-
-function debug(txt) {
-	if (show_debug) {
-		console.log(txt);
-	}
-}
-
-/********** parse_all() **********
-* Runs whenever the page contents changes
-*/
-function parse_all() {
-	// Basic check to reload the page if needed...
-	Page.identify();
-	if (!Page.page || !$('#app'+APPID+'_nvbar_div_end').length) {
-		Page.reload();
-		return;
-	}
-	var i, list = [];
-	for (i in Workers) {
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
-			list.push(Workers[i]);
-		}
-	}
-	Settings.Save('data');
-	for (i in list) {
-		list[i].parse(true);
-	}
-}
-
-/********** $(document).ready() **********
-* Runs when the page has finished loading, but the external data might still be coming in
-*/
-if (typeof APP !== 'undefined') {
-	var node_trigger = null;
-	$(document).ready(function() {
-		var i;
-		Page.identify();
-		Settings.Load('data');
-		Settings.Load('option');
-		for (i in Workers) {
-			if (Workers[i].onload) {
-				Workers[i].onload();
-			}
-			if (Workers[i].dashboard) {
-				Workers[i].dashboard();
-			}
-		}
-		parse_all(); // Call once to get the ball rolling...
-		$('body').bind('DOMNodeInserted', function(event){
-			// Only perform the check on the two id's referenced in get_cached_ajax()
-			// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
-			if (!node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
-				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
-			}
-		});
-		// Running the queue every second, options within it give more delay
-		window.setInterval(function(){Queue.run();},1000);
-	});
-}
-
 /********** Settings **********
 * Used for storing prefs in localStorage
 * Should never be called by anyone directly - let the main function do it when needed
@@ -442,8 +460,6 @@ Config.panel = null;
 Config.onload = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
-	
-	//<img id="golem_working" src="http://cloutman.com/css/base/images/ui-anim.basic.16x16.gif" style="border:0;float:right;display:none;" alt="Working...">
 	Config.panel = $('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after(Config.panel);
 	$('#golem_options').click(function(){
@@ -518,8 +534,6 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
-// padlock = data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFVVVVAAAA9QSfoAAAAAJ0Uk5T%2FwDltzBKAAAAMUlEQVR42mJgRAMMRAswMDCgCDAwwETgAowoAgwMcCW4BRgJCqBqwbSWHL%2FAAUCAAQBuEQDPfStrmwAAAABJRU5ErkJggg%3D%3D
-// arrow-right
 	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.priv_id);
 	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
@@ -2813,7 +2827,6 @@ Player.parse = function(change) {
 		return false;
 	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
-	data.FBID		= unsafeWindow.Env.user;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;
