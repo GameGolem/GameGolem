@@ -16,29 +16,29 @@ Player.onload = function() {
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
 Player.parse = function(change) {
-	if (!$('#app'+APP+'_app_body_container').length) {
+	if (!$('#app'+APPID+'_app_body_container').length) {
 		Page.reload();
 		return false;
 	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.FBID		= unsafeWindow.Env.user;
-	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-	tmp = $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.exp		= tmp[0] || 0;
 	data.maxexp		= tmp[1] || 0;
-	data.level		= $('#app'+APP+'_st_5').text().regex(/Level: ([0-9]+)!/i);
-	data.armymax	= $('a[href*=army.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/);
+	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
+	data.armymax	= $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/);
 	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
-	data.upgrade	= ($('a[href*=keep.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/) || 0);
+	data.upgrade	= ($('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/) || 0);
 	data.general	= $('div.general_name_div3').first().text().trim();
 	data.imagepath	= $('div.general_pic_div3 img').attr('src').pathpart();
 	if (Page.page==='keep_stats') {
@@ -96,21 +96,21 @@ Player.parse = function(change) {
 };
 Player.work = function(state) {
 	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 // Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APP+'_gold_time_value').text().parseTimer();
+//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
 	var when = new Date();
 	when = Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
 	if (when < 0) {
 		when += 3600;
 	}
 	Player.data.cash_timer		= when;
-	Player.data.energy			= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APP+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APP+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APP+'_stamina_time_value').text().parseTimer();
+	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
+	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
+	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 };
 Player.select = function() {
 	var step = Divisor(Player.data.maxstamina)

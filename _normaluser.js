@@ -52,32 +52,38 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 </style>");
 
 // User changeable
-var debug = true;
+var show_debug = true;
 
 // Shouldn't touch
 var VERSION = 24;
 var userID = unsafeWindow.Env.user; // Facebook userid
 var script_started = Date.now();
 
-// "Fake" constants - more to be added later, just not yet...
-var constants = {
-	'castle_age':{
-		appid:'46755028429',
-		appname:'Castle Age'
-	}
-};
-var APP = null;
-var APPID = null;
-var APPNAME = null;
-var PREFIX = null;
+// Decide which facebook app we're in...
+if (window.location.pathname.indexOf('castle_age') === 1) { // "/castle_age/blah"
+	var APP = 'castle_age';
+	var APPID = '46755028429';
+	var APPNAME = 'Castle Age';
+	var PREFIX = 'golem'+APP+'_';
+}
 
-/********** main() **********
-* Runs every second, only does something when the page changes
+function log(txt) {
+	console.log(txt);
+}
+
+function debug(txt) {
+	if (show_debug) {
+		console.log(txt);
+	}
+}
+
+/********** parse_all() **********
+* Runs whenever the page contents changes
 */
 function parse_all() {
 	// Basic check to reload the page if needed...
 	Page.identify();
-	if (!Page.page || !$('#app'+APP+'_nvbar_div_end').length) {
+	if (!Page.page || !$('#app'+APPID+'_nvbar_div_end').length) {
 		Page.reload();
 		return;
 	}
@@ -96,25 +102,13 @@ function parse_all() {
 /********** $(document).ready() **********
 * Runs when the page has finished loading, but the external data might still be coming in
 */
-var node_trigger = null;
-$(document).ready(function() {
-	var i, app = window.location.href.regex(/^https?:\/\/[^\/]+\.facebook\.[^\/]+\/([^\/]+)\//i);
-	for (i in constants) {
-		if (app === i) {
-			APP = constants[i].appid;
-			APPID = i;
-			APPNAME = constants[i].appname;
-			PREFIX = 'golem'+APP+'_';
-		}
-	}
-	if (!APP) {
-		// Don't know where we are, but we're not home!!!
-		return;
-	}
-	Page.identify();
-	Settings.Load('data');
-	Settings.Load('option');
-	if (APPID === 'castle_age') {
+if (typeof APP !== 'undefined') {
+	var node_trigger = null;
+	$(document).ready(function() {
+		var i;
+		Page.identify();
+		Settings.Load('data');
+		Settings.Load('option');
 		for (i in Workers) {
 			if (Workers[i].onload) {
 				Workers[i].onload();
@@ -127,52 +121,50 @@ $(document).ready(function() {
 		$('body').bind('DOMNodeInserted', function(event){
 			// Only perform the check on the two id's referenced in get_cached_ajax()
 			// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
-			if (!node_trigger && ($(event.target).attr('id') === 'app'+APP+'_app_body_container' || $(event.target).attr('id') === 'app'+APP+'_globalContainer')) {
+			if (!node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
 				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
 			}
 		});
 		// Running the queue every second, options within it give more delay
 		window.setInterval(function(){Queue.run();},1000);
-	}
-});
+	});
+}
 
 /********** Settings **********
-* Used for storing prefs, prefer to use this over GM_set/getValue
+* Used for storing prefs in localStorage
 * Should never be called by anyone directly - let the main function do it when needed
 */
+if (typeof localStorage === "undefined") {
+	if (typeof window.localStorage !== "undefined") {
+		var localStorage = window.localStorage;
+	} else if (typeof globalStorage !== "undefined") {
+		var localStorage = globalStorage[location.hostname];
+	}
+}
 var Settings = {
-	userID: unsafeWindow.Env.user,
-	cache: {},
 	SetValue:function(n,v) {
 		if (typeof v === 'string') {
 			v = '"' + v + '"';
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof Settings.cache[n] !== 'undefined' && Settings.cache[n] !== v) {
-			Settings.cache[n] = v;
-			GM_setValue(Settings.userID + '.' + n, v);
+		if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
+			localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	},
 	GetValue:function(n,d) {
-		var v = null;
-		Settings.cache[n] = GM_getValue(Settings.userID + '.' + n, d);
-		if (typeof Settings.cache[n] === 'string') {
-			if (Settings.cache[n].charAt(0) === '"') {
-				v = Settings.cache[n].replace(/^"|"$/g,'');
-			} else if (Settings.cache[n].charAt(0) === '(' || Settings.cache[n].charAt(0) === '[') {
+		var v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || d;
+		if (typeof v === 'string') {
+			if (v.charAt(0) === '"') {
+				v = v.replace(/^"|"$/g,'');
+			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
+				v = eval(v);
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, {}, d, eval(Settings.cache[n]));
-				} else {
-					v = eval(Settings.cache[n]);
+					v = $.extend(true, {}, d, v);
 				}
 			}
-		}
-		if (v === null) {
-			v = Settings.cache[n];
 		}
 		return v;
 	},
@@ -277,10 +269,6 @@ Number.prototype.round = function(dec) {
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
-if(typeof GM_debug === 'undefined') {
-	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
-}
-
 var makeTimer = function(sec) {
 	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
@@ -376,7 +364,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
 		if (user) {
 			if (Math.min(count, own) > 0) {
-//				GM_debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+list[units[i]].toSource());
+//				debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+list[units[i]].toSource());
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}
@@ -637,7 +625,7 @@ Config.makePanel = function(worker) {
 	}
 };
 Config.updateOptions = function() {
-	GM_debug('Options changed');
+	debug('Options changed');
 	// Get order of panels first
 	var found = {};
 	Queue.option.queue = [];
@@ -707,7 +695,7 @@ Dashboard.onload = function() {
 			}
 		}
 	}
-	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APP+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	Dashboard.div = $('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + Dashboard.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
@@ -854,7 +842,7 @@ Page.pageNames = {
 };
 Page.identify = function() {
 	Page.page = '';
-	$('#app'+APP+'_app_body img').each(function(i,el){
+	$('#app'+APPID+'_app_body img').each(function(i,el){
 		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
 			if (filename === Page.pageNames[p].image) {
@@ -862,7 +850,7 @@ Page.identify = function() {
 			}
 		}
 	});
-	if ($('#app'+APP+'_indexNewFeaturesBox').length) {
+	if ($('#app'+APPID+'_indexNewFeaturesBox').length) {
 		Page.page = 'index';
 	} else if ($('div[style*="giftpage_title.jpg"]').length) {
 		Page.page = 'army_gifts';
@@ -870,7 +858,7 @@ Page.identify = function() {
 	if (Page.page !== '') {
 		Page.data[Page.page] = Date.now();
 	}
-//	GM_debug('Page.identify("'+Page.page+'")');
+//	debug('Page.identify("'+Page.page+'")');
 	return Page.page;
 };
 Page.to = function(page, args) {
@@ -889,9 +877,9 @@ Page.to = function(page, args) {
 		} else {
 			Page.last = Page.last + args;
 		}
-		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
+		if (unsafeWindow['a'+APPID+'_get_cached_ajax']) {
+			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
 		} else {
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
 		}
@@ -900,7 +888,7 @@ Page.to = function(page, args) {
 };
 Page.click = function(el) {
 	if (!$(el).length) {
-		GM_debug('Page.click: Unable to find element - '+el);
+		debug('Page.click: Unable to find element - '+el);
 		return false;
 	}
 	var e = document.createEvent("MouseEvents");
@@ -916,28 +904,28 @@ Page.clear = function() {
 	Page.retry = 0;
 };
 Page.loading = function() {
-	if (!unsafeWindow['a'+APP+'_get_cached_ajax']) {
+	if (!unsafeWindow['a'+APPID+'_get_cached_ajax']) {
 		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
 			Page.when = Date.now();
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
 		}
-		GM_debug('Page not loaded correctly, reloading.');
+		debug('Page not loaded correctly, reloading.');
 		return true;
 	}
-	if ($('#app'+APP+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
+	if ($('#app'+APPID+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
 		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
 			Page.clear();
 		}
 		return false;
 	}
 	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
-		GM_debug('Page.loading for 15+ seconds - retrying...');
+		debug('Page.loading for 15+ seconds - retrying...');
 		Page.when = Date.now();
 		if (Page.retry++ >= Page.option.retry) {
-			GM_debug('Page.loading for 1+ minutes - reloading...');
+			debug('Page.loading for 1+ minutes - reloading...');
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
 		} else if (Page.last) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
 		} else if (Page.lastclick) {
 			Page.click(Page.lastclick);
 		}
@@ -1020,7 +1008,7 @@ Queue.onload = function() {
 		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
 			continue;
 		}
-		GM_log('Adding '+Workers[i].name+' to Queue');
+		log('Adding '+Workers[i].name+' to Queue');
 		if (Workers[i].unsortable) {
 			Queue.option.queue.unshift(Workers[i].name);
 		} else {
@@ -1031,7 +1019,7 @@ Queue.onload = function() {
 		worker = WorkerByName(Queue.option.queue[i]);
 		if (worker && worker.priv_id) {
 			if (Queue.data.current && worker.name === Queue.data.current) {
-				GM_debug('Queue: Trigger '+worker.name+' (continue after load)');
+				debug('Queue: Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.priv_id));
@@ -1041,7 +1029,7 @@ Queue.onload = function() {
 
 	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
-		GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
+		debug('State: '+((Queue.option.pause)?"paused":"running"));
 		$(this).attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
@@ -1082,7 +1070,7 @@ Queue.run = function() {
 				if (worker.priv_id) {
 					$('#'+worker.priv_id+' > h3').css('font-weight', 'normal');
 				}
-				GM_debug('Queue: End '+worker.name);
+				debug('Queue: End '+worker.name);
 			}
 			continue;
 		}
@@ -1093,7 +1081,7 @@ Queue.run = function() {
 			}
 			worker.priv_since = now;
 			if (Queue.data.current) {
-				GM_debug('Queue: Interrupt '+Queue.data.current);
+				debug('Queue: Interrupt '+Queue.data.current);
 				if (WorkerByName(Queue.data.current).priv_id) {
 					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3').css('font-weight', 'normal');
 				}
@@ -1102,7 +1090,7 @@ Queue.run = function() {
 			if (worker.priv_id) {
 				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
-			GM_debug('Queue: Trigger '+worker.name);
+			debug('Queue: Trigger '+worker.name);
 		}
 	}
 	Settings.Save('option');
@@ -1144,7 +1132,7 @@ Update.now = function(force) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
 						}
-						GM_log('New version available: '+remoteVersion);
+						log('New version available: '+remoteVersion);
 					} else if (force) {
 						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
 						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });
@@ -1215,7 +1203,7 @@ Alchemy.work = function(state) {
 	if (!found) {return false;}
 	if (!state) {return true;}
 	if (!Page.to('keep_alchemy')) {return true;}
-	GM_debug('Alchemy: Perform - '+found);
+	debug('Alchemy: Perform - '+found);
 	$('div.alchemyRecipeBack').each(function(i,el){
 		if($('div.recipeTitle', el).text().indexOf(found) >=0) {
 			Page.click($('input[type="image"]', el));
@@ -1379,8 +1367,8 @@ Battle.parse = function(change) {
 			}
 			Battle.data.attacking = null;
 		}
-		Battle.data.points = $('#app'+APP+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
-		$('#app'+APP+'_app_body table.layout table table tr:even').each(function(i,el){
+		Battle.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
 				return;
@@ -1404,7 +1392,7 @@ Battle.parse = function(change) {
 			}
 		}
 		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
-			GM_debug('Battle: Pruning target cache');
+			debug('Battle: Pruning target cache');
 			for (i in data) {
 				list.push(i);
 			}
@@ -1467,10 +1455,10 @@ Battle.work = function(state) {
 		return true;
 	}
 	uid = list[Math.floor(Math.random() * list.length)];
-	GM_debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
+	debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
 	$form = $('form input[alt="'+Battle.option.type+'"]').first().parents('form');
 	if (!$form.length) {
-		GM_log('Battle: Unable to find attack buttons, forcing reload');
+		log('Battle: Unable to find attack buttons, forcing reload');
 		Page.to('index');
 		return false;
 	}
@@ -1574,7 +1562,7 @@ Blessing.work = function(state) {
 	if (!Page.to('oracle_demipower')) {
 		return true;
 	}
-	Page.click('#app'+APP+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
+	Page.click('#app'+APPID+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
 	return false;
 };
 
@@ -1608,7 +1596,7 @@ Elite.parse = function(change) {
 			Elite.data[$('img', el).attr('uid')] = Date.now() + 3600000; // 1 hour
 		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.option.wait = Date.now();
-			GM_debug('Elite guard full, wait 24 hours');
+			debug('Elite guard full, wait 24 hours');
 		}
 	});
 	if (Page.page === 'army_viewarmy') {
@@ -1639,7 +1627,7 @@ Elite.work = function(state) {
 	if (!found && !length(Elite.data) && !Page.to('army_viewarmy')) {
 		return true;
 	}
-	GM_debug('Elite: Add member '+found);
+	debug('Elite: Add member '+found);
 	if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + found)) {
 		return true;
 	}
@@ -1657,7 +1645,7 @@ Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
 	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
 	if ($elements.length < length(Generals.data)) {
 		Page.to('heroes_generals', ''); // Force reload
 		return false;
@@ -1704,13 +1692,13 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!Generals.data[name]) {
-		GM_log('General "'+name+'" requested but not found!');
+		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!Page.to('heroes_generals')) {
 		return false;
 	}
-	GM_debug('Changing to General '+name);
+	debug('Changing to General '+name);
 	Page.click('input[src$="'+Generals.data[name].img+'"]');
 	return false;
 };
@@ -1766,7 +1754,7 @@ Generals.best = function(type) {
 		}
 	}
 	if (best) {
-		GM_debug('Best general found: '+best);
+		debug('Best general found: '+best);
 	}
 	return best;
 };
@@ -1928,7 +1916,7 @@ Gift.parse = function(change) {
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first
-		GM_debug('Gift: Checking for accepted');
+		debug('Gift: Checking for accepted');
 		if (Gift.data.lastgift) {
 			if ($('div.result').text().indexOf('accepted the gift') >= 0) {
 				uid = Gift.data.lastgift;
@@ -1940,20 +1928,20 @@ Gift.parse = function(change) {
 			}
 		}
 		// Check for gifts
-		GM_debug('Gift: Checking for new gift to accept');
+		debug('Gift: Checking for new gift to accept');
 		uid = Gift.data.uid = [];
 		if ($('div.messages').text().indexOf('gift') >= 0) {
-			GM_debug('Gift: Found gift div');
+			debug('Gift: Found gift div');
 			$('div.messages img').each(function(i,el) {
 				uid.push($(el).attr('uid'));
-				GM_debug('Gift: Adding gift from '+$(el).attr('uid'));
+				debug('Gift: Adding gift from '+$(el).attr('uid'));
 			});
 		}
 	} else if (Page.page === 'army_gifts') {
 		gifts = Gift.data.gifts = {};
-//		GM_debug('Gifts found: '+$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').length);
-		$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').each(function(i,el){
-//			GM_debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
+//		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
+		$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').each(function(i,el){
+//			debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!','');
 			if (!gifts[id]) {
 				gifts[id] = {};
@@ -1983,7 +1971,7 @@ Gift.work = function(state) {
 		}
 		Gift.data.todo[uid].time = Date.now();
 		Gift.data.lastgift = uid;
-		GM_debug('Gift: Accepting gift from '+uid);
+		debug('Gift: Accepting gift from '+uid);
 		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + uid) || Gift.data.uid.length > 0) {
 			return true;
 		}
@@ -2025,11 +2013,11 @@ Heal.work = function(state) {
 	if (!Page.to('keep_stats')) {
 		return true;
 	}
-	GM_debug('Heal: Healing...');
+	debug('Heal: Healing...');
 	if ($('input[value="Heal Wounds"]').length) {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
-		GM_log('Danger Danger Will Robinson... Unable to heal!');
+		log('Danger Danger Will Robinson... Unable to heal!');
 	}
 	return false;
 };
@@ -2148,7 +2136,7 @@ Income.work = function(state) {
 	if (when < 0) {
 		when += 3600;
 	}
-//	GM_debug('Income: '+when+', Margin: '+Income.option.margin);
+//	debug('Income: '+when+', Margin: '+Income.option.margin);
 	if (when > Income.option.margin) {
 		if (state && Income.option.bank) {
 			return Bank.work(true);
@@ -2161,7 +2149,7 @@ Income.work = function(state) {
 	if (Income.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	GM_debug('Income: Waiting for Income... ('+when+' seconds)');
+	debug('Income: Waiting for Income... ('+when+' seconds)');
 	return true;
 };
 
@@ -2247,7 +2235,7 @@ Land.work = function(state) {
 	if (!Page.to('town_land')) return true;
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		if ($('img', el).attr('alt') === best) {
-			GM_debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
+			debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
 			$('select', $('.land_buy_costs .gold', el).parent().next()).val(buy);
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');
@@ -2498,7 +2486,7 @@ Monster.parse = function(change) {
 			}
 		}
 		if (!uid || !type) {
-			GM_debug('Monster: Unknown monster (probably dead)');
+			debug('Monster: Unknown monster (probably dead)');
 			return false;
 		}
 		Monster.data[uid] = Monster.data[uid] || {};
@@ -2533,7 +2521,7 @@ Monster.parse = function(change) {
 			if ($dispel.length) {
 				monster.dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
 			}
-			monster.timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
+			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			monster.finish = Date.now() + (monster.timer * 1000);
 			monster.damage_total = 0;
 			monster.damage = {};
@@ -2551,7 +2539,7 @@ Monster.parse = function(change) {
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
-		if (!$('#app'+APP+'_app_body div.imgButton').length) {
+		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 			return false;
 		}
 		if (Page.page === 'battle_raid') {
@@ -2564,7 +2552,7 @@ Monster.parse = function(change) {
 				}
 			}
 		}
-		$('#app'+APP+'_app_body div.imgButton').each(function(i,el){
+		$('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
 			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
 			for (i in Monster.types) {
 				if (tmp === Monster.types[i].list || tmp === Monster.types[i].lis2) {
@@ -2668,7 +2656,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best(Monster.option.raid.indexOf('Invade') ? 'invade' : 'duel'))) {
 			return true;
 		}
-		GM_debug('Raid: '+Monster.option.raid+' '+uid);
+		debug('Raid: '+Monster.option.raid+' '+uid);
 		switch(Monster.option.raid) {
 			case 'Invade':
 				btn = $('input[src$="raid_attack_button.gif"]:first');
@@ -2687,7 +2675,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
-		GM_debug('Monster: Fortify '+uid);
+		debug('Monster: Fortify '+uid);
 		for (i=0; i<Monster.fortify.length; i++) {
 			if ($(Monster.fortify[i]).length) {
 				btn = $(Monster.fortify[i]);
@@ -2698,7 +2686,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
-		GM_debug('Monster: Dispel '+uid);
+		debug('Monster: Dispel '+uid);
 		for (i=0; i<Monster.dispel.length; i++) {
 			if ($(Monster.dispel[i]).length) {
 				btn = $(Monster.dispel[i]);
@@ -2709,7 +2697,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('duel'))) {
 			return true;
 		}
-		GM_debug('Monster: Attack '+uid);
+		debug('Monster: Attack '+uid);
 		for (i=0; i<Monster.attack.length; i++) {
 			if ($(Monster.attack[i]).length) {
 				btn = $(Monster.attack[i]);
@@ -2820,29 +2808,29 @@ Player.onload = function() {
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
 Player.parse = function(change) {
-	if (!$('#app'+APP+'_app_body_container').length) {
+	if (!$('#app'+APPID+'_app_body_container').length) {
 		Page.reload();
 		return false;
 	}
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.FBID		= unsafeWindow.Env.user;
-	data.cash		= parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-	tmp = $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
-	tmp = $('#app'+APP+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.exp		= tmp[0] || 0;
 	data.maxexp		= tmp[1] || 0;
-	data.level		= $('#app'+APP+'_st_5').text().regex(/Level: ([0-9]+)!/i);
-	data.armymax	= $('a[href*=army.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/);
+	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
+	data.armymax	= $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/);
 	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
-	data.upgrade	= ($('a[href*=keep.php]', '#app'+APP+'_main_bntp').text().regex(/([0-9]+)/) || 0);
+	data.upgrade	= ($('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/) || 0);
 	data.general	= $('div.general_name_div3').first().text().trim();
 	data.imagepath	= $('div.general_pic_div3 img').attr('src').pathpart();
 	if (Page.page==='keep_stats') {
@@ -2900,21 +2888,21 @@ Player.parse = function(change) {
 };
 Player.work = function(state) {
 	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APP+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 // Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APP+'_gold_time_value').text().parseTimer();
+//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
 	var when = new Date();
 	when = Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
 	if (when < 0) {
 		when += 3600;
 	}
 	Player.data.cash_timer		= when;
-	Player.data.energy			= $('#app'+APP+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APP+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APP+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APP+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APP+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APP+'_stamina_time_value').text().parseTimer();
+	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
+	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
+	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 };
 Player.select = function() {
 	var step = Divisor(Player.data.maxstamina)
@@ -3153,7 +3141,7 @@ Quest.work = function(state) {
 	if (best !== Quest.current) {
 		Quest.current = best;
 		if (best) {
-			GM_debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
+			debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
@@ -3197,10 +3185,10 @@ Quest.work = function(state) {
 			}
 			break;
 		default:
-			GM_debug('Quest: Can\'t get to quest area!');
+			debug('Quest: Can\'t get to quest area!');
 			return false;
 	}
-	GM_debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
+	debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
 	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
 		Page.reload();
 	}
@@ -3362,7 +3350,7 @@ Town.work = function(state) {
 				count = units[i].buy[j]; // && (units[i].buy[j] * units[i].cost) < gold
 			}
 		}
-		GM_debug('Thinking about buying: '+count+' of '+i+' at $'+(count * units[i].cost));
+		debug('Thinking about buying: '+count+' of '+i+' at $'+(count * units[i].cost));
 		if (count) {
 			best = i;
 			break;
@@ -3372,7 +3360,7 @@ Town.work = function(state) {
 		return false;
 	}
 	if (!state) {
-		GM_debug('Want to buy '+count+' x '+best+' at $'+(count * units[best].cost));
+		debug('Want to buy '+count+' x '+best+' at $'+(count * units[best].cost));
 		return true;
 	}
 //	if (!Bank.retrieve(best.cost * count)) return true;

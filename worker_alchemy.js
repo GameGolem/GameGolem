@@ -58,7 +58,7 @@ Alchemy.work = function(state) {
 	if (!found) {return false;}
 	if (!state) {return true;}
 	if (!Page.to('keep_alchemy')) {return true;}
-	GM_debug('Alchemy: Perform - '+found);
+	debug('Alchemy: Perform - '+found);
 	$('div.alchemyRecipeBack').each(function(i,el){
 		if($('div.recipeTitle', el).text().indexOf(found) >=0) {
 			Page.click($('input[type="image"]', el));

@@ -80,7 +80,7 @@ Land.work = function(state) {
 	if (!Page.to('town_land')) return true;
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		if ($('img', el).attr('alt') === best) {
-			GM_debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
+			debug('Land: Buying '+Land.data[best].buy+' x '+best+' for $'+(Land.data[best].buy * Land.data[best].cost));
 			$('select', $('.land_buy_costs .gold', el).parent().next()).val(buy);
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');

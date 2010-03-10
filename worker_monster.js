@@ -240,7 +240,7 @@ Monster.parse = function(change) {
 			}
 		}
 		if (!uid || !type) {
-			GM_debug('Monster: Unknown monster (probably dead)');
+			debug('Monster: Unknown monster (probably dead)');
 			return false;
 		}
 		Monster.data[uid] = Monster.data[uid] || {};
@@ -275,7 +275,7 @@ Monster.parse = function(change) {
 			if ($dispel.length) {
 				monster.dispel = ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()) * 100);
 			}
-			monster.timer = $('#app'+APP+'_monsterTicker').text().parseTimer();
+			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			monster.finish = Date.now() + (monster.timer * 1000);
 			monster.damage_total = 0;
 			monster.damage = {};
@@ -293,7 +293,7 @@ Monster.parse = function(change) {
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
-		if (!$('#app'+APP+'_app_body div.imgButton').length) {
+		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 			return false;
 		}
 		if (Page.page === 'battle_raid') {
@@ -306,7 +306,7 @@ Monster.parse = function(change) {
 				}
 			}
 		}
-		$('#app'+APP+'_app_body div.imgButton').each(function(i,el){
+		$('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
 			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
 			for (i in Monster.types) {
 				if (tmp === Monster.types[i].list || tmp === Monster.types[i].lis2) {
@@ -410,7 +410,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best(Monster.option.raid.indexOf('Invade') ? 'invade' : 'duel'))) {
 			return true;
 		}
-		GM_debug('Raid: '+Monster.option.raid+' '+uid);
+		debug('Raid: '+Monster.option.raid+' '+uid);
 		switch(Monster.option.raid) {
 			case 'Invade':
 				btn = $('input[src$="raid_attack_button.gif"]:first');
@@ -429,7 +429,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
-		GM_debug('Monster: Fortify '+uid);
+		debug('Monster: Fortify '+uid);
 		for (i=0; i<Monster.fortify.length; i++) {
 			if ($(Monster.fortify[i]).length) {
 				btn = $(Monster.fortify[i]);
@@ -440,7 +440,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
 		}
-		GM_debug('Monster: Dispel '+uid);
+		debug('Monster: Dispel '+uid);
 		for (i=0; i<Monster.dispel.length; i++) {
 			if ($(Monster.dispel[i]).length) {
 				btn = $(Monster.dispel[i]);
@@ -451,7 +451,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best('duel'))) {
 			return true;
 		}
-		GM_debug('Monster: Attack '+uid);
+		debug('Monster: Attack '+uid);
 		for (i=0; i<Monster.attack.length; i++) {
 			if ($(Monster.attack[i]).length) {
 				btn = $(Monster.attack[i]);

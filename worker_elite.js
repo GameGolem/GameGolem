@@ -28,7 +28,7 @@ Elite.parse = function(change) {
 			Elite.data[$('img', el).attr('uid')] = Date.now() + 3600000; // 1 hour
 		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.option.wait = Date.now();
-			GM_debug('Elite guard full, wait 24 hours');
+			debug('Elite guard full, wait 24 hours');
 		}
 	});
 	if (Page.page === 'army_viewarmy') {
@@ -59,7 +59,7 @@ Elite.work = function(state) {
 	if (!found && !length(Elite.data) && !Page.to('army_viewarmy')) {
 		return true;
 	}
-	GM_debug('Elite: Add member '+found);
+	debug('Elite: Add member '+found);
 	if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + found)) {
 		return true;
 	}

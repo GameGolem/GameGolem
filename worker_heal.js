@@ -31,11 +31,11 @@ Heal.work = function(state) {
 	if (!Page.to('keep_stats')) {
 		return true;
 	}
-	GM_debug('Heal: Healing...');
+	debug('Heal: Healing...');
 	if ($('input[value="Heal Wounds"]').length) {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
-		GM_log('Danger Danger Will Robinson... Unable to heal!');
+		log('Danger Danger Will Robinson... Unable to heal!');
 	}
 	return false;
 };

@@ -95,7 +95,7 @@ Page.pageNames = {
 };
 Page.identify = function() {
 	Page.page = '';
-	$('#app'+APP+'_app_body img').each(function(i,el){
+	$('#app'+APPID+'_app_body img').each(function(i,el){
 		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
 			if (filename === Page.pageNames[p].image) {
@@ -103,7 +103,7 @@ Page.identify = function() {
 			}
 		}
 	});
-	if ($('#app'+APP+'_indexNewFeaturesBox').length) {
+	if ($('#app'+APPID+'_indexNewFeaturesBox').length) {
 		Page.page = 'index';
 	} else if ($('div[style*="giftpage_title.jpg"]').length) {
 		Page.page = 'army_gifts';
@@ -111,7 +111,7 @@ Page.identify = function() {
 	if (Page.page !== '') {
 		Page.data[Page.page] = Date.now();
 	}
-//	GM_debug('Page.identify("'+Page.page+'")');
+//	debug('Page.identify("'+Page.page+'")');
 	return Page.page;
 };
 Page.to = function(page, args) {
@@ -130,9 +130,9 @@ Page.to = function(page, args) {
 		} else {
 			Page.last = Page.last + args;
 		}
-		GM_debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		if (unsafeWindow['a'+APP+'_get_cached_ajax']) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
+		if (unsafeWindow['a'+APPID+'_get_cached_ajax']) {
+			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
 		} else {
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
 		}
@@ -141,7 +141,7 @@ Page.to = function(page, args) {
 };
 Page.click = function(el) {
 	if (!$(el).length) {
-		GM_debug('Page.click: Unable to find element - '+el);
+		debug('Page.click: Unable to find element - '+el);
 		return false;
 	}
 	var e = document.createEvent("MouseEvents");
@@ -157,28 +157,28 @@ Page.clear = function() {
 	Page.retry = 0;
 };
 Page.loading = function() {
-	if (!unsafeWindow['a'+APP+'_get_cached_ajax']) {
+	if (!unsafeWindow['a'+APPID+'_get_cached_ajax']) {
 		if (!Page.when || (Date.now() - Page.when) >= (Page.option.timeout * Page.option.retry * 1000)) { // every xx seconds - we don't get called once it starts loading
 			Page.when = Date.now();
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
 		}
-		GM_debug('Page not loaded correctly, reloading.');
+		debug('Page not loaded correctly, reloading.');
 		return true;
 	}
-	if ($('#app'+APP+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
+	if ($('#app'+APPID+'_AjaxLoadIcon').css('display') === 'none') { // Load icon is shown after 1.5 seconds
 		if (Page.when && (Date.now() - Page.when) > (Page.option.timeout * 1000)) {
 			Page.clear();
 		}
 		return false;
 	}
 	if (Page.when && (Date.now() - Page.when) >= (Page.option.timeout * 1000)) {
-		GM_debug('Page.loading for 15+ seconds - retrying...');
+		debug('Page.loading for 15+ seconds - retrying...');
 		Page.when = Date.now();
 		if (Page.retry++ >= Page.option.retry) {
-			GM_debug('Page.loading for 1+ minutes - reloading...');
+			debug('Page.loading for 1+ minutes - reloading...');
 			window.location.href = 'http://apps.facebook.com/castle_age/index.php';
 		} else if (Page.last) {
-			unsafeWindow['a'+APP+'_get_cached_ajax'](Page.last, "get_body");
+			unsafeWindow['a'+APPID+'_get_cached_ajax'](Page.last, "get_body");
 		} else if (Page.lastclick) {
 			Page.click(Page.lastclick);
 		}

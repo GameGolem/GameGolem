@@ -195,7 +195,7 @@ Config.makePanel = function(worker) {
 	}
 };
 Config.updateOptions = function() {
-	GM_debug('Options changed');
+	debug('Options changed');
 	// Get order of panels first
 	var found = {};
 	Queue.option.queue = [];

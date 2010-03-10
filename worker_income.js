@@ -35,7 +35,7 @@ Income.work = function(state) {
 	if (when < 0) {
 		when += 3600;
 	}
-//	GM_debug('Income: '+when+', Margin: '+Income.option.margin);
+//	debug('Income: '+when+', Margin: '+Income.option.margin);
 	if (when > Income.option.margin) {
 		if (state && Income.option.bank) {
 			return Bank.work(true);
@@ -48,7 +48,7 @@ Income.work = function(state) {
 	if (Income.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	GM_debug('Income: Waiting for Income... ('+when+' seconds)');
+	debug('Income: Waiting for Income... ('+when+' seconds)');
 	return true;
 };
 

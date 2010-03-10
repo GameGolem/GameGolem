@@ -60,10 +60,6 @@ Number.prototype.round = function(dec) {
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
-if(typeof GM_debug === 'undefined') {
-	GM_debug = function(txt) { if(debug) { GM_log(txt); } };
-}
-
 var makeTimer = function(sec) {
 	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
@@ -159,7 +155,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
 		if (user) {
 			if (Math.min(count, own) > 0) {
-//				GM_debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+list[units[i]].toSource());
+//				debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+list[units[i]].toSource());
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}

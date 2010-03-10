@@ -33,7 +33,7 @@ Blessing.work = function(state) {
 	if (!Page.to('oracle_demipower')) {
 		return true;
 	}
-	Page.click('#app'+APP+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
+	Page.click('#app'+APPID+'_symbols_form_'+Blessing.which.indexOf(Blessing.option.which)+' input.imgButton');
 	return false;
 };
 

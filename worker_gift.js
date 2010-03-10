@@ -42,7 +42,7 @@ Gift.parse = function(change) {
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first
-		GM_debug('Gift: Checking for accepted');
+		debug('Gift: Checking for accepted');
 		if (Gift.data.lastgift) {
 			if ($('div.result').text().indexOf('accepted the gift') >= 0) {
 				uid = Gift.data.lastgift;
@@ -54,20 +54,20 @@ Gift.parse = function(change) {
 			}
 		}
 		// Check for gifts
-		GM_debug('Gift: Checking for new gift to accept');
+		debug('Gift: Checking for new gift to accept');
 		uid = Gift.data.uid = [];
 		if ($('div.messages').text().indexOf('gift') >= 0) {
-			GM_debug('Gift: Found gift div');
+			debug('Gift: Found gift div');
 			$('div.messages img').each(function(i,el) {
 				uid.push($(el).attr('uid'));
-				GM_debug('Gift: Adding gift from '+$(el).attr('uid'));
+				debug('Gift: Adding gift from '+$(el).attr('uid'));
 			});
 		}
 	} else if (Page.page === 'army_gifts') {
 		gifts = Gift.data.gifts = {};
-//		GM_debug('Gifts found: '+$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').length);
-		$('#app'+APP+'_giftContainer div[id^="app'+APP+'_gift"]').each(function(i,el){
-//			GM_debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
+//		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
+		$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').each(function(i,el){
+//			debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!','');
 			if (!gifts[id]) {
 				gifts[id] = {};
@@ -97,7 +97,7 @@ Gift.work = function(state) {
 		}
 		Gift.data.todo[uid].time = Date.now();
 		Gift.data.lastgift = uid;
-		GM_debug('Gift: Accepting gift from '+uid);
+		debug('Gift: Accepting gift from '+uid);
 		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + uid) || Gift.data.uid.length > 0) {
 			return true;
 		}

@@ -85,7 +85,7 @@ Town.work = function(state) {
 				count = units[i].buy[j]; // && (units[i].buy[j] * units[i].cost) < gold
 			}
 		}
-		GM_debug('Thinking about buying: '+count+' of '+i+' at $'+(count * units[i].cost));
+		debug('Thinking about buying: '+count+' of '+i+' at $'+(count * units[i].cost));
 		if (count) {
 			best = i;
 			break;
@@ -95,7 +95,7 @@ Town.work = function(state) {
 		return false;
 	}
 	if (!state) {
-		GM_debug('Want to buy '+count+' x '+best+' at $'+(count * units[best].cost));
+		debug('Want to buy '+count+' x '+best+' at $'+(count * units[best].cost));
 		return true;
 	}
 //	if (!Bank.retrieve(best.cost * count)) return true;

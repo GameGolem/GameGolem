@@ -68,7 +68,7 @@ Queue.onload = function() {
 		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
 			continue;
 		}
-		GM_log('Adding '+Workers[i].name+' to Queue');
+		log('Adding '+Workers[i].name+' to Queue');
 		if (Workers[i].unsortable) {
 			Queue.option.queue.unshift(Workers[i].name);
 		} else {
@@ -79,7 +79,7 @@ Queue.onload = function() {
 		worker = WorkerByName(Queue.option.queue[i]);
 		if (worker && worker.priv_id) {
 			if (Queue.data.current && worker.name === Queue.data.current) {
-				GM_debug('Queue: Trigger '+worker.name+' (continue after load)');
+				debug('Queue: Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.priv_id));
@@ -89,7 +89,7 @@ Queue.onload = function() {
 
 	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
-		GM_debug('State: '+((Queue.option.pause)?"paused":"running"));
+		debug('State: '+((Queue.option.pause)?"paused":"running"));
 		$(this).attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
@@ -130,7 +130,7 @@ Queue.run = function() {
 				if (worker.priv_id) {
 					$('#'+worker.priv_id+' > h3').css('font-weight', 'normal');
 				}
-				GM_debug('Queue: End '+worker.name);
+				debug('Queue: End '+worker.name);
 			}
 			continue;
 		}
@@ -141,7 +141,7 @@ Queue.run = function() {
 			}
 			worker.priv_since = now;
 			if (Queue.data.current) {
-				GM_debug('Queue: Interrupt '+Queue.data.current);
+				debug('Queue: Interrupt '+Queue.data.current);
 				if (WorkerByName(Queue.data.current).priv_id) {
 					$('#'+WorkerByName(Queue.data.current).priv_id+' > h3').css('font-weight', 'normal');
 				}
@@ -150,7 +150,7 @@ Queue.run = function() {
 			if (worker.priv_id) {
 				$('#'+worker.priv_id+' > h3').css('font-weight', 'bold');
 			}
-			GM_debug('Queue: Trigger '+worker.name);
+			debug('Queue: Trigger '+worker.name);
 		}
 	}
 	Settings.Save('option');

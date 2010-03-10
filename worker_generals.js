@@ -9,7 +9,7 @@ Generals.best_id = null;
 Generals.sort = null;
 Generals.parse = function(change) {
 	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('#app'+APP+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
 	if ($elements.length < length(Generals.data)) {
 		Page.to('heroes_generals', ''); // Force reload
 		return false;
@@ -56,13 +56,13 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!Generals.data[name]) {
-		GM_log('General "'+name+'" requested but not found!');
+		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!Page.to('heroes_generals')) {
 		return false;
 	}
-	GM_debug('Changing to General '+name);
+	debug('Changing to General '+name);
 	Page.click('input[src$="'+Generals.data[name].img+'"]');
 	return false;
 };
@@ -118,7 +118,7 @@ Generals.best = function(type) {
 		}
 	}
 	if (best) {
-		GM_debug('Best general found: '+best);
+		debug('Best general found: '+best);
 	}
 	return best;
 };

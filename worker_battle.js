@@ -74,8 +74,8 @@ Battle.parse = function(change) {
 			}
 			Battle.data.attacking = null;
 		}
-		Battle.data.points = $('#app'+APP+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
-		$('#app'+APP+'_app_body table.layout table table tr:even').each(function(i,el){
+		Battle.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
 				return;
@@ -99,7 +99,7 @@ Battle.parse = function(change) {
 			}
 		}
 		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
-			GM_debug('Battle: Pruning target cache');
+			debug('Battle: Pruning target cache');
 			for (i in data) {
 				list.push(i);
 			}
@@ -162,10 +162,10 @@ Battle.work = function(state) {
 		return true;
 	}
 	uid = list[Math.floor(Math.random() * list.length)];
-	GM_debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
+	debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
 	$form = $('form input[alt="'+Battle.option.type+'"]').first().parents('form');
 	if (!$form.length) {
-		GM_log('Battle: Unable to find attack buttons, forcing reload');
+		log('Battle: Unable to find attack buttons, forcing reload');
 		Page.to('index');
 		return false;
 	}

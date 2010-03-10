@@ -1,40 +1,38 @@
 /********** Settings **********
-* Used for storing prefs, prefer to use this over GM_set/getValue
+* Used for storing prefs in localStorage
 * Should never be called by anyone directly - let the main function do it when needed
 */
+if (typeof localStorage === "undefined") {
+	if (typeof window.localStorage !== "undefined") {
+		var localStorage = window.localStorage;
+	} else if (typeof globalStorage !== "undefined") {
+		var localStorage = globalStorage[location.hostname];
+	}
+}
 var Settings = {
-	userID: unsafeWindow.Env.user,
-	cache: {},
 	SetValue:function(n,v) {
 		if (typeof v === 'string') {
 			v = '"' + v + '"';
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof Settings.cache[n] !== 'undefined' && Settings.cache[n] !== v) {
-			Settings.cache[n] = v;
-			GM_setValue(Settings.userID + '.' + n, v);
+		if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
+			localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	},
 	GetValue:function(n,d) {
-		var v = null;
-		Settings.cache[n] = GM_getValue(Settings.userID + '.' + n, d);
-		if (typeof Settings.cache[n] === 'string') {
-			if (Settings.cache[n].charAt(0) === '"') {
-				v = Settings.cache[n].replace(/^"|"$/g,'');
-			} else if (Settings.cache[n].charAt(0) === '(' || Settings.cache[n].charAt(0) === '[') {
+		var v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || d;
+		if (typeof v === 'string') {
+			if (v.charAt(0) === '"') {
+				v = v.replace(/^"|"$/g,'');
+			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
+				v = eval(v);
 				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, {}, d, eval(Settings.cache[n]));
-				} else {
-					v = eval(Settings.cache[n]);
+					v = $.extend(true, {}, d, v);
 				}
 			}
-		}
-		if (v === null) {
-			v = Settings.cache[n];
 		}
 		return v;
 	},

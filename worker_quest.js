@@ -151,7 +151,7 @@ Quest.work = function(state) {
 	if (best !== Quest.current) {
 		Quest.current = best;
 		if (best) {
-			GM_debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
+			debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
 			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
 		}
 	}
@@ -195,10 +195,10 @@ Quest.work = function(state) {
 			}
 			break;
 		default:
-			GM_debug('Quest: Can\'t get to quest area!');
+			debug('Quest: Can\'t get to quest area!');
 			return false;
 	}
-	GM_debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
+	debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
 	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
 		Page.reload();
 	}
