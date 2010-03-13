@@ -2,7 +2,7 @@
 // @name           Rycochet's Castle Age Golem
 // @namespace      golem
 // @description    Auto player for castle age game
-// @version        24
+// @version        25
 // @include        http*://apps.*facebook.com/castle_age/*
 // @require        http://cloutman.com/jquery-latest.min.js
 // @require        http://cloutman.com/jquery-ui-latest.min.js
@@ -11,7 +11,7 @@
 // -- @include        http://www.facebook.com/reqs.php#confirm_46755028429_0
 // -- @include        http://www.facebook.com/home.php
 // -- @include        http://www.facebook.com/home.php*filter=app_46755028429*
-var show_debug=true,VERSION=24,script_started=Date.now(),applications={castle_age:["46755028429","Castle Age"]};if(window.location.hostname==="apps.facebook.com"||window.location.hostname==="apps.new.facebook.com")for(var i in applications)if(window.location.pathname.indexOf(i)===1){var APP=i,APPID=applications[i][0],APPNAME=applications[i][1],PREFIX="golem"+APP+"_";break}var log=function(a){console.log(a)},debug=function(a){show_debug&&console.log(a)};
+var show_debug=true,VERSION=25,script_started=Date.now(),applications={castle_age:["46755028429","Castle Age"]};if(window.location.hostname==="apps.facebook.com"||window.location.hostname==="apps.new.facebook.com")for(var i in applications)if(window.location.pathname.indexOf(i)===1){var APP=i,APPID=applications[i][0],APPNAME=applications[i][1],PREFIX="golem"+APP+"_";break}var log=function(a){console.log(a)},debug=function(a){show_debug&&console.log(a)};
 if(typeof unsafeWindow==="undefined")unsafeWindow=window;var userID=0;function parse_all(){Page.identify();var a,b=[];for(a in Workers)if(Workers[a].pages&&(Workers[a].pages==="*"||Page.page&&Workers[a].pages.indexOf(Page.page)>=0)&&Workers[a].parse&&Workers[a].parse(false))b.push(Workers[a]);Settings.Save("data");for(a in b)b[a].parse(true)}
 if(typeof APP!=="undefined"){var node_trigger=null;$(document).ready(function(){var a;userID=$("head").html().regex(/user:([0-9]+),/i);do_css();Page.identify();Settings.Load("data");Settings.Load("option");for(a in Workers){Workers[a].onload&&Workers[a].onload();Workers[a].dashboard&&Workers[a].dashboard()}parse_all();$("body").bind("DOMNodeInserted",function(b){if(!node_trigger&&($(b.target).attr("id")==="app"+APPID+"_app_body_container"||$(b.target).attr("id")==="app"+APPID+"_globalContainer"))node_trigger=
 window.setTimeout(function(){node_trigger=null;parse_all()},100)});window.setInterval(function(){Queue.run()},1E3)})}
