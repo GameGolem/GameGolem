@@ -205,11 +205,19 @@ Monster.types = {
 		dead:'earth_element_dead.jpg',
 		timer:604800, // 168 hours
 		mpool:3
+	},
+	ragnarok: {
+		name:'Ragnarok, The Ice Elemental',
+		list:'water_list.jpg',
+		image:'water_large.jpg',
+		dead:'water_dead.jpg',
+		timer:604800, // 168 hours
+		mpool:3
 	}
 };
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
 Monster.count = 0;
 Monster.uid = null;
 Monster.onload = function() {

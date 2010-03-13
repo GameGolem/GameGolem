@@ -50,11 +50,14 @@ Battle.display = [
 Battle.parse = function(change) {
 	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
-		data = Battle.data.rank = {0:{name:'Squire',points:0}};
+		data = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
+		if (length(data) > length(Battle.data.rank)) {
+			Battle.data.rank = data;
+		}
 	} else if (Page.page === 'battle_battle') {
 		data = Battle.data.user;
 		if (Battle.data.attacking) {
@@ -216,7 +219,7 @@ Battle.dashboard = function(sort, rev) {
 		output.push('<img src="' + Player.data.imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
 		output.push('<span title="'+i+'">' + Battle.data.user[i].name + '</span>');
 		output.push(Battle.data.user[i].level);
-		output.push(Battle.data.rank[Battle.data.user[i].rank].name);
+		output.push(Battle.data.rank[Battle.data.user[i].rank] ? Battle.data.rank[Battle.data.user[i].rank].name : '');
 		output.push(Battle.data.user[i].army);
 		output.push(Battle.data.user[i].win);
 		output.push(Battle.data.user[i].loss);

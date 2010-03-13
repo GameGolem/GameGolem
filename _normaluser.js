@@ -145,10 +145,10 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 * Used for storing prefs in localStorage
 * Should never be called by anyone directly - let the main function do it when needed
 */
-if (typeof localStorage === "undefined") {
-	if (typeof window.localStorage !== "undefined") {
+if (typeof GM_getValue === 'undefined' && typeof localStorage === 'undefined') {
+	if (typeof window.localStorage !== 'undefined') {
 		var localStorage = window.localStorage;
-	} else if (typeof globalStorage !== "undefined") {
+	} else if (typeof globalStorage !== 'undefined') {
 		var localStorage = globalStorage[location.hostname];
 	}
 }
@@ -159,14 +159,26 @@ var Settings = {
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
-			localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
-			return true;
+		if (typeof GM_getValue === 'undefined') {
+			if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
+				localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
+				return true;
+			}
+		} else {
+			if (GM_getValue(userID + '.' + n) === 'undefined' || GM_getValue(userID + '.' + n) !== v) {
+				GM_setValue(userID + '.' + n, v);
+				return true;
+			}
 		}
 		return false;
 	},
 	GetValue:function(n,d) {
-		var v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || d;
+		var v = d;
+		if (typeof GM_getValue === 'undefined') {
+			v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || v;
+		} else {
+			v = GM_getValue(userID + '.' + n) || v;
+		}
 		if (typeof v === 'string') {
 			if (v.charAt(0) === '"') {
 				v = v.replace(/^"|"$/g,'');
@@ -1339,11 +1351,14 @@ Battle.display = [
 Battle.parse = function(change) {
 	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
-		data = Battle.data.rank = {0:{name:'Squire',points:0}};
+		data = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
+		if (length(data) > length(Battle.data.rank)) {
+			Battle.data.rank = data;
+		}
 	} else if (Page.page === 'battle_battle') {
 		data = Battle.data.user;
 		if (Battle.data.attacking) {
@@ -1505,7 +1520,7 @@ Battle.dashboard = function(sort, rev) {
 		output.push('<img src="' + Player.data.imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
 		output.push('<span title="'+i+'">' + Battle.data.user[i].name + '</span>');
 		output.push(Battle.data.user[i].level);
-		output.push(Battle.data.rank[Battle.data.user[i].rank].name);
+		output.push(Battle.data.rank[Battle.data.user[i].rank] ? Battle.data.rank[Battle.data.user[i].rank].name : '');
 		output.push(Battle.data.user[i].army);
 		output.push(Battle.data.user[i].win);
 		output.push(Battle.data.user[i].loss);
@@ -1907,7 +1922,7 @@ Gift.parse = function(change) {
 	var uid, gifts;
 	if (Page.page === 'index') {
 		// If we have a gift waiting it doesn't matter from whom as it gets parsed on the right page...
-		if (!Gift.data.uid.length && $('div.result').text().indexOf('has sent you a gift') >= 0) {
+		if (!Gift.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
 			Gift.data.uid.push(1);
 		}
 	} else if (Page.page === 'army_invite') {
@@ -2128,10 +2143,7 @@ Income.work = function(state) {
 		return false;
 	}
 	var when = new Date();
-	when = Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
-	if (when < 0) {
-		when += 3600;
-	}
+	when = 3600 % (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60)));
 //	debug('Income: '+when+', Margin: '+Income.option.margin);
 	if (when > Income.option.margin) {
 		if (state && Income.option.bank) {
@@ -2447,11 +2459,19 @@ Monster.types = {
 		dead:'earth_element_dead.jpg',
 		timer:604800, // 168 hours
 		mpool:3
+	},
+	ragnarok: {
+		name:'Ragnarok, The Ice Elemental',
+		list:'water_list.jpg',
+		image:'water_large.jpg',
+		dead:'water_dead.jpg',
+		timer:604800, // 168 hours
+		mpool:3
 	}
 };
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
 Monster.count = 0;
 Monster.uid = null;
 Monster.onload = function() {
@@ -2883,11 +2903,7 @@ Player.work = function(state) {
 // Very innacurate!!!
 //	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
 	var when = new Date();
-	when = Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
-	if (when < 0) {
-		when += 3600;
-	}
-	Player.data.cash_timer		= when;
+	Player.data.cash_timer		= 3600 % (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60)));
 	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
 	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);

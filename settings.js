@@ -2,10 +2,10 @@
 * Used for storing prefs in localStorage
 * Should never be called by anyone directly - let the main function do it when needed
 */
-if (typeof localStorage === "undefined") {
-	if (typeof window.localStorage !== "undefined") {
+if (typeof GM_getValue === 'undefined' && typeof localStorage === 'undefined') {
+	if (typeof window.localStorage !== 'undefined') {
 		var localStorage = window.localStorage;
-	} else if (typeof globalStorage !== "undefined") {
+	} else if (typeof globalStorage !== 'undefined') {
 		var localStorage = globalStorage[location.hostname];
 	}
 }
@@ -16,14 +16,26 @@ var Settings = {
 		} else if (typeof v === 'array' || typeof v === 'object') {
 			v = v.toSource();
 		}
-		if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
-			localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
-			return true;
+		if (typeof GM_getValue === 'undefined') {
+			if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
+				localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
+				return true;
+			}
+		} else {
+			if (GM_getValue(userID + '.' + n) === 'undefined' || GM_getValue(userID + '.' + n) !== v) {
+				GM_setValue(userID + '.' + n, v);
+				return true;
+			}
 		}
 		return false;
 	},
 	GetValue:function(n,d) {
-		var v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || d;
+		var v = d;
+		if (typeof GM_getValue === 'undefined') {
+			v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || v;
+		} else {
+			v = GM_getValue(userID + '.' + n) || v;
+		}
 		if (typeof v === 'string') {
 			if (v.charAt(0) === '"') {
 				v = v.replace(/^"|"$/g,'');

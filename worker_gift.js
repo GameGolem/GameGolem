@@ -37,7 +37,7 @@ Gift.parse = function(change) {
 	var uid, gifts;
 	if (Page.page === 'index') {
 		// If we have a gift waiting it doesn't matter from whom as it gets parsed on the right page...
-		if (!Gift.data.uid.length && $('div.result').text().indexOf('has sent you a gift') >= 0) {
+		if (!Gift.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
 			Gift.data.uid.push(1);
 		}
 	} else if (Page.page === 'army_invite') {
