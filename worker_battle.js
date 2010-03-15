@@ -15,6 +15,7 @@ Battle.option = {
 	type: 'Invade',
 	bp: 'Always'
 };
+
 Battle.display = [
 	{
 		id:'general',
@@ -47,6 +48,7 @@ Battle.display = [
 		select:[100,200,300,400,500]
 	}
 ];
+
 Battle.parse = function(change) {
 	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
@@ -124,11 +126,15 @@ Battle.parse = function(change) {
 			}
 		}
 	}
-	if (Settings.Save(Battle)) {
-		Dashboard.update(Battle);
-	}
 	return false;
 };
+
+Battle.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Battle);
+	}
+}
+
 Battle.work = function(state) {
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
 		return false;
@@ -177,6 +183,7 @@ Battle.work = function(state) {
 	Page.click($('input[type="image"]', $form));
 	return true;
 };
+
 Battle.rank = function(name) {
 	for (var i in Battle.data.rank) {
 		if (Battle.data.rank[i].name === name) {
@@ -185,6 +192,7 @@ Battle.rank = function(name) {
 	}
 	return 0;
 };
+
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
 	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];

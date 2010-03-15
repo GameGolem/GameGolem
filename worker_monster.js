@@ -8,6 +8,7 @@ Monster.option = {
 	choice: 'All',
 	raid: 'Invade x5'
 };
+
 Monster.display = [
 	{
 		label:'Work in progress...'
@@ -37,6 +38,7 @@ Monster.display = [
 		checkbox:true
 	}
 ];
+
 Monster.types = {
 	// Special (level 5) - not under Monster tab
 	kull: {
@@ -215,11 +217,13 @@ Monster.types = {
 		mpool:3
 	}
 };
+
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
 Monster.count = 0;
 Monster.uid = null;
+
 Monster.onload = function() {
 	var i, j;
 	for (i in Monster.data) {
@@ -230,6 +234,7 @@ Monster.onload = function() {
 		}
 	}
 }
+
 Monster.parse = function(change) {
 	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
@@ -360,11 +365,15 @@ Monster.parse = function(change) {
 			delete Monster.data[i];
 		}
 	}
-	if (Settings.Save(Monster)) {
-		Dashboard.update(Monster);
-	}
 	return false;
 };
+
+Monster.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Monster);
+	}
+};
+
 Monster.work = function(state) {
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
@@ -473,6 +482,7 @@ Monster.work = function(state) {
 	Page.click(btn);
 	return true;
 };
+
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
 	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};

@@ -7,6 +7,7 @@ Town.data = {
 	blacksmith: {},
 	magic: {}
 };
+
 Town.display = [
 	{
 		label:'Work in progress...'
@@ -20,6 +21,7 @@ Town.display = [
 		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
 	}
 ];
+
 Town.blacksmith = { // Shield must come after armor (currently)
 	Weapon:	/avenger|axe|blade|bow|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|The Dreadnought/i,
@@ -28,6 +30,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe|Blood Vestment|Faerie Wings|Ogre Raiments/i,
 	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
+
 Town.parse = function(change) {
 	if (!change) {
 		var unit = {};
@@ -55,9 +58,6 @@ Town.parse = function(change) {
 			}
 		});
 		Town.data[Page.page.substr(5)] = unit;
-		if (Settings.Save(Town)) {
-			Dashboard.update(Town);
-		}
 	} else {
 		if (Page.page==='town_blacksmith') {
 			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
@@ -70,6 +70,13 @@ Town.parse = function(change) {
 	}
 	return true;
 };
+
+Town.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Town);
+	}
+}
+
 Town.work = function(state) {
 	if (!Town.option.number) {
 		return false;

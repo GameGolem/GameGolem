@@ -64,7 +64,7 @@ Dashboard.onload = function() {
 		});
 	},1000);
 }
-Dashboard.update = function(worker) {
+Dashboard.change = function(worker) {
 	var id = 'golem-dashboard-'+worker.name;
 	if (Dashboard.option.active === id && Dashboard.option.display === 'block') {
 		worker.dashboard();

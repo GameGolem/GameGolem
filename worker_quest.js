@@ -35,6 +35,7 @@ Quest.display = [
 		info:'None'
 	}
 ];
+
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
 	if (Page.page === 'quests_quest') {
@@ -104,13 +105,13 @@ Quest.parse = function(change) {
 			quest[name].general = tmp.attr('title');
 		}
 	});
-	if (Settings.Save(Quest)) {
-		Quest.select();
-		Dashboard.update(Quest);
-	}
 	return false;
 };
-Quest.select = function() {
+
+Quest.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
 	var i, list = [];
 	for (i in Quest.data) {
 		if (Quest.data[i].item && !Quest.data[i].unique) {
@@ -125,7 +126,9 @@ Quest.select = function() {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
+	Dashboard.change(Quest);
 };
+
 Quest.work = function(state) {
 	var i, j, best = null;
 	if (Quest.option.what === 'Nothing') {

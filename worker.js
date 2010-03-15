@@ -22,7 +22,9 @@ new Worker(name,pages)
 .display()		- Create the display object for the settings page.
 				All elements of the display are in here, it's called before anything else in the worker.
 				The header is taken care of elsewhere.
-
+.update(type)	- Called when the data or options have been changed
+				type = "data" or "option"
+				
 If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 */
 var Workers = [];
@@ -38,6 +40,7 @@ function Worker(name,pages) {
 	this.display = null; //function(added) {return false;};
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
+	this.update = null; //function(type){};
 	this.priv_since = 0;
 	this.priv_id = null;
 }

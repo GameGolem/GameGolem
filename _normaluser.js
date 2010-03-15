@@ -96,8 +96,6 @@ if (typeof APP !== 'undefined') {
 				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
 			}
 		});
-		// Running the queue every second, options within it give more delay
-		window.setInterval(function(){Queue.run();},1000);
 	});
 }
 
@@ -192,7 +190,7 @@ var Settings = {
 		return v;
 	},
 	Save:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null, change = 0;
+		var i, type = 'data', worker = null, change = false;
 		for (i=0; i<arguments.length; i++) {
 			if (typeof arguments[i] === 'object') {
 				worker = arguments[i];
@@ -201,11 +199,22 @@ var Settings = {
 			}
 		}
 		if (worker && worker[type]) {
-			return Settings.SetValue(type + '.' + worker.name, worker[type]);
-		}
-		for (i=0; i<Workers.length; i++) {
-			if (Workers[i][type]) {
-				change += Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
+			if (Settings.SetValue(type + '.' + worker.name, worker[type])) {
+				change = true;
+				if (worker.update) {
+					worker.update(type);
+				}
+			}
+		} else {
+			for (i=0; i<Workers.length; i++) {
+				if (Workers[i][type]) {
+					if (Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type])) {
+						change = true;
+						if (Workers[i].update) {
+							Workers[i].update(type);
+						}
+					}
+				}
 			}
 		}
 		return change;
@@ -432,7 +441,9 @@ new Worker(name,pages)
 .display()		- Create the display object for the settings page.
 				All elements of the display are in here, it's called before anything else in the worker.
 				The header is taken care of elsewhere.
-
+.update(type)	- Called when the data or options have been changed
+				type = "data" or "option"
+				
 If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 */
 var Workers = [];
@@ -448,6 +459,7 @@ function Worker(name,pages) {
 	this.display = null; //function(added) {return false;};
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
+	this.update = null; //function(type){};
 	this.priv_since = 0;
 	this.priv_id = null;
 }
@@ -755,7 +767,7 @@ Dashboard.onload = function() {
 		});
 	},1000);
 }
-Dashboard.update = function(worker) {
+Dashboard.change = function(worker) {
 	var id = 'golem-dashboard-'+worker.name;
 	if (Dashboard.option.active === id && Dashboard.option.display === 'block') {
 		worker.dashboard();
@@ -1004,6 +1016,7 @@ Queue.unsortable = true;
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
+Queue.timer = null;
 Queue.onload = function() {
 	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
 	for (i=0; i<Queue.option.queue.length; i++) { // First find what we've already got
@@ -1043,10 +1056,22 @@ Queue.onload = function() {
 		Config.updateOptions();
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
+	// Running the queue every second, options within it give more delay
+	Queue.update('option');
 };
+
+Queue.update = function(type) {
+	if (type === 'option') {
+		if (Queue.timer) {
+			window.clearInterval(Queue.timer);
+		}
+		Queue.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
+	}
+};
+
 Queue.run = function() {
 	var i, worker, found = false, now = Date.now();
-	if (Queue.option.pause || now - Queue.lastclick < Queue.option.clickdelay * 1000 || now - Queue.lastrun < Queue.option.delay * 1000) {
+	if (Queue.option.pause || now - Queue.lastrun < Queue.option.delay * 1000) {
 		return;
 	}
 	Queue.lastrun = now;
@@ -1316,6 +1341,7 @@ Battle.option = {
 	type: 'Invade',
 	bp: 'Always'
 };
+
 Battle.display = [
 	{
 		id:'general',
@@ -1348,6 +1374,7 @@ Battle.display = [
 		select:[100,200,300,400,500]
 	}
 ];
+
 Battle.parse = function(change) {
 	var i, data, uid, info, list = [];
 	if (Page.page === 'battle_rank') {
@@ -1425,11 +1452,15 @@ Battle.parse = function(change) {
 			}
 		}
 	}
-	if (Settings.Save(Battle)) {
-		Dashboard.update(Battle);
-	}
 	return false;
 };
+
+Battle.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Battle);
+	}
+}
+
 Battle.work = function(state) {
 	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
 		return false;
@@ -1478,6 +1509,7 @@ Battle.work = function(state) {
 	Page.click($('input[type="image"]', $form));
 	return true;
 };
+
 Battle.rank = function(name) {
 	for (var i in Battle.data.rank) {
 		if (Battle.data.rank[i].name === name) {
@@ -1486,6 +1518,7 @@ Battle.rank = function(name) {
 	}
 	return 0;
 };
+
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
 	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
@@ -1654,6 +1687,7 @@ var Generals = new Worker('Generals', 'heroes_generals');
 Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
+
 Generals.parse = function(change) {
 	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
@@ -1692,12 +1726,23 @@ Generals.parse = function(change) {
 			};
 		}
 	}
-	if (Settings.Save(Generals)) {
-		Generals.select();
-		Dashboard.update(Generals);
-	}
 	return false;
 };
+
+Generals.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
+	$('select.golem_generals').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
+		for (i in list) {
+			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
+		}
+	});
+	Dashboard.change(Generals);
+};
+
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
 		return true;
@@ -1713,6 +1758,7 @@ Generals.to = function(name) {
 	Page.click('input[src$="'+Generals.data[name].img+'"]');
 	return false;
 };
+
 Generals.best = function(type) {
 	if (!Generals.data) {
 		return 'any';
@@ -1769,6 +1815,7 @@ Generals.best = function(type) {
 	}
 	return best;
 };
+
 Generals.random = function(level4) { // Note - true means *include* level 4
 	var i, list = [];
 	for (i in Generals.data) {
@@ -1784,6 +1831,7 @@ Generals.random = function(level4) { // Note - true means *include* level 4
 		return 'any';
 	}
 };
+
 Generals.list = function(opts) {
 	var i, value, list = [];
 	if (!opts) {
@@ -1812,15 +1860,7 @@ Generals.list = function(opts) {
 	list.unshift('any');
 	return list;
 };
-Generals.select = function() {
-	$('select.golem_generals').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
-		for (i in list) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
-};
+
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
 	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0;
@@ -2262,6 +2302,7 @@ Monster.option = {
 	choice: 'All',
 	raid: 'Invade x5'
 };
+
 Monster.display = [
 	{
 		label:'Work in progress...'
@@ -2291,6 +2332,7 @@ Monster.display = [
 		checkbox:true
 	}
 ];
+
 Monster.types = {
 	// Special (level 5) - not under Monster tab
 	kull: {
@@ -2469,11 +2511,13 @@ Monster.types = {
 		mpool:3
 	}
 };
+
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
 Monster.count = 0;
 Monster.uid = null;
+
 Monster.onload = function() {
 	var i, j;
 	for (i in Monster.data) {
@@ -2484,6 +2528,7 @@ Monster.onload = function() {
 		}
 	}
 }
+
 Monster.parse = function(change) {
 	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
@@ -2614,11 +2659,15 @@ Monster.parse = function(change) {
 			delete Monster.data[i];
 		}
 	}
-	if (Settings.Save(Monster)) {
-		Dashboard.update(Monster);
-	}
 	return false;
 };
+
+Monster.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Monster);
+	}
+};
+
 Monster.work = function(state) {
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
@@ -2727,6 +2776,7 @@ Monster.work = function(state) {
 	Page.click(btn);
 	return true;
 };
+
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
 	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
@@ -2816,6 +2866,7 @@ Player.data = {
 };
 Player.option = null;
 Player.panel = null;
+
 Player.onload = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -2823,6 +2874,7 @@ Player.onload = function() {
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
+
 Player.parse = function(change) {
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -2891,27 +2943,13 @@ Player.parse = function(change) {
 		}
 	}
 	data.average = Math.floor(data.average / length(data.average));
-	if (Settings.Save(Player)) {
-		Player.select();
-		Dashboard.update(Player);
-	}
 	return false;
 };
-Player.work = function(state) {
-	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-// Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
-	var when = new Date();
-	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-};
-Player.select = function() {
+
+Player.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
 	var step = Divisor(Player.data.maxstamina)
 	$('select.golem_stamina').each(function(a,el){
 		$(el).empty();
@@ -2936,7 +2974,24 @@ Player.select = function() {
 			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
 		}
 	});
+	Dashboard.change(Player);
 };
+
+Player.work = function(state) {
+	// These can change every second - so keep them in mind
+	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+// Very innacurate!!!
+//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
+	var when = new Date();
+	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
+	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
+	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+};
+
 Player.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
@@ -2946,6 +3001,7 @@ Player.dashboard = function() {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Player').html(list.join(''));
 }
+
 Player.makeGraph = function(type, title, iscash, min) {
 	var i, j, max = 0, max_s, min_s, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
 	list.push('<tr>');
@@ -3032,6 +3088,7 @@ Quest.display = [
 		info:'None'
 	}
 ];
+
 Quest.parse = function(change) {
 	var quest = Quest.data, area, land = null;
 	if (Page.page === 'quests_quest') {
@@ -3101,13 +3158,13 @@ Quest.parse = function(change) {
 			quest[name].general = tmp.attr('title');
 		}
 	});
-	if (Settings.Save(Quest)) {
-		Quest.select();
-		Dashboard.update(Quest);
-	}
 	return false;
 };
-Quest.select = function() {
+
+Quest.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
 	var i, list = [];
 	for (i in Quest.data) {
 		if (Quest.data[i].item && !Quest.data[i].unique) {
@@ -3122,7 +3179,9 @@ Quest.select = function() {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
+	Dashboard.change(Quest);
 };
+
 Quest.work = function(state) {
 	var i, j, best = null;
 	if (Quest.option.what === 'Nothing') {
@@ -3279,6 +3338,7 @@ Town.data = {
 	blacksmith: {},
 	magic: {}
 };
+
 Town.display = [
 	{
 		label:'Work in progress...'
@@ -3292,6 +3352,7 @@ Town.display = [
 		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
 	}
 ];
+
 Town.blacksmith = { // Shield must come after armor (currently)
 	Weapon:	/avenger|axe|blade|bow|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|The Dreadnought/i,
@@ -3300,6 +3361,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Armor:	/armor|chainmail|cloak|pauldrons|plate|robe|Blood Vestment|Faerie Wings|Ogre Raiments/i,
 	Amulet:	/amulet|bauble|charm|eye|heart|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn/i
 };
+
 Town.parse = function(change) {
 	if (!change) {
 		var unit = {};
@@ -3327,9 +3389,6 @@ Town.parse = function(change) {
 			}
 		});
 		Town.data[Page.page.substr(5)] = unit;
-		if (Settings.Save(Town)) {
-			Dashboard.update(Town);
-		}
 	} else {
 		if (Page.page==='town_blacksmith') {
 			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
@@ -3342,6 +3401,13 @@ Town.parse = function(change) {
 	}
 	return true;
 };
+
+Town.update = function(type) {
+	if (type === 'data') {
+		Dashboard.change(Town);
+	}
+}
+
 Town.work = function(state) {
 	if (!Town.option.number) {
 		return false;

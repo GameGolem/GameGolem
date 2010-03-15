@@ -49,7 +49,7 @@ var Settings = {
 		return v;
 	},
 	Save:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null, change = 0;
+		var i, type = 'data', worker = null, change = false;
 		for (i=0; i<arguments.length; i++) {
 			if (typeof arguments[i] === 'object') {
 				worker = arguments[i];
@@ -58,11 +58,22 @@ var Settings = {
 			}
 		}
 		if (worker && worker[type]) {
-			return Settings.SetValue(type + '.' + worker.name, worker[type]);
-		}
-		for (i=0; i<Workers.length; i++) {
-			if (Workers[i][type]) {
-				change += Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
+			if (Settings.SetValue(type + '.' + worker.name, worker[type])) {
+				change = true;
+				if (worker.update) {
+					worker.update(type);
+				}
+			}
+		} else {
+			for (i=0; i<Workers.length; i++) {
+				if (Workers[i][type]) {
+					if (Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type])) {
+						change = true;
+						if (Workers[i].update) {
+							Workers[i].update(type);
+						}
+					}
+				}
 			}
 		}
 		return change;

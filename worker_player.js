@@ -8,6 +8,7 @@ Player.data = {
 };
 Player.option = null;
 Player.panel = null;
+
 Player.onload = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -15,6 +16,7 @@ Player.onload = function() {
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
 	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
 };
+
 Player.parse = function(change) {
 	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -83,27 +85,13 @@ Player.parse = function(change) {
 		}
 	}
 	data.average = Math.floor(data.average / length(data.average));
-	if (Settings.Save(Player)) {
-		Player.select();
-		Dashboard.update(Player);
-	}
 	return false;
 };
-Player.work = function(state) {
-	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-// Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
-	var when = new Date();
-	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-};
-Player.select = function() {
+
+Player.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
 	var step = Divisor(Player.data.maxstamina)
 	$('select.golem_stamina').each(function(a,el){
 		$(el).empty();
@@ -128,7 +116,24 @@ Player.select = function() {
 			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
 		}
 	});
+	Dashboard.change(Player);
 };
+
+Player.work = function(state) {
+	// These can change every second - so keep them in mind
+	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+// Very innacurate!!!
+//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
+	var when = new Date();
+	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
+	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
+	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+};
+
 Player.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
@@ -138,6 +143,7 @@ Player.dashboard = function() {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Player').html(list.join(''));
 }
+
 Player.makeGraph = function(type, title, iscash, min) {
 	var i, j, max = 0, max_s, min_s, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
 	list.push('<tr>');

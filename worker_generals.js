@@ -7,6 +7,7 @@ var Generals = new Worker('Generals', 'heroes_generals');
 Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
+
 Generals.parse = function(change) {
 	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
@@ -45,12 +46,23 @@ Generals.parse = function(change) {
 			};
 		}
 	}
-	if (Settings.Save(Generals)) {
-		Generals.select();
-		Dashboard.update(Generals);
-	}
 	return false;
 };
+
+Generals.update = function(type) {
+	if (type !== 'data') {
+		return;
+	}
+	$('select.golem_generals').each(function(a,el){
+		$(el).empty();
+		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
+		for (i in list) {
+			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
+		}
+	});
+	Dashboard.change(Generals);
+};
+
 Generals.to = function(name) {
 	if (!name || Player.data.general === name || name === 'any') {
 		return true;
@@ -66,6 +78,7 @@ Generals.to = function(name) {
 	Page.click('input[src$="'+Generals.data[name].img+'"]');
 	return false;
 };
+
 Generals.best = function(type) {
 	if (!Generals.data) {
 		return 'any';
@@ -122,6 +135,7 @@ Generals.best = function(type) {
 	}
 	return best;
 };
+
 Generals.random = function(level4) { // Note - true means *include* level 4
 	var i, list = [];
 	for (i in Generals.data) {
@@ -137,6 +151,7 @@ Generals.random = function(level4) { // Note - true means *include* level 4
 		return 'any';
 	}
 };
+
 Generals.list = function(opts) {
 	var i, value, list = [];
 	if (!opts) {
@@ -165,15 +180,7 @@ Generals.list = function(opts) {
 	list.unshift('any');
 	return list;
 };
-Generals.select = function() {
-	$('select.golem_generals').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
-		for (i in list) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
-};
+
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
 	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0;

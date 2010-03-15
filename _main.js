@@ -83,8 +83,6 @@ if (typeof APP !== 'undefined') {
 				node_trigger = window.setTimeout(function(){node_trigger=null;parse_all();},100);
 			}
 		});
-		// Running the queue every second, options within it give more delay
-		window.setInterval(function(){Queue.run();},1000);
 	});
 }
 
