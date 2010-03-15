@@ -71,8 +71,8 @@ if (typeof APP !== 'undefined') {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
-			if (Workers[i].dashboard) {
-				Workers[i].dashboard();
+			if (Workers[i].update) {
+				Workers[i].update('data');
 			}
 		}
 		parse_all(); // Call once to get the ball rolling...

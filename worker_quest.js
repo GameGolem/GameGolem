@@ -87,6 +87,9 @@ Quest.parse = function(change) {
 		if (type === 2) { // Main quest has some extra stuff
 			return;
 		}
+		if (type === 3) { // Special quests create unique items
+			quest[name].unique = true;
+		}
 		tmp = $('.qd_1 img', el).last();
 		if (tmp.length && tmp.attr('title')) {
 			quest[name].item	= tmp.attr('title').trim();

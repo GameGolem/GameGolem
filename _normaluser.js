@@ -84,8 +84,8 @@ if (typeof APP !== 'undefined') {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
-			if (Workers[i].dashboard) {
-				Workers[i].dashboard();
+			if (Workers[i].update) {
+				Workers[i].update('data');
 			}
 		}
 		parse_all(); // Call once to get the ball rolling...
@@ -640,7 +640,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
@@ -976,7 +976,7 @@ Queue.option = {
 };
 Queue.display = [
 	{
-		label:'Drag the other panels into the order you wish them run.'
+		label:'Drag the unlocked panels into the order you wish them run.'
 	},{
 		id:'delay',
 		label:'Delay Between Events',
@@ -988,7 +988,8 @@ Queue.display = [
 		label:'Delay After Mouse Click',
 		text:true,
 		after:'secs',
-		size:3
+		size:3,
+		help:'This should be a multiple of Event Delay'
 	},{
 		id:'start_stamina',
 		before:'Save',
@@ -3139,6 +3140,9 @@ Quest.parse = function(change) {
 		quest[name].energy = energy;
 		if (type === 2) { // Main quest has some extra stuff
 			return;
+		}
+		if (type === 3) { // Special quests create unique items
+			quest[name].unique = true;
 		}
 		tmp = $('.qd_1 img', el).last();
 		if (tmp.length && tmp.attr('title')) {

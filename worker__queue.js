@@ -16,7 +16,7 @@ Queue.option = {
 };
 Queue.display = [
 	{
-		label:'Drag the other panels into the order you wish them run.'
+		label:'Drag the unlocked panels into the order you wish them run.'
 	},{
 		id:'delay',
 		label:'Delay Between Events',
@@ -28,7 +28,8 @@ Queue.display = [
 		label:'Delay After Mouse Click',
 		text:true,
 		after:'secs',
-		size:3
+		size:3,
+		help:'This should be a multiple of Event Delay'
 	},{
 		id:'start_stamina',
 		before:'Save',

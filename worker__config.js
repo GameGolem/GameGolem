@@ -175,7 +175,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both">' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
