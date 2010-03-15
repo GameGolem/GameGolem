@@ -95,7 +95,7 @@ Player.work = function(state) {
 // Very innacurate!!!
 //	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
 	var when = new Date();
-	Player.data.cash_timer		= 3600 % (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60)));
+	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
 	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);

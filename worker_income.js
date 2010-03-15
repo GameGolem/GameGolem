@@ -31,7 +31,7 @@ Income.work = function(state) {
 		return false;
 	}
 	var when = new Date();
-	when = 3600 % (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60)));
+	when = (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 //	debug('Income: '+when+', Margin: '+Income.option.margin);
 	if (when > Income.option.margin) {
 		if (state && Income.option.bank) {
