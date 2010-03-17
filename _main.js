@@ -2,7 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 25;
+var VERSION = 26;
 var script_started = Date.now();
 
 // Decide which facebook app we're in...

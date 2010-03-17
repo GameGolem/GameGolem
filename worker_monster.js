@@ -332,7 +332,7 @@ Monster.parse = function(change) {
 			}
 			Monster.data[uid] = Monster.data[uid] || {};
 			Monster.data[uid][type] = Monster.data[uid][type] || {};
-			if (uid === Player.data.FBID) {
+			if (uid === userID) {
 				Monster.data[uid][type].name = 'You';
 			} else {
 				tmp = $(el).parent().parent().children().eq(2).text().trim();
