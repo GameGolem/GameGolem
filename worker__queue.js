@@ -89,10 +89,10 @@ Queue.onload = function() {
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
 
-	$btn = $('<img class="golem-button" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (Queue.option.pause?' red':'') + '" id="golem_pause" src="' + (Queue.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
 		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).attr('src', (Queue.option.pause?play:pause));
+		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
 	});
