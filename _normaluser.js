@@ -2246,7 +2246,7 @@ Land.parse = function(change) {
 	return false;
 };
 Land.work = function(state) {
-	if (!Land.option.buy) {
+	if (state && !Land.option.buy) {
 		return false;
 	}
 	var i, worth = Bank.worth(), best = Land.option.best || null, buy = Land.option.bestbuy || 0;
@@ -2261,11 +2261,11 @@ Land.work = function(state) {
 		if (!best) {
 			return false;
 		}
-		if ((Land.data[best].cost * 10) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
+		if ((Land.data[best].cost * 10) <= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
 			buy = 10;
-		} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
+		} else if ((Land.data[best].cost * 5) <= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
 			buy = 5;
-		} else if (Land.data[best].cost >= worth){
+		} else if (Land.data[best].cost <= worth){
 			buy = 1;
 		}
 		$('#'+PREFIX+'Land_current').text(buy + 'x ' + best + ' for $' + addCommas(buy * Land.data[best].cost));
@@ -2780,7 +2780,7 @@ Monster.work = function(state) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
+	var i, j, o, monster, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
@@ -2803,8 +2803,8 @@ Monster.dashboard = function(sort, rev) {
 			aa = Monster.data[a[0]][a[1]][sorttype[sort]];
 			bb = Monster.data[b[0]][b[1]][sorttype[sort]];
 		} else if (sort == 4) { // damage
-			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[Player.data.FBID] : 0;
-			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[Player.data.FBID] : 0;
+			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[userID] : 0;
+			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[userID] : 0;
 		}
 		if (typeof aa === 'string' || typeof bb === 'string') {
 			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
@@ -2818,24 +2818,25 @@ Monster.dashboard = function(sort, rev) {
 			continue;
 		}
 		output = [];
+		monster = Monster.data[i][j];
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		if (Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') {
+		if (monster.state === 'engage' || monster.state === 'assist') {
 			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
 		}
-		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + Monster.data[i][j].state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
+		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + monster.state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
 		output.push(Monster.data[i][j].name);
-		if ((Monster.data[i][j].state === 'engage' || Monster.data[i][j].state === 'assist') && Monster.data[i][j].total) {
-			output.push(Monster.data[i][j].health===100 ? '?' : addCommas(Monster.data[i][j].total - Monster.data[i][j].damage_total) + ' (' + Math.floor(Monster.data[i][j].health) + '%)');
-			output.push(typeof Monster.data[i][j].defense === 'number' ? Math.floor(Monster.data[i][j].defense)+'%' : '');
-			output.push(typeof Monster.data[i][j].dispel === 'number' ? Math.floor(Monster.data[i][j].dispel)+'%' : '');
-			output.push(Monster.data[i][j].state === 'engage' ? addCommas(Monster.data[i][j].damage[Player.data.FBID][0]) + ' (' + (Monster.data[i][j].damage[Player.data.FBID][0] / Monster.data[i][j].total * 100).round(1) + '%)' : '');
-			output.push(Monster.data[i][j].timer ? '<span class="golem-timer">' + makeTimer((Monster.data[i][j].finish - Date.now()) / 1000) + '</span>' : '?');
-			output.push(Monster.data[i][j].health===100 ? '?' : '<span class="golem-timer">'+makeTimer((Monster.data[i][j].eta - Date.now()) / 1000)+'</span>');
+		if ((monster.state === 'engage' || monster.state === 'assist') && monster.total) {
+			output.push(monster.health===100 ? '?' : addCommas(monster.total - monster.damage_total) + ' (' + Math.floor(monster.health) + '%)');
+			output.push(typeof monster.defense === 'number' ? Math.floor(monster.defense)+'%' : '');
+			output.push(typeof monster.dispel === 'number' ? Math.floor(monster.dispel)+'%' : '');
+			output.push(monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '');
+			output.push(monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
+			output.push(monster.health===100 ? '?' : '<span class="golem-timer">'+makeTimer((monster.eta - Date.now()) / 1000)+'</span>');
 		} else {
 			output.push('', '', '', '', '', '');
 		}

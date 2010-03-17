@@ -42,7 +42,7 @@ Land.parse = function(change) {
 	return false;
 };
 Land.work = function(state) {
-	if (!Land.option.buy) {
+	if (state && !Land.option.buy) {
 		return false;
 	}
 	var i, worth = Bank.worth(), best = Land.option.best || null, buy = Land.option.bestbuy || 0;
@@ -57,11 +57,11 @@ Land.work = function(state) {
 		if (!best) {
 			return false;
 		}
-		if ((Land.data[best].cost * 10) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
+		if ((Land.data[best].cost * 10) <= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 10 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 10)) {
 			buy = 10;
-		} else if ((Land.data[best].cost * 5) >= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
+		} else if ((Land.data[best].cost * 5) <= worth || (Land.data[best].own >= 10 && Land.data[best].cost * 5 / Player.data.income < Land.option.wait && Land.data[best].max - Land.data[best].own >= 5)) {
 			buy = 5;
-		} else if (Land.data[best].cost >= worth){
+		} else if (Land.data[best].cost <= worth){
 			buy = 1;
 		}
 		$('#'+PREFIX+'Land_current').text(buy + 'x ' + best + ' for $' + addCommas(buy * Land.data[best].cost));
