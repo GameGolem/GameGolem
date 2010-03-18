@@ -60,8 +60,8 @@ var Settings = {
 		if (worker && worker[type]) {
 			if (Settings.SetValue(type + '.' + worker.name, worker[type])) {
 				change = true;
-				if (worker.update) {
-					worker.update(type);
+				if (worker.update && worker.update(type)) {
+					Settings.SetValue(type + '.' + worker.name, worker[type]);
 				}
 			}
 		} else {
@@ -69,8 +69,8 @@ var Settings = {
 				if (Workers[i][type]) {
 					if (Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type])) {
 						change = true;
-						if (Workers[i].update) {
-							Workers[i].update(type);
+						if (Workers[i].update && Workers[i].update(type)) {
+							Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
 						}
 					}
 				}
