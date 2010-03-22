@@ -34,21 +34,21 @@ Town.blacksmith = { // Shield must come after armor (currently)
 Town.parse = function(change) {
 	if (!change) {
 		var unit = {};
-		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
-			var i, name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
-				cost = $('div.eq_buy_costs strong:first-child', el).text().replace(/[^0-9]/g, '');
+		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
+			var i, costs = $('div.eq_buy_costs', el), stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first-child', el).text().trim(),
+				cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
 			unit[name] = {};
 			if (cost) {
 				unit[name].cost = parseInt(cost, 10);
 				unit[name].buy = [];
-				$('div.eq_buy_costs select[name="amount"]:first option', el).each(function(i,el){
+				$('select[name="amount"]:first option', costs).each(function(i,el){
 					unit[name].buy.push(parseInt($(el).val(), 10));
 				});
 			}
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-			unit[name].own = $('div.eq_buy_costs span:first-child', el).text().regex(/Owned: ([0-9]+)/i);
-			unit[name].att = $('div.eq_buy_stats div:first-child', el).text().regex(/([0-9]+)/);
-			unit[name].def = $('div.eq_buy_stats div:last-child', el).text().regex(/([0-9]+)/);
+			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
+			unit[name].att = $('div:first-child', stats).text().regex(/([0-9]+)/);
+			unit[name].def = $('div:last-child', stats).text().regex(/([0-9]+)/);
 			if (Page.page==='town_blacksmith') {
 				for (i in Town.blacksmith) {
 					if (name.match(Town.blacksmith[i])) {
@@ -60,10 +60,10 @@ Town.parse = function(change) {
 		Town.data[Page.page.substr(5)] = unit;
 	} else {
 		if (Page.page==='town_blacksmith') {
-			$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
-				var name = $('div.eq_buy_txt strong:first-child', el).text().trim();
+			$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
+				var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
 				if (Town.data.blacksmith[name].type) {
-					$('div.eq_buy_txt strong:first-child', el).parent().append('<br>'+Town.data.blacksmith[name].type);
+					$el.parent().append('<br>'+Town.data.blacksmith[name].type);
 				}
 			});
 		}
@@ -80,36 +80,31 @@ Town.update = function(type) {
 			listpushhelmet = function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}},
 			listpushgloves = function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}},
 			listpusharmor = function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}},
-			listpushamulet = function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}},
-			usepush = function(list,i,units){if (units[i].use){list.push(i);}},
-			usepushweapon = function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}},
-			usepushnotweapon = function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}};
-		Town.data.invade = {
-			attack:	getAttDef(Town.data.soldiers, listpush, 'att', Player.data.army, 'invade')
-				+	getAttDef(Town.data.blacksmith, listpushweapon, 'att', Player.data.army, 'invade')
-				+	getAttDef(Town.data.blacksmith, listpushnotweapon, 'att', Player.data.army, 'invade')
-				+	getAttDef(Town.data.magic, listpush, 'att', Player.data.army, 'invade'),
-			defend:	getAttDef(Town.data.soldiers, listpush, 'def', Player.data.army, 'invade')
-				+	getAttDef(Town.data.blacksmith, listpushweapon, 'def', Player.data.army, 'invade')
-				+	getAttDef(Town.data.blacksmith, listpushnotweapon, 'def', Player.data.army, 'invade')
-				+	getAttDef(Town.data.magic, listpush, 'def', Player.data.army, 'invade')
-		};
-		Town.data.duel = {
-			attack:	getAttDef(Town.data.blacksmith, listpushweapon, 'att', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushshield, 'att', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushhelmet, 'att', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushgloves, 'att', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpusharmor, 'att', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushamulet, 'att', 1, 'duel')
-				+	getAttDef(Town.data.magic, listpush, 'att', 1, 'duel'),
-			defend:	getAttDef(Town.data.blacksmith, listpushweapon, 'def', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushshield, 'def', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushhelmet, 'def', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushgloves, 'def', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpusharmor, 'def', 1, 'duel')
-				+	getAttDef(Town.data.blacksmith, listpushamulet, 'def', 1, 'duel')
-				+	getAttDef(Town.data.magic, listpush, 'def', 1, 'duel')
-		};
+			listpushamulet = function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}};
+		Town.data.invade = { attack:0, defend:0 };
+		Town.data.duel = { attack:0, defend:0 };
+		Town.data.invade.attack	+= getAttDef(Town.data.soldiers, listpush, 'att', Player.data.army, 'invade');
+		Town.data.invade.defend	+= getAttDef(Town.data.soldiers, null, 'def', Player.data.army, 'invade');
+		Town.data.invade.attack	+= getAttDef(Town.data.blacksmith, listpushnotweapon, 'att', Player.data.army, 'invade');
+		Town.data.invade.defend	+= getAttDef(Town.data.blacksmith, null, 'def', Player.data.army, 'invade');
+		Town.data.invade.attack	+= getAttDef(Town.data.blacksmith, listpushweapon, 'att', Player.data.army, 'invade');
+		Town.data.invade.defend	+= getAttDef(Town.data.blacksmith, null, 'def', Player.data.army, 'invade');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, null, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
+		Town.data.invade.attack	+= getAttDef(Town.data.magic, listpush, 'att', Player.data.army, 'invade');
+		Town.data.invade.defend	+= getAttDef(Town.data.magic, null, 'def', Player.data.army, 'invade');
+		Town.data.duel.attack	+= getAttDef(Town.data.magic, null, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.magic, null, 'def', 1, 'duel');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, listpushshield, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, listpushhelmet, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, listpushgloves, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, listpusharmor, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
+		Town.data.duel.attack	+= getAttDef(Town.data.blacksmith, listpushamulet, 'att', 1, 'duel');
+		Town.data.duel.defend	+= getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
 		Dashboard.change(Town);
 		return true;
 	}
@@ -184,7 +179,11 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var left, right, duel = {}, best;
+	var left, right, duel = {}, best,
+		listpush = function(list,i){list.push(i);},
+		usepush = function(list,i,units){if (units[i].use){list.push(i);}},
+		usepushweapon = function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}},
+		usepushnotweapon = function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}};
 	best = Generals.best('duel');
 	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	makeTownDash(Generals.data, listpush, 'att', 'invade', 'Heroes')

@@ -143,10 +143,15 @@ var findInArray = function(list, value) {
 	return false;
 };
 
+var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
-	for (i in list) {
-		unitfunc(units, i, list);
+	if (unitfunc) {
+		for (i in list) {
+			unitfunc(units, i, list);
+		}
+	} else {
+		units = getAttDefList;
 	}
 	units.sort(function(a,b) {
 		return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
@@ -173,6 +178,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		defend += own * list[units[i]].def;
 		count -= own;
 	}
+	getAttDefList = units;
 	return (x==='att'?attack:(0.7*attack)) + (x==='def'?defend:(0.7*defend));
 };
 
