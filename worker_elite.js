@@ -17,10 +17,14 @@ Elite.display = [
 		label:'Every',
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours'
+	},{
+		label:'Add UserIDs to prefer them over random army members.'
+	},{
+		id:'prefer',
+		multiple:'number'
 	}
 ];
 Elite.parse = function(change) {
-	var i;
 	$('span.result_body').each(function(i,el){
 		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
 			Elite.data[$('img', el).attr('uid')] = Date.now() + 86400000; // 24 hours
@@ -39,14 +43,25 @@ Elite.parse = function(change) {
 	return false;
 };
 Elite.work = function(state) {
-	var i, found = null;
+	var i, j, found = null;
 	if (!Elite.option.fill || (Elite.option.wait && (Elite.option.wait + (Elite.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
-	for(i in Elite.data) {
-		if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
-			if (!found) {
+	for(j=0; j<Elite.option.prefer.length; j++) {
+		i = Elite.option.prefer[j];
+		if (!/[^0-9]/g.test(i)) {
+			Elite.data[i] = Elite.data[i] || 0;
+			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
 				found = i;
+				break;
+			}
+		}
+	}
+	if (!found) {
+		for(i in Elite.data) {
+			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
+				found = i;
+				break;
 			}
 		}
 	}

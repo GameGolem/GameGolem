@@ -67,6 +67,7 @@ Page.pageNames = {
 	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
 	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -148,6 +149,7 @@ Page.load = function() {
 		success:function(data){
 			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
+				data = data.replace(/<(?:head[\s\S]*?\/head)?>/ig, '').replace(/<(?:script[\s\S]*?\/script)?>/ig, '').replace(/<(?:style[\s\S]*?\/style)?>/ig, '');
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
 				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
 			} else {

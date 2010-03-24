@@ -45,12 +45,14 @@ function parse_all() {
 	Page.identify();
 	var i, list = [];
 	for (i in Workers) {
+//		debug(Workers[i].name + '.parse(false);');
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
 			list.push(Workers[i]);
 		}
 	}
 	Settings.Save('data');
 	for (i in list) {
+//		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
 	}
 }

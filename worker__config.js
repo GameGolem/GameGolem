@@ -62,7 +62,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		}
 	}
 	$('input.golem_addselect').click(function(){
-		$('select.golem_multiple', $(this).parent()).append('<option>'+$('select.golem_select', $(this).parent()).val()+'</option>');
+		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').click(function(){
@@ -145,29 +145,31 @@ Config.makePanel = function(worker) {
 						}
 					}
 					txt.push('<select style="width:100%" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
-					list = [];
-					switch (typeof o.multiple) {
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							break;
-						case 'number':
-							step = Divisor(o.select);
-							for (x=0; x<=o.multiple; x+=step) {
-								list.push('<option>' + x + '</option>');
-							}
-							break;
-						case 'array':
-							for (x=0; x<o.multiple.length; x++) {
-								list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-							break;
-						case 'object':
-							for (x in o.multiple) {
-								list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-							break;
+					if (typeof o.multiple === 'string') {
+						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+					} else {
+						list = [];
+						switch (typeof o.multiple) {
+							case 'number':
+								step = Divisor(o.select);
+								for (x=0; x<=o.multiple; x+=step) {
+									list.push('<option>' + x + '</option>');
+								}
+								break;
+							case 'array':
+								for (x=0; x<o.multiple.length; x++) {
+									list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+								break;
+							case 'object':
+								for (x in o.multiple) {
+									list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+								break;
+						}
+						txt.push('<select class="golem_select">'+list.join('')+'</select>');
 					}
-					txt.push('<select class="golem_select">'+list.join('')+'</select><input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
 				}
 				if (o.after) {
 					txt.push(' '+o.after);

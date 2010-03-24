@@ -119,6 +119,7 @@ Queue.run = function() {
 	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
+//	debug('Start Queue');
 	Queue.burn.stamina = Queue.burn.energy = 0;
 	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
 		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
@@ -130,6 +131,7 @@ Queue.run = function() {
 	}
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
+//			debug(Workers[i].name + '.work(false);');
 			Workers[i].work(false);
 		}
 	}
@@ -138,7 +140,9 @@ Queue.run = function() {
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
+//		debug(worker.name + '.work(' + (Queue.data.current === worker.name) + ');');
 		if (!worker.work(Queue.data.current === worker.name)) {
+//			debug(' = false');
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
 				if (worker.priv_id) {
@@ -148,6 +152,7 @@ Queue.run = function() {
 			}
 			continue;
 		}
+//		debug(' = true');
 		if (!found) { // We will work(false) everything, but only one gets work(true) at a time
 			found = true;
 			if (Queue.data.current === worker.name) {
@@ -167,6 +172,7 @@ Queue.run = function() {
 			debug('Queue: Trigger '+worker.name);
 		}
 	}
+//	debug('End Queue');
 	Settings.Save('option');
 	Settings.Save('data');
 };

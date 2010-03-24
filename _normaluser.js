@@ -58,12 +58,14 @@ function parse_all() {
 	Page.identify();
 	var i, list = [];
 	for (i in Workers) {
+//		debug(Workers[i].name + '.parse(false);');
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
 			list.push(Workers[i]);
 		}
 	}
 	Settings.Save('data');
 	for (i in list) {
+//		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
 	}
 }
@@ -534,7 +536,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		}
 	}
 	$('input.golem_addselect').click(function(){
-		$('select.golem_multiple', $(this).parent()).append('<option>'+$('select.golem_select', $(this).parent()).val()+'</option>');
+		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').click(function(){
@@ -617,29 +619,31 @@ Config.makePanel = function(worker) {
 						}
 					}
 					txt.push('<select style="width:100%" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
-					list = [];
-					switch (typeof o.multiple) {
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							break;
-						case 'number':
-							step = Divisor(o.select);
-							for (x=0; x<=o.multiple; x+=step) {
-								list.push('<option>' + x + '</option>');
-							}
-							break;
-						case 'array':
-							for (x=0; x<o.multiple.length; x++) {
-								list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-							break;
-						case 'object':
-							for (x in o.multiple) {
-								list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-							break;
+					if (typeof o.multiple === 'string') {
+						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+					} else {
+						list = [];
+						switch (typeof o.multiple) {
+							case 'number':
+								step = Divisor(o.select);
+								for (x=0; x<=o.multiple; x+=step) {
+									list.push('<option>' + x + '</option>');
+								}
+								break;
+							case 'array':
+								for (x=0; x<o.multiple.length; x++) {
+									list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+								break;
+							case 'object':
+								for (x in o.multiple) {
+									list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+								break;
+						}
+						txt.push('<select class="golem_select">'+list.join('')+'</select>');
 					}
-					txt.push('<select class="golem_select">'+list.join('')+'</select><input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
 				}
 				if (o.after) {
 					txt.push(' '+o.after);
@@ -852,6 +856,7 @@ Page.pageNames = {
 	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
 	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -933,6 +938,7 @@ Page.load = function() {
 		success:function(data){
 			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
+				data = data.replace(/<(?:head[\s\S]*?\/head)?>/ig, '').replace(/<(?:script[\s\S]*?\/script)?>/ig, '').replace(/<(?:style[\s\S]*?\/style)?>/ig, '');
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
 				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
 			} else {
@@ -1086,6 +1092,7 @@ Queue.run = function() {
 	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
+//	debug('Start Queue');
 	Queue.burn.stamina = Queue.burn.energy = 0;
 	if (Queue.option.burn_stamina || Player.data.stamina >= Queue.option.start_stamina) {
 		Queue.burn.stamina = Math.max(0, Player.data.stamina - Queue.option.stamina);
@@ -1097,6 +1104,7 @@ Queue.run = function() {
 	}
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
+//			debug(Workers[i].name + '.work(false);');
 			Workers[i].work(false);
 		}
 	}
@@ -1105,7 +1113,9 @@ Queue.run = function() {
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
+//		debug(worker.name + '.work(' + (Queue.data.current === worker.name) + ');');
 		if (!worker.work(Queue.data.current === worker.name)) {
+//			debug(' = false');
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
 				if (worker.priv_id) {
@@ -1115,6 +1125,7 @@ Queue.run = function() {
 			}
 			continue;
 		}
+//		debug(' = true');
 		if (!found) { // We will work(false) everything, but only one gets work(true) at a time
 			found = true;
 			if (Queue.data.current === worker.name) {
@@ -1134,6 +1145,7 @@ Queue.run = function() {
 			debug('Queue: Trigger '+worker.name);
 		}
 	}
+//	debug('End Queue');
 	Settings.Save('option');
 	Settings.Save('data');
 };
@@ -1253,6 +1265,102 @@ Alchemy.work = function(state) {
 	});
 	return true;
 };
+/********** Worker.Arena() **********
+* Build your arena army
+* Auto-attack Arena targets
+*/
+var Arena = new Worker('Arena', 'army_viewarmy battle_arena');
+Arena.data = {
+	army:{}
+};
+Arena.option = {
+	fill:true,
+	every:24,
+	checking:null
+};
+Arena.display = [
+	{
+		label:'NOTE: Make sure this is disabled if you are not fighting and make sure this is before Battle if you are!'
+	},{
+		id:'fill',
+		label:'Fill Arena Guard',
+		checkbox:true
+	},{
+		id:'every',
+		label:'Every',
+		select:[1, 2, 3, 6, 12, 24],
+		after:'hours'
+	},{
+		label:'Add UserIDs to prefer them over random army members.'
+	},{
+		id:'prefer',
+		multiple:'number'
+	}
+];
+Arena.parse = function(change) {
+	if (Arena.option.checking) {
+		$('span.result_body').each(function(i,el){
+			if ($(el).text().match(/has not joined in the Arena!/i)) {
+				Arena.data.army[Arena.option.checking] = -1;
+			} else if ($(el).text().match(/Arena Guard, and they have joined/i)) {
+				Arena.data.army[Arena.option.checking] = Date.now() + 86400000; // 24 hours
+			} else if ($(el).text().match(/'s Arena Guard is FULL/i)) {
+				Arena.data.army[Arena.option.checking] = Date.now() + 3600000; // 1 hour
+			} else if ($(el).text().match(/YOUR Arena Guard is FULL/i)) {
+				Arena.option.wait = Date.now();
+				debug('Arena guard full, wait 24 hours');
+			}
+		});
+		Arena.option.checking = null;
+	}
+	if (Page.page === 'army_viewarmy') {
+		$('img[linked="true"][size="square"]').each(function(i,el){
+			Arena.data.army[$(el).attr('uid')] = Arena.data.army[$(el).attr('uid')] || 0;
+		});
+	}
+	return false;
+};
+Arena.work = function(state) {
+	var i, j, found = null;
+	if (!Arena.option.fill || (Arena.option.wait && (Arena.option.wait + (Arena.option.every * 3600000)) > Date.now())) {
+		return false;
+	}
+	for(j=0; j < Arena.option.prefer.length; j++) {
+		i = Arena.option.prefer[j];
+		if (!/[^0-9]/g.test(i)) {
+			Arena.data.army[i] = Arena.data.army[i] || 0;
+			if (typeof Arena.data.army[i] !== 'number' || (Arena.data.army[i] !== -1 && Arena.data.army[i] < Date.now())) {
+				found = i;
+				break;
+			}
+		}
+	}
+	if (!found) {
+		for(i in Arena.data.army) {
+			if (typeof Arena.data.army[i] !== 'number' || (Arena.data.army[i] !== -1 && Arena.data.army[i] < Date.now())) {
+				found = i;
+				break;
+			}
+		}
+	}
+	if (!found && length(Arena.data.army)) {
+		return false;
+	}
+	if (!state) {
+		return true;
+	}
+	if (!found && !length(Arena.data.army) && !Page.to('army_viewarmy')) {
+		return true;
+	}
+	debug('Arena: Add member '+found);
+	//http://apps.facebook.com/castle_age/arena.php?user=00000&lka=00000&agtw=1&ref=nf
+	Arena.option.checking = found;
+	if (!Page.to('battle_arena', '?user=' + found + '&lka=' + found + '&agtw=1&ref=nf')) {
+		return true;
+	}
+	return false;
+};
+
 /********** Worker.Bank **********
 * Auto-banking
 */
@@ -1637,10 +1745,14 @@ Elite.display = [
 		label:'Every',
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours'
+	},{
+		label:'Add UserIDs to prefer them over random army members.'
+	},{
+		id:'prefer',
+		multiple:'number'
 	}
 ];
 Elite.parse = function(change) {
-	var i;
 	$('span.result_body').each(function(i,el){
 		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
 			Elite.data[$('img', el).attr('uid')] = Date.now() + 86400000; // 24 hours
@@ -1659,14 +1771,25 @@ Elite.parse = function(change) {
 	return false;
 };
 Elite.work = function(state) {
-	var i, found = null;
+	var i, j, found = null;
 	if (!Elite.option.fill || (Elite.option.wait && (Elite.option.wait + (Elite.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
-	for(i in Elite.data) {
-		if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
-			if (!found) {
+	for(j=0; j<Elite.option.prefer.length; j++) {
+		i = Elite.option.prefer[j];
+		if (!/[^0-9]/g.test(i)) {
+			Elite.data[i] = Elite.data[i] || 0;
+			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
 				found = i;
+				break;
+			}
+		}
+	}
+	if (!found) {
+		for(i in Elite.data) {
+			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
+				found = i;
+				break;
 			}
 		}
 	}
