@@ -103,7 +103,7 @@ Arena.parse = function(change) {
 			Arena.data.army[$(el).attr('uid')] = Arena.data.army[$(el).attr('uid')] || 0;
 		});
 	} else if (Page.page === 'battle_arena') {
-		data = Arena.data.user;
+		var i, list = [], data = Arena.data.user;
 		if (Arena.data.attacking) {
 			uid = Arena.data.attacking;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
@@ -268,7 +268,7 @@ Arena.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + Arena.knar[Arena.data.rank] + ' (' + Arena.data.rank + '), <strong>Targets:</strong> ' + length(Arena.data.user) + '</div><hr>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + Arena.knar[Arena.data.rank] + ' (' + Arena.data.rank + '), <strong>Targets:</strong> ' + length(Arena.data.user) + ' / ' + Arena.option.cache + '</div><hr>');
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>Rank</th><th>Name</th><th>Level</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
 	for (o=0; o<Arena.order.length; o++) {
 		i = Arena.order[o];
