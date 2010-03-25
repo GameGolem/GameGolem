@@ -11,6 +11,7 @@ Battle.option = {
 	general: true,
 	points: true,
 	monster: true,
+	arena:true,
 	losses: 5,
 	type: 'Invade',
 	bp: 'Always'
@@ -34,6 +35,11 @@ Battle.display = [
 		id:'points',
 		label:'Always Get Demi-Points',
 		checkbox:true
+	},{
+		id:'arena',
+		label:'Fight in Arena First',
+		checkbox:true,
+		help:'Only if the Arena is enabled!'
 	},{
 		id:'monster',
 		label:'Fight Monsters First',
@@ -147,7 +153,7 @@ Battle.work = function(state) {
 			}
 		}
 	}
-	if ((!Battle.option.points || !points.length) && Battle.option.monster && Monster.count) {
+	if ((!Battle.option.points || !points.length) && ((Battle.option.monster && Monster.count) || (Battle.option.arena && Arena.option.enabled))) {
 		return false;
 	}
 	for (i in user) {
