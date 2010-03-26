@@ -132,11 +132,11 @@ Page.to = function(page, args) {
 			Page.last = Page.last + args;
 		}
 		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		Page.load();
+		Page.ajaxload();
 	}
 	return false;
 }
-Page.load = function() {
+Page.ajaxload = function() {
 	$.ajax({
 		cache:false,
 		dataType:'text',
@@ -144,7 +144,7 @@ Page.load = function() {
 		url:'http://apps.facebook.com/castle_age/'+Page.last,
 		error:function() {
 			debug('Page not loaded correctly, reloading.');
-			Page.load();
+			Page.ajaxload();
 		},
 		success:function(data){
 			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
@@ -154,7 +154,7 @@ Page.load = function() {
 				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
 			} else {
 				debug('Page not loaded correctly, reloading.');
-				Page.load();
+				Page.ajaxload();
 			}
 		}
 	});

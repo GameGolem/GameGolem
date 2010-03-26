@@ -8,7 +8,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -111,7 +111,7 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, now = Date.now();
+	var i, worker, found = false, now = Date.now(), result;
 	if (Queue.option.pause || now - Queue.lastrun < Queue.option.delay * 1000) {
 		return;
 	}
@@ -141,7 +141,9 @@ Queue.run = function() {
 			continue;
 		}
 //		debug(worker.name + '.work(' + (Queue.data.current === worker.name) + ');');
-		if (!worker.work(Queue.data.current === worker.name)) {
+		result = worker.work(Queue.data.current === worker.name);
+		worker.save();
+		if (!result) {
 //			debug(' = false');
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
@@ -173,6 +175,5 @@ Queue.run = function() {
 		}
 	}
 //	debug('End Queue');
-	Settings.Save('option');
-	Settings.Save('data');
+	this.save();
 };

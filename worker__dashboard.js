@@ -38,7 +38,7 @@ Dashboard.onload = function() {
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
 		$('#'+Dashboard.option.active).show();
-		Settings.Save('option', Dashboard);
+		Dashboard.save('option');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -56,7 +56,7 @@ Dashboard.onload = function() {
 			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
-		Settings.Save('option', Dashboard);
+		Dashboard.save('option');
 	});
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){

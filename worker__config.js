@@ -18,12 +18,12 @@ Config.onload = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
-		Settings.Save('option', Config);
+		Config.save('option');
 	});
 	$('#golem_fixed').click(function(){
 		Config.option.fixed ^= true;
 		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
-		Settings.Save('option', Config);
+		Config.save('option');
 	});
 	$golem_config = $('#golem_config');
 	for (i in Workers) {
@@ -36,14 +36,14 @@ Config.onload = function() {
 				$(this).parent().toggleClass('golem-panel-show');
 				Config.option.active = [];
 				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Settings.Save('option', Config);
+				Config.save('option');
 			});
 		} else {
 			$(this).parent().toggleClass('golem-panel-show');
 			$(this).next().show('blind');
 			Config.option.active = [];
 			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Settings.Save('option', Config);
+			Config.save('option');
 		}
 	});
 	$golem_config.children('.golem-panel-sortable')
@@ -195,7 +195,7 @@ Config.makePanel = function(worker) {
 Config.updateOptions = function() {
 	debug('Options changed');
 	// Get order of panels first
-	var found = {};
+	var found = {}, i;
 	Queue.option.queue = [];
 	$('#golem_config > div').each(function(i,el){
 		var name = WorkerById($(el).attr('id')).name;
@@ -226,7 +226,9 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	Settings.Save('option');
+	for (i=0; i<Workers.length; i++) {
+		Workers[i].save('option');
+	}
 };
 Config.getPlace = function(id) {
 	var place = -1;

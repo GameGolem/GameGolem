@@ -34,7 +34,7 @@ Monster.display = [
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
 	},{
 		id:'assist',
-		label:'Auto-Assist',
+		label:'Use Assist Links in Dashboard',
 		checkbox:true
 	}
 ];
@@ -528,7 +528,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		if (monster.state === 'engage' || monster.state === 'assist') {
+		if (Monster.option.assist && (monster.state === 'engage' || monster.state === 'assist')) {
 			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');

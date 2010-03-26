@@ -43,4 +43,61 @@ function Worker(name,pages) {
 	this.update = null; //function(type){};
 	this.priv_since = 0;
 	this.priv_id = null;
+
+	// Global functions (if there was such a thing in javascript)
+	this.load = function(type) {
+		if (type !== 'data' && type !== 'option') {
+			this.load('data');
+			this.load('option');
+			return;
+		}
+		var i, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
+		if (typeof v !== 'string') {
+			this[type] = v;
+			return;
+		}
+		switch(v.charAt(0)) {
+			case '"':
+				this[type] = v.replace(/^"|"$/g,'');
+				return;
+			case '(':
+			case '[':
+				if (typeof this[type] === 'array' || typeof this[type] === 'object') {
+					this[type] = $.extend(true, {}, this[type], eval(v));
+					return;
+				}
+				this[type] = eval(v);
+				return;
+		}
+	};
+
+	this.save = function(type) {
+		if (type !== 'data' && type !== 'option') {
+			return this.save('data') + this.save('option');
+		}
+		if (typeof this[type] === 'undefined' || !this[type]) {
+			return false;
+		}
+		var i, n = userID + '.' + type + '.' + this.name, v;
+		switch(typeof this[type]) {
+			case 'string':
+				v = '"' + this[type] + '"';
+				break;
+			case 'array':
+			case 'object':
+				v = this[type].toSource();
+				break;
+			default:
+				v = this[type];
+				break;
+		}
+		if (getItem(n) === 'undefined' || getItem(n) !== v) {
+			if (this.update) {
+				this.update(type);
+			}
+			GM_setValue(n, v);
+			return true;
+		}
+		return false;
+	};
 }

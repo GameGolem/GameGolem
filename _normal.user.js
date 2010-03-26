@@ -59,14 +59,18 @@ function parse_all() {
 	var i, list = [];
 	for (i in Workers) {
 //		debug(Workers[i].name + '.parse(false);');
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
-			list.push(Workers[i]);
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+			if (Workers[i].parse(false)) {
+				list.push(Workers[i]);
+			} else {
+				Workers[i].save();
+			}
 		}
 	}
-	Settings.Save('data');
 	for (i in list) {
 //		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
+		list[i].save();
 	}
 }
 
@@ -80,12 +84,15 @@ if (typeof APP !== 'undefined') {
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		do_css();
 		Page.identify();
-		Settings.Load('data');
-		Settings.Load('option');
-		for (i in Workers) {
+		for (i=0; i<Workers.length; i++) {
+			Workers[i].load();
+		}
+		for (i=0; i<Workers.length; i++) {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
+		}
+		for (i=0; i<Workers.length; i++) {
 			if (Workers[i].update) {
 				Workers[i].update('data');
 			}
@@ -142,106 +149,6 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 </style>");
 }
-/********** Settings **********
-* Used for storing prefs in localStorage
-* Should never be called by anyone directly - let the main function do it when needed
-*/
-if (typeof GM_getValue === 'undefined' && typeof localStorage === 'undefined') {
-	if (typeof window.localStorage !== 'undefined') {
-		var localStorage = window.localStorage;
-	} else if (typeof globalStorage !== 'undefined') {
-		var localStorage = globalStorage[location.hostname];
-	}
-}
-var Settings = {
-	SetValue:function(n,v) {
-		if (typeof v === 'string') {
-			v = '"' + v + '"';
-		} else if (typeof v === 'array' || typeof v === 'object') {
-			v = v.toSource();
-		}
-		if (typeof GM_getValue === 'undefined') {
-			if (typeof localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) === 'undefined' || localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) !== v) {
-				localStorage.setItem('golem.' + userID + '.' + APP + '.' + n, v);
-				return true;
-			}
-		} else {
-			if (GM_getValue(userID + '.' + n) === 'undefined' || GM_getValue(userID + '.' + n) !== v) {
-				GM_setValue(userID + '.' + n, v);
-				return true;
-			}
-		}
-		return false;
-	},
-	GetValue:function(n,d) {
-		var v = d;
-		if (typeof GM_getValue === 'undefined') {
-			v = localStorage.getItem('golem.' + userID + '.' + APP + '.' + n) || v;
-		} else {
-			v = GM_getValue(userID + '.' + n) || v;
-		}
-		if (typeof v === 'string') {
-			if (v.charAt(0) === '"') {
-				v = v.replace(/^"|"$/g,'');
-			} else if (v.charAt(0) === '(' || v.charAt(0) === '[') {
-				v = eval(v);
-				if (typeof d === 'array' || typeof d === 'object') {
-					v = $.extend(true, {}, d, v);
-				}
-			}
-		}
-		return v;
-	},
-	Save:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null, change = false;
-		for (i=0; i<arguments.length; i++) {
-			if (typeof arguments[i] === 'object') {
-				worker = arguments[i];
-			} else if (arguments[i]==='data' || arguments[i]==='option') {
-				type = arguments[i];
-			}
-		}
-		if (worker && worker[type]) {
-			if (Settings.SetValue(type + '.' + worker.name, worker[type])) {
-				change = true;
-				if (worker.update && worker.update(type)) {
-					Settings.SetValue(type + '.' + worker.name, worker[type]);
-				}
-			}
-		} else {
-			for (i=0; i<Workers.length; i++) {
-				if (Workers[i][type]) {
-					if (Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type])) {
-						change = true;
-						if (Workers[i].update && Workers[i].update(type)) {
-							Settings.SetValue(type + '.' + Workers[i].name, Workers[i][type]);
-						}
-					}
-				}
-			}
-		}
-		return change;
-	},
-	Load:function() { // type (string - 'data'|'option'), worker (object)
-		var i, type = 'data', worker = null;
-		for (i=0; i<arguments.length; i++) {
-			if (typeof arguments[i] === 'object') {
-				worker = arguments[i];
-			} else if (arguments[i]==='data' || arguments[i]==='option') {
-				type = arguments[i];
-			}
-		}
-		if (worker && worker[type]) {
-			worker[type] = Settings.GetValue(type + '.' + worker.name, worker[type]);
-		} else {
-			for (i=0; i<Workers.length; i++) {
-				if (Workers[i][type]) {
-					Workers[i][type] = Settings.GetValue(type + '.' + Workers[i].name, Workers[i][type]);
-				}
-			}
-		}
-	}
-};
 // Utility functions
 
 // Prototypes to ease functionality
@@ -426,6 +333,22 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 	return (x==='att'?attack:(0.7*attack)) + (x==='def'?defend:(0.7*defend));
 };
 
+if (typeof GM_getValue !== 'undefined') {
+	var setItem = function(n,v){GM_setValue(n, v);}
+	var getItem = function(n){return GM_getValue(n);}
+} else {
+	if (typeof localStorage !== 'undefined') {
+		var setItem = function(n,v){localStorage.setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return localStorage.getItem('golem.' + APP + n);}
+	} else if (typeof window.localStorage !== 'undefined') {
+		var setItem = function(n,v){window.localStorage.setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return window.localStorage.getItem('golem.' + APP + n);}
+	} else if (typeof globalStorage !== 'undefined') {
+		var setItem = function(n,v){globalStorage[location.hostname].setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return globalStorage[location.hostname].getItem('golem.' + APP + n);}
+	}
+}
+
 /* Worker Prototype
    ----------------
 new Worker(name,pages)
@@ -471,6 +394,63 @@ function Worker(name,pages) {
 	this.update = null; //function(type){};
 	this.priv_since = 0;
 	this.priv_id = null;
+
+	// Global functions (if there was such a thing in javascript)
+	this.load = function(type) {
+		if (type !== 'data' && type !== 'option') {
+			this.load('data');
+			this.load('option');
+			return;
+		}
+		var i, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
+		if (typeof v !== 'string') {
+			this[type] = v;
+			return;
+		}
+		switch(v.charAt(0)) {
+			case '"':
+				this[type] = v.replace(/^"|"$/g,'');
+				return;
+			case '(':
+			case '[':
+				if (typeof this[type] === 'array' || typeof this[type] === 'object') {
+					this[type] = $.extend(true, {}, this[type], eval(v));
+					return;
+				}
+				this[type] = eval(v);
+				return;
+		}
+	};
+
+	this.save = function(type) {
+		if (type !== 'data' && type !== 'option') {
+			return this.save('data') + this.save('option');
+		}
+		if (typeof this[type] === 'undefined' || !this[type]) {
+			return false;
+		}
+		var i, n = userID + '.' + type + '.' + this.name, v;
+		switch(typeof this[type]) {
+			case 'string':
+				v = '"' + this[type] + '"';
+				break;
+			case 'array':
+			case 'object':
+				v = this[type].toSource();
+				break;
+			default:
+				v = this[type];
+				break;
+		}
+		if (getItem(n) === 'undefined' || getItem(n) !== v) {
+			if (this.update) {
+				this.update(type);
+			}
+			GM_setValue(n, v);
+			return true;
+		}
+		return false;
+	};
 }
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -492,12 +472,12 @@ Config.onload = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
-		Settings.Save('option', Config);
+		Config.save('option');
 	});
 	$('#golem_fixed').click(function(){
 		Config.option.fixed ^= true;
 		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
-		Settings.Save('option', Config);
+		Config.save('option');
 	});
 	$golem_config = $('#golem_config');
 	for (i in Workers) {
@@ -510,14 +490,14 @@ Config.onload = function() {
 				$(this).parent().toggleClass('golem-panel-show');
 				Config.option.active = [];
 				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Settings.Save('option', Config);
+				Config.save('option');
 			});
 		} else {
 			$(this).parent().toggleClass('golem-panel-show');
 			$(this).next().show('blind');
 			Config.option.active = [];
 			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Settings.Save('option', Config);
+			Config.save('option');
 		}
 	});
 	$golem_config.children('.golem-panel-sortable')
@@ -669,7 +649,7 @@ Config.makePanel = function(worker) {
 Config.updateOptions = function() {
 	debug('Options changed');
 	// Get order of panels first
-	var found = {};
+	var found = {}, i;
 	Queue.option.queue = [];
 	$('#golem_config > div').each(function(i,el){
 		var name = WorkerById($(el).attr('id')).name;
@@ -700,7 +680,9 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	Settings.Save('option');
+	for (i=0; i<Workers.length; i++) {
+		Workers[i].save('option');
+	}
 };
 Config.getPlace = function(id) {
 	var place = -1;
@@ -752,7 +734,7 @@ Dashboard.onload = function() {
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
 		$('#'+Dashboard.option.active).show();
-		Settings.Save('option', Dashboard);
+		Dashboard.save('option');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -770,7 +752,7 @@ Dashboard.onload = function() {
 			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
-		Settings.Save('option', Dashboard);
+		Dashboard.save('option');
 	});
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){
@@ -921,11 +903,11 @@ Page.to = function(page, args) {
 			Page.last = Page.last + args;
 		}
 		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		Page.load();
+		Page.ajaxload();
 	}
 	return false;
 }
-Page.load = function() {
+Page.ajaxload = function() {
 	$.ajax({
 		cache:false,
 		dataType:'text',
@@ -933,7 +915,7 @@ Page.load = function() {
 		url:'http://apps.facebook.com/castle_age/'+Page.last,
 		error:function() {
 			debug('Page not loaded correctly, reloading.');
-			Page.load();
+			Page.ajaxload();
 		},
 		success:function(data){
 			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
@@ -943,7 +925,7 @@ Page.load = function() {
 				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
 			} else {
 				debug('Page not loaded correctly, reloading.');
-				Page.load();
+				Page.ajaxload();
 			}
 		}
 	});
@@ -981,7 +963,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle", "Raid"],
+	queue: ["Page", "Queue", "Income", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Elite", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -1084,7 +1066,7 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, now = Date.now();
+	var i, worker, found = false, now = Date.now(), result;
 	if (Queue.option.pause || now - Queue.lastrun < Queue.option.delay * 1000) {
 		return;
 	}
@@ -1114,7 +1096,9 @@ Queue.run = function() {
 			continue;
 		}
 //		debug(worker.name + '.work(' + (Queue.data.current === worker.name) + ');');
-		if (!worker.work(Queue.data.current === worker.name)) {
+		result = worker.work(Queue.data.current === worker.name);
+		worker.save();
+		if (!result) {
 //			debug(' = false');
 			if (Queue.data.current === worker.name) {
 				Queue.data.current = null;
@@ -1146,8 +1130,7 @@ Queue.run = function() {
 		}
 	}
 //	debug('End Queue');
-	Settings.Save('option');
-	Settings.Save('data');
+	this.save();
 };
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
@@ -2665,7 +2648,7 @@ Monster.display = [
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
 	},{
 		id:'assist',
-		label:'Auto-Assist',
+		label:'Use Assist Links in Dashboard',
 		checkbox:true
 	}
 ];
@@ -3159,7 +3142,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		if (monster.state === 'engage' || monster.state === 'assist') {
+		if (Monster.option.assist && (monster.state === 'engage' || monster.state === 'assist')) {
 			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');

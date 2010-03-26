@@ -46,14 +46,18 @@ function parse_all() {
 	var i, list = [];
 	for (i in Workers) {
 //		debug(Workers[i].name + '.parse(false);');
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse && Workers[i].parse(false)) {
-			list.push(Workers[i]);
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+			if (Workers[i].parse(false)) {
+				list.push(Workers[i]);
+			} else {
+				Workers[i].save();
+			}
 		}
 	}
-	Settings.Save('data');
 	for (i in list) {
 //		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
+		list[i].save();
 	}
 }
 
@@ -67,12 +71,15 @@ if (typeof APP !== 'undefined') {
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		do_css();
 		Page.identify();
-		Settings.Load('data');
-		Settings.Load('option');
-		for (i in Workers) {
+		for (i=0; i<Workers.length; i++) {
+			Workers[i].load();
+		}
+		for (i=0; i<Workers.length; i++) {
 			if (Workers[i].onload) {
 				Workers[i].onload();
 			}
+		}
+		for (i=0; i<Workers.length; i++) {
 			if (Workers[i].update) {
 				Workers[i].update('data');
 			}
