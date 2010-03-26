@@ -759,7 +759,12 @@ Dashboard.onload = function() {
 			$(el).text(makeTimer($(el).text().parseTimer() - 1));
 		});
 	},1000);
-}
+};
+
+Dashboard.parse = function(change) {
+	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
+};
+
 Dashboard.change = function(worker) {
 	var id = 'golem-dashboard-'+worker.name;
 	if (Dashboard.option.active === id && Dashboard.option.display === 'block') {
