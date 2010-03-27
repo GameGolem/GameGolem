@@ -224,7 +224,7 @@ Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamo
 Monster.count = 0;
 Monster.uid = null;
 
-Monster.onload = function() {
+Monster.init = function() {
 	var i, j;
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
@@ -369,20 +369,20 @@ Monster.parse = function(change) {
 };
 
 Monster.update = function(type) {
-	if (type === 'data') {
-		Dashboard.change(Monster);
-	}
+	Dashboard.change(Monster);
 };
 
 Monster.work = function(state) {
+	this._load();
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.option.uid = uid = null;
 		Monster.option.type = type = null;
 	}
-	if (!length(Monster.data) || Player.data.health <= 10) {
+	if (!length(Monster.data) || Player.get('health') <= 10) {
 		return false;
 	}
+	this._load();
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			if (!Monster.data[i][j].health && Monster.data[i][j].state === 'engage') {
@@ -533,7 +533,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
 		}
-		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + monster.state + '</strong><img src="' + Player.data.imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
+		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + monster.state + '</strong><img src="' + imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
 		output.push(Monster.data[i][j].name);
 		if ((monster.state === 'engage' || monster.state === 'assist') && monster.total) {
 			output.push(monster.health===100 ? '?' : addCommas(monster.total - monster.damage_total) + ' (' + Math.floor(monster.health) + '%)');

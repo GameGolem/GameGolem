@@ -76,7 +76,7 @@ var WorkerByName = function(name) { // Get worker object by Worker.name
 
 var WorkerById = function(id) { // Get worker object by panel id
 	for (var i in Workers) {
-		if (Workers[i].priv_id === id) {
+		if (Workers[i].id === id) {
 			return Workers[i];
 		}
 	}

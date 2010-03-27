@@ -2,12 +2,14 @@
 * Completes quests with a choice of general
 */
 // Should also look for quests_quest but that should never be used unless there's a new area
-var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis');
+var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis', {data:true, option:true});
 Quest.option = {
 	general: 'Under Level 4',
 	what: 'Influence',
 	unique: true,
-	monster:true
+	monster:true,
+	best:null,
+	energy:0
 };
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
@@ -29,15 +31,11 @@ Quest.display = [
 		id:'monster',
 		label:'Fortify Monsters First',
 		checkbox:true
-	},{
-		id:'current',
-		label:'Current',
-		info:'None'
 	}
 ];
 
 Quest.parse = function(change) {
-	var quest = Quest.data, area, land = null;
+	var quest = this.data, area, land = null;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -112,13 +110,11 @@ Quest.parse = function(change) {
 };
 
 Quest.update = function(type) {
-	if (type !== 'data') {
-		return;
-	}
-	var i, list = [];
-	for (i in Quest.data) {
-		if (Quest.data[i].item && !Quest.data[i].unique) {
-			list.push(Quest.data[i].item);
+	// First let's update the Quest dropdown list(s)...
+	var i, j, best = null, list = [];
+	for (i in this.data) {
+		if (this.data[i].item && !this.data[i].unique) {
+			list.push(this.data[i].item);
 		}
 	}
 	list = ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort());
@@ -129,39 +125,37 @@ Quest.update = function(type) {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
-	Dashboard.change(Quest);
-};
-
-Quest.work = function(state) {
-	var i, j, best = null;
-	if (Quest.option.what === 'Nothing') {
-		return false;
-	}
-	if (Quest.option.unique) {
-		for (i in Quest.data) {
-			if (Quest.data[i].unique && !Alchemy.data.ingredients[Quest.data[i].itemimg] && (!best || Quest.data[i].energy < Quest.data[best].energy)) {
+	// Now choose the next quest...
+	if (this.option.unique) {
+		for (i in this.data) {
+			if (this.data[i].unique && !Alchemy.get('ingredients.'+this.data[i].itemimg) && (!best || this.data[i].energy < this.data[best].energy)) {
 				best = i;
 			}
 		}
 	}
-	if (!best) {
-		for (i in Quest.data) {
-			if ((Quest.option.what === 'Influence' && typeof Quest.data[i].influence !== 'undefined' && Quest.data[i].influence < 100 && (!best || Quest.data[i].energy < Quest.data[best].energy))
-			|| (Quest.option.what === 'Experience' && (!best || (Quest.data[i].energy / Quest.data[i].exp) < (Quest.data[best].energy / Quest.data[best].exp)))
-			|| (Quest.option.what === 'Cash' && (!best || (Quest.data[i].energy / Quest.data[i].reward) < (Quest.data[best].energy / Quest.data[best].reward)))
-			|| (Quest.option.what !== 'Influence' && Quest.option.what !== 'Experience' && Quest.option.what !== 'Cash' && Quest.data[i].item === Quest.option.what && (!best || Quest.data[i].energy < Quest.data[best].energy))) {
+	if (!best && this.option.what !== 'Nothing') {
+		for (i in this.data) {
+			if ((this.option.what === 'Influence' && typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy))
+			|| (this.option.what === 'Experience' && (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)))
+			|| (this.option.what === 'Cash' && (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)))
+			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
 				best = i;
 			}
 		}
 	}
-	if (best !== Quest.current) {
-		Quest.current = best;
+	if (best !== this.option.best) {
+		this.option.best = best;
 		if (best) {
-			debug('Quest: Wanting to perform - '+best+' (energy: '+Quest.data[best].energy+')');
-			$('#'+PREFIX+'Quest_current').html(''+best+' (energy: '+Quest.data[best].energy+')');
+			this.option.energy = this.data[best].energy;
+			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.option.energy + ')');
+			Dashboard.status(this, best + ' (energy: ' + this.option.energy + ')');
+		} else {
+			Dashboard.status(this);
 		}
 	}
-	if (Quest.option.monster) {
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	Monster._load();
+	if (this.option.monster) {
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
@@ -170,23 +164,28 @@ Quest.work = function(state) {
 			}
 		}
 	}
-	if (!best || Quest.data[best].energy > Queue.burn.energy) {
+	Dashboard.change(this);
+};
+
+Quest.work = function(state) {
+	if (!this.option.best || this.option.energy > Queue.burn.energy) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (Quest.data[best].general) {
-		if (!Generals.to(Quest.data[best].general)) 
+	var i, j, best = this.option.best;
+	if (this.data[best].general) {
+		if (!Generals.to(this.data[best].general)) 
 		{
 			return true;
 		}
-	} else if (!Generals.to(Generals.best(Quest.option.general))) {
+	} else if (!Generals.to(Generals.best(this.option.general))) {
 		return true;
 	}
-	switch(Quest.data[best].area) {
+	switch(this.data[best].area) {
 		case 'quest':
-			if (!Page.to('quests_quest' + (Quest.data[best].land + 1))) {
+			if (!Page.to('quests_quest' + (this.data[best].land + 1))) {
 				return true;
 			}
 			break;
@@ -204,20 +203,20 @@ Quest.work = function(state) {
 			debug('Quest: Can\'t get to quest area!');
 			return false;
 	}
-	debug('Quest: Performing - '+best+' (energy: '+Quest.data[best].energy+')');
-	if (!Page.click('div.action[title^="'+best+'"] input[type="image"]')) {
+	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
+	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) {
 		Page.reload(); // Shouldn't happen
 	}
-	if (Quest.option.unique && Quest.data[best].unique) {
-		if (!Page.to('keep_alchemy')) {
-			return true;
-		}
+	if (this.option.unique && this.data[best].unique) {
+		Page.to('keep_alchemy');
+//		Page.to('quests_quest' + (this.data[best].land + 2)); Really ought to check for new quests - but also need to not repeat needlessly
 	}
 	return true;
 };
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
+	this._load();
 	var i, o, list = [], output;
 	if (typeof sort === 'undefined') {
 		Quest.order = [];
@@ -258,14 +257,14 @@ Quest.dashboard = function(sort, rev) {
 	for (o=0; o<Quest.order.length; o++) {
 		i = Quest.order[o];
 		output = [];
-		output.push(Generals.data[Quest.data[i].general] ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Generals.data[Quest.data[i].general].img+'" alt="'+Quest.data[i].general+'" title="'+Quest.data[i].general+'">' : '');
+		output.push(Generals.data[Quest.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[Quest.data[i].general].img+'" alt="'+Quest.data[i].general+'" title="'+Quest.data[i].general+'">' : '');
 		output.push(i);
 		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
 		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
 		output.push(Quest.data[i].energy);
 		output.push('<span title="' + Quest.data[i].exp + ' total, ' + (Quest.data[i].exp / Quest.data[i].energy * 12).round(2) + ' per hour">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
 		output.push('<span title="$' + addCommas(Quest.data[i].reward) + ' total, $' + addCommas((Quest.data[i].reward / Quest.data[i].energy * 12).round()) + ' per hour">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
-		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + Player.data.imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
+		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
 		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');

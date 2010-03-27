@@ -83,7 +83,7 @@ Arena.display = [
 ];
 
 Arena.parse = function(change) {
-	if (Arena.option.checking) {
+	if (this.option.checking) {
 		$('span.result_body').each(function(i,el){
 			if ($(el).text().match(/has not joined in the Arena!/i)) {
 				Arena.data.army[Arena.option.checking] = -1;
@@ -96,16 +96,16 @@ Arena.parse = function(change) {
 				debug('Arena guard full, wait 24 hours');
 			}
 		});
-		Arena.option.checking = null;
+		this.option.checking = null;
 	}
 	if (Page.page === 'army_viewarmy') {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			Arena.data.army[$(el).attr('uid')] = Arena.data.army[$(el).attr('uid')] || 0;
 		});
 	} else if (Page.page === 'battle_arena') {
-		var i, list = [], data = Arena.data.user;
-		if (Arena.data.attacking) {
-			uid = Arena.data.attacking;
+		var i, list = [], data = this.data.user;
+		if (this.data.attacking) {
+			uid = this.data.attacking;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -119,9 +119,9 @@ Arena.parse = function(change) {
 				// Some other message - probably be a good idea to remove the target or something
 				// delete data[uid];
 			}
-			Arena.data.attacking = null;
+			this.data.attacking = null;
 		}
-		Arena.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+		this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
 		$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
@@ -138,11 +138,11 @@ Arena.parse = function(change) {
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 		});
 		for (i in data) { // Forget low or high rank - no points or too many points
-			if ((Arena.option.bp === 'Always' && Arena.data.rank > data[i].rank) || (!Arena.option.bp === 'Never' && Arena.data.rank < data[i].rank)) {
+			if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
 				delete data[i];
 			}
 		}
-		if (length(Arena.data.user) > Arena.option.cache) { // Need to prune our attack cache
+		if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
 			debug('Arena: Pruning target cache');
 			for (i in data) {
 				list.push(i);
@@ -160,7 +160,7 @@ Arena.parse = function(change) {
 				weight += (data[a].level - data[b].level) / 10;
 				return weight;
 			});
-			while (list.length > Arena.option.cache) {
+			while (list.length > this.option.cache) {
 				delete data[list.pop()];
 			}
 		}
@@ -169,59 +169,61 @@ Arena.parse = function(change) {
 };
 
 Arena.update = function(type) {
-	if (type === 'data') {
-		Dashboard.change(Arena);
+	if (type !== 'option') {
+		Dashboard.change(this);
 	}
 }
 
 Arena.work = function(state) {
+	this._load();
 	var i, j, found = null;
-	if (!Arena.option.enabled) {
+	if (!this.option.enabled) {
 		return false;
 	}
-	if (Arena.option.fill && (!Arena.option.wait || (Arena.option.wait + (Arena.option.every * 3600000)) < Date.now())) {
-		for(j=0; j < Arena.option.prefer.length; j++) {
-			i = Arena.option.prefer[j];
+	this._load();
+	if (this.option.fill && (!this.option.wait || (this.option.wait + (this.option.every * 3600000)) < Date.now())) {
+		for(j=0; j < this.option.prefer.length; j++) {
+			i = this.option.prefer[j];
 			if (!/[^0-9]/g.test(i)) {
-				Arena.data.army[i] = Arena.data.army[i] || 0;
-				if (typeof Arena.data.army[i] !== 'number' || (Arena.data.army[i] !== -1 && Arena.data.army[i] < Date.now())) {
+				this.data.army[i] = this.data.army[i] || 0;
+				if (typeof this.data.army[i] !== 'number' || (this.data.army[i] !== -1 && this.data.army[i] < Date.now())) {
 					found = i;
 					break;
 				}
 			}
 		}
 		if (!found) {
-			for(i in Arena.data.army) {
-				if (typeof Arena.data.army[i] !== 'number' || (Arena.data.army[i] !== -1 && Arena.data.army[i] < Date.now())) {
+			for(i in this.data.army) {
+				if (typeof this.data.army[i] !== 'number' || (this.data.army[i] !== -1 && this.data.army[i] < Date.now())) {
 					found = i;
 					break;
 				}
 			}
 		}
-		if (found || !length(Arena.data.army)) {
+		if (found || !length(this.data.army)) {
 			if (!state) {
 				return true;
 			}
-			if (!found && !length(Arena.data.army) && !Page.to('army_viewarmy')) {
+			if (!found && !length(this.data.army) && !Page.to('army_viewarmy')) {
 				return true;
 			}
 			debug('Arena: Add member '+found);
 			//http://apps.facebook.com/castle_age/arena.php?user=00000&lka=00000&agtw=1&ref=nf
-			Arena.option.checking = found;
+			this.option.checking = found;
 			if (!Page.to('battle_arena', '?user=' + found + '&lka=' + found + '&agtw=1&ref=nf')) {
 				return true;
 			}
 		}
 	}
-	if (Player.data.health <= 10 || Queue.burn.stamina < 5) {
+	if (Player.get('health') <= 10 || Queue.burn.stamina < 5) {
 		return false;
 	}
-	var i, points = [], list = [], user = Arena.data.user, uid, $form;
+	var i, points = [], list = [], user = this.data.user, uid, $form;
 	for (i in user) {
 		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
 			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
 		}
-		if ((user[i].loss || 0) - (user[i].win || 0) >= Arena.option.losses) {
+		if ((user[i].loss || 0) - (user[i].win || 0) >= this.option.losses) {
 			continue; // Don't attack someone who wins more often
 		}
 		list.push(i);
@@ -232,18 +234,18 @@ Arena.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (Arena.option.general && !Generals.to(Generals.best(Arena.option.type)) || !Page.to('battle_arena')) {
+	if (this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
 	uid = list[Math.floor(Math.random() * list.length)];
 	debug('Arena: Wanting to attack '+user[uid].name+' ('+uid+')');
-	$form = $('form input[alt="'+Arena.option.type+'"]').first().parents('form');
+	$form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {
 		log('Arena: Unable to find attack buttons, forcing reload');
 		Page.to('index');
 		return false;
 	}
-	Arena.data.attacking = uid;
+	this.data.attacking = uid;
 	$('input[name="target_id"]', $form).attr('value', uid);
 	Page.click($('input[type="image"]', $form));
 	return true;
@@ -251,16 +253,17 @@ Arena.work = function(state) {
 
 Arena.order = [];
 Arena.dashboard = function(sort, rev) {
+	this._load();
 	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output, sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'];
 	if (typeof sort === 'undefined') {
-		Arena.order = [];
-		for (i in Arena.data.user) {
-			Arena.order.push(i);
+		this.order = [];
+		for (i in this.data.user) {
+			this.order.push(i);
 		}
 		sort = 1; // Default = sort by name
 	}
 	if (typeof sorttype[sort] === 'string') {
-		Arena.order.sort(function(a,b) {
+		this.order.sort(function(a,b) {
 			var aa = (Arena.data.user[a][sorttype[sort]] || 0), bb = (Arena.data.user[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? bb > aa : bb < aa);
@@ -268,18 +271,18 @@ Arena.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + Arena.knar[Arena.data.rank] + ' (' + Arena.data.rank + '), <strong>Targets:</strong> ' + length(Arena.data.user) + ' / ' + Arena.option.cache + '</div><hr>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + '), <strong>Targets:</strong> ' + length(this.data.user) + ' / ' + this.option.cache + '</div><hr>');
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>Rank</th><th>Name</th><th>Level</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
-	for (o=0; o<Arena.order.length; o++) {
-		i = Arena.order[o];
+	for (o=0; o<this.order.length; o++) {
+		i = this.order[o];
 		output = [];
-		output.push('<img style="width:16px;height:16px;" src="' + Player.data.imagepath + 'arena_rank' + Arena.data.user[i].rank+'.gif"> ' + Arena.knar[Arena.data.user[i].rank] + ' (' + Arena.data.user[i].rank + ') ');
-		output.push('<span title="'+i+'">' + Arena.data.user[i].name + '</span>');
-		output.push(Arena.data.user[i].level);
-		output.push(Arena.data.user[i].army);
-		output.push(Arena.data.user[i].win);
-		output.push(Arena.data.user[i].loss);
-		output.push(Arena.data.user[i].hide);
+		output.push('<img style="width:16px;height:16px;" src="' + imagepath + 'arena_rank' + this.data.user[i].rank+'.gif"> ' + this.knar[this.data.user[i].rank] + ' (' + this.data.user[i].rank + ') ');
+		output.push('<span title="'+i+'">' + this.data.user[i].name + '</span>');
+		output.push(this.data.user[i].level);
+		output.push(this.data.user[i].army);
+		output.push(this.data.user[i].win);
+		output.push(this.data.user[i].loss);
+		output.push(this.data.user[i].hide);
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');

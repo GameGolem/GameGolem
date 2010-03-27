@@ -30,6 +30,7 @@ Gift.lookup = {
 	'mystery_frost_weapon.jpg':		'Frost Tear Dagger',
 	'eq_mace_mystery.jpg':			'Morning Star'
 };
+
 Gift.parse = function(change) {
 	if (change) {
 		return false;
@@ -37,25 +38,25 @@ Gift.parse = function(change) {
 	var uid, gifts;
 	if (Page.page === 'index') {
 		// If we have a gift waiting it doesn't matter from whom as it gets parsed on the right page...
-		if (!Gift.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
-			Gift.data.uid.push(1);
+		if (!this.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
+			this.data.uid.push(1);
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first
 		debug('Gift: Checking for accepted');
-		if (Gift.data.lastgift) {
+		if (this.data.lastgift) {
 			if ($('div.result').text().indexOf('accepted the gift') >= 0) {
-				uid = Gift.data.lastgift;
-				if (!Gift.data.todo[uid].gifts) {
-					Gift.data.todo[uid].gifts = [];
+				uid = this.data.lastgift;
+				if (!this.data.todo[uid].gifts) {
+					this.data.todo[uid].gifts = [];
 				}
-				Gift.data.todo[uid].gifts.push($('div.result img').attr('src').filepart());
-				Gift.data.lastgift = null;
+				this.data.todo[uid].gifts.push($('div.result img').attr('src').filepart());
+				this.data.lastgift = null;
 			}
 		}
 		// Check for gifts
 		debug('Gift: Checking for new gift to accept');
-		uid = Gift.data.uid = [];
+		uid = this.data.uid = [];
 		if ($('div.messages').text().indexOf('gift') >= 0) {
 			debug('Gift: Found gift div');
 			$('div.messages img').each(function(i,el) {
@@ -64,7 +65,7 @@ Gift.parse = function(change) {
 			});
 		}
 	} else if (Page.page === 'army_gifts') {
-		gifts = Gift.data.gifts = {};
+		gifts = this.data.gifts = {};
 //		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
 		$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').each(function(i,el){
 //			debug('Gift adding: '+$(el).text()+' = '+$('img', el).attr('src'));
@@ -73,32 +74,34 @@ Gift.parse = function(change) {
 				gifts[id] = {};
 			}
 			gifts[id].name = name;
-			if (Gift.lookup[name]) {
-				gifts[id].create = Gift.lookup[name];
+			if (this.lookup[name]) {
+				gifts[id].create = this.lookup[name];
 			}
 		});
 	}
 	return false;
 };
+
 Gift.work = function(state) {
+	this._load();
 	if (!state) {
-		if (!Gift.data.uid.length) {
+		if (!this.data.uid.length) {
 			return false;
 		}
 		return true;
 	}
-	if (Gift.data.uid.length) { // Receive before giving
+	if (this.data.uid.length) { // Receive before giving
 		if (!Page.to('army_invite')) {
 			return true;
 		}
-		var uid = Gift.data.uid.shift();
-		if (!Gift.data.todo[uid]) {
-			Gift.data.todo[uid] = {};
+		var uid = this.data.uid.shift();
+		if (!this.data.todo[uid]) {
+			this.data.todo[uid] = {};
 		}
-		Gift.data.todo[uid].time = Date.now();
-		Gift.data.lastgift = uid;
+		this.data.todo[uid].time = Date.now();
+		this.data.lastgift = uid;
 		debug('Gift: Accepting gift from '+uid);
-		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + uid) || Gift.data.uid.length > 0) {
+		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + uid) || this.data.uid.length > 0) {
 			return true;
 		}
 	}

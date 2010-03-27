@@ -8,22 +8,20 @@ Config.option = {
 	display:'block',
 	fixed:true
 };
-Config.panel = null;
-Config.onload = function() {
+Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
-	Config.panel = $('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
-	$('div.UIStandardFrame_Content').after(Config.panel);
+	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
-		Config.save('option');
+		Config._save('option');
 	});
 	$('#golem_fixed').click(function(){
 		Config.option.fixed ^= true;
 		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
-		Config.save('option');
+		Config._save('option');
 	});
 	$golem_config = $('#golem_config');
 	for (i in Workers) {
@@ -36,14 +34,14 @@ Config.onload = function() {
 				$(this).parent().toggleClass('golem-panel-show');
 				Config.option.active = [];
 				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Config.save('option');
+				Config._save('option');
 			});
 		} else {
 			$(this).parent().toggleClass('golem-panel-show');
 			$(this).next().show('blind');
 			Config.option.active = [];
 			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Config.save('option');
+			Config._save('option');
 		}
 	});
 	$golem_config.children('.golem-panel-sortable')
@@ -70,7 +68,6 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 	});
 	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
-	//	$(Config.panel).css({display:'block'});
 };
 Config.makePanel = function(worker) {
 	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
@@ -86,9 +83,9 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
-	worker.priv_id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	show = findInArray(Config.option.active, worker.priv_id);
-	$head = $('<div id="'+worker.priv_id+'" class="golem-panel'+(worker.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
+	show = findInArray(Config.option.active, worker.id);
+	$head = $('<div id="'+worker.id+'" class="golem-panel'+(worker.settings.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -111,7 +108,7 @@ Config.makePanel = function(worker) {
 				// our different types of input elements
 				if (o.info) { // only useful for externally changed
 					if (o.id) {
-						txt.push('<span style="float:right" id="' + o.real_id + '">' + o.info + '</span>');
+						txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
 					} else {
 						txt.push(o.info);
 					}
@@ -227,7 +224,7 @@ Config.updateOptions = function() {
 		}
 	});
 	for (i=0; i<Workers.length; i++) {
-		Workers[i].save('option');
+		Workers[i]._save('option');
 	}
 };
 Config.getPlace = function(id) {

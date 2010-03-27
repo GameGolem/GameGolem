@@ -3,7 +3,7 @@
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('Generals', 'heroes_generals');
+var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
 Generals.data = {};
 Generals.best_id = null;
 Generals.sort = null;
@@ -31,8 +31,8 @@ Generals.parse = function(change) {
 	});
 	if (change && length(Town.data.invade)) {
 		for (i in Generals.data) {
-			attack = Player.data.attack + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.data.defense + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			attack = Player.get('attack') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.get('defense') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
 			army = (Generals.data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(Generals.data, listpush, 'def', Math.floor(army / 5));
@@ -50,9 +50,6 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	if (type !== 'data') {
-		return;
-	}
 	$('select.golem_generals').each(function(a,el){
 		$(el).empty();
 		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
@@ -64,7 +61,7 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
-	if (!name || Player.data.general === name || name === 'any') {
+	if (!name || Player.get('general') === name || name === 'any') {
 		return true;
 	}
 	if (!Generals.data[name]) {
@@ -94,28 +91,28 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.get('general'))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.get('general'))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.data.general)) {
+				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.get('general'))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'under level 4':
-			if (Generals.data[Player.data.general] && Generals.data[Player.data.general].level < 4) {
-				return Player.data.general;
+			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
+				return Player.get('general');
 			}
 			return Generals.random(false);
 		default:
@@ -223,7 +220,7 @@ Generals.dashboard = function(sort, rev) {
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
-		output.push('<img src="'+Player.data.imagepath+Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
+		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
 		output.push(i);
 		output.push(Generals.data[i].level);
 		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')

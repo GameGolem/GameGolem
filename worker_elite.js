@@ -47,6 +47,7 @@ Elite.work = function(state) {
 	if (!Elite.option.fill || (Elite.option.wait && (Elite.option.wait + (Elite.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
+	this._load();
 	for(j=0; j<Elite.option.prefer.length; j++) {
 		i = Elite.option.prefer[j];
 		if (!/[^0-9]/g.test(i)) {

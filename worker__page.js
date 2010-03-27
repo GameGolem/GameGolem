@@ -1,8 +1,7 @@
 /********** Worker.Page() **********
 * All navigation including reloading
 */
-var Page = new Worker('Page');
-Page.unsortable = true;
+var Page = new Worker('Page', null, {unsortable:true, keep:true});
 Page.option = {
 	timeout: 15,
 	retry: 5
@@ -13,6 +12,7 @@ Page.lastclick = null;
 Page.when = null;
 Page.retry = 0;
 Page.checking = true;
+Page.node_trigger = null;
 Page.display = [
 	{
 		id:'timeout',
@@ -21,8 +21,43 @@ Page.display = [
 		after:'seconds'
 	}
 ];
+
+Page.init = function() {
+	// Only perform the check on the two id's referenced in get_cached_ajax()
+	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
+	$('body').bind('DOMNodeInserted', function(event){
+		if (!Page.node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
+			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all();},100);
+		}
+	});
+};
+
+Page.parse_all = function() {
+	Page.identify();
+	var i, list = [];
+	for (i=0; i<Workers.length; i++) {
+//		debug(Workers[i].name + '.parse(false);');
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+			Workers[i]._load();
+			if (Workers[i].parse(false)) {
+				list.push(Workers[i]);
+			} else {
+				Workers[i]._save();
+				Workers[i]._flush();
+			}
+		}
+	}
+	for (i in list) {
+//		debug(Workers[i].name + '.parse(true);');
+		list[i].parse(true);
+		list[i]._save();
+		list[i]._flush();
+	}
+}
+
+
 Page.work = function(state) {
-	if (!Page.checking) {
+	if (!this.checking) {
 		return false;
 	}
 	var i, l, list, found = null;
@@ -32,7 +67,7 @@ Page.work = function(state) {
 		}
 		list = Workers[i].pages.split(' ');
 		for (l=0; l<list.length; l++) {
-			if (Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+			if (this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
 				found = list[l];
 				break;
 			}
@@ -42,15 +77,16 @@ Page.work = function(state) {
 		if (found) {
 			return true;
 		}
-		Page.checking = false;
+		this.checking = false;
 		return false;
 	}
-	if (found && !Page.to(found)) {
-		Page.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
+	if (found && !this.to(found)) {
+		this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
 		return true;
 	}
 	return false;
 };
+
 Page.pageNames = {
 	index:					{url:'index.php', image:null},
 	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
@@ -89,10 +125,11 @@ Page.pageNames = {
 	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'}
 };
+
 Page.identify = function() {
-	Page.page = '';
+	this.page = '';
 	if (!$('#app'+APPID+'_globalContainer').length) {
-		Page.reload();
+		this.reload();
 		return null;
 	}
 	$('#app'+APPID+'_app_body img').each(function(i,el){
@@ -104,44 +141,46 @@ Page.identify = function() {
 		}
 	});
 	if ($('#app'+APPID+'_indexNewFeaturesBox').length) {
-		Page.page = 'index';
+		this.page = 'index';
 	} else if ($('div[style*="giftpage_title.jpg"]').length) {
-		Page.page = 'army_gifts';
+		this.page = 'army_gifts';
 	}
-	if (Page.page !== '') {
-		Page.data[Page.page] = Date.now();
+	if (this.page !== '') {
+		this.data[this.page] = Date.now();
 	}
-//	debug('Page.identify("'+Page.page+'")');
-	return Page.page;
+//	debug('this.identify("'+Page.page+'")');
+	return this.page;
 };
+
 Page.loading = false;
 Page.to = function(page, args) {
-	if (page === Page.page && typeof args === 'undefined') {
+	if (page === this.page && typeof args === 'undefined') {
 		return true;
 	}
 	if (!args) {
 		args = '';
 	}
-	if (page && Page.pageNames[page] && Page.pageNames[page].url) {
-		Page.clear();
-		Page.last = Page.pageNames[page].url;
-		Page.when = Date.now();
-		if (args.indexOf('?') === 0 && Page.last.indexOf('?') > 0) {
-			Page.last = Page.last.substr(0, Page.last.indexOf('?')) + args;
+	if (page && this.pageNames[page] && this.pageNames[page].url) {
+		this.clear();
+		this.last = this.pageNames[page].url;
+		this.when = Date.now();
+		if (args.indexOf('?') === 0 && this.last.indexOf('?') > 0) {
+			this.last = this.last.substr(0, this.last.indexOf('?')) + args;
 		} else {
-			Page.last = Page.last + args;
+			this.last = this.last + args;
 		}
-		debug('Navigating to '+Page.last+' ('+Page.pageNames[page].url+')');
-		Page.ajaxload();
+		debug('Navigating to '+this.last+' ('+this.pageNames[page].url+')');
+		this.ajaxload();
 	}
 	return false;
-}
+};
+
 Page.ajaxload = function() {
 	$.ajax({
 		cache:false,
 		dataType:'text',
-		timeout:Page.option.timeout * 1000,
-		url:'http://apps.facebook.com/castle_age/'+Page.last,
+		timeout:this.option.timeout * 1000,
+		url:'http://apps.facebook.com/castle_age/'+this.last,
 		error:function() {
 			debug('Page not loaded correctly, reloading.');
 			Page.ajaxload();
@@ -149,21 +188,23 @@ Page.ajaxload = function() {
 		success:function(data){
 			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
-				data = data.replace(/<(?:head[\s\S]*?\/head)?>/ig, '').replace(/<(?:script[\s\S]*?\/script)?>/ig, '').replace(/<(?:style[\s\S]*?\/style)?>/ig, '');
+				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
-				$('#app'+APPID+'_globalContainer').empty().append($('#app'+APPID+'_globalContainer', data));
+				$('#app'+APPID+'_globalContainer').empty().append(data);
 			} else {
 				debug('Page not loaded correctly, reloading.');
 				Page.ajaxload();
 			}
 		}
 	});
-	Page.loading = true;
+	this.loading = true;
 	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
-}
+};
+
 Page.reload = function() {
 	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
 };
+
 Page.click = function(el) {
 	if (!$(el).length) {
 		debug('Page.click: Unable to find element - '+el);
@@ -172,13 +213,14 @@ Page.click = function(el) {
 	var e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	$(el).get(0).wrappedJSObject.dispatchEvent(e);
-	Page.clear();
-	Page.lastclick = el;
-	Page.when = Date.now();
+	this.clear();
+	this.lastclick = el;
+	this.when = Date.now();
 	return true;
 };
+
 Page.clear = function() {
-	Page.last = Page.lastclick = Page.when = null;
-	Page.retry = 0;
+	this.last = this.lastclick = this.when = null;
+	this.retry = 0;
 };
 

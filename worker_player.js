@@ -1,7 +1,7 @@
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
-var Player = new Worker('Player', '*');
+var Player = new Worker('Player', '*', {keep:true});
 Player.data = {
 	history:{},
 	average:0
@@ -9,7 +9,7 @@ Player.data = {
 Player.option = null;
 Player.panel = null;
 
-Player.onload = function() {
+Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
@@ -18,7 +18,7 @@ Player.onload = function() {
 };
 
 Player.parse = function(change) {
-	var data = Player.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
+	var data = this.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;
@@ -37,7 +37,7 @@ Player.parse = function(change) {
 	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
 	data.upgrade	= ($('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/) || 0);
 	data.general	= $('div.general_name_div3').first().text().trim();
-	data.imagepath	= $('div.general_pic_div3 img').attr('src').pathpart();
+	data.imagepath	= $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 	if (Page.page==='keep_stats') {
 		keep = $('div.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
@@ -55,15 +55,15 @@ Player.parse = function(change) {
 	}
 	if (Page.page==='town_land') {
 		stats = $('.mContTMainback div:last-child');
-		Player.data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+		data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	}
 	if (typeof data.history[hour] === 'number') {
 		data.history[hour] = {income:data.history[hour]};
 	} else {
 		data.history[hour] = data.history[hour] || {};
 	}
-	data.history[hour].bank = Player.data.bank;
-	data.history[hour].exp = Player.data.exp;
+	data.history[hour].bank = data.bank;
+	data.history[hour].exp = data.exp;
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
 		data.history[hour].income = (data.history[hour].income || 0)
@@ -89,9 +89,6 @@ Player.parse = function(change) {
 };
 
 Player.update = function(type) {
-	if (type !== 'data') {
-		return;
-	}
 	var step = Divisor(Player.data.maxstamina)
 	$('select.golem_stamina').each(function(a,el){
 		$(el).empty();

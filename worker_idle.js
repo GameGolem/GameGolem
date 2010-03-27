@@ -46,6 +46,9 @@ Idle.display = [
 ];
 
 Idle.work = function(state) {
+	if (!state) {
+		return true;
+	}
 	var i, p, time, pages = {
 		index:['index'],
 		alchemy:['keep_alchemy'],
@@ -53,17 +56,14 @@ Idle.work = function(state) {
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle']
 	}, when = { 'Never':0, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
-	if (!state) {
-		return true;
-	}
-	if (!Generals.to(Idle.option.general)) {
+	if (!Generals.to(this.option.general)) {
 		return true;
 	}
 	for (i in pages) {
-		if (!when[Idle.option[i]]) {
+		if (!when[this.option[i]]) {
 			continue;
 		}
-		time = Date.now() - when[Idle.option[i]];
+		time = Date.now() - when[this.option[i]];
 		for (p=0; p<pages[i].length; p++) {
 			if (!Page.data[pages[i][p]] || Page.data[pages[i][p]] < time) {
 				if (!Page.to(pages[i][p])) {

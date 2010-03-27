@@ -25,7 +25,7 @@ Upgrade.parse = function(change) {
 	return false;
 };
 Upgrade.work = function(state) {
-	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.data.upgrade || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.data.upgrade<2)) {
+	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.get('upgrade') || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.get('upgrade')<2)) {
 		return false;
 	}
 	if (!state || !Page.to('keep_stats')) {

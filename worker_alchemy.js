@@ -6,6 +6,11 @@ Alchemy.data = {
 	ingredients:{},
 	recipe:{}
 };
+Alchemy.option = {
+	perform:true,
+	hearts:false,
+	found:true
+};
 Alchemy.display = [
 	{
 		id:'perform',
@@ -17,6 +22,7 @@ Alchemy.display = [
 		checkbox:true
 	}
 ];
+
 Alchemy.parse = function(change) {
 	var ingredients = Alchemy.data.ingredients = {}, recipe = Alchemy.data.recipe = {};
 	$('div.ingredientUnit').each(function(i,el){
@@ -38,11 +44,9 @@ Alchemy.parse = function(change) {
 		recipe[title] = me;
 	});
 };
-Alchemy.work = function(state) {
-	if (!Alchemy.option.perform) {
-		return false;
-	}
-	var found = null, recipe = Alchemy.data.recipe, r, i;
+
+Alchemy.update = function() {
+	var found = null, recipe = this.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {
 			found = r;
@@ -55,15 +59,23 @@ Alchemy.work = function(state) {
 			if (found) {break;}
 		}
 	}
-	if (!found) {return false;}
-	if (!state) {return true;}
-	if (!Page.to('keep_alchemy')) {return true;}
-	debug('Alchemy: Perform - '+found);
+	this.option.found = found;
+};
+
+Alchemy.work = function(state) {
+	if (!Alchemy.option.perform || !Alchemy.option.found) {
+		return false;
+	}
+	if (!state || !Page.to('keep_alchemy')) {
+		return true;
+	}
+	debug('Alchemy: Perform - '+Alchemy.option.found);
 	$('div.alchemyRecipeBack').each(function(i,el){
-		if($('div.recipeTitle', el).text().indexOf(found) >=0) {
+		if($('div.recipeTitle', el).text().indexOf(Alchemy.option.found) >= 0) {
 			Page.click($('input[type="image"]', el));
 			return true;
 		}
 	});
 	return true;
 };
+

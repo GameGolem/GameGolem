@@ -31,10 +31,10 @@ Income.work = function(state) {
 		return false;
 	}
 	var when = new Date();
-	when = (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+	when = (3600 + Player.get('cash_time') - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 //	debug('Income: '+when+', Margin: '+Income.option.margin);
-	if (when > Income.option.margin) {
-		if (state && Income.option.bank) {
+	if (when > this.option.margin) {
+		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
 		return false;
@@ -42,7 +42,7 @@ Income.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (Income.option.general && !Generals.to(Generals.best('income'))) {
+	if (this.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
 	debug('Income: Waiting for Income... ('+when+' seconds)');

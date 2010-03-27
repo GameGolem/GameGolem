@@ -22,7 +22,7 @@ Heal.display = [
 	}
 ];
 Heal.work = function(state) {
-	if (Player.data.health >= Player.data.maxhealth || Player.data.stamina < Heal.option.stamina || Player.data.health >= Heal.option.health) {
+	if (Player.get('health') >= Player.get('maxhealth') || Player.get('stamina') < Heal.option.stamina || Player.get('health') >= Heal.option.health) {
 		return false;
 	}
 	if (!state) {

@@ -92,7 +92,7 @@ Battle.parse = function(change) {
 				return;
 			}
 			rank = Battle.rank(info[1]);
-			if ((Battle.option.bp === 'Always' && Player.data.rank - rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - rank <= 5)) {
+			if ((Battle.option.bp === 'Always' && Player.get('rank') - rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - rank <= 5)) {
 				return;
 			}
 			if (!data[uid]) {
@@ -105,7 +105,7 @@ Battle.parse = function(change) {
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});
 		for (i in data) { // Forget low or high rank - no points or too many points
-			if ((Battle.option.bp === 'Always' && Player.data.rank - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.data.rank - data[i].rank <= 5)) {
+			if ((Battle.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
 				delete data[i];
 			}
 		}
@@ -136,15 +136,14 @@ Battle.parse = function(change) {
 };
 
 Battle.update = function(type) {
-	if (type === 'data') {
-		Dashboard.change(Battle);
-	}
+	Dashboard.change(Battle);
 }
 
 Battle.work = function(state) {
-	if (Player.data.health <= 10 || Queue.burn.stamina < 1) {
+	if (Player.get('health') <= 10 || Queue.burn.stamina < 1) {
 		return false;
 	}
+	this._load();
 	var i, points = [], list = [], user = Battle.data.user, uid, $form;
 	if (Battle.option.points) {
 		for (i=0; i<Battle.data.points.length; i++) {
@@ -201,6 +200,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
+	this._load();
 	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
 	for (i in Battle.data.user) {
 		points[Battle.data.user[i].align]++;
@@ -223,14 +223,14 @@ Battle.dashboard = function(sort, rev) {
 	}
 	list.push('<div style="text-align:center;"><strong>Targets:</strong> '+length(Battle.data.user)+', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
-		list.push(' <img src="' + Player.data.imagepath + 'symbol_tiny_' + i +'.jpg" alt="'+demi[i-1]+'" title="'+demi[i-1]+'"> '+points[i]);
+		list.push(' <img src="' + imagepath + 'symbol_tiny_' + i +'.jpg" alt="'+demi[i-1]+'" title="'+demi[i-1]+'"> '+points[i]);
 	}
 	list.push('</div><hr>');
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>Align</th><th>Name</th><th>Level</th><th>Rank</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
 	for (o=0; o<Battle.order.length; o++) {
 		i = Battle.order[o];
 		output = [];
-		output.push('<img src="' + Player.data.imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
+		output.push('<img src="' + imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
 		output.push('<span title="'+i+'">' + Battle.data.user[i].name + '</span>');
 		output.push(Battle.data.user[i].level);
 		output.push(Battle.data.rank[Battle.data.user[i].rank] ? Battle.data.rank[Battle.data.user[i].rank].name : '');
