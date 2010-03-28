@@ -200,7 +200,6 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	this._load();
 	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
 	for (i in Battle.data.user) {
 		points[Battle.data.user[i].align]++;

@@ -11,8 +11,6 @@ new Worker(name, pages, settings)
 .settings		- Object, various values for various sections, default is always false
 				unsortable - stops a worker being sorted in the queue, prevents this.work(true)
 				keep - without this data is flushed when not used - noly keep if other workers regularly access you
-				data - calls .update('data')
-				option - calls .update('option')
 .display		- Create the display object for the settings page.
 
 *** User functions ***
@@ -73,7 +71,7 @@ function Worker(name,pages,settings) {
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
-		if ((!type || this.settings[type] || (!this.settings.data && !this.settings.option && type === 'data')) && this.update) {
+		if (this.update) {
 			if (!this.data) {
 				this._load('data');
 			}

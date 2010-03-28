@@ -66,7 +66,7 @@ var makeTimer = function(sec) {
 };
 
 var WorkerByName = function(name) { // Get worker object by Worker.name
-	for (var i in Workers) {
+	for (var i=0; i<Workers.length; i++) {
 		if (Workers[i].name === name) {
 			return Workers[i];
 		}
@@ -75,7 +75,7 @@ var WorkerByName = function(name) { // Get worker object by Worker.name
 };
 
 var WorkerById = function(id) { // Get worker object by panel id
-	for (var i in Workers) {
+	for (var i=0; i<Workers.length; i++) {
 		if (Workers[i].id === id) {
 			return Workers[i];
 		}

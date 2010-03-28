@@ -1,13 +1,17 @@
 // ==UserScript==
-// @name           Rycochet's Castle Age Golem
-// @namespace      golem
-// @description    Auto player for castle age game
-// @version        29
-// @include        http*://apps.*facebook.com/castle_age/*
-// @require        http://cloutman.com/jquery-latest.min.js
-// @require        http://cloutman.com/jquery-ui-latest.min.js
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		29.5
+// @include		http*://apps.*facebook.com/castle_age/*
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// @unwrap
 // ==/UserScript==
-// -- @include        http://www.facebook.com/common/error.html
-// -- @include        http://www.facebook.com/reqs.php#confirm_46755028429_0
-// -- @include        http://www.facebook.com/home.php
-// -- @include        http://www.facebook.com/home.php*filter=app_46755028429*
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js

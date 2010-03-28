@@ -2,8 +2,11 @@
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade', 'keep_stats');
-Upgrade.data = {
-	run: 0
+Upgrade.data = null;
+Upgrade.option = {
+	order:[],
+	working:false,
+	run:0
 };
 Upgrade.display = [
 	{
@@ -13,54 +16,43 @@ Upgrade.display = [
 		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
 	}
 ];
+
+Upgrade.init = function() {
+	this.option.working = this.data.working;
+	this.option.run = this.data.run;
+};
+
 Upgrade.parse = function(change) {
 	var result = $('div.results');
-	if (Upgrade.data.working && result.length && result.text().match(/You just upgraded your/i)) {
-		Upgrade.data.working = false;
-		Upgrade.data.run++;
-		if (Upgrade.data.run >= Upgrade.option.order.length) {
-			Upgrade.data.run = 0;
-		}
+	if (this.option.working && result.length && result.text().match(/You just upgraded your/i)) {
+		this.option.working = false;
+		this.option.run++;
 	}
 	return false;
 };
+
 Upgrade.work = function(state) {
-	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.get('upgrade') || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.get('upgrade')<2)) {
+	var points = Player.get('upgrade'), btn;
+	if (this.option.run >= this.option.order.length) {
+		this.option.run = 0;
+	}
+	if (!this.option.order.length || !points || (this.option.order[this.option.run]==='Stamina' && points<2)) {
 		return false;
 	}
 	if (!state || !Page.to('keep_stats')) {
 		return true;
 	}
-	Upgrade.data.working = true;
-	if (Upgrade.data.run >= Upgrade.option.order.length) {
-		Upgrade.data.run = 0;
+	switch (this.option.order[this.option.run]) {
+		case 'Energy':	btn = 'a[href$="?upgrade=energy_max"]';	break;
+		case 'Stamina':	btn = 'a[href$="?upgrade=stamina_max"]';break;
+		case 'Attack':	btn = 'a[href$="?upgrade=attack"]';		break;
+		case 'Defense':	btn = 'a[href$="?upgrade=defense"]';	break;
+		case 'Health':	btn = 'a[href$="?upgrade=health_max"]';	break;
+		default: this.option.run++; return true; // Should never happen
 	}
-	switch (Upgrade.option.order[Upgrade.data.run]) {
-		case 'Energy':
-			if (Page.click('a[href$="?upgrade=energy_max"]')) {
-				return true;
-			}
-			break;
-		case 'Stamina':
-			if (Page.click('a[href$="?upgrade=stamina_max"]')) {
-				return true;
-			}
-			break;
-		case 'Attack':
-			if (Page.click('a[href$="?upgrade=attack"]')) {
-				return true;
-			}
-			break;
-		case 'Defense':
-			if (Page.click('a[href$="?upgrade=defense"]')) {
-				return true;
-			}
-			break;
-		case 'Health':
-			if (Page.click('a[href$="?upgrade=health_max"]')) {
-				return true;
-			}
-			break;
+	if (Page.click(btn)) {
+		this.option.working = true;
+		return true;
 	}
 	Page.reload(); // Only get here if we can't click!
 	return true;

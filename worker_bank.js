@@ -30,13 +30,13 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < Bank.option.above) {
+	if (Player.get('cash') < this.option.above) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!Bank.stash(Player.get('cash') - Math.min(Bank.option.above, Bank.option.hand))) {
+	if (!Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;

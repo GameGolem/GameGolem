@@ -1,21 +1,25 @@
 // ==UserScript==
-// @name           Rycochet's Castle Age Golem
-// @namespace      golem
-// @description    Auto player for castle age game
-// @version        29
-// @include        http*://apps.*facebook.com/castle_age/*
-// @require        http://cloutman.com/jquery-latest.min.js
-// @require        http://cloutman.com/jquery-ui-latest.min.js
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		29.5
+// @include		http*://apps.*facebook.com/castle_age/*
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// @unwrap
 // ==/UserScript==
-// -- @include        http://www.facebook.com/common/error.html
-// -- @include        http://www.facebook.com/reqs.php#confirm_46755028429_0
-// -- @include        http://www.facebook.com/home.php
-// -- @include        http://www.facebook.com/home.php*filter=app_46755028429*
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 // User changeable
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 29;
+var VERSION = 29.5;
 var script_started = Date.now();
 
 // Automatically filled
@@ -187,7 +191,7 @@ var makeTimer = function(sec) {
 };
 
 var WorkerByName = function(name) { // Get worker object by Worker.name
-	for (var i in Workers) {
+	for (var i=0; i<Workers.length; i++) {
 		if (Workers[i].name === name) {
 			return Workers[i];
 		}
@@ -196,7 +200,7 @@ var WorkerByName = function(name) { // Get worker object by Worker.name
 };
 
 var WorkerById = function(id) { // Get worker object by panel id
-	for (var i in Workers) {
+	for (var i=0; i<Workers.length; i++) {
 		if (Workers[i].id === id) {
 			return Workers[i];
 		}
@@ -332,8 +336,6 @@ new Worker(name, pages, settings)
 .settings		- Object, various values for various sections, default is always false
 				unsortable - stops a worker being sorted in the queue, prevents this.work(true)
 				keep - without this data is flushed when not used - noly keep if other workers regularly access you
-				data - calls .update('data')
-				option - calls .update('option')
 .display		- Create the display object for the settings page.
 
 *** User functions ***
@@ -394,7 +396,7 @@ function Worker(name,pages,settings) {
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
-		if ((!type || this.settings[type] || (!this.settings.data && !this.settings.option && type === 'data')) && this.update) {
+		if (this.update) {
 			if (!this.data) {
 				this._load('data');
 			}
@@ -507,16 +509,17 @@ var Config = new Worker('Config');
 Config.data = null;
 Config.option = {
 	display:'block',
-	fixed:true
+	fixed:true,
+	advanced:false
 };
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
-	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
+		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
 		Config._save('option');
 	});
 	$('#golem_fixed').click(function(){
@@ -569,6 +572,11 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 	});
 	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
+	$golem_config.append('');
+	$('#golem-config-advanced').click(function(){
+		Config.updateOptions();
+		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
+	);
 };
 Config.makePanel = function(worker) {
 	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
@@ -675,7 +683,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
@@ -691,7 +699,7 @@ Config.makePanel = function(worker) {
 	}
 };
 Config.updateOptions = function() {
-	debug('Options changed');
+//	debug('Options changed');
 	// Get order of panels first
 	var found = {}, i;
 	Queue.option.queue = [];
@@ -702,6 +710,8 @@ Config.updateOptions = function() {
 		}
 		found[name] = true;
 	});
+	// Now can we see the advanced stuff
+	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
 	$('#golem_config :input').each(function(i,el){
 		if ($(el).attr('id')) {
@@ -765,6 +775,7 @@ Dashboard.init = function() {
 			return;
 		}
 		if (!$('#'+$(this).attr('name')).children().length) {
+			WorkerByName($(this).attr('name').substr(16))._load('data');
 			WorkerByName($(this).attr('name').substr(16)).dashboard();
 		}
 		if (Dashboard.option.active) {
@@ -831,6 +842,7 @@ Dashboard.change = function(worker) {
 	}
 	var id = worker ? 'golem-dashboard-'+worker.name : this.option.active;
 	if (this.option.active === id && this.option.display === 'block') {
+		worker._load('data');
 		worker.dashboard();
 	} else {
 		$('#'+id).empty();
@@ -1376,9 +1388,8 @@ Alchemy.work = function(state) {
 * Build your arena army
 * Auto-attack Arena targets
 */
-var Arena = new Worker('Arena', 'army_viewarmy battle_arena');
+var Arena = new Worker('Arena', 'battle_arena');
 Arena.data = {
-	army:{},
 	user:{}
 };
 
@@ -1386,11 +1397,7 @@ Arena.option = {
 	enabled:false,
 	general:true,
 	losses:5,
-	type:'Invade',
-	fill:true,
-	every:24,
-	cache:100,
-	checking:null
+	type:'Invade'
 };
 
 Arena.rank = {
@@ -1439,104 +1446,69 @@ Arena.display = [
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[50,100,150,200,250]
-	},{
-		id:'fill',
-		label:'Fill Arena Guard',
-		checkbox:true
-	},{
-		id:'every',
-		label:'Every',
-		select:[1, 2, 3, 6, 12, 24],
-		after:'hours'
-	},{
-		label:'Add UserIDs to prefer them over random army members.'
-	},{
-		id:'prefer',
-		multiple:'number'
 	}
 ];
 
 Arena.parse = function(change) {
-	if (this.option.checking) {
-		$('span.result_body').each(function(i,el){
-			if ($(el).text().match(/has not joined in the Arena!/i)) {
-				Arena.data.army[Arena.option.checking] = -1;
-			} else if ($(el).text().match(/Arena Guard, and they have joined/i)) {
-				Arena.data.army[Arena.option.checking] = Date.now() + 86400000; // 24 hours
-			} else if ($(el).text().match(/'s Arena Guard is FULL/i)) {
-				Arena.data.army[Arena.option.checking] = Date.now() + 3600000; // 1 hour
-			} else if ($(el).text().match(/YOUR Arena Guard is FULL/i)) {
-				Arena.option.wait = Date.now();
-				debug('Arena guard full, wait 24 hours');
-			}
-		});
-		this.option.checking = null;
+	var i, list = [], data = this.data.user;
+	if (this.data.attacking) {
+		uid = this.data.attacking;
+		if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
+			delete data[uid];
+		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
+			data[uid].hide = (data[uid].hide || 0) + 1;
+			data[uid].dead = Date.now();
+		} else if ($('img[src*="battle_victory"]').length) {
+			data[uid].win = (data[uid].win || 0) + 1;
+		} else if ($('img[src*="battle_defeat"]').length) {
+			data[uid].loss = (data[uid].loss || 0) + 1;
+		} else {
+			// Some other message - probably be a good idea to remove the target or something
+			// delete data[uid];
+		}
+		this.data.attacking = null;
 	}
-	if (Page.page === 'army_viewarmy') {
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			Arena.data.army[$(el).attr('uid')] = Arena.data.army[$(el).attr('uid')] || 0;
-		});
-	} else if (Page.page === 'battle_arena') {
-		var i, list = [], data = this.data.user;
-		if (this.data.attacking) {
-			uid = this.data.attacking;
-			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
-				delete data[uid];
-			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
-				data[uid].hide = (data[uid].hide || 0) + 1;
-				data[uid].dead = Date.now();
-			} else if ($('img[src*="battle_victory"]').length) {
-				data[uid].win = (data[uid].win || 0) + 1;
-			} else if ($('img[src*="battle_defeat"]').length) {
-				data[uid].loss = (data[uid].loss || 0) + 1;
-			} else {
-				// Some other message - probably be a good idea to remove the target or something
-				// delete data[uid];
-			}
-			this.data.attacking = null;
+	this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
+		var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
+		if (!uid || !info) {
+			return;
 		}
-		this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
-		$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
-			if (!uid || !info) {
-				return;
-			}
-			rank = Arena.rank[info[1]];
-			if ((Arena.option.bp === 'Always' && Arena.data.rank > rank) || (!Arena.option.bp === 'Never' && Arena.data.rank < rank)) {
-				return;
-			}
-			data[uid] = data[uid] || {};
-			data[uid].name = $('a', el).text().trim();
-			data[uid].level = info[0];
-			data[uid].rank = rank;
-			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
-		});
-		for (i in data) { // Forget low or high rank - no points or too many points
-			if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
-				delete data[i];
-			}
+		rank = Arena.rank[info[1]];
+		if ((Arena.option.bp === 'Always' && Arena.data.rank > rank) || (!Arena.option.bp === 'Never' && Arena.data.rank < rank)) {
+			return;
 		}
-		if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
-			debug('Arena: Pruning target cache');
-			for (i in data) {
-				list.push(i);
-			}
-			list.sort(function(a,b) {
-				var weight = 0;
-					 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
-				else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-					 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
-				else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
-					 if (data[a].army > data[b].army) { weight += 1; }
-				else if (data[a].army < data[b].army) { weight -= 1; }
-				if (Arena.option.bp === 'Always') { weight += (data[b].rank - data[a].rank); }
-				if (Arena.option.bp === 'Never') { weight += (data[a].rank - data[b].rank); }
-				weight += (data[a].level - data[b].level) / 10;
-				return weight;
-			});
-			while (list.length > this.option.cache) {
-				delete data[list.pop()];
-			}
+		data[uid] = data[uid] || {};
+		data[uid].name = $('a', el).text().trim();
+		data[uid].level = info[0];
+		data[uid].rank = rank;
+		data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
+	});
+	for (i in data) { // Forget low or high rank - no points or too many points
+		if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
+			delete data[i];
+		}
+	}
+	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
+		debug('Arena: Pruning target cache');
+		for (i in data) {
+			list.push(i);
+		}
+		list.sort(function(a,b) {
+			var weight = 0;
+				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
+			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
+				 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
+			else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
+				 if (data[a].army > data[b].army) { weight += 1; }
+			else if (data[a].army < data[b].army) { weight -= 1; }
+			if (Arena.option.bp === 'Always') { weight += (data[b].rank - data[a].rank); }
+			if (Arena.option.bp === 'Never') { weight += (data[a].rank - data[b].rank); }
+			weight += (data[a].level - data[b].level) / 10;
+			return weight;
+		});
+		while (list.length > this.option.cache) {
+			delete data[list.pop()];
 		}
 	}
 	return false;
@@ -1555,40 +1527,6 @@ Arena.work = function(state) {
 		return false;
 	}
 	this._load();
-	if (this.option.fill && (!this.option.wait || (this.option.wait + (this.option.every * 3600000)) < Date.now())) {
-		for(j=0; j < this.option.prefer.length; j++) {
-			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i)) {
-				this.data.army[i] = this.data.army[i] || 0;
-				if (typeof this.data.army[i] !== 'number' || (this.data.army[i] !== -1 && this.data.army[i] < Date.now())) {
-					found = i;
-					break;
-				}
-			}
-		}
-		if (!found) {
-			for(i in this.data.army) {
-				if (typeof this.data.army[i] !== 'number' || (this.data.army[i] !== -1 && this.data.army[i] < Date.now())) {
-					found = i;
-					break;
-				}
-			}
-		}
-		if (found || !length(this.data.army)) {
-			if (!state) {
-				return true;
-			}
-			if (!found && !length(this.data.army) && !Page.to('army_viewarmy')) {
-				return true;
-			}
-			debug('Arena: Add member '+found);
-			//http://apps.facebook.com/castle_age/arena.php?user=00000&lka=00000&agtw=1&ref=nf
-			this.option.checking = found;
-			if (!Page.to('battle_arena', '?user=' + found + '&lka=' + found + '&agtw=1&ref=nf')) {
-				return true;
-			}
-		}
-	}
 	if (Player.get('health') <= 10 || Queue.burn.stamina < 5) {
 		return false;
 	}
@@ -1627,7 +1565,6 @@ Arena.work = function(state) {
 
 Arena.order = [];
 Arena.dashboard = function(sort, rev) {
-	this._load();
 	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output, sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'];
 	if (typeof sort === 'undefined') {
 		this.order = [];
@@ -1703,13 +1640,13 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < Bank.option.above) {
+	if (Player.get('cash') < this.option.above) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!Bank.stash(Player.get('cash') - Math.min(Bank.option.above, Bank.option.hand))) {
+	if (!Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;
@@ -1956,7 +1893,6 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	this._load();
 	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
 	for (i in Battle.data.user) {
 		points[Battle.data.user[i].align]++;
@@ -2050,11 +1986,17 @@ Blessing.work = function(state) {
 /********** Worker.Elite() **********
 * Build your elite army
 */
-var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy');
+var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy battle_arena');
 Elite.data = {};
 Elite.option = {
 	fill:true,
-	every:24
+	arena:false,
+	every:24,
+	prefer:[],
+	waitfill:0,
+	waitarena:0,
+	nextfill:null,
+	nextarena:null
 };
 Elite.display = [
 	{
@@ -2062,71 +2004,113 @@ Elite.display = [
 		label:'Fill Elite Guard',
 		checkbox:true
 	},{
+		id:'arena',
+		label:'Fill Arena Guard',
+		checkbox:true
+	},{
 		id:'every',
 		label:'Every',
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours'
 	},{
+		advanced:true,
 		label:'Add UserIDs to prefer them over random army members.'
 	},{
+		advanced:true,
 		id:'prefer',
 		multiple:'number'
 	}
 ];
+
+Elite.init = function() { // Convert old elite guard list
+	for(i in this.data) {
+		if (typeof this.data[i] === 'number') {
+			this.data[i] = {elite:this.data[i]};
+		}
+	}
+};
+
 Elite.parse = function(change) {
 	$('span.result_body').each(function(i,el){
+		if (Elite.option.nextarena) {
+			if ($(el).text().match(/has not joined in the Arena!/i)) {
+				Elite.data[Elite.option.nextarena].arena = -1;
+			} else if ($(el).text().match(/Arena Guard, and they have joined/i)) {
+				Elite.data[Elite.option.nextarena].arena = Date.now() + 86400000; // 24 hours
+			} else if ($(el).text().match(/'s Arena Guard is FULL/i)) {
+				Elite.data[Elite.option.nextarena].arena = Date.now() + 3600000; // 1 hour
+			} else if ($(el).text().match(/YOUR Arena Guard is FULL/i)) {
+				Elite.option.waitarena = Date.now();
+				debug('Arena guard full, wait '+Elite.option.every+' hours');
+			}
+		}
 		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
-			Elite.data[$('img', el).attr('uid')] = Date.now() + 86400000; // 24 hours
+			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 86400000; // 24 hours
 		} else if ($(el).text().match(/'s Elite Guard is FULL!/i)) {
-			Elite.data[$('img', el).attr('uid')] = Date.now() + 3600000; // 1 hour
+			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 3600000; // 1 hour
 		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
-			Elite.option.wait = Date.now();
-			debug('Elite guard full, wait 24 hours');
+			Elite.option.waitfill = Date.now();
+			debug('Elite guard full, wait '+Elite.option.every+' hours');
 		}
 	});
 	if (Page.page === 'army_viewarmy') {
 		$('img[linked="true"][size="square"]').each(function(i,el){
-			Elite.data[$(el).attr('uid')] = Elite.data[$(el).attr('uid')] || 0;
+			Elite.data[$(el).attr('uid')] = Elite.data[$(el).attr('uid')] || {};
+			var who = $(el).parent().parent().next();
+			Elite.data[$(el).attr('uid')].name = $('a', who).text();
+			Elite.data[$(el).attr('uid')].level = $(who).text().regex(/([0-9]+) Commander/i);
 		});
 	}
 	return false;
 };
+
+Elite.update = function() {
+	this.option.nextfill = this.option.nextarena = 0;
+	for(j=0; j<this.option.prefer.length; j++) {
+		i = this.option.prefer[j];
+		if (!/[^0-9]/g.test(i)) {
+			if (!this.option.nextfill && (typeof this.data[i].elite !== 'number' || this.data[i].elite < Date.now())) {
+				this.option.nextfill = i;
+			}
+			if (!this.option.nextarena && (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < Date.now()))) {
+				this.option.nextarena = i;
+			}
+		}
+	}
+	for(i in this.data) {
+		if (!this.option.nextfill && (typeof this.data[i].elite !== 'number' || this.data[i].elite < Date.now())) {
+			this.option.nextfill = i;
+		}
+		if (!this.option.nextarena && (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < Date.now()))) {
+			this.option.nextarena = i;
+		}
+	}
+};
+
 Elite.work = function(state) {
 	var i, j, found = null;
-	if (!Elite.option.fill || (Elite.option.wait && (Elite.option.wait + (Elite.option.every * 3600000)) > Date.now())) {
+	if ((!this.option.fill || (this.option.waitfill + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || (this.option.waitarena + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
-	this._load();
-	for(j=0; j<Elite.option.prefer.length; j++) {
-		i = Elite.option.prefer[j];
-		if (!/[^0-9]/g.test(i)) {
-			Elite.data[i] = Elite.data[i] || 0;
-			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
-				found = i;
-				break;
-			}
-		}
-	}
-	if (!found) {
-		for(i in Elite.data) {
-			if (typeof Elite.data[i] !== 'number' || Elite.data[i] < Date.now()) {
-				found = i;
-				break;
-			}
-		}
-	}
-	if ((!found && length(Elite.data))) {
-		return false;
-	}
+//	if (length(Elite.data) < Player.get('army')) {
+//	}
 	if (!state) {
 		return true;
 	}
-	if (!found && !length(Elite.data) && !Page.to('army_viewarmy')) {
+	if (!this.option.nextfill && !this.option.nextarena && !length(this.data) && !Page.to('army_viewarmy')) {
 		return true;
 	}
-	debug('Elite: Add member '+found);
-	if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + found)) {
-		return true;
+	if ((this.option.waitfill + (this.option.every * 3600000)) <= Date.now()) {
+		debug('Elite: Add Elite Guard member '+this.option.nextfill);
+		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.option.nextfill)) {
+			return true;
+		}
+	}
+	if ((this.option.waitarena + (this.option.every * 3600000)) <= Date.now()) {
+		debug('Elite: Add Arena Guard member '+this.option.nextarena);
+		if (!Page.to('battle_arena', '?user=' + this.option.nextarena + '&lka=' + this.option.nextarena + '&agtw=1&ref=nf')) {
+			return true;
+		}
 	}
 	return false;
 };
@@ -3714,7 +3698,6 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	this._load();
 	var i, o, list = [], output;
 	if (typeof sort === 'undefined') {
 		Quest.order = [];
@@ -3957,7 +3940,6 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	this._load();
 	var left, right, duel = {}, best,
 		listpush = function(list,i){list.push(i);},
 		usepush = function(list,i,units){if (units[i].use){list.push(i);}},
@@ -3995,8 +3977,11 @@ Town.dashboard = function() {
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade', 'keep_stats');
-Upgrade.data = {
-	run: 0
+Upgrade.data = null;
+Upgrade.option = {
+	order:[],
+	working:false,
+	run:0
 };
 Upgrade.display = [
 	{
@@ -4006,54 +3991,43 @@ Upgrade.display = [
 		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
 	}
 ];
+
+Upgrade.init = function() {
+	this.option.working = this.data.working;
+	this.option.run = this.data.run;
+};
+
 Upgrade.parse = function(change) {
 	var result = $('div.results');
-	if (Upgrade.data.working && result.length && result.text().match(/You just upgraded your/i)) {
-		Upgrade.data.working = false;
-		Upgrade.data.run++;
-		if (Upgrade.data.run >= Upgrade.option.order.length) {
-			Upgrade.data.run = 0;
-		}
+	if (this.option.working && result.length && result.text().match(/You just upgraded your/i)) {
+		this.option.working = false;
+		this.option.run++;
 	}
 	return false;
 };
+
 Upgrade.work = function(state) {
-	if (!Upgrade.option.order || !Upgrade.option.order.length || !Player.get('upgrade') || (Upgrade.option.order[Upgrade.data.run]==='Stamina' && Player.get('upgrade')<2)) {
+	var points = Player.get('upgrade'), btn;
+	if (this.option.run >= this.option.order.length) {
+		this.option.run = 0;
+	}
+	if (!this.option.order.length || !points || (this.option.order[this.option.run]==='Stamina' && points<2)) {
 		return false;
 	}
 	if (!state || !Page.to('keep_stats')) {
 		return true;
 	}
-	Upgrade.data.working = true;
-	if (Upgrade.data.run >= Upgrade.option.order.length) {
-		Upgrade.data.run = 0;
+	switch (this.option.order[this.option.run]) {
+		case 'Energy':	btn = 'a[href$="?upgrade=energy_max"]';	break;
+		case 'Stamina':	btn = 'a[href$="?upgrade=stamina_max"]';break;
+		case 'Attack':	btn = 'a[href$="?upgrade=attack"]';		break;
+		case 'Defense':	btn = 'a[href$="?upgrade=defense"]';	break;
+		case 'Health':	btn = 'a[href$="?upgrade=health_max"]';	break;
+		default: this.option.run++; return true; // Should never happen
 	}
-	switch (Upgrade.option.order[Upgrade.data.run]) {
-		case 'Energy':
-			if (Page.click('a[href$="?upgrade=energy_max"]')) {
-				return true;
-			}
-			break;
-		case 'Stamina':
-			if (Page.click('a[href$="?upgrade=stamina_max"]')) {
-				return true;
-			}
-			break;
-		case 'Attack':
-			if (Page.click('a[href$="?upgrade=attack"]')) {
-				return true;
-			}
-			break;
-		case 'Defense':
-			if (Page.click('a[href$="?upgrade=defense"]')) {
-				return true;
-			}
-			break;
-		case 'Health':
-			if (Page.click('a[href$="?upgrade=health_max"]')) {
-				return true;
-			}
-			break;
+	if (Page.click(btn)) {
+		this.option.working = true;
+		return true;
 	}
 	Page.reload(); // Only get here if we can't click!
 	return true;

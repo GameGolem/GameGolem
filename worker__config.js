@@ -6,16 +6,17 @@ var Config = new Worker('Config');
 Config.data = null;
 Config.option = {
 	display:'block',
-	fixed:true
+	fixed:true,
+	advanced:false
 };
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
-	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div id="golem_config" style="display:'+Config.option.display+';margin:0 4px 4px 4px;overflow:hidden;overflow-y:auto;"></div></div></div>');
+	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-		$('#golem_config').toggle('blind'); //Config.option.fixed?null:
+		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
 		Config._save('option');
 	});
 	$('#golem_fixed').click(function(){
@@ -68,6 +69,11 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 	});
 	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
+	$golem_config.append('');
+	$('#golem-config-advanced').click(function(){
+		Config.updateOptions();
+		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
+	);
 };
 Config.makePanel = function(worker) {
 	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
@@ -174,7 +180,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
@@ -190,7 +196,7 @@ Config.makePanel = function(worker) {
 	}
 };
 Config.updateOptions = function() {
-	debug('Options changed');
+//	debug('Options changed');
 	// Get order of panels first
 	var found = {}, i;
 	Queue.option.queue = [];
@@ -201,6 +207,8 @@ Config.updateOptions = function() {
 		}
 		found[name] = true;
 	});
+	// Now can we see the advanced stuff
+	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
 	$('#golem_config :input').each(function(i,el){
 		if ($(el).attr('id')) {

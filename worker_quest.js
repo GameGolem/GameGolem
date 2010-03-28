@@ -216,7 +216,6 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	this._load();
 	var i, o, list = [], output;
 	if (typeof sort === 'undefined') {
 		Quest.order = [];

@@ -25,6 +25,7 @@ Dashboard.init = function() {
 			return;
 		}
 		if (!$('#'+$(this).attr('name')).children().length) {
+			WorkerByName($(this).attr('name').substr(16))._load('data');
 			WorkerByName($(this).attr('name').substr(16)).dashboard();
 		}
 		if (Dashboard.option.active) {
@@ -91,6 +92,7 @@ Dashboard.change = function(worker) {
 	}
 	var id = worker ? 'golem-dashboard-'+worker.name : this.option.active;
 	if (this.option.active === id && this.option.display === 'block') {
+		worker._load('data');
 		worker.dashboard();
 	} else {
 		$('#'+id).empty();
