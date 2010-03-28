@@ -7,7 +7,6 @@
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
-// @unwrap
 // ==/UserScript==
 // 
 // For the source code please check the sourse repository
