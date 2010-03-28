@@ -94,7 +94,9 @@ $('head').append("<style type=\"text/css\">\
 .golem-config-fixed > div { position: fixed; }\
 .golem-config-fixed #golem_fixed { background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 1; }\
+#golem-dashboard thead th { cursor: pointer }\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
+#golem-dashboard tbody th { text-align: left; font-weight: normal; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
 #golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
@@ -179,6 +181,10 @@ String.prototype.parseTimer = function() {
 
 Number.prototype.round = function(dec) {
 	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+}
+
+Math.range = function(min, num, max) {
+	return Math.max(min, Math.min(num, max));
 }
 
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
@@ -305,6 +311,18 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 	getAttDefList = units;
 	return (x==='att'?attack:(0.7*attack)) + (x==='def'?defend:(0.7*defend));
 };
+
+var tr = function(list, html, attr) {
+	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + html + '</tr>');
+}
+
+var th = function(list, html, attr) {
+	list.push('<th' + (attr ? ' ' + attr : '') + '>' + html + '</th>');
+}
+
+var td = function(list, html, attr) {
+	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
+}
 
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
@@ -562,16 +580,17 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			Workers[i].select();
 		}
 	}
-	$('input.golem_addselect').click(function(){
+	$('input.golem_addselect').live('click', function(){
 		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
 		Config.updateOptions();
 	});
-	$('input.golem_delselect').click(function(){
+	$('input.golem_delselect').live('click', function(){
 		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
 		Config.updateOptions();
 	});
-	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
-	$golem_config.append('');
+	$('input,textarea,select', $golem_config).change( function(){
+		Config.updateOptions();
+	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
@@ -682,7 +701,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '"') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
@@ -794,6 +813,12 @@ Dashboard.init = function() {
 			$(this).next().show('blind');
 		}
 	});
+	$('#golem-dashboard thead th').live('click', function(event){
+		var worker = WorkerByName(Dashboard.option.active.substr(16));
+		worker._load();
+		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+
 	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
 	$('#golem_toggle_dash').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -1396,7 +1421,9 @@ Arena.option = {
 	enabled:false,
 	general:true,
 	losses:5,
-	type:'Invade'
+	cache:50,
+	type:'Invade',
+	army:1.1
 };
 
 Arena.rank = {
@@ -1437,21 +1464,29 @@ Arena.display = [
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
+		advanced:true,
 		id:'losses',
 		label:'Attack Until',
 		select:[1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
 	},{
+		advanced:true,
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[50,100,150,200,250]
+	},{
+		id:'army',
+		label:'Target Army Ratio<br>(Only needed for Invade)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	}
 ];
 
 Arena.parse = function(change) {
-	var i, list = [], data = this.data.user;
-	if (this.data.attacking) {
-		uid = this.data.attacking;
+	var data = this.data.user;
+	if (this.option.attacking) {
+		uid = this.option.attacking;
+		this.option.attacking = null;
 		if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 			delete data[uid];
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -1462,10 +1497,8 @@ Arena.parse = function(change) {
 		} else if ($('img[src*="battle_defeat"]').length) {
 			data[uid].loss = (data[uid].loss || 0) + 1;
 		} else {
-			// Some other message - probably be a good idea to remove the target or something
-			// delete data[uid];
+			this.option.attacking = uid; // Don't remove target as we've not hit them...
 		}
-		this.data.attacking = null;
 	}
 	this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
 	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
@@ -1483,12 +1516,17 @@ Arena.parse = function(change) {
 		data[uid].rank = rank;
 		data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 	});
+	return false;
+};
+
+Arena.update = function(type) {
+	var i, list = [], data = this.data.user, army = Player.get('army');
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
 			delete data[i];
 		}
 	}
-	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
+	if (length(data) > this.option.cache) { // Need to prune our attack cache
 		debug('Arena: Pruning target cache');
 		for (i in data) {
 			list.push(i);
@@ -1497,74 +1535,61 @@ Arena.parse = function(change) {
 			var weight = 0;
 				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
 			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-				 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
-			else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
-				 if (data[a].army > data[b].army) { weight += 1; }
-			else if (data[a].army < data[b].army) { weight -= 1; }
 			if (Arena.option.bp === 'Always') { weight += (data[b].rank - data[a].rank); }
 			if (Arena.option.bp === 'Never') { weight += (data[a].rank - data[b].rank); }
-			weight += (data[a].level - data[b].level) / 10;
+			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
+			weight += Math.range(-10, ((data[a].army - data[b].army) / 10), 10);
+			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
 			return weight;
 		});
 		while (list.length > this.option.cache) {
 			delete data[list.pop()];
 		}
 	}
-	return false;
-};
-
-Arena.update = function(type) {
-	if (type !== 'option') {
-		Dashboard.change(this);
+	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (army / data[this.option.attacking].army) <= this.option.army)) {
+		list = [];
+		for (i in data) {
+			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+			|| (this.option.army !== 'Any' && (army / data[i].army) > this.option.army)) {
+				continue;
+			}
+			list.push(i);
+		}
+		if (list.length) {
+			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + '), ' + list.length + ' / ' + length(data) + ' targets');
+		} else {
+			this.option.attacking = null;
+			Dashboard.status(this);
+		}
 	}
+	Dashboard.change(this);
 }
 
 Arena.work = function(state) {
-	this._load();
-	var i, j, found = null;
-	if (!this.option.enabled) {
+	if (!this.option.enabled || Player.get('health') <= 10 || Queue.burn.stamina < 5) {
 		return false;
 	}
-	this._load();
-	if (Player.get('health') <= 10 || Queue.burn.stamina < 5) {
-		return false;
-	}
-	var i, points = [], list = [], user = this.data.user, uid, $form;
-	for (i in user) {
-		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
-			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
-		}
-		if ((user[i].loss || 0) - (user[i].win || 0) >= this.option.losses) {
-			continue; // Don't attack someone who wins more often
-		}
-		list.push(i);
-	}
-	if (!list.length) {
-		return false;
-	}
-	if (!state) {
+	if (!state || this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
-	if (this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_arena')) {
-		return true;
-	}
-	uid = list[Math.floor(Math.random() * list.length)];
-	debug('Arena: Wanting to attack '+user[uid].name+' ('+uid+')');
+	var uid = this.option.attacking;
+	debug('Arena: Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	$form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {
 		log('Arena: Unable to find attack buttons, forcing reload');
 		Page.to('index');
-		return false;
+	} else {
+		$('input[name="target_id"]', $form).attr('value', uid);
+		Page.click($('input[type="image"]', $form));
 	}
-	this.data.attacking = uid;
-	$('input[name="target_id"]', $form).attr('value', uid);
-	Page.click($('input[type="image"]', $form));
 	return true;
 };
 
 Arena.order = [];
 Arena.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output, sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'];
+	var i, o, list = [], output = [], sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'];
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data.user) {
@@ -1581,27 +1606,30 @@ Arena.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
+
 	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + '), <strong>Targets:</strong> ' + length(this.data.user) + ' / ' + this.option.cache + '</div><hr>');
-	list.push('<table cellspacing="0" style="width:100%"><thead><th>Rank</th><th>Name</th><th>Level</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
+	th(output, 'Rank');
+	th(output, 'Name');
+	th(output, 'Level');
+	th(output, 'Army');
+	th(output, 'Wins');
+	th(output, 'Losses');
+	th(output, 'Hides');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
 		output = [];
-		output.push('<img style="width:16px;height:16px;" src="' + imagepath + 'arena_rank' + this.data.user[i].rank+'.gif"> ' + this.knar[this.data.user[i].rank] + ' (' + this.data.user[i].rank + ') ');
-		output.push('<span title="'+i+'">' + this.data.user[i].name + '</span>');
-		output.push(this.data.user[i].level);
-		output.push(this.data.user[i].army);
-		output.push(this.data.user[i].win);
-		output.push(this.data.user[i].loss);
-		output.push(this.data.user[i].hide);
-		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, '<img style="width:22px;height:22px;" src="' + imagepath + 'arena_rank' + this.data.user[i].rank+'.gif">', 'title="' + this.knar[this.data.user[i].rank] + ' (Rank ' + this.data.user[i].rank + ')"');
+		th(output, this.data.user[i].name, 'title="'+i+'"');
+		td(output, this.data.user[i].level);
+		td(output, this.data.user[i].army);
+		td(output, this.data.user[i].win || '');
+		td(output, this.data.user[i].loss || '');
+		td(output, this.data.user[i].hide || '');
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Arena').html(list.join(''));
-	$('#golem-dashboard-Arena thead th').css('cursor', 'pointer').click(function(event){
-		Arena.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
-	$('#golem-dashboard-Arena tbody tr td:nth-child(1)').css('text-align', 'left');
-	$('#golem-dashboard-Arena tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Arena thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
@@ -1728,11 +1756,13 @@ Battle.display = [
 		label:'Always Get Demi-Points',
 		checkbox:true
 	},{
+		advanced:true,
 		id:'arena',
 		label:'Fight in Arena First',
 		checkbox:true,
 		help:'Only if the Arena is enabled!'
 	},{
+		advanced:true,
 		id:'monster',
 		label:'Fight Monsters First',
 		checkbox:true
@@ -1741,27 +1771,34 @@ Battle.display = [
 		label:'Get Battle Points<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
+		advanced:true,
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[100,200,300,400,500]
+	},{
+		id:'army',
+		label:'Target Army Ratio<br>(Only needed for Invade)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	}
 ];
 
 Battle.parse = function(change) {
-	var i, data, uid, info, list = [];
+	var data, uid;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
-			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
+			var info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		if (length(data) > length(Battle.data.rank)) {
-			Battle.data.rank = data;
+		if (length(data) > length(this.data.rank)) {
+			this.data.rank = data;
 		}
 	} else if (Page.page === 'battle_battle') {
-		data = Battle.data.user;
-		if (Battle.data.attacking) {
-			uid = Battle.data.attacking;
+		data = this.data.user;
+		if (this.option.attacking) {
+			uid = this.option.attacking;
+			this.data.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -1772,12 +1809,10 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				// Some other message - probably be a good idea to remove the target or something
-				// delete data[uid];
+				this.data.attacking = uid; // Don't remove target as we've not hit them...
 			}
-			Battle.data.attacking = null;
 		}
-		Battle.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
@@ -1796,88 +1831,86 @@ Battle.parse = function(change) {
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});
-		for (i in data) { // Forget low or high rank - no points or too many points
-			if ((Battle.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
-				delete data[i];
-			}
-		}
-		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
-			debug('Battle: Pruning target cache');
-			for (i in data) {
-				list.push(i);
-			}
-			list.sort(function(a,b) {
-				var weight = 0;
-					 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
-				else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-					 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
-				else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
-					 if (data[a].army > data[b].army) { weight += 1; }
-				else if (data[a].army < data[b].army) { weight -= 1; }
-				if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
-				if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
-				weight += (data[a].level - data[b].level) / 10;
-				return weight;
-			});
-			while (list.length > Battle.option.cache) {
-				delete data[list.pop()];
-			}
-		}
 	}
 	return false;
 };
 
 Battle.update = function(type) {
-	Dashboard.change(Battle);
+	var i, data = this.data.user, list = [], points = [], army = Player.get('army');
+	for (i in data) { // Forget low or high rank - no points or too many points
+		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
+			delete data[i];
+		}
+	}
+	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
+		debug('Battle: Pruning target cache');
+		for (i in data) {
+			list.push(i);
+		}
+		list.sort(function(a,b) {
+			var weight = 0;
+				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
+			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
+			if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
+			if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
+			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
+			weight += Math.range(-10, ((data[a].army - data[b].army) / 10), 10);
+			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
+			return weight;
+		});
+		while (list.length > Battle.option.cache) {
+			delete data[list.pop()];
+		}
+	}
+	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (army / data[this.option.attacking].army) <= this.option.army)) {
+		if (this.option.points) {
+			for (i=0; i<this.data.points.length; i++) {
+				if (this.data.points[i] < 10) {
+					points[i+1] = true;
+				}
+			}
+		}
+		list = [];
+		for (i in data) {
+			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+			|| (this.option.army !== 'Any' && (army / data[i].army) > this.option.army)
+			|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
+				continue;
+			}
+			list.push(i);
+		}
+		debug('Battle: Finding target - '+list);
+		if (list.length) {
+			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + '), ' + list.length + ' / ' + length(data) + ' targets');
+		} else {
+			this.option.attacking = null;
+			Dashboard.status(this);
+		}
+	}
+	Dashboard.change(this);
 }
 
 Battle.work = function(state) {
-	if (Player.get('health') <= 10 || Queue.burn.stamina < 1) {
-		return false;
-	}
-	this._load();
-	var i, points = [], list = [], user = Battle.data.user, uid, $form;
-	if (Battle.option.points) {
-		for (i=0; i<Battle.data.points.length; i++) {
-			if (Battle.data.points[i] < 10) {
-				points[i+1] = true;
-			}
-		}
-	}
-	if ((!Battle.option.points || !points.length) && ((Battle.option.monster && Monster.count) || (Battle.option.arena && Arena.option.enabled))) {
-		return false;
-	}
-	for (i in user) {
-		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
-			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
-		}
-		if ((user[i].loss || 0) - (user[i].win || 0) >= Battle.option.losses) {
-			continue; // Don't attack someone who wins more often
-		}
-		if (!Battle.option.points || !points.length || typeof points[user[i].align] !== 'undefined') {
-			list.push(i);
-		}
-	}
-	if (!list.length) {
+	if (Player.get('health') <= 10 || Queue.burn.stamina < 1 || !this.option.attacking || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled)) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (Battle.option.general && !Generals.to(Generals.best(Battle.option.type)) || !Page.to('battle_battle')) {
+	if (this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_battle')) {
 		return true;
 	}
-	uid = list[Math.floor(Math.random() * list.length)];
-	debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
-	$form = $('form input[alt="'+Battle.option.type+'"]').first().parents('form');
+	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
+	debug('Battle: Wanting to attack ' + this.data.user[uid].name + ' (' + uid + ')');
 	if (!$form.length) {
 		log('Battle: Unable to find attack buttons, forcing reload');
 		Page.to('index');
-		return false;
+	} else {
+		$('input[name="target_id"]', $form).attr('value', uid);
+		Page.click($('input[type="image"]', $form));
 	}
-	Battle.data.attacking = uid;
-	$('input[name="target_id"]', $form).attr('value', uid);
-	Page.click($('input[type="image"]', $form));
 	return true;
 };
 
@@ -2017,7 +2050,7 @@ Elite.display = [
 	},{
 		advanced:true,
 		id:'prefer',
-		multiple:'number'
+		multiple:'userid'
 	}
 ];
 
@@ -2618,10 +2651,8 @@ Income.work = function(state) {
 	if (!Income.option.margin) {
 		return false;
 	}
-	var when = new Date();
-	when = (3600 + Player.get('cash_time') - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 //	debug('Income: '+when+', Margin: '+Income.option.margin);
-	if (when > this.option.margin) {
+	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -2633,7 +2664,7 @@ Income.work = function(state) {
 	if (this.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	debug('Income: Waiting for Income... ('+when+' seconds)');
+	debug('Income: Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return true;
 };
 
@@ -3209,8 +3240,7 @@ Monster.work = function(state) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, monster, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
+	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
@@ -3240,6 +3270,8 @@ Monster.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
+
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
@@ -3273,9 +3305,6 @@ Monster.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
-	$('#golem-dashboard-Monster thead th').css('cursor', 'pointer').click(function(event){
-		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Monster tbody td a').click(function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
@@ -3405,19 +3434,19 @@ Player.update = function(type) {
 	Dashboard.change(Player);
 };
 
-Player.work = function(state) {
-	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-// Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
-	var when = new Date();
-	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+Player.get = function(what) {
+	switch(what) {
+		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+		case 'cash_timer':		var when = new Date();
+								return (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+		case 'energy':			return $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
+		case 'health':			return $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
+		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		default:				return this._get(what);
+	}
 };
 
 Player.dashboard = function() {
@@ -3457,14 +3486,29 @@ Player.makeGraph = function(type, title, iscash, min) {
 			}
 		}
 	}
-	if (max >= 1000000000) {max = Math.ceil(max / 1000000000) * 1000000000;max_s = addCommas(max / 1000000000)+'b';}
-	else if (max >= 1000000) {max = Math.ceil(max / 1000000) * 1000000;max_s = (max / 1000000)+'m';}
-	else if (max >= 1000) {max = Math.ceil(max / 1000) * 1000;max_s = (max / 1000)+'k';}
-	else {max_s = max || 0;}
-	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
-	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
-	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
-	else {min_s = min || 0;}
+	if (max >= 1000000000) {
+		max = Math.ceil(max / 1000000000) * 1000000000;
+		max_s = addCommas(max / 1000000000)+'b';
+		min = Math.floor(min / 1000000000) * 1000000000;
+		min_s = addCommas(min / 1000000000)+'b';
+	} else if (max >= 1000000) {
+		max = Math.ceil(max / 1000000) * 1000000;
+		max_s = (max / 1000000)+'m';
+		min = Math.floor(min / 1000000) * 1000000;
+		min_s = (min / 1000000)+'m';
+	} else if (max >= 1000) {
+		max = Math.ceil(max / 1000) * 1000;
+		max_s = (max / 1000)+'k';
+		min = Math.floor(min / 1000) * 1000;
+		min_s = (min / 1000)+'k';
+	} else {
+		max_s = max || 0;
+		min_s = min || 0;
+	}
+//	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
+//	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
+//	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
+//	else {min_s = min || 0;}
 	list.push('<th><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
 	for (i=hour-72; i<=hour; i++) {
 		if (typeof type === 'string' && value[i]) {
@@ -3697,11 +3741,11 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	var i, o, list = [], output;
+	var i, o, list = [], output = [];
 	if (typeof sort === 'undefined') {
-		Quest.order = [];
-		for (i in Quest.data) {
-			Quest.order.push(i);
+		this.order = [];
+		for (i in this.data) {
+			this.order.push(i);
 		}
 		sort = 1; // Default = sort by name
 	}
@@ -3726,32 +3770,39 @@ Quest.dashboard = function(sort, rev) {
 		}
 		return 0; // unknown
 	}
-	Quest.order.sort(function(a,b) {
+	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
 			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
-	list.push('<table cellspacing="0" style="width:100%"><thead><th>General</th><th>Name</th><th>Area</th><th>Level</th><th>Energy</th><th>@&nbsp;Exp</th><th>@&nbsp;Reward</th><th>Item</th></tr></thead><tbody>');
-	for (o=0; o<Quest.order.length; o++) {
-		i = Quest.order[o];
+
+	th(output, 'General');
+	th(output, 'Name');
+	th(output, 'Area');
+	th(output, 'Level');
+	th(output, 'Energy');
+	th(output, '@&nbsp;Exp');
+	th(output, '@&nbsp;Reward');
+	th(output, 'Item');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	for (o=0; o<this.order.length; o++) {
+		i = this.order[o];
 		output = [];
-		output.push(Generals.data[Quest.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[Quest.data[i].general].img+'" alt="'+Quest.data[i].general+'" title="'+Quest.data[i].general+'">' : '');
-		output.push(i);
-		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
-		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
-		output.push(Quest.data[i].energy);
-		output.push('<span title="' + Quest.data[i].exp + ' total, ' + (Quest.data[i].exp / Quest.data[i].energy * 12).round(2) + ' per hour">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
-		output.push('<span title="$' + addCommas(Quest.data[i].reward) + ' total, $' + addCommas((Quest.data[i].reward / Quest.data[i].energy * 12).round()) + ' per hour">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
-		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
-		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, Generals.data[this.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[this.data[i].general].img+'" alt="'+this.data[i].general+'" title="'+this.data[i].general+'">' : '');
+		th(output, i);
+		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
+		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level +'&nbsp;(' + this.data[i].influence +'%)' : '');
+		td(output, this.data[i].energy);
+		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
+		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
+		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg+'" alt="'+this.data[i].item+'" title="'+this.data[i].item+'">' : '');
+		tr(list, output.join(''), 'style="height:25px;"');
 	}
 	list.push('</tbody></table>');
+
 	$('#golem-dashboard-Quest').html(list.join(''));
-	$('#golem-dashboard-Quest thead th').css('cursor', 'pointer').click(function(event){
-		Quest.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Quest tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Quest thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));

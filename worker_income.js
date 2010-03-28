@@ -30,10 +30,8 @@ Income.work = function(state) {
 	if (!Income.option.margin) {
 		return false;
 	}
-	var when = new Date();
-	when = (3600 + Player.get('cash_time') - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 //	debug('Income: '+when+', Margin: '+Income.option.margin);
-	if (when > this.option.margin) {
+	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -45,7 +43,7 @@ Income.work = function(state) {
 	if (this.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	debug('Income: Waiting for Income... ('+when+' seconds)');
+	debug('Income: Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return true;
 };
 

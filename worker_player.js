@@ -116,19 +116,19 @@ Player.update = function(type) {
 	Dashboard.change(Player);
 };
 
-Player.work = function(state) {
-	// These can change every second - so keep them in mind
-	Player.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-// Very innacurate!!!
-//	Player.data.cash_timer		= $('#app'+APPID+'_gold_time_value').text().parseTimer();
-	var when = new Date();
-	Player.data.cash_timer		= (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-	Player.data.energy			= $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.energy_timer	= $('#app'+APPID+'_energy_time_value').text().parseTimer();
-	Player.data.health			= $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.health_timer	= $('#app'+APPID+'_health_time_value').text().parseTimer();
-	Player.data.stamina			= $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
-	Player.data.stamina_timer	= $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+Player.get = function(what) {
+	switch(what) {
+		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+		case 'cash_timer':		var when = new Date();
+								return (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+		case 'energy':			return $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
+		case 'health':			return $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
+		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		default:				return this._get(what);
+	}
 };
 
 Player.dashboard = function() {
@@ -168,14 +168,29 @@ Player.makeGraph = function(type, title, iscash, min) {
 			}
 		}
 	}
-	if (max >= 1000000000) {max = Math.ceil(max / 1000000000) * 1000000000;max_s = addCommas(max / 1000000000)+'b';}
-	else if (max >= 1000000) {max = Math.ceil(max / 1000000) * 1000000;max_s = (max / 1000000)+'m';}
-	else if (max >= 1000) {max = Math.ceil(max / 1000) * 1000;max_s = (max / 1000)+'k';}
-	else {max_s = max || 0;}
-	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
-	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
-	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
-	else {min_s = min || 0;}
+	if (max >= 1000000000) {
+		max = Math.ceil(max / 1000000000) * 1000000000;
+		max_s = addCommas(max / 1000000000)+'b';
+		min = Math.floor(min / 1000000000) * 1000000000;
+		min_s = addCommas(min / 1000000000)+'b';
+	} else if (max >= 1000000) {
+		max = Math.ceil(max / 1000000) * 1000000;
+		max_s = (max / 1000000)+'m';
+		min = Math.floor(min / 1000000) * 1000000;
+		min_s = (min / 1000000)+'m';
+	} else if (max >= 1000) {
+		max = Math.ceil(max / 1000) * 1000;
+		max_s = (max / 1000)+'k';
+		min = Math.floor(min / 1000) * 1000;
+		min_s = (min / 1000)+'k';
+	} else {
+		max_s = max || 0;
+		min_s = min || 0;
+	}
+//	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
+//	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
+//	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
+//	else {min_s = min || 0;}
 	list.push('<th><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
 	for (i=hour-72; i<=hour; i++) {
 		if (typeof type === 'string' && value[i]) {

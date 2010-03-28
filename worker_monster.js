@@ -485,8 +485,7 @@ Monster.work = function(state) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, monster, url, list = [], output, sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
+	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
@@ -516,6 +515,8 @@ Monster.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
+
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
@@ -549,9 +550,6 @@ Monster.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
-	$('#golem-dashboard-Monster thead th').css('cursor', 'pointer').click(function(event){
-		Monster.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Monster tbody td a').click(function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));

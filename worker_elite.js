@@ -33,7 +33,7 @@ Elite.display = [
 	},{
 		advanced:true,
 		id:'prefer',
-		multiple:'number'
+		multiple:'userid'
 	}
 ];
 

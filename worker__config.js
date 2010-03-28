@@ -60,16 +60,17 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			Workers[i].select();
 		}
 	}
-	$('input.golem_addselect').click(function(){
+	$('input.golem_addselect').live('click', function(){
 		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
 		Config.updateOptions();
 	});
-	$('input.golem_delselect').click(function(){
+	$('input.golem_delselect').live('click', function(){
 		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
 		Config.updateOptions();
 	});
-	$('input ,textarea, select', $golem_config).change( function(){Config.updateOptions();} );
-	$golem_config.append('');
+	$('input,textarea,select', $golem_config).change( function(){
+		Config.updateOptions();
+	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
@@ -180,7 +181,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '"') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;

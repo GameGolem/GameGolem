@@ -216,11 +216,11 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	var i, o, list = [], output;
+	var i, o, list = [], output = [];
 	if (typeof sort === 'undefined') {
-		Quest.order = [];
-		for (i in Quest.data) {
-			Quest.order.push(i);
+		this.order = [];
+		for (i in this.data) {
+			this.order.push(i);
 		}
 		sort = 1; // Default = sort by name
 	}
@@ -245,32 +245,39 @@ Quest.dashboard = function(sort, rev) {
 		}
 		return 0; // unknown
 	}
-	Quest.order.sort(function(a,b) {
+	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
 			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
-	list.push('<table cellspacing="0" style="width:100%"><thead><th>General</th><th>Name</th><th>Area</th><th>Level</th><th>Energy</th><th>@&nbsp;Exp</th><th>@&nbsp;Reward</th><th>Item</th></tr></thead><tbody>');
-	for (o=0; o<Quest.order.length; o++) {
-		i = Quest.order[o];
+
+	th(output, 'General');
+	th(output, 'Name');
+	th(output, 'Area');
+	th(output, 'Level');
+	th(output, 'Energy');
+	th(output, '@&nbsp;Exp');
+	th(output, '@&nbsp;Reward');
+	th(output, 'Item');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	for (o=0; o<this.order.length; o++) {
+		i = this.order[o];
 		output = [];
-		output.push(Generals.data[Quest.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[Quest.data[i].general].img+'" alt="'+Quest.data[i].general+'" title="'+Quest.data[i].general+'">' : '');
-		output.push(i);
-		output.push(typeof Quest.data[i].land === 'number' ? Quest.land[Quest.data[i].land].replace(' ','&nbsp;') : Quest.area[Quest.data[i].area].replace(' ','&nbsp;'));
-		output.push(typeof Quest.data[i].level !== 'undefined' ? Quest.data[i].level +'&nbsp;(' + Quest.data[i].influence +'%)' : '');
-		output.push(Quest.data[i].energy);
-		output.push('<span title="' + Quest.data[i].exp + ' total, ' + (Quest.data[i].exp / Quest.data[i].energy * 12).round(2) + ' per hour">' + (Quest.data[i].exp / Quest.data[i].energy).round(2) + '</span>');
-		output.push('<span title="$' + addCommas(Quest.data[i].reward) + ' total, $' + addCommas((Quest.data[i].reward / Quest.data[i].energy * 12).round()) + ' per hour">$' + addCommas((Quest.data[i].reward / Quest.data[i].energy).round()) + '</span>');
-		output.push(Quest.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + Quest.data[i].itemimg+'" alt="'+Quest.data[i].item+'" title="'+Quest.data[i].item+'">' : '');
-		list.push('<tr style="height:25px;"><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, Generals.data[this.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[this.data[i].general].img+'" alt="'+this.data[i].general+'" title="'+this.data[i].general+'">' : '');
+		th(output, i);
+		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
+		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level +'&nbsp;(' + this.data[i].influence +'%)' : '');
+		td(output, this.data[i].energy);
+		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
+		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
+		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg+'" alt="'+this.data[i].item+'" title="'+this.data[i].item+'">' : '');
+		tr(list, output.join(''), 'style="height:25px;"');
 	}
 	list.push('</tbody></table>');
+
 	$('#golem-dashboard-Quest').html(list.join(''));
-	$('#golem-dashboard-Quest thead th').css('cursor', 'pointer').click(function(event){
-		Quest.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Quest tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Quest thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));

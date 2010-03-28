@@ -36,11 +36,13 @@ Battle.display = [
 		label:'Always Get Demi-Points',
 		checkbox:true
 	},{
+		advanced:true,
 		id:'arena',
 		label:'Fight in Arena First',
 		checkbox:true,
 		help:'Only if the Arena is enabled!'
 	},{
+		advanced:true,
 		id:'monster',
 		label:'Fight Monsters First',
 		checkbox:true
@@ -49,27 +51,34 @@ Battle.display = [
 		label:'Get Battle Points<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
+		advanced:true,
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[100,200,300,400,500]
+	},{
+		id:'army',
+		label:'Target Army Ratio<br>(Only needed for Invade)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	}
 ];
 
 Battle.parse = function(change) {
-	var i, data, uid, info, list = [];
+	var data, uid;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Squire',points:0}};
 		$('tr[height="23"]').each(function(i,el){
-			info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
+			var info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		if (length(data) > length(Battle.data.rank)) {
-			Battle.data.rank = data;
+		if (length(data) > length(this.data.rank)) {
+			this.data.rank = data;
 		}
 	} else if (Page.page === 'battle_battle') {
-		data = Battle.data.user;
-		if (Battle.data.attacking) {
-			uid = Battle.data.attacking;
+		data = this.data.user;
+		if (this.option.attacking) {
+			uid = this.option.attacking;
+			this.data.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -80,12 +89,10 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				// Some other message - probably be a good idea to remove the target or something
-				// delete data[uid];
+				this.data.attacking = uid; // Don't remove target as we've not hit them...
 			}
-			Battle.data.attacking = null;
 		}
-		Battle.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
@@ -104,88 +111,86 @@ Battle.parse = function(change) {
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});
-		for (i in data) { // Forget low or high rank - no points or too many points
-			if ((Battle.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
-				delete data[i];
-			}
-		}
-		if (length(Battle.data.user) > Battle.option.cache) { // Need to prune our attack cache
-			debug('Battle: Pruning target cache');
-			for (i in data) {
-				list.push(i);
-			}
-			list.sort(function(a,b) {
-				var weight = 0;
-					 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
-				else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-					 if ((data[a].hide || 0) > (data[b].hide || 0)) { weight += 1; }
-				else if ((data[a].hide || 0) < (data[b].hide || 0)) { weight -= 1; }
-					 if (data[a].army > data[b].army) { weight += 1; }
-				else if (data[a].army < data[b].army) { weight -= 1; }
-				if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
-				if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
-				weight += (data[a].level - data[b].level) / 10;
-				return weight;
-			});
-			while (list.length > Battle.option.cache) {
-				delete data[list.pop()];
-			}
-		}
 	}
 	return false;
 };
 
 Battle.update = function(type) {
-	Dashboard.change(Battle);
+	var i, data = this.data.user, list = [], points = [], army = Player.get('army');
+	for (i in data) { // Forget low or high rank - no points or too many points
+		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
+			delete data[i];
+		}
+	}
+	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
+		debug('Battle: Pruning target cache');
+		for (i in data) {
+			list.push(i);
+		}
+		list.sort(function(a,b) {
+			var weight = 0;
+				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
+			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
+			if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
+			if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
+			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
+			weight += Math.range(-10, ((data[a].army - data[b].army) / 10), 10);
+			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
+			return weight;
+		});
+		while (list.length > Battle.option.cache) {
+			delete data[list.pop()];
+		}
+	}
+	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (army / data[this.option.attacking].army) <= this.option.army)) {
+		if (this.option.points) {
+			for (i=0; i<this.data.points.length; i++) {
+				if (this.data.points[i] < 10) {
+					points[i+1] = true;
+				}
+			}
+		}
+		list = [];
+		for (i in data) {
+			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+			|| (this.option.army !== 'Any' && (army / data[i].army) > this.option.army)
+			|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
+				continue;
+			}
+			list.push(i);
+		}
+		debug('Battle: Finding target - '+list);
+		if (list.length) {
+			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + '), ' + list.length + ' / ' + length(data) + ' targets');
+		} else {
+			this.option.attacking = null;
+			Dashboard.status(this);
+		}
+	}
+	Dashboard.change(this);
 }
 
 Battle.work = function(state) {
-	if (Player.get('health') <= 10 || Queue.burn.stamina < 1) {
-		return false;
-	}
-	this._load();
-	var i, points = [], list = [], user = Battle.data.user, uid, $form;
-	if (Battle.option.points) {
-		for (i=0; i<Battle.data.points.length; i++) {
-			if (Battle.data.points[i] < 10) {
-				points[i+1] = true;
-			}
-		}
-	}
-	if ((!Battle.option.points || !points.length) && ((Battle.option.monster && Monster.count) || (Battle.option.arena && Arena.option.enabled))) {
-		return false;
-	}
-	for (i in user) {
-		if (user[i].dead && user[i].dead + 1800000 >= Date.now()) {
-			continue; // If they're dead ignore them for 3m * 10hp = 30 mins
-		}
-		if ((user[i].loss || 0) - (user[i].win || 0) >= Battle.option.losses) {
-			continue; // Don't attack someone who wins more often
-		}
-		if (!Battle.option.points || !points.length || typeof points[user[i].align] !== 'undefined') {
-			list.push(i);
-		}
-	}
-	if (!list.length) {
+	if (Player.get('health') <= 10 || Queue.burn.stamina < 1 || !this.option.attacking || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled)) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (Battle.option.general && !Generals.to(Generals.best(Battle.option.type)) || !Page.to('battle_battle')) {
+	if (this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_battle')) {
 		return true;
 	}
-	uid = list[Math.floor(Math.random() * list.length)];
-	debug('Battle: Wanting to attack '+user[uid].name+' ('+uid+')');
-	$form = $('form input[alt="'+Battle.option.type+'"]').first().parents('form');
+	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
+	debug('Battle: Wanting to attack ' + this.data.user[uid].name + ' (' + uid + ')');
 	if (!$form.length) {
 		log('Battle: Unable to find attack buttons, forcing reload');
 		Page.to('index');
-		return false;
+	} else {
+		$('input[name="target_id"]', $form).attr('value', uid);
+		Page.click($('input[type="image"]', $form));
 	}
-	Battle.data.attacking = uid;
-	$('input[name="target_id"]', $form).attr('value', uid);
-	Page.click($('input[type="image"]', $form));
 	return true;
 };
 
