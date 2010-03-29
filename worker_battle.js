@@ -93,7 +93,7 @@ Battle.parse = function(change) {
 		data = this.data.user;
 		if (this.option.attacking) {
 			uid = this.option.attacking;
-			this.data.attacking = null;
+			this.option.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -104,7 +104,7 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				this.data.attacking = uid; // Don't remove target as we've not hit them...
+				this.option.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
 		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);

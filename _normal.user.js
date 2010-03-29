@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30
+// @version		30.1
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30;
+var VERSION = 30.1;
 var script_started = Date.now();
 
 // Automatically filled
@@ -1839,7 +1839,7 @@ Battle.parse = function(change) {
 		data = this.data.user;
 		if (this.option.attacking) {
 			uid = this.option.attacking;
-			this.data.attacking = null;
+			this.option.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -1850,7 +1850,7 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				this.data.attacking = uid; // Don't remove target as we've not hit them...
+				this.option.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
 		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
