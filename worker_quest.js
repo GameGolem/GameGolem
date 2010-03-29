@@ -4,11 +4,12 @@
 // Should also look for quests_quest but that should never be used unless there's a new area
 var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis', {data:true, option:true});
 Quest.option = {
-	general: 'Under Level 4',
-	what: 'Influence',
-	unique: true,
+	general:true,
+	what:'Influence',
+	unique:true,
 	monster:true,
 	best:null,
+	bank:true,
 	energy:0
 };
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
@@ -18,7 +19,7 @@ Quest.display = [
 	{
 		id:'general',
 		label:'General',
-		select:['any', 'Under Level 4', 'Influence']
+		checkbox:true
 	},{
 		id:'what',
 		label:'Quest for',
@@ -30,6 +31,10 @@ Quest.display = [
 	},{
 		id:'monster',
 		label:'Fortify Monsters First',
+		checkbox:true
+	},{
+		id:'bank',
+		label:'Automatically Bank',
 		checkbox:true
 	}
 ];
@@ -128,7 +133,7 @@ Quest.update = function(type) {
 	// Now choose the next quest...
 	if (this.option.unique) {
 		for (i in this.data) {
-			if (this.data[i].unique && !Alchemy.get('ingredients.'+this.data[i].itemimg) && (!best || this.data[i].energy < this.data[best].energy)) {
+			if (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]) && (!best || this.data[i].energy < this.data[best].energy)) {
 				best = i;
 			}
 		}
@@ -168,19 +173,41 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	if (!this.option.best || this.option.energy > Queue.burn.energy) {
+		if (state && this.option.bank) {
+			return Bank.work(true);
+		}
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	var i, j, best = this.option.best;
-	if (this.data[best].general) {
-		if (!Generals.to(this.data[best].general)) 
-		{
-			return true;
+	var i, j, general = null, best = this.option.best;
+	if (this.option.general) {
+		if (this.data[best].general) {
+			if (!Generals.to(this.data[best].general)) 
+			{
+				return true;
+			}
+		} else {
+			switch(this.option.what) {
+				case 'Influence':
+				case 'Experience':
+					general = Generals.best('under level 4');
+					if (general === 'any' && this.data[best].influence < 100) {
+						general = Generals.best('influence');
+					}
+					break;
+				case 'Cash':
+					general = Generals.best('income');
+					break;
+				default:
+					general = Generals.best('item');
+					break;
+			}
+			if (!Generals.to(general)) {
+				return true;
+			}
 		}
-	} else if (!Generals.to(Generals.best(this.option.general))) {
-		return true;
 	}
 	switch(this.data[best].area) {
 		case 'quest':

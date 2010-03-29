@@ -19,6 +19,7 @@ Income.display = [
 		label:'Automatically Bank',
 		checkbox:true
 	},{
+		advanced:true,
 		id:'margin',
 		label:'Safety Margin',
 		select:[15,30,45,60],

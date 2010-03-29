@@ -429,10 +429,10 @@ function Worker(name,pages,settings) {
 	}
 
 	this._get = function(what) { // 'path.to.data'
-		var x = what.split('.');
+		var x = typeof what === 'string' ? what.split('.') : what;
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) {
+		} else if (!this.data) { // Don't flush as one request often follows another
 			this._load('data');
 		}
 		try {
@@ -1172,6 +1172,7 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
 Queue.timer = null;
+Queue.lasttimer = 0;
 
 Queue.init = function() {
 	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
@@ -1216,11 +1217,10 @@ Queue.init = function() {
 };
 
 Queue.update = function(type) {
-	if (type !== 'data') {
-		if (this.timer) {
-			window.clearInterval(this.timer);
-		}
-		this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
+	if (this.option.delay !== this.lasttimer) {
+		window.clearInterval(this.timer);
+		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
+		this.lasttimer = this.option.delay;
 	}
 };
 
@@ -1751,6 +1751,21 @@ Battle.option = {
 	bp: 'Always'
 };
 
+Battle.symbol = {
+	1:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%17%90%B3%1AIn%99%AD%B0%3F%5Erj%7F%8A4%40J%22*1%FF%FF%FFm%0F%82%CD%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%ABIDATx%DAl%91%0B%0E%04!%08CAh%E7%FE7%DE%02%BA3%FBib%A2O%A8%02vm%91%00xN%B6%A1%10%EB%86O%0C%22r%AD%0Cmn%0C%8A%8Drxa%60-%B3p%AF%8C%05%0C%06%15d%E6-%5D%90%8D%E5%90~%B0x%A20e%117%0E%D9P%18%A1%60w%F3%B0%1D%1E%18%1C%85m'D%B9%08%E7%C6%FE%0F%B7%CF%13%C77%1Eo%F4%93%05%AA%24%3D%D9%3F%E1%DB%25%8E%07%BB%CA%D8%9C%8E%FE6%A6J%B9%1F%FB%DAa%8A%BFNW3%B5%9ANc%D5%FEn%9El%F7%20%F6tt%8C%12%F01%B4%CE%F8%9D%E5%B7%5E%02%0C%00n%97%07%B1AU%81%B7%00%00%00%00IEND%AEB%60%82",
+	2:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%E0%0D%0CZ%5B%5Bv%13%0F%2F%1A%16%7Byx%8941DB%3F%FF%FF%FFOmpc%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B4IDATx%DAT%D1%5B%12%C5%20%08%03P%08%C2%DD%FF%8Eo%12%EB%D8%F2%D1%C7%C1%01%C5%F8%3DQ%05T%9D%BFxP%C6%07%EA%CDF%07p%998%B9%14%C3%C4aj%AE%9CI%A5%B6%875zFL%0F%C8%CD%19vrG%AC%CD%5C%BC%C6nM%D57'%EB%CA%AD%EC%C2%E5b%B5%93%5B%E9%97%99%40D%CC%97sw%DB%FByqwF%83u%FA%F2%C8%A3%93u%A0%FD%8C%B8%BA%96NAn%90%17%C1%C7%E1'%D7%F2%85%01%D4%DC%A7d%16%EDM2%1A%C3%C5%1E%15%7DX%C7%23%19%EB%1El%F5h%B2lV%5B%CF%ED%A0w%89~%AE'%CE%ED%01%F7%CA%5E%FC%8D%BF%00%03%00%AA%CE%08%23%FB4h%C4%00%00%00%00IEND%AEB%60%82",
+	3:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%B1%98g%DE%BCyqpq%8CnF%12%11%0EME7y8%0B%FF%FF%FF6%A1%E73%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B7IDATx%DA%5C%91Y%16C!%0CB%C9%40%BA%FF%1D%17%7Cz%9Em%BE%F4%8A%19%08%3E%3BX%40%F1%DC%B0%A1%99_xcT%EF(%BC8%D8%CC%9A%A9%D4!%0E%0E%8Bf%863%FE%16%0F%06%5BR%22%02%1C%A0%89%07w%E6T%AC%A8A%F6%C2%251_%9CPG%C2%A1r7N%CB%E1%1CtN%E7%06%86%7F%B85%8B%1A%22%2F%AC%3E%D4%B2_.%9C%C6%EA%B3%E2%C6%BB%24%CA%25uY%98%D5H%0D%EE%922%40b%19%09%CFNs%99%C8Y%E2XS%D2%F3*%0F7%B5%B9%B6%AA%16_%0E%9A%D61V%DCu-%E5%A2g%3BnO%C1%B3%1E%9C%EDiax%94%3F%F87%BE%02%0C%00%98%F2%07%E0%CE%8C%E4%B1%00%00%00%00IEND%AEB%60%82",
+	4:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%90%CA%3CSTRq%9B5On*%10%13%0Dx%7Ct6B'%FF%FF%FFx%0A%94%CE%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B2IDATx%DAT%D1A%16%C4%20%08%03P%20%92%B9%FF%8D'%80%B5%96%85%AF~%95*%D8o%07%09%90%CF%CC6%96%F5%CA%CD%E0%DAA%BC%0CM%B3C%CBxX%9A%E9%15Z%18%B7QW%E2%DB%9B%3D%E0%CD%99%11%18V%3AM%02%CD%FA%08.%8A%B5%D95%B1%A0%A7%E9Ci%D0%9Cb3%034D%F8%CB(%EE%F8%F0%F1%FA%C5ae9%BB%FD%B0%A7%CF%F9%1Au%9FfR%DB%A3%A19%179%CFa%B1%8E%EB*%91%BE_%B9*M%A9S%B7%97%AE)%15%B5%3F%BAX%A9%0Aw%C9m%9A%A0%CA%AA%20%5Eu%E5%D5%1DL%23%D4%9Eu7%AD%DBvZv%F17%FE%02%0C%00%D3%0A%07%E1%0961%CF%00%00%00%00IEND%AEB%60%82",
+	5:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%F2%F2%EF!!%20%A5%A5%A3vvv%5BZZ%3D%3D%3B%00%00%00%FF%FF%FF.%C4%F9%B3%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%BEIDATx%DA%5C%91Q%92%C30%08C%11B%DE%FB%DFx%25%C7n3%E5%23%E3%3Cd%01%A6%FEN%00%12p%FF%EA%40%A3%05%A7%F0%C6%C2%0A%CCW_%AC%B5%C4%1D9%5D%EC39%09'%B0y%A5%D8%E2H%5D%D53%DDH%E1%E05%A6%9A2'%9Bkcw%40%E9%C5e%5Ev%B6g%E4%B1)%DA%DF%EEQ%D3%A0%25Vw%EC%B9%D5)%C8%5Cob%9C%1E%E2%E2%D8%16%F1%94%F8%E0-%AF%B9%F8x%CB%F2%FE%C8g%1Eo%A03w%CA%86%13%DB%C4%1D%CA%7C%B7%E8w%E4d%FAL%E9%CE%9B%F3%F0%D0g%F8%F0%AD%CFSyD%DC%875%87%3B%B0%D1%5D%C4%D9N%5C%13%3A%EB%A9%F7.%F5%BB%CB%DF%F8%17%60%00%EF%2F%081%0F%2BNZ%00%00%00%00IEND%AEB%60%82"
+};
+Battle.demi = {
+	1:'Ambrosia',
+	2:'Malekus',
+	3:'Corvintheus',
+	4:'Aurora',
+	5:'Azeron'
+};
+
 Battle.display = [
 	{
 		id:'general',
@@ -1939,50 +1954,47 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], demi = ['Ambrosia', 'Malekus', 'Corvintheus', 'Aurora', 'Azeron'], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'];
-	for (i in Battle.data.user) {
-		points[Battle.data.user[i].align]++;
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user;
+	for (i in data) {
+		points[data[i].align]++;
 	}
 	if (typeof sort === 'undefined') {
-		Battle.order = [];
-		for (i in Battle.data.user) {
-			Battle.order.push(i);
+		this.order = [];
+		for (i in data) {
+			this.order.push(i);
 		}
 		sort = 1; // Default = sort by name
 	}
 	if (typeof sorttype[sort] === 'string') {
-		Battle.order.sort(function(a,b) {
-			var aa = (Battle.data.user[a][sorttype[sort]] || 0), bb = (Battle.data.user[b][sorttype[sort]] || 0);
+		this.order.sort(function(a,b) {
+			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? bb > aa : bb < aa);
 			}
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Targets:</strong> '+length(Battle.data.user)+', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Targets:</strong> '+length(data)+', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
-		list.push(' <img src="' + imagepath + 'symbol_tiny_' + i +'.jpg" alt="'+demi[i-1]+'" title="'+demi[i-1]+'"> '+points[i]);
+		list.push(' <img src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
 	list.push('</div><hr>');
 	list.push('<table cellspacing="0" style="width:100%"><thead><th>Align</th><th>Name</th><th>Level</th><th>Rank</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
-	for (o=0; o<Battle.order.length; o++) {
-		i = Battle.order[o];
+	for (o=0; o<this.order.length; o++) {
+		i = this.order[o];
 		output = [];
-		output.push('<img src="' + imagepath + 'symbol_tiny_' + Battle.data.user[i].align+'.jpg" alt="'+Battle.data.user[i]+'">');
-		output.push('<span title="'+i+'">' + Battle.data.user[i].name + '</span>');
-		output.push(Battle.data.user[i].level);
-		output.push(Battle.data.rank[Battle.data.user[i].rank] ? Battle.data.rank[Battle.data.user[i].rank].name : '');
-		output.push(Battle.data.user[i].army);
-		output.push(Battle.data.user[i].win);
-		output.push(Battle.data.user[i].loss);
-		output.push(Battle.data.user[i].hide);
+		output.push('<img src="' + this.symbol[data[i].align] + '" alt="' + this.demi[data[i].align] + '" title="' + this.demi[data[i].align] + '">');
+		output.push('<span title="'+i+'">' + data[i].name + '</span>');
+		output.push(data[i].level);
+		output.push(this.data.rank[data[i].rank] ? this.data.rank[data[i].rank].name : '');
+		output.push(data[i].army);
+		output.push(data[i].win);
+		output.push(data[i].loss);
+		output.push(data[i].hide);
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Battle').html(list.join(''));
-	$('#golem-dashboard-Battle thead th').css('cursor', 'pointer').click(function(event){
-		Battle.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Battle tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Battle thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
@@ -2167,45 +2179,42 @@ Elite.work = function(state) {
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
-Generals.data = {};
-Generals.best_id = null;
-Generals.sort = null;
 
 Generals.parse = function(change) {
-	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
+	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
-	if ($elements.length < length(Generals.data)) {
+	if ($elements.length < length(data)) {
 		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){
 		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
 		if (name) {
-			if (!Generals.data[name] || Generals.data[name].level !== level) {
-				Generals.data[name] = Generals.data[name] || {};
-				Generals.data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				Generals.data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
-				Generals.data[name].level	= level; // Might only be 4 so far, however...
-				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+			if (!data[name] || data[name].level !== level) {
+				data[name] = data[name] || {};
+				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
+				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
+				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				data[name].level	= level; // Might only be 4 so far, however...
+				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
 				change = true;
 			}
 		}
 	});
 	if (change && length(Town.data.invade)) {
-		for (i in Generals.data) {
-			attack = Player.get('attack') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.get('defense') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (Generals.data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(Generals.data, listpush, 'def', Math.floor(army / 5));
-			Generals.data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + ((defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+		for (i in data) {
+			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
+			data[i].invade = {
+				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
 			};
-			Generals.data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+			data[i].duel = {
+				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
 			};
 		}
 	}
@@ -2249,6 +2258,7 @@ Generals.best = function(type) {
 		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
 		case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
 		case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
+		case 'item':		rx = /Chance +([0-9]+)% Drops for Quest/i; break;
 		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
 		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
@@ -2657,6 +2667,7 @@ Income.display = [
 		label:'Automatically Bank',
 		checkbox:true
 	},{
+		advanced:true,
 		id:'margin',
 		label:'Safety Margin',
 		select:[15,30,45,60],
@@ -3544,11 +3555,12 @@ Player.makeGraph = function(type, title, iscash, min) {
 // Should also look for quests_quest but that should never be used unless there's a new area
 var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis', {data:true, option:true});
 Quest.option = {
-	general: 'Under Level 4',
-	what: 'Influence',
-	unique: true,
+	general:true,
+	what:'Influence',
+	unique:true,
 	monster:true,
 	best:null,
+	bank:true,
 	energy:0
 };
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
@@ -3558,7 +3570,7 @@ Quest.display = [
 	{
 		id:'general',
 		label:'General',
-		select:['any', 'Under Level 4', 'Influence']
+		checkbox:true
 	},{
 		id:'what',
 		label:'Quest for',
@@ -3570,6 +3582,10 @@ Quest.display = [
 	},{
 		id:'monster',
 		label:'Fortify Monsters First',
+		checkbox:true
+	},{
+		id:'bank',
+		label:'Automatically Bank',
 		checkbox:true
 	}
 ];
@@ -3668,7 +3684,7 @@ Quest.update = function(type) {
 	// Now choose the next quest...
 	if (this.option.unique) {
 		for (i in this.data) {
-			if (this.data[i].unique && !Alchemy.get('ingredients.'+this.data[i].itemimg) && (!best || this.data[i].energy < this.data[best].energy)) {
+			if (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]) && (!best || this.data[i].energy < this.data[best].energy)) {
 				best = i;
 			}
 		}
@@ -3708,19 +3724,41 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	if (!this.option.best || this.option.energy > Queue.burn.energy) {
+		if (state && this.option.bank) {
+			return Bank.work(true);
+		}
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	var i, j, best = this.option.best;
-	if (this.data[best].general) {
-		if (!Generals.to(this.data[best].general)) 
-		{
-			return true;
+	var i, j, general = null, best = this.option.best;
+	if (this.option.general) {
+		if (this.data[best].general) {
+			if (!Generals.to(this.data[best].general)) 
+			{
+				return true;
+			}
+		} else {
+			switch(this.option.what) {
+				case 'Influence':
+				case 'Experience':
+					general = Generals.best('under level 4');
+					if (general === 'any' && this.data[best].influence < 100) {
+						general = Generals.best('influence');
+					}
+					break;
+				case 'Cash':
+					general = Generals.best('income');
+					break;
+				default:
+					general = Generals.best('item');
+					break;
+			}
+			if (!Generals.to(general)) {
+				return true;
+			}
 		}
-	} else if (!Generals.to(Generals.best(this.option.general))) {
-		return true;
 	}
 	switch(this.data[best].area) {
 		case 'quest':

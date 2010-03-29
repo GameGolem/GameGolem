@@ -4,45 +4,42 @@
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
-Generals.data = {};
-Generals.best_id = null;
-Generals.sort = null;
 
 Generals.parse = function(change) {
-	var data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
+	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
 	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
-	if ($elements.length < length(Generals.data)) {
+	if ($elements.length < length(data)) {
 		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){
 		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
 		if (name) {
-			if (!Generals.data[name] || Generals.data[name].level !== level) {
-				Generals.data[name] = Generals.data[name] || {};
-				Generals.data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				Generals.data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				Generals.data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
-				Generals.data[name].level	= level; // Might only be 4 so far, however...
-				Generals.data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
+			if (!data[name] || data[name].level !== level) {
+				data[name] = data[name] || {};
+				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
+				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
+				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				data[name].level	= level; // Might only be 4 so far, however...
+				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
 				change = true;
 			}
 		}
 	});
 	if (change && length(Town.data.invade)) {
-		for (i in Generals.data) {
-			attack = Player.get('attack') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.get('defense') + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (Generals.data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (Generals.data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(Generals.data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(Generals.data, listpush, 'def', Math.floor(army / 5));
-			Generals.data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + ((defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+		for (i in data) {
+			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
+			data[i].invade = {
+				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
 			};
-			Generals.data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + Generals.data[i].att + (Generals.data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + Generals.data[i].def + (Generals.data[i].att * 0.7) + defend + (Generals.data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+			data[i].duel = {
+				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
 			};
 		}
 	}
@@ -86,6 +83,7 @@ Generals.best = function(type) {
 		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
 		case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
 		case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
+		case 'item':		rx = /Chance +([0-9]+)% Drops for Quest/i; break;
 		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
 		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;

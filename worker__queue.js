@@ -57,6 +57,7 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
 Queue.timer = null;
+Queue.lasttimer = 0;
 
 Queue.init = function() {
 	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
@@ -101,11 +102,10 @@ Queue.init = function() {
 };
 
 Queue.update = function(type) {
-	if (type !== 'data') {
-		if (this.timer) {
-			window.clearInterval(this.timer);
-		}
-		this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
+	if (this.option.delay !== this.lasttimer) {
+		window.clearInterval(this.timer);
+		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
+		this.lasttimer = this.option.delay;
 	}
 };
 

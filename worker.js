@@ -88,10 +88,10 @@ function Worker(name,pages,settings) {
 	}
 
 	this._get = function(what) { // 'path.to.data'
-		var x = what.split('.');
+		var x = typeof what === 'string' ? what.split('.') : what;
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) {
+		} else if (!this.data) { // Don't flush as one request often follows another
 			this._load('data');
 		}
 		try {
