@@ -36,8 +36,9 @@ new Worker(name, pages, settings)
 NOTE: If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 
 *** Private data ***
-._id			- Simply the index of the worker within the array
 ._loaded		- true once ._init() has run
+._saving		- Prevent recursive calling of this._save()
+._changed		- Timestamp of the last time this.data changed
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
@@ -71,6 +72,7 @@ function Worker(name,pages,settings) {
 	// Private data
 	this._loaded = false;
 	this._saving = {data:false, option:false};
+	this._changed = Date.now();
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
@@ -181,6 +183,7 @@ function Worker(name,pages,settings) {
 			this._update(type);
 			this._saving[type] = false;
 			setItem(n, v);
+			this._changed = Date.now();
 			return true;
 		}
 		return false;

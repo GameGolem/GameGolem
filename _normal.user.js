@@ -377,8 +377,9 @@ new Worker(name, pages, settings)
 NOTE: If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 
 *** Private data ***
-._id			- Simply the index of the worker within the array
 ._loaded		- true once ._init() has run
+._saving		- Prevent recursive calling of this._save()
+._changed		- Timestamp of the last time this.data changed
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
@@ -412,6 +413,7 @@ function Worker(name,pages,settings) {
 	// Private data
 	this._loaded = false;
 	this._saving = {data:false, option:false};
+	this._changed = Date.now();
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
@@ -522,6 +524,7 @@ function Worker(name,pages,settings) {
 			this._update(type);
 			this._saving[type] = false;
 			setItem(n, v);
+			this._changed = Date.now();
 			return true;
 		}
 		return false;
@@ -1389,20 +1392,22 @@ Alchemy.parse = function(change) {
 };
 
 Alchemy.update = function() {
-	var found = null, recipe = this.data.recipe, r, i;
-	for (r in recipe) {
-		if (recipe[r].type === 'Recipe') {
-			found = r;
-			for (i in recipe[r].ingredients) {
-				if ((!Alchemy.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (Alchemy.data.ingredients[i] || 0)) {
-					found = null;
-					break;
+	if (!this.option.found) { // Save CPU if we've not got focus
+		var found = null, recipe = this.data.recipe, r, i;
+		for (r in recipe) {
+			if (recipe[r].type === 'Recipe') {
+				found = r;
+				for (i in recipe[r].ingredients) {
+					if ((!Alchemy.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (Alchemy.data.ingredients[i] || 0)) {
+						found = null;
+						break;
+					}
 				}
+				if (found) {break;}
 			}
-			if (found) {break;}
 		}
+		this.option.found = found;
 	}
-	this.option.found = found;
 };
 
 Alchemy.work = function(state) {
@@ -3682,12 +3687,13 @@ Quest.update = function(type) {
 		}
 	});
 	// Now choose the next quest...
-	if (this.option.unique) {
+	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
 			if (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]) && (!best || this.data[i].energy < this.data[best].energy)) {
 				best = i;
 			}
 		}
+		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
 		for (i in this.data) {

@@ -131,12 +131,13 @@ Quest.update = function(type) {
 		}
 	});
 	// Now choose the next quest...
-	if (this.option.unique) {
+	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
 			if (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]) && (!best || this.data[i].energy < this.data[best].energy)) {
 				best = i;
 			}
 		}
+		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
 		for (i in this.data) {
