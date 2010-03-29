@@ -18,7 +18,7 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
-		label:'General',
+		label:'Use Best General',
 		checkbox:true
 	},{
 		id:'what',

@@ -272,6 +272,15 @@ var findInArray = function(list, value) {
 	return false;
 };
 
+var sortObject = function(object, sortfunc) {
+	var list = [];
+	for (i in object) {
+		list.push(i);
+	}
+	list.sort(sortfunc);
+	return list;
+}
+
 var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
@@ -1392,22 +1401,20 @@ Alchemy.parse = function(change) {
 };
 
 Alchemy.update = function() {
-	if (!this.option.found) { // Save CPU if we've not got focus
-		var found = null, recipe = this.data.recipe, r, i;
-		for (r in recipe) {
-			if (recipe[r].type === 'Recipe') {
-				found = r;
-				for (i in recipe[r].ingredients) {
-					if ((!Alchemy.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (Alchemy.data.ingredients[i] || 0)) {
-						found = null;
-						break;
-					}
+	var found = null, recipe = this.data.recipe, r, i;
+	for (r in recipe) {
+		if (recipe[r].type === 'Recipe') {
+			found = r;
+			for (i in recipe[r].ingredients) {
+				if ((!Alchemy.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (Alchemy.data.ingredients[i] || 0)) {
+					found = null;
+					break;
 				}
-				if (found) {break;}
 			}
+			if (found) {break;}
 		}
-		this.option.found = found;
 	}
+	this.option.found = found;
 };
 
 Alchemy.work = function(state) {
@@ -3347,6 +3354,56 @@ Monster.dashboard = function(sort, rev) {
 	}
 };
 
+/********** Worker.News **********
+* Aggregate the news feed
+*/
+var News = new Worker('News', 'index');
+News.data = null;
+News.option = null;
+
+News.parse = function(change) {
+	if (change) {
+		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
+		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
+			var txt = $(el).text(), uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
+			user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
+			if (txt.regex(/Victory!/i)) {
+				win++;
+				user[uid].lose++;
+				xp += txt.regex(/([0-9]+) experience/i);
+				bp += txt.regex(/([0-9]+) Battle Points!/i);
+				cash += txt.replace(',', '').regex(/\$([0-9]+)/i);
+			} else {
+				lose++;
+				user[uid].win++;
+				xp -= txt.regex(/([0-9]+) experience/i);
+				bp -= txt.regex(/([0-9]+) Battle Points!/i);
+				cash -= txt.replace(',', '').regex(/\$([0-9]+)/i);
+				if (txt.regex(/You were killed/i)) {
+					deaths++;
+				}
+			}
+		});
+		if (win || lose) {
+			list.push('You were challenged <strong>' + (win + lose) + '</strong> times, winning <strong>' + win + '</strong> and losing <strong>' + lose + '</strong>.');
+			list.push('You ' + (xp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(xp)) + '</span> experience points.');
+			list.push('You ' + (cash >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + '<b class="gold">$' + addCommas(Math.abs(cash)) + '</b></span>.');
+			list.push('You ' + (bp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(bp)) + '</span> Battle Points.');
+			list.push('');
+			order = sortObject(user, function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
+			for (j=0; j<order.length; j++) {
+				i = order[j];
+				list.push('<strong title="' + i + '">' + user[i].name + '</strong> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + (user[i].win>1?'s':'') : '') + (user[i].lose ? (user[i].win ? ' and ' : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + (user[i].lose>1?'s':'') : '') + '.');
+			}
+			if (deaths) {
+				list.push('You died ' + (deaths>1 ? deaths+' times' : 'once') + '!');
+			}
+			$('#app'+APPID+'_battleUpdateBox  .alertsContainer').prepend('<div style="padding: 0pt 0pt 10px;"><div class="alert_title">Summary:</div><div class="alert_content">' + list.join('<br>') + '</div></div>');
+		}
+	}
+	return true;
+};
+
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
@@ -3574,7 +3631,7 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
-		label:'General',
+		label:'Use Best General',
 		checkbox:true
 	},{
 		id:'what',

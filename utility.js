@@ -147,6 +147,15 @@ var findInArray = function(list, value) {
 	return false;
 };
 
+var sortObject = function(object, sortfunc) {
+	var list = [];
+	for (i in object) {
+		list.push(i);
+	}
+	list.sort(sortfunc);
+	return list;
+}
+
 var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
