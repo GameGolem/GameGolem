@@ -44,6 +44,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
+._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
+._update(type)	- Calls this.update(type), loading and flushing .data if needed
 */
 var Workers = [];
 
@@ -68,14 +70,20 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
+	this._saving = {data:false, option:false};
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
 		if (this.update) {
+			var flush = false;
 			if (!this.data) {
+				flush = true;
 				this._load('data');
 			}
 			this.update(type);
+			if (flush) {
+				this._flush();
+			}
 		}
 	}
 
@@ -102,6 +110,7 @@ function Worker(name,pages,settings) {
 	};
 
 	this._flush = function() {
+		this._save();
 		if (!this.settings.keep) {
 			delete this.data;
 		}
@@ -151,7 +160,7 @@ function Worker(name,pages,settings) {
 		if (type !== 'data' && type !== 'option') {
 			return this._save('data') + this._save('option');
 		}
-		if (typeof this[type] === 'undefined' || !this[type]) {
+		if (typeof this[type] === 'undefined' || !this[type] || this._saving[type]) {
 			return false;
 		}
 		var i, n = userID + '.' + type + '.' + this.name, v;
@@ -168,8 +177,10 @@ function Worker(name,pages,settings) {
 				break;
 		}
 		if (getItem(n) === 'undefined' || getItem(n) !== v) {
+			this._saving[type] = true;
 			this._update(type);
-			GM_setValue(n, v);
+			this._saving[type] = false;
+			setItem(n, v);
 			return true;
 		}
 		return false;

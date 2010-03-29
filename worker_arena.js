@@ -117,7 +117,7 @@ Arena.update = function(type) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our attack cache
-		debug('Arena: Pruning target cache');
+//		debug('Arena: Pruning target cache');
 		for (i in data) {
 			list.push(i);
 		}

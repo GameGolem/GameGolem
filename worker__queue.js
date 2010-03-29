@@ -98,14 +98,15 @@ Queue.init = function() {
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
-	this.update('option');
 };
 
 Queue.update = function(type) {
-	if (this.timer) {
-		window.clearInterval(this.timer);
+	if (type !== 'data') {
+		if (this.timer) {
+			window.clearInterval(this.timer);
+		}
+		this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
 	}
-	this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
 };
 
 Queue.run = function() {
@@ -132,7 +133,6 @@ Queue.run = function() {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._load();
 			Workers[i].work(false);
-			Workers[i]._save();
 			Workers[i]._flush();
 		}
 	}
@@ -145,7 +145,7 @@ Queue.run = function() {
 		if (this.data.current === worker.name) {
 			worker._load();
 			result = worker.work(true);
-			worker._save();
+			worker._save(); // Save for everyone, only flush if not active
 		} else {
 			result = worker.work(false);
 		}

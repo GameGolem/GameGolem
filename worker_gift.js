@@ -2,11 +2,15 @@
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts');
+var Gift = new Worker('Gift', 'index army_invite army_gifts', {keep:true});
 Gift.data = {
 	uid: [],
 	todo: {},
 	gifts: {}
+};
+Gift.option = {
+	type:'None',
+	work:false
 };
 Gift.display = [
 	{
@@ -83,7 +87,6 @@ Gift.parse = function(change) {
 };
 
 Gift.work = function(state) {
-	this._load();
 	if (!state) {
 		if (!this.data.uid.length) {
 			return false;

@@ -123,7 +123,7 @@ Battle.update = function(type) {
 		}
 	}
 	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
-		debug('Battle: Pruning target cache');
+//		debug('Battle: Pruning target cache');
 		for (i in data) {
 			list.push(i);
 		}

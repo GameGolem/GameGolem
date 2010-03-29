@@ -74,7 +74,6 @@ if (typeof APP !== 'undefined') {
 		}
 		for (i=0; i<Workers.length; i++) {
 			Workers[i]._update();
-			Workers[i]._save();
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...
@@ -386,6 +385,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
+._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
+._update(type)	- Calls this.update(type), loading and flushing .data if needed
 */
 var Workers = [];
 
@@ -410,14 +411,20 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
+	this._saving = {data:false, option:false};
 
 	// Private functions - only override if you know exactly what you're doing
 	this._update = function(type) {
 		if (this.update) {
+			var flush = false;
 			if (!this.data) {
+				flush = true;
 				this._load('data');
 			}
 			this.update(type);
+			if (flush) {
+				this._flush();
+			}
 		}
 	}
 
@@ -444,6 +451,7 @@ function Worker(name,pages,settings) {
 	};
 
 	this._flush = function() {
+		this._save();
 		if (!this.settings.keep) {
 			delete this.data;
 		}
@@ -493,7 +501,7 @@ function Worker(name,pages,settings) {
 		if (type !== 'data' && type !== 'option') {
 			return this._save('data') + this._save('option');
 		}
-		if (typeof this[type] === 'undefined' || !this[type]) {
+		if (typeof this[type] === 'undefined' || !this[type] || this._saving[type]) {
 			return false;
 		}
 		var i, n = userID + '.' + type + '.' + this.name, v;
@@ -510,8 +518,10 @@ function Worker(name,pages,settings) {
 				break;
 		}
 		if (getItem(n) === 'undefined' || getItem(n) !== v) {
+			this._saving[type] = true;
 			this._update(type);
-			GM_setValue(n, v);
+			this._saving[type] = false;
+			setItem(n, v);
 			return true;
 		}
 		return false;
@@ -792,16 +802,13 @@ Dashboard.init = function() {
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
 		}
-		if (!$('#'+$(this).attr('name')).children().length) {
-			WorkerByName($(this).attr('name').substr(16))._load('data');
-			WorkerByName($(this).attr('name').substr(16)).dashboard();
-		}
 		if (Dashboard.option.active) {
 			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
 			$('#'+Dashboard.option.active).hide();
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
+		Dashboard.change();
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -815,7 +822,9 @@ Dashboard.init = function() {
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
 		var worker = WorkerByName(Dashboard.option.active.substr(16));
-		worker._load();
+		if (!worker.data) {
+			worker._load();
+		}
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 
@@ -864,10 +873,17 @@ Dashboard.change = function(worker) {
 	if (!this._loaded) {
 		return;
 	}
-	var id = worker ? 'golem-dashboard-'+worker.name : this.option.active;
+	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
+	var id = 'golem-dashboard-'+worker.name, flush = false;
 	if (this.option.active === id && this.option.display === 'block') {
-		worker._load('data');
+		if (!worker.data) {
+			flush = true;
+			worker._load('data');
+		}
 		worker.dashboard();
+		if (flush) {
+			worker._flush();
+		}
 	} else {
 		$('#'+id).empty();
 	}
@@ -917,7 +933,6 @@ Page.parse_all = function() {
 			if (Workers[i].parse(false)) {
 				list.push(Workers[i]);
 			} else {
-				Workers[i]._save();
 				Workers[i]._flush();
 			}
 		}
@@ -925,7 +940,6 @@ Page.parse_all = function() {
 	for (i in list) {
 //		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
-		list[i]._save();
 		list[i]._flush();
 	}
 }
@@ -1199,14 +1213,15 @@ Queue.init = function() {
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
-	this.update('option');
 };
 
 Queue.update = function(type) {
-	if (this.timer) {
-		window.clearInterval(this.timer);
+	if (type !== 'data') {
+		if (this.timer) {
+			window.clearInterval(this.timer);
+		}
+		this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
 	}
-	this.timer = window.setInterval(function(){Queue.run();}, Queue.option.clickdelay * 1000);
 };
 
 Queue.run = function() {
@@ -1233,7 +1248,6 @@ Queue.run = function() {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._load();
 			Workers[i].work(false);
-			Workers[i]._save();
 			Workers[i]._flush();
 		}
 	}
@@ -1246,7 +1260,7 @@ Queue.run = function() {
 		if (this.data.current === worker.name) {
 			worker._load();
 			result = worker.work(true);
-			worker._save();
+			worker._save(); // Save for everyone, only flush if not active
 		} else {
 			result = worker.work(false);
 		}
@@ -1527,7 +1541,7 @@ Arena.update = function(type) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our attack cache
-		debug('Arena: Pruning target cache');
+//		debug('Arena: Pruning target cache');
 		for (i in data) {
 			list.push(i);
 		}
@@ -1843,7 +1857,7 @@ Battle.update = function(type) {
 		}
 	}
 	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
-		debug('Battle: Pruning target cache');
+//		debug('Battle: Pruning target cache');
 		for (i in data) {
 			list.push(i);
 		}
@@ -2393,11 +2407,15 @@ Generals.dashboard = function(sort, rev) {
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts');
+var Gift = new Worker('Gift', 'index army_invite army_gifts', {keep:true});
 Gift.data = {
 	uid: [],
 	todo: {},
 	gifts: {}
+};
+Gift.option = {
+	type:'None',
+	work:false
 };
 Gift.display = [
 	{
@@ -2474,7 +2492,6 @@ Gift.parse = function(change) {
 };
 
 Gift.work = function(state) {
-	this._load();
 	if (!state) {
 		if (!this.data.uid.length) {
 			return false;
@@ -2756,7 +2773,7 @@ Land.work = function(state) {
 /********** Worker.Monster **********
 * Automates Monster
 */
-var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid');
+var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid', {keep:true});
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
@@ -3128,7 +3145,6 @@ Monster.update = function(type) {
 };
 
 Monster.work = function(state) {
-	this._load();
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.option.uid = uid = null;
@@ -3137,7 +3153,6 @@ Monster.work = function(state) {
 	if (!length(Monster.data) || Player.get('health') <= 10) {
 		return false;
 	}
-	this._load();
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			if (!Monster.data[i][j].health && Monster.data[i][j].state === 'engage') {
@@ -3679,7 +3694,6 @@ Quest.update = function(type) {
 		}
 	}
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	Monster._load();
 	if (this.option.monster) {
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
@@ -3812,7 +3826,7 @@ Quest.dashboard = function(sort, rev) {
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic', {keep:true});
 Town.data = {
 	soldiers: {},
 	blacksmith: {},
@@ -3924,7 +3938,6 @@ Town.work = function(state) {
 	if (!Town.option.number) {
 		return false;
 	}
-	this._load();
 	var i, j, max = Math.min(Town.option.number==='Maximum' ? 501 : Player.get('army'), 501), best = null, count = 0, gold = Bank.worth(), units = Town.data.soldiers;
 	for (i in units) {
 		count = 0;

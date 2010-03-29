@@ -154,7 +154,6 @@ Quest.update = function(type) {
 		}
 	}
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	Monster._load();
 	if (this.option.monster) {
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {

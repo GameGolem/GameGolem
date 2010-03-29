@@ -42,7 +42,6 @@ Page.parse_all = function() {
 			if (Workers[i].parse(false)) {
 				list.push(Workers[i]);
 			} else {
-				Workers[i]._save();
 				Workers[i]._flush();
 			}
 		}
@@ -50,7 +49,6 @@ Page.parse_all = function() {
 	for (i in list) {
 //		debug(Workers[i].name + '.parse(true);');
 		list[i].parse(true);
-		list[i]._save();
 		list[i]._flush();
 	}
 }

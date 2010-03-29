@@ -1,7 +1,7 @@
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic', {keep:true});
 Town.data = {
 	soldiers: {},
 	blacksmith: {},
@@ -113,7 +113,6 @@ Town.work = function(state) {
 	if (!Town.option.number) {
 		return false;
 	}
-	this._load();
 	var i, j, max = Math.min(Town.option.number==='Maximum' ? 501 : Player.get('army'), 501), best = null, count = 0, gold = Bank.worth(), units = Town.data.soldiers;
 	for (i in units) {
 		count = 0;

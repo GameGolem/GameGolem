@@ -1,7 +1,7 @@
 /********** Worker.Monster **********
 * Automates Monster
 */
-var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid');
+var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid', {keep:true});
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
@@ -373,7 +373,6 @@ Monster.update = function(type) {
 };
 
 Monster.work = function(state) {
-	this._load();
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.option.uid = uid = null;
@@ -382,7 +381,6 @@ Monster.work = function(state) {
 	if (!length(Monster.data) || Player.get('health') <= 10) {
 		return false;
 	}
-	this._load();
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			if (!Monster.data[i][j].health && Monster.data[i][j].state === 'engage') {

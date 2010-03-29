@@ -58,7 +58,6 @@ if (typeof APP !== 'undefined') {
 		}
 		for (i=0; i<Workers.length; i++) {
 			Workers[i]._update();
-			Workers[i]._save();
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...

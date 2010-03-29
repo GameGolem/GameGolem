@@ -24,16 +24,13 @@ Dashboard.init = function() {
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
 		}
-		if (!$('#'+$(this).attr('name')).children().length) {
-			WorkerByName($(this).attr('name').substr(16))._load('data');
-			WorkerByName($(this).attr('name').substr(16)).dashboard();
-		}
 		if (Dashboard.option.active) {
 			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
 			$('#'+Dashboard.option.active).hide();
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
+		Dashboard.change();
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -47,7 +44,9 @@ Dashboard.init = function() {
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
 		var worker = WorkerByName(Dashboard.option.active.substr(16));
-		worker._load();
+		if (!worker.data) {
+			worker._load();
+		}
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 
@@ -96,10 +95,17 @@ Dashboard.change = function(worker) {
 	if (!this._loaded) {
 		return;
 	}
-	var id = worker ? 'golem-dashboard-'+worker.name : this.option.active;
+	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
+	var id = 'golem-dashboard-'+worker.name, flush = false;
 	if (this.option.active === id && this.option.display === 'block') {
-		worker._load('data');
+		if (!worker.data) {
+			flush = true;
+			worker._load('data');
+		}
 		worker.dashboard();
+		if (flush) {
+			worker._flush();
+		}
 	} else {
 		$('#'+id).empty();
 	}
