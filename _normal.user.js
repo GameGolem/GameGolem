@@ -1547,6 +1547,7 @@ Arena.parse = function(change) {
 
 Arena.update = function(type) {
 	var i, list = [], data = this.data.user, army = Player.get('army');
+	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
 			delete data[i];
@@ -1572,12 +1573,13 @@ Arena.update = function(type) {
 			delete data[list.pop()];
 		}
 	}
-	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (army / data[this.option.attacking].army) <= this.option.army)) {
+	// Second choose our next target
+	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)) {
 		list = [];
 		for (i in data) {
 			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
-			|| (this.option.army !== 'Any' && (army / data[i].army) > this.option.army)) {
+			|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)) {
 				continue;
 			}
 			list.push(i);
@@ -1615,17 +1617,17 @@ Arena.work = function(state) {
 
 Arena.order = [];
 Arena.dashboard = function(sort, rev) {
-	var i, o, list = [], output = [], sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'];
+	var i, o, list = [], output = [], sorttype = ['rank', 'name', 'level', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army');
 	if (typeof sort === 'undefined') {
 		this.order = [];
-		for (i in this.data.user) {
+		for (i in data) {
 			this.order.push(i);
 		}
 		sort = 1; // Default = sort by name
 	}
 	if (typeof sorttype[sort] === 'string') {
 		this.order.sort(function(a,b) {
-			var aa = (Arena.data.user[a][sorttype[sort]] || 0), bb = (Arena.data.user[b][sorttype[sort]] || 0);
+			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? bb > aa : bb < aa);
 			}
@@ -1633,7 +1635,7 @@ Arena.dashboard = function(sort, rev) {
 		});
 	}
 
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + '), <strong>Targets:</strong> ' + length(this.data.user) + ' / ' + this.option.cache + '</div><hr>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + '</div><hr>');
 	th(output, 'Rank');
 	th(output, 'Name');
 	th(output, 'Level');
@@ -1643,15 +1645,15 @@ Arena.dashboard = function(sort, rev) {
 	th(output, 'Hides');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
-		i = this.order[o];
+		data = this.data.user[this.order[o]];
 		output = [];
-		td(output, '<img style="width:22px;height:22px;" src="' + imagepath + 'arena_rank' + this.data.user[i].rank+'.gif">', 'title="' + this.knar[this.data.user[i].rank] + ' (Rank ' + this.data.user[i].rank + ')"');
-		th(output, this.data.user[i].name, 'title="'+i+'"');
-		td(output, this.data.user[i].level);
-		td(output, this.data.user[i].army);
-		td(output, this.data.user[i].win || '');
-		td(output, this.data.user[i].loss || '');
-		td(output, this.data.user[i].hide || '');
+		td(output, '<img style="width:22px;height:22px;" src="' + imagepath + 'arena_rank' + data.rank+'.gif">', 'title="' + this.knar[data.rank] + ' (Rank ' + data.rank + ')"');
+		th(output, data.name, 'title="'+i+'"');
+		td(output, data.level);
+		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, data.win || '');
+		td(output, data.loss || '');
+		td(output, data.hide || '');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
@@ -1878,6 +1880,7 @@ Battle.parse = function(change) {
 
 Battle.update = function(type) {
 	var i, data = this.data.user, list = [], points = [], army = Player.get('army');
+	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
 			delete data[i];
@@ -1903,7 +1906,8 @@ Battle.update = function(type) {
 			delete data[list.pop()];
 		}
 	}
-	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (army / data[this.option.attacking].army) <= this.option.army)) {
+	// Second choose our next target
+	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)) {
 		if (this.option.points) {
 			for (i=0; i<this.data.points.length; i++) {
 				if (this.data.points[i] < 10) {
@@ -1915,7 +1919,7 @@ Battle.update = function(type) {
 		for (i in data) {
 			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
-			|| (this.option.army !== 'Any' && (army / data[i].army) > this.option.army)
+			|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
 			|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
 				continue;
 			}
@@ -1966,7 +1970,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output, sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user;
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army');
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -1986,24 +1990,32 @@ Battle.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Targets:</strong> '+length(data)+', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.data.rank[Player.get('rank')].name + ' (' + Player.get('rank') + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
 		list.push(' <img src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
 	list.push('</div><hr>');
-	list.push('<table cellspacing="0" style="width:100%"><thead><th>Align</th><th>Name</th><th>Level</th><th>Rank</th><th>Army</th><th>Wins</th><th>Losses</th><th>Hides</th></tr></thead><tbody>');
+	th(output, 'Align');
+	th(output, 'Name');
+	th(output, 'Level');
+	th(output, 'Rank');
+	th(output, 'Army');
+	th(output, 'Wins');
+	th(output, 'Losses');
+	th(output, 'Hides');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
-		i = this.order[o];
+		data = this.data.user[this.order[o]];
 		output = [];
-		output.push('<img src="' + this.symbol[data[i].align] + '" alt="' + this.demi[data[i].align] + '" title="' + this.demi[data[i].align] + '">');
-		output.push('<span title="'+i+'">' + data[i].name + '</span>');
-		output.push(data[i].level);
-		output.push(this.data.rank[data[i].rank] ? this.data.rank[data[i].rank].name : '');
-		output.push(data[i].army);
-		output.push(data[i].win);
-		output.push(data[i].loss);
-		output.push(data[i].hide);
-		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">', 'title="' + this.demi[data.align] + '"');
+		th(output, data.name, 'title="'+i+'"');
+		td(output, data.level);
+		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
+		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, data.win || '');
+		td(output, data.loss || '');
+		td(output, data.hide || '');
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Battle').html(list.join(''));
