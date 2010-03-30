@@ -29,7 +29,10 @@ Elite.display = [
 		after:'hours'
 	},{
 		advanced:true,
-		label:'Add UserIDs to prefer them over random army members.'
+		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.'
+	},{
+		advanced:true,
+		label:'Currently you need to manually scan your army to fill the data.'
 	},{
 		advanced:true,
 		id:'prefer',
@@ -83,7 +86,7 @@ Elite.update = function() {
 	this.option.nextfill = this.option.nextarena = 0;
 	for(j=0; j<this.option.prefer.length; j++) {
 		i = this.option.prefer[j];
-		if (!/[^0-9]/g.test(i)) {
+		if (!/[^0-9]/g.test(i) && this.data[i]) {
 			if (!this.option.nextfill && (typeof this.data[i].elite !== 'number' || this.data[i].elite < Date.now())) {
 				this.option.nextfill = i;
 			}
