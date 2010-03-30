@@ -8,13 +8,15 @@ Battle.data = {
 	points: {}
 };
 Battle.option = {
-	general: true,
-	points: true,
-	monster: true,
+	general:true,
+	points:true,
+	monster:true,
 	arena:true,
-	losses: 5,
-	type: 'Invade',
-	bp: 'Always'
+	losses:5,
+	type:'Invade',
+	bp:'Always',
+	army:1.1,
+	level:1.1
 };
 
 Battle.symbol = {
@@ -75,6 +77,11 @@ Battle.display = [
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+	},{
+		id:'level',
+		label:'Target Level Ratio<br>(Mainly used for Dual)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	}
 ];
 
@@ -131,7 +138,7 @@ Battle.parse = function(change) {
 };
 
 Battle.update = function(type) {
-	var i, data = this.data.user, list = [], points = [], army = Player.get('army');
+	var i, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
@@ -159,7 +166,9 @@ Battle.update = function(type) {
 		}
 	}
 	// Second choose our next target
-	if (!this.option.attacking || !data[this.option.attacking] || (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)) {
+	if (!this.option.attacking || !data[this.option.attacking]
+	|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
+	|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
 		if (this.option.points) {
 			for (i=0; i<this.data.points.length; i++) {
 				if (this.data.points[i] < 10) {
@@ -172,6 +181,7 @@ Battle.update = function(type) {
 			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
 			|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
+			|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
 			|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
 				continue;
 			}
@@ -180,16 +190,16 @@ Battle.update = function(type) {
 		debug('Battle: Finding target - '+list);
 		if (list.length) {
 			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
-			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + '), ' + list.length + ' / ' + length(data) + ' targets');
+			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
 		} else {
 			this.option.attacking = null;
-			Dashboard.status(this);
+			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 		}
 	}
 }
 
 Battle.work = function(state) {
-	if (Player.get('health') <= 10 || Queue.burn.stamina < 1 || !this.option.attacking || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled)) {
+	if (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled)) {
 		return false;
 	}
 	if (!state) {
@@ -221,7 +231,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army');
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army'), level = Player.get('level');
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -260,7 +270,7 @@ Battle.dashboard = function(sort, rev) {
 		output = [];
 		td(output, '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">', 'title="' + this.demi[data.align] + '"');
 		th(output, data.name, 'title="'+i+'"');
-		td(output, data.level);
+		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, data.win || '');

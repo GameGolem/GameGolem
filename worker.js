@@ -79,9 +79,6 @@ function Worker(name,pages,settings) {
 
 	// Private functions - only override if you know exactly what you're doing
 	this._watch = function(worker) {
-		if (worker === this) {
-			return;
-		}
 		for (var i=0; i<worker._watching.length; i++) {
 			if (worker._watching[i] === this) {
 				return;
@@ -102,7 +99,13 @@ function Worker(name,pages,settings) {
 				this.update(type);
 			}
 			for (i=0; i<this._watching.length; i++) {
-				this._watching[i]._update(this);
+				if (this._watching[i] === this) {
+					if (this.update) {
+						this.update(this);
+					}
+				} else {
+					this._watching[i]._update(this);
+				}
 			}
 			if (flush) {
 				this._flush();
