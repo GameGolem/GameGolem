@@ -176,12 +176,11 @@ Arena.work = function(state) {
 	if (!this.option.enabled || !this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5) {
 		return false;
 	}
-	if (!state || this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_arena')) {
+	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.option.attacking;
+	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
 	debug('Arena: Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
-	$form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {
 		log('Arena: Unable to find attack buttons, forcing reload');
 		Page.to('index');

@@ -85,6 +85,11 @@ Battle.display = [
 	}
 ];
 
+Battle.init = function() {
+	this._watch(Arena);
+	this._watch(Monster);
+};
+
 Battle.parse = function(change) {
 	var data, uid;
 	if (Page.page === 'battle_rank') {
@@ -166,46 +171,50 @@ Battle.update = function(type) {
 		}
 	}
 	// Second choose our next target
-	if (!this.option.attacking || !data[this.option.attacking]
-	|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-	|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
-		if (this.option.points) {
-			for (i=0; i<this.data.points.length; i++) {
-				if (this.data.points[i] < 10) {
-					points[i+1] = true;
+	if (this.option.arena && Arena.option.enabled && Arena.option.attacking) {
+		this.option.attacking = null;
+		Dashboard.status(this, 'Battling in the Arena');
+	} else if (this.option.monster && Monster.count) {
+		this.option.attacking = null;
+		Dashboard.status(this, 'Attacking Monsters');
+	} else {
+		if (!this.option.attacking || !data[this.option.attacking]
+		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
+			if (this.option.points) {
+				for (i=0; i<this.data.points.length; i++) {
+					if (this.data.points[i] < 10) {
+						points[i+1] = true;
+					}
 				}
 			}
-		}
-		list = [];
-		for (i in data) {
-			if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-			|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
-			|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
-			|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
-			|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
-				continue;
+			list = [];
+			for (i in data) {
+				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+				|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
+				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
+				|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
+					continue;
+				}
+				list.push(i);
 			}
-			list.push(i);
-		}
-		debug('Battle: Finding target - '+list);
-		if (list.length) {
-			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
-			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
-		} else {
-			this.option.attacking = null;
-			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
+			if (list.length) {
+				i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+				Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
+			} else {
+				this.option.attacking = null;
+				Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
+			}
 		}
 	}
 }
 
 Battle.work = function(state) {
-	if (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled)) {
+	if (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.option.attacking)) {
 		return false;
 	}
-	if (!state) {
-		return true;
-	}
-	if (this.option.general && !Generals.to(Generals.best(this.option.type)) || !Page.to('battle_battle')) {
+	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
 		return true;
 	}
 	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
