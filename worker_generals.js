@@ -54,7 +54,6 @@ Generals.update = function(type) {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
-	Dashboard.change(Generals);
 };
 
 Generals.to = function(name) {

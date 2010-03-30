@@ -17,6 +17,7 @@ Dashboard.init = function() {
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			this._watch(Workers[i]);
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -30,7 +31,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.change();
+		Dashboard.update();
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -71,6 +72,26 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
+Dashboard.update = function(type) {
+	if (!this._loaded || (type && typeof type !== 'object')) {
+		return;
+	}
+	worker = type || WorkerByName(Dashboard.option.active.substr(16));
+	var id = 'golem-dashboard-'+worker.name, flush = false;
+	if (this.option.active === id && this.option.display === 'block') {
+		if (!worker.data) {
+			flush = true;
+			worker._load('data');
+		}
+		worker.dashboard();
+		if (flush) {
+			worker._flush();
+		}
+	} else {
+		$('#'+id).empty();
+	}
+};
+
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
@@ -88,26 +109,5 @@ Dashboard.status = function(worker, html) {
 		delete this.data[worker.name];
 	}
 	this._save();
-	Dashboard.change(this);
 };
-
-Dashboard.change = function(worker) {
-	if (!this._loaded) {
-		return;
-	}
-	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name, flush = false;
-	if (this.option.active === id && this.option.display === 'block') {
-		if (!worker.data) {
-			flush = true;
-			worker._load('data');
-		}
-		worker.dashboard();
-		if (flush) {
-			worker._flush();
-		}
-	} else {
-		$('#'+id).empty();
-	}
-}
 

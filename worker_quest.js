@@ -169,7 +169,6 @@ Quest.update = function(type) {
 			}
 		}
 	}
-	Dashboard.change(this);
 };
 
 Quest.work = function(state) {

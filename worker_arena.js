@@ -156,7 +156,6 @@ Arena.update = function(type) {
 			Dashboard.status(this);
 		}
 	}
-	Dashboard.change(this);
 }
 
 Arena.work = function(state) {

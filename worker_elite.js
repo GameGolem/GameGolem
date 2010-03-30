@@ -35,9 +35,6 @@ Elite.display = [
 		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.'
 	},{
 		advanced:true,
-		label:'Currently you need to manually scan your army to fill the data.'
-	},{
-		advanced:true,
 		id:'prefer',
 		multiple:'userid'
 	}

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.2
+// @version		30.3
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.2;
+var VERSION = 30.3;
 var script_started = Date.now();
 
 // Automatically filled
@@ -387,8 +387,9 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private data ***
 ._loaded		- true once ._init() has run
-._saving		- Prevent recursive calling of this._save()
+._working		- Prevent recursive calling of various private functions
 ._changed		- Timestamp of the last time this.data changed
+._watching		- List of other workers that want to have .update() after this.update()
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
@@ -397,6 +398,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
+._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 */
 var Workers = [];
 
@@ -421,23 +423,43 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
-	this._saving = {data:false, option:false};
+	this._working = {data:false, option:false, update:false};
 	this._changed = Date.now();
+	this._watching = [];
 
 	// Private functions - only override if you know exactly what you're doing
+	this._watch = function(worker) {
+		if (worker === this) {
+			return;
+		}
+		for (var i=0; i<worker._watching.length; i++) {
+			if (worker._watching[i] === this) {
+				return;
+			}
+		}
+		worker._watching.push(this);
+	};
+
 	this._update = function(type) {
-		if (this.update) {
-			var flush = false;
+		if (this._loaded && (this.update || this._watching.length)) {
+			var i, flush = false;
+			this._working.update = true;
 			if (!this.data) {
 				flush = true;
 				this._load('data');
 			}
-			this.update(type);
+			if (this.update) {
+				this.update(type);
+			}
+			for (i=0; i<this._watching.length; i++) {
+				this._watching[i]._update(this);
+			}
 			if (flush) {
 				this._flush();
 			}
+			this._working.update = false;
 		}
-	}
+	};
 
 	this._get = function(what) { // 'path.to.data'
 		var x = typeof what === 'string' ? what.split('.') : what;
@@ -512,7 +534,7 @@ function Worker(name,pages,settings) {
 		if (type !== 'data' && type !== 'option') {
 			return this._save('data') + this._save('option');
 		}
-		if (typeof this[type] === 'undefined' || !this[type] || this._saving[type]) {
+		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;
 		}
 		var i, n = userID + '.' + type + '.' + this.name, v;
@@ -529,11 +551,11 @@ function Worker(name,pages,settings) {
 				break;
 		}
 		if (getItem(n) === 'undefined' || getItem(n) !== v) {
-			this._saving[type] = true;
-			this._update(type);
-			this._saving[type] = false;
-			setItem(n, v);
+			this._working[type] = true;
 			this._changed = Date.now();
+			this._update(type);
+			setItem(n, v);
+			this._working[type] = false;
 			return true;
 		}
 		return false;
@@ -807,6 +829,7 @@ Dashboard.init = function() {
 			}
 			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			this._watch(Workers[i]);
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -820,7 +843,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.change();
+		Dashboard.update();
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -861,6 +884,26 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
+Dashboard.update = function(type) {
+	if (!this._loaded || (type && typeof type !== 'object')) {
+		return;
+	}
+	worker = type || WorkerByName(Dashboard.option.active.substr(16));
+	var id = 'golem-dashboard-'+worker.name, flush = false;
+	if (this.option.active === id && this.option.display === 'block') {
+		if (!worker.data) {
+			flush = true;
+			worker._load('data');
+		}
+		worker.dashboard();
+		if (flush) {
+			worker._flush();
+		}
+	} else {
+		$('#'+id).empty();
+	}
+};
+
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
@@ -878,28 +921,7 @@ Dashboard.status = function(worker, html) {
 		delete this.data[worker.name];
 	}
 	this._save();
-	Dashboard.change(this);
 };
-
-Dashboard.change = function(worker) {
-	if (!this._loaded) {
-		return;
-	}
-	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name, flush = false;
-	if (this.option.active === id && this.option.display === 'block') {
-		if (!worker.data) {
-			flush = true;
-			worker._load('data');
-		}
-		worker.dashboard();
-		if (flush) {
-			worker._flush();
-		}
-	} else {
-		$('#'+id).empty();
-	}
-}
 
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -1592,7 +1614,6 @@ Arena.update = function(type) {
 			Dashboard.status(this);
 		}
 	}
-	Dashboard.change(this);
 }
 
 Arena.work = function(state) {
@@ -1934,7 +1955,6 @@ Battle.update = function(type) {
 			Dashboard.status(this);
 		}
 	}
-	Dashboard.change(this);
 }
 
 Battle.work = function(state) {
@@ -2102,9 +2122,6 @@ Elite.display = [
 		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.'
 	},{
 		advanced:true,
-		label:'Currently you need to manually scan your army to fill the data.'
-	},{
-		advanced:true,
 		id:'prefer',
 		multiple:'userid'
 	}
@@ -2270,7 +2287,6 @@ Generals.update = function(type) {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
-	Dashboard.change(Generals);
 };
 
 Generals.to = function(name) {
@@ -3192,10 +3208,6 @@ Monster.parse = function(change) {
 	return false;
 };
 
-Monster.update = function(type) {
-	Dashboard.change(Monster);
-};
-
 Monster.work = function(state) {
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
@@ -3548,7 +3560,6 @@ Player.update = function(type) {
 			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
 		}
 	});
-	Dashboard.change(Player);
 };
 
 Player.get = function(what) {
@@ -3811,7 +3822,6 @@ Quest.update = function(type) {
 			}
 		}
 	}
-	Dashboard.change(this);
 };
 
 Quest.work = function(state) {
@@ -4060,8 +4070,6 @@ Town.update = function(type) {
 	dd += getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
 	Town.data.invade = { attack:ia, defend:id };
 	Town.data.duel = { attack:da, defend:dd };
-	Dashboard.change(Town);
-	return true;
 }
 
 Town.work = function(state) {

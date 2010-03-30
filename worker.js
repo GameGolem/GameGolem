@@ -37,8 +37,9 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private data ***
 ._loaded		- true once ._init() has run
-._saving		- Prevent recursive calling of this._save()
+._working		- Prevent recursive calling of various private functions
 ._changed		- Timestamp of the last time this.data changed
+._watching		- List of other workers that want to have .update() after this.update()
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
@@ -47,6 +48,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
+._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 */
 var Workers = [];
 
@@ -71,23 +73,43 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
-	this._saving = {data:false, option:false};
+	this._working = {data:false, option:false, update:false};
 	this._changed = Date.now();
+	this._watching = [];
 
 	// Private functions - only override if you know exactly what you're doing
+	this._watch = function(worker) {
+		if (worker === this) {
+			return;
+		}
+		for (var i=0; i<worker._watching.length; i++) {
+			if (worker._watching[i] === this) {
+				return;
+			}
+		}
+		worker._watching.push(this);
+	};
+
 	this._update = function(type) {
-		if (this.update) {
-			var flush = false;
+		if (this._loaded && (this.update || this._watching.length)) {
+			var i, flush = false;
+			this._working.update = true;
 			if (!this.data) {
 				flush = true;
 				this._load('data');
 			}
-			this.update(type);
+			if (this.update) {
+				this.update(type);
+			}
+			for (i=0; i<this._watching.length; i++) {
+				this._watching[i]._update(this);
+			}
 			if (flush) {
 				this._flush();
 			}
+			this._working.update = false;
 		}
-	}
+	};
 
 	this._get = function(what) { // 'path.to.data'
 		var x = typeof what === 'string' ? what.split('.') : what;
@@ -162,7 +184,7 @@ function Worker(name,pages,settings) {
 		if (type !== 'data' && type !== 'option') {
 			return this._save('data') + this._save('option');
 		}
-		if (typeof this[type] === 'undefined' || !this[type] || this._saving[type]) {
+		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;
 		}
 		var i, n = userID + '.' + type + '.' + this.name, v;
@@ -179,11 +201,11 @@ function Worker(name,pages,settings) {
 				break;
 		}
 		if (getItem(n) === 'undefined' || getItem(n) !== v) {
-			this._saving[type] = true;
-			this._update(type);
-			this._saving[type] = false;
-			setItem(n, v);
+			this._working[type] = true;
 			this._changed = Date.now();
+			this._update(type);
+			setItem(n, v);
+			this._working[type] = false;
 			return true;
 		}
 		return false;

@@ -186,7 +186,6 @@ Battle.update = function(type) {
 			Dashboard.status(this);
 		}
 	}
-	Dashboard.change(this);
 }
 
 Battle.work = function(state) {

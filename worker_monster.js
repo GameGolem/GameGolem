@@ -368,10 +368,6 @@ Monster.parse = function(change) {
 	return false;
 };
 
-Monster.update = function(type) {
-	Dashboard.change(Monster);
-};
-
 Monster.work = function(state) {
 	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {

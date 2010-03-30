@@ -105,8 +105,6 @@ Town.update = function(type) {
 	dd += getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
 	Town.data.invade = { attack:ia, defend:id };
 	Town.data.duel = { attack:da, defend:dd };
-	Dashboard.change(Town);
-	return true;
 }
 
 Town.work = function(state) {

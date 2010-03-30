@@ -113,7 +113,6 @@ Player.update = function(type) {
 			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
 		}
 	});
-	Dashboard.change(Player);
 };
 
 Player.get = function(what) {
