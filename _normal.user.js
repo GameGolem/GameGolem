@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.1
+// @version		30.2
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.1;
+var VERSION = 30.2;
 var script_started = Date.now();
 
 // Automatically filled
@@ -2078,7 +2078,10 @@ Elite.option = {
 	waitfill:0,
 	waitarena:0,
 	nextfill:null,
-	nextarena:null
+	nextarena:null,
+	armyperpage:25, // Read only, but if they change it and I don't notice...
+	armylastpage:1,
+	armyextra:0
 };
 Elite.display = [
 	{
@@ -2139,12 +2142,17 @@ Elite.parse = function(change) {
 		}
 	});
 	if (Page.page === 'army_viewarmy') {
+		var count = 0;
 		$('img[linked="true"][size="square"]').each(function(i,el){
-			Elite.data[$(el).attr('uid')] = Elite.data[$(el).attr('uid')] || {};
-			var who = $(el).parent().parent().next();
-			Elite.data[$(el).attr('uid')].name = $('a', who).text();
-			Elite.data[$(el).attr('uid')].level = $(who).text().regex(/([0-9]+) Commander/i);
+			var uid = $(el).attr('uid'), who = $(el).parent().parent().next();
+			count++;
+			Elite.data[uid] = Elite.data[uid] || {};
+			Elite.data[uid].name = $('a', who).text();
+			Elite.data[uid].level = $(who).text().regex(/([0-9]+) Commander/i);
 		});
+		if (count < 25) {
+			this.option.armyextra = Player.get('armymax') - length(this.data) - 1;
+		}
 	}
 	return false;
 };
@@ -2174,11 +2182,17 @@ Elite.update = function() {
 
 Elite.work = function(state) {
 	var i, j, found = null;
+	if (Math.ceil((Player.get('armymax') - this.option.armyextra - 1) / this.option.armyperpage) > this.option.armylastpage) {
+		if (state) {
+			debug('Elite: Filling army list');
+			this.option.armylastpage = Math.max(this.option.armylastpage + 1, Math.ceil((length(this.data) + 1) / this.option.armyperpage));
+			Page.to('army_viewarmy', '?page=' + this.option.armylastpage);
+		}
+		return true;
+	}
 	if ((!this.option.fill || (this.option.waitfill + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || (this.option.waitarena + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
-//	if (length(Elite.data) < Player.get('army')) {
-//	}
 	if (!state) {
 		return true;
 	}
