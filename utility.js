@@ -207,6 +207,10 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
 }
 
+var isArray = function(obj) {   
+    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+}
+
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
 	var getItem = function(n){return GM_getValue(n);}

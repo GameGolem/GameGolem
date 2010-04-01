@@ -89,30 +89,17 @@ Player.parse = function(change) {
 };
 
 Player.update = function(type) {
-	var step = Divisor(Player.data.maxstamina)
-	$('select.golem_stamina').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxstamina; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
+	if (type !== 'option') {
+		var i, j, types = ['stamina', 'energy', 'health'], list, step;
+		for (j=0; j<types.length; j++) {
+			list = [];
+			step = Divisor(Player.data['max'+types[j]])
+			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
+				list.push(i);
+			}
+			Config.set(types[j], list);
 		}
-	});
-	step = Divisor(Player.data.maxenergy)
-	$('select.golem_energy').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxenergy; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
-		}
-	});
-	step = Divisor(Player.data.maxhealth)
-	$('select.golem_health').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxhealth; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
-		}
-	});
+	}
 };
 
 Player.get = function(what) {

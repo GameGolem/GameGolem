@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.4
+// @version		30.5
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.4;
+var VERSION = 30.5;
 var script_started = Date.now();
 
 // Automatically filled
@@ -332,6 +332,10 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
 }
 
+var isArray = function(obj) {   
+    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+}
+
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
 	var getItem = function(n){return GM_getValue(n);}
@@ -382,6 +386,9 @@ new Worker(name, pages, settings)
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
+.set(what,value)- Calls this._set(what,value)
+				Official way to set any information for another worker
+				Overload for "special" data, and pass up to _set if basic data
 
 NOTE: If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 
@@ -393,6 +400,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
+._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
@@ -420,6 +428,7 @@ function Worker(name,pages,settings) {
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type){};
 	this.get = function(what) {return this._get(what);}; // Overload if needed
+	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
 	this._loaded = false;
@@ -490,6 +499,30 @@ function Worker(name,pages,settings) {
 				case 6: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
 				case 7: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			}
+		} catch(err) {
+			return null;
+		}
+	};
+
+	this._set = function(what, value) {
+		if (!this._loaded) {
+			this._init();
+		} else if (!this.data) { // Don't flush as one request often follows another
+			this._load('data');
+		}
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+		try {
+			switch(x.length) {
+				case 0:	this.data = value; break; // Nobody should ever do this!!
+				case 1:	this.data[x[0]] = value; break;
+				case 2: this.data[x[0]][x[1]] = value; break;
+				case 3: this.data[x[0]][x[1]][x[2]] = value; break;
+				case 4: this.data[x[0]][x[1]][x[2]][x[3]] = value; break;
+				case 5: this.data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
+				case 6: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
+				case 7: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
+			}
+			this._save();
 		} catch(err) {
 			return null;
 		}
@@ -580,15 +613,14 @@ function Worker(name,pages,settings) {
 
 /********** Worker.Config **********
 * Has everything to do with the config
-* Named with a double dash to ensure it comes early as other workers rely on it's onload() function!
 */
-var Config = new Worker('Config');
-Config.data = null;
+var Config = new Worker('Config', null, {keep:true});
 Config.option = {
 	display:'block',
 	fixed:true,
 	advanced:false
 };
+
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
@@ -656,6 +688,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
 	);
 };
+
 Config.makePanel = function(worker) {
 	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
 		before: '',
@@ -707,19 +740,29 @@ Config.makePanel = function(worker) {
 					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
 				} else if (o.select) {
 					switch (typeof o.select) {
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							break;
 						case 'number':
 							step = Divisor(o.select);
 							for (x=0; x<=o.select; x+=step) {
 								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
 							}
 							break;
+						case 'string':
+							o.className = ' class="golem_'+o.select+'"';
+							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
+								o.select = this.data[o.select];
+							} else {
+								break; // deliverate fallthrough
+							}
 						case 'array':
 						case 'object':
-							for (x in o.select) {
-								list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							if (isArray(o.select)) {
+								for (x=0; x<o.select.length; x++) {
+									list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+							} else {
+								for (x in o.select) {
+									list.push('<option value="' + x + '"' + (o.value==x ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
 							}
 							break;
 					}
@@ -743,13 +786,15 @@ Config.makePanel = function(worker) {
 								}
 								break;
 							case 'array':
-								for (x=0; x<o.multiple.length; x++) {
-									list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-								break;
 							case 'object':
-								for (x in o.multiple) {
-									list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								if (isArray(o.multiple)) {
+									for (x=0; x<o.multiple.length; x++) {
+										list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
+								} else {
+									for (x in o.multiple) {
+										list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
 								}
 								break;
 						}
@@ -778,6 +823,34 @@ Config.makePanel = function(worker) {
 			return null;
 	}
 };
+
+Config.set = function(key, value) {
+	if (!this._loaded) {
+		this._init();
+	} else if (!this.data) {
+		this.data = {};
+	}
+	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
+		this.data[key] = value;
+		$('select.golem_' + key).each(function(i,el){
+			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
+			if (isArray(list)) {
+				for (i=0; i<list.length; i++) {
+					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			} else {
+				for (i in list) {
+					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			}
+			$(el).html(options.join(''));
+		});
+		this._save();
+		return true;
+	}
+	return false;
+};
+
 Config.updateOptions = function() {
 //	debug('Options changed');
 	// Get order of panels first
@@ -818,6 +891,7 @@ Config.updateOptions = function() {
 		Workers[i]._save('option');
 	}
 };
+
 Config.getPlace = function(id) {
 	var place = -1;
 	$('#golem_config > div').each(function(i,el){
@@ -2360,7 +2434,7 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var $elements = $('.generalSmallContainer2')
+	var $elements = $('.generalSmallContainer2'), data = this.data;
 	if ($elements.length < length(data)) {
 		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
 //		Page.to('heroes_generals', ''); // Force reload
@@ -2383,14 +2457,11 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	$('select.golem_generals').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
-		for (i in list) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
+	var data = this.data, i, list = [], invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	for (i in Generals.data) {
+		list.push(i);
+	}
+	Config.set('generals', ['any'].concat(list.sort()));
 	if (invade && duel) {
 		for (i in data) {
 			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
@@ -2498,35 +2569,6 @@ Generals.random = function(level4) { // Note - true means *include* level 4
 	} else {
 		return 'any';
 	}
-};
-
-Generals.list = function(opts) {
-	var i, value, list = [];
-	if (!opts) {
-		for (i in Generals.data) {
-			list.push(i);
-		}
-		list.sort();
-	} else if (opts.find) {
-		for (i in Generals.data) {
-			if (Generals.data[i].skills.indexOf(opts.find) >= 0) {
-				list.push(i);
-			}
-		}
-	} else if (opts.regex) {
-		for (i in Generals.data) {
-			value = Generals.data[i].skills.regex(opts.regex);
-			if (value) {
-				list.push([i, value]);
-			}
-		}
-		list.sort(function(a,b) {
-			return b[1] - a[1];
-		});
-//		for (var i in list) list[i] - list[i][0];
-	}
-	list.unshift('any');
-	return list;
 };
 
 Generals.order = [];
@@ -3654,30 +3696,17 @@ Player.parse = function(change) {
 };
 
 Player.update = function(type) {
-	var step = Divisor(Player.data.maxstamina)
-	$('select.golem_stamina').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxstamina; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
+	if (type !== 'option') {
+		var i, j, types = ['stamina', 'energy', 'health'], list, step;
+		for (j=0; j<types.length; j++) {
+			list = [];
+			step = Divisor(Player.data['max'+types[j]])
+			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
+				list.push(i);
+			}
+			Config.set(types[j], list);
 		}
-	});
-	step = Divisor(Player.data.maxenergy)
-	$('select.golem_energy').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxenergy; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
-		}
-	});
-	step = Divisor(Player.data.maxhealth)
-	$('select.golem_health').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<=Player.data.maxhealth; i+=step) {
-			$(el).append('<option value="' + i + '"' + (value==i ? ' selected' : '') + '>' + i + '</option>');
-		}
-	});
+	}
 };
 
 Player.get = function(what) {
@@ -3784,12 +3813,12 @@ Potions.display = [
 	{
 		id:'energy',
 		label:'Maximum Energy Potions',
-		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	},{
 		id:'stamina',
 		label:'Maximum Stamina Potions',
-		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	}
 ];
@@ -3812,7 +3841,7 @@ Potions.update = function(type) {
 		if (this.data[i]) {
 			txt.push(i + ': ' + this.data[i]);
 		}
-		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
+		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 			this.option.drink = true;
 		}
 	}
@@ -3960,14 +3989,7 @@ Quest.update = function(type) {
 			list.push(this.data[i].item);
 		}
 	}
-	list = ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort());
-	$('select.golem_quest_reward').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<list.length; i++) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
+	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {

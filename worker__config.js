@@ -1,14 +1,13 @@
 /********** Worker.Config **********
 * Has everything to do with the config
-* Named with a double dash to ensure it comes early as other workers rely on it's onload() function!
 */
-var Config = new Worker('Config');
-Config.data = null;
+var Config = new Worker('Config', null, {keep:true});
 Config.option = {
 	display:'block',
 	fixed:true,
 	advanced:false
 };
+
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i;
@@ -76,6 +75,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
 	);
 };
+
 Config.makePanel = function(worker) {
 	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
 		before: '',
@@ -127,19 +127,29 @@ Config.makePanel = function(worker) {
 					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
 				} else if (o.select) {
 					switch (typeof o.select) {
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							break;
 						case 'number':
 							step = Divisor(o.select);
 							for (x=0; x<=o.select; x+=step) {
 								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
 							}
 							break;
+						case 'string':
+							o.className = ' class="golem_'+o.select+'"';
+							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
+								o.select = this.data[o.select];
+							} else {
+								break; // deliverate fallthrough
+							}
 						case 'array':
 						case 'object':
-							for (x in o.select) {
-								list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							if (isArray(o.select)) {
+								for (x=0; x<o.select.length; x++) {
+									list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+							} else {
+								for (x in o.select) {
+									list.push('<option value="' + x + '"' + (o.value==x ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
 							}
 							break;
 					}
@@ -163,13 +173,15 @@ Config.makePanel = function(worker) {
 								}
 								break;
 							case 'array':
-								for (x=0; x<o.multiple.length; x++) {
-									list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-								break;
 							case 'object':
-								for (x in o.multiple) {
-									list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								if (isArray(o.multiple)) {
+									for (x=0; x<o.multiple.length; x++) {
+										list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
+								} else {
+									for (x in o.multiple) {
+										list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
 								}
 								break;
 						}
@@ -198,6 +210,34 @@ Config.makePanel = function(worker) {
 			return null;
 	}
 };
+
+Config.set = function(key, value) {
+	if (!this._loaded) {
+		this._init();
+	} else if (!this.data) {
+		this.data = {};
+	}
+	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
+		this.data[key] = value;
+		$('select.golem_' + key).each(function(i,el){
+			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
+			if (isArray(list)) {
+				for (i=0; i<list.length; i++) {
+					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			} else {
+				for (i in list) {
+					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			}
+			$(el).html(options.join(''));
+		});
+		this._save();
+		return true;
+	}
+	return false;
+};
+
 Config.updateOptions = function() {
 //	debug('Options changed');
 	// Get order of panels first
@@ -238,6 +278,7 @@ Config.updateOptions = function() {
 		Workers[i]._save('option');
 	}
 };
+
 Config.getPlace = function(id) {
 	var place = -1;
 	$('#golem_config > div').each(function(i,el){

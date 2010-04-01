@@ -122,14 +122,7 @@ Quest.update = function(type) {
 			list.push(this.data[i].item);
 		}
 	}
-	list = ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort());
-	$('select.golem_quest_reward').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null;
-		for (i=0; i<list.length; i++) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
+	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {

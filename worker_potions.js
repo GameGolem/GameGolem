@@ -13,12 +13,12 @@ Potions.display = [
 	{
 		id:'energy',
 		label:'Maximum Energy Potions',
-		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	},{
 		id:'stamina',
 		label:'Maximum Stamina Potions',
-		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	}
 ];
@@ -41,7 +41,7 @@ Potions.update = function(type) {
 		if (this.data[i]) {
 			txt.push(i + ': ' + this.data[i]);
 		}
-		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
+		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 			this.option.drink = true;
 		}
 	}

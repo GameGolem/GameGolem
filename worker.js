@@ -32,6 +32,9 @@ new Worker(name, pages, settings)
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
+.set(what,value)- Calls this._set(what,value)
+				Official way to set any information for another worker
+				Overload for "special" data, and pass up to _set if basic data
 
 NOTE: If there is a work() but no display() then work(false) will be called before anything on the queue, but it will never be able to have focus (ie, read only)
 
@@ -43,6 +46,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
+._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
@@ -70,6 +74,7 @@ function Worker(name,pages,settings) {
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type){};
 	this.get = function(what) {return this._get(what);}; // Overload if needed
+	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
 	this._loaded = false;
@@ -140,6 +145,30 @@ function Worker(name,pages,settings) {
 				case 6: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
 				case 7: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			}
+		} catch(err) {
+			return null;
+		}
+	};
+
+	this._set = function(what, value) {
+		if (!this._loaded) {
+			this._init();
+		} else if (!this.data) { // Don't flush as one request often follows another
+			this._load('data');
+		}
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+		try {
+			switch(x.length) {
+				case 0:	this.data = value; break; // Nobody should ever do this!!
+				case 1:	this.data[x[0]] = value; break;
+				case 2: this.data[x[0]][x[1]] = value; break;
+				case 3: this.data[x[0]][x[1]][x[2]] = value; break;
+				case 4: this.data[x[0]][x[1]][x[2]][x[3]] = value; break;
+				case 5: this.data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
+				case 6: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
+				case 7: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
+			}
+			this._save();
 		} catch(err) {
 			return null;
 		}

@@ -10,7 +10,7 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var $elements = $('.generalSmallContainer2')
+	var $elements = $('.generalSmallContainer2'), data = this.data;
 	if ($elements.length < length(data)) {
 		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
 //		Page.to('heroes_generals', ''); // Force reload
@@ -33,14 +33,11 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	$('select.golem_generals').each(function(a,el){
-		$(el).empty();
-		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
-		for (i in list) {
-			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
-		}
-	});
+	var data = this.data, i, list = [], invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	for (i in Generals.data) {
+		list.push(i);
+	}
+	Config.set('generals', ['any'].concat(list.sort()));
 	if (invade && duel) {
 		for (i in data) {
 			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
@@ -148,35 +145,6 @@ Generals.random = function(level4) { // Note - true means *include* level 4
 	} else {
 		return 'any';
 	}
-};
-
-Generals.list = function(opts) {
-	var i, value, list = [];
-	if (!opts) {
-		for (i in Generals.data) {
-			list.push(i);
-		}
-		list.sort();
-	} else if (opts.find) {
-		for (i in Generals.data) {
-			if (Generals.data[i].skills.indexOf(opts.find) >= 0) {
-				list.push(i);
-			}
-		}
-	} else if (opts.regex) {
-		for (i in Generals.data) {
-			value = Generals.data[i].skills.regex(opts.regex);
-			if (value) {
-				list.push([i, value]);
-			}
-		}
-		list.sort(function(a,b) {
-			return b[1] - a[1];
-		});
-//		for (var i in list) list[i] - list[i][0];
-	}
-	list.unshift('any');
-	return list;
 };
 
 Generals.order = [];
