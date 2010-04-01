@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.3
+// @version		30.4
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.3;
+var VERSION = 30.4;
 var script_started = Date.now();
 
 // Automatically filled
@@ -68,10 +68,18 @@ if (typeof APP !== 'undefined') {
 			Workers[i]._load();
 		}
 		for (i=0; i<Workers.length; i++) {
-			Workers[i]._init();
+			try {
+				Workers[i]._init();
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.init(): ' + e.message);
+			}
 		}
 		for (i=0; i<Workers.length; i++) {
-			Workers[i]._update();
+			try {
+				Workers[i]._update();
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.update(): ' + e.message);
+			}
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...
@@ -92,6 +100,8 @@ $('head').append("<style type=\"text/css\">\
 .golem-config-fixed #golem_fixed { background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 1; }\
 #golem-dashboard thead th { cursor: pointer }\
+#golem-dashboard thead th.golem-sort:after { content: '&darr;'; }\
+#golem-dashboard thead th.golem-sort-reverse:after { content: '&uarr;'; }\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
 #golem-dashboard tbody th { text-align: left; font-weight: normal; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
@@ -463,7 +473,7 @@ function Worker(name,pages,settings) {
 	};
 
 	this._get = function(what) { // 'path.to.data'
-		var x = typeof what === 'string' ? what.split('.') : what;
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
 		} else if (!this.data) { // Don't flush as one request often follows another
@@ -471,6 +481,7 @@ function Worker(name,pages,settings) {
 		}
 		try {
 			switch(x.length) {
+				case 0:	return this.data;
 				case 1:	return this.data[x[0]];
 				case 2: return this.data[x[0]][x[1]];
 				case 3: return this.data[x[0]][x[1]][x[2]];
@@ -896,7 +907,11 @@ Dashboard.update = function(type) {
 			flush = true;
 			worker._load('data');
 		}
-		worker.dashboard();
+		try {
+			result = worker.dashboard();
+		}catch(e) {
+			debug(e.name + ' in ' + workers.name + '.dashboard(): ' + e.message);
+		}
 		if (flush) {
 			worker._flush();
 		}
@@ -960,12 +975,17 @@ Page.init = function() {
 
 Page.parse_all = function() {
 	Page.identify();
-	var i, list = [];
+	var i, result, list = [];
 	for (i=0; i<Workers.length; i++) {
-//		debug(Workers[i].name + '.parse(false);');
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 			Workers[i]._load();
-			if (Workers[i].parse(false)) {
+			try {
+				result = Workers[i].parse(false);
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
+				result = false;
+			}
+			if (result) {
 				list.push(Workers[i]);
 			} else {
 				Workers[i]._flush();
@@ -973,9 +993,12 @@ Page.parse_all = function() {
 		}
 	}
 	for (i in list) {
-//		debug(Workers[i].name + '.parse(true);');
-		list[i].parse(true);
-		list[i]._flush();
+		try {
+			list[i].parse(true);
+			list[i]._flush();
+		}catch(e) {
+			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
+		}
 	}
 }
 
@@ -1080,7 +1103,6 @@ Page.loading = false;
 Page.to = function(page, args) {
 	if (Queue.option.pause) {
 		debug('Trying to load page when paused...');
-		console.trace();
 		return true;
 	}
 	if (page === this.page && typeof args === 'undefined') {
@@ -1293,7 +1315,11 @@ Queue.run = function() {
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._load();
-			Workers[i].work(false);
+			try {
+				Workers[i].work(false);
+			} catch(e){
+				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
+			}
 			Workers[i]._flush();
 		}
 	}
@@ -1305,10 +1331,20 @@ Queue.run = function() {
 //		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
 		if (this.data.current === worker.name) {
 			worker._load();
-			result = worker.work(true);
+			try {
+				result = worker.work(true);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
 			worker._save(); // Save for everyone, only flush if not active
 		} else {
-			result = worker.work(false);
+			try {
+				result = worker.work(false);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
 		}
 		if (!result && this.data.current === worker.name) {
 			this.data.current = null;
@@ -2282,49 +2318,35 @@ Elite.work = function(state) {
 */
 var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
 
+Generals.init = function() {
+	this._watch(Town);
+};
+
 Generals.parse = function(change) {
-	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('.generalSmallContainer2')
+	var $elements = $('.generalSmallContainer2')
 	if ($elements.length < length(data)) {
 		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
 //		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){
-		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
+		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
 		if (name) {
 			if (!data[name] || data[name].level !== level) {
 				data[name] = data[name] || {};
-				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				data[name].img		= $('.imgButton', el).attr('src').filepart();
+				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
+				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
-				change = true;
+				data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 			}
 		}
 	});
-	if (change && length(Town.data.invade)) {
-		for (i in data) {
-			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
-			};
-			data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
-			};
-		}
-	}
 	return false;
 };
 
 Generals.update = function(type) {
+	var data = this.data, i, invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	$('select.golem_generals').each(function(a,el){
 		$(el).empty();
 		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
@@ -2332,6 +2354,23 @@ Generals.update = function(type) {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
+	if (invade && duel) {
+		for (i in data) {
+			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
+			data[i].invade = {
+				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+			};
+			data[i].duel = {
+				att: Math.floor(duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+			};
+		}
+	}
 };
 
 Generals.to = function(name) {
@@ -2506,9 +2545,6 @@ Generals.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Generals').html(list.join(''));
-	$('#golem-dashboard-Generals thead th').css('cursor', 'pointer').click(function(event){
-		Generals.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Generals tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
@@ -4186,32 +4222,32 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var left, right, duel = {}, best,
+	var left, right, generals = Generals.get(), duel = {}, best,
 		listpush = function(list,i){list.push(i);},
 		usepush = function(list,i,units){if (units[i].use){list.push(i);}},
 		usepushweapon = function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}},
 		usepushnotweapon = function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}};
 	best = Generals.best('duel');
 	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	makeTownDash(Generals.data, listpush, 'att', 'invade', 'Heroes')
+			+	makeTownDash(generals, listpush, 'att', 'invade', 'Heroes')
 			+	makeTownDash(Town.data.soldiers, usepush, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(Town.data.blacksmith, usepushweapon, 'att', 'invade', 'Weapons')
 			+	makeTownDash(Town.data.blacksmith, usepushnotweapon, 'att', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, usepush, 'att', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + Generals.data[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + Generals.data[best].att + ' / ' + Generals.data[best].def + ')</div>' : '')
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, usepush, 'att', 'duel')
 			+	makeTownDash(Town.data.magic, usepush, 'att', 'duel')
 			+'</div></div></div>';
 	best = Generals.best('defend');
 	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	makeTownDash(Generals.data, listpush, 'def', 'invade', 'Heroes')
+			+	makeTownDash(generals, listpush, 'def', 'invade', 'Heroes')
 			+	makeTownDash(Town.data.soldiers, usepush, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(Town.data.blacksmith, usepushweapon, 'def', 'invade', 'Weapons')
 			+	makeTownDash(Town.data.blacksmith, usepushnotweapon, 'def', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, usepush, 'def', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + Generals.data[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + Generals.data[best].att + ' / ' + Generals.data[best].def + ')</div>' : '')
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, usepush, 'def', 'duel')
 			+	makeTownDash(Town.data.magic, usepush, 'def', 'duel')
 			+'</div></div></div>';

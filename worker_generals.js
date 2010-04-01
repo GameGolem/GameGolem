@@ -5,49 +5,35 @@
 */
 var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
 
+Generals.init = function() {
+	this._watch(Town);
+};
+
 Generals.parse = function(change) {
-	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('.generalSmallContainer2')
+	var $elements = $('.generalSmallContainer2')
 	if ($elements.length < length(data)) {
 		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
 //		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){
-		var $child = $(el).children(), name = $child.eq(0).text().trim(), level	= $child.eq(3).text().regex(/Level ([0-9]+)/i);
+		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
 		if (name) {
 			if (!data[name] || data[name].level !== level) {
 				data[name] = data[name] || {};
-				data[name].img		= $child.eq(1).find('input.imgButton').attr('src').filepart();
-				data[name].att		= $child.eq(2).children().eq(0).text().regex(/([0-9]+)/);
-				data[name].def		= $child.eq(2).children().eq(1).text().regex(/([0-9]+)/);
+				data[name].img		= $('.imgButton', el).attr('src').filepart();
+				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
+				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $($child.eq(4).html().replace(/\<br\>|\s+|\n/g,' ')).text().trim();
-				change = true;
+				data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 			}
 		}
 	});
-	if (change && length(Town.data.invade)) {
-		for (i in data) {
-			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
-			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
-			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
-			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			data[i].invade = {
-				att: Math.floor(Town.data.invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(Town.data.invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
-			};
-			data[i].duel = {
-				att: Math.floor(Town.data.duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(Town.data.duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
-			};
-		}
-	}
 	return false;
 };
 
 Generals.update = function(type) {
+	var data = this.data, i, invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	$('select.golem_generals').each(function(a,el){
 		$(el).empty();
 		var i, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), value = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Generals.list();
@@ -55,6 +41,23 @@ Generals.update = function(type) {
 			$(el).append('<option value="'+list[i]+'"'+(list[i]===value ? ' selected' : '')+'>'+list[i]+'</value>');
 		}
 	});
+	if (invade && duel) {
+		for (i in data) {
+			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
+			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
+			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
+			data[i].invade = {
+				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+			};
+			data[i].duel = {
+				att: Math.floor(duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+			};
+		}
+	}
 };
 
 Generals.to = function(name) {
@@ -229,9 +232,6 @@ Generals.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Generals').html(list.join(''));
-	$('#golem-dashboard-Generals thead th').css('cursor', 'pointer').click(function(event){
-		Generals.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
 	$('#golem-dashboard-Generals tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));

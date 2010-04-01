@@ -176,32 +176,32 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var left, right, duel = {}, best,
+	var left, right, generals = Generals.get(), duel = {}, best,
 		listpush = function(list,i){list.push(i);},
 		usepush = function(list,i,units){if (units[i].use){list.push(i);}},
 		usepushweapon = function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}},
 		usepushnotweapon = function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}};
 	best = Generals.best('duel');
 	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	makeTownDash(Generals.data, listpush, 'att', 'invade', 'Heroes')
+			+	makeTownDash(generals, listpush, 'att', 'invade', 'Heroes')
 			+	makeTownDash(Town.data.soldiers, usepush, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(Town.data.blacksmith, usepushweapon, 'att', 'invade', 'Weapons')
 			+	makeTownDash(Town.data.blacksmith, usepushnotweapon, 'att', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, usepush, 'att', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + Generals.data[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + Generals.data[best].att + ' / ' + Generals.data[best].def + ')</div>' : '')
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, usepush, 'att', 'duel')
 			+	makeTownDash(Town.data.magic, usepush, 'att', 'duel')
 			+'</div></div></div>';
 	best = Generals.best('defend');
 	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	makeTownDash(Generals.data, listpush, 'def', 'invade', 'Heroes')
+			+	makeTownDash(generals, listpush, 'def', 'invade', 'Heroes')
 			+	makeTownDash(Town.data.soldiers, usepush, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(Town.data.blacksmith, usepushweapon, 'def', 'invade', 'Weapons')
 			+	makeTownDash(Town.data.blacksmith, usepushnotweapon, 'def', 'invade', 'Equipment')
 			+	makeTownDash(Town.data.magic, usepush, 'def', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + Generals.data[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + Generals.data[best].att + ' / ' + Generals.data[best].def + ')</div>' : '')
+			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(Town.data.blacksmith, usepush, 'def', 'duel')
 			+	makeTownDash(Town.data.magic, usepush, 'def', 'duel')
 			+'</div></div></div>';

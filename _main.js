@@ -2,7 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.3;
+var VERSION = 30.4;
 var script_started = Date.now();
 
 // Automatically filled
@@ -52,10 +52,18 @@ if (typeof APP !== 'undefined') {
 			Workers[i]._load();
 		}
 		for (i=0; i<Workers.length; i++) {
-			Workers[i]._init();
+			try {
+				Workers[i]._init();
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.init(): ' + e.message);
+			}
 		}
 		for (i=0; i<Workers.length; i++) {
-			Workers[i]._update();
+			try {
+				Workers[i]._update();
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.update(): ' + e.message);
+			}
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...

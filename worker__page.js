@@ -34,12 +34,17 @@ Page.init = function() {
 
 Page.parse_all = function() {
 	Page.identify();
-	var i, list = [];
+	var i, result, list = [];
 	for (i=0; i<Workers.length; i++) {
-//		debug(Workers[i].name + '.parse(false);');
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 			Workers[i]._load();
-			if (Workers[i].parse(false)) {
+			try {
+				result = Workers[i].parse(false);
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
+				result = false;
+			}
+			if (result) {
 				list.push(Workers[i]);
 			} else {
 				Workers[i]._flush();
@@ -47,9 +52,12 @@ Page.parse_all = function() {
 		}
 	}
 	for (i in list) {
-//		debug(Workers[i].name + '.parse(true);');
-		list[i].parse(true);
-		list[i]._flush();
+		try {
+			list[i].parse(true);
+			list[i]._flush();
+		}catch(e) {
+			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
+		}
 	}
 }
 

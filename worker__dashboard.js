@@ -83,7 +83,11 @@ Dashboard.update = function(type) {
 			flush = true;
 			worker._load('data');
 		}
-		worker.dashboard();
+		try {
+			result = worker.dashboard();
+		}catch(e) {
+			debug(e.name + ' in ' + workers.name + '.dashboard(): ' + e.message);
+		}
 		if (flush) {
 			worker._flush();
 		}

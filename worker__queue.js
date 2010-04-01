@@ -138,7 +138,11 @@ Queue.run = function() {
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._load();
-			Workers[i].work(false);
+			try {
+				Workers[i].work(false);
+			} catch(e){
+				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
+			}
 			Workers[i]._flush();
 		}
 	}
@@ -150,10 +154,20 @@ Queue.run = function() {
 //		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
 		if (this.data.current === worker.name) {
 			worker._load();
-			result = worker.work(true);
+			try {
+				result = worker.work(true);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
 			worker._save(); // Save for everyone, only flush if not active
 		} else {
-			result = worker.work(false);
+			try {
+				result = worker.work(false);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
 		}
 		if (!result && this.data.current === worker.name) {
 			this.data.current = null;

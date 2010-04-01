@@ -115,7 +115,7 @@ function Worker(name,pages,settings) {
 	};
 
 	this._get = function(what) { // 'path.to.data'
-		var x = typeof what === 'string' ? what.split('.') : what;
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
 		} else if (!this.data) { // Don't flush as one request often follows another
@@ -123,6 +123,7 @@ function Worker(name,pages,settings) {
 		}
 		try {
 			switch(x.length) {
+				case 0:	return this.data;
 				case 1:	return this.data[x[0]];
 				case 2: return this.data[x[0]][x[1]];
 				case 3: return this.data[x[0]][x[1]][x[2]];
