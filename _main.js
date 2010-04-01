@@ -26,15 +26,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 	}
 }
 
-var log = function(txt) {
-	console.log(txt);
-};
+var log = console.log;
 
-var debug = function(txt) {
-	if (show_debug) {
-		console.log(txt);
-	}
-};
+if (show_debug) {
+	var debug = console.log;
+} else {
+	var debug = function(){};
+}
 
 if (typeof unsafeWindow === 'undefined') {
 	unsafeWindow = window;

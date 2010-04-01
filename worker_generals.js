@@ -7,9 +7,10 @@ var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
 
 Generals.parse = function(change) {
 	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	$elements = $('.generalSmallContainer2')
 	if ($elements.length < length(data)) {
-		Page.to('heroes_generals', ''); // Force reload
+		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
+//		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){

@@ -42,15 +42,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 	}
 }
 
-var log = function(txt) {
-	console.log(txt);
-};
+var log = console.log;
 
-var debug = function(txt) {
-	if (show_debug) {
-		console.log(txt);
-	}
-};
+if (show_debug) {
+	var debug = console.log;
+} else {
+	var debug = function(){};
+}
 
 if (typeof unsafeWindow === 'undefined') {
 	unsafeWindow = window;
@@ -1080,6 +1078,11 @@ Page.identify = function() {
 
 Page.loading = false;
 Page.to = function(page, args) {
+	if (Queue.option.pause) {
+		debug('Trying to load page when paused...');
+		console.trace();
+		return true;
+	}
 	if (page === this.page && typeof args === 'undefined') {
 		return true;
 	}
@@ -1209,7 +1212,9 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
 Queue.timer = null;
+
 Queue.lasttimer = 0;
+Queue.lastpause = false;
 
 Queue.init = function() {
 	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
@@ -1242,6 +1247,7 @@ Queue.init = function() {
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
 
+	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
 		debug('State: '+((Queue.option.pause)?"paused":"running"));
@@ -1254,19 +1260,22 @@ Queue.init = function() {
 };
 
 Queue.update = function(type) {
-	if (this.option.delay !== this.lasttimer) {
+	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
 		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
 		this.lasttimer = this.option.delay;
+	} else if (this.option.pause && this.option.pause !== this.lastpause) {
+		window.clearInterval(this.timer);
+		this.lasttimer = -1;
 	}
+	this.lastpause = this.option.pause;
 };
 
 Queue.run = function() {
-	var i, worker, found = false, now = Date.now(), result;
-	if (this.option.pause || now - this.lastrun < this.option.delay * 1000) {
+	var i, worker, found = false, result;
+	if (this.option.pause || Date.now() - this.lastclick < this.option.clickdelay * 1000) {
 		return;
 	}
-	this.lastrun = now;
 	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
@@ -2275,9 +2284,10 @@ var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
 
 Generals.parse = function(change) {
 	var data = this.data, $elements, i, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, change = false, listpush = function(list,i){list.push(i);};
-	$elements = $('#app'+APPID+'_generalContainerBox2 > div > div.generalSmallContainer2')
+	$elements = $('.generalSmallContainer2')
 	if ($elements.length < length(data)) {
-		Page.to('heroes_generals', ''); // Force reload
+		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
+//		Page.to('heroes_generals', ''); // Force reload
 		return false;
 	}
 	$elements.each(function(i,el){

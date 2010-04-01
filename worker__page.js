@@ -152,6 +152,10 @@ Page.identify = function() {
 
 Page.loading = false;
 Page.to = function(page, args) {
+	if (Queue.option.pause) {
+		debug('Trying to load page when paused...');
+		return true;
+	}
 	if (page === this.page && typeof args === 'undefined') {
 		return true;
 	}
