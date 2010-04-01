@@ -96,12 +96,20 @@ function Worker(name,pages,settings) {
 				this._load('data');
 			}
 			if (this.update) {
-				this.update(type);
+				try {
+					this.update(type);
+				}catch(e) {
+					debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
+				}
 			}
 			for (i=0; i<this._watching.length; i++) {
 				if (this._watching[i] === this) {
 					if (this.update) {
-						this.update(this);
+						try {
+							this.update(this);
+						}catch(e) {
+							debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
+						}
 					}
 				} else {
 					this._watching[i]._update(this);
@@ -150,7 +158,11 @@ function Worker(name,pages,settings) {
 		}
 		this._loaded = true;
 		if (this.init) {
-			this.init();
+			try {
+				this.init();
+			}catch(e) {
+				debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+			}
 		}
 	};
 

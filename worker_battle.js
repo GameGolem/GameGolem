@@ -46,7 +46,7 @@ Battle.display = [
 	},{
 		id:'losses',
 		label:'Attack Until',
-		select:[1,2,3,4,5,6,7,8,9,10],
+		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
 	},{
 		id:'points',
@@ -146,7 +146,7 @@ Battle.update = function(type) {
 	var i, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
+		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank >= 4) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
 			delete data[i];
 		}
 	}
@@ -191,7 +191,7 @@ Battle.update = function(type) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-				|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
 				|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {

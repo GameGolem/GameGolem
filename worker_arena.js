@@ -58,7 +58,7 @@ Arena.display = [
 		advanced:true,
 		id:'losses',
 		label:'Attack Until',
-		select:[1,2,3,4,5,6,7,8,9,10],
+		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
 	},{
 		advanced:true,
@@ -154,7 +154,7 @@ Arena.update = function(type) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-				|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;

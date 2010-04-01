@@ -68,18 +68,10 @@ if (typeof APP !== 'undefined') {
 			Workers[i]._load();
 		}
 		for (i=0; i<Workers.length; i++) {
-			try {
-				Workers[i]._init();
-			}catch(e) {
-				debug(e.name + ' in ' + Workers[i].name + '.init(): ' + e.message);
-			}
+			Workers[i]._init();
 		}
 		for (i=0; i<Workers.length; i++) {
-			try {
-				Workers[i]._update();
-			}catch(e) {
-				debug(e.name + ' in ' + Workers[i].name + '.update(): ' + e.message);
-			}
+			Workers[i]._update();
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...
@@ -454,12 +446,20 @@ function Worker(name,pages,settings) {
 				this._load('data');
 			}
 			if (this.update) {
-				this.update(type);
+				try {
+					this.update(type);
+				}catch(e) {
+					debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
+				}
 			}
 			for (i=0; i<this._watching.length; i++) {
 				if (this._watching[i] === this) {
 					if (this.update) {
-						this.update(this);
+						try {
+							this.update(this);
+						}catch(e) {
+							debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
+						}
 					}
 				} else {
 					this._watching[i]._update(this);
@@ -508,7 +508,11 @@ function Worker(name,pages,settings) {
 		}
 		this._loaded = true;
 		if (this.init) {
-			this.init();
+			try {
+				this.init();
+			}catch(e) {
+				debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+			}
 		}
 	};
 
@@ -995,10 +999,10 @@ Page.parse_all = function() {
 	for (i in list) {
 		try {
 			list[i].parse(true);
-			list[i]._flush();
 		}catch(e) {
 			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
 		}
+		list[i]._flush();
 	}
 }
 
@@ -1035,7 +1039,7 @@ Page.work = function(state) {
 };
 
 Page.pageNames = {
-	index:					{url:'index.php', image:null},
+	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
 	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
 	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
@@ -1068,9 +1072,10 @@ Page.pageNames = {
 	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
 	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
 	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', image:null},
+	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
 	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'}
+	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
 };
 
 Page.identify = function() {
@@ -1079,18 +1084,22 @@ Page.identify = function() {
 		this.reload();
 		return null;
 	}
-	$('#app'+APPID+'_app_body img').each(function(i,el){
-		var p, filename = $(el).attr('src').filepart();
+	var app_body = $('#app'+APPID+'_app_body'), p;
+	$('img', app_body).each(function(i,el){
+		var filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
-			if (filename === Page.pageNames[p].image) {
-				Page.page = p; return;
+			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
+				Page.page = p;
+				return;
 			}
 		}
 	});
-	if ($('#app'+APPID+'_indexNewFeaturesBox').length) {
-		this.page = 'index';
-	} else if ($('div[style*="giftpage_title.jpg"]').length) {
-		this.page = 'army_gifts';
+	if (!this.page) {
+		for (p in Page.pageNames) {
+			if (Page.pageNames[p].selector && $(Page.pageNames[p].selector, app_body).length) {
+				Page.page = p;
+			}
+		}
 	}
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
@@ -1564,7 +1573,7 @@ Arena.display = [
 		advanced:true,
 		id:'losses',
 		label:'Attack Until',
-		select:[1,2,3,4,5,6,7,8,9,10],
+		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
 	},{
 		advanced:true,
@@ -1660,7 +1669,7 @@ Arena.update = function(type) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-				|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
@@ -1876,7 +1885,7 @@ Battle.display = [
 	},{
 		id:'losses',
 		label:'Attack Until',
-		select:[1,2,3,4,5,6,7,8,9,10],
+		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
 	},{
 		id:'points',
@@ -1976,7 +1985,7 @@ Battle.update = function(type) {
 	var i, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank > 5) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
+		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank >= 4) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
 			delete data[i];
 		}
 	}
@@ -2021,7 +2030,7 @@ Battle.update = function(type) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-				|| (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
 				|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {

@@ -54,10 +54,10 @@ Page.parse_all = function() {
 	for (i in list) {
 		try {
 			list[i].parse(true);
-			list[i]._flush();
 		}catch(e) {
 			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
 		}
+		list[i]._flush();
 	}
 }
 
@@ -94,7 +94,7 @@ Page.work = function(state) {
 };
 
 Page.pageNames = {
-	index:					{url:'index.php', image:null},
+	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
 	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
 	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
@@ -127,9 +127,10 @@ Page.pageNames = {
 	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
 	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
 	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', image:null},
+	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
 	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'}
+	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
 };
 
 Page.identify = function() {
@@ -138,18 +139,22 @@ Page.identify = function() {
 		this.reload();
 		return null;
 	}
-	$('#app'+APPID+'_app_body img').each(function(i,el){
-		var p, filename = $(el).attr('src').filepart();
+	var app_body = $('#app'+APPID+'_app_body'), p;
+	$('img', app_body).each(function(i,el){
+		var filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
-			if (filename === Page.pageNames[p].image) {
-				Page.page = p; return;
+			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
+				Page.page = p;
+				return;
 			}
 		}
 	});
-	if ($('#app'+APPID+'_indexNewFeaturesBox').length) {
-		this.page = 'index';
-	} else if ($('div[style*="giftpage_title.jpg"]').length) {
-		this.page = 'army_gifts';
+	if (!this.page) {
+		for (p in Page.pageNames) {
+			if (Page.pageNames[p].selector && $(Page.pageNames[p].selector, app_body).length) {
+				Page.page = p;
+			}
+		}
 	}
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
