@@ -3767,6 +3767,7 @@ Potions.display = [
 ];
 
 Potions.parse = function(change) {
+	this.data = {};
 	$('.statsT2:eq(2) .statUnit').each(function(i,el){
 		var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 		if (info && info[0] && info[1]) {
