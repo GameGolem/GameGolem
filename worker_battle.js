@@ -158,7 +158,7 @@ Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - data[i].rank >= 4) || (!this.option.bp === 'Never' && rank - data[i].rank <= 5)) {
+		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (!this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -171,11 +171,11 @@ Battle.update = function(type) {
 			var weight = 0;
 				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
 			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-			if (Battle.option.bp === 'Always') { weight += (data[b].rank - data[a].rank) / 2; }
-			if (Battle.option.bp === 'Never') { weight += (data[a].rank - data[b].rank) / 2; }
+			if (Battle.option.bp === 'Always') { weight += ((data[b].rank || 0) - (data[a].rank || 0)) / 2; }
+			if (Battle.option.bp === 'Never') { weight += ((data[a].rank || 0) - (data[b].rank || 0)) / 2; }
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
-			weight += Math.range(-10, ((data[a].army - data[b].army) / 10), 10);
-			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
+			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
+			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
 			return weight;
 		});
 		while (list.length > Battle.option.cache) {
@@ -222,7 +222,7 @@ Battle.update = function(type) {
 				|| (this.option.points && points.length && data[i].align && typeof points[data[i].align] === 'undefined')) {
 					continue;
 				}
-				for (j=Math.range(1,data[i].rank-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
 					list.push(i);
 				}
 			}
