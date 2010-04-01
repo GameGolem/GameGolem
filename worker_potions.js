@@ -4,8 +4,8 @@
 var Potions = new Worker('Potions', 'keep_stats');
 
 Potions.option = {
-	energy:35,
-	stamina:35,
+	energy:'&infin;',
+	stamina:'&infin;',
 	drink:false
 };
 
@@ -13,12 +13,12 @@ Potions.display = [
 	{
 		id:'energy',
 		label:'Maximum Energy Potions',
-		select:[0,5,10,15,20,25,30,35,40],
+		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	},{
 		id:'stamina',
 		label:'Maximum Stamina Potions',
-		select:[0,5,10,15,20,25,30,35,40],
+		select:[0,5,10,15,20,25,30,35,40,'&infin;'],
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	}
 ];

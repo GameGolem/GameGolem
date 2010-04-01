@@ -32,9 +32,7 @@ Elite.display = [
 		after:'hours'
 	},{
 		advanced:true,
-		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.'
-	},{
-		advanced:true,
+		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.',
 		id:'prefer',
 		multiple:'userid'
 	}
@@ -88,6 +86,7 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function() {
+	var i, j;
 	this.option.nextfill = this.option.nextarena = 0;
 	for(j=0; j<this.option.prefer.length; j++) {
 		i = this.option.prefer[j];

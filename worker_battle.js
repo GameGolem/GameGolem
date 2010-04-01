@@ -16,7 +16,9 @@ Battle.option = {
 	type:'Invade',
 	bp:'Always',
 	army:1.1,
-	level:1.1
+	level:1.1,
+	preferonly:false,
+	prefer:[]
 };
 
 Battle.symbol = {
@@ -82,6 +84,16 @@ Battle.display = [
 		label:'Target Level Ratio<br>(Mainly used for Dual)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+	},{
+		advanced:true,
+		id:'preferonly',
+		label:'Fight Preferred Targets Only',
+		checkbox:true
+	},{
+		advanced:true,
+		id:'prefer',
+		label:'Preferred Targets',
+		multiple:'userid'
 	}
 ];
 
@@ -143,10 +155,10 @@ Battle.parse = function(change) {
 };
 
 Battle.update = function(type) {
-	var i, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level');
+	var i, j, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && Player.get('rank') - data[i].rank >= 4) || (!this.option.bp === 'Never' && Player.get('rank') - data[i].rank <= 5)) {
+		if ((this.option.bp === 'Always' && rank - data[i].rank >= 4) || (!this.option.bp === 'Never' && rank - data[i].rank <= 5)) {
 			delete data[i];
 		}
 	}
@@ -169,6 +181,7 @@ Battle.update = function(type) {
 		while (list.length > Battle.option.cache) {
 			delete data[list.pop()];
 		}
+		list = [];
 	}
 	// Second choose our next target
 	if (this.option.arena && Arena.option.enabled && Arena.option.attacking) {
@@ -178,9 +191,22 @@ Battle.update = function(type) {
 		this.option.attacking = null;
 		Dashboard.status(this, 'Attacking Monsters');
 	} else {
-		if (!this.option.attacking || !data[this.option.attacking]
+		if ((!this.option.attacking || !data[this.option.attacking]) && this.option.prefer.length) {
+			for(j=0; j<this.option.prefer.length; j++) {
+				i = this.option.prefer[j];
+				if (!/[^0-9]/g.test(i)) {
+					data[i] = data[i] || {};
+					if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+					|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses)) { // Don't attack someone who wins more often
+						continue;
+					}
+					list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
+				}
+			}
+		}
+		if ((!this.option.preferonly || !list.length) && (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
+		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {
 				for (i=0; i<this.data.points.length; i++) {
 					if (this.data.points[i] < 10) {
@@ -188,24 +214,25 @@ Battle.update = function(type) {
 					}
 				}
 			}
-			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (this.option.army !== 'Any' && (data[i].army / army) > this.option.army)
-				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)
-				|| (this.option.points && points.length && typeof points[data[i].align] === 'undefined')) {
+				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
+				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
+				|| (this.option.points && points.length && data[i].align && typeof points[data[i].align] === 'undefined')) {
 					continue;
 				}
-				list.push(i);
+				for (j=Math.range(1,data[i].rank-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+					list.push(i);
+				}
 			}
-			if (list.length) {
-				i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
-				Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
-			} else {
-				this.option.attacking = null;
-				Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
-			}
+		}
+		if (list.length) {
+			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
+		} else if (!this.option.attacking || !data[this.option.attacking]) {
+			this.option.attacking = null;
+			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 		}
 	}
 }

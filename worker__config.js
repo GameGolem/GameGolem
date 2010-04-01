@@ -105,8 +105,10 @@ Config.makePanel = function(worker) {
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.label) {
 					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-					if (o.text || o.checkbox || o.select || o.multiple) {
+					if (o.text || o.checkbox || o.select) {
 						txt.push('<span style="float:right;">');
+					} else if (o.multiple) {
+						txt.push('<br>');
 					}
 				}
 				if (o.before) {
@@ -148,7 +150,7 @@ Config.makePanel = function(worker) {
 							list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
 						}
 					}
-					txt.push('<select style="width:100%" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
+					txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
 					if (typeof o.multiple === 'string') {
 						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
 					} else {
