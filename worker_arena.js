@@ -103,7 +103,7 @@ Arena.parse = function(change) {
 			return;
 		}
 		rank = Arena.rank[info[1]];
-		if ((Arena.option.bp === 'Always' && Arena.data.rank > rank) || (!Arena.option.bp === 'Never' && Arena.data.rank < rank)) {
+		if ((Arena.option.bp === 'Always' && Arena.data.rank - rank > 0) || (!Arena.option.bp === 'Never' && Arena.data.rank - rank < 0)) {
 			return;
 		}
 		data[uid] = data[uid] || {};
