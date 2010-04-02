@@ -1,7 +1,7 @@
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
-var Queue = new Worker('Queue', '*', {unsortable:true, option:true, keep:true});
+var Queue = new Worker('Queue', '*', {unsortable:true, keep:true});
 Queue.data = {
 	current: null
 };
@@ -143,7 +143,6 @@ Queue.run = function() {
 			} catch(e){
 				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
 			}
-			Workers[i]._flush();
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {
@@ -160,7 +159,7 @@ Queue.run = function() {
 				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
 				result = false;
 			}
-			worker._save(); // Save for everyone, only flush if not active
+			worker._save(); // Save for current only, nobody else should change anything
 		} else {
 			try {
 				result = worker.work(false);
@@ -177,7 +176,6 @@ Queue.run = function() {
 			debug('Queue: End '+worker.name);
 		}
 		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
-			worker._flush();
 			continue;
 		}
 		found = true;
@@ -197,5 +195,7 @@ Queue.run = function() {
 		debug('Queue: Trigger '+worker.name);
 	}
 //	debug('End Queue');
-	this._save();
+	for (i=0; i<Workers.length; i++) {
+		Workers[i]._flush();
+	}
 };

@@ -34,20 +34,16 @@ Page.init = function() {
 
 Page.parse_all = function() {
 	Page.identify();
-	var i, result, list = [];
+	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 			Workers[i]._load();
 			try {
-				result = Workers[i].parse(false);
+				if (Workers[i].parse(false)) {
+					list.push(Workers[i]);
+				}
 			}catch(e) {
 				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
-				result = false;
-			}
-			if (result) {
-				list.push(Workers[i]);
-			} else {
-				Workers[i]._flush();
 			}
 		}
 	}
@@ -57,7 +53,9 @@ Page.parse_all = function() {
 		}catch(e) {
 			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
 		}
-		list[i]._flush();
+	}
+	for (i=0; i<Workers.length; i++) {
+		Workers[i]._flush();
 	}
 }
 

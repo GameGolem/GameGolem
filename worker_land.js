@@ -56,10 +56,10 @@ Land.update = function() {
 	}
 	if (best) {
 		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / income < this.option.wait && this.data[best].max - this.data[best].own >= 10)) {
-			buy = Math.max(this.data[best].max - this.data[best].own, 10);
+			buy = Math.min(this.data[best].max - this.data[best].own, 10);
 		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / income < this.option.wait && this.data[best].max - this.data[best].own >= 5)) {
-			buy = Math.max(this.data[best].max - this.data[best].own, 5);
-		} else if (this.data[best].cost <= worth){
+			buy = Math.min(this.data[best].max - this.data[best].own, 5);
+		} else {
 			buy = 1;
 		}
 		this.option.bestbuy = buy;
