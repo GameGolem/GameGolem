@@ -61,15 +61,19 @@ Generals.to = function(name) {
 	if (!name || Player.get('general') === name || name === 'any') {
 		return true;
 	}
+	var general = name;
 	if (!Generals.data[name]) {
-		log('General "'+name+'" requested but not found!');
-		return true; // Not found, so fake it
+		general = this.best(name);
+		if (general === 'any') {
+			log('General "'+name+'" requested but not found!');
+			return true; // Not found, so fake it
+		}
 	}
 	if (!Page.to('heroes_generals')) {
 		return false;
 	}
-	debug('Changing to General '+name);
-	Page.click('input[src$="'+Generals.data[name].img+'"]');
+	debug('Changing to General '+general);
+	Page.click('input[src$="'+Generals.data[general].img+'"]');
 	return false;
 };
 
@@ -77,7 +81,7 @@ Generals.best = function(type) {
 	if (!Generals.data) {
 		return 'any';
 	}
-	var rx = '', best = null, bestval = 0, i, value;
+	var rx = '', best = null, bestval = 0, i, value, list = [];
 	switch(type.toLowerCase()) {
 		case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
 		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
@@ -113,7 +117,12 @@ Generals.best = function(type) {
 			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
 				return Player.get('general');
 			}
-			return Generals.random(false);
+			for (i in Generals.data) {
+				if (Generals.data[i].level < 4) {
+					list.push(i);
+				}
+			}
+			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';
 		default:
 			return 'any';
 	}
@@ -130,22 +139,6 @@ Generals.best = function(type) {
 		debug('Best general found: '+best);
 	}
 	return best;
-};
-
-Generals.random = function(level4) { // Note - true means *include* level 4
-	var i, list = [];
-	for (i in Generals.data) {
-		if (level4) {
-			list.push(i);
-		} else if (Generals.data[i].level < 4) {
-			list.push(i);
-		}
-	}
-	if (list.length) {
-		return list[Math.floor(Math.random()*list.length)];
-	} else {
-		return 'any';
-	}
 };
 
 Generals.order = [];

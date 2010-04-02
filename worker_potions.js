@@ -4,8 +4,8 @@
 var Potions = new Worker('Potions', 'keep_stats');
 
 Potions.option = {
-	energy:'&infin;',
-	stamina:'&infin;',
+	energy:35,
+	stamina:35,
 	drink:false
 };
 

@@ -153,7 +153,7 @@ Quest.update = function(type) {
 		}
 	}
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	if (this.option.monster) {
+	if (this.option.monster && Monster.data) {
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
