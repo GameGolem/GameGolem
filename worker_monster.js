@@ -127,31 +127,35 @@ Monster.types = {
 		mpool:1
 	},
 	// Epic Team
-	dragon_emerald: { // DEAD image ???
+	dragon_emerald: {
 		name:'Emerald Dragon',
 		list:'dragon_list_green.jpg',
 		image:'dragon_monster_green.jpg',
+		dead:'dead_dragon_image_green.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
-	dragon_frost: { // DEAD image ???
+	dragon_frost: {
 		name:'Frost Dragon',
 		list:'dragon_list_blue.jpg',
 		image:'dragon_monster_blue.jpg',
+		dead:'dead_dragon_image_blue.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
-	dragon_gold: { // DEAD image ???
+	dragon_gold: {
 		name:'Gold Dragon',
 		list:'dragon_list_gold.jpg',
 		image:'dragon_monster_gold.jpg',
+		dead:'dead_dragon_image_gold.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
-	dragon_red: { // DEAD image ???
+	dragon_red: {
 		name:'Ancient Red Dragon',
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
+		dead:'dead_dragon_image_red.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
@@ -159,6 +163,7 @@ Monster.types = {
 		name:'Amethyst Sea Serpent',
 		list:'seamonster_list_purple.jpg',
 		image:'seamonster_purple.jpg',
+		//dead:'seamonster_dead.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
@@ -166,6 +171,7 @@ Monster.types = {
 		name:'Ancient Sea Serpent',
 		list:'seamonster_list_red.jpg',
 		image:'seamonster_red.jpg',
+		//dead:'seamonster_dead.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
@@ -173,6 +179,7 @@ Monster.types = {
 		name:'Emerald Sea Serpent',
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
+		//dead:'seamonster_dead.jpg',
 		timer:259200, // 72 hours
 		mpool:2
 	},
@@ -181,6 +188,7 @@ Monster.types = {
 		list:'seamonster_list_blue.jpg',
 		image:'seamonster_blue.jpg',
 		timer:259200, // 72 hours
+		//dead:'seamonster_dead.jpg',
 		mpool:2
 	},
 	// Epic World
