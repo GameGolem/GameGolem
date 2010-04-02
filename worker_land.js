@@ -55,9 +55,9 @@ Land.update = function() {
 		}
 	}
 	if (best) {
-		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / income < this.option.wait && this.data[best].max - this.data[best].own >= 10)) {
+		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / income < this.option.wait)) {
 			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / income < this.option.wait && this.data[best].max - this.data[best].own >= 5)) {
+		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / income < this.option.wait)) {
 			buy = Math.min(this.data[best].max - this.data[best].own, 5);
 		} else {
 			buy = 1;
@@ -81,7 +81,7 @@ Land.work = function(state) {
 //	var el = $('tr.land_buy_row:contains("'+this.option.best+'"),tr.land_buy_row_unique:contains("'+this.option.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		if ($('img', el).attr('alt') === Land.option.best) {
-			debug('Land: Buying ' + Land.option.bestbuy + ' x ' + Land.option.best + ' for $' + addCommas(Land.option.bestbuy));
+			debug('Land: Buying ' + Land.option.bestbuy + ' x ' + Land.option.best + ' for $' + addCommas(Land.option.bestcost));
 			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.option.bestbuy > 5 ? 10 : (Land.option.bestbuy > 1 ? 5 : 1));
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');
