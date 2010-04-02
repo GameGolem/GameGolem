@@ -19,6 +19,9 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
 #golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
+#golem-dashboard .golem-status { width: 100%; }\
+#golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
+#golem-dashboard .golem-status tbody td { text-align: left; }\
 table.golem-graph { height: 100px }\
 table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\

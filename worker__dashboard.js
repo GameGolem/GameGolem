@@ -63,7 +63,12 @@ Dashboard.init = function() {
 	});
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){
-			$(el).text(makeTimer($(el).text().parseTimer() - 1));
+			var time = $(el).text().parseTimer();
+			if (time && time > 0) {
+				$(el).text(makeTimer($(el).text().parseTimer() - 1));
+			} else {
+				$(el).removeClass('golem-timer').text('now?');
+			}
 		});
 	},1000);
 };
@@ -100,10 +105,11 @@ Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
 		if (this.data[Workers[i].name]) {
-			list.push('<div style="clear:both" id="golem-status-' + Workers[i].name + '"><b>' + Workers[i].name + ':</b> ' + this.data[Workers[i].name] + '</div>');
+			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
 		}
 	}
-	$('#golem-dashboard-Dashboard').html(list.join(''));
+	list.sort(); // Ok with plain text as first thing that can change is name
+	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
 Dashboard.status = function(worker, html) {

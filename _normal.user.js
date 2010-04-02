@@ -99,6 +99,9 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
 #golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
+#golem-dashboard .golem-status { width: 100%; }\
+#golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
+#golem-dashboard .golem-status tbody td { text-align: left; }\
 table.golem-graph { height: 100px }\
 table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
@@ -967,7 +970,12 @@ Dashboard.init = function() {
 	});
 	window.setInterval(function(){
 		$('.golem-timer').each(function(i,el){
-			$(el).text(makeTimer($(el).text().parseTimer() - 1));
+			var time = $(el).text().parseTimer();
+			if (time && time > 0) {
+				$(el).text(makeTimer($(el).text().parseTimer() - 1));
+			} else {
+				$(el).removeClass('golem-timer').text('now?');
+			}
 		});
 	},1000);
 };
@@ -1004,10 +1012,11 @@ Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
 		if (this.data[Workers[i].name]) {
-			list.push('<div style="clear:both" id="golem-status-' + Workers[i].name + '"><b>' + Workers[i].name + ':</b> ' + this.data[Workers[i].name] + '</div>');
+			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
 		}
 	}
-	$('#golem-dashboard-Dashboard').html(list.join(''));
+	list.sort(); // Ok with plain text as first thing that can change is name
+	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
 Dashboard.status = function(worker, html) {
@@ -1692,7 +1701,7 @@ Arena.parse = function(change) {
 			return;
 		}
 		rank = Arena.rank[info[1]];
-		if ((Arena.option.bp === 'Always' && Arena.data.rank > rank) || (!Arena.option.bp === 'Never' && Arena.data.rank < rank)) {
+		if ((Arena.option.bp === 'Always' && Arena.data.rank - rank > 0) || (!Arena.option.bp === 'Never' && Arena.data.rank - rank < 0)) {
 			return;
 		}
 		data[uid] = data[uid] || {};
@@ -2953,7 +2962,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average'), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average_cash'), best, buy = 0;
 	for (var i in this.data) {
 		if (this.data[i].buy) {
 			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
@@ -3565,20 +3574,20 @@ News.parse = function(change) {
 	if (change) {
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var txt = $(el).text(), uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
+			var txt = $(el).text().replace(/,/g, ''), uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
 			user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
 			if (txt.regex(/Victory!/i)) {
 				win++;
 				user[uid].lose++;
 				xp += txt.regex(/([0-9]+) experience/i);
 				bp += txt.regex(/([0-9]+) Battle Points!/i);
-				cash += txt.replace(',', '').regex(/\$([0-9]+)/i);
+				cash += txt.regex(/\$([0-9]+)/i);
 			} else {
 				lose++;
 				user[uid].win++;
 				xp -= txt.regex(/([0-9]+) experience/i);
 				bp -= txt.regex(/([0-9]+) Battle Points!/i);
-				cash -= txt.replace(',', '').regex(/\$([0-9]+)/i);
+				cash -= txt.regex(/\$([0-9]+)/i);
 				if (txt.regex(/You were killed/i)) {
 					deaths++;
 				}
@@ -3609,8 +3618,7 @@ News.parse = function(change) {
 */
 var Player = new Worker('Player', '*', {keep:true});
 Player.data = {
-	history:{},
-	average:0
+	history:{}
 };
 Player.option = null;
 Player.panel = null;
@@ -3682,15 +3690,11 @@ Player.parse = function(change) {
 		}
 	});
 	hour -= 168; // 24x7
-	data.average = 0;
 	for (var i in data.history) {
 		if (i < hour) {
 			delete data.history[i];
-		} else {
-			data.average += (data.history[i].income || 0);
 		}
 	}
-	data.average = Math.floor(data.average / length(data.average));
 	return false;
 };
 
@@ -3706,19 +3710,26 @@ Player.update = function(type) {
 			Config.set(types[j], list);
 		}
 	}
+	Dashboard.status(this, 'Estimated time to next level <span class="golem-timer">' + this.get('level_timer') + '</span>, extra income $' + addCommas(this.get('average_cash')) + ' per hour');
 };
 
 Player.get = function(what) {
+	var i, j = 0, data = this.data;
 	switch(what) {
 		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 		case 'cash_timer':		var when = new Date();
-								return (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health':			return $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'level_timer':		return (3600 * (this.maxexp - this.exp) / this.get('average_exp'));
+		case 'average_cash':	for (i in data.history) {j += (data.history[i].income || 0);}
+								return Math.floor(j / length(data.history));
+		case 'average_exp':		for (i in data.history) {j += (data.history[i].exp || 0);}
+								return Math.floor(j / length(data.history));
 		default:				return this._get(what);
 	}
 };
@@ -4178,18 +4189,30 @@ Town.data = {
 	blacksmith: {},
 	magic: {}
 };
+Town.option = {
+	number:'Minimum',
+	units:'All',
+	sell:false
+};
 
 Town.display = [
 	{
 		label:'Work in progress...'
 	},{
-		id:'general',
-		label:'Buy Number:',
-		select:['None', 'Maximum', 'Match Army']
+		id:'number',
+		label:'Buy Number',
+		select:['None', 'Minimum', 'Match Army', 'Maximum'],
+		help:'Minimum will buy before any quests (otherwise only bought when needed), Maximum will buy 501 (depending on generals)'
 	},{
+		advanced:true,
 		id:'units',
-		label:'Buy Type:',
+		label:'Buy Type',
 		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
+	},{
+		advanced:true,
+		id:'sell',
+		label:'Auto-Sell<br>(Not enabled)',
+		checkbox:true
 	}
 ];
 
@@ -4276,7 +4299,7 @@ Town.update = function(type) {
 	dd += getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
 	Town.data.invade = { attack:ia, defend:id };
 	Town.data.duel = { attack:da, defend:dd };
-}
+};
 
 Town.work = function(state) {
 	if (!Town.option.number) {
@@ -4378,7 +4401,7 @@ Town.dashboard = function() {
 			+'</div></div></div>';
 
 	$('#golem-dashboard-Town').html(left+right);
-}
+};
 
 /********** Worker.Upgrade **********
 * Spends upgrade points

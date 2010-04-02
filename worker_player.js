@@ -3,8 +3,7 @@
 */
 var Player = new Worker('Player', '*', {keep:true});
 Player.data = {
-	history:{},
-	average:0
+	history:{}
 };
 Player.option = null;
 Player.panel = null;
@@ -76,15 +75,11 @@ Player.parse = function(change) {
 		}
 	});
 	hour -= 168; // 24x7
-	data.average = 0;
 	for (var i in data.history) {
 		if (i < hour) {
 			delete data.history[i];
-		} else {
-			data.average += (data.history[i].income || 0);
 		}
 	}
-	data.average = Math.floor(data.average / length(data.average));
 	return false;
 };
 
@@ -100,19 +95,26 @@ Player.update = function(type) {
 			Config.set(types[j], list);
 		}
 	}
+	Dashboard.status(this, 'Estimated time to next level <span class="golem-timer">' + this.get('level_timer') + '</span>, extra income $' + addCommas(this.get('average_cash')) + ' per hour');
 };
 
 Player.get = function(what) {
+	var i, j = 0, data = this.data;
 	switch(what) {
 		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 		case 'cash_timer':		var when = new Date();
-								return (3600 + Player.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health':			return $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'level_timer':		return (3600 * (this.maxexp - this.exp) / this.get('average_exp'));
+		case 'average_cash':	for (i in data.history) {j += (data.history[i].income || 0);}
+								return Math.floor(j / length(data.history));
+		case 'average_exp':		for (i in data.history) {j += (data.history[i].exp || 0);}
+								return Math.floor(j / length(data.history));
 		default:				return this._get(what);
 	}
 };

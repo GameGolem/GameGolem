@@ -7,18 +7,30 @@ Town.data = {
 	blacksmith: {},
 	magic: {}
 };
+Town.option = {
+	number:'Minimum',
+	units:'All',
+	sell:false
+};
 
 Town.display = [
 	{
 		label:'Work in progress...'
 	},{
-		id:'general',
-		label:'Buy Number:',
-		select:['None', 'Maximum', 'Match Army']
+		id:'number',
+		label:'Buy Number',
+		select:['None', 'Minimum', 'Match Army', 'Maximum'],
+		help:'Minimum will buy before any quests (otherwise only bought when needed), Maximum will buy 501 (depending on generals)'
 	},{
+		advanced:true,
 		id:'units',
-		label:'Buy Type:',
+		label:'Buy Type',
 		select:['All', 'Best Offense', 'Best Defense', 'Best of Both']
+	},{
+		advanced:true,
+		id:'sell',
+		label:'Auto-Sell<br>(Not enabled)',
+		checkbox:true
 	}
 ];
 
@@ -105,7 +117,7 @@ Town.update = function(type) {
 	dd += getAttDef(Town.data.blacksmith, null, 'def', 1, 'duel');
 	Town.data.invade = { attack:ia, defend:id };
 	Town.data.duel = { attack:da, defend:dd };
-}
+};
 
 Town.work = function(state) {
 	if (!Town.option.number) {
@@ -207,5 +219,5 @@ Town.dashboard = function() {
 			+'</div></div></div>';
 
 	$('#golem-dashboard-Town').html(left+right);
-}
+};
 
