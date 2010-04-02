@@ -27,7 +27,7 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest']
+		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread']
 	},{
 		id:'raid',
 		label:'Raid',
@@ -282,7 +282,10 @@ Monster.parse = function(change) {
 			monster.state = 'reward';
 		} else {
 			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-				if ($('span.result_body').text().match(/for your help in summoning/i)) {
+			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
+				monster.battle_count = (monster.battle_count || 0) + 1;
+				}
+			if ($('span.result_body').text().match(/for your help in summoning/i)) {
 					monster.assist = Date.now();
 				}
 				monster.state = 'assist';
@@ -409,7 +412,8 @@ Monster.work = function(state) {
 					} else if (!best
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
-					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)) {
+					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer))
+					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster.data[best[0]][best[1]].battle_count){
 						best = [uid, type];
 					}
 				}
@@ -554,7 +558,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + Math.floor(monster.health) + '%)');
 		td(output, blank ? '' : isNumber(monster.defense) ? Math.floor(monster.defense)+'%' : '');
 		td(output, blank ? '' : isNumber(monster.dispel) ? Math.floor(monster.dispel)+'%' : '');
-		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '');
+		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
 		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
 		tr(list, output.join(''));
