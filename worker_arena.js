@@ -119,7 +119,7 @@ Arena.update = function(type) {
 	var i, list = [], data = this.data.user, army = Player.get('army'), level = Player.get('level');
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && this.data.rank > data[i].rank) || (!this.option.bp === 'Never' && this.data.rank < data[i].rank)) {
+		if ((this.option.bp === 'Always' && this.data.rank - data[i].rank > 0) || (!this.option.bp === 'Never' && this.data.rank - data[i].rank < 0)) {
 			delete data[i];
 		}
 	}
