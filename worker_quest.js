@@ -99,11 +99,11 @@ Quest.parse = function(change) {
 			quest[name].itemimg	= tmp.attr('src').filepart();
 		}
 		units = {};
-		$('.quest_req > div > div > div', el).each(function(i,el){
+		$('.quest_req >div >div >div', el).each(function(i,el){
 			var title = $('img', el).attr('title');
 			units[title] = $(el).text().regex(/([0-9]+)/);
 		});
-		if (units.length) {
+		if (length(units)) {
 			quest[name].units = units;
 		}
 		tmp = $('.quest_act_gen img', el);

@@ -58,22 +58,21 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
+	if (name && !Generals.data[name]) {
+		name = this.best(name);
+	}
 	if (!name || Player.get('general') === name || name === 'any') {
 		return true;
 	}
-	var general = name;
-	if (!Generals.data[name]) {
-		general = this.best(name);
-		if (general === 'any') {
-			log('General "'+name+'" requested but not found!');
-			return true; // Not found, so fake it
-		}
+	if (!name || !Generals.data[name]) {
+		log('General "'+name+'" requested but not found!');
+		return true; // Not found, so fake it
 	}
 	if (!Page.to('heroes_generals')) {
 		return false;
 	}
-	debug('Changing to General '+general);
-	Page.click('input[src$="'+Generals.data[general].img+'"]');
+	debug('Changing to General '+name);
+	Page.click('input[src$="'+Generals.data[name].img+'"]');
 	return false;
 };
 
@@ -135,9 +134,9 @@ Generals.best = function(type) {
 			}
 		}
 	}
-	if (best) {
-		debug('Best general found: '+best);
-	}
+//	if (best) {
+//		debug('Best general found: '+best);
+//	}
 	return best;
 };
 
