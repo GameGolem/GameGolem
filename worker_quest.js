@@ -191,7 +191,7 @@ Quest.work = function(state) {
 					}
 					break;
 				case 'Cash':
-					general = Generals.best('income');
+					general = Generals.best('cash');
 					break;
 				default:
 					general = Generals.best('item');

@@ -87,6 +87,7 @@ Generals.best = function(type) {
 		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
 		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
+		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 		case 'invade':
 			for (i in Generals.data) {
 				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.get('general'))) {
