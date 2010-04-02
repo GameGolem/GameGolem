@@ -102,6 +102,7 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard .golem-status { width: 100%; }\
 #golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
 #golem-dashboard .golem-status tbody td { text-align: left; }\
+#golem-dashboard .overlay { position: absolute; margin: 6px; color: #1fc23a; text-shadow: black 1px 1px 2px; }\
 table.golem-graph { height: 100px }\
 table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
@@ -183,11 +184,11 @@ String.prototype.parseTimer = function() {
 
 Number.prototype.round = function(dec) {
 	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
-}
+};
 
 Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
-}
+};
 
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
@@ -282,7 +283,7 @@ var sortObject = function(object, sortfunc) {
 	}
 	list.sort(sortfunc);
 	return list;
-}
+};
 
 var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
@@ -325,19 +326,23 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 
 var tr = function(list, html, attr) {
 	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + html + '</tr>');
-}
+};
 
 var th = function(list, html, attr) {
 	list.push('<th' + (attr ? ' ' + attr : '') + '>' + html + '</th>');
-}
+};
 
 var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
-}
+};
 
 var isArray = function(obj) {   
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
-}
+};
+
+var isNumber = function(num) {
+	return num && typeof num === 'number';
+};
 
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
@@ -3249,6 +3254,11 @@ Monster.init = function() {
 			}
 		}
 	}
+	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
+		var url = $(this).attr('href');
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
+		return false;
+	});
 }
 
 Monster.parse = function(change) {
@@ -3495,7 +3505,7 @@ Monster.work = function(state) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3};
+	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3}, blank;
 	if (typeof sort === 'undefined') {
 		sort = 1; // Default = sort by name
 		Monster.order = [];
@@ -3525,8 +3535,15 @@ Monster.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
-
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>User</th><th title="(estimated)">Health</th><th>Fortify</th><th>Shield</th><th>Damage</th><th>Time Left</th><th title="(estimated)">Kill In</th></tr></thead><tbody>');
+	th(output, '');
+	th(output, 'User');
+	th(output, 'Health', 'title="(estimated)"');
+	th(output, 'Fortify');
+	th(output, 'Shield');
+	th(output, 'Damage');
+	th(output, 'Time Left');
+	th(output, 'Kill In', 'title="(estimated)"');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
 		j = Monster.order[o][1];
@@ -3535,6 +3552,7 @@ Monster.dashboard = function(sort, rev) {
 		}
 		output = [];
 		monster = Monster.data[i][j];
+		blank = !((monster.state === 'engage' || monster.state === 'assist') && monster.total);
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
@@ -3544,28 +3562,18 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
 		}
-		output.push('<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong  style="position:absolute;margin:6px;color:#1fc23a;text-shadow:black 1px 1px 2px;">' + monster.state + '</strong><img src="' + imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '" title="' + (Monster.types[j].name ? Monster.types[j].name : j) + '"></a>');
-		output.push(Monster.data[i][j].name);
-		if ((monster.state === 'engage' || monster.state === 'assist') && monster.total) {
-			output.push(monster.health===100 ? '?' : addCommas(monster.total - monster.damage_total) + ' (' + Math.floor(monster.health) + '%)');
-			output.push(typeof monster.defense === 'number' ? Math.floor(monster.defense)+'%' : '');
-			output.push(typeof monster.dispel === 'number' ? Math.floor(monster.dispel)+'%' : '');
-			output.push(monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '');
-			output.push(monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
-			output.push(monster.health===100 ? '?' : '<span class="golem-timer">'+makeTimer((monster.eta - Date.now()) / 1000)+'</span>');
-		} else {
-			output.push('', '', '', '', '', '');
-		}
-		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong class="overlay">' + monster.state + '</strong><img src="' + imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '"></a>', 'title="' + Monster.types[j].name + '"');
+		th(output, Monster.data[i][j].name);
+		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + Math.floor(monster.health) + '%)');
+		td(output, blank ? '' : isNumber(monster.defense) ? Math.floor(monster.defense)+'%' : '');
+		td(output, blank ? '' : isNumber(monster.dispel) ? Math.floor(monster.dispel)+'%' : '');
+		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '');
+		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
+		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
-	$('#golem-dashboard-Monster tbody td a').click(function(event){
-		var url = $(this).attr('href');
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
-		return false;
-	});
-	$('#golem-dashboard-Monster tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Monster thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}

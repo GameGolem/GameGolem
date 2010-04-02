@@ -22,6 +22,7 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard .golem-status { width: 100%; }\
 #golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
 #golem-dashboard .golem-status tbody td { text-align: left; }\
+#golem-dashboard .overlay { position: absolute; margin: 6px; color: #1fc23a; text-shadow: black 1px 1px 2px; }\
 table.golem-graph { height: 100px }\
 table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\

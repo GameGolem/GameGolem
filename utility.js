@@ -55,11 +55,11 @@ String.prototype.parseTimer = function() {
 
 Number.prototype.round = function(dec) {
 	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
-}
+};
 
 Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
-}
+};
 
 //Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
@@ -154,7 +154,7 @@ var sortObject = function(object, sortfunc) {
 	}
 	list.sort(sortfunc);
 	return list;
-}
+};
 
 var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
@@ -197,19 +197,23 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 
 var tr = function(list, html, attr) {
 	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + html + '</tr>');
-}
+};
 
 var th = function(list, html, attr) {
 	list.push('<th' + (attr ? ' ' + attr : '') + '>' + html + '</th>');
-}
+};
 
 var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
-}
+};
 
 var isArray = function(obj) {   
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
-}
+};
+
+var isNumber = function(num) {
+	return num && typeof num === 'number';
+};
 
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
