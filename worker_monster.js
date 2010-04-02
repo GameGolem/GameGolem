@@ -73,7 +73,7 @@ Monster.types = {
 	colossus: {
 		name:'Colossus of Terra',
 		list:'stone_giant_list.jpg',
-		image:'stone_giant.jpg',
+		image:'stone_giant_large.jpg',
 		dead:'stone_giant_dead.jpg',
 		timer:259200, // 72 hours
 		mpool:1

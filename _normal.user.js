@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.5
+// @version		30.6
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.5;
+var VERSION = 30.6;
 var script_started = Date.now();
 
 // Automatically filled
@@ -3085,7 +3085,7 @@ Monster.types = {
 	colossus: {
 		name:'Colossus of Terra',
 		list:'stone_giant_list.jpg',
-		image:'stone_giant.jpg',
+		image:'stone_giant_large.jpg',
 		dead:'stone_giant_dead.jpg',
 		timer:259200, // 72 hours
 		mpool:1
