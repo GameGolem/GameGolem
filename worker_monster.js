@@ -412,8 +412,8 @@ Monster.work = function(state) {
 					} else if (!best
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
-					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer))
-					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster.data[best[0]][best[1]].battle_count){
+					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
+					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster.data[best[0]][best[1]].battle_count)) {
 						best = [uid, type];
 					}
 				}

@@ -91,7 +91,7 @@ Dashboard.update = function(type) {
 		try {
 			result = worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + workers.name + '.dashboard(): ' + e.message);
+			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
 		}
 		if (flush) {
 			worker._flush();
