@@ -1,3 +1,83 @@
+// ==UserScript==
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		30.5
+// @include		http*://apps.*facebook.com/castle_age/*
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// ==/UserScript==
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+// User changeable
+var show_debug = true;
+
+// Shouldn't touch
+var VERSION = 30.5;
+var script_started = Date.now();
+
+// Automatically filled
+var userID = 0;
+var imagepath = '';
+
+// Decide which facebook app we're in...
+var applications = {
+	'castle_age':['46755028429', 'Castle Age']
+};
+
+if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
+	for (var i in applications) {
+		if (window.location.pathname.indexOf(i) === 1) {
+			var APP = i;
+			var APPID = applications[i][0];
+			var APPNAME = applications[i][1];
+			var PREFIX = 'golem'+APPID+'_';
+			break;
+		}
+	}
+}
+
+var log = console.log;
+
+if (show_debug) {
+	var debug = console.log;
+} else {
+	var debug = function(){};
+}
+
+if (typeof unsafeWindow === 'undefined') {
+	unsafeWindow = window;
+}
+
+/********** main() **********
+* Runs when the page has finished loading, but the external data might still be coming in
+*/
+if (typeof APP !== 'undefined') {
+	$(document).ready(function() {
+		var i;
+		userID = $('head').html().regex(/user:([0-9]+),/i);
+		imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+		do_css();
+		Page.identify();
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._load();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._init();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._update();
+			Workers[i]._flush();
+		}
+		Page.parse_all(); // Call once to get the ball rolling...
+	});
+}
+
 /********** CSS code **********
 * Gets pushed into the <head> on loading
 */
@@ -533,6 +613,907 @@ function Worker(name,pages,settings) {
 		return false;
 	};
 }
+
+/********** Worker.Config **********
+* Has everything to do with the config
+*/
+var Config = new Worker('Config', null, {keep:true});
+Config.option = {
+	display:'block',
+	fixed:true,
+	advanced:false
+};
+
+Config.init = function() {
+	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
+	var $btn, $golem_config, $newPanel, i;
+	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
+	$('#golem_options').click(function(){
+		$(this).toggleClass('golem-button golem-button-active');
+		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
+		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
+		Config._save('option');
+	});
+	$('#golem_fixed').click(function(){
+		Config.option.fixed ^= true;
+		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
+		Config._save('option');
+	});
+	$golem_config = $('#golem_config');
+	for (i in Workers) {
+		$golem_config.append(Config.makePanel(Workers[i]));
+	}
+	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
+	$('.golem-config .golem-panel > h3').click(function(event){
+		if ($(this).parent().hasClass('golem-panel-show')) {
+			$(this).next().hide('blind',function(){
+				$(this).parent().toggleClass('golem-panel-show');
+				Config.option.active = [];
+				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+				Config._save('option');
+			});
+		} else {
+			$(this).parent().toggleClass('golem-panel-show');
+			$(this).next().show('blind');
+			Config.option.active = [];
+			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
+			Config._save('option');
+		}
+	});
+	$golem_config.children('.golem-panel-sortable')
+		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
+refreshPositions:true, stop:function(){Config.updateOptions();} })
+		.droppable({ tolerance:'pointer', over:function(e,ui) {
+			if (Config.getPlace($(this).attr('id')) < Config.getPlace($(ui.draggable).attr('id'))) {
+				$(this).before(ui.draggable);
+			} else {
+				$(this).after(ui.draggable);
+			}
+		} });
+	for (i in Workers) { // Update all select elements
+		if (Workers[i].select) {
+			Workers[i].select();
+		}
+	}
+	$('input.golem_addselect').live('click', function(){
+		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
+		Config.updateOptions();
+	});
+	$('input.golem_delselect').live('click', function(){
+		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
+		Config.updateOptions();
+	});
+	$('input,textarea,select', $golem_config).change( function(){
+		Config.updateOptions();
+	});
+	$('#golem-config-advanced').click(function(){
+		Config.updateOptions();
+		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
+	);
+};
+
+Config.makePanel = function(worker) {
+	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
+		before: '',
+		after: '',
+		suffix: '',
+		className: '',
+		between: 'to',
+		size: 7,
+		min: 0,
+		max: 100
+	};
+	if (!display) {
+		return false;
+	}
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
+	show = findInArray(Config.option.active, worker.id);
+	$head = $('<div id="'+worker.id+'" class="golem-panel'+(worker.settings.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
+	switch (typeof display) {
+		case 'array':
+		case 'object':
+			for (i in display) {
+				txt = [];
+				list = [];
+				o = $.extend(true, {}, options, display[i]);
+				o.real_id = PREFIX + worker.name + '_' + o.id;
+				o.value = worker.option[o.id] || null;
+				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+				if (o.label) {
+					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
+					if (o.text || o.checkbox || o.select) {
+						txt.push('<span style="float:right;">');
+					} else if (o.multiple) {
+						txt.push('<br>');
+					}
+				}
+				if (o.before) {
+					txt.push(o.before+' ');
+				}
+				// our different types of input elements
+				if (o.info) { // only useful for externally changed
+					if (o.id) {
+						txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
+					} else {
+						txt.push(o.info);
+					}
+				} else if (o.text) {
+					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || '') + '">');
+				} else if (o.checkbox) {
+					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+				} else if (o.select) {
+					switch (typeof o.select) {
+						case 'number':
+							step = Divisor(o.select);
+							for (x=0; x<=o.select; x+=step) {
+								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
+							}
+							break;
+						case 'string':
+							o.className = ' class="golem_'+o.select+'"';
+							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
+								o.select = this.data[o.select];
+							} else {
+								break; // deliverate fallthrough
+							}
+						case 'array':
+						case 'object':
+							if (isArray(o.select)) {
+								for (x=0; x<o.select.length; x++) {
+									list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+							} else {
+								for (x in o.select) {
+									list.push('<option value="' + x + '"' + (o.value==x ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+								}
+							}
+							break;
+					}
+					txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
+				} else if (o.multiple) {
+					if (typeof o.value === 'array' || typeof o.value === 'object') {
+						for (i in o.value) {
+							list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
+						}
+					}
+					txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
+					if (typeof o.multiple === 'string') {
+						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+					} else {
+						list = [];
+						switch (typeof o.multiple) {
+							case 'number':
+								step = Divisor(o.select);
+								for (x=0; x<=o.multiple; x+=step) {
+									list.push('<option>' + x + '</option>');
+								}
+								break;
+							case 'array':
+							case 'object':
+								if (isArray(o.multiple)) {
+									for (x=0; x<o.multiple.length; x++) {
+										list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
+								} else {
+									for (x in o.multiple) {
+										list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+									}
+								}
+								break;
+						}
+						txt.push('<select class="golem_select">'+list.join('')+'</select>');
+					}
+					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+				}
+				if (o.after) {
+					txt.push(' '+o.after);
+				}
+				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
+					txt.push('</span>');
+				}
+				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '"') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+			}
+			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
+			return $head;
+//		case 'function':
+//			$panel = display();
+//			if ($panel) {
+//				$head.append($panel);
+//				return $head;
+//			}
+//			return null;
+		default:
+			return null;
+	}
+};
+
+Config.set = function(key, value) {
+	if (!this._loaded) {
+		this._init();
+	} else if (!this.data) {
+		this.data = {};
+	}
+	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
+		this.data[key] = value;
+		$('select.golem_' + key).each(function(i,el){
+			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
+			if (isArray(list)) {
+				for (i=0; i<list.length; i++) {
+					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			} else {
+				for (i in list) {
+					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+				}
+			}
+			$(el).html(options.join(''));
+		});
+		this._save();
+		return true;
+	}
+	return false;
+};
+
+Config.updateOptions = function() {
+//	debug('Options changed');
+	// Get order of panels first
+	var found = {}, i;
+	Queue.option.queue = [];
+	$('#golem_config > div').each(function(i,el){
+		var name = WorkerById($(el).attr('id')).name;
+		if (!found[name]) {
+			Queue.option.queue.push(name);
+		}
+		found[name] = true;
+	});
+	// Now can we see the advanced stuff
+	this.option.advanced = $('#golem-config-advanced').attr('checked');
+	// Now save the contents of all elements with the right id style
+	$('#golem_config :input').each(function(i,el){
+		if ($(el).attr('id')) {
+			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
+			if (!tmp) {
+				return;
+			}
+			if ($(el).attr('type') === 'checkbox') {
+				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
+			} else if ($(el).attr('multiple')) {
+				val = [];
+				$('option', el).each(function(i,el){ val.push($(el).text()); });
+				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			} else {
+				val = $(el).attr('value') || ($(el).val() || null);
+				if (val && val.search(/[^0-9.]/) === -1) {
+					val = parseFloat(val);
+				}
+				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			}
+		}
+	});
+	for (i=0; i<Workers.length; i++) {
+		Workers[i]._save('option');
+	}
+};
+
+Config.getPlace = function(id) {
+	var place = -1;
+	$('#golem_config > div').each(function(i,el){
+		if ($(el).attr('id') === id && place === -1) {
+			place = i;
+		}
+	});
+	return place;
+};
+
+/********** Worker.Dashboard **********
+* Displays statistics and other useful info
+*/
+var Dashboard = new Worker('Dashboard', '*', {keep:true});
+Dashboard.option = {
+	display:'block',
+	active:null
+};
+
+Dashboard.init = function() {
+	var id, $btn, tabs = [], divs = [], active = this.option.active;
+	for (i=0; i<Workers.length; i++) {
+		if (Workers[i].dashboard) {
+			id = 'golem-dashboard-'+Workers[i].name;
+			if (!active) {
+				this.option.active = active = id;
+			}
+			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
+			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			this._watch(Workers[i]);
+		}
+	}
+	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('.golem-tab-header').click(function(){
+		if ($(this).hasClass('golem-tab-header-active')) {
+			return;
+		}
+		if (Dashboard.option.active) {
+			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
+			$('#'+Dashboard.option.active).hide();
+		}
+		Dashboard.option.active = $(this).attr('name');
+		$(this).addClass('golem-tab-header-active');
+		Dashboard.update();
+		$('#'+Dashboard.option.active).show();
+		Dashboard._save('option');
+	});
+	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
+		if ($(this).parent().hasClass('golem-panel-show')) {
+			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
+		} else {
+			$(this).parent().toggleClass('golem-panel-show');
+			$(this).next().show('blind');
+		}
+	});
+	$('#golem-dashboard thead th').live('click', function(event){
+		var worker = WorkerByName(Dashboard.option.active.substr(16));
+		if (!worker.data) {
+			worker._load();
+		}
+		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+	});
+
+	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
+	$('#golem_toggle_dash').click(function(){
+		$(this).toggleClass('golem-button golem-button-active');
+		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
+		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
+			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
+		}
+		$('#golem-dashboard').toggle('drop');
+		Dashboard._save('option');
+	});
+	window.setInterval(function(){
+		$('.golem-timer').each(function(i,el){
+			var time = $(el).text().parseTimer();
+			if (time && time > 0) {
+				$(el).text(makeTimer($(el).text().parseTimer() - 1));
+			} else {
+				$(el).removeClass('golem-timer').text('now?');
+			}
+		});
+	},1000);
+};
+
+Dashboard.parse = function(change) {
+	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
+};
+
+Dashboard.update = function(type) {
+	if (!this._loaded || (type && typeof type !== 'object')) {
+		return;
+	}
+	worker = type || WorkerByName(Dashboard.option.active.substr(16));
+	var id = 'golem-dashboard-'+worker.name, flush = false;
+	if (this.option.active === id && this.option.display === 'block') {
+		if (!worker.data) {
+			flush = true;
+			worker._load('data');
+		}
+		try {
+			result = worker.dashboard();
+		}catch(e) {
+			debug(e.name + ' in ' + workers.name + '.dashboard(): ' + e.message);
+		}
+		if (flush) {
+			worker._flush();
+		}
+	} else {
+		$('#'+id).empty();
+	}
+};
+
+Dashboard.dashboard = function() {
+	var i, list = [];
+	for (i=0; i<Workers.length; i++) {
+		if (this.data[Workers[i].name]) {
+			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
+		}
+	}
+	list.sort(); // Ok with plain text as first thing that can change is name
+	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
+};
+
+Dashboard.status = function(worker, html) {
+	if (html) {
+		this.data[worker.name] = html;
+	} else {
+		delete this.data[worker.name];
+	}
+	this._save();
+};
+
+/********** Worker.Page() **********
+* All navigation including reloading
+*/
+var Page = new Worker('Page', null, {unsortable:true, keep:true});
+Page.option = {
+	timeout: 15,
+	retry: 5
+};
+Page.page = '';
+Page.last = null; // Need to have an "auto retry" after a period
+Page.lastclick = null;
+Page.when = null;
+Page.retry = 0;
+Page.checking = true;
+Page.node_trigger = null;
+Page.display = [
+	{
+		id:'timeout',
+		label:'Retry after',
+		select:[10, 15, 30, 60],
+		after:'seconds'
+	}
+];
+
+Page.init = function() {
+	// Only perform the check on the two id's referenced in get_cached_ajax()
+	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
+	$('body').bind('DOMNodeInserted', function(event){
+		if (!Page.node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
+			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all();},100);
+		}
+	});
+};
+
+Page.parse_all = function() {
+	Page.identify();
+	var i, list = [];
+	for (i=0; i<Workers.length; i++) {
+		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+			Workers[i]._load();
+			try {
+				if (Workers[i].parse(false)) {
+					list.push(Workers[i]);
+				}
+			}catch(e) {
+				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
+			}
+		}
+	}
+	for (i in list) {
+		try {
+			list[i].parse(true);
+		}catch(e) {
+			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
+		}
+	}
+	for (i=0; i<Workers.length; i++) {
+		Workers[i]._flush();
+	}
+}
+
+
+Page.work = function(state) {
+	if (!this.checking) {
+		return false;
+	}
+	var i, l, list, found = null;
+	for (i=0; i<Workers.length && !found; i++) {
+		if (!Workers[i].pages || Workers[i].pages==='*') {
+			continue;
+		}
+		list = Workers[i].pages.split(' ');
+		for (l=0; l<list.length; l++) {
+			if (this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
+				found = list[l];
+				break;
+			}
+		}
+	}
+	if (!state) {
+		if (found) {
+			return true;
+		}
+		this.checking = false;
+		return false;
+	}
+	if (found && !this.to(found)) {
+		this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
+		return true;
+	}
+	return false;
+};
+
+Page.pageNames = {
+	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+	town_land:				{url:'land.php', image:'tab_land_on.gif'},
+	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
+	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
+	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
+	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
+	army_invite:			{url:'army.php', image:'invite_on.gif'},
+	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
+	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
+};
+
+Page.identify = function() {
+	this.page = '';
+	if (!$('#app'+APPID+'_globalContainer').length) {
+		this.reload();
+		return null;
+	}
+	var app_body = $('#app'+APPID+'_app_body'), p;
+	$('img', app_body).each(function(i,el){
+		var filename = $(el).attr('src').filepart();
+		for (p in Page.pageNames) {
+			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
+				Page.page = p;
+				return;
+			}
+		}
+	});
+	if (!this.page) {
+		for (p in Page.pageNames) {
+			if (Page.pageNames[p].selector && $(Page.pageNames[p].selector, app_body).length) {
+				Page.page = p;
+			}
+		}
+	}
+	if (this.page !== '') {
+		this.data[this.page] = Date.now();
+	}
+//	debug('this.identify("'+Page.page+'")');
+	return this.page;
+};
+
+Page.loading = false;
+Page.to = function(page, args) {
+	if (Queue.option.pause) {
+		debug('Trying to load page when paused...');
+		return true;
+	}
+	if (page === this.page && typeof args === 'undefined') {
+		return true;
+	}
+	if (!args) {
+		args = '';
+	}
+	if (page && this.pageNames[page] && this.pageNames[page].url) {
+		this.clear();
+		this.last = this.pageNames[page].url;
+		this.when = Date.now();
+		if (args.indexOf('?') === 0 && this.last.indexOf('?') > 0) {
+			this.last = this.last.substr(0, this.last.indexOf('?')) + args;
+		} else {
+			this.last = this.last + args;
+		}
+		debug('Navigating to '+this.last+' ('+this.pageNames[page].url+')');
+		this.ajaxload();
+	}
+	return false;
+};
+
+Page.ajaxload = function() {
+	$.ajax({
+		cache:false,
+		dataType:'text',
+		timeout:this.option.timeout * 1000,
+		url:'http://apps.facebook.com/castle_age/'+this.last,
+		error:function() {
+			debug('Page not loaded correctly, reloading.');
+			Page.ajaxload();
+		},
+		success:function(data){
+			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
+				Page.loading = false;
+				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
+				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
+				$('#app'+APPID+'_globalContainer').empty().append(data);
+			} else {
+				debug('Page not loaded correctly, reloading.');
+				Page.ajaxload();
+			}
+		}
+	});
+	this.loading = true;
+	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
+};
+
+Page.reload = function() {
+	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
+};
+
+Page.click = function(el) {
+	if (!$(el).length) {
+		debug('Page.click: Unable to find element - '+el);
+		return false;
+	}
+	var e = document.createEvent("MouseEvents");
+	e.initEvent("click", true, true);
+	$(el).get(0).wrappedJSObject.dispatchEvent(e);
+	this.clear();
+	this.lastclick = el;
+	this.when = Date.now();
+	return true;
+};
+
+Page.clear = function() {
+	this.last = this.lastclick = this.when = null;
+	this.retry = 0;
+};
+
+/********** Worker.Queue() **********
+* Keeps track of the worker queue
+*/
+var Queue = new Worker('Queue', '*', {unsortable:true, keep:true});
+Queue.data = {
+	current: null
+};
+Queue.option = {
+	delay: 5,
+	clickdelay: 5,
+	queue: ["Page", "Queue", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	start_stamina: 0,
+	stamina: 0,
+	start_energy: 0,
+	energy: 0
+};
+Queue.display = [
+	{
+		label:'Drag the unlocked panels into the order you wish them run.'
+	},{
+		id:'delay',
+		label:'Delay Between Events',
+		text:true,
+		after:'secs',
+		size:3
+	},{
+		id:'clickdelay',
+		label:'Delay After Mouse Click',
+		text:true,
+		after:'secs',
+		size:3,
+		help:'This should be a multiple of Event Delay'
+	},{
+		id:'start_stamina',
+		before:'Save',
+		select:'stamina',
+		after:'Stamina Before Using'
+	},{
+		id:'stamina',
+		before:'Always Keep',
+		select:'stamina',
+		after:'Stamina'
+	},{
+		id:'start_energy',
+		before:'Save',
+		select:'energy',
+		after:'Energy Before Using'
+	},{
+		id:'energy',
+		before:'Always Keep',
+		select:'energy',
+		after:'Energy'
+	}
+];
+Queue.runfirst = [];
+Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
+Queue.lastrun = Date.now();		// Last time we ran
+Queue.burn = {stamina:false, energy:false};
+Queue.timer = null;
+
+Queue.lasttimer = 0;
+Queue.lastpause = false;
+
+Queue.init = function() {
+	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
+	for (i=0; i<this.option.queue.length; i++) { // First find what we've already got
+		worker = WorkerByName(this.option.queue[i]);
+		if (worker) {
+			found[worker.name] = true;
+		}
+	}
+	for (i in Workers) { // Second add any new workers that have a display (ie, sortable)
+		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
+			continue;
+		}
+		log('Adding '+Workers[i].name+' to Queue');
+		if (Workers[i].settings.unsortable) {
+			this.option.queue.unshift(Workers[i].name);
+		} else {
+			this.option.queue.push(Workers[i].name);
+		}
+	}
+	for (i=0; i<this.option.queue.length; i++) {	// Third put them in saved order
+		worker = WorkerByName(this.option.queue[i]);
+		if (worker && worker.id) {
+			if (this.data.current && worker.name === this.data.current) {
+				debug('Queue: Trigger '+worker.name+' (continue after load)');
+				$('#'+worker.id+' > h3').css('font-weight', 'bold');
+			}
+			$('#golem_config').append($('#'+worker.id));
+		}
+	}
+	$(document).click(function(){Queue.lastclick=Date.now();});
+
+	Queue.lastpause = this.option.pause;
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
+		Queue.option.pause ^= true;
+		debug('State: '+((Queue.option.pause)?"paused":"running"));
+		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
+		Page.clear();
+		Config.updateOptions();
+	});
+	$('#golem_buttons').prepend($btn); // Make sure it comes first
+	// Running the queue every second, options within it give more delay
+};
+
+Queue.update = function(type) {
+	if (!this.option.pause && this.option.delay !== this.lasttimer) {
+		window.clearInterval(this.timer);
+		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
+		this.lasttimer = this.option.delay;
+	} else if (this.option.pause && this.option.pause !== this.lastpause) {
+		window.clearInterval(this.timer);
+		this.lasttimer = -1;
+	}
+	this.lastpause = this.option.pause;
+};
+
+Queue.run = function() {
+	var i, worker, found = false, result;
+	if (this.option.pause || Date.now() - this.lastclick < this.option.clickdelay * 1000) {
+		return;
+	}
+	if (Page.loading) {
+		return; // We want to wait xx seconds after the page has loaded
+	}
+//	debug('Start Queue');
+	this.burn.stamina = this.burn.energy = 0;
+	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+		this.option.burn_stamina = this.burn.stamina > 0;
+	}
+	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+		this.option.burn_energy = this.burn.energy > 0;
+	}
+	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
+		if (Workers[i].work && !Workers[i].display) {
+//			debug(Workers[i].name + '.work(false);');
+			Workers[i]._load();
+			try {
+				Workers[i].work(false);
+			} catch(e){
+				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
+			}
+		}
+	}
+	for (i=0; i<this.option.queue.length; i++) {
+		worker = WorkerByName(this.option.queue[i]);
+		if (!worker || !worker.work || !worker.display) {
+			continue;
+		}
+//		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
+		if (this.data.current === worker.name) {
+			worker._load();
+			try {
+				result = worker.work(true);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
+			worker._save(); // Save for current only, nobody else should change anything
+		} else {
+			try {
+				result = worker.work(false);
+			}catch(e) {
+				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				result = false;
+			}
+		}
+		if (!result && this.data.current === worker.name) {
+			this.data.current = null;
+			if (worker.id) {
+				$('#'+worker.id+' > h3').css('font-weight', 'normal');
+			}
+			debug('Queue: End '+worker.name);
+		}
+		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
+			continue;
+		}
+		found = true;
+		if (this.data.current === worker.name) {
+			continue;
+		}
+		if (this.data.current) {
+			debug('Queue: Interrupt '+this.data.current);
+			if (WorkerByName(this.data.current).id) {
+				$('#'+WorkerByName(this.data.current).id+' > h3').css('font-weight', 'normal');
+			}
+		}
+		this.data.current = worker.name;
+		if (worker.id) {
+			$('#'+worker.id+' > h3').css('font-weight', 'bold');
+		}
+		debug('Queue: Trigger '+worker.name);
+	}
+//	debug('End Queue');
+	for (i=0; i<Workers.length; i++) {
+		Workers[i]._flush();
+	}
+};
+/********** Worker.Update **********
+* Checks if there's an update to the script, and lets the user update if there is.
+*/
+var Update = new Worker('Update');
+Update.data = null;
+Update.option = null;
+Update.found = false;
+Update.init = function() {
+	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){Update.now(true);});
+	$('#golem_buttons').append($btn);
+};
+Update.now = function(force) {
+	if (Update.found) {
+		window.location.href = 'http://userscripts.org/scripts/source/67412.user.js';
+		return;
+	}
+	var lastUpdateCheck = Settings.GetValue("lastUpdateCheck", 0);
+	if (force || Date.now() - lastUpdateCheck > 21600000) {
+		// 6+ hours since last check (60x60x6x1000ms)
+		Settings.SetValue("lastUpdateCheck", Date.now().toString());
+		GM_xmlhttpRequest({
+			method: "GET",
+			url: 'http://userscripts.org/scripts/show/67412',
+			onload: function(evt) {
+				if (evt.readyState === 4 && evt.status === 200) {
+					var tmp = $(evt.responseText), remoteVersion = $('#summary', tmp).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
+					if (force) {
+						$('#golem_request').remove();
+					}
+					if (remoteVersion>VERSION) {
+						Update.found = true;
+						$('#golem_update').attr('src', 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C8%C8%C8%C1%C1%C1%BA%BA%BA%F1%F1%F1ggg%FF%FF%FF%40%40%40%FF%FF%FF%7D%5C%EC%14%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00OIDATx%DA%8C%8FA%0A%C0%20%0C%04W%8D%EB%FF%7F%AC1%5BQi%A1s%0A%C3%24%10%B4%0B%7C%89%9COa%A4%ED%22q%906a%2CE%09%14%D4%AA%04%BA0%8AH%5C%80%02%12%3E%FB%0A%19b%06%BE2%13D%F0%F0.~%3E%B7%E8%02%0C%00Z%03%06Q9dE%25%00%00%00%00IEND%AEB%60%82').toggleClass('golem-button golem-button-active');
+						if (force) {
+							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
+							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
+						}
+						log('New version available: '+remoteVersion);
+					} else if (force) {
+						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
+						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });
+					}
+				}
+			}
+		});
+	}
+};
 
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
@@ -3490,985 +4471,3 @@ Upgrade.work = function(state) {
 	return true;
 };
 
-/********** Worker.Config **********
-* Has everything to do with the config
-*/
-var Config = new Worker('Config', null, {keep:true});
-Config.option = {
-	display:'block',
-	fixed:true,
-	advanced:false
-};
-
-Config.init = function() {
-	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i;
-	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
-	$('#golem_options').click(function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
-		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-		Config._save('option');
-	});
-	$('#golem_fixed').click(function(){
-		Config.option.fixed ^= true;
-		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
-		Config._save('option');
-	});
-	$golem_config = $('#golem_config');
-	for (i in Workers) {
-		$golem_config.append(Config.makePanel(Workers[i]));
-	}
-	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
-	$('.golem-config .golem-panel > h3').click(function(event){
-		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){
-				$(this).parent().toggleClass('golem-panel-show');
-				Config.option.active = [];
-				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Config._save('option');
-			});
-		} else {
-			$(this).parent().toggleClass('golem-panel-show');
-			$(this).next().show('blind');
-			Config.option.active = [];
-			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Config._save('option');
-		}
-	});
-	$golem_config.children('.golem-panel-sortable')
-		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
-refreshPositions:true, stop:function(){Config.updateOptions();} })
-		.droppable({ tolerance:'pointer', over:function(e,ui) {
-			if (Config.getPlace($(this).attr('id')) < Config.getPlace($(ui.draggable).attr('id'))) {
-				$(this).before(ui.draggable);
-			} else {
-				$(this).after(ui.draggable);
-			}
-		} });
-	for (i in Workers) { // Update all select elements
-		if (Workers[i].select) {
-			Workers[i].select();
-		}
-	}
-	$('input.golem_addselect').live('click', function(){
-		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
-		Config.updateOptions();
-	});
-	$('input.golem_delselect').live('click', function(){
-		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
-		Config.updateOptions();
-	});
-	$('input,textarea,select', $golem_config).change( function(){
-		Config.updateOptions();
-	});
-	$('#golem-config-advanced').click(function(){
-		Config.updateOptions();
-		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
-	);
-};
-
-Config.makePanel = function(worker) {
-	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
-		before: '',
-		after: '',
-		suffix: '',
-		className: '',
-		between: 'to',
-		size: 7,
-		min: 0,
-		max: 100
-	};
-	if (!display) {
-		return false;
-	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
-	show = findInArray(Config.option.active, worker.id);
-	$head = $('<div id="'+worker.id+'" class="golem-panel'+(worker.settings.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
-	switch (typeof display) {
-		case 'array':
-		case 'object':
-			for (i in display) {
-				txt = [];
-				list = [];
-				o = $.extend(true, {}, options, display[i]);
-				o.real_id = PREFIX + worker.name + '_' + o.id;
-				o.value = worker.option[o.id] || null;
-				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
-				if (o.label) {
-					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-					if (o.text || o.checkbox || o.select) {
-						txt.push('<span style="float:right;">');
-					} else if (o.multiple) {
-						txt.push('<br>');
-					}
-				}
-				if (o.before) {
-					txt.push(o.before+' ');
-				}
-				// our different types of input elements
-				if (o.info) { // only useful for externally changed
-					if (o.id) {
-						txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
-					} else {
-						txt.push(o.info);
-					}
-				} else if (o.text) {
-					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || '') + '">');
-				} else if (o.checkbox) {
-					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
-				} else if (o.select) {
-					switch (typeof o.select) {
-						case 'number':
-							step = Divisor(o.select);
-							for (x=0; x<=o.select; x+=step) {
-								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
-							}
-							break;
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
-								o.select = this.data[o.select];
-							} else {
-								break; // deliverate fallthrough
-							}
-						case 'array':
-						case 'object':
-							if (isArray(o.select)) {
-								for (x=0; x<o.select.length; x++) {
-									list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-							} else {
-								for (x in o.select) {
-									list.push('<option value="' + x + '"' + (o.value==x ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-							}
-							break;
-					}
-					txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
-				} else if (o.multiple) {
-					if (typeof o.value === 'array' || typeof o.value === 'object') {
-						for (i in o.value) {
-							list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
-						}
-					}
-					txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
-					if (typeof o.multiple === 'string') {
-						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
-					} else {
-						list = [];
-						switch (typeof o.multiple) {
-							case 'number':
-								step = Divisor(o.select);
-								for (x=0; x<=o.multiple; x+=step) {
-									list.push('<option>' + x + '</option>');
-								}
-								break;
-							case 'array':
-							case 'object':
-								if (isArray(o.multiple)) {
-									for (x=0; x<o.multiple.length; x++) {
-										list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-									}
-								} else {
-									for (x in o.multiple) {
-										list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-									}
-								}
-								break;
-						}
-						txt.push('<select class="golem_select">'+list.join('')+'</select>');
-					}
-					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
-				}
-				if (o.after) {
-					txt.push(' '+o.after);
-				}
-				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
-					txt.push('</span>');
-				}
-				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '"') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
-			}
-			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
-			return $head;
-//		case 'function':
-//			$panel = display();
-//			if ($panel) {
-//				$head.append($panel);
-//				return $head;
-//			}
-//			return null;
-		default:
-			return null;
-	}
-};
-
-Config.set = function(key, value) {
-	if (!this._loaded) {
-		this._init();
-	} else if (!this.data) {
-		this.data = {};
-	}
-	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
-		this.data[key] = value;
-		$('select.golem_' + key).each(function(i,el){
-			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
-			if (isArray(list)) {
-				for (i=0; i<list.length; i++) {
-					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
-				}
-			} else {
-				for (i in list) {
-					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
-				}
-			}
-			$(el).html(options.join(''));
-		});
-		this._save();
-		return true;
-	}
-	return false;
-};
-
-Config.updateOptions = function() {
-//	debug('Options changed');
-	// Get order of panels first
-	var found = {}, i;
-	Queue.option.queue = [];
-	$('#golem_config > div').each(function(i,el){
-		var name = WorkerById($(el).attr('id')).name;
-		if (!found[name]) {
-			Queue.option.queue.push(name);
-		}
-		found[name] = true;
-	});
-	// Now can we see the advanced stuff
-	this.option.advanced = $('#golem-config-advanced').attr('checked');
-	// Now save the contents of all elements with the right id style
-	$('#golem_config :input').each(function(i,el){
-		if ($(el).attr('id')) {
-			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
-			if (!tmp) {
-				return;
-			}
-			if ($(el).attr('type') === 'checkbox') {
-				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
-			} else if ($(el).attr('multiple')) {
-				val = [];
-				$('option', el).each(function(i,el){ val.push($(el).text()); });
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
-			} else {
-				val = $(el).attr('value') || ($(el).val() || null);
-				if (val && val.search(/[^0-9.]/) === -1) {
-					val = parseFloat(val);
-				}
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
-			}
-		}
-	});
-	for (i=0; i<Workers.length; i++) {
-		Workers[i]._save('option');
-	}
-};
-
-Config.getPlace = function(id) {
-	var place = -1;
-	$('#golem_config > div').each(function(i,el){
-		if ($(el).attr('id') === id && place === -1) {
-			place = i;
-		}
-	});
-	return place;
-};
-
-/********** Worker.Dashboard **********
-* Displays statistics and other useful info
-*/
-var Dashboard = new Worker('Dashboard', '*', {keep:true});
-Dashboard.option = {
-	display:'block',
-	active:null
-};
-
-Dashboard.init = function() {
-	var id, $btn, tabs = [], divs = [], active = this.option.active;
-	for (i=0; i<Workers.length; i++) {
-		if (Workers[i].dashboard) {
-			id = 'golem-dashboard-'+Workers[i].name;
-			if (!active) {
-				this.option.active = active = id;
-			}
-			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
-			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
-			this._watch(Workers[i]);
-		}
-	}
-	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
-	$('.golem-tab-header').click(function(){
-		if ($(this).hasClass('golem-tab-header-active')) {
-			return;
-		}
-		if (Dashboard.option.active) {
-			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
-			$('#'+Dashboard.option.active).hide();
-		}
-		Dashboard.option.active = $(this).attr('name');
-		$(this).addClass('golem-tab-header-active');
-		Dashboard.update();
-		$('#'+Dashboard.option.active).show();
-		Dashboard._save('option');
-	});
-	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
-		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){$(this).parent().toggleClass('golem-panel-show');});
-		} else {
-			$(this).parent().toggleClass('golem-panel-show');
-			$(this).next().show('blind');
-		}
-	});
-	$('#golem-dashboard thead th').live('click', function(event){
-		var worker = WorkerByName(Dashboard.option.active.substr(16));
-		if (!worker.data) {
-			worker._load();
-		}
-		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
-	});
-
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
-	$('#golem_toggle_dash').click(function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
-			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
-		}
-		$('#golem-dashboard').toggle('drop');
-		Dashboard._save('option');
-	});
-	window.setInterval(function(){
-		$('.golem-timer').each(function(i,el){
-			var time = $(el).text().parseTimer();
-			if (time && time > 0) {
-				$(el).text(makeTimer($(el).text().parseTimer() - 1));
-			} else {
-				$(el).removeClass('golem-timer').text('now?');
-			}
-		});
-	},1000);
-};
-
-Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
-};
-
-Dashboard.update = function(type) {
-	if (!this._loaded || (type && typeof type !== 'object')) {
-		return;
-	}
-	worker = type || WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name, flush = false;
-	if (this.option.active === id && this.option.display === 'block') {
-		if (!worker.data) {
-			flush = true;
-			worker._load('data');
-		}
-		try {
-			result = worker.dashboard();
-		}catch(e) {
-			debug(e.name + ' in ' + workers.name + '.dashboard(): ' + e.message);
-		}
-		if (flush) {
-			worker._flush();
-		}
-	} else {
-		$('#'+id).empty();
-	}
-};
-
-Dashboard.dashboard = function() {
-	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
-		if (this.data[Workers[i].name]) {
-			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
-		}
-	}
-	list.sort(); // Ok with plain text as first thing that can change is name
-	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
-};
-
-Dashboard.status = function(worker, html) {
-	if (html) {
-		this.data[worker.name] = html;
-	} else {
-		delete this.data[worker.name];
-	}
-	this._save();
-};
-
-/********** Worker.Page() **********
-* All navigation including reloading
-*/
-var Page = new Worker('Page', null, {unsortable:true, keep:true});
-Page.option = {
-	timeout: 15,
-	retry: 5
-};
-Page.page = '';
-Page.last = null; // Need to have an "auto retry" after a period
-Page.lastclick = null;
-Page.when = null;
-Page.retry = 0;
-Page.checking = true;
-Page.node_trigger = null;
-Page.display = [
-	{
-		id:'timeout',
-		label:'Retry after',
-		select:[10, 15, 30, 60],
-		after:'seconds'
-	}
-];
-
-Page.init = function() {
-	// Only perform the check on the two id's referenced in get_cached_ajax()
-	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
-	$('body').bind('DOMNodeInserted', function(event){
-		if (!Page.node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
-			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all();},100);
-		}
-	});
-};
-
-Page.parse_all = function() {
-	Page.identify();
-	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-			Workers[i]._load();
-			try {
-				if (Workers[i].parse(false)) {
-					list.push(Workers[i]);
-				}
-			}catch(e) {
-				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
-			}
-		}
-	}
-	for (i in list) {
-		try {
-			list[i].parse(true);
-		}catch(e) {
-			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
-		}
-	}
-	for (i=0; i<Workers.length; i++) {
-		Workers[i]._flush();
-	}
-}
-
-
-Page.work = function(state) {
-	if (!this.checking) {
-		return false;
-	}
-	var i, l, list, found = null;
-	for (i=0; i<Workers.length && !found; i++) {
-		if (!Workers[i].pages || Workers[i].pages==='*') {
-			continue;
-		}
-		list = Workers[i].pages.split(' ');
-		for (l=0; l<list.length; l++) {
-			if (this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
-				found = list[l];
-				break;
-			}
-		}
-	}
-	if (!state) {
-		if (found) {
-			return true;
-		}
-		this.checking = false;
-		return false;
-	}
-	if (found && !this.to(found)) {
-		this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
-		return true;
-	}
-	return false;
-};
-
-Page.pageNames = {
-	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
-	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
-	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-	town_land:				{url:'land.php', image:'tab_land_on.gif'},
-	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
-	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
-	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
-	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
-	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
-	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
-};
-
-Page.identify = function() {
-	this.page = '';
-	if (!$('#app'+APPID+'_globalContainer').length) {
-		this.reload();
-		return null;
-	}
-	var app_body = $('#app'+APPID+'_app_body'), p;
-	$('img', app_body).each(function(i,el){
-		var filename = $(el).attr('src').filepart();
-		for (p in Page.pageNames) {
-			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
-				Page.page = p;
-				return;
-			}
-		}
-	});
-	if (!this.page) {
-		for (p in Page.pageNames) {
-			if (Page.pageNames[p].selector && $(Page.pageNames[p].selector, app_body).length) {
-				Page.page = p;
-			}
-		}
-	}
-	if (this.page !== '') {
-		this.data[this.page] = Date.now();
-	}
-//	debug('this.identify("'+Page.page+'")');
-	return this.page;
-};
-
-Page.loading = false;
-Page.to = function(page, args) {
-	if (Queue.option.pause) {
-		debug('Trying to load page when paused...');
-		return true;
-	}
-	if (page === this.page && typeof args === 'undefined') {
-		return true;
-	}
-	if (!args) {
-		args = '';
-	}
-	if (page && this.pageNames[page] && this.pageNames[page].url) {
-		this.clear();
-		this.last = this.pageNames[page].url;
-		this.when = Date.now();
-		if (args.indexOf('?') === 0 && this.last.indexOf('?') > 0) {
-			this.last = this.last.substr(0, this.last.indexOf('?')) + args;
-		} else {
-			this.last = this.last + args;
-		}
-		debug('Navigating to '+this.last+' ('+this.pageNames[page].url+')');
-		this.ajaxload();
-	}
-	return false;
-};
-
-Page.ajaxload = function() {
-	$.ajax({
-		cache:false,
-		dataType:'text',
-		timeout:this.option.timeout * 1000,
-		url:'http://apps.facebook.com/castle_age/'+this.last,
-		error:function() {
-			debug('Page not loaded correctly, reloading.');
-			Page.ajaxload();
-		},
-		success:function(data){
-			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
-				Page.loading = false;
-				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
-				$('#app'+APPID+'_globalContainer').empty().append(data);
-			} else {
-				debug('Page not loaded correctly, reloading.');
-				Page.ajaxload();
-			}
-		}
-	});
-	this.loading = true;
-	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
-};
-
-Page.reload = function() {
-	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
-};
-
-Page.click = function(el) {
-	if (!$(el).length) {
-		debug('Page.click: Unable to find element - '+el);
-		return false;
-	}
-	var e = document.createEvent("MouseEvents");
-	e.initEvent("click", true, true);
-	$(el).get(0).wrappedJSObject.dispatchEvent(e);
-	this.clear();
-	this.lastclick = el;
-	this.when = Date.now();
-	return true;
-};
-
-Page.clear = function() {
-	this.last = this.lastclick = this.when = null;
-	this.retry = 0;
-};
-
-/********** Worker.Queue() **********
-* Keeps track of the worker queue
-*/
-var Queue = new Worker('Queue', '*', {unsortable:true, keep:true});
-Queue.data = {
-	current: null
-};
-Queue.option = {
-	delay: 5,
-	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
-	start_stamina: 0,
-	stamina: 0,
-	start_energy: 0,
-	energy: 0
-};
-Queue.display = [
-	{
-		label:'Drag the unlocked panels into the order you wish them run.'
-	},{
-		id:'delay',
-		label:'Delay Between Events',
-		text:true,
-		after:'secs',
-		size:3
-	},{
-		id:'clickdelay',
-		label:'Delay After Mouse Click',
-		text:true,
-		after:'secs',
-		size:3,
-		help:'This should be a multiple of Event Delay'
-	},{
-		id:'start_stamina',
-		before:'Save',
-		select:'stamina',
-		after:'Stamina Before Using'
-	},{
-		id:'stamina',
-		before:'Always Keep',
-		select:'stamina',
-		after:'Stamina'
-	},{
-		id:'start_energy',
-		before:'Save',
-		select:'energy',
-		after:'Energy Before Using'
-	},{
-		id:'energy',
-		before:'Always Keep',
-		select:'energy',
-		after:'Energy'
-	}
-];
-Queue.runfirst = [];
-Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
-Queue.lastrun = Date.now();		// Last time we ran
-Queue.burn = {stamina:false, energy:false};
-Queue.timer = null;
-
-Queue.lasttimer = 0;
-Queue.lastpause = false;
-
-Queue.init = function() {
-	var i, worker, found = {}, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
-	for (i=0; i<this.option.queue.length; i++) { // First find what we've already got
-		worker = WorkerByName(this.option.queue[i]);
-		if (worker) {
-			found[worker.name] = true;
-		}
-	}
-	for (i in Workers) { // Second add any new workers that have a display (ie, sortable)
-		if (found[Workers[i].name] || !Workers[i].work || !Workers[i].display) {
-			continue;
-		}
-		log('Adding '+Workers[i].name+' to Queue');
-		if (Workers[i].settings.unsortable) {
-			this.option.queue.unshift(Workers[i].name);
-		} else {
-			this.option.queue.push(Workers[i].name);
-		}
-	}
-	for (i=0; i<this.option.queue.length; i++) {	// Third put them in saved order
-		worker = WorkerByName(this.option.queue[i]);
-		if (worker && worker.id) {
-			if (this.data.current && worker.name === this.data.current) {
-				debug('Queue: Trigger '+worker.name+' (continue after load)');
-				$('#'+worker.id+' > h3').css('font-weight', 'bold');
-			}
-			$('#golem_config').append($('#'+worker.id));
-		}
-	}
-	$(document).click(function(){Queue.lastclick=Date.now();});
-
-	Queue.lastpause = this.option.pause;
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
-		Queue.option.pause ^= true;
-		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
-		Page.clear();
-		Config.updateOptions();
-	});
-	$('#golem_buttons').prepend($btn); // Make sure it comes first
-	// Running the queue every second, options within it give more delay
-};
-
-Queue.update = function(type) {
-	if (!this.option.pause && this.option.delay !== this.lasttimer) {
-		window.clearInterval(this.timer);
-		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
-		this.lasttimer = this.option.delay;
-	} else if (this.option.pause && this.option.pause !== this.lastpause) {
-		window.clearInterval(this.timer);
-		this.lasttimer = -1;
-	}
-	this.lastpause = this.option.pause;
-};
-
-Queue.run = function() {
-	var i, worker, found = false, result;
-	if (this.option.pause || Date.now() - this.lastclick < this.option.clickdelay * 1000) {
-		return;
-	}
-	if (Page.loading) {
-		return; // We want to wait xx seconds after the page has loaded
-	}
-//	debug('Start Queue');
-	this.burn.stamina = this.burn.energy = 0;
-	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-		this.option.burn_stamina = this.burn.stamina > 0;
-	}
-	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-		this.option.burn_energy = this.burn.energy > 0;
-	}
-	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display) {
-//			debug(Workers[i].name + '.work(false);');
-			Workers[i]._load();
-			try {
-				Workers[i].work(false);
-			} catch(e){
-				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
-			}
-		}
-	}
-	for (i=0; i<this.option.queue.length; i++) {
-		worker = WorkerByName(this.option.queue[i]);
-		if (!worker || !worker.work || !worker.display) {
-			continue;
-		}
-//		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
-		if (this.data.current === worker.name) {
-			worker._load();
-			try {
-				result = worker.work(true);
-			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
-				result = false;
-			}
-			worker._save(); // Save for current only, nobody else should change anything
-		} else {
-			try {
-				result = worker.work(false);
-			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
-				result = false;
-			}
-		}
-		if (!result && this.data.current === worker.name) {
-			this.data.current = null;
-			if (worker.id) {
-				$('#'+worker.id+' > h3').css('font-weight', 'normal');
-			}
-			debug('Queue: End '+worker.name);
-		}
-		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
-			continue;
-		}
-		found = true;
-		if (this.data.current === worker.name) {
-			continue;
-		}
-		if (this.data.current) {
-			debug('Queue: Interrupt '+this.data.current);
-			if (WorkerByName(this.data.current).id) {
-				$('#'+WorkerByName(this.data.current).id+' > h3').css('font-weight', 'normal');
-			}
-		}
-		this.data.current = worker.name;
-		if (worker.id) {
-			$('#'+worker.id+' > h3').css('font-weight', 'bold');
-		}
-		debug('Queue: Trigger '+worker.name);
-	}
-//	debug('End Queue');
-	for (i=0; i<Workers.length; i++) {
-		Workers[i]._flush();
-	}
-};
-/********** Worker.Update **********
-* Checks if there's an update to the script, and lets the user update if there is.
-*/
-var Update = new Worker('Update');
-Update.data = null;
-Update.option = null;
-Update.found = false;
-Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){Update.now(true);});
-	$('#golem_buttons').append($btn);
-};
-Update.now = function(force) {
-	if (Update.found) {
-		window.location.href = 'http://userscripts.org/scripts/source/67412.user.js';
-		return;
-	}
-	var lastUpdateCheck = Settings.GetValue("lastUpdateCheck", 0);
-	if (force || Date.now() - lastUpdateCheck > 21600000) {
-		// 6+ hours since last check (60x60x6x1000ms)
-		Settings.SetValue("lastUpdateCheck", Date.now().toString());
-		GM_xmlhttpRequest({
-			method: "GET",
-			url: 'http://userscripts.org/scripts/show/67412',
-			onload: function(evt) {
-				if (evt.readyState === 4 && evt.status === 200) {
-					var tmp = $(evt.responseText), remoteVersion = $('#summary', tmp).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
-					if (force) {
-						$('#golem_request').remove();
-					}
-					if (remoteVersion>VERSION) {
-						Update.found = true;
-						$('#golem_update').attr('src', 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C8%C8%C8%C1%C1%C1%BA%BA%BA%F1%F1%F1ggg%FF%FF%FF%40%40%40%FF%FF%FF%7D%5C%EC%14%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00OIDATx%DA%8C%8FA%0A%C0%20%0C%04W%8D%EB%FF%7F%AC1%5BQi%A1s%0A%C3%24%10%B4%0B%7C%89%9COa%A4%ED%22q%906a%2CE%09%14%D4%AA%04%BA0%8AH%5C%80%02%12%3E%FB%0A%19b%06%BE2%13D%F0%F0.~%3E%B7%E8%02%0C%00Z%03%06Q9dE%25%00%00%00%00IEND%AEB%60%82').toggleClass('golem-button golem-button-active');
-						if (force) {
-							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
-							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
-						}
-						log('New version available: '+remoteVersion);
-					} else if (force) {
-						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
-						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });
-					}
-				}
-			}
-		});
-	}
-};
-
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.5
-// @include		http*://apps.*facebook.com/castle_age/*
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-// User changeable
-var show_debug = true;
-
-// Shouldn't touch
-var VERSION = 30.5;
-var script_started = Date.now();
-
-// Automatically filled
-var userID = 0;
-var imagepath = '';
-
-// Decide which facebook app we're in...
-var applications = {
-	'castle_age':['46755028429', 'Castle Age']
-};
-
-if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
-	for (var i in applications) {
-		if (window.location.pathname.indexOf(i) === 1) {
-			var APP = i;
-			var APPID = applications[i][0];
-			var APPNAME = applications[i][1];
-			var PREFIX = 'golem'+APPID+'_';
-			break;
-		}
-	}
-}
-
-var log = console.log;
-
-if (show_debug) {
-	var debug = console.log;
-} else {
-	var debug = function(){};
-}
-
-if (typeof unsafeWindow === 'undefined') {
-	unsafeWindow = window;
-}
-
-/********** main() **********
-* Runs when the page has finished loading, but the external data might still be coming in
-*/
-if (typeof APP !== 'undefined') {
-	$(document).ready(function() {
-		var i;
-		userID = $('head').html().regex(/user:([0-9]+),/i);
-		imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-		do_css();
-		Page.identify();
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._load();
-		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._init();
-		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._update();
-			Workers[i]._flush();
-		}
-		Page.parse_all(); // Call once to get the ball rolling...
-	});
-}
-
-

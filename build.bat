@@ -1,7 +1,7 @@
 @echo off
 del /F /Q _normal.user.js _min.user.js
 
-copy *.js _normal.user.js
+copy _head.js + _main.js + css.js + utility.js + worker*.js _normal.user.js
 
 rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
