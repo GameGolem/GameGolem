@@ -258,7 +258,7 @@ var unique = function (a) { // Return an array with no duplicates
 };
 
 var addCommas = function(s) { // Adds commas into a string, ignore any number formatting
-	var a=s.toString(), r=new RegExp('(-?[0-9]+)([0-9]{3})');
+	var a=s ? s.toString() : '0', r=new RegExp('(-?[0-9]+)([0-9]{3})');
 	while(r.test(a)) {
 		a = a.replace(r, '$1,$2');
 	}
@@ -3295,13 +3295,13 @@ Monster.parse = function(change) {
 			monster.state = 'reward';
 		} else {
 			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
-				monster.battle_count = (monster.battle_count || 0) + 1;
-				}
-			if ($('span.result_body').text().match(/for your help in summoning/i)) {
+				if ($('span.result_body').text().match(/for your help in summoning/i)) {
 					monster.assist = Date.now();
 				}
 				monster.state = 'assist';
+			}
+			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
+				monster.battle_count = (monster.battle_count || 0) + 1;
 			}
 			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
@@ -4168,7 +4168,6 @@ Quest.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
-
 	th(output, 'General');
 	th(output, 'Name');
 	th(output, 'Area');
@@ -4181,18 +4180,17 @@ Quest.dashboard = function(sort, rev) {
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
 		output = [];
-		td(output, Generals.data[this.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[this.data[i].general].img+'" alt="'+this.data[i].general+'" title="'+this.data[i].general+'">' : '');
+		td(output, Generals.data[this.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[this.data[i].general].img + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
 		th(output, i);
 		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
-		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level +'&nbsp;(' + this.data[i].influence +'%)' : '');
+		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
 		td(output, this.data[i].energy);
 		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
 		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
-		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg+'" alt="'+this.data[i].item+'" title="'+this.data[i].item+'">' : '');
+		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
 		tr(list, output.join(''), 'style="height:25px;"');
 	}
 	list.push('</tbody></table>');
-
 	$('#golem-dashboard-Quest').html(list.join(''));
 	$('#golem-dashboard-Quest tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {

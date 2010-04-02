@@ -129,7 +129,7 @@ var unique = function (a) { // Return an array with no duplicates
 };
 
 var addCommas = function(s) { // Adds commas into a string, ignore any number formatting
-	var a=s.toString(), r=new RegExp('(-?[0-9]+)([0-9]{3})');
+	var a=s ? s.toString() : '0', r=new RegExp('(-?[0-9]+)([0-9]{3})');
 	while(r.test(a)) {
 		a = a.replace(r, '$1,$2');
 	}

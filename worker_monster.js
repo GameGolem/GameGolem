@@ -282,13 +282,13 @@ Monster.parse = function(change) {
 			monster.state = 'reward';
 		} else {
 			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
-				monster.battle_count = (monster.battle_count || 0) + 1;
-				}
-			if ($('span.result_body').text().match(/for your help in summoning/i)) {
+				if ($('span.result_body').text().match(/for your help in summoning/i)) {
 					monster.assist = Date.now();
 				}
 				monster.state = 'assist';
+			}
+			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
+				monster.battle_count = (monster.battle_count || 0) + 1;
 			}
 			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
