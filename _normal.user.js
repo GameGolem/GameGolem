@@ -3710,11 +3710,11 @@ Player.update = function(type) {
 			Config.set(types[j], list);
 		}
 	}
-	Dashboard.status(this, 'Estimated time to next level <span class="golem-timer">' + this.get('level_timer') + '</span>, extra income $' + addCommas(this.get('average_cash')) + ' per hour');
+	Dashboard.status(this, 'Estimated time to next level <span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span>, extra income $' + addCommas(this.get('average_cash')) + ' per hour');
 };
 
 Player.get = function(what) {
-	var i, j = 0, data = this.data;
+	var i, j = 0, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data;
 	switch(what) {
 		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 		case 'cash_timer':		var when = new Date();
@@ -3725,11 +3725,11 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-		case 'level_timer':		return (3600 * (this.maxexp - this.exp) / this.get('average_exp'));
+		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (this.get('average_exp') || 1));
 		case 'average_cash':	for (i in data.history) {j += (data.history[i].income || 0);}
 								return Math.floor(j / length(data.history));
-		case 'average_exp':		for (i in data.history) {j += (data.history[i].exp || 0);}
-								return Math.floor(j / length(data.history));
+		case 'average_exp':		for (i in data.history) {j += (data.history[i].exp || 0); min = Math.min(min, (data.history[i].exp || 0));}
+								return Math.floor(j / length(data.history)) - min;
 		default:				return this._get(what);
 	}
 };
