@@ -2921,6 +2921,7 @@ Land.option = {
 	buy:true,
 	wait:48,
 	best:null,
+	onlyten:false,
 	bestbuy:0,
 	bestcost:0
 };
@@ -2933,7 +2934,13 @@ Land.display = [
 		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
-		suffix:'hours'
+		suffix:'hours',
+		help:'There has been a lot of testing in this code, it is the fastest way to increase your income despite appearances!'
+	},{
+		advanced:true,
+		id:'onlyten',
+		label:'Only buy 10x<br>NOTE: This is slower!!!',
+		checkbox:true
 	}
 ];
 
@@ -2954,19 +2961,19 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average'), best, buy = 0;
 	for (var i in this.data) {
 		if (this.data[i].buy) {
-			if (!best || ((this.data[best].cost / Player.get('income')) + (this.data[i].cost / Player.get('income') + this.data[best].income)) > ((this.data[i].cost / Player.get('income')) + (this.data[best].cost / (Player.get('income') + this.data[i].income)))) {
+			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
 				best = i;
 			}
 		}
 	}
 	if (best) {
-		if ((this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / Player.get('income') < this.option.wait && this.data[best].max - this.data[best].own >= 10)) {
-			buy = 10;
-		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / Player.get('income') < this.option.wait && this.data[best].max - this.data[best].own >= 5)) {
-			buy = 5;
+		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / income < this.option.wait && this.data[best].max - this.data[best].own >= 10)) {
+			buy = Math.max(this.data[best].max - this.data[best].own, 10);
+		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / income < this.option.wait && this.data[best].max - this.data[best].own >= 5)) {
+			buy = Math.max(this.data[best].max - this.data[best].own, 5);
 		} else if (this.data[best].cost <= worth){
 			buy = 1;
 		}
@@ -2990,7 +2997,7 @@ Land.work = function(state) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		if ($('img', el).attr('alt') === Land.option.best) {
 			debug('Land: Buying ' + Land.option.bestbuy + ' x ' + Land.option.best + ' for $' + addCommas(Land.option.bestbuy));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.option.bestbuy);
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.option.bestbuy > 5 ? 10 : (Land.option.bestbuy > 1 ? 5 : 1));
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');
 		}
