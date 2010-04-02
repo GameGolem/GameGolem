@@ -5,6 +5,7 @@ var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic', {keep:
 Town.data = {};
 Town.option = {
 	number:'Minimum',
+	maxcost:'$100k',
 	units:'All',
 	sell:false
 };
@@ -17,6 +18,11 @@ Town.display = [
 		label:'Buy Number',
 		select:['None', 'Minimum', 'Match Army', 'Maximum'],
 		help:'Minimum will buy before any quests (otherwise only bought when needed), Maximum will buy 501 (depending on generals)'
+	},{
+		advanced:true,
+		id:'maxcost',
+		label:'Maximum Buy Cost',
+		select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b']
 	},{
 		advanced:true,
 		id:'units',
@@ -52,7 +58,7 @@ Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);
 		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
-			var i, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first-child', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
+			var i, stats = $('div.eq_buy_stats', el), name = $('.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
@@ -160,10 +166,10 @@ Town.work = function(state) {
 	if (!state || !Bank.retrieve(this.option.bestcost) || (this.data[this.option.best].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[this.option.best].page)) {
 		return true;
 	}
-	$('eq_buy_row,.eq_buy_row2').each(function(i,el){
-		if ($('img', el).attr('alt') === Town.option.best) {
+	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
+		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.option.best) {
 			debug('Town: Buying ' + Town.option.bestbuy + ' x ' + Town.option.best + ' for $' + addCommas(Town.option.bestcost));
-			$('select', $('.eq_buy_costs .gold', el).parent().next()).val(Town.option.bestbuy > 5 ? 10 : (Town.option.bestbuy > 1 ? 5 : 1));
+			$('.eq_buy_costs select[name="Amount"]:eq(0)', el).val(Town.option.bestbuy > 5 ? 10 : (Town.option.bestbuy > 1 ? 5 : 1));
 			Page.click($('.eq_buy_costs input[name="Buy"]', el));
 		}
 	});
