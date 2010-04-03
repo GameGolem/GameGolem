@@ -61,7 +61,7 @@ Player.parse = function(change) {
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
 		History.add('income', (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0) + (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0) + (txt.regex(/Youreceived\$([0-9]+)/i) || 0) + (txt.regex(/Yougained\$([0-9]+)/i) || 0));
-		History.add('land', (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0));
+		History.set('land', (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0));
 	});
 	return true;
 };
