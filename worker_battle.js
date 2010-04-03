@@ -204,7 +204,7 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if (!this.option.preferonly && (!this.option.attacking || !data[this.option.attacking]
+		if ((!this.option.preferonly || !length(this.option.prefer)) && (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {

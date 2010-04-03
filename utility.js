@@ -128,6 +128,16 @@ var unique = function (a) { // Return an array with no duplicates
 	return r;
 };
 
+var sum = function (a) { // Adds the values of all array entries together
+	var i, t = 0;
+	for(i in a) {
+		if (typeof a[i] === 'number') {
+			t += a[i];
+		}
+	}
+	return t;
+};
+
 var addCommas = function(s) { // Adds commas into a string, ignore any number formatting
 	var a=s ? s.toString() : '0', r=new RegExp('(-?[0-9]+)([0-9]{3})');
 	while(r.test(a)) {
