@@ -63,8 +63,8 @@ Town.parse = function(change) {
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
 			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
-			unit[name].att = $('div:first-child', stats).text().regex(/([0-9]+)/);
-			unit[name].def = $('div:last-child', stats).text().regex(/([0-9]+)/);
+			unit[name].att = $('.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
+			unit[name].def = $('.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
 			if (cost) {
 				unit[name].cost = parseInt(cost, 10);
 				unit[name].buy = [];
@@ -119,6 +119,7 @@ Town.getDuel = function() {
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', 1, 'duel');
+	def += getAttDef(data, null, 'def', 1, 'duel');
 	return {attack:att, defend:def};
 };
 
