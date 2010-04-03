@@ -1,21 +1,28 @@
 @echo off
-rem Rename this to "build.bat" and edit
-rem Make sure that you IGNORE the new file in the SVN settings.
-
+echo Deleting old user.js files
 del /F /Q _normal.user.js _min.user.js
 
-copy _head.js + _main.js + css.js + utility.js + worker.js + worker_*.js _normal.user.js
+echo Joining files into _normal.user.js
+type _head.js >_normal.user.js 2>nul
+type _main.js >>_normal.user.js 2>nul
+type css.js >>_normal.user.js 2>nul
+type utility.js >>_normal.user.js 2>nul
+type worker.js >>_normal.user.js 2>nul
+type worker_*.js >>_normal.user.js 2>nul
 
 rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
 rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
 
-rem copy _normal.user.js "C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js"
 
-rem ----------------------------------------------------------------------------------
-rem MINIMISED VERSION - Only use if you want the small version - required for release!
+rem echo Installing new version to Firefox
+rem copy _normal.user.js "C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js" >nul
+
+rem --------------------------------------------------------------------------------------
+rem MINIMISED VERSION - This will fail on errors so use is advised - required for release!
 rem Change path to compiler and source - obtain it from here:
 rem http://code.google.com/closure/compiler/
 
-rem copy _head.js _min.user.js
-rem "C:\Program Files\Java\jre6\bin\java.exe" -jar "C:\Program Files\Compiler\compiler.jar" --js "Z:\Sites\GameGolem\_normal.user.js" >> "Z:\Sites\GameGolem\_min.user.js"
+rem echo Creating minimised version (will also show errors)
+rem copy _head.js _min.user.js >nul
+"C:\Program Files\Java\jre6\bin\java.exe" -jar "C:\Program Files\Compiler\compiler.jar" --js "_normal.user.js" >> "_min.user.js"
