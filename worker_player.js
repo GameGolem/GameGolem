@@ -221,16 +221,16 @@ Player.makeGraph = function(type, title, iscash, goal) {
 		output = [];
 		if (typeof type === 'string' && value[i]) {
 			output.push('<div style="background:#00ff00;height:' + Math.ceil((value[i] - min) / (max - min) * 100) + 'px;"></div>')
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]);
 		} else if (typeof type === 'object' && (value[i][0] || value[i][1])) {
 			output.push('<div style="background:#00aa00;height:' + Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			output.push('<div style="background:#00ff00;height:' + Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]);
 		} else {
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
 		}
 		if (goal) {
-			output.push('<div style="position:relative;background:#ff0000;height:1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
+			output.push('<div style="position:relative;background:#ff0000;height:1px;margin-top:-1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
 		}
 		td(list, output.join(''), 'title="' + title + '"');
 	}

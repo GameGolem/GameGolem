@@ -2128,7 +2128,7 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if ((!this.option.preferonly || !list.length) && (!this.option.attacking || !data[this.option.attacking]
+		if (!this.option.preferonly && (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {
@@ -2440,7 +2440,7 @@ var Generals = new Worker('Generals', 'heroes_generals');
 
 Generals.init = function() {
 	for (var i in this.data) {
-		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
 			delete this.data[i];
 		}
 	}
@@ -3863,16 +3863,16 @@ Player.makeGraph = function(type, title, iscash, goal) {
 		output = [];
 		if (typeof type === 'string' && value[i]) {
 			output.push('<div style="background:#00ff00;height:' + Math.ceil((value[i] - min) / (max - min) * 100) + 'px;"></div>')
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]);
 		} else if (typeof type === 'object' && (value[i][0] || value[i][1])) {
 			output.push('<div style="background:#00aa00;height:' + Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			output.push('<div style="background:#00ff00;height:' + Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]);
 		} else {
-			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"';
+			title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
 		}
 		if (goal) {
-			output.push('<div style="position:relative;background:#ff0000;height:1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
+			output.push('<div style="position:relative;background:#ff0000;height:1px;margin-top:-1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
 		}
 		td(list, output.join(''), 'title="' + title + '"');
 	}
@@ -3994,7 +3994,7 @@ Quest.display = [
 
 Quest.init = function() {
 	for (var i in this.data) {
-		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
 			delete this.data[i];
 		}
 	}

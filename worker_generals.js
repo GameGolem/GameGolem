@@ -7,7 +7,7 @@ var Generals = new Worker('Generals', 'heroes_generals');
 
 Generals.init = function() {
 	for (var i in this.data) {
-		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
 			delete this.data[i];
 		}
 	}
