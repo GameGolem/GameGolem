@@ -104,13 +104,13 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard .golem-status tbody td { text-align: left; }\
 #golem-dashboard .overlay { position: absolute; margin: 6px; color: #1fc23a; text-shadow: black 1px 1px 2px; }\
 table.golem-graph { height: 100px }\
-table.golem-graph tbody th { text-align: right; max-width: 75px; border-right: 1px solid #cccccc; }\
+table.golem-graph tbody th { text-align: right; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
 table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
 table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-child { line-height: 20px; height: 20px; }\
-table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid white; }\
+table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
 table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
-table.golem-graph tbody td div { margin: 0; padding: 0; background: #00aa00; width: 5px; border-top: 1px solid blue; }\
-table.golem-graph tbody td div:last-child { background: #00ff00; }\
+table.golem-graph tbody td div { margin: 0; padding: 0; width: 5px; }\
+table.golem-graph tbody th.goal { vertical-align: bottom; text-align: left; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
 .golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 img.golem-button, img.golem-button-active { margin-bottom: -2px }\
@@ -2963,7 +2963,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average_cash'), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average_income'), best, buy = 0;
 	for (var i in this.data) {
 		if (this.data[i].buy) {
 			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
@@ -3655,6 +3655,10 @@ Player.init = function() {
 
 Player.parse = function(change) {
 	var data = this.data, keep, stats, hour = Math.floor(Date.now() / 3600000), tmp;
+	if (change) {
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-timer" style="color:rgb(25,123,48);">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		return true;
+	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.energy		= tmp[0] || 0;
@@ -3717,7 +3721,7 @@ Player.parse = function(change) {
 			delete data.history[i];
 		}
 	}
-	return false;
+	return true;
 };
 
 Player.update = function(type) {
@@ -3732,11 +3736,11 @@ Player.update = function(type) {
 			Config.set(types[j], list);
 		}
 	}
-	Dashboard.status(this, 'Estimated time to next level <span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span>, extra income $' + addCommas(this.get('average_cash')) + ' per hour');
+	Dashboard.status(this, 'Exp: ' + addCommas(this.get('average_exp')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(this.get('average_income')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {
-	var i, j = 0, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data;
+	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data;
 	switch(what) {
 		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 		case 'cash_timer':		var when = new Date();
@@ -3748,27 +3752,54 @@ Player.get = function(what) {
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (this.get('average_exp') || 1));
-		case 'average_cash':	for (i in data.history) {j += (data.history[i].income || 0);}
-								return Math.floor(j / length(data.history));
-		case 'average_exp':		for (i in data.history) {j += (data.history[i].exp || 0); min = Math.min(min, (data.history[i].exp || 0));}
-								return Math.floor(j / length(data.history)) - min;
-		default:				return this._get(what);
+		case 'average_income':
+			for (i in data.history) {
+				j += (data.history[i].income || 0);
+			}
+			return Math.floor(j / length(data.history));
+		case 'average_total_income':
+			for (i in data.history) {
+				j += (data.history[i].income || 0) + (data.history[i].land || 0);
+			}
+			return Math.floor(j / length(data.history));
+		case 'average_cash':
+			for (i in data.history) {
+				if (data.history[i].bank) {
+					j += data.history[i].bank;
+					min = Math.min(min,i);
+					max = Math.max(max,i);
+				}
+			}
+			return Math.floor(j / length(data.history));
+		case 'average_exp':
+			for (i in data.history) {
+				if (data.history[i].exp) {
+					low = Math.min(low,data.history[i].exp);
+					high = Math.max(high,data.history[i].exp);
+					min = Math.min(min,i);
+					max = Math.max(max,i);
+				}
+			}
+			return Math.floor((high - low) / (max - min));
+		default: return this._get(what);
 	}
 };
 
 Player.dashboard = function() {
 	var i, max = 0, list = [], output = [];
-	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span></th></tr></thead><tbody>');
-	list.push(Player.makeGraph(['income', 'land'], 'Income', true));
-	list.push(Player.makeGraph('bank', 'Bank', true));
-	list.push(Player.makeGraph('exp', 'Experience', false));
+	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
+	list.push(Player.makeGraph(['income', 'land'], 'Income', true, this.get('average_total_income')));
+	list.push(Player.makeGraph('bank', 'Bank', true, this.get('average_cash')));
+	list.push(Player.makeGraph('exp', 'Experience', false, this.data.maxexp));
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Player').html(list.join(''));
 }
 
-Player.makeGraph = function(type, title, iscash, min) {
-	var i, j, max = 0, max_s, min_s, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000);
-	list.push('<tr>');
+Player.makeGraph = function(type, title, iscash, goal) {
+	var i, j, min, max = 0, max_s, min_s, goal_s, list = [], output = [], value = {}, hour = Math.floor(Date.now() / 3600000), title;
+	if (typeof goal === 'undefined') {
+		goal = 0;
+	}
 	for (i=hour-72; i<=hour; i++) {
 		if (typeof type === 'string') {
 			value[i] = 0;
@@ -3790,44 +3821,62 @@ Player.makeGraph = function(type, title, iscash, min) {
 					max = Math.max(max, Player.data.history[i][type[1]]);
 					value[i][1] = Player.data.history[i][type[1]];
 				}
+				if (typeof Player.data.history[i][type[1]] !== 'undefined' && typeof Player.data.history[i][type[0]] !== 'undefined') {
+					max = Math.max(max, Player.data.history[i][type[0]] + Player.data.history[i][type[1]]);
+				}
 			}
 		}
+	}
+	if (goal) {
+		max = Math.max(max, goal);
 	}
 	if (max >= 1000000000) {
 		max = Math.ceil(max / 1000000000) * 1000000000;
 		max_s = addCommas(max / 1000000000)+'b';
+		goal_s = addCommas(Math.round(goal / 100000000)/10)+'b';
 		min = Math.floor(min / 1000000000) * 1000000000;
 		min_s = addCommas(min / 1000000000)+'b';
 	} else if (max >= 1000000) {
 		max = Math.ceil(max / 1000000) * 1000000;
 		max_s = (max / 1000000)+'m';
+		goal_s = (Math.round(goal / 100000)/10)+'m';
 		min = Math.floor(min / 1000000) * 1000000;
 		min_s = (min / 1000000)+'m';
 	} else if (max >= 1000) {
 		max = Math.ceil(max / 1000) * 1000;
 		max_s = (max / 1000)+'k';
+		goal_s = (Math.round(goal / 100)/10)+'k';
 		min = Math.floor(min / 1000) * 1000;
 		min_s = (min / 1000)+'k';
 	} else {
 		max_s = max || 0;
+		goal_s = Math.round(goal) || 0;
 		min_s = min || 0;
 	}
-//	if (min >= 1000000000) {min = min.round(-9);min_s = addCommas(min / 1000000000)+'b';}
-//	else if (min >= 1000000) {min = min.round(-6);min_s = (min / 1000000)+'m';}
-//	else if (min >= 1000) {min = min.round(-3);min_s = (min / 1000)+'k';}
-//	else {min_s = min || 0;}
-	list.push('<th><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
+	list.push('<th style="border-left:1px solid #dddddd;"><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
 	for (i=hour-72; i<=hour; i++) {
+		output = [];
 		if (typeof type === 'string' && value[i]) {
-			list.push('<td title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"><div style="height:'+Math.ceil((value[i] - min) / (max - min) * 100)+'px;"></div></td>');
+			output.push('<div style="background:#00ff00;height:' + Math.ceil((value[i] - min) / (max - min) * 100) + 'px;"></div>')
+			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i]) + '"';
 		} else if (typeof type === 'object' && (value[i][0] || value[i][1])) {
-			list.push('<td title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"><div style="height:'+Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100) - 1, 0)+'px;"></div><div style="height:'+Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100) - 1, 0)+'px;"></div></td>');
+			output.push('<div style="background:#00aa00;height:' + Math.max(Math.ceil((value[i][0] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			output.push('<div style="background:#00ff00;height:' + Math.max(Math.ceil((value[i][1] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago, ' + (iscash ? '$' : '') + addCommas(value[i][1]) + ' + ' + (iscash ? '$' : '') + addCommas(value[i][0]) + ' = ' + (iscash ? '$' : '') + addCommas(value[i][0] + value[i][1]) + '"';
 		} else {
-			list.push('<td style="border-bottom:1px solid blue;" title="' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"></td>');
+			title = '"' + (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago"';
 		}
+		if (goal) {
+			output.push('<div style="position:relative;background:#ff0000;height:1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
+		}
+		td(list, output.join(''), 'title="' + title + '"');
 	}
-	list.push('</tr>');
-	return list.join('');
+	if (goal) {
+		th(list, '<div style="position:relative;height:10px;color:#ff0000;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100)+2, 0) + 'px;">' + (iscash ? '$' : '') + goal_s + '</div>', 'class="goal"');
+	} else {
+		th(list, '', 'class="goal"');
+	}
+	return '<tr>' + list.join('') + '</tr>';
 }
 
 /********** Worker.Potions **********

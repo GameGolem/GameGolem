@@ -30,6 +30,7 @@ table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-
 table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
 table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
 table.golem-graph tbody td div { margin: 0; padding: 0; width: 5px; }\
+table.golem-graph tbody th.goal { vertical-align: bottom; text-align: left; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
 .golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 img.golem-button, img.golem-button-active { margin-bottom: -2px }\
