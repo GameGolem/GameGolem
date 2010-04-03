@@ -2469,7 +2469,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('invade'), duel = Town.get('duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, list = [], invade = Town.option.invade, duel = Town.option.duel, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	for (i in Generals.data) {
 		list.push(i);
 	}
@@ -4200,7 +4200,7 @@ Quest.dashboard = function(sort, rev) {
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic', {keep:true});
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {};
 Town.option = {
 	number:'Minimum',
@@ -4262,8 +4262,8 @@ Town.parse = function(change) {
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
 			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
-			unit[name].att = $('div:first-child', stats).text().regex(/([0-9]+)/);
-			unit[name].def = $('div:last-child', stats).text().regex(/([0-9]+)/);
+			unit[name].att = $('.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
+			unit[name].def = $('.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
 			if (cost) {
 				unit[name].cost = parseInt(cost, 10);
 				unit[name].buy = [];
@@ -4318,6 +4318,7 @@ Town.getDuel = function() {
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', 1, 'duel');
+	def += getAttDef(data, null, 'def', 1, 'duel');
 	return {attack:att, defend:def};
 };
 

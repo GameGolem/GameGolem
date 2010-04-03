@@ -1,7 +1,7 @@
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic', {keep:true});
+var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {};
 Town.option = {
 	number:'Minimum',
