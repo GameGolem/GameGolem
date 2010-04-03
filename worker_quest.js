@@ -39,6 +39,14 @@ Quest.display = [
 	}
 ];
 
+Quest.init = function() {
+	for (var i in this.data) {
+		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+			delete this.data[i];
+		}
+	}
+};
+
 Quest.parse = function(change) {
 	var quest = this.data, area, land = null;
 	if (Page.page === 'quests_quest') {

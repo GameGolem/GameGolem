@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.6
+// @version		30.7
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.6;
+var VERSION = 30.7;
 var script_started = Date.now();
 
 // Automatically filled
@@ -2439,6 +2439,11 @@ Elite.work = function(state) {
 var Generals = new Worker('Generals', 'heroes_generals');
 
 Generals.init = function() {
+	for (var i in this.data) {
+		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+			delete this.data[i];
+		}
+	}
 	this._watch(Town);
 };
 
@@ -3986,6 +3991,14 @@ Quest.display = [
 		checkbox:true
 	}
 ];
+
+Quest.init = function() {
+	for (var i in this.data) {
+		if (i.indexOf('\t') === -1) { // Fix bad page loads...
+			delete this.data[i];
+		}
+	}
+};
 
 Quest.parse = function(change) {
 	var quest = this.data, area, land = null;

@@ -2,7 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.6;
+var VERSION = 30.7;
 var script_started = Date.now();
 
 // Automatically filled
