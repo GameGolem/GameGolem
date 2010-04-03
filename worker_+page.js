@@ -125,7 +125,7 @@ Page.pageNames = {
 	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
 	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
 	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
+	army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
 	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
