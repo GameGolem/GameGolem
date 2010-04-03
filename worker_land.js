@@ -7,6 +7,7 @@ Land.option = {
 	wait:48,
 	best:null,
 	onlyten:false,
+	lastlevel:0,
 	bestbuy:0,
 	bestcost:0
 };
@@ -72,7 +73,13 @@ Land.update = function() {
 }
 
 Land.work = function(state) {
-	if (!this.option.buy || !this.option.best || !this.option.bestbuy || !Bank.worth(this.option.bestcost)) {
+	if (!this.option.buy || !this.option.best || !Bank.worth(this.option.bestcost)) {
+		if (!this.option.best && this.option.lastlevel < Player.get('level')) {
+			if (!state || !Page.to('town_land')) {
+				return true;
+			}
+			this.option.lastlevel = Player.get('level');
+		}
 		return false;
 	}
 	if (!state || !Bank.retrieve(this.option.bestcost) || !Page.to('town_land')) {

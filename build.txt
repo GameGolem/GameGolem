@@ -1,4 +1,8 @@
 @echo off
+rem -----------------------------------
+rem Please copy this file as "buid.bat"
+rem Edit to put in the correct paths for your system
+
 echo Deleting old user.js files
 del /F /Q _normal.user.js _min.user.js
 
