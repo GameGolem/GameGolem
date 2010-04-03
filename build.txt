@@ -1,4 +1,7 @@
 @echo off
+rem Rename this to "build.bat" and edit
+rem Make sure that you IGNORE the new file in the SVN settings.
+
 del /F /Q _normal.user.js _min.user.js
 
 copy _head.js + _main.js + css.js + utility.js + worker.js + worker_*.js _normal.user.js
