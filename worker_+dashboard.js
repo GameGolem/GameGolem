@@ -45,9 +45,7 @@ Dashboard.init = function() {
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
 		var worker = WorkerByName(Dashboard.option.active.substr(16));
-		if (!worker.data) {
-			worker._load();
-		}
+		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 
@@ -82,19 +80,13 @@ Dashboard.update = function(type) {
 		return;
 	}
 	worker = type || WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name, flush = false;
+	var id = 'golem-dashboard-'+worker.name;
 	if (this.option.active === id && this.option.display === 'block') {
-		if (!worker.data) {
-			flush = true;
-			worker._load('data');
-		}
 		try {
-			result = worker.dashboard();
+			worker._unflush();
+			worker.dashboard();
 		}catch(e) {
 			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
-		}
-		if (flush) {
-			worker._flush();
 		}
 	} else {
 		$('#'+id).empty();

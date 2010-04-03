@@ -413,6 +413,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
+._unflush()		- Loads .data if it's not there already
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
 ._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 */
@@ -460,7 +461,7 @@ function Worker(name,pages,settings) {
 			this._working.update = true;
 			if (!this.data) {
 				flush = true;
-				this._load('data');
+				this._unflush();
 			}
 			if (this.update) {
 				try {
@@ -493,9 +494,8 @@ function Worker(name,pages,settings) {
 		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) { // Don't flush as one request often follows another
-			this._load('data');
 		}
+		this._unflush();
 		try {
 			switch(x.length) {
 				case 0:	return this.data;
@@ -515,9 +515,8 @@ function Worker(name,pages,settings) {
 	this._set = function(what, value) {
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) { // Don't flush as one request often follows another
-			this._load('data');
 		}
+		this._unflush();
 		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		try {
 			switch(x.length) {
@@ -542,6 +541,12 @@ function Worker(name,pages,settings) {
 			delete this.data;
 		}
 	};
+
+	this._unflush = function() {
+		if (!this.settings.keep && !this.data) {
+			this._load('data');
+		}
+	}
 
 	this._init = function() {
 		if (this._loaded) {
@@ -957,9 +962,7 @@ Dashboard.init = function() {
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
 		var worker = WorkerByName(Dashboard.option.active.substr(16));
-		if (!worker.data) {
-			worker._load();
-		}
+		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 
@@ -994,19 +997,13 @@ Dashboard.update = function(type) {
 		return;
 	}
 	worker = type || WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name, flush = false;
+	var id = 'golem-dashboard-'+worker.name;
 	if (this.option.active === id && this.option.display === 'block') {
-		if (!worker.data) {
-			flush = true;
-			worker._load('data');
-		}
 		try {
-			result = worker.dashboard();
+			worker._unflush();
+			worker.dashboard();
 		}catch(e) {
 			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
-		}
-		if (flush) {
-			worker._flush();
 		}
 	} else {
 		$('#'+id).empty();
@@ -1072,7 +1069,7 @@ Page.parse_all = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-			Workers[i]._load();
+			Workers[i]._unflush();
 			try {
 				if (Workers[i].parse(false)) {
 					list.push(Workers[i]);
@@ -1411,8 +1408,8 @@ Queue.run = function() {
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
-			Workers[i]._load();
 			try {
+				Workers[i]._unflush();
 				Workers[i].work(false);
 			} catch(e){
 				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
@@ -1426,8 +1423,8 @@ Queue.run = function() {
 		}
 //		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
 		if (this.data.current === worker.name) {
-			worker._load();
 			try {
+				worker._unflush();
 				result = worker.work(true);
 			}catch(e) {
 				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
@@ -2439,7 +2436,7 @@ Elite.work = function(state) {
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
+var Generals = new Worker('Generals', 'heroes_generals');
 
 Generals.init = function() {
 	this._watch(Town);
@@ -2454,7 +2451,7 @@ Generals.parse = function(change) {
 	}
 	$elements.each(function(i,el){
 		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
-		if (name) {
+		if (name && name.length < 30) { // Stop the "All generals in one box" bug
 			if (!data[name] || data[name].level !== level) {
 				data[name] = data[name] || {};
 				data[name].img		= $('.imgButton', el).attr('src').filepart();
@@ -2494,13 +2491,16 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
-	if (name && !Generals.data[name]) {
+	if (!this.data) {
+		this._load('data');
+	}
+	if (name && !this.data[name]) {
 		name = this.best(name);
 	}
 	if (!name || Player.get('general') === name || name === 'any') {
 		return true;
 	}
-	if (!name || !Generals.data[name]) {
+	if (!name || !this.data[name]) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
@@ -2508,13 +2508,13 @@ Generals.to = function(name) {
 		return false;
 	}
 	debug('Changing to General '+name);
-	Page.click('input[src$="'+Generals.data[name].img+'"]');
+	Page.click('input[src$="' + this.data[name].img + '"]');
 	return false;
 };
 
 Generals.best = function(type) {
-	if (!Generals.data) {
-		return 'any';
+	if (!this.data) {
+		this._load('data');
 	}
 	var rx = '', best = null, bestval = 0, i, value, list = [];
 	switch(type.toLowerCase()) {
@@ -2573,7 +2573,7 @@ Generals.best = function(type) {
 //	if (best) {
 //		debug('Best general found: '+best);
 //	}
-	return best;
+	return (best || 'any');
 };
 
 Generals.order = [];

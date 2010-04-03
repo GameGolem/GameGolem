@@ -37,7 +37,7 @@ Page.parse_all = function() {
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
-			Workers[i]._load();
+			Workers[i]._unflush();
 			try {
 				if (Workers[i].parse(false)) {
 					list.push(Workers[i]);

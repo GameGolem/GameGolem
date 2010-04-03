@@ -51,6 +51,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
+._unflush()		- Loads .data if it's not there already
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
 ._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 */
@@ -98,7 +99,7 @@ function Worker(name,pages,settings) {
 			this._working.update = true;
 			if (!this.data) {
 				flush = true;
-				this._load('data');
+				this._unflush();
 			}
 			if (this.update) {
 				try {
@@ -131,9 +132,8 @@ function Worker(name,pages,settings) {
 		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) { // Don't flush as one request often follows another
-			this._load('data');
 		}
+		this._unflush();
 		try {
 			switch(x.length) {
 				case 0:	return this.data;
@@ -153,9 +153,8 @@ function Worker(name,pages,settings) {
 	this._set = function(what, value) {
 		if (!this._loaded) {
 			this._init();
-		} else if (!this.data) { // Don't flush as one request often follows another
-			this._load('data');
 		}
+		this._unflush();
 		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		try {
 			switch(x.length) {
@@ -180,6 +179,12 @@ function Worker(name,pages,settings) {
 			delete this.data;
 		}
 	};
+
+	this._unflush = function() {
+		if (!this.settings.keep && !this.data) {
+			this._load('data');
+		}
+	}
 
 	this._init = function() {
 		if (this._loaded) {

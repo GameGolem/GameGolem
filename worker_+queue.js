@@ -137,8 +137,8 @@ Queue.run = function() {
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
-			Workers[i]._load();
 			try {
+				Workers[i]._unflush();
 				Workers[i].work(false);
 			} catch(e){
 				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
@@ -152,8 +152,8 @@ Queue.run = function() {
 		}
 //		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
 		if (this.data.current === worker.name) {
-			worker._load();
 			try {
+				worker._unflush();
 				result = worker.work(true);
 			}catch(e) {
 				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);

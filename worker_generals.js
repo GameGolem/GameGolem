@@ -3,7 +3,7 @@
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('Generals', 'heroes_generals', {keep:true});
+var Generals = new Worker('Generals', 'heroes_generals');
 
 Generals.init = function() {
 	this._watch(Town);
@@ -18,7 +18,7 @@ Generals.parse = function(change) {
 	}
 	$elements.each(function(i,el){
 		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
-		if (name) {
+		if (name && name.length < 30) { // Stop the "All generals in one box" bug
 			if (!data[name] || data[name].level !== level) {
 				data[name] = data[name] || {};
 				data[name].img		= $('.imgButton', el).attr('src').filepart();
@@ -58,13 +58,16 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
-	if (name && !Generals.data[name]) {
+	if (!this.data) {
+		this._load('data');
+	}
+	if (name && !this.data[name]) {
 		name = this.best(name);
 	}
 	if (!name || Player.get('general') === name || name === 'any') {
 		return true;
 	}
-	if (!name || !Generals.data[name]) {
+	if (!name || !this.data[name]) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
@@ -72,13 +75,13 @@ Generals.to = function(name) {
 		return false;
 	}
 	debug('Changing to General '+name);
-	Page.click('input[src$="'+Generals.data[name].img+'"]');
+	Page.click('input[src$="' + this.data[name].img + '"]');
 	return false;
 };
 
 Generals.best = function(type) {
-	if (!Generals.data) {
-		return 'any';
+	if (!this.data) {
+		this._load('data');
 	}
 	var rx = '', best = null, bestval = 0, i, value, list = [];
 	switch(type.toLowerCase()) {
@@ -137,7 +140,7 @@ Generals.best = function(type) {
 //	if (best) {
 //		debug('Best general found: '+best);
 //	}
-	return best;
+	return (best || 'any');
 };
 
 Generals.order = [];
