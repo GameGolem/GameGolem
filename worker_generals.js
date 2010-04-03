@@ -18,7 +18,7 @@ Generals.parse = function(change) {
 	}
 	$elements.each(function(i,el){
 		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
-		if (name && name.length < 30) { // Stop the "All generals in one box" bug
+		if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
 			if (!data[name] || data[name].level !== level) {
 				data[name] = data[name] || {};
 				data[name].img		= $('.imgButton', el).attr('src').filepart();
@@ -58,9 +58,7 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
-	if (!this.data) {
-		this._load('data');
-	}
+	this._unflush();
 	if (name && !this.data[name]) {
 		name = this.best(name);
 	}
@@ -80,9 +78,7 @@ Generals.to = function(name) {
 };
 
 Generals.best = function(type) {
-	if (!this.data) {
-		this._load('data');
-	}
+	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [];
 	switch(type.toLowerCase()) {
 		case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;

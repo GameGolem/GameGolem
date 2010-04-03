@@ -72,7 +72,7 @@ Quest.parse = function(change) {
 				type = 3;
 			}
 		}
-		if (!name) {
+		if (!name || name.indexOf('\t') !== -1) { // Hopefully stop it finding broken qpage load quests
 			return;
 		}
 		quest[name] = {};
