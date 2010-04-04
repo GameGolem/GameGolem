@@ -17,6 +17,11 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
+	debug('Exp max: '+this.get('exp.max'));
+	debug('Exp min: '+this.get('exp.min'));
+	debug('Exp mean: '+this.get('exp.mean.change'));
+	debug('Exp mode: '+this.get('exp.mode.change'));
+	debug('Exp median: '+this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -41,7 +46,7 @@ History.add = function(what, value) {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, j = 0, count = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, result = [], list = {}, tmp, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (!x.length) {
 		return this.data;
 	}
@@ -50,26 +55,88 @@ History.get = function(what) {
 			throw ['UnknownHistoryError', 'Wanting to get unknwn type ' + x[1] + ' on ' + x[0]];
 		case 'undefined':
 			return data[hour][x[0]]; // only the current value
+		case 'total':
+			if (x[2] === 'change') {
+				for (i in data) {
+					if (data[i][x[0]]) {
+						low = Math.min(low, data[i][x[0]]);
+					}
+				}
+			}
+			for (i in data) {
+				j += (data[i][x[0]] || 0) - (low === Number.POSITIVE_INFINITY ? 0 : low);
+			}
+			return j;
+		case 'max':
+			for (i in data) {
+				max = Math.max(max, (data[i][x[0]] || 0));
+			}
+			return max;
+		case 'min':
+			for (i in data) {
+				min = Math.min(min, (data[i][x[0]] || 0));
+			}
+			return min;
+		case 'mean':
 		case 'average':
+			if (x[2] === 'change') {
+				for (i in data) {
+					if (data[i][x[0]]) {
+						low = Math.min(low, data[i][x[0]]);
+						high = Math.max(high, data[i][x[0]]);
+						min = Math.min(min, i);
+						max = Math.max(max, i);
+					}
+				}
+				return Math.floor((high - low) / (max - min));
+			}
 			for (i in data) {
 				j += (data[i][x[0]] || 0);
 			}
 			return Math.floor(j / length(data));
-		case 'total':
-			for (i in data) {
-				j += (data[i][x[0]] || 0);
-			}
-			return j;
-		case 'change':
+		case 'mode':
 			for (i in data) {
 				if (data[i][x[0]]) {
-					low = Math.min(low, data[i][x[0]]);
-					high = Math.max(high, data[i][x[0]]);
-					min = Math.min(min, i);
-					max = Math.max(max, i);
+					if (x[2] === 'change') {
+						if (low !== Number.POSITIVE_INFINITY) {
+							high = data[i][x[0]] - low;
+							list[high] = (list[high] || 0) + 1;
+						}
+						low = data[i][x[0]];
+					} else {
+						list[data[i][x[0]]] = (list[data[i][x[0]]] || 0) + 1;
+					}
 				}
 			}
-			return Math.floor((high - low) / (max - min));
+			tmp = sortObject(list, function(a,b){return list[b]-list[a];});
+			max = list[tmp[0]];
+			for (i in tmp) {
+				if (list[tmp[i]] === max) {
+					j += parseInt(tmp[i]);
+					count++;
+				}
+			}
+			return j / count;
+		case 'median':
+			list = [];
+			for (i in data) {
+				if (data[i][x[0]]) {
+					if (x[2] === 'change') {
+						if (low !== Number.POSITIVE_INFINITY) {
+							high = data[i][x[0]] - low;
+							list.push(high);
+						}
+						low = data[i][x[0]];
+					} else {
+						list.push(data[i][x[0]]);
+					}
+				}
+			}
+			list.sort(function(a,b){return a-b;});
+			if (list.length % 2) {
+				return (list[Math.floor(list.length / 2)] + list[Math.ceil(list.length / 2)]) / 2;
+			}
+			return list[Math.floor(list.length / 2)];
 	}
 };
 

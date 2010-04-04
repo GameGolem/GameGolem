@@ -2892,6 +2892,11 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
+	debug('Exp max: '+this.get('exp.max'));
+	debug('Exp min: '+this.get('exp.min'));
+	debug('Exp mean: '+this.get('exp.mean.change'));
+	debug('Exp mode: '+this.get('exp.mode.change'));
+	debug('Exp median: '+this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -2916,7 +2921,7 @@ History.add = function(what, value) {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, j = 0, count = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, result = [], list = {}, tmp, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (!x.length) {
 		return this.data;
 	}
@@ -2925,26 +2930,88 @@ History.get = function(what) {
 			throw ['UnknownHistoryError', 'Wanting to get unknwn type ' + x[1] + ' on ' + x[0]];
 		case 'undefined':
 			return data[hour][x[0]]; // only the current value
+		case 'total':
+			if (x[2] === 'change') {
+				for (i in data) {
+					if (data[i][x[0]]) {
+						low = Math.min(low, data[i][x[0]]);
+					}
+				}
+			}
+			for (i in data) {
+				j += (data[i][x[0]] || 0) - (low === Number.POSITIVE_INFINITY ? 0 : low);
+			}
+			return j;
+		case 'max':
+			for (i in data) {
+				max = Math.max(max, (data[i][x[0]] || 0));
+			}
+			return max;
+		case 'min':
+			for (i in data) {
+				min = Math.min(min, (data[i][x[0]] || 0));
+			}
+			return min;
+		case 'mean':
 		case 'average':
+			if (x[2] === 'change') {
+				for (i in data) {
+					if (data[i][x[0]]) {
+						low = Math.min(low, data[i][x[0]]);
+						high = Math.max(high, data[i][x[0]]);
+						min = Math.min(min, i);
+						max = Math.max(max, i);
+					}
+				}
+				return Math.floor((high - low) / (max - min));
+			}
 			for (i in data) {
 				j += (data[i][x[0]] || 0);
 			}
 			return Math.floor(j / length(data));
-		case 'total':
-			for (i in data) {
-				j += (data[i][x[0]] || 0);
-			}
-			return j;
-		case 'change':
+		case 'mode':
 			for (i in data) {
 				if (data[i][x[0]]) {
-					low = Math.min(low, data[i][x[0]]);
-					high = Math.max(high, data[i][x[0]]);
-					min = Math.min(min, i);
-					max = Math.max(max, i);
+					if (x[2] === 'change') {
+						if (low !== Number.POSITIVE_INFINITY) {
+							high = data[i][x[0]] - low;
+							list[high] = (list[high] || 0) + 1;
+						}
+						low = data[i][x[0]];
+					} else {
+						list[data[i][x[0]]] = (list[data[i][x[0]]] || 0) + 1;
+					}
 				}
 			}
-			return Math.floor((high - low) / (max - min));
+			tmp = sortObject(list, function(a,b){return list[b]-list[a];});
+			max = list[tmp[0]];
+			for (i in tmp) {
+				if (list[tmp[i]] === max) {
+					j += parseInt(tmp[i]);
+					count++;
+				}
+			}
+			return j / count;
+		case 'median':
+			list = [];
+			for (i in data) {
+				if (data[i][x[0]]) {
+					if (x[2] === 'change') {
+						if (low !== Number.POSITIVE_INFINITY) {
+							high = data[i][x[0]] - low;
+							list.push(high);
+						}
+						low = data[i][x[0]];
+					} else {
+						list.push(data[i][x[0]]);
+					}
+				}
+			}
+			list.sort(function(a,b){return a-b;});
+			if (list.length % 2) {
+				return (list[Math.floor(list.length / 2)] + list[Math.ceil(list.length / 2)]) / 2;
+			}
+			return list[Math.floor(list.length / 2)];
 	}
 };
 
@@ -3936,28 +4003,27 @@ Player.parse = function(change) {
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.energy) { energy_used = data.energy - tmp[0];}
-	if (tmp[0] > data.energy) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
+	if (tmp[0] < data.energy) {
+		energy_used = data.energy - tmp[0];
+	}
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.stamina) { stamina_used = data.stamina - tmp[0];}
-	if (tmp[0] > data.stamina) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
+	if (tmp[0] < data.stamina) {
+		stamina_used = data.stamina - tmp[0];
+	}
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
 		if (energy_used) {
-			data.avgenergyexp = (((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10);
-			data.avgenergyexp = (Math.round(data.avgenergyexp * 100))/100;
+			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10)).round(-2);
 			data.energysamples = Math.min((data.energysamples || 0) + 1, 10);
-		}
-		else if (stamina_used) {
-			data.avgstaminaexp = (((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10);
-			data.avgstaminaexp = (Math.round(data.avgstaminaexp * 100))/100;
+		} else if (stamina_used) {
+			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10)).round(-2);
 			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 10);
 		}
 	}
@@ -4012,8 +4078,9 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	Dashboard.status(this, 'Exp: ' + addCommas(Math.round(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp))*10)/10) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-//	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.change')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
+//	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.median.change')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {
@@ -4028,8 +4095,8 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
-//		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (History.get('exp.change') || 1));
+//		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
+		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (History.get('exp.median.change') || 1));
 		default: return this._get(what);
 	}
 };
