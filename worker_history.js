@@ -74,7 +74,7 @@ History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, this.get('land.average') + this.get('income.average')));
-	list.push(this.makeGraph('bank', 'Bank', true, this.get('bank.average')));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.option.bestcost)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, Player.get('maxexp')));
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));

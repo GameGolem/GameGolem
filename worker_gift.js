@@ -40,6 +40,7 @@ Gift.parse = function(change) {
 		return false;
 	}
 	var uid, gifts;
+	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// If we have a gift waiting it doesn't matter from whom as it gets parsed on the right page...
 		if (!this.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
@@ -54,6 +55,7 @@ Gift.parse = function(change) {
 				if (!this.data.todo[uid].gifts) {
 					this.data.todo[uid].gifts = [];
 				}
+				// this grabs the image of the specific piece of the gift we have received.  How do we convert that to which gift we need to return?
 				this.data.todo[uid].gifts.push($('div.result img').attr('src').filepart());
 				this.data.lastgift = null;
 			}
@@ -68,7 +70,13 @@ Gift.parse = function(change) {
 				debug('Gift: Adding gift from '+$(el).attr('uid'));
 			});
 		}
-	} else if (Page.page === 'army_gifts') {
+		// Check if gift sent properly - TODO - Maybe something like this... 
+		/*
+		if ($('div.result').text().test('request[s]* sent'){
+			
+		}
+		*/
+	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
 		gifts = this.data.gifts = {};
 //		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
 		$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').each(function(i,el){
@@ -101,6 +109,7 @@ Gift.work = function(state) {
 		if (!this.data.todo[uid]) {
 			this.data.todo[uid] = {};
 		}
+		// if we are returning gifts
 		this.data.todo[uid].time = Date.now();
 		this.data.lastgift = uid;
 		debug('Gift: Accepting gift from '+uid);
@@ -108,6 +117,13 @@ Gift.work = function(state) {
 			return true;
 		}
 	}
+	// Give some gifts back - TODO
+	/*
+	if (this.data.todo.length) {
+		for (id in this.data.todo){
+			// something goes here
+		}
+	}*/
 	Page.to('keep_alchemy');
 	return false;
 };
