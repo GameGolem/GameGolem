@@ -13,8 +13,11 @@ Arena.option = {
 	losses:5,
 	cache:50,
 	type:'Invade',
+	rank:'None',
 	army:1.1,
-	level:1.1
+	level:1.1,
+	attacking:null,
+	recheck:false
 };
 
 Arena.rank = {
@@ -26,14 +29,15 @@ Arena.rank = {
 	Legend:6
 };
 
-Arena.knar = {
-	1:'Brawler',
-	2:'Swordsman',
-	3:'Warrior',
-	4:'Gladiator',
-	5:'Hero',
-	6:'Legend'
-};
+Arena.knar = [
+	'None',
+	'Brawler',
+	'Swordsman',
+	'Warrior',
+	'Gladiator',
+	'Hero',
+	'Legend'
+];
 
 Arena.display = [
 	{
@@ -54,6 +58,11 @@ Arena.display = [
 		id:'bp',
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		id:'rank',
+		label:'Stop at Rank',
+		select:Arena.knar,
+		help:'Once you reach this rank it will gain a further 500 points, then check your rank every hour'
 	},{
 		advanced:true,
 		id:'losses',
@@ -79,7 +88,7 @@ Arena.display = [
 ];
 
 Arena.parse = function(change) {
-	var data = this.data.user;
+	var data = this.data.user, newrank;
 	if (this.option.attacking) {
 		uid = this.option.attacking;
 		this.option.attacking = null;
@@ -96,7 +105,12 @@ Arena.parse = function(change) {
 			this.option.attacking = uid; // Don't remove target as we've not hit them...
 		}
 	}
-	this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+	newrank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+	this.data.points = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').parent().next().next().text().replace(/,/g,'').regex(/Points: ([0-9]+)/i);
+	if (this.data.rank !== newrank) {
+		this.data.rank = newrank;
+		this.data.rankat = this.data.points;
+	}
 	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
 		var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 		if (!uid || !info) {
@@ -147,6 +161,10 @@ Arena.update = function(type) {
 	if (!this.option.enabled) {
 		this.option.attacking = null;
 		Dashboard.status(this);
+	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
+		this.option.attacking = null;
+		Dashboard.status(this, 'Stopped at ' + this.option.rank);
+		this.option.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
 		if (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
@@ -173,10 +191,13 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || !this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5) {
+	if (!this.option.enabled || (!this.option.recheck && (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
 		return false;
 	}
-	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_arena')) {
+	if (state && this.option.recheck && !Page.to('battle_arena')) {
+		return true;
+	}
+	if (!state || this.option.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;

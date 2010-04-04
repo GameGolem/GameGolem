@@ -1467,7 +1467,7 @@ Queue.run = function() {
 				worker._unflush();
 				result = worker.work(true);
 			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
 			worker._save(); // Save for current only, nobody else should change anything
@@ -1475,7 +1475,7 @@ Queue.run = function() {
 			try {
 				result = worker.work(false);
 			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
 		}
@@ -1653,8 +1653,11 @@ Arena.option = {
 	losses:5,
 	cache:50,
 	type:'Invade',
+	rank:'None',
 	army:1.1,
-	level:1.1
+	level:1.1,
+	attacking:null,
+	recheck:false
 };
 
 Arena.rank = {
@@ -1666,14 +1669,15 @@ Arena.rank = {
 	Legend:6
 };
 
-Arena.knar = {
-	1:'Brawler',
-	2:'Swordsman',
-	3:'Warrior',
-	4:'Gladiator',
-	5:'Hero',
-	6:'Legend'
-};
+Arena.knar = [
+	'None',
+	'Brawler',
+	'Swordsman',
+	'Warrior',
+	'Gladiator',
+	'Hero',
+	'Legend'
+];
 
 Arena.display = [
 	{
@@ -1694,6 +1698,11 @@ Arena.display = [
 		id:'bp',
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		id:'rank',
+		label:'Stop at Rank',
+		select:Arena.knar,
+		help:'Once you reach this rank it will gain a further 500 points, then check your rank every hour'
 	},{
 		advanced:true,
 		id:'losses',
@@ -1719,7 +1728,7 @@ Arena.display = [
 ];
 
 Arena.parse = function(change) {
-	var data = this.data.user;
+	var data = this.data.user, newrank;
 	if (this.option.attacking) {
 		uid = this.option.attacking;
 		this.option.attacking = null;
@@ -1736,7 +1745,12 @@ Arena.parse = function(change) {
 			this.option.attacking = uid; // Don't remove target as we've not hit them...
 		}
 	}
-	this.data.rank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+	newrank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
+	this.data.points = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').parent().next().next().text().replace(/,/g,'').regex(/Points: ([0-9]+)/i);
+	if (this.data.rank !== newrank) {
+		this.data.rank = newrank;
+		this.data.rankat = this.data.points;
+	}
 	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
 		var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 		if (!uid || !info) {
@@ -1787,6 +1801,10 @@ Arena.update = function(type) {
 	if (!this.option.enabled) {
 		this.option.attacking = null;
 		Dashboard.status(this);
+	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
+		this.option.attacking = null;
+		Dashboard.status(this, 'Stopped at ' + this.option.rank);
+		this.option.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
 		if (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
@@ -1813,10 +1831,13 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || !this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5) {
+	if (!this.option.enabled || (!this.option.recheck && (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
 		return false;
 	}
-	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_arena')) {
+	if (state && this.option.recheck && !Page.to('battle_arena')) {
+		return true;
+	}
+	if (!state || this.option.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
@@ -2049,6 +2070,7 @@ Battle.display = [
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
+		advanced:true,
 		hr:true,
 		title:'Preferred Targets'
 	},{
@@ -2170,7 +2192,7 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if ((this.option.preferonly === 'Never' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
+		if ((this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
 		&& (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
@@ -3249,6 +3271,7 @@ var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_rai
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
+	first:false,
 	choice: 'All',
 	raid: 'Invade x5'
 };
@@ -3266,6 +3289,11 @@ Monster.display = [
 		label:'Dispel Above',
 		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 		after:'%'
+	},{
+		id:'first',
+		label:'Fortify Before Attacking',
+		checkbox:true,
+		help:'Without this setting you will fortify whenever Energy is available'
 	},{
 		label:'"All" is currently Random...'
 	},{
@@ -3692,7 +3720,7 @@ Monster.work = function(state) {
 		uid  = Monster.option.uid  = best[0];
 		type = Monster.option.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {

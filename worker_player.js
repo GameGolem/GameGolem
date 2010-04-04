@@ -22,28 +22,34 @@ Player.parse = function(change) {
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.energy) { energy_used = data.energy - tmp[0];}
-	if (tmp[0] > data.energy) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
+	if (tmp[0] < data.energy) {
+		energy_used = data.energy - tmp[0];
+	}
+	if (tmp[0] > data.energy) {
+		data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));
+	}
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.stamina) { stamina_used = data.stamina - tmp[0];}
-	if (tmp[0] > data.stamina) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
+	if (tmp[0] < data.stamina) {
+		stamina_used = data.stamina - tmp[0];
+	}
+	if (tmp[0] > data.stamina) {
+		data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));
+	}
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
 		if (energy_used) {
-			data.avgenergyexp = (((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10);
-			data.avgenergyexp = (Math.round(data.avgenergyexp * 100))/100;
+			data.avgenergyexp = (((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10).round(-2);
 			data.energysamples = Math.min((data.energysamples || 0) + 1, 10);
 		}
 		else if (stamina_used) {
-			data.avgstaminaexp = (((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10);
-			data.avgstaminaexp = (Math.round(data.avgstaminaexp * 100))/100;
+			data.avgstaminaexp = (((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10).round(-2);
 			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 10);
 		}
 	}

@@ -85,6 +85,7 @@ Battle.display = [
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
+		advanced:true,
 		hr:true,
 		title:'Preferred Targets'
 	},{
@@ -206,7 +207,7 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if ((this.option.preferonly === 'Never' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
+		if ((this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
 		&& (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {

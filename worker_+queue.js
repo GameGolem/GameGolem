@@ -156,7 +156,7 @@ Queue.run = function() {
 				worker._unflush();
 				result = worker.work(true);
 			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
 			worker._save(); // Save for current only, nobody else should change anything
@@ -164,7 +164,7 @@ Queue.run = function() {
 			try {
 				result = worker.work(false);
 			}catch(e) {
-				debug(e.name + ' in ' + workers.name + '.work(false): ' + e.message);
+				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
 		}

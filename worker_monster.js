@@ -5,6 +5,7 @@ var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_rai
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
+	first:false,
 	choice: 'All',
 	raid: 'Invade x5'
 };
@@ -22,6 +23,11 @@ Monster.display = [
 		label:'Dispel Above',
 		select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 		after:'%'
+	},{
+		id:'first',
+		label:'Fortify Before Attacking',
+		checkbox:true,
+		help:'Without this setting you will fortify whenever Energy is available'
 	},{
 		label:'"All" is currently Random...'
 	},{
@@ -448,7 +454,7 @@ Monster.work = function(state) {
 		uid  = Monster.option.uid  = best[0];
 		type = Monster.option.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {
