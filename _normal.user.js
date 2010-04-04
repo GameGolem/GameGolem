@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.7
+// @version		30.8
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.7;
+var VERSION = 30.8;
 var script_started = Date.now();
 
 // Automatically filled
@@ -259,10 +259,18 @@ var unique = function (a) { // Return an array with no duplicates
 
 var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
-	for(i in a) {
-		if (typeof a[i] === 'number') {
-			t += a[i];
+	if (typeof a === 'object' || typeof a === 'array') {
+		for(i in a) {
+			if (typeof a[i] === 'number') {
+				t += a[i];
+			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+				t = parseFloat(a[i]);
+			}
 		}
+	} else if (typeof a === 'number') {
+		t = a;
+	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+		t = parseFloat(a);
 	}
 	return t;
 };
@@ -739,6 +747,12 @@ Config.makePanel = function(worker) {
 				o.real_id = PREFIX + worker.name + '_' + o.id;
 				o.value = worker.option[o.id] || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+				if (o.hr) {
+					txt.push('<br><hr style="clear:both;margin:0;">');
+				}
+				if (o.title) {
+					txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
+				}
 				if (o.label) {
 					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
 					if (o.text || o.checkbox || o.select) {
@@ -1951,7 +1965,7 @@ Battle.option = {
 	bp:'Always',
 	army:1.1,
 	level:1.1,
-	preferonly:false,
+	preferonly:'Sometimes',
 	prefer:[]
 };
 
@@ -2019,14 +2033,16 @@ Battle.display = [
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
+		hr:true,
+		title:'Preferred Targets'
+	},{
 		advanced:true,
 		id:'preferonly',
-		label:'Fight Preferred Targets Only',
-		checkbox:true
+		label:'Fight Preferred',
+		select:['Never', 'Sometimes', 'Only', 'Until Dead']
 	},{
 		advanced:true,
 		id:'prefer',
-		label:'Preferred Targets',
 		multiple:'userid'
 	}
 ];
@@ -2138,7 +2154,8 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if ((!this.option.preferonly || !length(this.option.prefer)) && (!this.option.attacking || !data[this.option.attacking]
+		if ((this.option.preferonly === 'Never' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
+		&& (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {
@@ -2688,6 +2705,7 @@ Gift.parse = function(change) {
 		return false;
 	}
 	var uid, gifts;
+	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// If we have a gift waiting it doesn't matter from whom as it gets parsed on the right page...
 		if (!this.data.uid.length && $('span.result_body').text().indexOf('has sent you a gift') >= 0) {
@@ -2702,6 +2720,7 @@ Gift.parse = function(change) {
 				if (!this.data.todo[uid].gifts) {
 					this.data.todo[uid].gifts = [];
 				}
+				// this grabs the image of the specific piece of the gift we have received.  How do we convert that to which gift we need to return?
 				this.data.todo[uid].gifts.push($('div.result img').attr('src').filepart());
 				this.data.lastgift = null;
 			}
@@ -2716,7 +2735,13 @@ Gift.parse = function(change) {
 				debug('Gift: Adding gift from '+$(el).attr('uid'));
 			});
 		}
-	} else if (Page.page === 'army_gifts') {
+		// Check if gift sent properly - TODO - Maybe something like this... 
+		/*
+		if ($('div.result').text().test('request[s]* sent'){
+			
+		}
+		*/
+	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
 		gifts = this.data.gifts = {};
 //		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
 		$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').each(function(i,el){
@@ -2749,6 +2774,7 @@ Gift.work = function(state) {
 		if (!this.data.todo[uid]) {
 			this.data.todo[uid] = {};
 		}
+		// if we are returning gifts
 		this.data.todo[uid].time = Date.now();
 		this.data.lastgift = uid;
 		debug('Gift: Accepting gift from '+uid);
@@ -2756,6 +2782,13 @@ Gift.work = function(state) {
 			return true;
 		}
 	}
+	// Give some gifts back - TODO
+	/*
+	if (this.data.todo.length) {
+		for (id in this.data.todo){
+			// something goes here
+		}
+	}*/
 	Page.to('keep_alchemy');
 	return false;
 };
@@ -2824,6 +2857,9 @@ History.update = function(type) {
 };
 
 History.set = function(what, value) {
+	if (!value) {
+		return;
+	}
 	this._unflush();
 	var hour = Math.floor(Date.now() / 3600000);
 	this.data[hour] = this.data[hour] || {}
@@ -2878,7 +2914,7 @@ History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, this.get('land.average') + this.get('income.average')));
-	list.push(this.makeGraph('bank', 'Bank', true, this.get('bank.average')));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.option.bestcost)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, Player.get('maxexp')));
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
@@ -3217,7 +3253,7 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread']
+		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement']
 	},{
 		id:'raid',
 		label:'Raid',
@@ -3617,19 +3653,19 @@ Monster.work = function(state) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
-					if ((Monster.option.choice === 'All'  || Monster.option.choice === 'Achievement') && list.length) {
+					if (Monster.option.choice === 'All' || (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.damage[userID] && Monster.damage[userID][0] <= Monster.types[type].achievement)) {
 						list.push([uid, type]);
-					} else if (!best
+					} else if (!(best || Monster.option.choice === 'Achievement')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
-					|| (Monster.option.choice === 'Spread' && Monster.battle_count < Monster[best[0]][best[1]].battle_count)) {
+					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster[best[0]][best[1]].battle_count)) {
 						best = [uid, type];
 					}
 				}
 			}
 		}
-		if (Monster.option.choice === 'All' && list.length) {
+		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement') && list.length) {
 			best = list[Math.floor(Math.random()*list.length)];
 		}
 		if (!best) {
@@ -3847,22 +3883,38 @@ Player.init = function() {
 };
 
 Player.parse = function(change) {
-	var data = this.data, keep, stats, tmp;
+	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
 		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-timer" style="color:rgb(25,123,48);">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	if (tmp[0] < data.energy) { energy_used = data.energy - tmp[0];}
+	if (tmp[0] > data.energy) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	if (tmp[0] < data.stamina) { stamina_used = data.stamina - tmp[0];}
+	if (tmp[0] > data.stamina) { data.leveltime = Math.round((Date.now()/1000) + (3600 * (((data.maxexp - data.exp) - (data.energy * data.avgenergyexp) - (data.stamina * data.avgstaminaexp)) / (((12 * data.avgenergyexp) + (12 * data.avgstaminaexp)) || 45))));}
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
+		if (energy_used) {
+			data.avgenergyexp = (((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10);
+			data.avgenergyexp = (Math.round(data.avgenergyexp * 100))/100;
+			data.energysamples = Math.min((data.energysamples || 0) + 1, 10);
+		}
+		else if (stamina_used) {
+			data.avgstaminaexp = (((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10);
+			data.avgstaminaexp = (Math.round(data.avgstaminaexp * 100))/100;
+			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 10);
+		}
+	}
 	data.exp		= tmp[0] || 0;
 	data.maxexp		= tmp[1] || 0;
 	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
@@ -3892,9 +3944,9 @@ Player.parse = function(change) {
 	}
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
-		History.add('income', (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0) + (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0) + (txt.regex(/Youreceived\$([0-9]+)/i) || 0) + (txt.regex(/Yougained\$([0-9]+)/i) || 0));
+		History.add('income', sum(txt.regex(/Gain.*\$([0-9]+).*Cost|stealsGold:\+\$([0-9]+)|Youreceived\$([0-9]+)|Yougained\$([0-9]+)/i)));
 		if (txt.regex(/incomepaymentof\$([0-9]+)gold/i)){
-			History.set('land', (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0));
+			History.set('land', sum(txt.regex(/incomepaymentof\$([0-9]+)gold|backinthemine:Extra([0-9]+)Gold/i)));
 		}
 	});
 	return true;
@@ -3914,7 +3966,8 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.change')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Exp: ' + addCommas(Math.round(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp))*10)/10) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+//	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.change')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {
@@ -3929,7 +3982,8 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (History.get('exp.change') || 1));
+		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
+//		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (History.get('exp.change') || 1));
 		default: return this._get(what);
 	}
 };

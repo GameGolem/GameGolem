@@ -17,7 +17,7 @@ Battle.option = {
 	bp:'Always',
 	army:1.1,
 	level:1.1,
-	preferonly:false,
+	preferonly:'Sometimes',
 	prefer:[]
 };
 
@@ -85,14 +85,16 @@ Battle.display = [
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
+		hr:true,
+		title:'Preferred Targets'
+	},{
 		advanced:true,
 		id:'preferonly',
-		label:'Fight Preferred Targets Only',
-		checkbox:true
+		label:'Fight Preferred',
+		select:['Never', 'Sometimes', 'Only', 'Until Dead']
 	},{
 		advanced:true,
 		id:'prefer',
-		label:'Preferred Targets',
 		multiple:'userid'
 	}
 ];
@@ -204,7 +206,8 @@ Battle.update = function(type) {
 				}
 			}
 		}
-		if ((!this.option.preferonly || !length(this.option.prefer)) && (!this.option.attacking || !data[this.option.attacking]
+		if ((this.option.preferonly === 'Never' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
+		&& (!this.option.attacking || !data[this.option.attacking]
 		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {

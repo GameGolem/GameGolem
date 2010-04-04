@@ -27,7 +27,7 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread']
+		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement']
 	},{
 		id:'raid',
 		label:'Raid',
@@ -427,19 +427,19 @@ Monster.work = function(state) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
-					if ((Monster.option.choice === 'All'  || Monster.option.choice === 'Achievement') && list.length) {
+					if (Monster.option.choice === 'All' || (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.damage[userID] && Monster.damage[userID][0] <= Monster.types[type].achievement)) {
 						list.push([uid, type]);
-					} else if (!best
+					} else if (!(best || Monster.option.choice === 'Achievement')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
-					|| (Monster.option.choice === 'Spread' && Monster.battle_count < Monster[best[0]][best[1]].battle_count)) {
+					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster[best[0]][best[1]].battle_count)) {
 						best = [uid, type];
 					}
 				}
 			}
 		}
-		if (Monster.option.choice === 'All' && list.length) {
+		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement') && list.length) {
 			best = list[Math.floor(Math.random()*list.length)];
 		}
 		if (!best) {

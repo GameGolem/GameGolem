@@ -20,6 +20,9 @@ History.update = function(type) {
 };
 
 History.set = function(what, value) {
+	if (!value) {
+		return;
+	}
 	this._unflush();
 	var hour = Math.floor(Date.now() / 3600000);
 	this.data[hour] = this.data[hour] || {}

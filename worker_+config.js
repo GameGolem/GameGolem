@@ -103,6 +103,12 @@ Config.makePanel = function(worker) {
 				o.real_id = PREFIX + worker.name + '_' + o.id;
 				o.value = worker.option[o.id] || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+				if (o.hr) {
+					txt.push('<br><hr style="clear:both;margin:0;">');
+				}
+				if (o.title) {
+					txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
+				}
 				if (o.label) {
 					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
 					if (o.text || o.checkbox || o.select) {

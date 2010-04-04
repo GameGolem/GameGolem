@@ -130,10 +130,18 @@ var unique = function (a) { // Return an array with no duplicates
 
 var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
-	for(i in a) {
-		if (typeof a[i] === 'number') {
-			t += a[i];
+	if (typeof a === 'object' || typeof a === 'array') {
+		for(i in a) {
+			if (typeof a[i] === 'number') {
+				t += a[i];
+			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+				t = parseFloat(a[i]);
+			}
 		}
+	} else if (typeof a === 'number') {
+		t = a;
+	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+		t = parseFloat(a);
 	}
 	return t;
 };
