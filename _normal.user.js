@@ -2902,10 +2902,10 @@ var History = new Worker('History');
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.harmonic') + this.get('income.harmonic')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Median Average':this.get('exp.median.change')} )); // ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Harmonic Average':this.get('exp.harmonic.change')} )); // ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -2927,12 +2927,14 @@ History.update = function(type) {
 /*
 	debug('Exp: '+this.get('exp'));
 	debug('Exp max: '+this.get('exp.max'));
-	debug('Exp min: '+this.get('exp.min'));
 	debug('Exp max change: '+this.get('exp.max.change'));
+	debug('Exp min: '+this.get('exp.min'));
+	debug('Exp min change: '+this.get('exp.min.change'));
 	debug('Exp change: '+this.get('exp.change'));
 	debug('Exp mean: '+this.get('exp.mean.change'));
 	debug('Exp mode: '+this.get('exp.mode.change'));
 	debug('Exp median: '+this.get('exp.median.change'));
+	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
 */
 };
 
@@ -2956,118 +2958,85 @@ History.add = function(what, value) {
 	this.data[hour][what] = (this.data[hour][what] || 0) + value;
 };
 
+History.math = {
+	average: function(list) {
+		return sum(list) / list.length;
+	},
+	mean: function(list) {
+		return sum(list) / list.length;
+	},
+	harmonic: function(list) {
+		var i, num = [];
+		for (i in list) {
+			num.push(1/list[i])
+		}
+		return num.length / sum(num);
+	},
+	median: function(list) {
+		list.sort(function(a,b){return a-b;});
+		if (list.length % 2) {
+			return (list[Math.floor(list.length / 2)] + list[Math.ceil(list.length / 2)]) / 2;
+		}
+		return list[Math.floor(list.length / 2)];
+	},
+	mode: function(list) {
+		var i, j = 0, count = 0, num = {}, tmp;
+		for (i in list) {
+			num[list[i]] = (num[list[i]] || 0) + 1
+		}
+		tmp = sortObject(num, function(a,b){return num[b]-num[a];});
+		for (i in tmp) {
+			if (num[tmp[i]] === num[tmp[0]]) {
+				j += parseInt(tmp[i]);
+				count++;
+			}
+		}
+		return j / count;
+	},
+	max: function(list) {
+		list.sort(function(a,b){return b-a;});
+		return list[0];
+	},
+	min: function(list) {
+		list.sort(function(a,b){return a-b;});
+		return list[0];
+	}
+};
+
 History.get = function(what) {
 	this._unflush();
-	var i, j = 0, count = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, result = [], list = {}, tmp, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, last = Number.POSITIVE_INFINITY, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (x.length && !x[0].regex(/[^0-9]/gi)) {
 		hour = x.shift();
 	}
 	if (!x.length) {
-		return this.data;
+		return data;
 	}
 	if (x.length === 1) {
 		return data[hour] ? data[hour][x[0]] : 0; // only the current value
 	}
-	switch(x[1]) {
-		default:
-			throw ['UnknownHistoryError', 'Wanting to get unknown type ' + x[1] + ' on ' + x[0]];
-		case 'change':
-			if (data[hour] && data[hour-1] && typeof data[hour][x[0]] === 'number' && typeof data[hour-1][x[0]] === 'number') {
-				return data[hour][x[0]] - data[hour-1][x[0]];
-			}
-			return 0;
-		case 'total':
-			if (x[2] === 'change') {
-				for (i in data) {
-					if (data[i][x[0]]) {
-						low = Math.min(low, data[i][x[0]]);
-					}
-				}
-			}
-			for (i in data) {
-				j += (data[i][x[0]] || 0) - (low === Number.POSITIVE_INFINITY ? 0 : low);
-			}
-			return j;
-		case 'max':
-			for (i in data) {
-				if (data[i][x[0]]) {
-					if (x[2] === 'change') {
-						if (low !== Number.POSITIVE_INFINITY) {
-							max = Math.max(max, data[i][x[0]] - low);
-						}
-						low = (data[i][x[0]] || 0);
-					} else {
-						max = Math.max(max, data[i][x[0]]);
-					}
-				}
-			}
-			return max;
-		case 'min':
-			for (i in data) {
-				min = Math.min(min, (data[i][x[0]] || 0));
-			}
-			return min;
-		case 'mean':
-		case 'average':
-			if (x[2] === 'change') {
-				for (i in data) {
-					if (data[i][x[0]]) {
-						low = Math.min(low, data[i][x[0]]);
-						high = Math.max(high, data[i][x[0]]);
-						min = Math.min(min, i);
-						max = Math.max(max, i);
-					}
-				}
-				return Math.floor((high - low) / (max - min));
-			}
-			for (i in data) {
-				j += (data[i][x[0]] || 0);
-			}
-			return Math.floor(j / length(data));
-		case 'mode':
-			for (i in data) {
-				if (data[i][x[0]]) {
-					if (x[2] === 'change') {
-						if (low !== Number.POSITIVE_INFINITY) {
-							high = data[i][x[0]] - low;
-							list[high] = (list[high] || 0) + 1;
-						}
-						low = data[i][x[0]];
-					} else {
-						list[data[i][x[0]]] = (list[data[i][x[0]]] || 0) + 1;
-					}
-				}
-			}
-			tmp = sortObject(list, function(a,b){return list[b]-list[a];});
-			max = list[tmp[0]];
-			for (i in tmp) {
-				if (list[tmp[i]] === max) {
-					j += parseInt(tmp[i]);
-					count++;
-				}
-			}
-			return j / count;
-		case 'median':
-			list = [];
-			for (i in data) {
-				if (data[i][x[0]]) {
-					if (x[2] === 'change') {
-						if (low !== Number.POSITIVE_INFINITY) {
-							high = data[i][x[0]] - low;
-							list.push(high);
-						}
-						low = data[i][x[0]];
-					} else {
-						list.push(data[i][x[0]]);
-					}
-				}
-			}
-			list.sort(function(a,b){return a-b;});
-			if (list.length % 2) {
-				return (list[Math.floor(list.length / 2)] + list[Math.ceil(list.length / 2)]) / 2;
-			}
-			return list[Math.floor(list.length / 2)];
+	if (x[1] === 'change') {
+		if (data[hour] && data[hour-1] && typeof data[hour][x[0]] === 'number' && typeof data[hour-1][x[0]] === 'number') {
+			return data[hour][x[0]] - data[hour-1][x[0]];
+		}
+		return 0;
 	}
+	for (i in data) {
+		if (typeof data[i][x[0]] === 'number') {
+			if (x.length > 2 && x[2] === 'change') {
+				if (last !== Number.POSITIVE_INFINITY) {
+					list.push(data[i][x[0]] - last);
+				}
+				last = data[i][x[0]];
+			} else {
+				list.push(data[i][x[0]]);
+			}
+		}
+	}
+	if (History.math[x[1]]) {
+		return History.math[x[1]](list);
+	}
+	throw('Wanting to get unknown History type ' + x[1] + ' on ' + x[0]);
 };
 
 History.makeGraph = function(type, title, iscash, goal) {
@@ -3116,7 +3085,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (goal && length(goal)) {
 		for (i in goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.ceil((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(-1)) + suffix + '</div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(1)) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -4140,8 +4109,8 @@ Player.get = function(what) {
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 //		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
-		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor(now % 3600000);
-		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor((now % 3600000) / 1000);
+		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
+		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
 		default: return this._get(what);
 	}
 };

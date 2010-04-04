@@ -115,8 +115,8 @@ Player.get = function(what) {
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 //		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
-		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor(now % 3600000);
-		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor((now % 3600000) / 1000);
+		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
+		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
 		default: return this._get(what);
 	}
 };
