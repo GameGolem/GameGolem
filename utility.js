@@ -214,15 +214,15 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 };
 
 var tr = function(list, html, attr) {
-	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + html + '</tr>');
+	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</tr>');
 };
 
 var th = function(list, html, attr) {
-	list.push('<th' + (attr ? ' ' + attr : '') + '>' + html + '</th>');
+	list.push('<th' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</th>');
 };
 
 var td = function(list, html, attr) {
-	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
+	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
 var isArray = function(obj) {   

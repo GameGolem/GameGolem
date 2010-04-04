@@ -104,13 +104,29 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard .golem-status tbody td { text-align: left; }\
 #golem-dashboard .overlay { position: absolute; margin: 6px; color: #1fc23a; text-shadow: black 1px 1px 2px; }\
 table.golem-graph { height: 100px }\
-table.golem-graph tbody th { text-align: right; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
-table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
-table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-child { line-height: 20px; height: 20px; }\
-table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
+table.golem-graph tbody th, table.golem-graph tbody td { border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; }\
+table.golem-graph tbody th { max-width: 75px; }\
+table.golem-graph tbody th:first-child { text-align: right; border-left: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
+table.golem-graph tbody th:first-child div { line-height: 60px; height: 60px; }\
+table.golem-graph tbody th:first-child div:first-child, table.golem-graph tbody th:first-child div:last-child { line-height: 20px; height: 20px; }\
+table.golem-graph tbody th:last-child { text-align: left; border-right: 1px solid #dddddd; vertical-align: bottom; }\
+table.golem-graph tbody th:last-child div { position: relative; height: 10px; margin: -10px 0 0; }\
+table.golem-graph tbody th:last-child div:nth-last-child(1) { color: #ff0000; }\
+table.golem-graph tbody th:last-child div:nth-last-child(2) { color: #0000ff; }\
+table.golem-graph tbody th:last-child div:nth-last-child(3) { color: #00ffff; }\
+table.golem-graph tbody th:last-child div:nth-last-child(4) { color: #aa00aa; }\
+table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid #dddddd; }\
 table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
-table.golem-graph tbody td div { margin: 0; padding: 0; width: 5px; }\
-table.golem-graph tbody th.goal { vertical-align: bottom; text-align: left; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
+table.golem-graph tbody td div div { margin: 0; padding: 0; width: 5px; }\
+table.golem-graph tbody td div.bars div:nth-last-child(1) { background: #00ff00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(2) { background: #00aa00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(3) { background: #ffff00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(4) { background: #ff00ff; }\
+table.golem-graph tbody td div.goal div { position: relative; height: 1px; margin: -1px 0 0; }\
+table.golem-graph tbody td div.goal div:nth-last-child(1) { background: #ff0000; }\
+table.golem-graph tbody td div.goal div:nth-last-child(2) { background: #0000ff; }\
+table.golem-graph tbody td div.goal div:nth-last-child(3) { background: #00ffff; }\
+table.golem-graph tbody td div.goal div:nth-last-child(4) { background: #aa00aa; }\
 .golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 img.golem-button, img.golem-button-active { margin-bottom: -2px }\
@@ -343,15 +359,15 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 };
 
 var tr = function(list, html, attr) {
-	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + html + '</tr>');
+	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</tr>');
 };
 
 var th = function(list, html, attr) {
-	list.push('<th' + (attr ? ' ' + attr : '') + '>' + html + '</th>');
+	list.push('<th' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</th>');
 };
 
 var td = function(list, html, attr) {
-	list.push('<td' + (attr ? ' ' + attr : '') + '>' + html + '</td>');
+	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
 var isArray = function(obj) {   
@@ -2913,17 +2929,25 @@ History.get = function(what) {
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, this.get('land.average') + this.get('income.average')));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.option.bestcost)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-	list.push(this.makeGraph('exp', 'Experience', false, Player.get('maxexp')));
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
 
 History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, min = Number.POSITIVE_INFINITY, max = (goal || Number.NEGATIVE_INFINITY), max_s, min_s, goal_s, list = [], output = [], value = {}, colors = ['#00ff00', '#00aa00', '#0000bb', '#0000aa'], hour = Math.floor(Date.now() / 3600000), data = this.data, title, numbers;
-	if (typeof goal === 'undefined') {
-		goal = 0;
+	var i, j, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), data = this.data, title, numbers;
+	if (typeof goal === 'number') {
+		goal = [goal];
+	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
+		goal = null;
+	}
+	if (goal && length(goal)) {
+		for (i in goal) {
+			min = Math.min(min, goal[i]);
+			max = Math.max(max, goal[i]);
+		}
 	}
 	if (typeof type === 'string') {
 		type = [type];
@@ -2944,50 +2968,44 @@ History.makeGraph = function(type, title, iscash, goal) {
 		}
 	}
 	if (max >= 1000000000) {
-		max = Math.ceil(max / 1000000000) * 1000000000;
-		max_s = addCommas(max / 1000000000)+'b';
-		goal_s = addCommas(Math.round(goal / 100000000)/10)+'b';
-		min = Math.floor(min / 1000000000) * 1000000000;
-		min_s = addCommas(min / 1000000000)+'b';
+		divide = 1000000000;
+		suffix = 'b';
 	} else if (max >= 1000000) {
-		max = Math.ceil(max / 1000000) * 1000000;
-		max_s = (max / 1000000)+'m';
-		goal_s = (Math.round(goal / 100000)/10)+'m';
-		min = Math.floor(min / 1000000) * 1000000;
-		min_s = (min / 1000000)+'m';
+		divide = 1000000;
+		suffix = 'm';
 	} else if (max >= 1000) {
-		max = Math.ceil(max / 1000) * 1000;
-		max_s = (max / 1000)+'k';
-		goal_s = (Math.round(goal / 100)/10)+'k';
-		min = Math.floor(min / 1000) * 1000;
-		min_s = (min / 1000)+'k';
-	} else {
-		max_s = max || 0;
-		goal_s = Math.round(goal) || 0;
-		min_s = min || 0;
+		divide = 1000;
+		suffix = 'k';
 	}
-	list.push('<th style="border-left:1px solid #dddddd;"><div>' + (iscash ? '$' : '') + max_s + '</div><div>' + title + '</div><div>' + (iscash ? '$' : '') + min_s + '</div></th>')
+	max = Math.ceil(max / divide) * divide;
+	max_s = (iscash ? '$' : '') + addCommas(max / divide) + suffix;
+	min = Math.floor(min / divide) * divide;
+	min_s = (iscash ? '$' : '') + addCommas(min / divide) + suffix;
+	if (goal && length(goal)) {
+		for (i in goal) {
+			bars.push('<div style="bottom:' + Math.max(Math.ceil((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(-1)) + suffix + '</div>');
+		}
+		goalbars = '<div class="goal">' + bars.join('') + '</div>';
+	}
+	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>')
 	for (i=hour-72; i<=hour; i++) {
+		bars = []
 		output = [];
 		numbers = [];
 		title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
 		for (j in value[i]) {
-			output.push('<div style="background:' + colors[j] + ';height:' + Math.max(Math.ceil((value[i][j] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			bars.push('<div style="height:' + Math.max(Math.ceil((value[i][j] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			if (value[i][j]) {
 				numbers.push((value[i][j] ? (iscash ? '$' : '') + addCommas(value[i][j]) : ''));
 			}
 		}
-		output.reverse();
+		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
 		numbers.reverse();
 		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + addCommas(sum(value[i])) : '');
-		if (goal) {
-			output.push('<div style="position:relative;background:#ff0000;height:1px;margin-top:-1px;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100), 0) + 'px;"></div>');
-		}
 		td(list, output.join(''), 'title="' + title + '"');
 	}
-	if (goal) {
-		th(list, '<div style="position:relative;height:10px;color:#ff0000;bottom:' + Math.max(Math.ceil((goal - min) / (max - min) * 100)+2, 0) + 'px;">' + (iscash ? '$' : '') + goal_s + '</div>', 'class="goal"');
-	}
+	th(list, goal_s.join(''));
 	return '<tr>' + list.join('') + '</tr>';
 }
 

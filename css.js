@@ -24,13 +24,29 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard .golem-status tbody td { text-align: left; }\
 #golem-dashboard .overlay { position: absolute; margin: 6px; color: #1fc23a; text-shadow: black 1px 1px 2px; }\
 table.golem-graph { height: 100px }\
-table.golem-graph tbody th { text-align: right; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
-table.golem-graph tbody th div { line-height: 60px; height: 60px; }\
-table.golem-graph tbody th div:first-child, table.golem-graph tbody th div:last-child { line-height: 20px; height: 20px; }\
-table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
+table.golem-graph tbody th, table.golem-graph tbody td { border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; }\
+table.golem-graph tbody th { max-width: 75px; }\
+table.golem-graph tbody th:first-child { text-align: right; border-left: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
+table.golem-graph tbody th:first-child div { line-height: 60px; height: 60px; }\
+table.golem-graph tbody th:first-child div:first-child, table.golem-graph tbody th:first-child div:last-child { line-height: 20px; height: 20px; }\
+table.golem-graph tbody th:last-child { text-align: left; border-right: 1px solid #dddddd; vertical-align: bottom; }\
+table.golem-graph tbody th:last-child div { position: relative; height: 10px; margin: -10px 0 0; }\
+table.golem-graph tbody th:last-child div:nth-last-child(1) { color: #ff0000; }\
+table.golem-graph tbody th:last-child div:nth-last-child(2) { color: #0000ff; }\
+table.golem-graph tbody th:last-child div:nth-last-child(3) { color: #00ffff; }\
+table.golem-graph tbody th:last-child div:nth-last-child(4) { color: #aa00aa; }\
+table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid #dddddd; }\
 table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
-table.golem-graph tbody td div { margin: 0; padding: 0; width: 5px; }\
-table.golem-graph tbody th.goal { vertical-align: bottom; text-align: left; max-width: 75px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; border-right: 1px solid #dddddd; }\
+table.golem-graph tbody td div div { margin: 0; padding: 0; width: 5px; }\
+table.golem-graph tbody td div.bars div:nth-last-child(1) { background: #00ff00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(2) { background: #00aa00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(3) { background: #ffff00; }\
+table.golem-graph tbody td div.bars div:nth-last-child(4) { background: #ff00ff; }\
+table.golem-graph tbody td div.goal div { position: relative; height: 1px; margin: -1px 0 0; }\
+table.golem-graph tbody td div.goal div:nth-last-child(1) { background: #ff0000; }\
+table.golem-graph tbody td div.goal div:nth-last-child(2) { background: #0000ff; }\
+table.golem-graph tbody td div.goal div:nth-last-child(3) { background: #00ffff; }\
+table.golem-graph tbody td div.goal div:nth-last-child(4) { background: #aa00aa; }\
 .golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 img.golem-button, img.golem-button-active { margin-bottom: -2px }\
