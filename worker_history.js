@@ -1,5 +1,16 @@
 /********** Worker.History **********
-* Gets all current stats we can see
+* History of anything we want.
+* Dashboard is exp, income and bank.
+*
+* History.set('key', value);
+* History.get('key') - gets current hour's value
+* History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
+* History.get('key.average') - gets average of values (use .change for average of changes etc)
+* History.get('key.mode') - gets the most common value (use .change again if needed)
+* History.get('key.median') - gets the center value if all values sorted (use .change again etc)
+* History.get('key.total') - gets total of all values added together
+* History.get('key.max') - gets highest value (use .change for highest change in values)
+* History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
 
@@ -17,8 +28,11 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
+	debug('Exp: '+this.get('exp'));
 	debug('Exp max: '+this.get('exp.max'));
 	debug('Exp min: '+this.get('exp.min'));
+	debug('Exp max change: '+this.get('exp.max.change'));
+	debug('Exp change: '+this.get('exp.change'));
 	debug('Exp mean: '+this.get('exp.mean.change'));
 	debug('Exp mode: '+this.get('exp.mode.change'));
 	debug('Exp median: '+this.get('exp.median.change'));
@@ -50,11 +64,17 @@ History.get = function(what) {
 	if (!x.length) {
 		return this.data;
 	}
+	if (x.length === 1) {
+		return data[hour][x[0]]; // only the current value
+	}
 	switch(x[1]) {
 		default:
 			throw ['UnknownHistoryError', 'Wanting to get unknwn type ' + x[1] + ' on ' + x[0]];
-		case 'undefined':
-			return data[hour][x[0]]; // only the current value
+		case 'change':
+			if (typeof data[hour][x[0]] === 'number') {
+				return data[hour][x[0]] - (data[hour-1][x[0]] || 0);
+			}
+			return 0;
 		case 'total':
 			if (x[2] === 'change') {
 				for (i in data) {
@@ -69,7 +89,16 @@ History.get = function(what) {
 			return j;
 		case 'max':
 			for (i in data) {
-				max = Math.max(max, (data[i][x[0]] || 0));
+				if (data[i][x[0]]) {
+					if (x[2] === 'change') {
+						if (low !== Number.POSITIVE_INFINITY) {
+							max = Math.max(max, data[i][x[0]] - low);
+						}
+						low = (data[i][x[0]] || 0);
+					} else {
+						max = Math.max(max, data[i][x[0]]);
+					}
+				}
 			}
 			return max;
 		case 'min':
