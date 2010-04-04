@@ -244,6 +244,7 @@ Quest.work = function(state) {
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
 	var i, o, list = [], output = [];
+	Generals._unflush();
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data) {

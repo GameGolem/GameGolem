@@ -68,6 +68,14 @@ Dashboard.init = function() {
 				$(el).removeClass('golem-timer').text('now?');
 			}
 		});
+		$('.golem-time').each(function(i,el){
+			var time = parseInt($(el).attr('name')) - Date.now();
+			if (time && time > 0) {
+				$(el).text(makeTimer(time / 1000));
+			} else {
+				$(el).removeClass('golem-time').text('now?');
+			}
+		});
 	},1000);
 };
 

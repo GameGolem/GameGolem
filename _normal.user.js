@@ -1025,6 +1025,14 @@ Dashboard.init = function() {
 				$(el).removeClass('golem-timer').text('now?');
 			}
 		});
+		$('.golem-time').each(function(i,el){
+			var time = parseInt($(el).attr('name')) - Date.now();
+			if (time && time > 0) {
+				$(el).text(makeTimer(time / 1000));
+			} else {
+				$(el).removeClass('golem-time').text('now?');
+			}
+		});
 	},1000);
 };
 
@@ -2878,7 +2886,9 @@ Heal.work = function(state) {
 * Dashboard is exp, income and bank.
 *
 * History.set('key', value);
+*
 * History.get('key') - gets current hour's value
+* History.get([hour, 'key']) - gets value at specified hour
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
 * History.get('key.average') - gets average of values (use .change for average of changes etc)
 * History.get('key.mode') - gets the most common value (use .change again if needed)
@@ -2888,6 +2898,17 @@ Heal.work = function(state) {
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
+
+History.dashboard = function() {
+	var i, max = 0, list = [], output = [];
+	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Median Average':this.get('exp.median.change')} )); // ,'Mean Average':this.get('exp.mean.change')
+	list.push('</tbody></table>');
+	$('#golem-dashboard-History').html(list.join(''));
+}
 
 History.init = function() {
 	if (Player.data.history) {
@@ -2903,6 +2924,7 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
+/*
 	debug('Exp: '+this.get('exp'));
 	debug('Exp max: '+this.get('exp.max'));
 	debug('Exp min: '+this.get('exp.min'));
@@ -2911,6 +2933,7 @@ History.update = function(type) {
 	debug('Exp mean: '+this.get('exp.mean.change'));
 	debug('Exp mode: '+this.get('exp.mode.change'));
 	debug('Exp median: '+this.get('exp.median.change'));
+*/
 };
 
 History.set = function(what, value) {
@@ -2936,18 +2959,21 @@ History.add = function(what, value) {
 History.get = function(what) {
 	this._unflush();
 	var i, j = 0, count = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, result = [], list = {}, tmp, data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+		hour = x.shift();
+	}
 	if (!x.length) {
 		return this.data;
 	}
 	if (x.length === 1) {
-		return data[hour][x[0]]; // only the current value
+		return data[hour] ? data[hour][x[0]] : 0; // only the current value
 	}
 	switch(x[1]) {
 		default:
-			throw ['UnknownHistoryError', 'Wanting to get unknwn type ' + x[1] + ' on ' + x[0]];
+			throw ['UnknownHistoryError', 'Wanting to get unknown type ' + x[1] + ' on ' + x[0]];
 		case 'change':
-			if (typeof data[hour][x[0]] === 'number') {
-				return data[hour][x[0]] - (data[hour-1][x[0]] || 0);
+			if (data[hour] && data[hour-1] && typeof data[hour][x[0]] === 'number' && typeof data[hour-1][x[0]] === 'number') {
+				return data[hour][x[0]] - data[hour-1][x[0]];
 			}
 			return 0;
 		case 'total':
@@ -3044,18 +3070,8 @@ History.get = function(what) {
 	}
 };
 
-History.dashboard = function() {
-	var i, max = 0, list = [], output = [];
-	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push('</tbody></table>');
-	$('#golem-dashboard-History').html(list.join(''));
-}
-
 History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), data = this.data, title, numbers;
+	var i, j, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), title, numbers;
 	if (typeof goal === 'number') {
 		goal = [goal];
 	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
@@ -3074,15 +3090,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j=0; j<type.length; j++) {
-				value[i][j] = this.data[i][type[j]] || 0;
+				value[i][j] = this.get(i + '.' + type[j]);
 				if (typeof value[i][j] !== 'undefined') {
 					min = Math.min(min, value[i][j]);
 					max = Math.max(max, value[i][j]);
 				}
 			}
-			if (typeof data[i][type[1]] !== 'undefined' && typeof data[i][type[0]] !== 'undefined') {
-				max = Math.max(max, sum(value[i]));
-			}
+			max = Math.max(max, sum(value[i]));
 		}
 	}
 	if (max >= 1000000000) {
@@ -3104,7 +3118,8 @@ History.makeGraph = function(type, title, iscash, goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.ceil((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(-1)) + suffix + '</div>');
 		}
-		goalbars = '<div class="goal">' + bars.join('') + '</div>';
+		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
+		goal_s.reverse();
 	}
 	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>')
 	for (i=hour-72; i<=hour; i++) {
@@ -4027,7 +4042,7 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-timer" style="color:rgb(25,123,48);">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -4109,11 +4124,11 @@ Player.update = function(type) {
 	}
 	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
 //	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.median.change')) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.median.change')) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {
-	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data;
+	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
 	switch(what) {
 		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 		case 'cash_timer':		var when = new Date();
@@ -4125,7 +4140,8 @@ Player.get = function(what) {
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 //		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
-		case 'level_timer':		return (3600 * (data.maxexp - data.exp) / (History.get('exp.median.change') || 1));
+		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor(now % 3600000);
+		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.median.change') || 1))) - Math.floor((now % 3600000) / 1000);
 		default: return this._get(what);
 	}
 };
@@ -4443,6 +4459,7 @@ Quest.work = function(state) {
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
 	var i, o, list = [], output = [];
+	Generals._unflush();
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data) {
