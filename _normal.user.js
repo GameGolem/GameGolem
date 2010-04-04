@@ -1167,7 +1167,7 @@ Page.pageNames = {
 	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
 	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
 	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', selector:'div[style*="giftpage_title.jpg"]'},
+	army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
 	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
@@ -1682,7 +1682,7 @@ Arena.display = [
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
-		label:'Target Level Ratio<br>(Mainly used for Dual)',
+		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	}
@@ -2967,7 +2967,9 @@ Idle.option = {
 	alchemy: 'Daily',
 	quests: 'Never',
 	town: 'Never',
-	battle: 'Daily'
+	battle: 'Daily',
+	monsters: 'Hourly'	
+	
 };
 Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.display = [
@@ -2999,6 +3001,10 @@ Idle.display = [
 		id:'battle',
 		label:'Battle',
 		select:Idle.when
+	},{
+		id:'monsters',
+		label:'Monsters',
+		select:Idle.when
 	}
 ];
 
@@ -3011,7 +3017,8 @@ Idle.work = function(state) {
 		alchemy:['keep_alchemy'],
 		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_demiquests', 'quests_atlantis'],
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
-		battle:['battle_battle']
+		battle:['battle_battle', 'battle_arena'],
+		monsters:['keep_monster', 'battle_raid']
 	}, when = { 'Never':0, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
 		return true;
@@ -3248,6 +3255,7 @@ Monster.types = {
 		image:'raid_map_1.jpg',
 		image2:'raid_map_2.jpg',
 		dead:'raid_1_large_victory.jpg',
+		achievement:100,
 		timer:319920, // 88 hours, 52 minutes
 		timer2:519960, // 144 hours, 26 minutes
 		raid:true
@@ -3258,6 +3266,7 @@ Monster.types = {
 		list:'stone_giant_list.jpg',
 		image:'stone_giant_large.jpg',
 		dead:'stone_giant_dead.jpg',
+		achievement:40000,
 		timer:259200, // 72 hours
 		mpool:1
 	},
@@ -3266,6 +3275,7 @@ Monster.types = {
 		list:'orc_boss_list.jpg',
 		image:'orc_boss.jpg',
 		dead:'orc_boss_dead.jpg',
+		achievement:25000,
 		timer:259200, // 72 hours
 		mpool:1
 	},
@@ -3274,6 +3284,7 @@ Monster.types = {
 		list:'boss_keira_list.jpg',
 		image:'boss_keira.jpg',
 		dead:'boss_keira_dead.jpg',
+		achievement:84000,
 		timer:172800, // 48 hours
 		mpool:1
 	},
@@ -3282,32 +3293,36 @@ Monster.types = {
 		list:'boss_lotus_list.jpg',
 		image:'boss_lotus.jpg',
 		dead:'boss_lotus_big_dead.jpg',
+		achievement:1250000,
 		timer:172800, // 48 hours
-		mpool:1
+		mpool:1		
 	},
 	mephistopheles: {
 		name:'Mephistopheles',
 		list:'boss_mephistopheles_list.jpg',
 		image:'boss_mephistopheles_large.jpg',
 		dead:'boss_mephistopheles_dead.jpg',
+		achievement:282000,
 		timer:172800, // 48 hours
-		mpool:1
+		mpool:1		
 	},
 	skaar: {
 		name:'Skaar Deathrune',
 		list:'death_list.jpg',
 		image:'death_large.jpg',
 		dead:'death_dead.jpg',
+		achievement:10000000,
 		timer:345000, // 95 hours, 50 minutes
-		mpool:1
+		mpool:1		
 	},
 	sylvanus: {
 		name:'Sylvanas the Sorceress Queen',
 		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large.jpg',
 		dead:'boss_sylvanus_dead.jpg',
+		achievement:120000,
 		timer:172800, // 48 hours
-		mpool:1
+		mpool:1		
 	},
 	// Epic Team
 	dragon_emerald: {
@@ -3315,64 +3330,72 @@ Monster.types = {
 		list:'dragon_list_green.jpg',
 		image:'dragon_monster_green.jpg',
 		dead:'dead_dragon_image_green.jpg',
+		achievement:64000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	dragon_frost: {
 		name:'Frost Dragon',
 		list:'dragon_list_blue.jpg',
 		image:'dragon_monster_blue.jpg',
 		dead:'dead_dragon_image_blue.jpg',
+		achievement:85000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	dragon_gold: {
 		name:'Gold Dragon',
 		list:'dragon_list_gold.jpg',
 		image:'dragon_monster_gold.jpg',
 		dead:'dead_dragon_image_gold.jpg',
+		achievement:180000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	dragon_red: {
 		name:'Ancient Red Dragon',
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
 		dead:'dead_dragon_image_red.jpg',
+		achievement:350000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	serpent_amethyst: { // DEAD image ???
 		name:'Amethyst Sea Serpent',
 		list:'seamonster_list_purple.jpg',
 		image:'seamonster_purple.jpg',
 		//dead:'seamonster_dead.jpg',
+		achievement:600000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	serpent_ancient: { // DEAD image ???
 		name:'Ancient Sea Serpent',
 		list:'seamonster_list_red.jpg',
 		image:'seamonster_red.jpg',
 		//dead:'seamonster_dead.jpg',
+		achievement:930000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	serpent_emerald: { // DEAD image ???
 		name:'Emerald Sea Serpent',
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
 		//dead:'seamonster_dead.jpg',
+		achievement:150000,
 		timer:259200, // 72 hours
-		mpool:2
+		mpool:2		
 	},
 	serpent_sapphire: { // DEAD image ???
 		name:'Sapphire Sea Serpent',
 		list:'seamonster_list_blue.jpg',
 		image:'seamonster_blue.jpg',
-		timer:259200, // 72 hours
 		//dead:'seamonster_dead.jpg',
-		mpool:2
+		achievement:300000,
+		timer:259200, // 72 hours
+		mpool:2		
 	},
 	// Epic World
 	cronus: {
@@ -3380,32 +3403,36 @@ Monster.types = {
 		list:'hydra_head.jpg',
 		image:'hydra_large.jpg',
 		dead:'hydra_dead.jpg',
+		achievement:12500000,
 		timer:604800, // 168 hours
-		mpool:3
+		mpool:3		
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
 		list:'castle_siege_list.jpg',
 		image:'castle_siege_large.jpg',
 		dead:'castle_siege_dead.jpg',
+		achievement:10000,
 		timer:604800, // 168 hours
-		mpool:3
+		mpool:3		
 	},
 	genesis: {
 		name:'Genesis, The Earth Elemental',
 		list:'earth_element_list.jpg',
 		image:'earth_element_large.jpg',
 		dead:'earth_element_dead.jpg',
+		achievement:10000000,
 		timer:604800, // 168 hours
-		mpool:3
+		mpool:3		
 	},
 	ragnarok: {
 		name:'Ragnarok, The Ice Elemental',
 		list:'water_list.jpg',
 		image:'water_large.jpg',
 		dead:'water_dead.jpg',
+		achievement:11000000,
 		timer:604800, // 168 hours
-		mpool:3
+		mpool:3		
 	}
 };
 
@@ -3590,13 +3617,13 @@ Monster.work = function(state) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
-					if (Monster.option.choice === 'All') {
+					if ((Monster.option.choice === 'All'  || Monster.option.choice === 'Achievement') && list.length) {
 						list.push([uid, type]);
 					} else if (!best
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
-					|| (Monster.option.choice === 'Spread' && Monster.data[uid][type].battle_count < Monster.data[best[0]][best[1]].battle_count)) {
+					|| (Monster.option.choice === 'Spread' && Monster.battle_count < Monster[best[0]][best[1]].battle_count)) {
 						best = [uid, type];
 					}
 				}
@@ -3866,7 +3893,9 @@ Player.parse = function(change) {
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
 		History.add('income', (txt.regex(/Gain.*\$([0-9]+).*Cost/i) || 0) + (txt.regex(/stealsGold:\+\$([0-9]+)/i) || 0) + (txt.regex(/Youreceived\$([0-9]+)/i) || 0) + (txt.regex(/Yougained\$([0-9]+)/i) || 0));
-		History.add('land', (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0));
+		if (txt.regex(/incomepaymentof\$([0-9]+)gold/i)){
+			History.set('land', (txt.regex(/incomepaymentof\$([0-9]+)gold/i) || 0) + (txt.regex(/backinthemine:Extra([0-9]+)Gold/i) || 0));
+		}
 	});
 	return true;
 };
