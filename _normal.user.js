@@ -4338,7 +4338,7 @@ Quest.option = {
 	bank:true
 };
 
-Queue.runtime = {
+Quest.runtime = {
 	best:null,
 	energy:0
 };
