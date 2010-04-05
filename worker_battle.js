@@ -247,7 +247,7 @@ Battle.update = function(type) {
 }
 
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
+	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {

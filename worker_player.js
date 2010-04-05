@@ -6,7 +6,7 @@ Player.data = {};
 Player.option = null;
 Player.panel = null;
 
-var use_average_level = true;
+var use_average_level = false;
 
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
@@ -42,12 +42,14 @@ Player.parse = function(change) {
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
-		if (energy_used) {
-			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 20)).round(3);
-			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
-		} else if (stamina_used) {
-			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used))/Math.min((data.staminasamples || 0) + 1, 20)).round(3);
+		if (stamina_used > 0) {
+			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used)) / Math.min((data.staminasamples || 0) + 1, 20)).round(3);
 			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 20);
+			stamina_used = 0;
+		} else if (energy_used > 0) {
+			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used) / Math.min((data.energysamples || 0) + 1, 20)).round(3);
+			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
+			energy_used = 0;
 		}
 	}
 	data.exp		= tmp[0] || 0;

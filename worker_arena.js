@@ -9,14 +9,15 @@ Arena.data = {
 
 Arena.option = {
 	enabled:false,
+	maxhealth:25,
 	general:true,
 	losses:5,
 	cache:50,
 	type:'Invade',
 	rank:'None',
 	bp:'Don\'t Care',
-	army:1.1,
-	level:1.1
+	army:1,
+	level:'Any'
 };
 
 Arena.runtime = {
@@ -88,6 +89,11 @@ Arena.display = [
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+	},{
+		id:'maxhealth',
+		label:'Maximum Health',
+		text:true,
+		help:'Will not fight in the Arena if your health is above this amount.'
 	}
 ];
 
@@ -195,7 +201,7 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
+	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 5 || (this.option.maxhealth && (Player.get('health') > this.option.maxhealth))))) {
 		return false;
 	}
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
