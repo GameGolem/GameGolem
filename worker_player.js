@@ -17,13 +17,15 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-timer" style="color:rgb(25,123,48);">' + makeTimer(this.get('level_timer')) + '</span></span>');
+//		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.energy) {
+	if (tmp[0] != data.energy) {
 		energy_used = data.energy - tmp[0];
+		data.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
@@ -31,19 +33,20 @@ Player.parse = function(change) {
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.stamina) {
+	if (tmp[0] != data.stamina) {
 		stamina_used = data.stamina - tmp[0];
+		data.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
 		if (energy_used) {
-			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10)).round(-2);
-			data.energysamples = Math.min((data.energysamples || 0) + 1, 10);
+			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 20)).round(3);
+			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
 		} else if (stamina_used) {
-			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10)).round(-2);
-			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 10);
+			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used))/Math.min((data.staminasamples || 0) + 1, 20)).round(3);
+			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 20);
 		}
 	}
 	data.exp		= tmp[0] || 0;
@@ -97,9 +100,9 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
-//	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	var d = new Date(this.data.leveltime);
+	Dashboard.status(this, 'Exp: ' + addCommas(((12 * (this.data.avgenergyexp || 0)) + (12 * (this.data.avgstaminaexp || 0))).round(1)) + ' per hour (next level: ' + d.format('D g:i a') + '), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
+//	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {
@@ -114,9 +117,9 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-//		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
+		case 'level_timer':		return ((data.leveltime || (Date.now())+43200000) - Date.now())/1000;
 		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
-		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
+//		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
 		default: return this._get(what);
 	}
 };
