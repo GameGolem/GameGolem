@@ -10,6 +10,12 @@ Monster.option = {
 	raid: 'Invade x5'
 };
 
+Monster.runtime = {
+	current:null,
+	uid:null,
+	type:null
+};
+
 Monster.display = [
 	{
 		label:'Work in progress...'
@@ -255,15 +261,14 @@ Monster.types = {
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
-Monster.count = 0;
-Monster.uid = null;
 
 Monster.init = function() {
 	var i, j;
-	for (i in Monster.data) {
-		for (j in Monster.data[i]) {
-			if (Monster.data[i][j].state === 'engage') {
-				Monster.count++;
+	this.runtime.count = 0;
+	for (i in this.data) {
+		for (j in this.data[i]) {
+			if (this.data[i][j].state === 'engage') {
+				this.runtime.count++;
 			}
 		}
 	}
@@ -277,7 +282,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
-		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
+		this.runtime.current = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
 				type = i;
@@ -394,13 +399,13 @@ Monster.parse = function(change) {
 			}
 		});
 	}
-	Monster.count = 0;
+	Monster.runtime.count = 0;
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			if (!Monster.data[i][j].state) {
 				delete Monster.data[i][j];
 			} else if (Monster.data[i][j].state === 'engage') {
-				Monster.count++;
+				Monster.runtime.count++;
 			}
 		}
 		if (!length(Monster.data[i])) {
@@ -411,10 +416,10 @@ Monster.parse = function(change) {
 };
 
 Monster.work = function(state) {
-	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
+	var i, j, list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
-		Monster.option.uid = uid = null;
-		Monster.option.type = type = null;
+		Monster.runtime.uid = uid = null;
+		Monster.runtime.type = type = null;
 	}
 	if (!length(Monster.data) || Player.get('health') <= 10) {
 		return false;
@@ -451,8 +456,8 @@ Monster.work = function(state) {
 		if (!best) {
 			return false;
 		}
-		uid  = Monster.option.uid  = best[0];
-		type = Monster.option.type = best[1];
+		uid  = Monster.runtime.uid  = best[0];
+		type = Monster.runtime.type = best[1];
 	}
 	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
@@ -513,7 +518,7 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if ((!btn || !btn.length || uid !== Monster.uid) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
+	if ((!btn || !btn.length || uid !== this.runtime.current) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
 	Page.click(btn);

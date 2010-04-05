@@ -4,6 +4,7 @@
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals', 'heroes_generals');
+Generals.option = null;
 
 Generals.init = function() {
 	for (var i in this.data) {

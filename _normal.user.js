@@ -825,7 +825,7 @@ Config.makePanel = function(worker) {
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.id);
-	$head = $('<div id="'+worker.id+'" class="golem-panel'+(worker.settings.unsortable?'':' golem-panel-sortable')+(show?' golem-panel-show':'')+'" name="'+worker.name+'"><h3 class="golem-panel-header "><img class="golem-icon">'+worker.name+'<img class="golem-lock"></h3></div>');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ?  ' golem-advanced' + (Config.option.advanced ? '' : '" style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -1400,7 +1400,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	queue: ["Page", "Queue", "Settings", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -2611,6 +2611,7 @@ Elite.work = function(state) {
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals', 'heroes_generals');
+Generals.option = null;
 
 Generals.init = function() {
 	for (var i in this.data) {
@@ -3011,6 +3012,7 @@ Heal.work = function(state) {
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
+History.option = null;
 
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
@@ -3048,7 +3050,7 @@ History.update = function(type) {
 //	debug('Exp geometric: '+this.get('exp.geometric.change'));
 //	debug('Exp mode: '+this.get('exp.mode.change'));
 //	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+//	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -3520,6 +3522,12 @@ Monster.option = {
 	raid: 'Invade x5'
 };
 
+Monster.runtime = {
+	current:null,
+	uid:null,
+	type:null
+};
+
 Monster.display = [
 	{
 		label:'Work in progress...'
@@ -3765,15 +3773,14 @@ Monster.types = {
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
 Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
-Monster.count = 0;
-Monster.uid = null;
 
 Monster.init = function() {
 	var i, j;
-	for (i in Monster.data) {
-		for (j in Monster.data[i]) {
-			if (Monster.data[i][j].state === 'engage') {
-				Monster.count++;
+	this.runtime.count = 0;
+	for (i in this.data) {
+		for (j in this.data[i]) {
+			if (this.data[i][j].state === 'engage') {
+				this.runtime.count++;
 			}
 		}
 	}
@@ -3787,7 +3794,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
-		Monster.uid = uid = $('img[linked="true"][size="square"]').attr('uid');
+		this.runtime.current = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
 				type = i;
@@ -3904,13 +3911,13 @@ Monster.parse = function(change) {
 			}
 		});
 	}
-	Monster.count = 0;
+	Monster.runtime.count = 0;
 	for (i in Monster.data) {
 		for (j in Monster.data[i]) {
 			if (!Monster.data[i][j].state) {
 				delete Monster.data[i][j];
 			} else if (Monster.data[i][j].state === 'engage') {
-				Monster.count++;
+				Monster.runtime.count++;
 			}
 		}
 		if (!length(Monster.data[i])) {
@@ -3921,10 +3928,10 @@ Monster.parse = function(change) {
 };
 
 Monster.work = function(state) {
-	var i, j, list = [], uid = Monster.option.uid, type = Monster.option.type, btn = null, best = null
+	var i, j, list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
-		Monster.option.uid = uid = null;
-		Monster.option.type = type = null;
+		Monster.runtime.uid = uid = null;
+		Monster.runtime.type = type = null;
 	}
 	if (!length(Monster.data) || Player.get('health') <= 10) {
 		return false;
@@ -3961,8 +3968,8 @@ Monster.work = function(state) {
 		if (!best) {
 			return false;
 		}
-		uid  = Monster.option.uid  = best[0];
-		type = Monster.option.type = best[1];
+		uid  = Monster.runtime.uid  = best[0];
+		type = Monster.runtime.type = best[1];
 	}
 	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
@@ -4023,7 +4030,7 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if ((!btn || !btn.length || uid !== Monster.uid) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
+	if ((!btn || !btn.length || uid !== this.runtime.current) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
 	Page.click(btn);
@@ -4114,25 +4121,27 @@ News.data = null;
 News.option = null;
 
 News.parse = function(change) {
-	if (change) {
+	if (change) { // golem/Rycochet's Castle Age Golem: TypeError in News.parse(true): $("a:eq(0)", el).attr("href") is undefined
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var txt = $(el).text().replace(/,/g, ''), uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
-			user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
-			if (txt.regex(/Victory!/i)) {
-				win++;
-				user[uid].lose++;
-				xp += txt.regex(/([0-9]+) experience/i);
-				bp += txt.regex(/([0-9]+) Battle Points!/i);
-				cash += txt.regex(/\$([0-9]+)/i);
+			var txt = $(el).text().replace(/,/g, ''), uid;
+			if (txt.regex(/You were killed/i)) {
+				deaths++;
 			} else {
-				lose++;
-				user[uid].win++;
-				xp -= txt.regex(/([0-9]+) experience/i);
-				bp -= txt.regex(/([0-9]+) Battle Points!/i);
-				cash -= txt.regex(/\$([0-9]+)/i);
-				if (txt.regex(/You were killed/i)) {
-					deaths++;
+				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
+				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
+				if (txt.regex(/Victory!/i)) {
+					win++;
+					user[uid].lose++;
+					xp += txt.regex(/([0-9]+) experience/i);
+					bp += txt.regex(/([0-9]+) Battle Points!/i);
+					cash += txt.regex(/\$([0-9]+)/i);
+				} else {
+					lose++;
+					user[uid].win++;
+					xp -= txt.regex(/([0-9]+) experience/i);
+					bp -= txt.regex(/([0-9]+) Battle Points!/i);
+					cash -= txt.regex(/\$([0-9]+)/i);
 				}
 			}
 		});

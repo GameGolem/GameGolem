@@ -18,6 +18,7 @@
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
+History.option = null;
 
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
@@ -55,7 +56,7 @@ History.update = function(type) {
 //	debug('Exp geometric: '+this.get('exp.geometric.change'));
 //	debug('Exp mode: '+this.get('exp.mode.change'));
 //	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+//	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {

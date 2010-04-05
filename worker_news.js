@@ -6,25 +6,27 @@ News.data = null;
 News.option = null;
 
 News.parse = function(change) {
-	if (change) {
+	if (change) { // golem/Rycochet's Castle Age Golem: TypeError in News.parse(true): $("a:eq(0)", el).attr("href") is undefined
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var txt = $(el).text().replace(/,/g, ''), uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
-			user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
-			if (txt.regex(/Victory!/i)) {
-				win++;
-				user[uid].lose++;
-				xp += txt.regex(/([0-9]+) experience/i);
-				bp += txt.regex(/([0-9]+) Battle Points!/i);
-				cash += txt.regex(/\$([0-9]+)/i);
+			var txt = $(el).text().replace(/,/g, ''), uid;
+			if (txt.regex(/You were killed/i)) {
+				deaths++;
 			} else {
-				lose++;
-				user[uid].win++;
-				xp -= txt.regex(/([0-9]+) experience/i);
-				bp -= txt.regex(/([0-9]+) Battle Points!/i);
-				cash -= txt.regex(/\$([0-9]+)/i);
-				if (txt.regex(/You were killed/i)) {
-					deaths++;
+				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
+				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
+				if (txt.regex(/Victory!/i)) {
+					win++;
+					user[uid].lose++;
+					xp += txt.regex(/([0-9]+) experience/i);
+					bp += txt.regex(/([0-9]+) Battle Points!/i);
+					cash += txt.regex(/\$([0-9]+)/i);
+				} else {
+					lose++;
+					user[uid].win++;
+					xp -= txt.regex(/([0-9]+) experience/i);
+					bp -= txt.regex(/([0-9]+) Battle Points!/i);
+					cash -= txt.regex(/\$([0-9]+)/i);
 				}
 			}
 		});
