@@ -30,13 +30,10 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < this.option.above) {
+	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
 		return false;
 	}
-	if (!state) {
-		return true;
-	}
-	if (!Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	if (!state || !Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;
@@ -46,10 +43,7 @@ Bank.stash = function(amount) {
 	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
 		return true;
 	}
-	if (Bank.option.general && !Generals.to('Aeris')) {
-		return false;
-	}
-	if (!Page.to('keep_stats')) {
+	if (!Generals.to(Bank.option.general ? 'Aeris' : 'any') || !Page.to('keep_stats')) {
 		return false;
 	}
 	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
@@ -58,12 +52,10 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
+	WorkerByName(Queue.get('current')).settings.bank = true;
 	amount -= Player.get('cash');
-	if (amount <= 0) {
-		return true;
-	}
-	if ((Player.get('bank') - this.option.keep) < amount) {
-		return true; // Got to deal with being poor...
+	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
+		return true; // Got to deal with being poor exactly the same as having it in hand...
 	}
 	if (!Page.to('keep_stats')) {
 		return false;

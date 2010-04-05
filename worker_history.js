@@ -2,12 +2,15 @@
 * History of anything we want.
 * Dashboard is exp, income and bank.
 *
-* History.set('key', value);
+* History.set('key', value); - sets the current hour's value
+* History.add('key', value); - adds to the current hour's value
 *
 * History.get('key') - gets current hour's value
 * History.get([hour, 'key']) - gets value at specified hour
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
-* History.get('key.average') - gets average of values (use .change for average of changes etc)
+* History.get('key.average') - gets mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
+* History.get('key.geometric') - gets geometric average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Geometric_mean
+* History.get('key.harmonic') - gets harmonic average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Harmonic_mean
 * History.get('key.mode') - gets the most common value (use .change again if needed)
 * History.get('key.median') - gets the center value if all values sorted (use .change again etc)
 * History.get('key.total') - gets total of all values added together
@@ -41,18 +44,18 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
-/*
-	debug('Exp: '+this.get('exp'));
-	debug('Exp max: '+this.get('exp.max'));
-	debug('Exp max change: '+this.get('exp.max.change'));
-	debug('Exp min: '+this.get('exp.min'));
-	debug('Exp min change: '+this.get('exp.min.change'));
-	debug('Exp change: '+this.get('exp.change'));
-	debug('Exp mean: '+this.get('exp.mean.change'));
-	debug('Exp mode: '+this.get('exp.mode.change'));
-	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
-*/
+//	debug('Exp: '+this.get('exp'));
+//	debug('Exp max: '+this.get('exp.max'));
+//	debug('Exp max change: '+this.get('exp.max.change'));
+//	debug('Exp min: '+this.get('exp.min'));
+//	debug('Exp min change: '+this.get('exp.min.change'));
+//	debug('Exp change: '+this.get('exp.change'));
+//	debug('Exp mean: '+this.get('exp.mean.change'));
+//	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
+//	debug('Exp geometric: '+this.get('exp.geometric.change'));
+//	debug('Exp mode: '+this.get('exp.mode.change'));
+//	debug('Exp median: '+this.get('exp.median.change'));
+	debug('Average Exp =  mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -85,9 +88,18 @@ History.math = {
 	harmonic: function(list) {
 		var i, num = [];
 		for (i in list) {
-			num.push(1/list[i])
+			if (list[i]) {
+				num.push(1/list[i])
+			}
 		}
 		return num.length / sum(num);
+	},
+	geometric: function(list) {
+		var i, num = 1;
+		for (i in list) {
+			num *= list[i] || 1;
+		}
+		return Math.pow(num, 1 / list.length);
 	},
 	median: function(list) {
 		list.sort(function(a,b){return a-b;});

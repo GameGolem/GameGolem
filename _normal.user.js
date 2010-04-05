@@ -1478,7 +1478,6 @@ Queue.run = function() {
 				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
-			worker._save(); // Save for current only, nobody else should change anything
 		} else {
 			try {
 				result = worker.work(false);
@@ -1940,13 +1939,10 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < this.option.above) {
+	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
 		return false;
 	}
-	if (!state) {
-		return true;
-	}
-	if (!Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	if (!state || !Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;
@@ -1956,10 +1952,7 @@ Bank.stash = function(amount) {
 	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
 		return true;
 	}
-	if (Bank.option.general && !Generals.to('Aeris')) {
-		return false;
-	}
-	if (!Page.to('keep_stats')) {
+	if (!Generals.to(Bank.option.general ? 'Aeris' : 'any') || !Page.to('keep_stats')) {
 		return false;
 	}
 	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
@@ -1968,12 +1961,10 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
+	WorkerByName(Queue.get('current')).settings.bank = true;
 	amount -= Player.get('cash');
-	if (amount <= 0) {
-		return true;
-	}
-	if ((Player.get('bank') - this.option.keep) < amount) {
-		return true; // Got to deal with being poor...
+	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
+		return true; // Got to deal with being poor exactly the same as having it in hand...
 	}
 	if (!Page.to('keep_stats')) {
 		return false;
@@ -2885,12 +2876,15 @@ Heal.work = function(state) {
 * History of anything we want.
 * Dashboard is exp, income and bank.
 *
-* History.set('key', value);
+* History.set('key', value); - sets the current hour's value
+* History.add('key', value); - adds to the current hour's value
 *
 * History.get('key') - gets current hour's value
 * History.get([hour, 'key']) - gets value at specified hour
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
-* History.get('key.average') - gets average of values (use .change for average of changes etc)
+* History.get('key.average') - gets mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
+* History.get('key.geometric') - gets geometric average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Geometric_mean
+* History.get('key.harmonic') - gets harmonic average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Harmonic_mean
 * History.get('key.mode') - gets the most common value (use .change again if needed)
 * History.get('key.median') - gets the center value if all values sorted (use .change again etc)
 * History.get('key.total') - gets total of all values added together
@@ -2924,18 +2918,18 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
-/*
-	debug('Exp: '+this.get('exp'));
-	debug('Exp max: '+this.get('exp.max'));
-	debug('Exp max change: '+this.get('exp.max.change'));
-	debug('Exp min: '+this.get('exp.min'));
-	debug('Exp min change: '+this.get('exp.min.change'));
-	debug('Exp change: '+this.get('exp.change'));
-	debug('Exp mean: '+this.get('exp.mean.change'));
-	debug('Exp mode: '+this.get('exp.mode.change'));
-	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
-*/
+//	debug('Exp: '+this.get('exp'));
+//	debug('Exp max: '+this.get('exp.max'));
+//	debug('Exp max change: '+this.get('exp.max.change'));
+//	debug('Exp min: '+this.get('exp.min'));
+//	debug('Exp min change: '+this.get('exp.min.change'));
+//	debug('Exp change: '+this.get('exp.change'));
+//	debug('Exp mean: '+this.get('exp.mean.change'));
+//	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
+//	debug('Exp geometric: '+this.get('exp.geometric.change'));
+//	debug('Exp mode: '+this.get('exp.mode.change'));
+//	debug('Exp median: '+this.get('exp.median.change'));
+	debug('Average Exp =  mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -2968,9 +2962,18 @@ History.math = {
 	harmonic: function(list) {
 		var i, num = [];
 		for (i in list) {
-			num.push(1/list[i])
+			if (list[i]) {
+				num.push(1/list[i])
+			}
 		}
 		return num.length / sum(num);
+	},
+	geometric: function(list) {
+		var i, num = 1;
+		for (i in list) {
+			num *= list[i] || 1;
+		}
+		return Math.pow(num, 1 / list.length);
 	},
 	median: function(list) {
 		list.sort(function(a,b){return a-b;});
@@ -4011,7 +4014,7 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -4093,7 +4096,7 @@ Player.update = function(type) {
 	}
 	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
 //	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.median.change')) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {

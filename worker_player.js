@@ -17,7 +17,7 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -99,7 +99,7 @@ Player.update = function(type) {
 	}
 	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
 //	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.median.change')) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {

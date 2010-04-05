@@ -159,7 +159,6 @@ Queue.run = function() {
 				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
 				result = false;
 			}
-			worker._save(); // Save for current only, nobody else should change anything
 		} else {
 			try {
 				result = worker.work(false);
