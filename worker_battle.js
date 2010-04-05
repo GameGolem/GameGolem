@@ -7,6 +7,7 @@ Battle.data = {
 	rank: {},
 	points: {}
 };
+
 Battle.option = {
 	general:true,
 	points:true,
@@ -19,6 +20,10 @@ Battle.option = {
 	level:1.1,
 	preferonly:'Sometimes',
 	prefer:[]
+};
+
+Battle.runtime = {
+	attacking:null
 };
 
 Battle.symbol = {
@@ -118,9 +123,9 @@ Battle.parse = function(change) {
 		}
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
-		if (this.option.attacking) {
-			uid = this.option.attacking;
-			this.option.attacking = null;
+		if (this.runtime.attacking) {
+			uid = this.runtime.attacking;
+			this.runtime.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -131,7 +136,7 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				this.option.attacking = uid; // Don't remove target as we've not hit them...
+				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
 		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
@@ -187,14 +192,14 @@ Battle.update = function(type) {
 		list = [];
 	}
 	// Second choose our next target
-	if (this.option.arena && Arena.option.enabled && Arena.option.attacking) {
-		this.option.attacking = null;
+	if (this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Battling in the Arena');
 	} else if (this.option.monster && Monster.count) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Attacking Monsters');
 	} else {
-		if ((!this.option.attacking || !data[this.option.attacking]) && this.option.prefer.length) {
+		if ((!this.runtime.attacking || !data[this.runtime.attacking]) && this.option.prefer.length) {
 			for(j=0; j<this.option.prefer.length; j++) {
 				i = this.option.prefer[j];
 				if (!/[^0-9]/g.test(i)) {
@@ -208,9 +213,9 @@ Battle.update = function(type) {
 			}
 		}
 		if ((this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
-		&& (!this.option.attacking || !data[this.option.attacking]
-		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
+		&& (!this.runtime.attacking || !data[this.runtime.attacking]
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {
 				for (i=0; i<this.data.points.length; i++) {
 					if (this.data.points[i] < 10) {
@@ -232,23 +237,23 @@ Battle.update = function(type) {
 			}
 		}
 		if (list.length) {
-			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
 			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
-		} else if (!this.option.attacking || !data[this.option.attacking]) {
-			this.option.attacking = null;
+		} else if (!this.runtime.attacking || !data[this.runtime.attacking]) {
+			this.runtime.attacking = null;
 			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 		}
 	}
 }
 
 Battle.work = function(state) {
-	if (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.option.attacking)) {
+	if (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
 		return true;
 	}
-	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
+	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	debug('Battle: Wanting to attack ' + this.data.user[uid].name + ' (' + uid + ')');
 	if (!$form.length) {
 		log('Battle: Unable to find attack buttons, forcing reload');

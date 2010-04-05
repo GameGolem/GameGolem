@@ -394,6 +394,71 @@ if (typeof GM_getValue !== 'undefined') {
 	}
 }
 
+// Simulates PHP's date function
+Date.prototype.format = function(format) {
+	var returnStr = '';
+	var replace = Date.replaceChars;
+	for (var i = 0; i < format.length; i++) {
+		var curChar = format.charAt(i);
+		if (replace[curChar]) {
+			returnStr += replace[curChar].call(this);
+		} else {
+			returnStr += curChar;
+		}
+	}
+	return returnStr;
+};
+
+Date.replaceChars = {
+	shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+	longMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+	shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+	longDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+	// Day
+	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
+	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
+	j: function() { return this.getDate(); },
+	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
+	N: function() { return this.getDay() + 1; },
+	S: function() { return (this.getDate() % 10 == 1 && this.getDate() != 11 ? 'st' : (this.getDate() % 10 == 2 && this.getDate() != 12 ? 'nd' : (this.getDate() % 10 == 3 && this.getDate() != 13 ? 'rd' : 'th'))); },
+	w: function() { return this.getDay(); },
+	z: function() { return "Not Yet Supported"; },
+	// Week
+	W: function() { return "Not Yet Supported"; },
+	// Month
+	F: function() { return Date.replaceChars.longMonths[this.getMonth()]; },
+	m: function() { return (this.getMonth() < 9 ? '0' : '') + (this.getMonth() + 1); },
+	M: function() { return Date.replaceChars.shortMonths[this.getMonth()]; },
+	n: function() { return this.getMonth() + 1; },
+	t: function() { return "Not Yet Supported"; },
+	// Year
+	L: function() { return (((this.getFullYear()%4==0)&&(this.getFullYear()%100 != 0)) || (this.getFullYear()%400==0)) ? '1' : '0'; },
+	o: function() { return "Not Supported"; },
+	Y: function() { return this.getFullYear(); },
+	y: function() { return ('' + this.getFullYear()).substr(2); },
+	// Time
+	a: function() { return this.getHours() < 12 ? 'am' : 'pm'; },
+	A: function() { return this.getHours() < 12 ? 'AM' : 'PM'; },
+	B: function() { return "Not Yet Supported"; },
+	g: function() { return this.getHours() % 12 || 12; },
+	G: function() { return this.getHours(); },
+	h: function() { return ((this.getHours() % 12 || 12) < 10 ? '0' : '') + (this.getHours() % 12 || 12); },
+	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
+	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
+	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
+	// Timezone
+	e: function() { return "Not Yet Supported"; },
+	I: function() { return "Not Supported"; },
+	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
+	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
+	T: function() { var m = this.getMonth(); this.setMonth(0); var result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
+	Z: function() { return -this.getTimezoneOffset() * 60; },
+	// Full Date/Time
+	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
+	r: function() { return this.toString(); },
+	U: function() { return this.getTime() / 1000; }
+};
+
 /* Worker Prototype
    ----------------
 new Worker(name, pages, settings)
@@ -463,6 +528,7 @@ function Worker(name,pages,settings) {
 	this.settings = settings || {};
 	this.data = {};
 	this.option = {};
+	this.runtime = null;// {} - set to default runtime values in your worker!
 	this.display = null;
 
 	// User functions
@@ -475,7 +541,7 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
-	this._working = {data:false, option:false, update:false};
+	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
 
@@ -525,21 +591,24 @@ function Worker(name,pages,settings) {
 	};
 
 	this._get = function(what) { // 'path.to.data'
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
 		}
 		this._unflush();
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+			data = this[x.shift()];
+		}
 		try {
 			switch(x.length) {
-				case 0:	return this.data;
-				case 1:	return this.data[x[0]];
-				case 2: return this.data[x[0]][x[1]];
-				case 3: return this.data[x[0]][x[1]][x[2]];
-				case 4: return this.data[x[0]][x[1]][x[2]][x[3]];
-				case 5: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]];
-				case 6: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-				case 7: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
+				case 0:	return data;
+				case 1:	return data[x[0]];
+				case 2: return data[x[0]][x[1]];
+				case 3: return data[x[0]][x[1]][x[2]];
+				case 4: return data[x[0]][x[1]][x[2]][x[3]];
+				case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
+				case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
+				case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			}
 		} catch(err) {
 			return null;
@@ -551,17 +620,20 @@ function Worker(name,pages,settings) {
 			this._init();
 		}
 		this._unflush();
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+			data = this[x.shift()];
+		}
 		try {
 			switch(x.length) {
-				case 0:	this.data = value; break; // Nobody should ever do this!!
-				case 1:	this.data[x[0]] = value; break;
-				case 2: this.data[x[0]][x[1]] = value; break;
-				case 3: this.data[x[0]][x[1]][x[2]] = value; break;
-				case 4: this.data[x[0]][x[1]][x[2]][x[3]] = value; break;
-				case 5: this.data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
-				case 6: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
-				case 7: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
+				case 0:	data = value; break; // Nobody should ever do this!!
+				case 1:	data[x[0]] = value; break;
+				case 2: data[x[0]][x[1]] = value; break;
+				case 3: data[x[0]][x[1]][x[2]] = value; break;
+				case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
+				case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
+				case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
+				case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
 			}
 			this._save();
 		} catch(err) {
@@ -597,9 +669,10 @@ function Worker(name,pages,settings) {
 	};
 
 	this._load = function(type) {
-		if (type !== 'data' && type !== 'option') {
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
 			this._load('data');
 			this._load('option');
+			this._load('runtime');
 			return;
 		}
 		var old, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
@@ -627,8 +700,8 @@ function Worker(name,pages,settings) {
 	};
 
 	this._save = function(type) {
-		if (type !== 'data' && type !== 'option') {
-			return this._save('data') + this._save('option');
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+			return this._save('data') + this._save('option') + this._save('runtime');
 		}
 		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;
@@ -1667,6 +1740,10 @@ Arena.option = {
 	recheck:false
 };
 
+Arena.runtime = {
+	attacking:null
+};
+
 Arena.rank = {
 	Brawler:1,
 	Swordsman:2,
@@ -1736,9 +1813,9 @@ Arena.display = [
 
 Arena.parse = function(change) {
 	var data = this.data.user, newrank;
-	if (this.option.attacking) {
-		uid = this.option.attacking;
-		this.option.attacking = null;
+	if (this.runtime.attacking) {
+		uid = this.runtime.attacking;
+		this.runtime.attacking = null;
 		if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 			delete data[uid];
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -1749,7 +1826,7 @@ Arena.parse = function(change) {
 		} else if ($('img[src*="battle_defeat"]').length) {
 			data[uid].loss = (data[uid].loss || 0) + 1;
 		} else {
-			this.option.attacking = uid; // Don't remove target as we've not hit them...
+			this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 		}
 	}
 	newrank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
@@ -1806,16 +1883,16 @@ Arena.update = function(type) {
 	}
 	// Second choose our next target
 	if (!this.option.enabled) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this);
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Stopped at ' + this.option.rank);
 		this.option.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
-		if (!this.option.attacking || !data[this.option.attacking]
-		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
+		if (!this.runtime.attacking || !data[this.runtime.attacking]
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
@@ -1827,10 +1904,10 @@ Arena.update = function(type) {
 				list.push(i);
 			}
 			if (list.length) {
-				i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+				i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
 				Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
 			} else {
-				this.option.attacking = null;
+				this.runtime.attacking = null;
 				Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 			}
 		}
@@ -1838,7 +1915,7 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || (!this.option.recheck && (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
+	if (!this.option.enabled || (!this.option.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
 		return false;
 	}
 	if (state && this.option.recheck && !Page.to('battle_arena')) {
@@ -1847,7 +1924,7 @@ Arena.work = function(state) {
 	if (!state || this.option.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
+	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
 	debug('Arena: Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log('Arena: Unable to find attack buttons, forcing reload');
@@ -1971,7 +2048,7 @@ Bank.retrieve = function(amount) {
 	}
 	$('input[name="get_gold"]').val(amount.toString());
 	Page.click('input[value="Retrieve"]');
-	return true;
+	return false;
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
@@ -1991,6 +2068,7 @@ Battle.data = {
 	rank: {},
 	points: {}
 };
+
 Battle.option = {
 	general:true,
 	points:true,
@@ -2003,6 +2081,10 @@ Battle.option = {
 	level:1.1,
 	preferonly:'Sometimes',
 	prefer:[]
+};
+
+Battle.runtime = {
+	attacking:null
 };
 
 Battle.symbol = {
@@ -2102,9 +2184,9 @@ Battle.parse = function(change) {
 		}
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
-		if (this.option.attacking) {
-			uid = this.option.attacking;
-			this.option.attacking = null;
+		if (this.runtime.attacking) {
+			uid = this.runtime.attacking;
+			this.runtime.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -2115,7 +2197,7 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 			} else {
-				this.option.attacking = uid; // Don't remove target as we've not hit them...
+				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
 		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
@@ -2171,14 +2253,14 @@ Battle.update = function(type) {
 		list = [];
 	}
 	// Second choose our next target
-	if (this.option.arena && Arena.option.enabled && Arena.option.attacking) {
-		this.option.attacking = null;
+	if (this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Battling in the Arena');
 	} else if (this.option.monster && Monster.count) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Attacking Monsters');
 	} else {
-		if ((!this.option.attacking || !data[this.option.attacking]) && this.option.prefer.length) {
+		if ((!this.runtime.attacking || !data[this.runtime.attacking]) && this.option.prefer.length) {
 			for(j=0; j<this.option.prefer.length; j++) {
 				i = this.option.prefer[j];
 				if (!/[^0-9]/g.test(i)) {
@@ -2192,9 +2274,9 @@ Battle.update = function(type) {
 			}
 		}
 		if ((this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
-		&& (!this.option.attacking || !data[this.option.attacking]
-		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level))) {
+		&& (!this.runtime.attacking || !data[this.runtime.attacking]
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level))) {
 			if (this.option.points) {
 				for (i=0; i<this.data.points.length; i++) {
 					if (this.data.points[i] < 10) {
@@ -2216,23 +2298,23 @@ Battle.update = function(type) {
 			}
 		}
 		if (list.length) {
-			i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+			i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
 			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
-		} else if (!this.option.attacking || !data[this.option.attacking]) {
-			this.option.attacking = null;
+		} else if (!this.runtime.attacking || !data[this.runtime.attacking]) {
+			this.runtime.attacking = null;
 			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 		}
 	}
 }
 
 Battle.work = function(state) {
-	if (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.option.attacking)) {
+	if (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
 		return true;
 	}
-	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
+	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	debug('Battle: Wanting to attack ' + this.data.user[uid].name + ' (' + uid + ')');
 	if (!$form.length) {
 		log('Battle: Unable to find attack buttons, forcing reload');
@@ -2899,7 +2981,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.harmonic') + this.get('income.harmonic')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Harmonic Average':this.get('exp.harmonic.change')} )); // ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change')} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -2929,7 +3011,7 @@ History.update = function(type) {
 //	debug('Exp geometric: '+this.get('exp.geometric.change'));
 //	debug('Exp mode: '+this.get('exp.mode.change'));
 //	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Average Exp =  mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -2953,7 +3035,33 @@ History.add = function(what, value) {
 };
 
 History.math = {
+	stddev: function(list) {
+		var i, listsum = 0, mean = this.mean(list);
+		for (i in list) {
+			listsum += Math.pow(list[i] - mean, 2);
+		}
+		listsum /= list.length;
+		return Math.sqrt(listsum);
+	},
 	average: function(list) {
+		var i, mean = this.mean(list), stddev = this.stddev(list);
+		for (i in list) {
+			if (Math.abs(list[i] - mean) > stddev * 2) {
+				delete list[i];
+			}
+		}
+		return sum(list) / list.length;
+	},
+	oldaverage: function(list) {
+		var i, max = this.max(list), mean = this.mean(list);
+		if (mean < max / 3) {
+			max = Math.max(max / 2, mean * 2);
+			for (i in list) {
+				if (list[i] > max) { // 2/3 of peak
+					delete list[i];
+				}
+			}
+		}
 		return sum(list) / list.length;
 	},
 	mean: function(list) {
@@ -3008,7 +3116,7 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, last = Number.POSITIVE_INFINITY, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (x.length && !x[0].regex(/[^0-9]/gi)) {
 		hour = x.shift();
 	}
@@ -3024,14 +3132,20 @@ History.get = function(what) {
 		}
 		return 0;
 	}
-	for (i in data) {
-		if (typeof data[i][x[0]] === 'number') {
-			if (x.length > 2 && x[2] === 'change') {
-				if (last !== Number.POSITIVE_INFINITY) {
+	if (x.length > 2 && x[2] === 'change') {
+		for (i=hour-168; i<=hour; i++) {
+			if (data[i] && typeof data[i][x[0]] === 'number') {
+				if (last !== null) {
 					list.push(data[i][x[0]] - last);
 				}
 				last = data[i][x[0]];
 			} else {
+				last = null;
+			}
+		}
+	} else {
+		for (i in data) {
+			if (typeof data[i][x[0]] === 'number') {
 				list.push(data[i][x[0]]);
 			}
 		}
@@ -3087,7 +3201,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 	min_s = (iscash ? '$' : '') + addCommas(min / divide) + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
-			bars.push('<div style="bottom:' + Math.max(Math.ceil((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(1)) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
@@ -3256,11 +3370,16 @@ Land.option = {
 	buy:true,
 	wait:48,
 	best:null,
-	onlyten:false,
-	lastlevel:0,
-	bestbuy:0,
-	bestcost:0
+	onlyten:false
 };
+
+Land.runtime = {
+	lastlevel:0,
+	best:null,
+	buy:0,
+	cost:0
+};
+
 Land.display = [
 	{
 		id:'buy',
@@ -3313,33 +3432,33 @@ Land.update = function() {
 		} else {
 			buy = 1;
 		}
-		this.option.bestbuy = buy;
-		this.option.bestcost = buy * this.data[best].cost;
+		this.runtime.buy = buy;
+		this.runtime.cost = buy * this.data[best].cost;
 		Dashboard.status(this, buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
 	} else {
 		Dashboard.status(this);
 	}
-	this.option.best = best;
+	this.runtime.best = best;
 }
 
 Land.work = function(state) {
-	if (!this.option.buy || !this.option.best || !Bank.worth(this.option.bestcost)) {
-		if (!this.option.best && this.option.lastlevel < Player.get('level')) {
+	if (!this.runtime.buy || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
+		if (!this.runtime.best && this.runtime.lastlevel < Player.get('level')) {
 			if (!state || !Page.to('town_land')) {
 				return true;
 			}
-			this.option.lastlevel = Player.get('level');
+			this.runtime.lastlevel = Player.get('level');
 		}
 		return false;
 	}
-	if (!state || !Bank.retrieve(this.option.bestcost) || !Page.to('town_land')) {
+	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
 		return true;
 	}
-//	var el = $('tr.land_buy_row:contains("'+this.option.best+'"),tr.land_buy_row_unique:contains("'+this.option.best+'")');
+//	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
-		if ($('img', el).attr('alt') === Land.option.best) {
-			debug('Land: Buying ' + Land.option.bestbuy + ' x ' + Land.option.best + ' for $' + addCommas(Land.option.bestcost));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.option.bestbuy > 5 ? 10 : (Land.option.bestbuy > 1 ? 5 : 1));
+		if ($('img', el).attr('alt') === Land.runtime.best) {
+			debug('Land: Buying ' + Land.runtime.buy + ' x ' + Land.runtime.best + ' for $' + addCommas(Land.runtime.cost));
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.runtime.buy > 5 ? 10 : (Land.runtime.buy > 1 ? 5 : 1));
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');
 		}
@@ -4003,6 +4122,8 @@ Player.data = {};
 Player.option = null;
 Player.panel = null;
 
+var use_average_level = true;
+
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -4014,13 +4135,14 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.energy) {
+	if (tmp[0] != data.energy) {
 		energy_used = data.energy - tmp[0];
+		data.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
@@ -4028,19 +4150,20 @@ Player.parse = function(change) {
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-	if (tmp[0] < data.stamina) {
+	if (tmp[0] != data.stamina) {
 		stamina_used = data.stamina - tmp[0];
+		data.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
 		if (energy_used) {
-			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 9)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 10)).round(-2);
-			data.energysamples = Math.min((data.energysamples || 0) + 1, 10);
+			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 20)).round(3);
+			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
 		} else if (stamina_used) {
-			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 9)) + (tmp[0] - data.exp)/stamina_used)/Math.min((data.staminasamples || 0) + 1, 10)).round(-2);
-			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 10);
+			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used))/Math.min((data.staminasamples || 0) + 1, 20)).round(3);
+			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 20);
 		}
 	}
 	data.exp		= tmp[0] || 0;
@@ -4094,9 +4217,8 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	this.data.leveltime = Math.round((Date.now()/1000) + (3600 * (((this.data.maxexp - this.data.exp) - (this.data.energy * this.data.avgenergyexp) - (this.data.stamina * this.data.avgstaminaexp)) / (((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)) || 45))));
-//	Dashboard.status(this, 'Exp: ' + addCommas(((12 * this.data.avgenergyexp) + (12 * this.data.avgstaminaexp)).round(-1)) + ' per hour (<span class="golem-timer">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average')) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
-	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	var d = new Date(this.get('level_time'));
+	Dashboard.status(this, 'Exp: ' + addCommas(this.get('exp_average').round(1)) + ' per hour (next level: ' + d.format('D g:i a') + '), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
 };
 
 Player.get = function(what) {
@@ -4111,9 +4233,27 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-//		case 'level_timer':		return (data.leveltime || (Date.now()/1000)) - Date.now()/1000;
-		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
-		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
+		case 'level_timer':
+			return (this.get('level_time') - Date.now()) / 1000;
+			/*
+			if (use_average_level) {
+				return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor((now % 3600000) / 1000);
+			} else {
+				return ((data.leveltime || (Date.now())+43200000) - Date.now())/1000;
+			}
+			*/
+		case 'level_time':
+			if (use_average_level) {
+				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
+			} else {
+				return (data.leveltime || (Date.now() + 43200000));
+			}
+		case 'exp_average':
+			if (use_average_level) {
+				return History.get('exp.average.change');
+			} else {
+				return (12 * ((this.data.avgenergyexp || 0) + (this.data.avgstaminaexp || 0)));
+			}
 		default: return this._get(what);
 	}
 };
@@ -4195,10 +4335,14 @@ Quest.option = {
 	what:'Influence',
 	unique:true,
 	monster:true,
+	bank:true
+};
+
+Queue.runtime = {
 	best:null,
-	bank:true,
 	energy:0
 };
+
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -4337,12 +4481,12 @@ Quest.update = function(type) {
 			}
 		}
 	}
-	if (best !== this.option.best) {
-		this.option.best = best;
+	if (best !== this.runtime.best) {
+		this.runtime.best = best;
 		if (best) {
-			this.option.energy = this.data[best].energy;
-			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.option.energy + ')');
-			Dashboard.status(this, best + ' (energy: ' + this.option.energy + ')');
+			this.runtime.energy = this.data[best].energy;
+			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.runtime.energy + ')');
+			Dashboard.status(this, best + ' (energy: ' + this.runtime.energy + ')');
 		} else {
 			Dashboard.status(this);
 		}
@@ -4360,7 +4504,7 @@ Quest.update = function(type) {
 };
 
 Quest.work = function(state) {
-	if (!this.option.best || this.option.energy > Queue.burn.energy) {
+	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -4369,7 +4513,7 @@ Quest.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	var i, j, general = null, best = this.option.best;
+	var i, j, general = null, best = this.runtime.best;
 	if (this.option.general) {
 		if (this.data[best].general) {
 			if (!Generals.to(this.data[best].general)) 

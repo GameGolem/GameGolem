@@ -25,7 +25,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.harmonic') + this.get('income.harmonic')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Harmonic Average':this.get('exp.harmonic.change')} )); // ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change')} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -55,7 +55,7 @@ History.update = function(type) {
 //	debug('Exp geometric: '+this.get('exp.geometric.change'));
 //	debug('Exp mode: '+this.get('exp.mode.change'));
 //	debug('Exp median: '+this.get('exp.median.change'));
-	debug('Average Exp =  mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -79,7 +79,33 @@ History.add = function(what, value) {
 };
 
 History.math = {
+	stddev: function(list) {
+		var i, listsum = 0, mean = this.mean(list);
+		for (i in list) {
+			listsum += Math.pow(list[i] - mean, 2);
+		}
+		listsum /= list.length;
+		return Math.sqrt(listsum);
+	},
 	average: function(list) {
+		var i, mean = this.mean(list), stddev = this.stddev(list);
+		for (i in list) {
+			if (Math.abs(list[i] - mean) > stddev * 2) {
+				delete list[i];
+			}
+		}
+		return sum(list) / list.length;
+	},
+	oldaverage: function(list) {
+		var i, max = this.max(list), mean = this.mean(list);
+		if (mean < max / 3) {
+			max = Math.max(max / 2, mean * 2);
+			for (i in list) {
+				if (list[i] > max) { // 2/3 of peak
+					delete list[i];
+				}
+			}
+		}
 		return sum(list) / list.length;
 	},
 	mean: function(list) {
@@ -134,7 +160,7 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, last = Number.POSITIVE_INFINITY, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (x.length && !x[0].regex(/[^0-9]/gi)) {
 		hour = x.shift();
 	}
@@ -150,14 +176,20 @@ History.get = function(what) {
 		}
 		return 0;
 	}
-	for (i in data) {
-		if (typeof data[i][x[0]] === 'number') {
-			if (x.length > 2 && x[2] === 'change') {
-				if (last !== Number.POSITIVE_INFINITY) {
+	if (x.length > 2 && x[2] === 'change') {
+		for (i=hour-168; i<=hour; i++) {
+			if (data[i] && typeof data[i][x[0]] === 'number') {
+				if (last !== null) {
 					list.push(data[i][x[0]] - last);
 				}
 				last = data[i][x[0]];
 			} else {
+				last = null;
+			}
+		}
+	} else {
+		for (i in data) {
+			if (typeof data[i][x[0]] === 'number') {
 				list.push(data[i][x[0]]);
 			}
 		}
@@ -213,7 +245,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 	min_s = (iscash ? '$' : '') + addCommas(min / divide) + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
-			bars.push('<div style="bottom:' + Math.max(Math.ceil((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
 			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(1)) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';

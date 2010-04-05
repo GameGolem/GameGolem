@@ -67,6 +67,7 @@ function Worker(name,pages,settings) {
 	this.settings = settings || {};
 	this.data = {};
 	this.option = {};
+	this.runtime = null;// {} - set to default runtime values in your worker!
 	this.display = null;
 
 	// User functions
@@ -79,7 +80,7 @@ function Worker(name,pages,settings) {
 
 	// Private data
 	this._loaded = false;
-	this._working = {data:false, option:false, update:false};
+	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
 
@@ -129,21 +130,24 @@ function Worker(name,pages,settings) {
 	};
 
 	this._get = function(what) { // 'path.to.data'
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 		if (!this._loaded) {
 			this._init();
 		}
 		this._unflush();
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+			data = this[x.shift()];
+		}
 		try {
 			switch(x.length) {
-				case 0:	return this.data;
-				case 1:	return this.data[x[0]];
-				case 2: return this.data[x[0]][x[1]];
-				case 3: return this.data[x[0]][x[1]][x[2]];
-				case 4: return this.data[x[0]][x[1]][x[2]][x[3]];
-				case 5: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]];
-				case 6: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-				case 7: return this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
+				case 0:	return data;
+				case 1:	return data[x[0]];
+				case 2: return data[x[0]][x[1]];
+				case 3: return data[x[0]][x[1]][x[2]];
+				case 4: return data[x[0]][x[1]][x[2]][x[3]];
+				case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
+				case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
+				case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			}
 		} catch(err) {
 			return null;
@@ -155,17 +159,20 @@ function Worker(name,pages,settings) {
 			this._init();
 		}
 		this._unflush();
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+			data = this[x.shift()];
+		}
 		try {
 			switch(x.length) {
-				case 0:	this.data = value; break; // Nobody should ever do this!!
-				case 1:	this.data[x[0]] = value; break;
-				case 2: this.data[x[0]][x[1]] = value; break;
-				case 3: this.data[x[0]][x[1]][x[2]] = value; break;
-				case 4: this.data[x[0]][x[1]][x[2]][x[3]] = value; break;
-				case 5: this.data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
-				case 6: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
-				case 7: this.data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
+				case 0:	data = value; break; // Nobody should ever do this!!
+				case 1:	data[x[0]] = value; break;
+				case 2: data[x[0]][x[1]] = value; break;
+				case 3: data[x[0]][x[1]][x[2]] = value; break;
+				case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
+				case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
+				case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
+				case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
 			}
 			this._save();
 		} catch(err) {
@@ -201,9 +208,10 @@ function Worker(name,pages,settings) {
 	};
 
 	this._load = function(type) {
-		if (type !== 'data' && type !== 'option') {
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
 			this._load('data');
 			this._load('option');
+			this._load('runtime');
 			return;
 		}
 		var old, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
@@ -231,8 +239,8 @@ function Worker(name,pages,settings) {
 	};
 
 	this._save = function(type) {
-		if (type !== 'data' && type !== 'option') {
-			return this._save('data') + this._save('option');
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+			return this._save('data') + this._save('option') + this._save('runtime');
 		}
 		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;

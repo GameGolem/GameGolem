@@ -263,12 +263,12 @@ Date.prototype.format = function(format) {
 	}
 	return returnStr;
 };
+
 Date.replaceChars = {
 	shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 	longMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 	shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 	longDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-	
 	// Day
 	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
 	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
@@ -313,3 +313,4 @@ Date.replaceChars = {
 	r: function() { return this.toString(); },
 	U: function() { return this.getTime() / 1000; }
 };
+

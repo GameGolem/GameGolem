@@ -62,7 +62,7 @@ Bank.retrieve = function(amount) {
 	}
 	$('input[name="get_gold"]').val(amount.toString());
 	Page.click('input[value="Retrieve"]');
-	return true;
+	return false;
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!

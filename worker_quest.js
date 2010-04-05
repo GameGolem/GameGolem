@@ -8,10 +8,14 @@ Quest.option = {
 	what:'Influence',
 	unique:true,
 	monster:true,
+	bank:true
+};
+
+Queue.runtime = {
 	best:null,
-	bank:true,
 	energy:0
 };
+
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -150,12 +154,12 @@ Quest.update = function(type) {
 			}
 		}
 	}
-	if (best !== this.option.best) {
-		this.option.best = best;
+	if (best !== this.runtime.best) {
+		this.runtime.best = best;
 		if (best) {
-			this.option.energy = this.data[best].energy;
-			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.option.energy + ')');
-			Dashboard.status(this, best + ' (energy: ' + this.option.energy + ')');
+			this.runtime.energy = this.data[best].energy;
+			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.runtime.energy + ')');
+			Dashboard.status(this, best + ' (energy: ' + this.runtime.energy + ')');
 		} else {
 			Dashboard.status(this);
 		}
@@ -173,7 +177,7 @@ Quest.update = function(type) {
 };
 
 Quest.work = function(state) {
-	if (!this.option.best || this.option.energy > Queue.burn.energy) {
+	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -182,7 +186,7 @@ Quest.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	var i, j, general = null, best = this.option.best;
+	var i, j, general = null, best = this.runtime.best;
 	if (this.option.general) {
 		if (this.data[best].general) {
 			if (!Generals.to(this.data[best].general)) 

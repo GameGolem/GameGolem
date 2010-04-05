@@ -20,6 +20,10 @@ Arena.option = {
 	recheck:false
 };
 
+Arena.runtime = {
+	attacking:null
+};
+
 Arena.rank = {
 	Brawler:1,
 	Swordsman:2,
@@ -89,9 +93,9 @@ Arena.display = [
 
 Arena.parse = function(change) {
 	var data = this.data.user, newrank;
-	if (this.option.attacking) {
-		uid = this.option.attacking;
-		this.option.attacking = null;
+	if (this.runtime.attacking) {
+		uid = this.runtime.attacking;
+		this.runtime.attacking = null;
 		if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 			delete data[uid];
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -102,7 +106,7 @@ Arena.parse = function(change) {
 		} else if ($('img[src*="battle_defeat"]').length) {
 			data[uid].loss = (data[uid].loss || 0) + 1;
 		} else {
-			this.option.attacking = uid; // Don't remove target as we've not hit them...
+			this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 		}
 	}
 	newrank = $('#app'+APPID+'_arena_body img[src*="arena_rank"]').attr('src').regex(/arena_rank([0-9]+).gif/i);
@@ -159,16 +163,16 @@ Arena.update = function(type) {
 	}
 	// Second choose our next target
 	if (!this.option.enabled) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this);
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
-		this.option.attacking = null;
+		this.runtime.attacking = null;
 		Dashboard.status(this, 'Stopped at ' + this.option.rank);
 		this.option.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
-		if (!this.option.attacking || !data[this.option.attacking]
-		|| (this.option.army !== 'Any' && (data[this.option.attacking].army / army) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.option.attacking].level / level) > this.option.level)) {
+		if (!this.runtime.attacking || !data[this.runtime.attacking]
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
@@ -180,10 +184,10 @@ Arena.update = function(type) {
 				list.push(i);
 			}
 			if (list.length) {
-				i = this.option.attacking = list[Math.floor(Math.random() * list.length)];
+				i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
 				Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
 			} else {
-				this.option.attacking = null;
+				this.runtime.attacking = null;
 				Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
 			}
 		}
@@ -191,7 +195,7 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || (!this.option.recheck && (!this.option.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
+	if (!this.option.enabled || (!this.option.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
 		return false;
 	}
 	if (state && this.option.recheck && !Page.to('battle_arena')) {
@@ -200,7 +204,7 @@ Arena.work = function(state) {
 	if (!state || this.option.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.option.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
+	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
 	debug('Arena: Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log('Arena: Unable to find attack buttons, forcing reload');

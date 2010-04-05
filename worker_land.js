@@ -6,11 +6,16 @@ Land.option = {
 	buy:true,
 	wait:48,
 	best:null,
-	onlyten:false,
-	lastlevel:0,
-	bestbuy:0,
-	bestcost:0
+	onlyten:false
 };
+
+Land.runtime = {
+	lastlevel:0,
+	best:null,
+	buy:0,
+	cost:0
+};
+
 Land.display = [
 	{
 		id:'buy',
@@ -63,33 +68,33 @@ Land.update = function() {
 		} else {
 			buy = 1;
 		}
-		this.option.bestbuy = buy;
-		this.option.bestcost = buy * this.data[best].cost;
+		this.runtime.buy = buy;
+		this.runtime.cost = buy * this.data[best].cost;
 		Dashboard.status(this, buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
 	} else {
 		Dashboard.status(this);
 	}
-	this.option.best = best;
+	this.runtime.best = best;
 }
 
 Land.work = function(state) {
-	if (!this.option.buy || !this.option.best || !Bank.worth(this.option.bestcost)) {
-		if (!this.option.best && this.option.lastlevel < Player.get('level')) {
+	if (!this.runtime.buy || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
+		if (!this.runtime.best && this.runtime.lastlevel < Player.get('level')) {
 			if (!state || !Page.to('town_land')) {
 				return true;
 			}
-			this.option.lastlevel = Player.get('level');
+			this.runtime.lastlevel = Player.get('level');
 		}
 		return false;
 	}
-	if (!state || !Bank.retrieve(this.option.bestcost) || !Page.to('town_land')) {
+	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
 		return true;
 	}
-//	var el = $('tr.land_buy_row:contains("'+this.option.best+'"),tr.land_buy_row_unique:contains("'+this.option.best+'")');
+//	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
-		if ($('img', el).attr('alt') === Land.option.best) {
-			debug('Land: Buying ' + Land.option.bestbuy + ' x ' + Land.option.best + ' for $' + addCommas(Land.option.bestcost));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.option.bestbuy > 5 ? 10 : (Land.option.bestbuy > 1 ? 5 : 1));
+		if ($('img', el).attr('alt') === Land.runtime.best) {
+			debug('Land: Buying ' + Land.runtime.buy + ' x ' + Land.runtime.best + ' for $' + addCommas(Land.runtime.cost));
+			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.runtime.buy > 5 ? 10 : (Land.runtime.buy > 1 ? 5 : 1));
 			Page.click($('.land_buy_costs input[name="Buy"]', el));
 			$('#'+PREFIX+'Land_current').text('None');
 		}

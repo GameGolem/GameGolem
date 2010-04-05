@@ -6,6 +6,8 @@ Player.data = {};
 Player.option = null;
 Player.panel = null;
 
+var use_average_level = true;
+
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -17,8 +19,7 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp).html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-timer" style="color:rgb(25,123,48);">' + makeTimer(this.get('level_timer')) + '</span></span>');
-//		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -100,9 +101,8 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	var d = new Date(this.data.leveltime);
-	Dashboard.status(this, 'Exp: ' + addCommas(((12 * (this.data.avgenergyexp || 0)) + (12 * (this.data.avgstaminaexp || 0))).round(1)) + ' per hour (next level: ' + d.format('D g:i a') + '), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
-//	Dashboard.status(this, 'Exp: ' + addCommas(History.get('exp.harmonic.change').round(1)) + ' per hour (<span class="golem-time" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span> to next level), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(this.data.income) + ' from land)');
+	var d = new Date(this.get('level_time'));
+	Dashboard.status(this, 'Exp: ' + addCommas(this.get('exp_average').round(1)) + ' per hour (next level: ' + d.format('D g:i a') + '), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
 };
 
 Player.get = function(what) {
@@ -117,9 +117,27 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
-		case 'level_timer':		return ((data.leveltime || (Date.now())+43200000) - Date.now())/1000;
-		case 'level_time':		return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
-//		case 'level_timer':		return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor((now % 3600000) / 1000);
+		case 'level_timer':
+			return (this.get('level_time') - Date.now()) / 1000;
+			/*
+			if (use_average_level) {
+				return (3600 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor((now % 3600000) / 1000);
+			} else {
+				return ((data.leveltime || (Date.now())+43200000) - Date.now())/1000;
+			}
+			*/
+		case 'level_time':
+			if (use_average_level) {
+				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
+			} else {
+				return (data.leveltime || (Date.now() + 43200000));
+			}
+		case 'exp_average':
+			if (use_average_level) {
+				return History.get('exp.average.change');
+			} else {
+				return (12 * ((this.data.avgenergyexp || 0) + (this.data.avgstaminaexp || 0)));
+			}
 		default: return this._get(what);
 	}
 };
