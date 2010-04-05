@@ -3,12 +3,14 @@
 * Dashboard is exp, income and bank.
 *
 * History.set('key', value); - sets the current hour's value
-* History.add('key', value); - adds to the current hour's value
+* History.set([hour, 'key'], value); - sets the specified hour's value
+* History.add('key', value); - adds to the current hour's value (use negative value to subtract)
+* History.add([hour, 'key'], value); - adds to the specified hour's value (use negative value to subtract)
 *
 * History.get('key') - gets current hour's value
 * History.get([hour, 'key']) - gets value at specified hour
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
-* History.get('key.average') - gets mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
+* History.get('key.average') - gets standard deviated mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
 * History.get('key.geometric') - gets geometric average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Geometric_mean
 * History.get('key.harmonic') - gets harmonic average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Harmonic_mean
 * History.get('key.mode') - gets the most common value (use .change again if needed)
@@ -64,9 +66,12 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000);
+	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+		hour = x.shift();
+	}
 	this.data[hour] = this.data[hour] || {}
-	this.data[hour][what] = value;
+	this.data[hour][x[0]] = value;
 };
 
 History.add = function(what, value) {
@@ -74,9 +79,12 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000)
+	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+		hour = x.shift();
+	}
 	this.data[hour] = this.data[hour] || {}
-	this.data[hour][what] = (this.data[hour][what] || 0) + value;
+	this.data[hour][x[0]] = (this.data[hour][x[0]] || 0) + value;
 };
 
 History.math = {

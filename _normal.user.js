@@ -1590,6 +1590,82 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 };
+/********** Worker.Settings **********
+* Save and Load settings by name
+*/
+var Settings = new Worker('Settings', null, {unsortable:true,advanced:true});
+
+Settings.option = {
+	action:'None',
+	save:'---',
+	del:'---',
+	name:null,
+	confirm:false
+};
+
+Settings.display = [
+	{
+		id:'action',
+		label:'Action',
+		select:['None', 'Load', 'Save', 'Delete']
+	},{
+		id:'which',
+		label:'Which',
+		select:'settings'
+	},{
+		id:'name',
+		label:'New Name',
+		text:true
+	},{
+		id:'confirm',
+		label:'Confirm',
+		checkbox:true
+	}
+];
+
+Settings.init = function() {
+	if (!this.data['- default -']) {
+		this.set('- default -');
+	}
+};
+
+Settings.update = function(type) {
+	var i, list = [];
+	if (this.option.confirm) {
+	
+		$('#' + PREFIX + this.name + '_confirm').val(false);
+	}
+	for (i in this.data) {
+		list.push(i);
+	}
+	Config.set('settings', list.sort());
+};
+
+Settings.options_save = function(what) {
+	this._unflush();
+	this.data[what] = {};
+	for (var i in Workers) {
+		if (Workers[i].option) {
+			this.data[what][Workers[i].name] = $.extend(true, {}, Workers[i].option);
+		}
+	}
+	this.flush();
+};
+
+Settings.options_load = function(what) {
+	this._unflush();
+	if (this.data[what]) {
+		for (var i in Workers) {
+			if (Workers[i].option) {
+				Workers[i].option = $.extend(true, {}, this.data[what][Workers[i].name]);
+				Workers[i]._save('option');
+			}
+		}
+		Page.reload();
+	}
+	return;
+};
+
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
 */
@@ -1734,14 +1810,15 @@ Arena.data = {
 
 Arena.option = {
 	enabled:false,
+	maxhealth:25,
 	general:true,
 	losses:5,
 	cache:50,
 	type:'Invade',
 	rank:'None',
 	bp:'Don\'t Care',
-	army:1.1,
-	level:1.1
+	army:1,
+	level:'Any'
 };
 
 Arena.runtime = {
@@ -1813,6 +1890,11 @@ Arena.display = [
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+	},{
+		id:'maxhealth',
+		label:'Maximum Health',
+		text:true,
+		help:'Will not fight in the Arena if your health is above this amount.'
 	}
 ];
 
@@ -1920,7 +2002,7 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
+	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 5 || (this.option.maxhealth && (Player.get('health') > this.option.maxhealth))))) {
 		return false;
 	}
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
@@ -2313,7 +2395,7 @@ Battle.update = function(type) {
 }
 
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
+	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
@@ -2997,12 +3079,14 @@ Heal.work = function(state) {
 * Dashboard is exp, income and bank.
 *
 * History.set('key', value); - sets the current hour's value
-* History.add('key', value); - adds to the current hour's value
+* History.set([hour, 'key'], value); - sets the specified hour's value
+* History.add('key', value); - adds to the current hour's value (use negative value to subtract)
+* History.add([hour, 'key'], value); - adds to the specified hour's value (use negative value to subtract)
 *
 * History.get('key') - gets current hour's value
 * History.get([hour, 'key']) - gets value at specified hour
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
-* History.get('key.average') - gets mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
+* History.get('key.average') - gets standard deviated mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
 * History.get('key.geometric') - gets geometric average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Geometric_mean
 * History.get('key.harmonic') - gets harmonic average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Harmonic_mean
 * History.get('key.mode') - gets the most common value (use .change again if needed)
@@ -3017,10 +3101,10 @@ History.option = null;
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.harmonic') + this.get('income.harmonic')}));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.option.best ? {'Next Land':Land.option.bestcost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change')} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Ignore entries above':(this.get('exp.mean.change') + 2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -3058,9 +3142,12 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000);
+	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+		hour = x.shift();
+	}
 	this.data[hour] = this.data[hour] || {}
-	this.data[hour][what] = value;
+	this.data[hour][x[0]] = value;
 };
 
 History.add = function(what, value) {
@@ -3068,9 +3155,12 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000)
+	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+		hour = x.shift();
+	}
 	this.data[hour] = this.data[hour] || {}
-	this.data[hour][what] = (this.data[hour][what] || 0) + value;
+	this.data[hour][x[0]] = (this.data[hour][x[0]] || 0) + value;
 };
 
 History.math = {
@@ -4119,12 +4209,20 @@ Monster.dashboard = function(sort, rev) {
 var News = new Worker('News', 'index');
 News.data = null;
 News.option = null;
+News.runtime = {
+	last:0
+};
 
 News.parse = function(change) {
-	if (change) { // golem/Rycochet's Castle Age Golem: TypeError in News.parse(true): $("a:eq(0)", el).attr("href") is undefined
-		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
+	if (change) {//<div class="alert_title">46 minutes, 18 seconds ago:</div> <div class="alert_title">19 hours, 21 minutes ago:</div>
+		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var txt = $(el).text().replace(/,/g, ''), uid;
+			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp, my_bp, my_cash;
+			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
+			if (time > News.runtime.last) {
+//				debug('News Time: '+time);
+				News.runtime.last = time;
+			}
 			if (txt.regex(/You were killed/i)) {
 				deaths++;
 			} else {
@@ -4133,16 +4231,26 @@ News.parse = function(change) {
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
-					xp += txt.regex(/([0-9]+) experience/i);
-					bp += txt.regex(/([0-9]+) Battle Points!/i);
-					cash += txt.regex(/\$([0-9]+)/i);
+					my_xp = txt.regex(/([0-9]+) experience/i);
+					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
+					my_cash = txt.regex(/\$([0-9]+)/i);
 				} else {
 					lose++;
 					user[uid].win++;
-					xp -= txt.regex(/([0-9]+) experience/i);
-					bp -= txt.regex(/([0-9]+) Battle Points!/i);
-					cash -= txt.regex(/\$([0-9]+)/i);
+					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
+					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
+					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
 				}
+				if (time > last_time) {
+					time = Math.floor(time / 3600000);
+					History.add([time, 'exp'], xp);
+					History.add([time, 'bp'], bp);
+					History.add([time, 'cash'], cash);
+				}
+				xp += my_xp;
+				bp += my_bp;
+				cash += my_cash;
+				
 			}
 		});
 		if (win || lose) {
@@ -4173,7 +4281,7 @@ Player.data = {};
 Player.option = null;
 Player.panel = null;
 
-var use_average_level = true;
+var use_average_level = false;
 
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
@@ -4209,12 +4317,14 @@ Player.parse = function(change) {
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
-		if (energy_used) {
-			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used)/Math.min((data.energysamples || 0) + 1, 20)).round(3);
-			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
-		} else if (stamina_used) {
-			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used))/Math.min((data.staminasamples || 0) + 1, 20)).round(3);
+		if (stamina_used > 0) {
+			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used)) / Math.min((data.staminasamples || 0) + 1, 20)).round(3);
 			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 20);
+			stamina_used = 0;
+		} else if (energy_used > 0) {
+			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used) / Math.min((data.energysamples || 0) + 1, 20)).round(3);
+			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
+			energy_used = 0;
 		}
 	}
 	data.exp		= tmp[0] || 0;
@@ -4284,6 +4394,7 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'level_timer':
 			return (this.get('level_time') - Date.now()) / 1000;
 			/*
@@ -4393,6 +4504,7 @@ Quest.option = {
 };
 
 Quest.runtime = {
+	quick:[],
 	best:null,
 	energy:0
 };
@@ -4516,6 +4628,26 @@ Quest.update = function(type) {
 		}
 	}
 	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+	// Now work out the quickest quests to level up
+	if (type === 'data') {
+		this.runtime.quick = [];
+		for (i in this.data) {
+			if (this.runtime.quick[this.data[i].exp]) {
+				this.runtime.quick[this.data[i].exp] = Math.min(this.runtime.quick[this.data[i].exp], this.data[i].energy);
+			} else {
+				this.runtime.quick[this.data[i].exp] = this.data[i].energy;
+			}
+		}
+		j = Number.POSITIVE_INFINITY;
+		for (i=this.runtime.quick.length-1; i>=0; i--) {
+			if (this.runtime.quick[i] && this.runtime.quick[i] < j) {
+				j = this.runtime.quick[i];
+			} else {
+				this.runtime.quick[i] = j;
+			}
+		}
+//		debug('Quickest '+this.runtime.quick.length+' Quests: '+this.runtime.quick);
+	}
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
@@ -4558,7 +4690,8 @@ Quest.update = function(type) {
 };
 
 Quest.work = function(state) {
-	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
+	var i, j, general = null, best = this.runtime.best, exp_needed = Player.get('exp_needed');
+	if ((exp_needed >= this.runtime.quick.length || Player.get('energy') > this.runtime.quick[exp_needed]) && (!this.runtime.best || this.runtime.energy > Queue.burn.energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -4567,7 +4700,17 @@ Quest.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	var i, j, general = null, best = this.runtime.best;
+	if (exp_needed < this.runtime.quick.length && energy <= this.runtime.quick[exp_needed]) { // Replace best with a single quest to level up quicker
+		j = this.runtime.quick[exp_needed];
+		best = null;
+		for (i in this.data) {
+			if (this.data[i].exp >= exp_needed && this.data[i].energy <= j) {
+				if (!best || this.data[i].reward >= this.data[best].reward) {
+					best = i;
+				}
+			}
+		}
+	}
 	if (this.option.general) {
 		if (this.data[best].general) {
 			if (!Generals.to(this.data[best].general)) 

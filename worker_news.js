@@ -4,12 +4,20 @@
 var News = new Worker('News', 'index');
 News.data = null;
 News.option = null;
+News.runtime = {
+	last:0
+};
 
 News.parse = function(change) {
-	if (change) { // golem/Rycochet's Castle Age Golem: TypeError in News.parse(true): $("a:eq(0)", el).attr("href") is undefined
-		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order;
+	if (change) {//<div class="alert_title">46 minutes, 18 seconds ago:</div> <div class="alert_title">19 hours, 21 minutes ago:</div>
+		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var txt = $(el).text().replace(/,/g, ''), uid;
+			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp, my_bp, my_cash;
+			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
+			if (time > News.runtime.last) {
+//				debug('News Time: '+time);
+				News.runtime.last = time;
+			}
 			if (txt.regex(/You were killed/i)) {
 				deaths++;
 			} else {
@@ -18,16 +26,26 @@ News.parse = function(change) {
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
-					xp += txt.regex(/([0-9]+) experience/i);
-					bp += txt.regex(/([0-9]+) Battle Points!/i);
-					cash += txt.regex(/\$([0-9]+)/i);
+					my_xp = txt.regex(/([0-9]+) experience/i);
+					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
+					my_cash = txt.regex(/\$([0-9]+)/i);
 				} else {
 					lose++;
 					user[uid].win++;
-					xp -= txt.regex(/([0-9]+) experience/i);
-					bp -= txt.regex(/([0-9]+) Battle Points!/i);
-					cash -= txt.regex(/\$([0-9]+)/i);
+					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
+					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
+					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
 				}
+				if (time > last_time) {
+					time = Math.floor(time / 3600000);
+					History.add([time, 'exp'], xp);
+					History.add([time, 'bp'], bp);
+					History.add([time, 'cash'], cash);
+				}
+				xp += my_xp;
+				bp += my_bp;
+				cash += my_cash;
+				
 			}
 		});
 		if (win || lose) {

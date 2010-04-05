@@ -119,6 +119,7 @@ Player.get = function(what) {
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'level_timer':
 			return (this.get('level_time') - Date.now()) / 1000;
 			/*
