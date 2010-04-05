@@ -8,10 +8,15 @@ Gift.data = {
 	todo: {},
 	gifts: {}
 };
+
 Gift.option = {
-	type:'None',
+	type:'None'
+};
+
+Gift.runtime = {
 	work:false
 };
+
 Gift.display = [
 	{
 		label:'Work in progress...'
@@ -21,6 +26,7 @@ Gift.display = [
 		select:['None', 'Random', 'Same as Received']
 	}
 ];
+
 Gift.lookup = {
 	'eq_gift_mystic_mystery.jpg':	'Mystic Armor',
 	'eq_drakehelm_mystery.jpg':		'Drake Helm',

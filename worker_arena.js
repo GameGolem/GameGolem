@@ -14,13 +14,13 @@ Arena.option = {
 	cache:50,
 	type:'Invade',
 	rank:'None',
+	bp:'Don\'t Care',
 	army:1.1,
-	level:1.1,
-	attacking:null,
-	recheck:false
+	level:1.1
 };
 
 Arena.runtime = {
+	recheck:false,
 	attacking:null
 };
 
@@ -168,7 +168,7 @@ Arena.update = function(type) {
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
 		this.runtime.attacking = null;
 		Dashboard.status(this, 'Stopped at ' + this.option.rank);
-		this.option.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
+		this.runtime.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
 		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
@@ -195,13 +195,13 @@ Arena.update = function(type) {
 }
 
 Arena.work = function(state) {
-	if (!this.option.enabled || (!this.option.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
+	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || Player.get('health') <= 10 || Queue.burn.stamina < 5))) {
 		return false;
 	}
-	if (state && this.option.recheck && !Page.to('battle_arena')) {
+	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
 		return true;
 	}
-	if (!state || this.option.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
+	if (!state || this.runtime.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;

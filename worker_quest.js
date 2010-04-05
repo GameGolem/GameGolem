@@ -248,7 +248,6 @@ Quest.work = function(state) {
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
 	var i, o, list = [], output = [];
-	Generals._unflush();
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data) {
@@ -296,7 +295,7 @@ Quest.dashboard = function(sort, rev) {
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
 		output = [];
-		td(output, Generals.data[this.data[i].general] ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.data[this.data[i].general].img + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
+		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
 		th(output, i);
 		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
 		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');

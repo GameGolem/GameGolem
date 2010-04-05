@@ -6,11 +6,16 @@ Alchemy.data = {
 	ingredients:{},
 	recipe:{}
 };
+
 Alchemy.option = {
 	perform:true,
-	hearts:false,
-	found:true
+	hearts:false
 };
+
+Alchemy.runtime = {
+	best:null
+};
+
 Alchemy.display = [
 	{
 		id:'perform',
@@ -46,32 +51,32 @@ Alchemy.parse = function(change) {
 };
 
 Alchemy.update = function() {
-	var found = null, recipe = this.data.recipe, r, i;
+	var best = null, recipe = this.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {
-			found = r;
+			best = r;
 			for (i in recipe[r].ingredients) {
 				if ((!Alchemy.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (Alchemy.data.ingredients[i] || 0)) {
-					found = null;
+					best = null;
 					break;
 				}
 			}
-			if (found) {break;}
+			if (best) {break;}
 		}
 	}
-	this.option.found = found;
+	this.runtime.best = best;
 };
 
 Alchemy.work = function(state) {
-	if (!Alchemy.option.perform || !Alchemy.option.found) {
+	if (!Alchemy.option.perform || !Alchemy.runtime.best) {
 		return false;
 	}
 	if (!state || !Page.to('keep_alchemy')) {
 		return true;
 	}
-	debug('Alchemy: Perform - '+Alchemy.option.found);
+	debug('Alchemy: Perform - '+Alchemy.runtime.best);
 	$('div.alchemyRecipeBack').each(function(i,el){
-		if($('div.recipeTitle', el).text().indexOf(Alchemy.option.found) >= 0) {
+		if($('div.recipeTitle', el).text().indexOf(Alchemy.runtime.best) >= 0) {
 			Page.click($('input[type="image"]', el));
 			return true;
 		}

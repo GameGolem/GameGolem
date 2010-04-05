@@ -4,10 +4,12 @@
 */
 var Heal = new Worker('Heal');
 Heal.data = null;
+
 Heal.option = {
 	stamina: 0,
 	health: 0
 };
+
 Heal.display = [
 	{
 		id:'stamina',
@@ -21,6 +23,7 @@ Heal.display = [
 		select:'health'
 	}
 ];
+
 Heal.work = function(state) {
 	if (Player.get('health') >= Player.get('maxhealth') || Player.get('stamina') < Heal.option.stamina || Player.get('health') >= Heal.option.health) {
 		return false;

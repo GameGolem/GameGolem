@@ -5,7 +5,10 @@ var Potions = new Worker('Potions', 'keep_stats');
 
 Potions.option = {
 	energy:35,
-	stamina:35,
+	stamina:35
+};
+
+Potions.runtime = {
 	drink:false
 };
 
@@ -36,20 +39,20 @@ Potions.parse = function(change) {
 
 Potions.update = function(type) {
 	var txt = [];
-	this.option.drink = false;
+	this.runtime.drink = false;
 	for(var i in this.data) {
 		if (this.data[i]) {
 			txt.push(i + ': ' + this.data[i]);
 		}
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
-			this.option.drink = true;
+			this.runtime.drink = true;
 		}
 	}
 	Dashboard.status(this, txt.join(', '));
 };
 
 Potions.work = function(state) {
-	if (!this.option.drink) {
+	if (!this.runtime.drink) {
 		return false;
 	}
 	if (!state || !Page.to('keep_stats')) {

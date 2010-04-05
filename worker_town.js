@@ -3,11 +3,18 @@
 */
 var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
 Town.data = {};
+
 Town.option = {
 	number:'Minimum',
 	maxcost:'$100k',
 	units:'All',
 	sell:false
+};
+
+Town.runtime = {
+	best:null,
+	buy:0,
+	cost:0
 };
 
 Town.display = [
@@ -150,27 +157,27 @@ Town.update = function(type) {
 		}
 	}
 	*/
-	this.option.best = best;
+	this.runtime.best = best;
 	if (best) {
-		this.option.bestbuy = buy;
-		this.option.bestcost = buy * data[best].cost;
-		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.option.bestcost));
+		this.runtime.buy = buy;
+		this.runtime.cost = buy * data[best].cost;
+		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.runtime.cost));
 	} else {
 		Dashboard.status(this);
 	}
 };
 
 Town.work = function(state) {
-	if (!this.option.best || !this.option.bestbuy || !Bank.worth(this.option.bestcost)) {
+	if (!this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
 		return false;
 	}
-	if (!state || !Bank.retrieve(this.option.bestcost) || (this.data[this.option.best].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[this.option.best].page)) {
+	if (!state || !Bank.retrieve(this.runtime.cost) || (this.data[this.runtime.best].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[this.runtime.best].page)) {
 		return true;
 	}
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
-		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.option.best) {
-			debug('Town: Buying ' + Town.option.bestbuy + ' x ' + Town.option.best + ' for $' + addCommas(Town.option.bestcost));
-			$('.eq_buy_costs select[name="Amount"]:eq(0)', el).val(Town.option.bestbuy > 5 ? 10 : (Town.option.bestbuy > 1 ? 5 : 1));
+		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.runtime.best) {
+			debug('Town: Buying ' + Town.runtime.buy + ' x ' + Town.runtime.best + ' for $' + addCommas(Town.runtime.cost));
+			$('.eq_buy_costs select[name="Amount"]:eq(0)', el).val(Town.runtime.buy > 5 ? 10 : (Town.runtime.buy > 1 ? 5 : 1));
 			Page.click($('.eq_buy_costs input[name="Buy"]', el));
 		}
 	});

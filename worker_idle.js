@@ -14,6 +14,7 @@ Idle.option = {
 	monsters: 'Hourly'	
 	
 };
+
 Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.display = [
 	{
@@ -72,8 +73,9 @@ Idle.work = function(state) {
 		}
 		time = Date.now() - when[this.option[i]];
 		for (p=0; p<pages[i].length; p++) {
-			if (!Page.data[pages[i][p]] || Page.data[pages[i][p]] < time) {
+			if (!Page.get(pages[i][p]) || Page.get(pages[i][p]) < time) {
 				if (!Page.to(pages[i][p])) {
+					Page.set(pages[i][p], Date.now())
 					return true;
 				}
 			}

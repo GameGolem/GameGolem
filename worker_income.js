@@ -3,12 +3,15 @@
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
+
 Income.data = null;
+
 Income.option = {
 	general: true,
 	bank: true,
 	margin: 30
 };
+
 Income.display = [
 	{
 		id:'general',
