@@ -6,30 +6,39 @@
 */
 
 var LevelUp = new Worker('LevelUp');
-
 LevelUp.data = null;
 
-LevelUp.runtime = {
-	leveltime: 0
-};
-
 LevelUp.option = {
-	general: 'any',
-	algorithm: 'Per Action'
+	enabled:false,
+	general:'any',
+	algorithm:'Per Action'
 };
 
-Battle.init = function() {
-	this._watch(Player);
+LevelUp.runtime = {
+	energy:0,
+	stamina:0,
+	exp:0,
+	exp_possible:0,
+	energy_samples:0,
+	exp_per_energy:1,
+	stamina_samples:0,
+	exp_per_stamina:1,
+	quests:[] // quests[energy] = experience
 };
 
 LevelUp.display = [
 	{
-		label:'Beta: Use at your own risk'
+		title:'Beta!!',
+		label:'Use at your own risk<br>Will get stuck because of stamina use right now!'
+	},{
+		id:'enabled',
+		label:'Enabled',
+		checkbox:true
 	},{
 		id:'general',
-		label:'LevelUp General',
-		select:'generals',
-		help:'Select which general to use when leveling up.'
+		label:'Best General',
+		select:['any', 'Energy', 'Stamina'],
+		help:'Select which type of general to use when leveling up.'
 	},{
 		id:'algorithm',
 		label:'Estimation Method',
@@ -38,109 +47,111 @@ LevelUp.display = [
 	}
 ];
 
-LevelUp.work = function(state) {
+LevelUp.init = function() {
+	this._watch(Player);
+	this._watch(Quest);
+	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
+};
 
+LevelUp.update = function(type) {
+	var d, i, j, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data = Quest.get();
+	if (type === Quest) { // Now work out the quickest quests to level up
+		runtime.quests = quests = [];
+		for (i in quest_data) {
+			if (quests[quest_data[i].energy]) {
+				quests[quest_data[i].energy] = Math.min(quests[quest_data[i].energy], quest_data[i].exp);
+			} else {
+				quests[quest_data[i].energy] = quest_data[i].exp;
+			}
+		}
+		j = 0;
+		for (i=0; i<quests.length; i++) {
+			if (quests[i] && quests[i] > j) {
+				j = quests[i];
+			} else {
+				quests[i] = j;
+			}
+		}
+//		debug('Quickest Quests '+runtime.quests.length+' Quests: '+runtime.quests);
+	} else if (type === Player) {
+		if (exp !== runtime.exp) { // Experiance has changed...
+			if (runtime.stamina > stamina) {
+				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 19)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 20); // .round(3)
+				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 20);
+			} else if (runtime.energy > energy) {
+				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 19)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 20); // .round(3)
+				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 20);
+			}
+		}
+		runtime.energy = energy;
+		runtime.stamina = stamina;
+		runtime.exp = exp;
+	}
+//	runtime.exp_possible = energy * runtime.exp_per_energy + stamina * runtime.exp_per_stamina; // Purely from estimates
+	runtime.exp_possible = (stamina * runtime.exp_per_stamina) + this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)]; // Energy from questing
+	d = new Date(this.get('level_time'));
+	if (this.option.enabled) {
+		Dashboard.status(this, d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)');
+	} else {
+		Dashboard.status(this);
+	}
+}
+
+LevelUp.work = function(state) {
 /**********************
 * Here is my version of what I think the LevelUp.work function should do.
 * I would like to see some of the code I copied from the various other workers made into their own callable functions within those workers.
 ***********************/
-
-	var i, best = [];
-	
-	if(Date.now() > Player.get('level_time')) {
-		// Set LevelUp General
-		if (!Generals.to(this.option.general)) {
-			return true;
+	var i, best = null, runtime = this.runtime, quest_data;
+//	debug('LevelUp: enabled = '+this.option.enabled+', exp_possible = '+runtime.exp_possible+', needed = '+Player.get('exp_needed'));
+	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
+		return false;
+	}
+	if (!state || !Generals.to(this.option.general)) {
+		return true;
+	}
+	if (runtime.energy && runtime.energy < runtime.quests.length) { // We can do a quest first...
+		j = runtime.quests[runtime.energy];
+		quest_data = Quest.get();
+		for (i in quest_data) {
+			if (!best || (quest_data[i].exp >= quest_data[best].exp && quest_data[i].energy <= runtime.energy)) {
+				best = i;
+			}
 		}
-
-		if (Player.get('energy') > 0) {
-			// Determine the best quest to run
-			// i.e. the highest experience/energy ratio quest with energy requirements below our current energy store
-			for (i in Quest.data) {
-				if (!best || (Quest.data[i].energy <= Player.get('energy') && ((Quest.data[i].exp / Quest.data[i].energy) >= best.ratio))) {
-					best.id = i;
-					best.ratio = (Quest.data[i].exp / Quest.data[i].energy);
-					best.energy = Quest.data[i].energy;
-				}
-			}
-			// Quest.runtime.best = best.id; // only needed if we are calling a Quest function
-			// Run selected Quest
-			// The following code is copied from quest.work - should probably make this its own callable function
-			switch(Quest.data[best.id].area) {
-				case 'quest':
-					if (!Page.to('quests_quest' + (Quest.data[best.id].land + 1))) {
-						return true;
-					}
-					break;
-				case 'demiquest':
-					if (!Page.to('quests_demiquests')) {
-						return true;
-					}
-					break;
-				case 'atlantis':
-					if (!Page.to('quests_atlantis')) {
-						return true;
-					}
-					break;
-				default:
-					debug('Quest: Can\'t get to quest area!');
-					return false;
-			}
-			debug('LevelUp: Performing - ' + best + ' (energy: ' + Quest.data[best.id].energy + ')');
-			if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) {
-				Page.reload(); // Shouldn't happen
-			}
-			return true;
-			// end copy
-		}
-		else if (Player.get('stamina') > 0) {
-			if (health < 10) {
-				// Heal
-				// The following code is copied from Heal.work - should probably make this its own callable function
-				if (!Page.to('keep_stats')) {
+		if (best) {
+			Quest.set('runtime.best', best);
+			Queue.burn.energy = runtime.energy; // Don't save any right now...
+			Generals.set('runtime.disabled', true);
+			try {
+				if (Quest.work(true)) {
+					Generals.set('runtime.disabled', false);
 					return true;
 				}
-				debug('LevelUp: Healing...');
-				if ($('input[value="Heal Wounds"]').length) {
-					Page.click('input[value="Heal Wounds"]');
-				} else {
-					log('Unable to heal!  WTF?');
-				}
-				return true;
-				// end copy
-			} else {
-				// call Battle.work directly because battling has been turned off?
-				// Probably need its own callable function as well.
-				// If Battling has been turned off, is there a battle targets cache to pull from?  Is there a target ready to attack?
-				return true
+			} catch(e) {
+				debug(e.name + ' in Quest.work(true): ' + e.message);
 			}
+			Generals.set('runtime.disabled', false);
 		}
 	}
-	return false;
+	if (Player.get('health') < 10) {
+		Heal.me();
+	}
+	// call Battle.work directly because battling has been turned off?
+	// Probably need its own callable function as well.
+	// If Battling has been turned off, is there a battle targets cache to pull from?  Is there a target ready to attack?
+	return true
 };
-
-LevelUp.update = function(type) {
-	var d = new Date(this.get('level_time'));
-	Dashboard.status(this, 'Exp: ' + addCommas(this.get('exp_average').round(1)) + ' per hour (next level: ' + d.format('D g:i a') + ')');
-//	Dashboard.status(this, 'Testing');
-}
 
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
-		case 'level_timer':
-			return (this.get('level_time') - Date.now()) / 1000;
-		case 'level_time':
-			if (this.option.algorithm == 'Per Hour') {
-				return now + ((60 * 60 * 1000) * ((Player.get('exp_needed') + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor(now % 3600000);
-			} else {
-				return (this.runtime.leveltime || (Date.now() + (12 * 60 * 60 * 1000)));
-			}
+		case 'level_timer':	return math.floor((this.get('level_time') - Date.now()) / 1000);
+		case 'level_time':	return now + (3600000 * Math.floor((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 1)));
 		case 'exp_average':
 			if (this.option.algorithm == 'Per Hour') {
 				return History.get('exp.average.change');
 			} else {
-				return (12 * ((Player.get('avgenergyexp') || 0) + (Player.get('avgstaminaexp') || 0)));
+				return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
 			}
 		default: return this._get(what);
 	}

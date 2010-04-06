@@ -5,6 +5,9 @@
 */
 var Generals = new Worker('Generals', 'heroes_generals');
 Generals.option = null;
+Generals.runtime = {
+	disabled:false
+};
 
 Generals.init = function() {
 	for (var i in this.data) {
@@ -64,6 +67,9 @@ Generals.update = function(type) {
 };
 
 Generals.to = function(name) {
+	if (this.runtime.disabled) {
+		return true;
+	}
 	this._unflush();
 	if (name && !this.data[name]) {
 		name = this.best(name);

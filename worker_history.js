@@ -67,7 +67,7 @@ History.set = function(what, value) {
 	}
 	this._unflush();
 	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
 	this.data[hour] = this.data[hour] || {}
@@ -80,7 +80,7 @@ History.add = function(what, value) {
 	}
 	this._unflush();
 	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
 	this.data[hour] = this.data[hour] || {}

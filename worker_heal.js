@@ -31,6 +31,10 @@ Heal.work = function(state) {
 	if (!state) {
 		return true;
 	}
+	return this.me();
+};
+
+Heal.me = function() {
 	if (!Page.to('keep_stats')) {
 		return true;
 	}

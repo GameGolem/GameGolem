@@ -4,7 +4,12 @@
 var Player = new Worker('Player', '*', {keep:true});
 Player.data = {};
 Player.option = null;
-Player.panel = null;
+Player.runtime = {
+	cash_timeout:null,
+	energy_timeout:null,
+	health_timeout:null,
+	stamina_timeout:null
+};
 
 var use_average_level = false;
 
@@ -13,7 +18,11 @@ Player.init = function() {
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
-	Player.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
+	this.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
+	this.runtime.cash_timeout = null;
+	this.runtime.energy_timeout = null;
+	this.runtime.health_timeout = null;
+	this.runtime.stamina_timeout = null;
 };
 
 Player.parse = function(change) {
@@ -24,23 +33,28 @@ Player.parse = function(change) {
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+/* Now in LevelUp
 	if (tmp[0] != data.energy) {
 		energy_used = data.energy - tmp[0];
 		LevelUp.runtime.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
+*/
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+/* Now in LevelUp
 	if (tmp[0] != data.stamina) {
 		stamina_used = data.stamina - tmp[0];
 		LevelUp.runtime.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
 	}
+*/
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
+/* Now in LevelUp
 	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
 		if (stamina_used > 0) {
 			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used)) / Math.min((data.staminasamples || 0) + 1, 20)).round(3);
@@ -52,6 +66,7 @@ Player.parse = function(change) {
 			energy_used = 0;
 		}
 	}
+*/
 	data.exp		= tmp[0] || 0;
 	data.maxexp		= tmp[1] || 0;
 	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
@@ -86,6 +101,18 @@ Player.parse = function(change) {
 			History.set('land', sum(txt.regex(/incomepaymentof\$([0-9]+)gold|backinthemine:Extra([0-9]+)Gold/i)));
 		}
 	});
+	if ($('#app'+APPID+'_energy_time_value').length) {
+		window.clearTimeout(this.runtime.energy_timeout);
+		this.runtime.energy_timeout = window.setTimeout(function(){Player.get('energy');}, $('#app'+APPID+'_energy_time_value').text().parseTimer() * 1000);
+	}
+	if ($('#app'+APPID+'_health_time_value').length) {
+		window.clearTimeout(this.runtime.health_timeout);
+		this.runtime.health_timeout = window.setTimeout(function(){Player.get('health');}, $('#app'+APPID+'_health_time_value').text().parseTimer() * 1000);
+	}
+	if ($('#app'+APPID+'_stamina_time_value').length) {
+		window.clearTimeout(this.runtime.stamina_timeout);
+		this.runtime.stamina_timeout = window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000);
+	}
 	return true;
 };
 
@@ -111,21 +138,21 @@ Player.update = function(type) {
 Player.get = function(what) {
 	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
 	switch(what) {
-		case 'cash':			return parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
+		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
 		case 'cash_timer':		var when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-		case 'energy':			return $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
-		case 'health':			return $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'health':			return (this.data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
-		case 'stamina':			return $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/);
+		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'level_timer':
 			return (this.get('level_time') - Date.now()) / 1000;
 		case 'level_time':
 			if (use_average_level) {
-				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.harmonic.change') || 1))) - Math.floor(now % 3600000);
+				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor(now % 3600000);
 			} else {
 				return (data.leveltime || (Date.now() + 43200000));
 			}

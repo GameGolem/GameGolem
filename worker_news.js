@@ -9,15 +9,12 @@ News.runtime = {
 };
 
 News.parse = function(change) {
-	if (change) {//<div class="alert_title">46 minutes, 18 seconds ago:</div> <div class="alert_title">19 hours, 21 minutes ago:</div>
+	if (change) {
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;
+		News.runtime.last = Date.now();
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp, my_bp, my_cash;
+			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp = 0, my_bp = 0, my_cash = 0;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
-			if (time > News.runtime.last) {
-//				debug('News Time: '+time);
-				News.runtime.last = time;
-			}
 			if (txt.regex(/You were killed/i)) {
 				deaths++;
 			} else {
@@ -37,10 +34,11 @@ News.parse = function(change) {
 					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
 				}
 				if (time > last_time) {
+//					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
 					time = Math.floor(time / 3600000);
-					History.add([time, 'exp'], xp);
-					History.add([time, 'bp'], bp);
-					History.add([time, 'cash'], cash);
+					History.add([time, 'exp+battle'], my_xp);
+					History.add([time, 'bp+battle'], my_bp);
+					History.add([time, 'income+battle'], my_cash);
 				}
 				xp += my_xp;
 				bp += my_bp;

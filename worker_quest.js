@@ -12,7 +12,6 @@ Quest.option = {
 };
 
 Quest.runtime = {
-//	quick:[],
 	best:null,
 	energy:0
 };
@@ -136,26 +135,6 @@ Quest.update = function(type) {
 		}
 	}
 	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
-	// Now work out the quickest quests to level up
-/*	if (type === 'data') {
-		this.runtime.quick = [];
-		for (i in this.data) {
-			if (this.runtime.quick[this.data[i].exp]) {
-				this.runtime.quick[this.data[i].exp] = Math.min(this.runtime.quick[this.data[i].exp], this.data[i].energy);
-			} else {
-				this.runtime.quick[this.data[i].exp] = this.data[i].energy;
-			}
-		}
-		j = Number.POSITIVE_INFINITY;
-		for (i=this.runtime.quick.length-1; i>=0; i--) {
-			if (this.runtime.quick[i] && this.runtime.quick[i] < j) {
-				j = this.runtime.quick[i];
-			} else {
-				this.runtime.quick[i] = j;
-			}
-		}
-//		debug('Quickest '+this.runtime.quick.length+' Quests: '+this.runtime.quick);
-	}*/
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
@@ -220,7 +199,7 @@ Quest.work = function(state) {
 		}
 	}*/
 	if (this.option.general) {
-		if (this.data[best].general) {
+		if (this.data[best].general && (typeof this.data[best].influence === 'undefined' || this.data[best].influence < 100)) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return true;
