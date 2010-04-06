@@ -29,7 +29,7 @@ LevelUp.runtime = {
 LevelUp.display = [
 	{
 		title:'Beta!!',
-		label:'Use at your own risk<br>Will get stuck because of stamina use right now!'
+		label:'Unproven yet because testing opportunities are rare.'
 	},{
 		id:'enabled',
 		label:'Enabled',
@@ -136,7 +136,7 @@ LevelUp.work = function(state) {
 	if (Player.get('health') < 10) {
 		Heal.me();
 	}
-	// call Battle.work directly because battling has been turned off?
+	// else call Battle.work directly because battling has been turned off?
 	// Probably need its own callable function as well.
 	// If Battling has been turned off, is there a battle targets cache to pull from?  Is there a target ready to attack?
 	return true
@@ -145,8 +145,8 @@ LevelUp.work = function(state) {
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
-		case 'level_timer':	return math.floor((this.get('level_time') - Date.now()) / 1000);
-		case 'level_time':	return now + (3600000 * Math.floor((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 1)));
+		case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
+		case 'level_time':	return now + (3600000 * Math.floor((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
 			if (this.option.algorithm == 'Per Hour') {
 				return History.get('exp.average.change');

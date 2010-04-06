@@ -28,7 +28,7 @@ Player.init = function() {
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
 	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(LevelUp.get('exp_average').round(1)) + ' per hour').html(addCommas(this.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + LevelUp.get('level_time') + '">' + makeTimer(LevelUp.get('level_timer')) + '</span></span>');
 		return true;
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
@@ -148,20 +148,6 @@ Player.get = function(what) {
 		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
-		case 'level_timer':
-			return (this.get('level_time') - Date.now()) / 1000;
-		case 'level_time':
-			if (use_average_level) {
-				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor(now % 3600000);
-			} else {
-				return (data.leveltime || (Date.now() + 43200000));
-			}
-		case 'exp_average':
-			if (use_average_level) {
-				return History.get('exp.average.change');
-			} else {
-				return (12 * ((this.data.avgenergyexp || 0) + (this.data.avgstaminaexp || 0)));
-			}
 		default: return this._get(what);
 	}
 };
