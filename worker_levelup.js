@@ -87,8 +87,8 @@ LevelUp.update = function(type) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-//	runtime.exp_possible = energy * runtime.exp_per_energy + stamina * runtime.exp_per_stamina; // Purely from estimates
-	runtime.exp_possible = (stamina * runtime.exp_per_stamina) + this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)]; // Energy from questing
+//	runtime.exp_possible = Math.floor(energy * runtime.exp_per_energy + stamina * runtime.exp_per_stamina); // Purely from estimates
+	runtime.exp_possible = Math.floor((stamina * runtime.exp_per_stamina) + this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)]); // Energy from questing
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		Dashboard.status(this, d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)');
@@ -145,8 +145,8 @@ LevelUp.work = function(state) {
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
-		case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
-		case 'level_time':	return now + (3600000 * Math.floor((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
+		case 'level_timer':	return Math.floor((this.get('level_time') - now) / 1000);
+		case 'level_time':	return now + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
 			if (this.option.algorithm == 'Per Hour') {
 				return History.get('exp.average.change');
