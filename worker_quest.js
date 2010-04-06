@@ -12,7 +12,7 @@ Quest.option = {
 };
 
 Quest.runtime = {
-	quick:[],
+//	quick:[],
 	best:null,
 	energy:0
 };
@@ -137,7 +137,7 @@ Quest.update = function(type) {
 	}
 	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now work out the quickest quests to level up
-	if (type === 'data') {
+/*	if (type === 'data') {
 		this.runtime.quick = [];
 		for (i in this.data) {
 			if (this.runtime.quick[this.data[i].exp]) {
@@ -155,7 +155,7 @@ Quest.update = function(type) {
 			}
 		}
 //		debug('Quickest '+this.runtime.quick.length+' Quests: '+this.runtime.quick);
-	}
+	}*/
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
@@ -199,7 +199,7 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	var i, j, general = null, best = this.runtime.best, exp_needed = Player.get('exp_needed');
-	if ((exp_needed >= this.runtime.quick.length || Player.get('energy') > this.runtime.quick[exp_needed]) && (!this.runtime.best || this.runtime.energy > Queue.burn.energy)) {
+	if (/*(exp_needed >= this.runtime.quick.length || Player.get('energy') > this.runtime.quick[exp_needed]) && */(!this.runtime.best || this.runtime.energy > Queue.burn.energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -208,7 +208,7 @@ Quest.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (exp_needed < this.runtime.quick.length && energy <= this.runtime.quick[exp_needed]) { // Replace best with a single quest to level up quicker
+	/*if (exp_needed < this.runtime.quick.length && energy <= this.runtime.quick[exp_needed]) { // Replace best with a single quest to level up quicker
 		j = this.runtime.quick[exp_needed];
 		best = null;
 		for (i in this.data) {
@@ -218,7 +218,7 @@ Quest.work = function(state) {
 				}
 			}
 		}
-	}
+	}*/
 	if (this.option.general) {
 		if (this.data[best].general) {
 			if (!Generals.to(this.data[best].general)) 
