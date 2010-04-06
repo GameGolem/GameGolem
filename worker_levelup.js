@@ -91,7 +91,7 @@ LevelUp.update = function(type) {
 	runtime.exp_possible = Math.floor((stamina * runtime.exp_per_stamina) + this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)]); // Energy from questing
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
-		Dashboard.status(this, d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)');
+		Dashboard.status(this, '<span title="(xn: ' + this.runtime.exp_possible + ', xpe: ' + this.runtime.exp_per_energy.round(2) + ', xps: ' + this.runtime.exp_per_stamina.round(2) + ')">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)</span>');
 	} else {
 		Dashboard.status(this);
 	}

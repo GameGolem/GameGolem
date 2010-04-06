@@ -26,6 +26,10 @@ Potions.display = [
 	}
 ];
 
+Potions.init = function() {
+	this._watch(Quest);
+};
+
 Potions.parse = function(change) {
 	this.data = {};
 	$('.statsT2:eq(2) .statUnit').each(function(i,el){
@@ -40,9 +44,10 @@ Potions.parse = function(change) {
 Potions.update = function(type) {
 	var txt = [];
 	this.runtime.drink = false;
+	Page.to('keep_stats');
 	for(var i in this.data) {
 		if (this.data[i]) {
-			txt.push(i + ': ' + this.data[i]);
+			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
 		}
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 			this.runtime.drink = true;
