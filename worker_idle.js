@@ -10,12 +10,12 @@ Idle.option = {
 	alchemy: 'Daily',
 	quests: 'Never',
 	town: 'Never',
-	battle: 'Daily',
+	battle: 'Quarterly',
 	monsters: 'Hourly'	
 	
 };
 
-Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
+Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.display = [
 	{
 		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
@@ -63,7 +63,7 @@ Idle.work = function(state) {
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle', 'battle_arena'],
 		monsters:['keep_monster', 'battle_raid']
-	}, when = { 'Never':0, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
+	}, when = { 'Never':0, 'Quarterly':900000, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
 		return true;
 	}
