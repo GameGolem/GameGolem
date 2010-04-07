@@ -59,7 +59,7 @@ LevelUp.update = function(type) {
 		runtime.quests = quests = [];
 		for (i in quest_data) {
 			if (quests[quest_data[i].energy]) {
-				quests[quest_data[i].energy] = Math.min(quests[quest_data[i].energy], quest_data[i].exp);
+				quests[quest_data[i].energy] = Math.max(quests[quest_data[i].energy], quest_data[i].exp);
 			} else {
 				quests[quest_data[i].energy] = quest_data[i].exp;
 			}
@@ -76,11 +76,11 @@ LevelUp.update = function(type) {
 	} else if (type === Player) {
 		if (exp !== runtime.exp) { // Experiance has changed...
 			if (runtime.stamina > stamina) {
-				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 19)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 20); // .round(3)
-				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 20);
+				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
+				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
 			} else if (runtime.energy > energy) {
-				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 19)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 20); // .round(3)
-				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 20);
+				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
+				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
 			}
 		}
 		runtime.energy = energy;
