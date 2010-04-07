@@ -70,7 +70,7 @@ Land.update = function() {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost;
-		Dashboard.status(this, buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
+		Dashboard.status(this, (this.runtime.buy ? 'Buying ' : 'Want to buy ') + buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
 	} else {
 		Dashboard.status(this);
 	}

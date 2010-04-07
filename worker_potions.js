@@ -27,7 +27,7 @@ Potions.display = [
 ];
 
 Potions.init = function() {
-	this._watch(Quest);
+//	this._watch(Quest);
 };
 
 Potions.parse = function(change) {
@@ -44,7 +44,7 @@ Potions.parse = function(change) {
 Potions.update = function(type) {
 	var txt = [];
 	this.runtime.drink = false;
-	Page.to('keep_stats');
+//	Page.to('keep_stats'); UGH!!!!
 	for(var i in this.data) {
 		if (this.data[i]) {
 			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);

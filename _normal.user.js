@@ -3114,7 +3114,8 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Ignore entries above':(this.get('exp.mean.change') + 2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Mean':this.get('exp.mean.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + 2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -3255,7 +3256,7 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
+	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
 	if (x.length && !x[0].regex(/[^0-9]/gi)) {
 		hour = x.shift();
 	}
@@ -3273,23 +3274,42 @@ History.get = function(what) {
 	}
 	if (x.length > 2 && x[2] === 'change') {
 		for (i=hour-168; i<=hour; i++) {
-			if (data[i] && typeof data[i][x[0]] === 'number') {
-				if (last !== null) {
-					list.push(data[i][x[0]] - last);
+			if (data[i]) {
+				value = null;
+				if (data[i][x[0]]) {
+					value = data[i][x[0]];
+				} else {
+					for (j in data[i]) {
+						if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
+							value = (value || 0) + data[i][j];
+						}
+					}
 				}
-				last = data[i][x[0]];
-			} else {
-				last = null;
+				if (value !== null && last !== null) {
+					list.push(value - last);
+				}
+				last = value;
 			}
 		}
 	} else {
 		for (i in data) {
-			if (typeof data[i][x[0]] === 'number') {
-				list.push(data[i][x[0]]);
+			value = null;
+			if (data[i][x[0]]) {
+				value = data[i][x[0]];
+			} else {
+				for (j in data[i]) {
+					if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
+						value = (value || 0) + data[i][j];
+					}
+				}
+			}
+			if (value !== null) {
+				list.push(value);
 			}
 		}
 	}
 	if (History.math[x[1]]) {
+		debug(History.math[x[1]](list)+' = History.math['+x[1]+']('+list+')');
 		return History.math[x[1]](list);
 	}
 	throw('Wanting to get unknown History type ' + x[1] + ' on ' + x[0]);
@@ -3379,12 +3399,12 @@ Idle.option = {
 	alchemy: 'Daily',
 	quests: 'Never',
 	town: 'Never',
-	battle: 'Daily',
+	battle: 'Quarterly',
 	monsters: 'Hourly'	
 	
 };
 
-Idle.when = ['Never', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
+Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.display = [
 	{
 		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
@@ -3432,7 +3452,7 @@ Idle.work = function(state) {
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle', 'battle_arena'],
 		monsters:['keep_monster', 'battle_raid']
-	}, when = { 'Never':0, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
+	}, when = { 'Never':0, 'Quarterly':900000, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
 		return true;
 	}
@@ -3578,7 +3598,7 @@ Land.update = function() {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost;
-		Dashboard.status(this, buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
+		Dashboard.status(this, (this.runtime.buy ? 'Buying ' : 'Want to buy ') + buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
 	} else {
 		Dashboard.status(this);
 	}
@@ -3617,7 +3637,7 @@ Land.work = function(state) {
 * NOTE: We should probably migrate the level up time estimation functions to this worker from Player.  Player still needs the functions to calculate the avgenergyexp and avgstaminaexp though
 */
 
-var LevelUp = new Worker('LevelUp');
+var LevelUp = new Worker('LevelUp', '*');
 LevelUp.data = null;
 
 LevelUp.option = {
@@ -3635,13 +3655,13 @@ LevelUp.runtime = {
 	exp_per_energy:1,
 	stamina_samples:0,
 	exp_per_stamina:1,
-	quests:[] // quests[energy] = experience
+	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
 LevelUp.display = [
 	{
 		title:'Beta!!',
-		label:'Use at your own risk<br>Will get stuck because of stamina use right now!'
+		label:'Will only run a single Quest to level up, Stamina is currently not spent!!'
 	},{
 		id:'enabled',
 		label:'Enabled',
@@ -3665,45 +3685,77 @@ LevelUp.init = function() {
 	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
 };
 
+LevelUp.parse = function(change) {
+	if (change) {
+		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+	}
+	return true;
+}
+
 LevelUp.update = function(type) {
-	var d, i, j, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data = Quest.get();
+	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data = Quest.get();
 	if (type === Quest) { // Now work out the quickest quests to level up
-		runtime.quests = quests = [];
-		for (i in quest_data) {
-			if (quests[quest_data[i].energy]) {
-				quests[quest_data[i].energy] = Math.min(quests[quest_data[i].energy], quest_data[i].exp);
-			} else {
-				quests[quest_data[i].energy] = quest_data[i].exp;
+		runtime.quests = quests = [[0]];
+		for (i in quest_data) {// quests[energy] = [experience, [quest1, quest2, quest3]]
+			if (!quests[quest_data[i].energy] || quest_data[i].exp > quests[quest_data[i].energy][0]) {
+				quests[quest_data[i].energy] = [quest_data[i].exp, [i]];
 			}
 		}
-		j = 0;
-		for (i=0; i<quests.length; i++) {
-			if (quests[i] && quests[i] > j) {
-				j = quests[i];
-			} else {
-				quests[i] = j;
+		if (!(quests.length % 2)) { // Make sure it's an even number of quests
+			quests[quests.length] = quests[quests.length - 1];
+		}
+		for (i=1; i<(quests.length/2); i++) { // Find the best exp per energy quests
+			if (quests[i] && (!quests[i*2] || (quests[i][0] / i) >= (quests[i*2][0] / (i*2)))) {
+				quests[i*2] = [quests[i][0], [quests[i][1][0]]];
 			}
 		}
-//		debug('Quickest Quests '+runtime.quests.length+' Quests: '+runtime.quests);
+		j = 1;
+		k = [0];
+		for (i=1; i<quests.length; i++) { // Fill in the array using the lowest ratios
+			if (quests[i] && quests[i][0] / i >= k[0] / j) {
+				j = i;
+				k = quests[i];
+			} else {
+				quests[i] = [k[0], [k[1][0]]];
+			}
+		}
+		for (i=quests.length-2; i>0; i--) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
+			if (quests[i][0] === quests[i+1][0]) {
+				quests.pop();
+			} else {
+				break;
+			}
+		}
+		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
+			if (quest_data[quests[i][1][0]].energy < i) {
+				quests[i][0] += quests[i - quest_data[quests[i][1][0]].energy][0];
+				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
+			}
+		}
+//		debug('Quickest '+quests.length+' Quests: '+quests.toSource());
 	} else if (type === Player) {
-		if (exp !== runtime.exp) { // Experiance has changed...
+		if (exp !== runtime.exp) { // Experience has changed...
 			if (runtime.stamina > stamina) {
-				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 19)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 20); // .round(3)
-				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 20);
+				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
+				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
 			} else if (runtime.energy > energy) {
-				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 19)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 20); // .round(3)
-				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 20);
+				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
+				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
 			}
 		}
 		runtime.energy = energy;
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-//	runtime.exp_possible = energy * runtime.exp_per_energy + stamina * runtime.exp_per_stamina; // Purely from estimates
-	runtime.exp_possible = (stamina * runtime.exp_per_stamina) + this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)]; // Energy from questing
+	if (energy < this.runtime.quests.length) { // Energy from questing
+		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
+	} else {
+		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
+	}
+//	runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
-		Dashboard.status(this, d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)');
+		Dashboard.status(this, '<span title="(xn: ' + this.runtime.exp_possible + ', xpe: ' + this.runtime.exp_per_energy.round(2) + ', xps: ' + this.runtime.exp_per_stamina.round(2) + ')">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)</span>');
 	} else {
 		Dashboard.status(this);
 	}
@@ -3714,7 +3766,7 @@ LevelUp.work = function(state) {
 * Here is my version of what I think the LevelUp.work function should do.
 * I would like to see some of the code I copied from the various other workers made into their own callable functions within those workers.
 ***********************/
-	var i, best = null, runtime = this.runtime, quest_data;
+	var i, j, best, runtime = this.runtime, quest_data, quests;
 //	debug('LevelUp: enabled = '+this.option.enabled+', exp_possible = '+runtime.exp_possible+', needed = '+Player.get('exp_needed'));
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		return false;
@@ -3722,33 +3774,31 @@ LevelUp.work = function(state) {
 	if (!state || !Generals.to(this.option.general)) {
 		return true;
 	}
-	if (runtime.energy && runtime.energy < runtime.quests.length) { // We can do a quest first...
-		j = runtime.quests[runtime.energy];
+	if (runtime.energy) { // We can do a quest first...
 		quest_data = Quest.get();
-		for (i in quest_data) {
-			if (!best || (quest_data[i].exp >= quest_data[best].exp && quest_data[i].energy <= runtime.energy)) {
-				best = i;
-			}
-		}
-		if (best) {
-			Quest.set('runtime.best', best);
-			Queue.burn.energy = runtime.energy; // Don't save any right now...
-			Generals.set('runtime.disabled', true);
-			try {
-				if (Quest.work(true)) {
+		quests = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1];
+		for (i=0; i<quests.length; i++) {
+			if (quest_data[quests[i]] && quest_data[quests[i]].energy <= runtime.energy) {
+				best = Quest.get('runtime.best'); // Need to save it as we're not really supposed to be here ;-)
+				Quest.set('runtime.best', quests[i]);
+				Queue.burn.energy = runtime.energy; // Don't save any right now...
+				Generals.set('runtime.disabled', true);
+				try {
+					Quest.work(true);
+				} catch(e) {
+					debug(e.name + ' in Quest.work(true): ' + e.message);
+				} finally {
+					Quest.set('runtime.best', best);
 					Generals.set('runtime.disabled', false);
-					return true;
 				}
-			} catch(e) {
-				debug(e.name + ' in Quest.work(true): ' + e.message);
+				return true;
 			}
-			Generals.set('runtime.disabled', false);
 		}
 	}
 	if (Player.get('health') < 10) {
 		Heal.me();
 	}
-	// call Battle.work directly because battling has been turned off?
+	// else call Battle.work directly because battling has been turned off?
 	// Probably need its own callable function as well.
 	// If Battling has been turned off, is there a battle targets cache to pull from?  Is there a target ready to attack?
 	return true
@@ -3757,8 +3807,8 @@ LevelUp.work = function(state) {
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
-		case 'level_timer':	return math.floor((this.get('level_time') - Date.now()) / 1000);
-		case 'level_time':	return now + (3600000 * Math.floor((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 1)));
+		case 'level_timer':	return Math.floor((this.get('level_time') - now) / 1000);
+		case 'level_time':	return now + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
 			if (this.option.algorithm == 'Per Hour') {
 				return History.get('exp.average.change');
@@ -4467,46 +4517,17 @@ Player.init = function() {
 
 Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
-	if (change) {
-		$('#app'+APPID+'_st_2_5 strong').attr('title', data.exp + '/' + data.maxexp + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(data.maxexp - data.exp) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
-		return true;
-	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-/* Now in LevelUp
-	if (tmp[0] != data.energy) {
-		energy_used = data.energy - tmp[0];
-		LevelUp.runtime.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
-	}
-*/
 	data.energy		= tmp[0] || 0;
 	data.maxenergy	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 	data.health		= tmp[0] || 0;
 	data.maxhealth	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-/* Now in LevelUp
-	if (tmp[0] != data.stamina) {
-		stamina_used = data.stamina - tmp[0];
-		LevelUp.runtime.leveltime = (Date.now()) + ((60*60*1000) * (((data.maxexp - data.exp) - (data.energy * (data.avgenergyexp || 0)) - (data.stamina * (data.avgstaminaexp || 0))) / (((12 * (data.avgenergyexp || 0)) + (12 * (data.avgstaminaexp || 0))) || 50))).round();
-	}
-*/
 	data.stamina	= tmp[0] || 0;
 	data.maxstamina	= tmp[1] || 0;
 	tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-/* Now in LevelUp
-	if (tmp[0] > data.exp) { // If experience has been gained, lets record how much was gained and how many points of energy/stamina were used and save an average weighted slighty towards recent results
-		if (stamina_used > 0) {
-			data.avgstaminaexp = ((((data.avgstaminaexp || 0) * Math.min((data.staminasamples || 0), 19)) + ((tmp[0] - data.exp)/stamina_used)) / Math.min((data.staminasamples || 0) + 1, 20)).round(3);
-			data.staminasamples = Math.min((data.staminasamples || 0) + 1, 20);
-			stamina_used = 0;
-		} else if (energy_used > 0) {
-			data.avgenergyexp = ((((data.avgenergyexp || 0) * Math.min((data.energysamples || 0), 19)) + (tmp[0] - data.exp)/energy_used) / Math.min((data.energysamples || 0) + 1, 20)).round(3);
-			data.energysamples = Math.min((data.energysamples || 0) + 1, 20);
-			energy_used = 0;
-		}
-	}
-*/
 	data.exp		= tmp[0] || 0;
 	data.maxexp		= tmp[1] || 0;
 	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
@@ -4553,7 +4574,7 @@ Player.parse = function(change) {
 		window.clearTimeout(this.runtime.stamina_timeout);
 		this.runtime.stamina_timeout = window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000);
 	}
-	return true;
+	return false;
 };
 
 Player.update = function(type) {
@@ -4570,8 +4591,6 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-//	var d = new Date(this.get('level_time'));
-//	Dashboard.status(this, 'Exp: ' + addCommas(this.get('exp_average').round(1)) + ' per hour (next level: ' + d.format('D g:i a') + '), Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
 	Dashboard.status(this, 'Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
 };
 
@@ -4588,20 +4607,6 @@ Player.get = function(what) {
 		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
-		case 'level_timer':
-			return (this.get('level_time') - Date.now()) / 1000;
-		case 'level_time':
-			if (use_average_level) {
-				return now + (3600000 * ((data.maxexp - data.exp + History.get('exp.change')) / (History.get('exp.average.change') || 1))) - Math.floor(now % 3600000);
-			} else {
-				return (data.leveltime || (Date.now() + 43200000));
-			}
-		case 'exp_average':
-			if (use_average_level) {
-				return History.get('exp.average.change');
-			} else {
-				return (12 * ((this.data.avgenergyexp || 0) + (this.data.avgstaminaexp || 0)));
-			}
 		default: return this._get(what);
 	}
 };
@@ -4634,6 +4639,10 @@ Potions.display = [
 	}
 ];
 
+Potions.init = function() {
+//	this._watch(Quest);
+};
+
 Potions.parse = function(change) {
 	this.data = {};
 	$('.statsT2:eq(2) .statUnit').each(function(i,el){
@@ -4648,9 +4657,10 @@ Potions.parse = function(change) {
 Potions.update = function(type) {
 	var txt = [];
 	this.runtime.drink = false;
+//	Page.to('keep_stats'); UGH!!!!
 	for(var i in this.data) {
 		if (this.data[i]) {
-			txt.push(i + ': ' + this.data[i]);
+			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
 		}
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 			this.runtime.drink = true;
