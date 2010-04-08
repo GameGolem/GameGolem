@@ -15,6 +15,10 @@ LevelUp.option = {
 };
 
 LevelUp.runtime = {
+	level:0,// set when we start, compare to end
+	maxenergy:0,// set to maxenergy before levelling up
+	maxstamina:0,// set to maxstamina before levelling up
+	running:false,// set when we change
 	energy:0,
 	stamina:0,
 	exp:0,
@@ -51,6 +55,7 @@ LevelUp.init = function() {
 	this._watch(Player);
 	this._watch(Quest);
 	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
+	this.runtime.level = this.runtime.level || Player.get('level'); // Make sure we have a default...
 };
 
 LevelUp.parse = function(change) {
@@ -80,23 +85,15 @@ LevelUp.parse = function(change) {
 LevelUp.update = function(type) {
 	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data = Quest.get();
 	if (type === Quest) { // Now work out the quickest quests to level up
-		runtime.quests = quests = [[0]];
-		for (i in quest_data) {// quests[energy] = [experience, [quest1, quest2, quest3]]
+		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
+		for (i in quest_data) { // Fill out with the best exp for every energy cost
 			if (!quests[quest_data[i].energy] || quest_data[i].exp > quests[quest_data[i].energy][0]) {
 				quests[quest_data[i].energy] = [quest_data[i].exp, [i]];
 			}
 		}
-		if (!(quests.length % 2)) { // Make sure it's an even number of quests
-			quests[quests.length] = quests[quests.length - 1];
-		}
-		for (i=1; i<(quests.length/2); i++) { // Find the best exp per energy quests
-			if (quests[i] && (!quests[i*2] || (quests[i][0] / i) >= (quests[i*2][0] / (i*2)))) {
-				quests[i*2] = [quests[i][0], [quests[i][1][0]]];
-			}
-		}
 		j = 1;
 		k = [0];
-		for (i=1; i<quests.length; i++) { // Fill in the array using the lowest ratios
+		for (i=1; i<quests.length; i++) { // Fill in the blanks and replace using the highest exp per energy ratios
 			if (quests[i] && quests[i][0] / i >= k[0] / j) {
 				j = i;
 				k = quests[i];
@@ -104,12 +101,8 @@ LevelUp.update = function(type) {
 				quests[i] = [k[0], [k[1][0]]];
 			}
 		}
-		for (i=quests.length-2; i>0; i--) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
-			if (quests[i][0] === quests[i+1][0]) {
-				quests.pop();
-			} else {
-				break;
-			}
+		while (quests.length > 1 && quests[quests.length-1][0] === quests[quests.length-2][0]) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
+			quests.pop();
 		}
 		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
 			if (quest_data[quests[i][1][0]].energy < i) {
@@ -137,12 +130,16 @@ LevelUp.update = function(type) {
 	} else if (energy < this.runtime.quests.length) { // Energy from questing
 		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
 	} else {
-		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
+		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
-//	runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+	runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
-		Dashboard.status(this, '<span title="(xn: ' + this.runtime.exp_possible + ', xpe: ' + this.runtime.exp_per_energy.round(2) + ', xps: ' + this.runtime.exp_per_stamina.round(2) + ')">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)</span>');
+		if (runtime.running) {
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)</span>');
+		} else {
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' per hour)</span>');
+		}
 	} else {
 		Dashboard.status(this);
 	}
@@ -153,42 +150,54 @@ LevelUp.work = function(state) {
 * Here is my version of what I think the LevelUp.work function should do.
 * I would like to see some of the code I copied from the various other workers made into their own callable functions within those workers.
 ***********************/
-	var i, j, best, runtime = this.runtime, quest_data, quests;
-//	debug('LevelUp: enabled = '+this.option.enabled+', exp_possible = '+runtime.exp_possible+', needed = '+Player.get('exp_needed'));
+	var i, runtime = this.runtime, general;
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
+		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
+			if (runtime.maxenergy < runtime.energy) { // Burn the extra energy
+				Queue.burn.energy = runtime.energy;
+				Queue.burn.stamina = 0;
+				return false;
+			}
+			if (runtime.maxstamina < runtime.stamina) { // Burn the extra stamina
+				Queue.burn.energy = 0;
+				Queue.burn.stamina = runtime.stamina;
+				return false;
+			}
+			Generals.set('runtime.disabled', false);
+			runtime.running = false;
+		}
 		return false;
 	}
-	if (!state || !Generals.to(this.option.general)) {
-		return true;
-	}
-	if (runtime.energy) { // We can do a quest first...
-		quest_data = Quest.get();
-		quests = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1];
-		for (i=0; i<quests.length; i++) {
-			if (quest_data[quests[i]] && quest_data[quests[i]].energy <= runtime.energy) {
-				best = Quest.get('runtime.best'); // Need to save it as we're not really supposed to be here ;-)
-				Quest.set('runtime.best', quests[i]);
-				Queue.burn.energy = runtime.energy; // Don't save any right now...
-				Generals.set('runtime.disabled', true);
-				try {
-					Quest.work(true);
-				} catch(e) {
-					debug(e.name + ' in Quest.work(true): ' + e.message);
-				} finally {
-					Quest.set('runtime.best', best);
-					Generals.set('runtime.disabled', false);
-				}
+	if (!runtime.running || state) { // We're not running yet, or we have focus
+		if (!runtime.energy && state) {
+			return Heal.me();
+		}
+		general = Generals.best(this.option.general); // Get our level up general
+		if (general && general !== 'any' && general !== Player.get('general')) {
+			if (!state || !Generals.to(this.option.general)) {
 				return true;
 			}
 		}
+		runtime.maxenergy = Player.get('maxenergy');
+		runtime.maxstamina = Player.get('maxstamina');
+		runtime.level = Player.get('level');
+		runtime.running = true;
+		Generals.set('runtime.disabled', true);
 	}
+	if (runtime.energy) { // We can do a quest first...
+		Queue.burn.energy = runtime.energy;
+		Queue.burn.stamina = 0;
+		Quest.set('runtime.best', runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]);
+		Quest.set('runtime.energy', runtime.energy); // Ok, we're lying, but it works...
+		return false;
+	}
+	// Got to have stamina left to get here, so burn it all - shouldn't have any energy left, but set to 0 anyway
 	if (Player.get('health') < 10) {
-		Heal.me();
+		return true;
 	}
-	// else call Battle.work directly because battling has been turned off?
-	// Probably need its own callable function as well.
-	// If Battling has been turned off, is there a battle targets cache to pull from?  Is there a target ready to attack?
-	return true
+	Queue.burn.energy = 0;
+	Queue.burn.stamina = runtime.stamina;
+	return false;
 };
 
 LevelUp.get = function(what) {

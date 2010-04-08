@@ -177,8 +177,8 @@ Quest.update = function(type) {
 };
 
 Quest.work = function(state) {
-	var i, j, general = null, best = this.runtime.best, exp_needed = Player.get('exp_needed');
-	if (/*(exp_needed >= this.runtime.quick.length || Player.get('energy') > this.runtime.quick[exp_needed]) && */(!this.runtime.best || this.runtime.energy > Queue.burn.energy)) {
+	var i, j, general = null, best = this.runtime.best;
+	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
@@ -187,17 +187,6 @@ Quest.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	/*if (exp_needed < this.runtime.quick.length && energy <= this.runtime.quick[exp_needed]) { // Replace best with a single quest to level up quicker
-		j = this.runtime.quick[exp_needed];
-		best = null;
-		for (i in this.data) {
-			if (this.data[i].exp >= exp_needed && this.data[i].energy <= j) {
-				if (!best || this.data[i].reward >= this.data[best].reward) {
-					best = i;
-				}
-			}
-		}
-	}*/
 	if (this.option.general) {
 		if (this.data[best].general && (typeof this.data[best].influence === 'undefined' || this.data[best].influence < 100)) {
 			if (!Generals.to(this.data[best].general)) 
