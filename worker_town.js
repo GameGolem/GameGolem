@@ -132,8 +132,8 @@ Town.getDuel = function() {
 
 Town.update = function(type) {
 	var i, u, best = null, buy = 0, data = this.data, quests, army = Player.get('army'), max = (this.option.number === 'Match Army' ? army : (this.option.number === 'Maximum' ? 501 : 0));
-	this.option.invade = this.getInvade(army);
-	this.option.duel = this.getDuel();
+	this.runtime.invade = this.getInvade(army);
+	this.runtime.duel = this.getDuel();
 	if (this.option.number !== 'None') {
 		quests = Quest.get();
 		for (i in quests) {

@@ -79,6 +79,7 @@ function Worker(name,pages,settings) {
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
+	this._rootpath = true; // Override only, replaces userID + '.'
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
@@ -188,6 +189,9 @@ function Worker(name,pages,settings) {
 	};
 
 	this._unflush = function() {
+		if (!this._loaded) {
+			this._init();
+		}
 		if (!this.settings.keep && !this.data) {
 			this._load('data');
 		}
@@ -214,7 +218,7 @@ function Worker(name,pages,settings) {
 			this._load('runtime');
 			return;
 		}
-		var old, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
+		var old, v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name) || this[type];
 		if (typeof v !== 'string') { // Should never happen as all our info is objects!
 			this[type] = v;
 			return;
@@ -245,7 +249,7 @@ function Worker(name,pages,settings) {
 		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;
 		}
-		var i, n = userID + '.' + type + '.' + this.name, v;
+		var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
 		switch(typeof this[type]) {
 			case 'string': // Should never happen as all our info is objects!
 				v = '"' + this[type] + '"';

@@ -132,7 +132,9 @@ LevelUp.update = function(type) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-	if (energy < this.runtime.quests.length) { // Energy from questing
+	if (!this.runtime.quests.length) { // No known quests yet...
+		runtime.exp_possible = 1;
+	} else if (energy < this.runtime.quests.length) { // Energy from questing
 		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
 	} else {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];

@@ -42,12 +42,14 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.option.invade, duel = Town.option.duel, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	for (i in Generals.data) {
-		list.push(i);
+	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	if (type === 'data') {
+		for (i in Generals.data) {
+			list.push(i);
+		}
+		Config.set('generals', ['any'].concat(list.sort()));
 	}
-	Config.set('generals', ['any'].concat(list.sort()));
-	if (invade && duel) {
+	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
 			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
 			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);

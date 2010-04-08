@@ -45,20 +45,24 @@ if (typeof APP !== 'undefined') {
 	$(document).ready(function() {
 		var i;
 		userID = $('head').html().regex(/user:([0-9]+),/i);
-		imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-		do_css();
-		Page.identify();
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._load();
+		if (!userID || typeof userID !== 'number' || userID === 0) {
+			log('ERROR: No Facebook UserID!!!');
+		} else {
+			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+			do_css();
+			Page.identify();
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._load();
+			}
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._init();
+			}
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._update();
+				Workers[i]._flush();
+			}
+			Page.parse_all(); // Call once to get the ball rolling...
 		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._init();
-		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._update();
-			Workers[i]._flush();
-		}
-		Page.parse_all(); // Call once to get the ball rolling...
 	});
 }
 

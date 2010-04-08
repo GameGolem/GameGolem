@@ -61,20 +61,24 @@ if (typeof APP !== 'undefined') {
 	$(document).ready(function() {
 		var i;
 		userID = $('head').html().regex(/user:([0-9]+),/i);
-		imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-		do_css();
-		Page.identify();
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._load();
+		if (!userID || typeof userID !== 'number' || userID === 0) {
+			log('ERROR: No Facebook UserID!!!');
+		} else {
+			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+			do_css();
+			Page.identify();
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._load();
+			}
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._init();
+			}
+			for (i=0; i<Workers.length; i++) {
+				Workers[i]._update();
+				Workers[i]._flush();
+			}
+			Page.parse_all(); // Call once to get the ball rolling...
 		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._init();
-		}
-		for (i=0; i<Workers.length; i++) {
-			Workers[i]._update();
-			Workers[i]._flush();
-		}
-		Page.parse_all(); // Call once to get the ball rolling...
 	});
 }
 
@@ -540,6 +544,7 @@ function Worker(name,pages,settings) {
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
+	this._rootpath = true; // Override only, replaces userID + '.'
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
@@ -649,6 +654,9 @@ function Worker(name,pages,settings) {
 	};
 
 	this._unflush = function() {
+		if (!this._loaded) {
+			this._init();
+		}
 		if (!this.settings.keep && !this.data) {
 			this._load('data');
 		}
@@ -675,7 +683,7 @@ function Worker(name,pages,settings) {
 			this._load('runtime');
 			return;
 		}
-		var old, v = getItem(userID + '.' + type + '.' + this.name) || this[type];
+		var old, v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name) || this[type];
 		if (typeof v !== 'string') { // Should never happen as all our info is objects!
 			this[type] = v;
 			return;
@@ -706,7 +714,7 @@ function Worker(name,pages,settings) {
 		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 			return false;
 		}
-		var i, n = userID + '.' + type + '.' + this.name, v;
+		var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
 		switch(typeof this[type]) {
 			case 'string': // Should never happen as all our info is objects!
 				v = '"' + this[type] + '"';
@@ -951,11 +959,7 @@ Config.makePanel = function(worker) {
 };
 
 Config.set = function(key, value) {
-	if (!this._loaded) {
-		this._init();
-	} else if (!this.data) {
-		this.data = {};
-	}
+	this._unflush();
 	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){
@@ -1400,7 +1404,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "LevelUp", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	queue: ["Page", "Queue", "Settings", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "LevelUp", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -1591,22 +1595,25 @@ Queue.run = function() {
 	}
 };
 /********** Worker.Settings **********
-* Save and Load settings by name
+* Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
 var Settings = new Worker('Settings', null, {unsortable:true,advanced:true});
+Settings._rootpath = false; // Override save path so we don't get limited to per-user
 
 Settings.option = {
 	action:'None',
-	save:'---',
-	del:'---',
-	name:null,
+	which:'- default -',
+	name:'- default -',
 	confirm:false
 };
 
 Settings.display = [
 	{
+		title:'IMPORTANT!',
+		label:'This will backup and restore your current options.<br>There is no confirmation dialog!'
+	},{
 		id:'action',
-		label:'Action',
+		label:'Action (<b>Immediate!!</b>)',
 		select:['None', 'Load', 'Save', 'Delete']
 	},{
 		id:'which',
@@ -1616,47 +1623,69 @@ Settings.display = [
 		id:'name',
 		label:'New Name',
 		text:true
-	},{
-		id:'confirm',
-		label:'Confirm',
-		checkbox:true
 	}
 ];
+
+Settings.oldwhich = null;
 
 Settings.init = function() {
 	if (!this.data['- default -']) {
 		this.set('- default -');
 	}
+	Settings.oldwhich = this.option.which;
 };
 
 Settings.update = function(type) {
-	var i, list = [];
-	if (this.option.confirm) {
-	
-		$('#' + PREFIX + this.name + '_confirm').val(false);
+	if (type === 'option') {
+		var i, list = [];
+		if (this.oldwhich !== this.option.which) {
+			$('#' + PREFIX + this.name + '_name').val(this.option.which);
+			this.option.name = this.option.which;
+			this.oldwhich = this.option.which;
+		}
+		switch (this.option.action) {
+			default:
+			case 'None':
+				break;
+			case 'Load':
+				this.get(this.option.which);
+				break;
+			case 'Save':
+				this.set(this.option.name);
+				this.option.which = this.option.name;
+				break;
+			case 'Delete':
+				if (this.option.which !== '- default -') {
+					delete this.data[this.option.which];
+				}
+				this.option.which = '- default -';
+				this.option.name = '- default -';
+				break;
+		}
+		$('#' + PREFIX + this.name + '_action').val('None');
+		this.option.action = 'None';
+		for (i in this.data) {
+			list.push(i);
+		}
+		Config.set('settings', list.sort());
 	}
-	for (i in this.data) {
-		list.push(i);
-	}
-	Config.set('settings', list.sort());
 };
 
-Settings.options_save = function(what) {
+Settings.set = function(what) {
 	this._unflush();
 	this.data[what] = {};
 	for (var i in Workers) {
-		if (Workers[i].option) {
+		if (Workers[i] !== this && Workers[i].option) {
 			this.data[what][Workers[i].name] = $.extend(true, {}, Workers[i].option);
 		}
 	}
-	this.flush();
 };
 
-Settings.options_load = function(what) {
+Settings.get = function(what) {
 	this._unflush();
 	if (this.data[what]) {
 		for (var i in Workers) {
-			if (Workers[i].option) {
+			if (Workers[i] !== this && Workers[i].option && this.data[what][Workers[i].name]) {
 				Workers[i].option = $.extend(true, {}, this.data[what][Workers[i].name]);
 				Workers[i]._save('option');
 			}
@@ -2731,12 +2760,14 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.option.invade, duel = Town.option.duel, attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	for (i in Generals.data) {
-		list.push(i);
+	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	if (type === 'data') {
+		for (i in Generals.data) {
+			list.push(i);
+		}
+		Config.set('generals', ['any'].concat(list.sort()));
 	}
-	Config.set('generals', ['any'].concat(list.sort()));
-	if (invade && duel) {
+	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
 			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
 			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
@@ -3369,7 +3400,6 @@ History.makeGraph = function(type, title, iscash, goal) {
 			max = Math.max(max, sum(value[i]));
 		}
 	}
-	debug('values: '+value.toSource());
 	if (max >= 1000000000) {
 		divide = 1000000000;
 		suffix = 'b';
@@ -3790,7 +3820,9 @@ LevelUp.update = function(type) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-	if (energy < this.runtime.quests.length) { // Energy from questing
+	if (!this.runtime.quests.length) { // No known quests yet...
+		runtime.exp_possible = 1;
+	} else if (energy < this.runtime.quests.length) { // Energy from questing
 		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
 	} else {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
@@ -5189,8 +5221,8 @@ Town.getDuel = function() {
 
 Town.update = function(type) {
 	var i, u, best = null, buy = 0, data = this.data, quests, army = Player.get('army'), max = (this.option.number === 'Match Army' ? army : (this.option.number === 'Maximum' ? 501 : 0));
-	this.option.invade = this.getInvade(army);
-	this.option.duel = this.getDuel();
+	this.runtime.invade = this.getInvade(army);
+	this.runtime.duel = this.getDuel();
 	if (this.option.number !== 'None') {
 		quests = Quest.get();
 		for (i in quests) {

@@ -218,11 +218,7 @@ Config.makePanel = function(worker) {
 };
 
 Config.set = function(key, value) {
-	if (!this._loaded) {
-		this._init();
-	} else if (!this.data) {
-		this.data = {};
-	}
+	this._unflush();
 	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){

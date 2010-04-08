@@ -283,7 +283,6 @@ History.makeGraph = function(type, title, iscash, goal) {
 			max = Math.max(max, sum(value[i]));
 		}
 	}
-	debug('values: '+value.toSource());
 	if (max >= 1000000000) {
 		divide = 1000000000;
 		suffix = 'b';
