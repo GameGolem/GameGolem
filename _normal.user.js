@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.8
+// @version		30.9
 // @include		http*://apps.*facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -18,7 +18,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = 30.8;
+var VERSION = 30.9;
 var script_started = Date.now();
 
 // Automatically filled
@@ -3114,8 +3114,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Mean':this.get('exp.mean.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + 2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -3186,20 +3185,8 @@ History.math = {
 	average: function(list) {
 		var i, mean = this.mean(list), stddev = this.stddev(list);
 		for (i in list) {
-			if (Math.abs(list[i] - mean) > stddev * 2) {
+			if (Math.abs(list[i]) > stddev * 2) { // Math.abs(list[i] - mean)
 				delete list[i];
-			}
-		}
-		return sum(list) / list.length;
-	},
-	oldaverage: function(list) {
-		var i, max = this.max(list), mean = this.mean(list);
-		if (mean < max / 3) {
-			max = Math.max(max / 2, mean * 2);
-			for (i in list) {
-				if (list[i] > max) { // 2/3 of peak
-					delete list[i];
-				}
 			}
 		}
 		return sum(list) / list.length;
@@ -3256,19 +3243,38 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000);
-	if (x.length && !x[0].regex(/[^0-9]/gi)) {
+	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false;
+	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
 	if (!x.length) {
 		return data;
 	}
-	if (x.length === 1) {
-		return data[hour] ? data[hour][x[0]] : 0; // only the current value
+	for (i in data) {
+		if (data[i][x[0]] && typeof data[i][x[0]] === 'number') {
+			exact = true;
+			break;
+		}
 	}
-	if (x[1] === 'change') {
-		if (data[hour] && data[hour-1] && typeof data[hour][x[0]] === 'number' && typeof data[hour-1][x[0]] === 'number') {
-			return data[hour][x[0]] - data[hour-1][x[0]];
+	if (x.length === 1) { // only the current value
+		if (exact) {
+			return data[hour][x[0]];
+		}
+		for (j in data[hour]) {
+			if (j.indexOf(x[0] + '+') === 0 && typeof data[hour][j] === 'number') {
+				value = (value || 0) + data[hour][j];
+			}
+		}
+		return value;
+	}
+	if (x.length === 2 && x[1] === 'change') {
+		if (data[hour] && data[hour-1]) {
+			i = this.get([hour, x[0]]);
+			j = this.get([hour - 1, x[0]]);
+			if (typeof i === 'number' && typeof j === 'number') {
+				return i - j;
+			}
+			return 0;
 		}
 		return 0;
 	}
@@ -3276,8 +3282,10 @@ History.get = function(what) {
 		for (i=hour-168; i<=hour; i++) {
 			if (data[i]) {
 				value = null;
-				if (data[i][x[0]]) {
-					value = data[i][x[0]];
+				if (exact) {
+					if (data[i][x[0]]) {
+						value = data[i][x[0]];
+					}
 				} else {
 					for (j in data[i]) {
 						if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
@@ -3287,6 +3295,9 @@ History.get = function(what) {
 				}
 				if (value !== null && last !== null) {
 					list.push(value - last);
+					if (isNaN(list[list.length - 1])) {
+						debug('NaN: '+value+' - '+last);
+					}
 				}
 				last = value;
 			}
@@ -3294,8 +3305,10 @@ History.get = function(what) {
 	} else {
 		for (i in data) {
 			value = null;
-			if (data[i][x[0]]) {
-				value = data[i][x[0]];
+			if (exact) {
+				if (data[i][x[0]]) {
+					value = data[i][x[0]];
+				}
 			} else {
 				for (j in data[i]) {
 					if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
@@ -3309,10 +3322,22 @@ History.get = function(what) {
 		}
 	}
 	if (History.math[x[1]]) {
-		debug(History.math[x[1]](list)+' = History.math['+x[1]+']('+list+')');
 		return History.math[x[1]](list);
 	}
 	throw('Wanting to get unknown History type ' + x[1] + ' on ' + x[0]);
+};
+
+History.getTypes = function(what) {
+	var i, list = [], types = {}, data = this.data, x = what + '+';
+	for (i in data) {
+		if (i.indexOf(x) === 0) {
+			types[i] = true;
+		}
+	}
+	for (i in types) {
+		list.push(i);
+	}
+	return list;
 };
 
 History.makeGraph = function(type, title, iscash, goal) {
@@ -3334,7 +3359,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
-			for (j=0; j<type.length; j++) {
+			for (j in type) {
 				value[i][j] = this.get(i + '.' + type[j]);
 				if (typeof value[i][j] !== 'undefined') {
 					min = Math.min(min, value[i][j]);
@@ -3344,6 +3369,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 			max = Math.max(max, sum(value[i]));
 		}
 	}
+	debug('values: '+value.toSource());
 	if (max >= 1000000000) {
 		divide = 1000000000;
 		suffix = 'b';
@@ -3531,7 +3557,7 @@ Income.work = function(state) {
 */
 var Land = new Worker('Land', 'town_land');
 Land.option = {
-	buy:true,
+	enabled:true,
 	wait:48,
 	best:null,
 	onlyten:false
@@ -3546,7 +3572,7 @@ Land.runtime = {
 
 Land.display = [
 	{
-		id:'buy',
+		id:'enabled',
 		label:'Auto-Buy Land',
 		checkbox:true
 	},{
@@ -3606,7 +3632,7 @@ Land.update = function() {
 }
 
 Land.work = function(state) {
-	if (!this.runtime.buy || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
+	if (!this.option.enabled || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
 		if (!this.runtime.best && this.runtime.lastlevel < Player.get('level')) {
 			if (!state || !Page.to('town_land')) {
 				return true;
@@ -3688,6 +3714,23 @@ LevelUp.init = function() {
 LevelUp.parse = function(change) {
 	if (change) {
 		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+	} else {
+		$('.result_body').each(function(i,el){
+			if (!$('img[src$="battle_victory.gif"]', el).length) {
+				return;
+			}
+			var txt = $(el).text().replace(/,|\t/g, ''), x;
+			x = txt.regex(/([+-][0-9]+) Experience/i);
+			if (x) { History.add('exp+battle', x); }
+			x = (txt.regex(/\+\$([0-9]+)/i) || 0) - (txt.regex(/\-\$([0-9]+)/i) || 0);
+			if (x) { History.add('income+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Battle Points/i);
+			if (x) { History.add('bp+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Stamina/i);
+			if (x) { History.add('stamina+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Energy/i);
+			if (x) { History.add('energy+battle', x); }
+		});
 	}
 	return true;
 }

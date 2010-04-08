@@ -56,6 +56,23 @@ LevelUp.init = function() {
 LevelUp.parse = function(change) {
 	if (change) {
 		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
+	} else {
+		$('.result_body').each(function(i,el){
+			if (!$('img[src$="battle_victory.gif"]', el).length) {
+				return;
+			}
+			var txt = $(el).text().replace(/,|\t/g, ''), x;
+			x = txt.regex(/([+-][0-9]+) Experience/i);
+			if (x) { History.add('exp+battle', x); }
+			x = (txt.regex(/\+\$([0-9]+)/i) || 0) - (txt.regex(/\-\$([0-9]+)/i) || 0);
+			if (x) { History.add('income+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Battle Points/i);
+			if (x) { History.add('bp+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Stamina/i);
+			if (x) { History.add('stamina+battle', x); }
+			x = txt.regex(/([+-][0-9]+) Energy/i);
+			if (x) { History.add('energy+battle', x); }
+		});
 	}
 	return true;
 }

@@ -3,7 +3,7 @@
 */
 var Land = new Worker('Land', 'town_land');
 Land.option = {
-	buy:true,
+	enabled:true,
 	wait:48,
 	best:null,
 	onlyten:false
@@ -18,7 +18,7 @@ Land.runtime = {
 
 Land.display = [
 	{
-		id:'buy',
+		id:'enabled',
 		label:'Auto-Buy Land',
 		checkbox:true
 	},{
@@ -78,7 +78,7 @@ Land.update = function() {
 }
 
 Land.work = function(state) {
-	if (!this.runtime.buy || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
+	if (!this.option.enabled || !this.runtime.best || !Bank.worth(this.runtime.cost)) {
 		if (!this.runtime.best && this.runtime.lastlevel < Player.get('level')) {
 			if (!state || !Page.to('town_land')) {
 				return true;
