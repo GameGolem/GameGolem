@@ -150,12 +150,12 @@ LevelUp.work = function(state) {
 	var i, runtime = this.runtime, general, level = Player.get('level');
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < level) { // We've just levelled up
-			if (runtime.maxenergy < runtime.energy) { // Burn the extra energy
+			if ((runtime.maxenergy || runtime.energy) < runtime.energy) { // Burn the extra energy
 				Queue.burn.energy = runtime.energy;
 				Queue.burn.stamina = 0;
 				return false;
 			}
-			if (runtime.maxstamina < runtime.stamina) { // Burn the extra stamina
+			if ((runtime.maxstamina || runtime.stamina) < runtime.stamina) { // Burn the extra stamina
 				Queue.burn.energy = 0;
 				Queue.burn.stamina = runtime.stamina;
 				return false;
@@ -166,12 +166,12 @@ LevelUp.work = function(state) {
 		return false;
 	}
 	if (!runtime.running || state) { // We're not running yet, or we have focus
-		if (!runtime.energy && state) {
+		if (!runtime.energy && state && runtime.level === level && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
 			return Heal.me();
 		}
 		general = Generals.best(this.option.general); // Get our level up general
-		if (general && general !== 'any' && general !== Player.get('general')) {
-			if (!state || !Generals.to(this.option.general)) {
+		if (general && general !== 'any' && general !== Player.get('general')) { // If we want to change...
+			if (!state || !Generals.to(this.option.general)) { // ...then change
 				return true;
 			}
 		}
@@ -181,6 +181,7 @@ LevelUp.work = function(state) {
 		runtime.running = true;
 		Generals.set('runtime.disabled', true);
 	}
+	// We don't have focus, but we do want to level up quicker
 	if (runtime.energy) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		Queue.burn.energy = runtime.energy;
 		Queue.burn.stamina = 0;
