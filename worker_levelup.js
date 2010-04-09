@@ -147,26 +147,28 @@ LevelUp.update = function(type) {
 }
 
 LevelUp.work = function(state) {
-	var i, runtime = this.runtime, general, level = Player.get('level');
+	var i, runtime = this.runtime, general;
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
-		if (runtime.running && runtime.level < level) { // We've just levelled up
-			if ((runtime.maxenergy || runtime.energy) < runtime.energy) { // Burn the extra energy
-				Queue.burn.energy = runtime.energy;
+		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
+			if (runtime.maxenergy && runtime.maxenergy < Player.get('energy')) { // Burn the extra energy
+				Queue.burn.energy = Player.get('energy');
 				Queue.burn.stamina = 0;
 				return false;
 			}
-			if ((runtime.maxstamina || runtime.stamina) < runtime.stamina) { // Burn the extra stamina
+			if (runtime.maxstamina && runtime.maxstamina < Player.get('stamina')) { // Burn the extra stamina
 				Queue.burn.energy = 0;
-				Queue.burn.stamina = runtime.stamina;
+				Queue.burn.stamina = Player.get('stamina');
 				return false;
 			}
 			Generals.set('runtime.disabled', false);
+			Queue.burn.stamina = Math.max(0, Player.get('stamina') - Queue.get('option.stamina'));
+			Queue.burn.energy = Math.max(0, Player.get('energy') - Queue.get('option.energy'));
 			runtime.running = false;
 		}
 		return false;
 	}
 	if (!runtime.running || state) { // We're not running yet, or we have focus
-		if (!runtime.energy && state && runtime.level === level && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
+		if (!runtime.energy && state && runtime.level === Player.get('level') && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
 			return Heal.me();
 		}
 		general = Generals.best(this.option.general); // Get our level up general
@@ -190,7 +192,7 @@ LevelUp.work = function(state) {
 		return false;
 	}
 	// Got to have stamina left to get here, so burn it all
-	if (runtime.level === level && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
+	if (runtime.level === Player.get('level') && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
 		return true;
 	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
