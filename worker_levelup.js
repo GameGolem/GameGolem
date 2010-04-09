@@ -1,8 +1,9 @@
 /********** Worker.LevelUp **********
-* Will switch "best" quest and call Quest.work function if there is enough energy available
-* Switches generals to specified general
-* Will call Heal.work function if current health is under 10 and there is enough stamina available to level up (So Battle/Arena/Monster can automatically use up the stamina.)
-* NOTE: We should probably migrate the level up time estimation functions to this worker from Player.  Player still needs the functions to calculate the avgenergyexp and avgstaminaexp though
+* Will give us a quicker level-up, optionally changing the general to gain extra stats
+* 1. Switches generals to specified general
+* 2. Changes the best Quest to the one that will get the most exp (rinse and repeat until no energy left) - and set Queue.burn.energy to max available
+* 3. Will call Heal.me() function if current health is under 10 and there is any stamina available (So Battle/Arena/Monster can automatically use up the stamina.)
+* 4. Will set Queue.burn.stamina to max available
 */
 
 var LevelUp = new Worker('LevelUp', '*');
@@ -146,13 +147,9 @@ LevelUp.update = function(type) {
 }
 
 LevelUp.work = function(state) {
-/**********************
-* Here is my version of what I think the LevelUp.work function should do.
-* I would like to see some of the code I copied from the various other workers made into their own callable functions within those workers.
-***********************/
-	var i, runtime = this.runtime, general;
+	var i, runtime = this.runtime, general, level = Player.get('level');
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
-		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
+		if (runtime.running && runtime.level < level) { // We've just levelled up
 			if (runtime.maxenergy < runtime.energy) { // Burn the extra energy
 				Queue.burn.energy = runtime.energy;
 				Queue.burn.stamina = 0;
@@ -184,19 +181,19 @@ LevelUp.work = function(state) {
 		runtime.running = true;
 		Generals.set('runtime.disabled', true);
 	}
-	if (runtime.energy) { // We can do a quest first...
+	if (runtime.energy) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		Queue.burn.energy = runtime.energy;
 		Queue.burn.stamina = 0;
-		Quest.set('runtime.best', runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]);
-		Quest.set('runtime.energy', runtime.energy); // Ok, we're lying, but it works...
+		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+		Quest.runtime.energy = runtime.energy; // Ok, we're lying, but it works...
 		return false;
 	}
-	// Got to have stamina left to get here, so burn it all - shouldn't have any energy left, but set to 0 anyway
-	if (Player.get('health') < 10) {
+	// Got to have stamina left to get here, so burn it all
+	if (runtime.level === level && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
 		return true;
 	}
-	Queue.burn.energy = 0;
-	Queue.burn.stamina = runtime.stamina;
+	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
+	Queue.burn.stamina = runtime.stamina; // Make sure we can burn everything, even the stuff we're saving
 	return false;
 };
 
