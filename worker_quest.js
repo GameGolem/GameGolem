@@ -235,8 +235,9 @@ Quest.work = function(state) {
 			return false;
 	}
 	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) {
-		Page.reload(); // Shouldn't happen
+	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+		delete this.data[best];
+		Page.reload();
 	}
 	if (this.option.unique && this.data[best].unique) {
 		Page.to('keep_alchemy');

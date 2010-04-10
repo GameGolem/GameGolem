@@ -6,11 +6,12 @@
 * 4. Will set Queue.burn.stamina to max available
 */
 
-var LevelUp = new Worker('LevelUp', '*');
+var LevelUp = new Worker('LevelUp', '*', {unsortable:true});
 LevelUp.data = null;
 
 LevelUp.option = {
 	enabled:false,
+	income:true,
 	general:'any',
 	algorithm:'Per Action'
 };
@@ -33,11 +34,15 @@ LevelUp.runtime = {
 
 LevelUp.display = [
 	{
-		title:'Beta!!',
-		label:'Will only run a single Quest to level up, Stamina is currently not spent!!'
+		title:'Important!',
+		label:'This will spend Energy and Stamina to force you to level up quicker.'
 	},{
 		id:'enabled',
 		label:'Enabled',
+		checkbox:true
+	},{
+		id:'income',
+		label:'Allow Income General',
 		checkbox:true
 	},{
 		id:'general',
@@ -148,6 +153,13 @@ LevelUp.update = function(type) {
 
 LevelUp.work = function(state) {
 	var i, runtime = this.runtime, general;
+	if (runtime.running && this.option.income) {
+		if (Queue.get('current') === Income) {
+			Generals.set('runtime.disabled', false);
+		} else {
+			Generals.set('runtime.disabled', true);
+		}
+	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
 			if (runtime.maxenergy && runtime.maxenergy < Player.get('energy')) { // Burn the extra energy

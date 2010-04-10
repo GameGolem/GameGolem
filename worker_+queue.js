@@ -8,7 +8,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Settings", "Income", "Elite", "LevelUp", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	queue: ["Page", "Queue", "Settings", "LevelUp", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,

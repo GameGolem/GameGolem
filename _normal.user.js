@@ -1404,7 +1404,7 @@ Queue.data = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Settings", "Income", "Elite", "LevelUp", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	queue: ["Page", "Queue", "Settings", "LevelUp", "Income", "Elite", "Quest", "Monster", "Arena", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -3694,11 +3694,12 @@ Land.work = function(state) {
 * 4. Will set Queue.burn.stamina to max available
 */
 
-var LevelUp = new Worker('LevelUp', '*');
+var LevelUp = new Worker('LevelUp', '*', {unsortable:true});
 LevelUp.data = null;
 
 LevelUp.option = {
 	enabled:false,
+	income:true,
 	general:'any',
 	algorithm:'Per Action'
 };
@@ -3721,11 +3722,15 @@ LevelUp.runtime = {
 
 LevelUp.display = [
 	{
-		title:'Beta!!',
-		label:'Will only run a single Quest to level up, Stamina is currently not spent!!'
+		title:'Important!',
+		label:'This will spend Energy and Stamina to force you to level up quicker.'
 	},{
 		id:'enabled',
 		label:'Enabled',
+		checkbox:true
+	},{
+		id:'income',
+		label:'Allow Income General',
 		checkbox:true
 	},{
 		id:'general',
@@ -3835,26 +3840,35 @@ LevelUp.update = function(type) {
 }
 
 LevelUp.work = function(state) {
-	var i, runtime = this.runtime, general, level = Player.get('level');
+	var i, runtime = this.runtime, general;
+	if (runtime.running && this.option.income) {
+		if (Queue.get('current') === Income) {
+			Generals.set('runtime.disabled', false);
+		} else {
+			Generals.set('runtime.disabled', true);
+		}
+	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
-		if (runtime.running && runtime.level < level) { // We've just levelled up
-			if ((runtime.maxenergy || runtime.energy) < runtime.energy) { // Burn the extra energy
-				Queue.burn.energy = runtime.energy;
+		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
+			if (runtime.maxenergy && runtime.maxenergy < Player.get('energy')) { // Burn the extra energy
+				Queue.burn.energy = Player.get('energy');
 				Queue.burn.stamina = 0;
 				return false;
 			}
-			if ((runtime.maxstamina || runtime.stamina) < runtime.stamina) { // Burn the extra stamina
+			if (runtime.maxstamina && runtime.maxstamina < Player.get('stamina')) { // Burn the extra stamina
 				Queue.burn.energy = 0;
-				Queue.burn.stamina = runtime.stamina;
+				Queue.burn.stamina = Player.get('stamina');
 				return false;
 			}
 			Generals.set('runtime.disabled', false);
+			Queue.burn.stamina = Math.max(0, Player.get('stamina') - Queue.get('option.stamina'));
+			Queue.burn.energy = Math.max(0, Player.get('energy') - Queue.get('option.energy'));
 			runtime.running = false;
 		}
 		return false;
 	}
 	if (!runtime.running || state) { // We're not running yet, or we have focus
-		if (!runtime.energy && state && runtime.level === level && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
+		if (!runtime.energy && state && runtime.level === Player.get('level') && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
 			return Heal.me();
 		}
 		general = Generals.best(this.option.general); // Get our level up general
@@ -3878,7 +3892,7 @@ LevelUp.work = function(state) {
 		return false;
 	}
 	// Got to have stamina left to get here, so burn it all
-	if (runtime.level === level && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
+	if (runtime.level === Player.get('level') && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
 		return true;
 	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
@@ -5021,8 +5035,9 @@ Quest.work = function(state) {
 			return false;
 	}
 	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) {
-		Page.reload(); // Shouldn't happen
+	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+		delete this.data[best];
+		Page.reload();
 	}
 	if (this.option.unique && this.data[best].unique) {
 		Page.to('keep_alchemy');
