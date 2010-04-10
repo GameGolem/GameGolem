@@ -20,6 +20,7 @@ LevelUp.runtime = {
 	level:0,// set when we start, compare to end
 	maxenergy:0,// set to maxenergy before levelling up
 	maxstamina:0,// set to maxstamina before levelling up
+	heal_me:false,// we're active and want healing...
 	running:false,// set when we change
 	energy:0,
 	stamina:0,
@@ -179,10 +180,13 @@ LevelUp.work = function(state) {
 		}
 		return false;
 	}
-	if (!runtime.running || state) { // We're not running yet, or we have focus
-		if (!runtime.energy && state && runtime.level === Player.get('level') && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
-			return Heal.me();
+	if (state && runtime.heal_me) {
+		if (Heal.me()) {
+			return true;
 		}
+		runtime.heal_me = false;
+	}
+	if (!runtime.running || state) { // We're not running yet, or we have focus
 		general = Generals.best(this.option.general); // Get our level up general
 		if (general && general !== 'any' && general !== Player.get('general')) { // If we want to change...
 			if (!state || !Generals.to(this.option.general)) { // ...then change
@@ -203,8 +207,10 @@ LevelUp.work = function(state) {
 		Quest.runtime.energy = runtime.energy; // Ok, we're lying, but it works...
 		return false;
 	}
+	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
+		runtime.heal_me = true;
 		return true;
 	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry

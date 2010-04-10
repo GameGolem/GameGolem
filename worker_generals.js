@@ -6,7 +6,7 @@
 var Generals = new Worker('Generals', 'heroes_generals');
 Generals.option = null;
 Generals.runtime = {
-	disabled:false
+	disabled:false // Nobody should touch this except LevelUp!!!
 };
 
 Generals.init = function() {
