@@ -30,6 +30,22 @@ Potions.init = function() {
 //	this._watch(Quest);
 };
 
+/*
+<span class="result_body"><div style="padding: 3px 0pt; width: 726px;">
+                    			<div style="clear: both;"></div>
+                    			<div style="padding: 0px 5px 0pt; float: left; width: 100px; text-align: center;">
+                    			    <img src="http://image2.castleagegame.com/304/graphics/land_elves.gif">
+                    			</div>
+                    			<div style="padding: 20px 0pt 0pt; float: left; width: 420px; text-align: left;">
+                    			   Elven Alchemist - My lord, I have concocted a special potion for you: 10 Point Stamina Potion!
+                				</div>
+                    			<div style="padding: 0px 5px 0pt; float: left; width: 100px; text-align: center;">
+                    			    <img height="90" src="http://image2.castleagegame.com/304/graphics/potion_stamina.jpg">
+                    			</div>
+                    			<div style="clear: both;"></div>
+                    		</div>				</span>
+*/
+
 Potions.parse = function(change) {
 	this.data = {};
 	$('.statsT2:eq(2) .statUnit').each(function(i,el){
