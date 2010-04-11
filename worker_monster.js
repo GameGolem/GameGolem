@@ -45,6 +45,11 @@ Monster.display = [
 		label:'Raid',
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
 	},{
+		id:'force1',
+		label:'Force +1',
+		checkbox:true,
+		help:'Force the first player in the list to aid.'
+	},{
 		id:'assist',
 		label:'Use Assist Links in Dashboard',
 		checkbox:true
@@ -280,7 +285,7 @@ Monster.init = function() {
 }
 
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
+	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		this.runtime.current = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -346,7 +351,7 @@ Monster.parse = function(change) {
 			});
 			monster.dps = monster.damage_total / (timer - monster.timer);
 			if (Monster.types[type].raid) {
-				monster.total = monster.damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
+				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
 			} else {
 				monster.total = Math.floor(monster.damage_total / (100 - monster.health) * 100);
 			}
@@ -416,12 +421,12 @@ Monster.parse = function(change) {
 };
 
 Monster.work = function(state) {
-	var i, j, list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
+	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.runtime.uid = uid = null;
 		Monster.runtime.type = type = null;
 	}
-	if (!length(Monster.data) || Player.get('health') <= 10) {
+	if (!length(Monster.data) || Player.get('health') <=12) {
 		return false;
 	}
 	for (i in Monster.data) {
@@ -459,14 +464,14 @@ Monster.work = function(state) {
 		uid  = Monster.runtime.uid  = best[0];
 		type = Monster.runtime.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	if (Queue.burn.stamina < ((Monster.option.raid.search('x5') == -1) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
 	if (Monster.types[type].raid) {
-		if (!Generals.to(Generals.best(Monster.option.raid.indexOf('Invade') ? 'invade' : 'duel'))) {
+		if (!Generals.to(Generals.best((Monster.option.raid.search('Invade') == -1) ? 'duel' : 'invade'))) {
 			return true;
 		}
 		debug('Raid: '+Monster.option.raid+' '+uid);
@@ -521,7 +526,21 @@ Monster.work = function(state) {
 	if ((!btn || !btn.length || uid !== this.runtime.current) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
-	Page.click(btn);
+
+	if (this.option.force1){
+		for (k in battle_list){
+			id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
+		}
+		new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
+//		if( new_id) {
+			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
+			$('input[name*="target_id"]').val(new_id); // Changing the ID for the button we're gonna push.
+//		}
+	}
+
+	if (true){ //Replace "true" with code to check to see if the first player's army or level matches the Raid criteria.
+		Page.click(btn);
+	}
 	return true;
 };
 
