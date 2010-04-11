@@ -1701,41 +1701,60 @@ Settings.get = function(what) {
 var Update = new Worker('Update');
 Update.data = null;
 Update.option = null;
-Update.found = false;
+
+Update.runtime = {
+	lastcheck:0,// Date.now() = time since last check
+	force:false,// Have we clicked a button, or is it an automatic check
+	found:false// Have we found a new version
+};
+
+/***** Update.init() *****
+1. Add a "Update Now" button to the button bar at the top of Config
+1a. On clicking the button check if we've already found an update
+1b. If an update was found then get GM to install it
+1c. If no update was found then set the lastcheck to 0 to force the next check to come in 5 seconds
+*/
 Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){Update.now(true);});
+	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){if (Update.get('runtime.found')){window.location.href = 'http://userscripts.org/scripts/source/67412.user.js';} else {Update.set('runtime.force', true);Update.set('runtime.lastcheck', 0);}});
 	$('#golem_buttons').append($btn);
 };
-Update.now = function(force) {
-	if (Update.found) {
-		window.location.href = 'http://userscripts.org/scripts/source/67412.user.js';
-		return;
-	}
-	var lastUpdateCheck = Settings.GetValue("lastUpdateCheck", 0);
-	if (force || Date.now() - lastUpdateCheck > 21600000) {
-		// 6+ hours since last check (60x60x6x1000ms)
-		Settings.SetValue("lastUpdateCheck", Date.now().toString());
+
+/***** Update.work() *****
+1. Check that we've not already found an update
+2. Check that it's been more than 6 hours since the last update
+3. Use AJAX to get the Userscripts About page
+4. Parse out the Version: string
+5. Compare with our own version
+6. Remember it if we have an update
+7. Notify the user -
+7a. Change the update button image
+7b. Show a requester to the user asking if they'd like to update
+*/
+Update.work = function(state) {
+	if (!this.runtime.found && Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+		this.runtime.lastcheck = Date.now();
 		GM_xmlhttpRequest({
 			method: "GET",
 			url: 'http://userscripts.org/scripts/show/67412',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
-					var tmp = $(evt.responseText), remoteVersion = $('#summary', tmp).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
-					if (force) {
+					var remoteVersion = $('#summary', evt.responseText).text().regex(/Version:[^0-9.]+([0-9.]+)/i);
+					if (Update.get('runtime.force')) {
 						$('#golem_request').remove();
 					}
 					if (remoteVersion>VERSION) {
-						Update.found = true;
+						Update.set('runtime.found', true);
 						$('#golem_update').attr('src', 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C8%C8%C8%C1%C1%C1%BA%BA%BA%F1%F1%F1ggg%FF%FF%FF%40%40%40%FF%FF%FF%7D%5C%EC%14%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00OIDATx%DA%8C%8FA%0A%C0%20%0C%04W%8D%EB%FF%7F%AC1%5BQi%A1s%0A%C3%24%10%B4%0B%7C%89%9COa%A4%ED%22q%906a%2CE%09%14%D4%AA%04%BA0%8AH%5C%80%02%12%3E%FB%0A%19b%06%BE2%13D%F0%F0.~%3E%B7%E8%02%0C%00Z%03%06Q9dE%25%00%00%00%00IEND%AEB%60%82').toggleClass('golem-button golem-button-active');
-						if (force) {
+						if (Update.get('runtime.force')) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://userscripts.org/scripts/source/67412.user.js';}, "Skip":function(){$(this).dialog("close");}} });
 						}
 						log('New version available: '+remoteVersion);
-					} else if (force) {
+					} else if (Update.get('runtime.force')) {
 						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
 						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });
 					}
+					Update.set('runtime.force', false);
 				}
 			}
 		});
@@ -2724,7 +2743,7 @@ Elite.work = function(state) {
 var Generals = new Worker('Generals', 'heroes_generals');
 Generals.option = null;
 Generals.runtime = {
-	disabled:false
+	disabled:false // Nobody should touch this except LevelUp!!!
 };
 
 Generals.init = function() {
@@ -2832,6 +2851,20 @@ Generals.best = function(type) {
 		case 'duel':
 			for (i in Generals.data) {
 				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.get('general'))) {
+					best = i;
+				}
+			}
+			return (best || 'any');
+		case 'raid-invade':
+			for (i in Generals.data) {
+				if (!best || (Generals.data[i].invade && (Generals.data[i].invade.att + Generals.data[i].invade.def) > (Generals.data[best].invade.att + Generals.data[best].invade.def))) {
+					best = i;
+				}
+			}
+			return (best || 'any');
+		case 'raid-duel':
+			for (i in Generals.data) {
+				if (!best || (Generals.data[i].duel && (Generals.data[i].duel.att + Generals.data[i].duel.def) > (Generals.data[best].duel.att + Generals.data[best].duel.def))) {
 					best = i;
 				}
 			}
@@ -3145,7 +3178,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(2 * this.get('exp.stddev.change'))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
@@ -3216,7 +3249,7 @@ History.math = {
 	average: function(list) {
 		var i, mean = this.mean(list), stddev = this.stddev(list);
 		for (i in list) {
-			if (Math.abs(list[i]) > stddev * 2) { // Math.abs(list[i] - mean)
+			if (Math.abs(list[i] - mean) > stddev * 2) { // The difference between the mean and the entry needs to be in there.
 				delete list[i];
 			}
 		}
@@ -3708,6 +3741,9 @@ LevelUp.runtime = {
 	level:0,// set when we start, compare to end
 	maxenergy:0,// set to maxenergy before levelling up
 	maxstamina:0,// set to maxstamina before levelling up
+	heal_me:false,// we're active and want healing...
+	old_quest:null,// save old quest, if it's not null and we're working then push it back again...
+	old_quest_energy:0,
 	running:false,// set when we change
 	energy:0,
 	stamina:0,
@@ -3848,6 +3884,12 @@ LevelUp.work = function(state) {
 			Generals.set('runtime.disabled', true);
 		}
 	}
+	if (runtime.old_quest) {
+		Quest.runtime.best = runtime.old_quest;
+		Quest.runtime.energy = runtime.old_quest_energy;
+		runtime.old_quest = null;
+		runtime.old_quest_energy = 0;
+	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
 			if (runtime.maxenergy && runtime.maxenergy < Player.get('energy')) { // Burn the extra energy
@@ -3867,10 +3909,13 @@ LevelUp.work = function(state) {
 		}
 		return false;
 	}
-	if (!runtime.running || state) { // We're not running yet, or we have focus
-		if (!runtime.energy && state && runtime.level === Player.get('level') && Player.get('health') < 10) { // Heal us because we're not able to spend stamina
-			return Heal.me();
+	if (state && runtime.heal_me) {
+		if (Heal.me()) {
+			return true;
 		}
+		runtime.heal_me = false;
+	}
+	if (!runtime.running || state) { // We're not running yet, or we have focus
 		general = Generals.best(this.option.general); // Get our level up general
 		if (general && general !== 'any' && general !== Player.get('general')) { // If we want to change...
 			if (!state || !Generals.to(this.option.general)) { // ...then change
@@ -3885,14 +3930,18 @@ LevelUp.work = function(state) {
 	}
 	// We don't have focus, but we do want to level up quicker
 	if (runtime.energy) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
+		runtime.old_quest = Quest.runtime.best;
+		runtime.old_quest_energy = Quest.runtime.energy;
 		Queue.burn.energy = runtime.energy;
 		Queue.burn.stamina = 0;
 		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		Quest.runtime.energy = runtime.energy; // Ok, we're lying, but it works...
 		return false;
 	}
+	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
+		runtime.heal_me = true;
 		return true;
 	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
@@ -3959,6 +4008,11 @@ Monster.display = [
 		id:'raid',
 		label:'Raid',
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+	},{
+		id:'force1',
+		label:'Force +1',
+		checkbox:true,
+		help:'Force the first player in the list to aid.'
 	},{
 		id:'assist',
 		label:'Use Assist Links in Dashboard',
@@ -4195,7 +4249,7 @@ Monster.init = function() {
 }
 
 Monster.parse = function(change) {
-	var i, j, uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
+	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
 		this.runtime.current = uid = $('img[linked="true"][size="square"]').attr('uid');
 		for (i in Monster.types) {
@@ -4261,7 +4315,7 @@ Monster.parse = function(change) {
 			});
 			monster.dps = monster.damage_total / (timer - monster.timer);
 			if (Monster.types[type].raid) {
-				monster.total = monster.damage_total + $('img[src$="monster_health_background.jpg"]').parent().parent().next().text().regex(/([0-9]+)/);
+				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
 			} else {
 				monster.total = Math.floor(monster.damage_total / (100 - monster.health) * 100);
 			}
@@ -4331,12 +4385,12 @@ Monster.parse = function(change) {
 };
 
 Monster.work = function(state) {
-	var i, j, list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
+	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.runtime.uid = uid = null;
 		Monster.runtime.type = type = null;
 	}
-	if (!length(Monster.data) || Player.get('health') <= 10) {
+	if (!length(Monster.data) || Player.get('health') <=12) {
 		return false;
 	}
 	for (i in Monster.data) {
@@ -4374,14 +4428,14 @@ Monster.work = function(state) {
 		uid  = Monster.runtime.uid  = best[0];
 		type = Monster.runtime.type = best[1];
 	}
-	if (Queue.burn.stamina < 5 && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	if (Queue.burn.stamina < ((Monster.option.raid.search('x5') == -1) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
 	if (Monster.types[type].raid) {
-		if (!Generals.to(Generals.best(Monster.option.raid.indexOf('Invade') ? 'invade' : 'duel'))) {
+		if (!Generals.to(Generals.best((Monster.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;
 		}
 		debug('Raid: '+Monster.option.raid+' '+uid);
@@ -4436,7 +4490,21 @@ Monster.work = function(state) {
 	if ((!btn || !btn.length || uid !== this.runtime.current) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
-	Page.click(btn);
+
+	if (this.option.force1){
+		for (k in battle_list){
+			id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
+		}
+		new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
+//		if( new_id) {
+			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
+			$('input[name*="target_id"]').val(new_id); // Changing the ID for the button we're gonna push.
+//		}
+	}
+
+	if (true){ //Replace "true" with code to check to see if the first player's army or level matches the Raid criteria.
+		Page.click(btn);
+	}
 	return true;
 };
 
@@ -4694,8 +4762,9 @@ Player.get = function(what) {
 	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
 	switch(what) {
 		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
-		case 'cash_timer':		var when = new Date();
-								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
+//		case 'cash_timer':		var when = new Date();
+//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health':			return (this.data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));

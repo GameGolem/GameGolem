@@ -21,6 +21,8 @@ LevelUp.runtime = {
 	maxenergy:0,// set to maxenergy before levelling up
 	maxstamina:0,// set to maxstamina before levelling up
 	heal_me:false,// we're active and want healing...
+	old_quest:null,// save old quest, if it's not null and we're working then push it back again...
+	old_quest_energy:0,
 	running:false,// set when we change
 	energy:0,
 	stamina:0,
@@ -161,6 +163,12 @@ LevelUp.work = function(state) {
 			Generals.set('runtime.disabled', true);
 		}
 	}
+	if (runtime.old_quest) {
+		Quest.runtime.best = runtime.old_quest;
+		Quest.runtime.energy = runtime.old_quest_energy;
+		runtime.old_quest = null;
+		runtime.old_quest_energy = 0;
+	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
 			if (runtime.maxenergy && runtime.maxenergy < Player.get('energy')) { // Burn the extra energy
@@ -201,6 +209,8 @@ LevelUp.work = function(state) {
 	}
 	// We don't have focus, but we do want to level up quicker
 	if (runtime.energy) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
+		runtime.old_quest = Quest.runtime.best;
+		runtime.old_quest_energy = Quest.runtime.energy;
 		Queue.burn.energy = runtime.energy;
 		Queue.burn.stamina = 0;
 		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
