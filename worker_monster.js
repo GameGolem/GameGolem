@@ -471,7 +471,7 @@ Monster.work = function(state) {
 		return true;
 	}
 	if (Monster.types[type].raid) {
-		if (!Generals.to(Generals.best((Monster.option.raid.search('Invade') == -1) ? 'duel' : 'invade'))) {
+		if (!Generals.to(Generals.best((Monster.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;
 		}
 		debug('Raid: '+Monster.option.raid+' '+uid);
