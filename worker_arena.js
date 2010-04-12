@@ -99,6 +99,12 @@ Arena.display = [
 
 Arena.parse = function(change) {
 	var data = this.data.user, newrank;
+	if (!this.option.enabled || $('#app'+APPID+'_arena_body div div:contains("Arena is over, wait for next season!")').length) {
+		// Arena is over for now, so disable and return!
+		$('#' + PREFIX + this.name + '_enabled').attr('checked', false);
+		this.option.enabled = false;
+		return false;
+	}
 	if (this.runtime.attacking) {
 		uid = this.runtime.attacking;
 		this.runtime.attacking = null;

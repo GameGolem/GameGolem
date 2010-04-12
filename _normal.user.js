@@ -1948,6 +1948,12 @@ Arena.display = [
 
 Arena.parse = function(change) {
 	var data = this.data.user, newrank;
+	if (!this.option.enabled || $('#app'+APPID+'_arena_body div div:contains("Arena is over, wait for next season!")').length) {
+		// Arena is over for now, so disable and return!
+		$('#' + PREFIX + this.name + '_enabled').attr('checked', false);
+		this.option.enabled = false;
+		return false;
+	}
 	if (this.runtime.attacking) {
 		uid = this.runtime.attacking;
 		this.runtime.attacking = null;
@@ -2195,7 +2201,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 };
 
 /********** Worker.Battle **********
-* Battling other players (NOT raid)
+* Battling other players (NOT raid or Arena)
 */
 var Battle = new Worker('Battle', 'battle_rank battle_battle');
 Battle.data = {
@@ -2222,7 +2228,7 @@ Battle.runtime = {
 	attacking:null
 };
 
-Battle.symbol = {
+Battle.symbol = { // Demi-Power symbols
 	1:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%17%90%B3%1AIn%99%AD%B0%3F%5Erj%7F%8A4%40J%22*1%FF%FF%FFm%0F%82%CD%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%ABIDATx%DAl%91%0B%0E%04!%08CAh%E7%FE7%DE%02%BA3%FBib%A2O%A8%02vm%91%00xN%B6%A1%10%EB%86O%0C%22r%AD%0Cmn%0C%8A%8Drxa%60-%B3p%AF%8C%05%0C%06%15d%E6-%5D%90%8D%E5%90~%B0x%A20e%117%0E%D9P%18%A1%60w%F3%B0%1D%1E%18%1C%85m'D%B9%08%E7%C6%FE%0F%B7%CF%13%C77%1Eo%F4%93%05%AA%24%3D%D9%3F%E1%DB%25%8E%07%BB%CA%D8%9C%8E%FE6%A6J%B9%1F%FB%DAa%8A%BFNW3%B5%9ANc%D5%FEn%9El%F7%20%F6tt%8C%12%F01%B4%CE%F8%9D%E5%B7%5E%02%0C%00n%97%07%B1AU%81%B7%00%00%00%00IEND%AEB%60%82",
 	2:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%E0%0D%0CZ%5B%5Bv%13%0F%2F%1A%16%7Byx%8941DB%3F%FF%FF%FFOmpc%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B4IDATx%DAT%D1%5B%12%C5%20%08%03P%08%C2%DD%FF%8Eo%12%EB%D8%F2%D1%C7%C1%01%C5%F8%3DQ%05T%9D%BFxP%C6%07%EA%CDF%07p%998%B9%14%C3%C4aj%AE%9CI%A5%B6%875zFL%0F%C8%CD%19vrG%AC%CD%5C%BC%C6nM%D57'%EB%CA%AD%EC%C2%E5b%B5%93%5B%E9%97%99%40D%CC%97sw%DB%FByqwF%83u%FA%F2%C8%A3%93u%A0%FD%8C%B8%BA%96NAn%90%17%C1%C7%E1'%D7%F2%85%01%D4%DC%A7d%16%EDM2%1A%C3%C5%1E%15%7DX%C7%23%19%EB%1El%F5h%B2lV%5B%CF%ED%A0w%89~%AE'%CE%ED%01%F7%CA%5E%FC%8D%BF%00%03%00%AA%CE%08%23%FB4h%C4%00%00%00%00IEND%AEB%60%82",
 	3:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%B1%98g%DE%BCyqpq%8CnF%12%11%0EME7y8%0B%FF%FF%FF6%A1%E73%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B7IDATx%DA%5C%91Y%16C!%0CB%C9%40%BA%FF%1D%17%7Cz%9Em%BE%F4%8A%19%08%3E%3BX%40%F1%DC%B0%A1%99_xcT%EF(%BC8%D8%CC%9A%A9%D4!%0E%0E%8Bf%863%FE%16%0F%06%5BR%22%02%1C%A0%89%07w%E6T%AC%A8A%F6%C2%251_%9CPG%C2%A1r7N%CB%E1%1CtN%E7%06%86%7F%B85%8B%1A%22%2F%AC%3E%D4%B2_.%9C%C6%EA%B3%E2%C6%BB%24%CA%25uY%98%D5H%0D%EE%922%40b%19%09%CFNs%99%C8Y%E2XS%D2%F3*%0F7%B5%B9%B6%AA%16_%0E%9A%D61V%DCu-%E5%A2g%3BnO%C1%B3%1E%9C%EDiax%94%3F%F87%BE%02%0C%00%98%F2%07%E0%CE%8C%E4%B1%00%00%00%00IEND%AEB%60%82",
@@ -2301,11 +2307,21 @@ Battle.display = [
 	}
 ];
 
+/***** Battle.init() *****
+1. Watch Arena and Monster for changes so we can update our target if needed
+*/
 Battle.init = function() {
 	this._watch(Arena);
 	this._watch(Monster);
 };
 
+/***** Battle.parse() *****
+1. On the Battle Rank page parse out our current Rank and Battle Points
+2. On the Battle page
+2a. Check if we've just attacked someone and parse out the results
+2b. Parse the current Demi-Points
+2c. Check every possible target and if they're eligable then add them to the target list
+*/
 Battle.parse = function(change) {
 	var data, uid;
 	if (Page.page === 'battle_rank') {
@@ -2358,6 +2374,21 @@ Battle.parse = function(change) {
 	return false;
 };
 
+/***** Battle.update() *****
+1. Delete targets who are now too high or too low in rank
+2. If our target cache is longer than the user-set limit then prune it
+2a. Add every target to an array
+2b. Sort the array using weighted values - we want to keep people we win against etc
+2c. While the list is too long, delete the extra entries
+3. Check if we need to get Battle Points (points.length will be 0 if we don't)
+4. Choose our next target
+4a. If we don't want points and we want to fight in the arena, then skip
+4b. If we don't want points and we want to fight monsters, then skip
+4c. Loop through all preferred targets, and add them 10 times
+4d. If we need to, now loop through all in target cache and add 1-5 times (more times for higher rank)
+4e. Choose a random entry from our list (targets with more entries have more chance of being picked)
+5. Update the Status line
+*/
 Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank');
 	// First make check our target list doesn't need reducing
@@ -2366,7 +2397,7 @@ Battle.update = function(type) {
 			delete data[i];
 		}
 	}
-	if (length(this.data.user) > this.option.cache) { // Need to prune our attack cache
+	if (length(this.data.user) > this.option.cache) { // Need to prune our target cache
 //		debug('Battle: Pruning target cache');
 		for (i in data) {
 			list.push(i);
@@ -2382,16 +2413,24 @@ Battle.update = function(type) {
 			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
 			return weight;
 		});
-		while (list.length > Battle.option.cache) {
+		while (list.length > this.option.cache) {
 			delete data[list.pop()];
 		}
 		list = [];
 	}
+	// Check if we need Demi-points
+	if (this.option.points) {
+		for (i=0; i<this.data.points.length; i++) {
+			if (this.data.points[i] < 10) {
+				points[i+1] = true;
+			}
+		}
+	}
 	// Second choose our next target
-	if (this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
+	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		Dashboard.status(this, 'Battling in the Arena');
-	} else if (this.option.monster && Monster.count) {
+	} else if (!points.length && this.option.monster && Monster.count) {
 		this.runtime.attacking = null;
 		Dashboard.status(this, 'Attacking Monsters');
 	} else {
@@ -2412,13 +2451,6 @@ Battle.update = function(type) {
 		&& (!this.runtime.attacking || !data[this.runtime.attacking]
 		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level))) {
-			if (this.option.points) {
-				for (i=0; i<this.data.points.length; i++) {
-					if (this.data.points[i] < 10) {
-						points[i+1] = true;
-					}
-				}
-			}
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
@@ -2442,20 +2474,31 @@ Battle.update = function(type) {
 	}
 }
 
+/***** Battle.work() *****
+1. If we don't have a target, not enough health, or not enough stamina, return false
+2. Otherwise
+2a. Ask to work
+2b. Get the correct General
+2c. Go to the right page
+3. Select our target
+3a. Replace the first target on the page with the target we want to attack
+3b. If we can't find any targets to replace / attack then force a reload
+3c. Click the Invade / Dual attack button
+*/
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1 || (this.option.monster && Monster.count) || (this.option.arena && Arena.option.enabled && Arena.runtime.attacking)) {
+	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1) {
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
 		return true;
 	}
-	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
-	debug('Battle: Wanting to attack ' + this.data.user[uid].name + ' (' + uid + ')');
+	var $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {
-		log('Battle: Unable to find attack buttons, forcing reload');
+		debug('Battle: Unable to find attack buttons, forcing reload');
 		Page.to('index');
 	} else {
-		$('input[name="target_id"]', $form).attr('value', uid);
+		log('Battle: Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
 	return true;
