@@ -7,9 +7,9 @@ var Income = new Worker('Income');
 Income.data = null;
 
 Income.option = {
-	general: true,
-	bank: true,
-	margin: 30
+	general:true,
+	bank:true,
+	margin:45
 };
 
 Income.display = [
