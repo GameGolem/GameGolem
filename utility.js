@@ -249,6 +249,10 @@ if (typeof GM_getValue !== 'undefined') {
 	}
 }
 
+plural = function(i) {
+	return (i === 1 ? '' : 's');
+};
+
 // Simulates PHP's date function
 Date.prototype.format = function(format) {
 	var returnStr = '';
