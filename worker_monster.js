@@ -172,7 +172,7 @@ Monster.types = {
 	},
 	dragon_gold: {
 		name:'Gold Dragon',
-		list:'dragon_list_gold.jpg',
+		list:'dragon_list_yellow.jpg',
 		image:'dragon_monster_gold.jpg',
 		dead:'dead_dragon_image_gold.jpg',
 		achievement:180000,
