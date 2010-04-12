@@ -103,6 +103,8 @@ Arena.parse = function(change) {
 		// Arena is over for now, so disable and return!
 		$('#' + PREFIX + this.name + '_enabled').attr('checked', false);
 		this.option.enabled = false;
+		$('#' + PREFIX + Elite.name + '_arena').attr('checked', false);
+		Elite.set('option.arena', false);
 		return false;
 	}
 	if (this.runtime.attacking) {

@@ -12,7 +12,7 @@ Battle.option = {
 	general:true,
 	points:true,
 	monster:true,
-	arena:true,
+	arena:false,
 	losses:5,
 	type:'Invade',
 	bp:'Always',
@@ -60,12 +60,12 @@ Battle.display = [
 		label:'Always Get Demi-Points',
 		checkbox:true
 	},{
-		advanced:true,
-		id:'arena',
-		label:'Fight in Arena First',
-		checkbox:true,
-		help:'Only if the Arena is enabled!'
-	},{
+//		advanced:true,
+//		id:'arena',
+//		label:'Fight in Arena First',
+//		checkbox:true,
+//		help:'Only if the Arena is enabled!'
+//	},{
 		advanced:true,
 		id:'monster',
 		label:'Fight Monsters First',
@@ -111,6 +111,7 @@ Battle.display = [
 Battle.init = function() {
 	this._watch(Arena);
 	this._watch(Monster);
+	this.option.arena = false;// ARENA!!!!!!
 };
 
 /***** Battle.parse() *****

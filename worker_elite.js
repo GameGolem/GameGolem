@@ -23,10 +23,10 @@ Elite.runtime = {
 
 Elite.display = [
 	{
-		id:'arena',
-		label:'Fill Arena Guard',
-		checkbox:true
-	},{
+//		id:'arena',
+//		label:'Fill Arena Guard',
+//		checkbox:true
+//	},{
 		id:'elite',
 		label:'Fill Elite Guard',
 		checkbox:true
@@ -49,6 +49,7 @@ Elite.init = function() { // Convert old elite guard list
 			this.data[i] = {elite:this.data[i]};
 		}
 	}
+	this.option.arena = false; // ARENA!!!!!!
 };
 
 Elite.parse = function(change) {
