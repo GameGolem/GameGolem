@@ -42,7 +42,7 @@ Player.parse = function(change) {
 		data.stamina	= tmp[0] || 0;
 		data.maxstamina	= tmp[1] || 0;
 	}
-	if ($('#app'+APPID+'_st_2_5').length) {
+	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.exp		= tmp[0] || 0;
 		data.maxexp		= tmp[1] || 0;
@@ -63,7 +63,7 @@ Player.parse = function(change) {
 			data.attack = $(stats).eq(2).text().regex(/([0-9]+)/);
 			data.defense = $(stats).eq(3).text().regex(/([0-9]+)/);
 			data.bank = parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10);
-			stats = $('td.statsTMainback tr tr').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
+			stats = $('.statsTB table table:contains("Total Income")').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
 			data.maxincome = stats[0];
 			data.upkeep = stats[1];
 			data.income = stats[2];
@@ -109,7 +109,7 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	Dashboard.status(this, 'Income: $' + addCommas(History.get('income.average').round()) + ' per hour (plus $' + addCommas(History.get('land.average').round()) + ' from land)');
+	Dashboard.status(this, 'Income: $' + addCommas(Math.max(this.data.income, (History.get('land.average') + History.get('income.average')).round())) + ' per hour (currently $' + addCommas(this.data.income) + ' from land)');
 };
 
 Player.get = function(what) {

@@ -8,7 +8,7 @@
 * History.add([hour, 'key'], value); - adds to the specified hour's value (use negative value to subtract)
 *
 * History.get('key') - gets current hour's value
-* History.get([hour, 'key']) - gets value at specified hour
+* History.get([hour, 'key', 'maths', 'change', recent_hours]) - 'key' is the only non-optional. Must be in this order. Hour = start hour. Recent_hours is 1-168 and the number of hours to get.
 * History.get('key.change') - gets change between this and last value (use for most entries to get relative rather than absolute values)
 * History.get('key.average') - gets standard deviated mean average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Arithmetic_mean
 * History.get('key.geometric') - gets geometric average of values (use .change for average of changes etc) - http://en.wikipedia.org/wiki/Geometric_mean
@@ -25,7 +25,7 @@ History.option = null;
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
 	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
@@ -157,9 +157,12 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false;
+	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
+	}
+	if (x.length && (typeof x[x.length-1] === 'number' || !x[x.length-1].regex(/[^0-9]/gi))) {
+		past = Math.range(1, parseInt(x.pop()), 168);
 	}
 	if (!x.length) {
 		return data;
@@ -193,31 +196,10 @@ History.get = function(what) {
 		return 0;
 	}
 	if (x.length > 2 && x[2] === 'change') {
-		for (i=hour-168; i<=hour; i++) {
-			if (data[i]) {
-				value = null;
-				if (exact) {
-					if (data[i][x[0]]) {
-						value = data[i][x[0]];
-					}
-				} else {
-					for (j in data[i]) {
-						if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
-							value = (value || 0) + data[i][j];
-						}
-					}
-				}
-				if (value !== null && last !== null) {
-					list.push(value - last);
-					if (isNaN(list[list.length - 1])) {
-						debug('NaN: '+value+' - '+last);
-					}
-				}
-				last = value;
-			}
-		}
-	} else {
-		for (i in data) {
+		change = true;
+	}
+	for (i=hour-past; i<=hour; i++) {
+		if (data[i]) {
 			value = null;
 			if (exact) {
 				if (data[i][x[0]]) {
@@ -230,8 +212,18 @@ History.get = function(what) {
 					}
 				}
 			}
-			if (value !== null) {
-				list.push(value);
+			if (change) {
+				if (value !== null && last !== null) {
+					list.push(value - last);
+					if (isNaN(list[list.length - 1])) {
+						debug('NaN: '+value+' - '+last);
+					}
+				}
+				last = value;
+			} else {
+				if (value !== null) {
+					list.push(value);
+				}
 			}
 		}
 	}
