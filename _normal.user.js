@@ -64,11 +64,13 @@ if (typeof APP !== 'undefined') {
 		if (!userID || typeof userID !== 'number' || userID === 0) {
 			log('ERROR: No Facebook UserID!!!');
 			Page.reload();
-//		} else if (!unsafeWindow['a' + APPID + '_gold_increase_ticker']) {
-//			log('ERROR: Bad Page Load!!!');
-//			Page.reload();
 		} else {
-			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+			try {
+				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+			} catch(e) {
+				log('ERROR: Bad Page Load!!!');
+				Page.reload();
+			}
 			do_css();
 			Page.identify();
 			for (i=0; i<Workers.length; i++) {
