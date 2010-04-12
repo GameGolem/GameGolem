@@ -47,6 +47,10 @@ if (typeof APP !== 'undefined') {
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		if (!userID || typeof userID !== 'number' || userID === 0) {
 			log('ERROR: No Facebook UserID!!!');
+			Page.reload();
+		} else if (!unsafeWindow['a' + APPID + '_gold_increase_ticker']) {
+			log('ERROR: Bad Page Load!!!');
+			Page.reload();
 		} else {
 			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 			do_css();

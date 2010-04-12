@@ -131,6 +131,7 @@ Battle.parse = function(change) {
 		if (length(data) > length(this.data.rank)) {
 			this.data.rank = data;
 		}
+		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with ([0-9]+) Battle Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -188,7 +189,15 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, data = this.data.user, list = [], points = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank');
+	var i, j, data = this.data.user, list = [], points = [], status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+
+	list.push('Rank ' + Player.get('rank') + ' ' + this.data.rank[Player.get('rank')].name + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache + ', Demi Points:');
+	for (i=1; i<6; i++ ) {
+		list.push(' <img src="' + this.symbol[i] +'" alt=" " title="'+this.demi[i]+'" style="width:11px;height:11px;"> ' + this.data.points[i-1]);
+	}
+	status.push(list.join(''));
+	list = [];
+
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (!this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
@@ -227,49 +236,57 @@ Battle.update = function(type) {
 	// Second choose our next target
 	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
-		Dashboard.status(this, 'Battling in the Arena');
+		status.push('Battling in the Arena');
 	} else if (!points.length && this.option.monster && Monster.count) {
 		this.runtime.attacking = null;
-		Dashboard.status(this, 'Attacking Monsters');
+		status.push('Attacking Monsters');
 	} else {
-		if ((!this.runtime.attacking || !data[this.runtime.attacking]) && this.option.prefer.length) {
-			for(j=0; j<this.option.prefer.length; j++) {
-				i = this.option.prefer[j];
-				if (!/[^0-9]/g.test(i)) {
-					data[i] = data[i] || {};
-					if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
-					|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses)) { // Don't attack someone who wins more often
-						continue;
+		if (!this.runtime.attacking || !data[this.runtime.attacking]) {
+			this.runtime.attacking = null;
+			if (this.option.prefer.length) {
+				for(j=0; j<this.option.prefer.length; j++) {
+					i = this.option.prefer[j];
+					if (!/[^0-9]/g.test(i)) {
+						data[i] = data[i] || {};
+						if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
+						|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses)) { // Don't attack someone who wins more often
+							continue;
+						}
+						list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
+						count++;
 					}
-					list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
 				}
 			}
 		}
 		if ((this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !length(this.option.prefer)) || (this.option.preferonly === 'Until Dead' && !list.length))
-		&& (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		&& ((this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level))) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
-				|| (this.option.points && points.length && data[i].align && typeof points[data[i].align] === 'undefined')) {
+				|| (points.length && data[i].align && typeof points[data[i].align] === 'undefined')) {
 					continue;
 				}
 				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
 					list.push(i);
 				}
+				count++;
 			}
 		}
-		if (list.length) {
-			i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
-			Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army), ' + list.length + ' / ' + length(data) + ' targets');
-		} else if (!this.runtime.attacking || !data[this.runtime.attacking]) {
+		if (!this.runtime.attacking && list.length) {
+			this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
+		}
+		if (this.runtime.attacking) {
+			i = this.runtime.attacking;
+			status.push('Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid targets' : ''));
+		} else {
 			this.runtime.attacking = null;
-			Dashboard.status(this, 'No valid targets found (' + length(data) + ' total)');
+			status.push('No valid targets found');
 		}
 	}
+	Dashboard.status(this, status.join('<br>'));
 }
 
 /***** Battle.work() *****
@@ -335,7 +352,7 @@ Battle.dashboard = function(sort, rev) {
 	}
 	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.data.rank[Player.get('rank')].name + ' (' + Player.get('rank') + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
-		list.push(' <img src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
+		list.push(' <img src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'" style="width:11px;height:11px;"> ' + points[i]);
 	}
 	list.push('</div><hr>');
 	th(output, 'Align');
