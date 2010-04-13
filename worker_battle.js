@@ -109,7 +109,7 @@ Battle.display = [
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-	this._watch(Arena);
+//	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
 };

@@ -42,7 +42,7 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement']
+		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement', 'Loot']
 	},{
 		id:'raid',
 		label:'Raid',
@@ -458,9 +458,11 @@ Monster.work = function(state) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
-					if (Monster.option.choice === 'All' || (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.damage[userID] && Monster.damage[userID][0] <= Monster.types[type].achievement)) {
+					if ((Monster.option.choice === 'All')
+					|| (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= Monster.types[type].achievement)
+					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= (2 * Monster.types[type].achievement))) {
 						list.push([uid, type]);
-					} else if (!(best || Monster.option.choice === 'Achievement')
+					} else if (!(best || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
@@ -470,7 +472,7 @@ Monster.work = function(state) {
 				}
 			}
 		}
-		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement') && list.length) {
+		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot') && list.length) {
 			best = list[Math.floor(Math.random()*list.length)];
 		}
 		if (!best) {
