@@ -124,7 +124,7 @@ Monster.types = {
 		list:'boss_keira_list.jpg',
 		image:'boss_keira.jpg',
 		dead:'boss_keira_dead.jpg',
-		achievement:84000,
+		achievement:30000,
 		timer:172800, // 48 hours
 		mpool:1
 	},
