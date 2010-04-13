@@ -109,7 +109,7 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	Dashboard.status(this, 'Income: $' + addCommas(Math.max(this.data.income, (History.get('land.average') + History.get('income.average')).round())) + ' per hour (currently $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Income: $' + addCommas(Math.max(this.data.income, (History.get('land.average.1') + History.get('income.average.24')).round())) + ' per hour (currently $' + addCommas(History.get('land.average.1')) + ' from land)');
 };
 
 Player.get = function(what) {
