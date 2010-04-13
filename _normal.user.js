@@ -2037,7 +2037,7 @@ Battle.display = [
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-	this._watch(Arena);
+//	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
 };
@@ -2164,10 +2164,11 @@ Battle.update = function(type) {
 		}
 	}
 	// Second choose our next target
-	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
+/*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
-	} else if (!points.length && this.option.monster && Monster.count) {
+	} else*/
+	if (!points.length && this.option.monster && Monster.count) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -3320,7 +3321,7 @@ Idle.work = function(state) {
 		alchemy:['keep_alchemy'],
 		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_demiquests', 'quests_atlantis'],
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
-		battle:['battle_battle', 'battle_arena'],
+		battle:['battle_battle'], //, 'battle_arena'
 		monsters:['keep_monster', 'battle_raid']
 	}, when = { 'Never':0, 'Quarterly':900000, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
@@ -3752,6 +3753,9 @@ Monster.option = {
 	dispel: 50,
 	first:false,
 	choice: 'All',
+	armyratio: 1,
+	levelratio: 'Any',
+	force1: true,
 	raid: 'Invade x5'
 };
 
@@ -3784,11 +3788,21 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement']
+		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement', 'Loot']
 	},{
 		id:'raid',
 		label:'Raid',
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+	},{
+		id:'armyratio',
+		label:'Target Army Ratio<br>(Only needed for Invade)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+	},{
+		id:'levelratio',
+		label:'Target Level Ratio<br>(Mainly used for Duel)',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
 		id:'force1',
 		label:'Force +1',
@@ -4103,6 +4117,7 @@ Monster.parse = function(change) {
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
+		
 		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 			return false;
 		}
@@ -4166,12 +4181,13 @@ Monster.parse = function(change) {
 };
 
 Monster.work = function(state) {
-	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
+	var i, j, k, target_info = [], new_id, id_list = [], battle_list = Battle.get('user'), list = [], uid = Monster.runtime.uid, type = Monster.runtime.type, btn = null, best = null
 	if (!state || (uid && type && Monster.data[uid][type].state !== 'engage' && Monster.data[uid][type].state !== 'assist')) {
 		Monster.runtime.uid = uid = null;
 		Monster.runtime.type = type = null;
 	}
-	if (!length(Monster.data) || Player.get('health') <=12) {
+
+	if (!length(Monster.data) || Player.get('health') < 10 || Queue.burn.stamina < 1 || (Player.get('health') < 13 && Queue.burn.stamina < 5)) {
 		return false;
 	}
 	for (i in Monster.data) {
@@ -4188,9 +4204,11 @@ Monster.work = function(state) {
 		for (uid in Monster.data) {
 			for (type in Monster.data[uid]) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
-					if (Monster.option.choice === 'All' || (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.damage[userID] && Monster.damage[userID][0] <= Monster.types[type].achievement)) {
+					if ((Monster.option.choice === 'All')
+					|| (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= Monster.types[type].achievement)
+					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= (2 * Monster.types[type].achievement))) {
 						list.push([uid, type]);
-					} else if (!(best || Monster.option.choice === 'Achievement')
+					} else if (!(best || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Weakest' && Monster.data[uid][type].health < Monster.data[best[0]][best[1]].health)
 					|| (Monster.option.choice === 'Shortest' &&  Monster.data[uid][type].timer < Monster.data[best[0]][best[1]].timer)
@@ -4200,7 +4218,7 @@ Monster.work = function(state) {
 				}
 			}
 		}
-		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement') && list.length) {
+		if ((Monster.option.choice === 'All' || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot') && list.length) {
 			best = list[Math.floor(Math.random()*list.length)];
 		}
 		if (!best) {
@@ -4209,8 +4227,13 @@ Monster.work = function(state) {
 		uid  = Monster.runtime.uid  = best[0];
 		type = Monster.runtime.type = best[1];
 	}
-	if (Queue.burn.stamina < ((Monster.option.raid.search('x5') == -1) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	if (Queue.burn.stamina < (((Monster.option.raid.search('x5') == -1) && Monster.types[type].raid) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
+	}
+	if (Monster.types[type].raid) {
+		if (Player.get('health') < 13) { // 13 is the minimum safe health for Raiding.  (There is no guarantee who we will actually fight in Raids so I like to be able to lose without dying.)
+			return false;	// try again, possibly fighting a different "monster".
+		}
 	}
 	if (!state) {
 		return true;
@@ -4219,7 +4242,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best((Monster.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;
 		}
-		debug('Raid: '+Monster.option.raid+' '+uid);
+//		debug('Raid: '+Monster.option.raid+' '+uid);
 		switch(Monster.option.raid) {
 			case 'Invade':
 				btn = $('input[src$="raid_attack_button.gif"]:first');
@@ -4234,6 +4257,7 @@ Monster.work = function(state) {
 				btn = $('input[src$="raid_attack_button4.gif"]:first');
 				break;
 		}
+		
 	} else if (Monster.data[uid][type].defense && Monster.data[uid][type].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
 		if (!Generals.to(Generals.best('defend'))) {
 			return true;
@@ -4271,21 +4295,25 @@ Monster.work = function(state) {
 	if ((!btn || !btn.length || uid !== this.runtime.current) && !Page.to(Monster.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (Monster.types[type].mpool ? '&mpool='+Monster.types[type].mpool : ''))) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
-
-	if (this.option.force1){
-		for (k in battle_list){
-			id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
-		}
-		new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
-//		if( new_id) {
-			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
+	if(Monster.types[type].raid) {
+		if (this.option.force1){
+			for (k in battle_list){
+				id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
+			}
+			new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
+//			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
 			$('input[name*="target_id"]').val(new_id); // Changing the ID for the button we're gonna push.
-//		}
+		}
+		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
+//		debug('Actual Army Ratio: ' + (target_info[1]/Player.get('army')) + ' (' + this.option.armyratio + '), Actual Level Ratio: ' + (target_info[0]/Player.get('level')) + ' (' + this.option.levelratio + ')');
+		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria
+			debug('The Raid target is not valid according to the options set (army ratio or level ratio).');
+			Page.to('battle_raid', '');
+			return true;
+		}
 	}
-
-	if (true){ //Replace "true" with code to check to see if the first player's army or level matches the Raid criteria.
-		Page.click(btn);
-	}
+	
+	Page.click(btn);
 	return true;
 };
 
@@ -4544,7 +4572,7 @@ Player.update = function(type) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	}
-	Dashboard.status(this, 'Income: $' + addCommas(Math.max(this.data.income, (History.get('land.average') + History.get('income.average')).round())) + ' per hour (currently $' + addCommas(this.data.income) + ' from land)');
+	Dashboard.status(this, 'Income: $' + addCommas(Math.max(this.data.income, (History.get('land.average.1') + History.get('income.average.24')).round())) + ' per hour (currently $' + addCommas(History.get('land.average.1')) + ' from land)');
 };
 
 Player.get = function(what) {

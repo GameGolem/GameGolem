@@ -236,10 +236,11 @@ Battle.update = function(type) {
 		}
 	}
 	// Second choose our next target
-	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
+/*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
-	} else if (!points.length && this.option.monster && Monster.count) {
+	} else*/
+	if (!points.length && this.option.monster && Monster.count) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
