@@ -124,14 +124,12 @@ Battle.init = function() {
 Battle.parse = function(change) {
 	var data, uid;
 	if (Page.page === 'battle_rank') {
-		data = {0:{name:'Squire',points:0}};
+		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			var info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		if (length(data) > length(this.data.rank)) {
-			this.data.rank = data;
-		}
+		this.data.rank = data;
 		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with ([0-9]+) Battle Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
@@ -151,7 +149,7 @@ Battle.parse = function(change) {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
-		this.data.points = $('#app'+APPID+'_app_body table.layout table table').prev().text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		this.data.points = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
@@ -190,15 +188,15 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, data = this.data.user, list = [], points = [], status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + this.data.rank[Player.get('rank')].name + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	status.push('Demi Points Earned Today: '
-	+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + this.data.points[0] + '/10 '
-	+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + this.data.points[1] + '/10 '
-	+ '<img src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'" style="width:11px;height:11px;"> ' + this.data.points[2] + '/10 '
-	+ '<img src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'" style="width:11px;height:11px;"> ' + this.data.points[3] + '/10 '
-	+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + this.data.points[4] + '/10');
+	+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
+	+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
+	+ '<img src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'" style="width:11px;height:11px;"> ' + (this.data.points[2] || 0) + '/10 '
+	+ '<img src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'" style="width:11px;height:11px;"> ' + (this.data.points[3] || 0) + '/10 '
+	+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
 
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
@@ -228,19 +226,13 @@ Battle.update = function(type) {
 		}
 	}
 	// Check if we need Demi-points
-	if (this.option.points) {
-		for (i=0; i<this.data.points.length; i++) {
-			if (this.data.points[i] < 10) {
-				points[i+1] = true;
-			}
-		}
-	}
+	points = (this.option.points && this.data.points && sum(this.data.points) < 50);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points.length && this.option.monster && Monster.count) {
+	if (!points && this.option.monster && Monster.count) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -268,7 +260,7 @@ Battle.update = function(type) {
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
-				|| (points.length && data[i].align && typeof points[data[i].align] === 'undefined')) {
+				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
 					continue;
 				}
 				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference

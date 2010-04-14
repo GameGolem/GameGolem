@@ -54,6 +54,7 @@ if (typeof APP !== 'undefined') {
 			} catch(e) {
 				log('ERROR: Bad Page Load!!!');
 				Page.reload();
+				return;
 			}
 			do_css();
 			Page.identify();
