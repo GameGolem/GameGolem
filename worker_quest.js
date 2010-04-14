@@ -27,7 +27,8 @@ Quest.display = [
 	},{
 		id:'what',
 		label:'Quest for',
-		select:'quest_reward'
+		select:'quest_reward',
+		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -89,6 +90,7 @@ Quest.parse = function(change) {
 		}
 		quest[name] = {};
 		quest[name].area = area;
+		quest[name].type = type;
 		if (typeof land === 'number') {
 			quest[name].land = land;
 		}
@@ -128,7 +130,7 @@ Quest.parse = function(change) {
 
 Quest.update = function(type) {
 	// First let's update the Quest dropdown list(s)...
-	var i, j, best = null, list = [];
+	var i, j, best = null, best_land = 0, list = [];
 	for (i in this.data) {
 		if (this.data[i].item && !this.data[i].unique) {
 			list.push(this.data[i].item);
@@ -146,6 +148,35 @@ Quest.update = function(type) {
 	}
 	if (!best && this.option.what !== 'Nothing') {
 		for (i in this.data) {
+			switch(this.option.what) {
+				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
+					if (typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy)) {
+						best = i;
+					}
+					break;
+				case 'Experience': // Find the best exp per energy quest
+					if (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)) {
+						best = i;
+					}
+					break;
+				case 'Cash': // Find the best (average) cash per energy quest
+					if (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)) {
+						best = i;
+					}
+					break;
+				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
+					if (this.data[i].area == 'quest' && this.data[i].type !== 2 && this.data[i].land >= best_land && (this.data[i].influence < 100 || this.data[i].unique)) {
+						best_land = Math.max(this.runtime.best_land, this.data[i].land);
+						best = i;
+					}
+					break;
+				default: // For everything else, there's (cheap energy) items...
+					if (this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy)) {
+						best = i;
+					}
+					break;
+			}
+/* Old code
 			if ((this.option.what === 'Influence' && typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy))
 			|| (this.option.what === 'Experience' && (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)))
 			|| (this.option.what === 'Cash' && (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)))
@@ -153,6 +184,7 @@ Quest.update = function(type) {
 			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.option.what !== 'Advancement' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
 				best = i;
 			}
+*/
 		}
 	}
 	if (best !== this.runtime.best) {
@@ -162,7 +194,18 @@ Quest.update = function(type) {
 			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.runtime.energy + ')');
 			Dashboard.status(this, best + ' (energy: ' + this.runtime.energy + ')');
 		} else {
-			Dashboard.status(this);
+			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
+			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
+				this.option.what = 'Experience';
+				$('#' + PREFIX + this.name + '_what').val('Experience');
+				Dashboard.status(this, 'No quests found, switching to Experience');
+			} else if (this.option.what === 'Advancement') { // Main quests at 100%, let's change to Influence
+				this.option.what = 'Influence';
+				$('#' + PREFIX + this.name + '_what').val('Influence');
+				Dashboard.status(this, 'No unfinished lands found, switching to Influence');
+			} else {
+				Dashboard.status(this);
+			}
 		}
 	}
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -242,14 +285,11 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
-	
-	if (this.option.what === 'Advancement' && this.data[best].itemimg && this.data[best].itemimg.search(/boss_/i) != -1) { // If we just completed a boss quest, check for a new quest land.
-		Page.to('quests_quest' + (this.data[best].land + 2));
+	if (this.option.unique && this.data[best].unique && !Alchemy.get(['ingredients', this.data[i].itemimg])) {
+		Alchemy.set(['ingredients', this.data[i].itemimg], 1)
 	}
-	
-	if (this.option.unique && this.data[best].unique) {
-		Page.to('keep_alchemy');
-//		Page.to('quests_quest' + (this.data[best].land + 2)); Really ought to check for new quests - but also need to not repeat needlessly
+	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
+		Page.to('quests_quest' + (this.data[best].land + 2));
 	}
 	return true;
 };
