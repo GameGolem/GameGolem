@@ -1,8 +1,14 @@
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
-var Settings = new Worker('Settings', null, {unsortable:true,advanced:true});
+var Settings = new Worker('Settings');
 Settings._rootpath = false; // Override save path so we don't get limited to per-user
+
+Settings.settings = {
+	system:true,
+	unsortable:true,
+	advanced:true
+};
 
 Settings.option = {
 	action:'None',

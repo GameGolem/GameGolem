@@ -1,7 +1,14 @@
 /********** Worker.Land **********
 * Auto-buys property
 */
-var Land = new Worker('Land', 'town_land');
+var Land = new Worker('Land');
+
+Land.defaults = {
+	castle_age:{
+		pages:'town_land'
+	}
+};
+
 Land.option = {
 	enabled:true,
 	wait:48,

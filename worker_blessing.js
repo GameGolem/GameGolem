@@ -1,8 +1,14 @@
 /********** Worker.Blessing **********
 * Automatically receive blessings
 */
-var Blessing = new Worker('Blessing', 'oracle_demipower');
+var Blessing = new Worker('Blessing');
 Blessing.data = null;
+
+Blessing.defaults = {
+	castle_age:{
+		pages:'oracle_demipower'
+	}
+};
 
 Blessing.option = {
 	which:'Stamina'

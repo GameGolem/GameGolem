@@ -2,7 +2,18 @@
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts', {keep:true});
+var Gift = new Worker('Gift', 'index army_invite army_gifts');
+
+Gift.settings = {
+	keep:true
+};
+
+Gift.defaults = {
+	castle_age:{
+		pages:'index army_invite army_gifts'
+	}
+};
+
 Gift.data = {
 	uid: [],
 	todo: {},

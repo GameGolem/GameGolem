@@ -6,8 +6,18 @@
 * 4. Will set Queue.burn.stamina to max available
 */
 
-var LevelUp = new Worker('LevelUp', '*', {unsortable:true});
+var LevelUp = new Worker('LevelUp');
 LevelUp.data = null;
+
+LevelUp.settings = {
+	unsortable:true
+};
+
+LevelUp.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
 
 LevelUp.option = {
 	enabled:false,

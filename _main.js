@@ -11,6 +11,7 @@ var imagepath = '';
 
 // Decide which facebook app we're in...
 var applications = {
+	'reqs.php':['','Gifts'], // For gifts etc
 	'castle_age':['46755028429', 'Castle Age']
 };
 
@@ -47,29 +48,32 @@ if (typeof APP !== 'undefined') {
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		if (!userID || typeof userID !== 'number' || userID === 0) {
 			log('ERROR: No Facebook UserID!!!');
-			Page.reload();
-		} else {
-			try {
-				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-			} catch(e) {
-				log('ERROR: Bad Page Load!!!');
-				Page.reload();
-				return;
-			}
-			do_css();
-			Page.identify();
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._load();
-			}
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._init();
-			}
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._update();
-				Workers[i]._flush();
-			}
-			Page.parse_all(); // Call once to get the ball rolling...
+			window.location.href = window.location.href; // Force reload without retrying
+			return
 		}
+		if (APP === 'reqs.php') { // Let's get the next gift we can...
+			return;
+		}
+		try {
+			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+		} catch(e) {
+			log('ERROR: Bad Page Load!!!');
+			window.location.href = window.location.href; // Force reload without retrying
+			return;
+		}
+		do_css();
+		Page.identify();
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._setup();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._init();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._update();
+			Workers[i]._flush();
+		}
+		Page.parse_all(); // Call once to get the ball rolling...
 	});
 }
 

@@ -1,14 +1,20 @@
 /********** Worker.Bank **********
 * Auto-banking
 */
-var Bank = new Worker('Bank', null);
+var Bank = new Worker('Bank');
 Bank.data = null;
+
+Bank.defaults = {
+	castle_age:{}
+};
+
 Bank.option = {
 	general: true,
 	above: 10000,
 	hand: 0,
 	keep: 10000
 };
+
 Bank.display = [
 	{
 		id:'general',

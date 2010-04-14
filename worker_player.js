@@ -1,9 +1,19 @@
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
-var Player = new Worker('Player', '*', {keep:true});
-Player.data = {};
+var Player = new Worker('Player');
 Player.option = null;
+
+Player.settings = {
+	keep:true
+};
+
+Player.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
+
 Player.runtime = {
 	cash_timeout:null,
 	energy_timeout:null,

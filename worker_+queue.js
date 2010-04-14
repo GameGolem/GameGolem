@@ -1,10 +1,17 @@
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
-var Queue = new Worker('Queue', '*', {unsortable:true, keep:true});
+var Queue = new Worker('Queue', '*');
+Queue.settings = {
+	system:true,
+	unsortable:true,
+	keep:true
+};
+
 Queue.data = {
 	current: null
 };
+
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
@@ -14,6 +21,7 @@ Queue.option = {
 	start_energy: 0,
 	energy: 0
 };
+
 Queue.display = [
 	{
 		label:'Drag the unlocked panels into the order you wish them run.'
@@ -52,6 +60,7 @@ Queue.display = [
 		after:'Energy'
 	}
 ];
+
 Queue.runfirst = [];
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran

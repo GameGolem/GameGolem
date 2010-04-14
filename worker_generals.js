@@ -3,8 +3,15 @@
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('Generals', 'heroes_generals');
+var Generals = new Worker('Generals');
 Generals.option = null;
+
+Generals.defaults = {
+	castle_age:{
+		pages:'heroes_generals'
+	}
+};
+
 Generals.runtime = {
 	disabled:false // Nobody should touch this except LevelUp!!!
 };

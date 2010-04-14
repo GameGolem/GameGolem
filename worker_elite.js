@@ -4,6 +4,12 @@
 var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy battle_arena');
 Elite.data = {};
 
+Elite.defaults = {
+	castle_age:{
+		pages:'keep_eliteguard army_viewarmy battle_arena'
+	}
+};
+
 Elite.option = {
 	elite:true,
 	arena:false,

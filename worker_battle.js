@@ -1,7 +1,14 @@
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
 */
-var Battle = new Worker('Battle', 'battle_rank battle_battle');
+var Battle = new Worker('Battle');
+
+Battle.defaults = {
+	castle_age:{
+		pages:'battle_rank battle_battle'
+	}
+};
+
 Battle.data = {
 	user: {},
 	rank: {},
@@ -122,7 +129,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid;
+	var data, uid, tmp;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -138,6 +145,8 @@ Battle.parse = function(change) {
 			this.runtime.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
+			} else if ($('div.results').text().match(/This trainee is too weak. Challenge someone closer to your level/i)) {
+				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
@@ -149,7 +158,10 @@ Battle.parse = function(change) {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
-		this.data.points = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		tmp = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		if (tmp) {
+			this.data.points = tmp;
+		}
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {

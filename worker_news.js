@@ -1,9 +1,16 @@
 /********** Worker.News **********
 * Aggregate the news feed
 */
-var News = new Worker('News', 'index');
+var News = new Worker('News');
 News.data = null;
 News.option = null;
+
+News.defaults = {
+	castle_age:{
+		pages:'index'
+	}
+};
+
 News.runtime = {
 	last:0
 };

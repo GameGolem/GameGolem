@@ -1,7 +1,18 @@
 /********** Worker.Monster **********
 * Automates Monster
 */
-var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid', {keep:true});
+var Monster = new Worker('Monster');
+
+Monster.settings = {
+	keep:true
+};
+
+Monster.defaults = {
+	castle_age:{
+		pages:'keep_monster keep_monster_active battle_raid'
+	}
+};
+
 Monster.option = {
 	fortify: 50,
 	dispel: 50,

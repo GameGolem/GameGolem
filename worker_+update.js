@@ -5,6 +5,10 @@ var Update = new Worker('Update');
 Update.data = null;
 Update.option = null;
 
+Update.settings = {
+	system:true
+};
+
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
 	force:false,// Have we clicked a button, or is it an automatic check

@@ -1,7 +1,17 @@
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
 */
-var Dashboard = new Worker('Dashboard', '*', {keep:true});
+var Dashboard = new Worker('Dashboard');
+Dashboard.settings = {
+	keep:true
+};
+
+Dashboard.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
+
 Dashboard.option = {
 	display:'block',
 	active:null

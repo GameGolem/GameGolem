@@ -1,7 +1,12 @@
 /********** Worker.Config **********
 * Has everything to do with the config
 */
-var Config = new Worker('Config', null, {keep:true});
+var Config = new Worker('Config');
+Config.settings = {
+	system:true,
+	keep:true
+};
+
 Config.option = {
 	display:'block',
 	fixed:true,

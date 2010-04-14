@@ -22,6 +22,17 @@
 var History = new Worker('History');
 History.option = null;
 
+History.defaults = {
+	castle_age:{
+		init: function() {
+			if (Player.data.history) {
+				this.data = Player.data.history;
+				delete Player.data.history;
+			}
+		}
+	}
+};
+
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
@@ -33,12 +44,6 @@ History.dashboard = function() {
 	$('#golem-dashboard-History').html(list.join(''));
 }
 
-History.init = function() {
-	if (Player.data.history) {
-		this.data = Player.data.history;
-		delete Player.data.history;
-	}
-};
 
 History.update = function(type) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;

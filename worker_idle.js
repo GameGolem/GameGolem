@@ -3,6 +3,10 @@
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
+Idle.defaults = {
+	castle_age:{}
+};
+
 Idle.data = null;
 Idle.option = {
 	general: 'any',

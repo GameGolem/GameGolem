@@ -1,7 +1,14 @@
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
 */
-var Alchemy = new Worker('Alchemy', 'keep_alchemy');
+var Alchemy = new Worker('Alchemy');
+
+Alchemy.defaults = {
+	castle_age:{
+		pages:'keep_alchemy'
+	}
+};
+
 Alchemy.data = {
 	ingredients:{},
 	recipe:{}

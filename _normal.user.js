@@ -4,7 +4,8 @@
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		30.9
-// @include		http*://apps.*facebook.com/castle_age/*
+// @include		http://apps.facebook.com/castle_age/*
+// @include		http://apps.facebook.com/reqs.php
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
 // ==/UserScript==
@@ -27,6 +28,7 @@ var imagepath = '';
 
 // Decide which facebook app we're in...
 var applications = {
+	'reqs.php':['','Gifts'], // For gifts etc
 	'castle_age':['46755028429', 'Castle Age']
 };
 
@@ -63,29 +65,32 @@ if (typeof APP !== 'undefined') {
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		if (!userID || typeof userID !== 'number' || userID === 0) {
 			log('ERROR: No Facebook UserID!!!');
-			Page.reload();
-		} else {
-			try {
-				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-			} catch(e) {
-				log('ERROR: Bad Page Load!!!');
-				Page.reload();
-				return;
-			}
-			do_css();
-			Page.identify();
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._load();
-			}
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._init();
-			}
-			for (i=0; i<Workers.length; i++) {
-				Workers[i]._update();
-				Workers[i]._flush();
-			}
-			Page.parse_all(); // Call once to get the ball rolling...
+			window.location.href = window.location.href; // Force reload without retrying
+			return
 		}
+		if (APP === 'reqs.php') { // Let's get the next gift we can...
+			return;
+		}
+		try {
+			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+		} catch(e) {
+			log('ERROR: Bad Page Load!!!');
+			window.location.href = window.location.href; // Force reload without retrying
+			return;
+		}
+		do_css();
+		Page.identify();
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._setup();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._init();
+		}
+		for (i=0; i<Workers.length; i++) {
+			Workers[i]._update();
+			Workers[i]._flush();
+		}
+		Page.parse_all(); // Call once to get the ball rolling...
 	});
 }
 
@@ -284,6 +289,12 @@ var unique = function (a) { // Return an array with no duplicates
 	return r;
 };
 
+var deleteElement = function(list, value) { // Removes matching elements from an array
+	while (value in list) {
+		list.splice(list.indexOf(value), 1);
+	}
+}
+			
 var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (typeof a === 'object' || typeof a === 'array') {
@@ -523,6 +534,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
 ._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
+._setup()		- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
@@ -540,7 +552,11 @@ function Worker(name,pages,settings) {
 	this.id = null;
 	this.name = name;
 	this.pages = pages;
+
+	this.defaults = null; // {app:{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+
 	this.settings = settings || {};
+
 	this.data = {};
 	this.option = {};
 	this.runtime = null;// {} - set to default runtime values in your worker!
@@ -555,7 +571,7 @@ function Worker(name,pages,settings) {
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
-	this._rootpath = true; // Override only, replaces userID + '.'
+	this._rootpath = true; // Override save path, replaces userID + '.' with ''
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
@@ -673,6 +689,19 @@ function Worker(name,pages,settings) {
 		}
 	}
 
+	this._setup = function() {
+		if (this.defaults && this.defaults[APP]) {
+			for (var i in this.defaults[APP]) {
+				this[i] = this.defaults[APP][i];
+			}
+		}
+		if (this.settings.system || !this.defaults || this.defaults[APP]) {
+			this._load();
+		} else { // Get us out of the list!!!
+			Workers.splice(Workers.indexOf(this), 1);
+		}
+	};
+
 	this._init = function() {
 		if (this._loaded) {
 			return;
@@ -753,7 +782,12 @@ function Worker(name,pages,settings) {
 /********** Worker.Config **********
 * Has everything to do with the config
 */
-var Config = new Worker('Config', null, {keep:true});
+var Config = new Worker('Config');
+Config.settings = {
+	system:true,
+	keep:true
+};
+
 Config.option = {
 	display:'block',
 	fixed:true,
@@ -1046,7 +1080,17 @@ Config.getPlace = function(id) {
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
 */
-var Dashboard = new Worker('Dashboard', '*', {keep:true});
+var Dashboard = new Worker('Dashboard');
+Dashboard.settings = {
+	keep:true
+};
+
+Dashboard.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
+
 Dashboard.option = {
 	display:'block',
 	active:null
@@ -1169,11 +1213,18 @@ Dashboard.status = function(worker, html) {
 /********** Worker.Page() **********
 * All navigation including reloading
 */
-var Page = new Worker('Page', null, {unsortable:true, keep:true});
+var Page = new Worker('Page');
+Page.settings = {
+	system:true,
+	unsortable:true,
+	keep:true
+};
+
 Page.option = {
 	timeout: 15,
 	retry: 5
 };
+
 Page.page = '';
 Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
@@ -1181,6 +1232,7 @@ Page.when = null;
 Page.retry = 0;
 Page.checking = true;
 Page.node_trigger = null;
+
 Page.display = [
 	{
 		id:'timeout',
@@ -1189,6 +1241,50 @@ Page.display = [
 		after:'seconds'
 	}
 ];
+
+Page.defaults = {
+	'castle_age':{
+		pageNames:{
+			index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+			town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+			town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+			town_land:				{url:'land.php', image:'tab_land_on.gif'},
+			oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+			oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+			oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+			keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
+			keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
+			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+			keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
+			keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
+			army_invite:			{url:'army.php', image:'invite_on.gif'},
+			army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
+			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
+		}
+	}
+};
 
 Page.init = function() {
 	// Only perform the check on the two id's referenced in get_cached_ajax()
@@ -1257,46 +1353,6 @@ Page.work = function(state) {
 		return true;
 	}
 	return false;
-};
-
-Page.pageNames = {
-	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
-	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
-	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-	town_land:				{url:'land.php', image:'tab_land_on.gif'},
-	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
-	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
-	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
-	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
-	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
-	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
 };
 
 Page.identify = function() {
@@ -1408,10 +1464,17 @@ Page.clear = function() {
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
-var Queue = new Worker('Queue', '*', {unsortable:true, keep:true});
+var Queue = new Worker('Queue', '*');
+Queue.settings = {
+	system:true,
+	unsortable:true,
+	keep:true
+};
+
 Queue.data = {
 	current: null
 };
+
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
@@ -1421,6 +1484,7 @@ Queue.option = {
 	start_energy: 0,
 	energy: 0
 };
+
 Queue.display = [
 	{
 		label:'Drag the unlocked panels into the order you wish them run.'
@@ -1459,6 +1523,7 @@ Queue.display = [
 		after:'Energy'
 	}
 ];
+
 Queue.runfirst = [];
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.lastrun = Date.now();		// Last time we ran
@@ -1602,8 +1667,14 @@ Queue.run = function() {
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
-var Settings = new Worker('Settings', null, {unsortable:true,advanced:true});
+var Settings = new Worker('Settings');
 Settings._rootpath = false; // Override save path so we don't get limited to per-user
+
+Settings.settings = {
+	system:true,
+	unsortable:true,
+	advanced:true
+};
 
 Settings.option = {
 	action:'None',
@@ -1707,6 +1778,10 @@ var Update = new Worker('Update');
 Update.data = null;
 Update.option = null;
 
+Update.settings = {
+	system:true
+};
+
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
 	force:false,// Have we clicked a button, or is it an automatic check
@@ -1769,7 +1844,14 @@ Update.work = function(state) {
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
 */
-var Alchemy = new Worker('Alchemy', 'keep_alchemy');
+var Alchemy = new Worker('Alchemy');
+
+Alchemy.defaults = {
+	castle_age:{
+		pages:'keep_alchemy'
+	}
+};
+
 Alchemy.data = {
 	ingredients:{},
 	recipe:{}
@@ -1855,14 +1937,20 @@ Alchemy.work = function(state) {
 /********** Worker.Bank **********
 * Auto-banking
 */
-var Bank = new Worker('Bank', null);
+var Bank = new Worker('Bank');
 Bank.data = null;
+
+Bank.defaults = {
+	castle_age:{}
+};
+
 Bank.option = {
 	general: true,
 	above: 10000,
 	hand: 0,
 	keep: 10000
 };
+
 Bank.display = [
 	{
 		id:'general',
@@ -1930,7 +2018,14 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
 */
-var Battle = new Worker('Battle', 'battle_rank battle_battle');
+var Battle = new Worker('Battle');
+
+Battle.defaults = {
+	castle_age:{
+		pages:'battle_rank battle_battle'
+	}
+};
+
 Battle.data = {
 	user: {},
 	rank: {},
@@ -2051,7 +2146,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid;
+	var data, uid, tmp;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -2067,6 +2162,8 @@ Battle.parse = function(change) {
 			this.runtime.attacking = null;
 			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
 				delete data[uid];
+			} else if ($('div.results').text().match(/This trainee is too weak. Challenge someone closer to your level/i)) {
+				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
@@ -2078,7 +2175,10 @@ Battle.parse = function(change) {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
-		this.data.points = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		tmp = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		if (tmp) {
+			this.data.points = tmp;
+		}
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 			if (!uid || !info) {
@@ -2312,8 +2412,14 @@ Battle.dashboard = function(sort, rev) {
 /********** Worker.Blessing **********
 * Automatically receive blessings
 */
-var Blessing = new Worker('Blessing', 'oracle_demipower');
+var Blessing = new Worker('Blessing');
 Blessing.data = null;
+
+Blessing.defaults = {
+	castle_age:{
+		pages:'oracle_demipower'
+	}
+};
 
 Blessing.option = {
 	which:'Stamina'
@@ -2359,6 +2465,12 @@ Blessing.work = function(state) {
 */
 var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy battle_arena');
 Elite.data = {};
+
+Elite.defaults = {
+	castle_age:{
+		pages:'keep_eliteguard army_viewarmy battle_arena'
+	}
+};
 
 Elite.option = {
 	elite:true,
@@ -2523,8 +2635,15 @@ Elite.work = function(state) {
 * Finds best General for other classes
 * *** Need to take into account army size and real stats for attack and defense
 */
-var Generals = new Worker('Generals', 'heroes_generals');
+var Generals = new Worker('Generals');
 Generals.option = null;
+
+Generals.defaults = {
+	castle_age:{
+		pages:'heroes_generals'
+	}
+};
+
 Generals.runtime = {
 	disabled:false // Nobody should touch this except LevelUp!!!
 };
@@ -2750,7 +2869,18 @@ Generals.dashboard = function(sort, rev) {
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts', {keep:true});
+var Gift = new Worker('Gift', 'index army_invite army_gifts');
+
+Gift.settings = {
+	keep:true
+};
+
+Gift.defaults = {
+	castle_age:{
+		pages:'index army_invite army_gifts'
+	}
+};
+
 Gift.data = {
 	uid: [],
 	todo: {},
@@ -2889,6 +3019,10 @@ Gift.work = function(state) {
 var Heal = new Worker('Heal');
 Heal.data = null;
 
+Heal.defaults = {
+	castle_age:{}
+};
+
 Heal.option = {
 	stamina: 0,
 	health: 0
@@ -2955,6 +3089,17 @@ Heal.me = function() {
 var History = new Worker('History');
 History.option = null;
 
+History.defaults = {
+	castle_age:{
+		init: function() {
+			if (Player.data.history) {
+				this.data = Player.data.history;
+				delete Player.data.history;
+			}
+		}
+	}
+};
+
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
@@ -2966,12 +3111,6 @@ History.dashboard = function() {
 	$('#golem-dashboard-History').html(list.join(''));
 }
 
-History.init = function() {
-	if (Player.data.history) {
-		this.data = Player.data.history;
-		delete Player.data.history;
-	}
-};
 
 History.update = function(type) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
@@ -3256,6 +3395,10 @@ History.makeGraph = function(type, title, iscash, goal) {
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
+Idle.defaults = {
+	castle_age:{}
+};
+
 Idle.data = null;
 Idle.option = {
 	general: 'any',
@@ -3342,8 +3485,11 @@ Idle.work = function(state) {
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
-
 Income.data = null;
+
+Income.defaults = {
+	castle_age:{}
+};
 
 Income.option = {
 	general:true,
@@ -3393,7 +3539,14 @@ Income.work = function(state) {
 /********** Worker.Land **********
 * Auto-buys property
 */
-var Land = new Worker('Land', 'town_land');
+var Land = new Worker('Land');
+
+Land.defaults = {
+	castle_age:{
+		pages:'town_land'
+	}
+};
+
 Land.option = {
 	enabled:true,
 	wait:48,
@@ -3502,8 +3655,18 @@ Land.work = function(state) {
 * 4. Will set Queue.burn.stamina to max available
 */
 
-var LevelUp = new Worker('LevelUp', '*', {unsortable:true});
+var LevelUp = new Worker('LevelUp');
 LevelUp.data = null;
+
+LevelUp.settings = {
+	unsortable:true
+};
+
+LevelUp.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
 
 LevelUp.option = {
 	enabled:false,
@@ -3740,7 +3903,18 @@ LevelUp.get = function(what) {
 }/********** Worker.Monster **********
 * Automates Monster
 */
-var Monster = new Worker('Monster', 'keep_monster keep_monster_active battle_raid', {keep:true});
+var Monster = new Worker('Monster');
+
+Monster.settings = {
+	keep:true
+};
+
+Monster.defaults = {
+	castle_age:{
+		pages:'keep_monster keep_monster_active battle_raid'
+	}
+};
+
 Monster.option = {
 	fortify: 50,
 	dispel: 50,
@@ -4387,9 +4561,16 @@ Monster.dashboard = function(sort, rev) {
 /********** Worker.News **********
 * Aggregate the news feed
 */
-var News = new Worker('News', 'index');
+var News = new Worker('News');
 News.data = null;
 News.option = null;
+
+News.defaults = {
+	castle_age:{
+		pages:'index'
+	}
+};
+
 News.runtime = {
 	last:0
 };
@@ -4455,9 +4636,19 @@ News.parse = function(change) {
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
-var Player = new Worker('Player', '*', {keep:true});
-Player.data = {};
+var Player = new Worker('Player');
 Player.option = null;
+
+Player.settings = {
+	keep:true
+};
+
+Player.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
+
 Player.runtime = {
 	cash_timeout:null,
 	energy_timeout:null,
@@ -4664,7 +4855,13 @@ Potions.work = function(state) {
 * Completes quests with a choice of general
 */
 // Should also look for quests_quest but that should never be used unless there's a new area
-var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis', {data:true, option:true});
+var Quest = new Worker('Quest');
+Quest.defatuls = {
+	castle_age:{
+		pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis'
+	}
+};
+
 Quest.option = {
 	general:true,
 	what:'Influence',
@@ -4941,7 +5138,7 @@ Quest.work = function(state) {
 			return false;
 	}
 	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click('div.action[title*="' + best + ':"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Quest: Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();
@@ -5026,8 +5223,14 @@ Quest.dashboard = function(sort, rev) {
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
+var Town = new Worker('Town');
 Town.data = {};
+
+Town.defaults = {
+	castle_age:{
+		pages:'town_soldiers town_blacksmith town_magic'
+	}
+};
 
 Town.option = {
 	number:'Minimum',
@@ -5276,8 +5479,14 @@ Town.dashboard = function() {
 /********** Worker.Upgrade **********
 * Spends upgrade points
 */
-var Upgrade = new Worker('Upgrade', 'keep_stats');
+var Upgrade = new Worker('Upgrade');
 Upgrade.data = null;
+
+Upgrade.defaults = {
+	castle_age:{
+		pages:'keep_stats'
+	}
+};
 
 Upgrade.option = {
 	order:[]

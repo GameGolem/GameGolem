@@ -1,11 +1,18 @@
 /********** Worker.Page() **********
 * All navigation including reloading
 */
-var Page = new Worker('Page', null, {unsortable:true, keep:true});
+var Page = new Worker('Page');
+Page.settings = {
+	system:true,
+	unsortable:true,
+	keep:true
+};
+
 Page.option = {
 	timeout: 15,
 	retry: 5
 };
+
 Page.page = '';
 Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
@@ -13,6 +20,7 @@ Page.when = null;
 Page.retry = 0;
 Page.checking = true;
 Page.node_trigger = null;
+
 Page.display = [
 	{
 		id:'timeout',
@@ -21,6 +29,50 @@ Page.display = [
 		after:'seconds'
 	}
 ];
+
+Page.defaults = {
+	'castle_age':{
+		pageNames:{
+			index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+			town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+			town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+			town_land:				{url:'land.php', image:'tab_land_on.gif'},
+			oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+			oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+			oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+			keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
+			keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
+			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+			keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
+			keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
+			army_invite:			{url:'army.php', image:'invite_on.gif'},
+			army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
+			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
+		}
+	}
+};
 
 Page.init = function() {
 	// Only perform the check on the two id's referenced in get_cached_ajax()
@@ -89,46 +141,6 @@ Page.work = function(state) {
 		return true;
 	}
 	return false;
-};
-
-Page.pageNames = {
-	index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
-	quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-	quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-	quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-	quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-	quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-	quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-	quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-	quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-	quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-	quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-	battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-	battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-	battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-	battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-	battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
-	heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-	heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-	town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-	town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-	town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-	town_land:				{url:'land.php', image:'tab_land_on.gif'},
-	oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-	oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-	oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-	oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-	keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
-	keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
-	keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-	keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-	keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
-	keep_monster_active:	{url:'battle_monster.php', image:'dragon_view_more.gif'},
-	army_invite:			{url:'army.php', image:'invite_on.gif'},
-	army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
-	army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-	army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-	army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
 };
 
 Page.identify = function() {

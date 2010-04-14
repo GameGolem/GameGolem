@@ -2,7 +2,13 @@
 * Completes quests with a choice of general
 */
 // Should also look for quests_quest but that should never be used unless there's a new area
-var Quest = new Worker('Quest', 'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis', {data:true, option:true});
+var Quest = new Worker('Quest');
+Quest.defatuls = {
+	castle_age:{
+		pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_demiquests quests_atlantis'
+	}
+};
+
 Quest.option = {
 	general:true,
 	what:'Influence',
@@ -279,7 +285,7 @@ Quest.work = function(state) {
 			return false;
 	}
 	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + '"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click('div.action[title*="' + best + ':"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Quest: Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();

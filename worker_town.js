@@ -1,8 +1,14 @@
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
-var Town = new Worker('Town', 'town_soldiers town_blacksmith town_magic');
+var Town = new Worker('Town');
 Town.data = {};
+
+Town.defaults = {
+	castle_age:{
+		pages:'town_soldiers town_blacksmith town_magic'
+	}
+};
 
 Town.option = {
 	number:'Minimum',

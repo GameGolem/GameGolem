@@ -47,6 +47,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
 ._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
+._setup()		- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
@@ -64,7 +65,11 @@ function Worker(name,pages,settings) {
 	this.id = null;
 	this.name = name;
 	this.pages = pages;
+
+	this.defaults = null; // {app:{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+
 	this.settings = settings || {};
+
 	this.data = {};
 	this.option = {};
 	this.runtime = null;// {} - set to default runtime values in your worker!
@@ -79,7 +84,7 @@ function Worker(name,pages,settings) {
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
-	this._rootpath = true; // Override only, replaces userID + '.'
+	this._rootpath = true; // Override save path, replaces userID + '.' with ''
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
@@ -196,6 +201,19 @@ function Worker(name,pages,settings) {
 			this._load('data');
 		}
 	}
+
+	this._setup = function() {
+		if (this.defaults && this.defaults[APP]) {
+			for (var i in this.defaults[APP]) {
+				this[i] = this.defaults[APP][i];
+			}
+		}
+		if (this.settings.system || !this.defaults || this.defaults[APP]) {
+			this._load();
+		} else { // Get us out of the list!!!
+			Workers.splice(Workers.indexOf(this), 1);
+		}
+	};
 
 	this._init = function() {
 		if (this._loaded) {

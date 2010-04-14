@@ -128,6 +128,12 @@ var unique = function (a) { // Return an array with no duplicates
 	return r;
 };
 
+var deleteElement = function(list, value) { // Removes matching elements from an array
+	while (value in list) {
+		list.splice(list.indexOf(value), 1);
+	}
+}
+			
 var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (typeof a === 'object' || typeof a === 'array') {
