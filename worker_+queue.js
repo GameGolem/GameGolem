@@ -2,14 +2,17 @@
 * Keeps track of the worker queue
 */
 var Queue = new Worker('Queue', '*');
+Queue.data = null;
+
 Queue.settings = {
 	system:true,
 	unsortable:true,
 	keep:true
 };
 
-Queue.data = {
-	current: null
+Queue.runtime = {
+	reminder:{},
+	current:null
 };
 
 Queue.option = {
@@ -86,7 +89,7 @@ Queue.init = function() {
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = WorkerByName(this.option.queue[i]);
 		if (worker && worker.id) {
-			if (this.data.current && worker.name === this.data.current) {
+			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Queue: Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
 			}
@@ -120,8 +123,8 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, result;
-	if (this.option.pause || Date.now() - this.lastclick < this.option.clickdelay * 1000) {
+	var i, worker, found = false, result, now = Date.now();
+	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;
 	}
 	if (Page.loading) {
@@ -140,12 +143,8 @@ Queue.run = function() {
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
-			try {
-				Workers[i]._unflush();
-				Workers[i].work(false);
-			} catch(e){
-				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
-			}
+			Workers[i]._unflush();
+			Workers[i]._work(false);
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {
@@ -153,25 +152,15 @@ Queue.run = function() {
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
-//		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
-		if (this.data.current === worker.name) {
-			try {
-				worker._unflush();
-				result = worker.work(true);
-			}catch(e) {
-				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
-				result = false;
-			}
+//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+		if (this.runtime.current === worker.name) {
+			worker._unflush();
+			result = worker._work(true);
 		} else {
-			try {
-				result = worker.work(false);
-			}catch(e) {
-				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
-				result = false;
-			}
+			result = worker._work(false);
 		}
-		if (!result && this.data.current === worker.name) {
-			this.data.current = null;
+		if (!result && this.runtime.current === worker.name) {
+			this.runtime.current = null;
 			if (worker.id) {
 				$('#'+worker.id+' > h3').css('font-weight', 'normal');
 			}
@@ -181,16 +170,16 @@ Queue.run = function() {
 			continue;
 		}
 		found = true;
-		if (this.data.current === worker.name) {
+		if (this.runtime.current === worker.name) {
 			continue;
 		}
-		if (this.data.current) {
-			debug('Queue: Interrupt '+this.data.current);
-			if (WorkerByName(this.data.current).id) {
-				$('#'+WorkerByName(this.data.current).id+' > h3').css('font-weight', 'normal');
+		if (this.runtime.current) {
+			debug('Queue: Interrupt '+this.runtime.current);
+			if (WorkerByName(this.runtime.current).id) {
+				$('#'+WorkerByName(this.runtime.current).id+' > h3').css('font-weight', 'normal');
 			}
 		}
-		this.data.current = worker.name;
+		this.runtime.current = worker.name;
 		if (worker.id) {
 			$('#'+worker.id+' > h3').css('font-weight', 'bold');
 		}
@@ -201,3 +190,4 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 };
+

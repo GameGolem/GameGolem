@@ -90,21 +90,13 @@ Page.parse_all = function() {
 	for (i=0; i<Workers.length; i++) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 			Workers[i]._unflush();
-			try {
-				if (Workers[i].parse(false)) {
-					list.push(Workers[i]);
-				}
-			}catch(e) {
-				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
+			if (Workers[i]._parse(false)) {
+				list.push(Workers[i]);
 			}
 		}
 	}
 	for (i in list) {
-		try {
-			list[i].parse(true);
-		}catch(e) {
-			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
-		}
+		list[i]._parse(true);
 	}
 	for (i=0; i<Workers.length; i++) {
 		Workers[i]._flush();

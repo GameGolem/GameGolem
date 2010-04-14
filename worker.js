@@ -47,14 +47,22 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
 ._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
+
 ._setup()		- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
+
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
+
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
 ._unflush()		- Loads .data if it's not there already
+
+._work(change)	- Calls this.parse(change) inside a try / catch block
+._work(state)	- Calls this.work(state) inside a try / catch block
+
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
 ._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
+._remind(secs)	- Calls this._update('reminder') after a specified delay
 */
 var Workers = [];
 
@@ -98,6 +106,10 @@ function Worker(name,pages,settings) {
 			}
 		}
 		worker._watching.push(this);
+	};
+
+	this._remind = function(seconds) {
+		eval('window.setInterval(function(){' + this.name + '._update("reminder");}, ' + (seconds * 1000) + ')');
 	};
 
 	this._update = function(type) {
@@ -226,6 +238,24 @@ function Worker(name,pages,settings) {
 			}catch(e) {
 				debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 			}
+		}
+	};
+
+	this._work = function(state) {
+		try {
+			return this.work ? this.work(state) : false;
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+			return false;
+		}
+	};
+
+	this._parse = function(change) {
+		try {
+			return this.parse ? this.parse(change) : false;
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+			return false;
 		}
 	};
 

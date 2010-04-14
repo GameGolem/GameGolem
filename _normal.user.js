@@ -534,14 +534,22 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 *** Private functions ***
 ._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
 ._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
+
 ._setup()		- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
+
 ._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)	- Saves data / option to storage, calls .update(type) on change
+
 ._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
 ._unflush()		- Loads .data if it's not there already
+
+._work(change)	- Calls this.parse(change) inside a try / catch block
+._work(state)	- Calls this.work(state) inside a try / catch block
+
 ._update(type)	- Calls this.update(type), loading and flushing .data if needed
 ._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
+._remind(secs)	- Calls this._update('reminder') after a specified delay
 */
 var Workers = [];
 
@@ -585,6 +593,10 @@ function Worker(name,pages,settings) {
 			}
 		}
 		worker._watching.push(this);
+	};
+
+	this._remind = function(seconds) {
+		eval('window.setInterval(function(){' + this.name + '._update("reminder");}, ' + (seconds * 1000) + ')');
 	};
 
 	this._update = function(type) {
@@ -713,6 +725,24 @@ function Worker(name,pages,settings) {
 			}catch(e) {
 				debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 			}
+		}
+	};
+
+	this._work = function(state) {
+		try {
+			return this.work ? this.work(state) : false;
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+			return false;
+		}
+	};
+
+	this._parse = function(change) {
+		try {
+			return this.parse ? this.parse(change) : false;
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+			return false;
 		}
 	};
 
@@ -1302,21 +1332,13 @@ Page.parse_all = function() {
 	for (i=0; i<Workers.length; i++) {
 		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
 			Workers[i]._unflush();
-			try {
-				if (Workers[i].parse(false)) {
-					list.push(Workers[i]);
-				}
-			}catch(e) {
-				debug(e.name + ' in ' + Workers[i].name + '.parse(false): ' + e.message);
+			if (Workers[i]._parse(false)) {
+				list.push(Workers[i]);
 			}
 		}
 	}
 	for (i in list) {
-		try {
-			list[i].parse(true);
-		}catch(e) {
-			debug(e.name + ' in ' + list[i].name + '.parse(true): ' + e.message);
-		}
+		list[i]._parse(true);
 	}
 	for (i=0; i<Workers.length; i++) {
 		Workers[i]._flush();
@@ -1465,14 +1487,17 @@ Page.clear = function() {
 * Keeps track of the worker queue
 */
 var Queue = new Worker('Queue', '*');
+Queue.data = null;
+
 Queue.settings = {
 	system:true,
 	unsortable:true,
 	keep:true
 };
 
-Queue.data = {
-	current: null
+Queue.runtime = {
+	reminder:{},
+	current:null
 };
 
 Queue.option = {
@@ -1549,7 +1574,7 @@ Queue.init = function() {
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = WorkerByName(this.option.queue[i]);
 		if (worker && worker.id) {
-			if (this.data.current && worker.name === this.data.current) {
+			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Queue: Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
 			}
@@ -1583,8 +1608,8 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, result;
-	if (this.option.pause || Date.now() - this.lastclick < this.option.clickdelay * 1000) {
+	var i, worker, found = false, result, now = Date.now();
+	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;
 	}
 	if (Page.loading) {
@@ -1603,12 +1628,8 @@ Queue.run = function() {
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
-			try {
-				Workers[i]._unflush();
-				Workers[i].work(false);
-			} catch(e){
-				debug(e.name + ' in ' + Workers[i].name + '.work(false): ' + e.message);
-			}
+			Workers[i]._unflush();
+			Workers[i]._work(false);
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {
@@ -1616,25 +1637,15 @@ Queue.run = function() {
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
-//		debug(worker.name + '.work(' + (this.data.current === worker.name) + ');');
-		if (this.data.current === worker.name) {
-			try {
-				worker._unflush();
-				result = worker.work(true);
-			}catch(e) {
-				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
-				result = false;
-			}
+//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+		if (this.runtime.current === worker.name) {
+			worker._unflush();
+			result = worker._work(true);
 		} else {
-			try {
-				result = worker.work(false);
-			}catch(e) {
-				debug(e.name + ' in ' + worker.name + '.work(false): ' + e.message);
-				result = false;
-			}
+			result = worker._work(false);
 		}
-		if (!result && this.data.current === worker.name) {
-			this.data.current = null;
+		if (!result && this.runtime.current === worker.name) {
+			this.runtime.current = null;
 			if (worker.id) {
 				$('#'+worker.id+' > h3').css('font-weight', 'normal');
 			}
@@ -1644,16 +1655,16 @@ Queue.run = function() {
 			continue;
 		}
 		found = true;
-		if (this.data.current === worker.name) {
+		if (this.runtime.current === worker.name) {
 			continue;
 		}
-		if (this.data.current) {
-			debug('Queue: Interrupt '+this.data.current);
-			if (WorkerByName(this.data.current).id) {
-				$('#'+WorkerByName(this.data.current).id+' > h3').css('font-weight', 'normal');
+		if (this.runtime.current) {
+			debug('Queue: Interrupt '+this.runtime.current);
+			if (WorkerByName(this.runtime.current).id) {
+				$('#'+WorkerByName(this.runtime.current).id+' > h3').css('font-weight', 'normal');
 			}
 		}
-		this.data.current = worker.name;
+		this.runtime.current = worker.name;
 		if (worker.id) {
 			$('#'+worker.id+' > h3').css('font-weight', 'bold');
 		}
@@ -1664,6 +1675,7 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 };
+
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
@@ -2307,6 +2319,7 @@ Battle.update = function(type) {
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found');
+			this._remind(60);
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));
@@ -5023,7 +5036,7 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && this.data[i].energy < this.data[best].energy))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && (this.data[i].unique || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
