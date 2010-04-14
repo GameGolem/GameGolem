@@ -81,11 +81,11 @@ Quest.parse = function(change) {
 				level = $('.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 				influence = $('.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
 				type = 1;
-			} else { // Special Quest
+			} else { // Special / boss Quest
 				type = 3;
 			}
 		}
-		if (!name || name.indexOf('\t') !== -1) { // Hopefully stop it finding broken qpage load quests
+		if (!name || name.indexOf('\t') !== -1) { // Hopefully stop it finding broken page load quests
 			return;
 		}
 		quest[name] = {};
@@ -98,31 +98,30 @@ Quest.parse = function(change) {
 			quest[name].level = (level || 0);
 			quest[name].influence = influence;
 		}
-		quest[name].exp = reward.shift();
-		quest[name].reward = (reward[0] + reward[1]) / 2;
+		quest[name].exp = reward[0];
+		quest[name].reward = (reward[1] + reward[2]) / 2;
 		quest[name].energy = energy;
-		if (type === 2) { // Main quest has some extra stuff
-			return;
-		}
-		if (type === 3) { // Special quests create unique items
-			quest[name].unique = true;
-		}
-		tmp = $('.qd_1 img', el).last();
-		if (tmp.length && tmp.attr('title')) {
-			quest[name].item	= tmp.attr('title').trim();
-			quest[name].itemimg	= tmp.attr('src').filepart();
-		}
-		units = {};
-		$('.quest_req >div >div >div', el).each(function(i,el){
-			var title = $('img', el).attr('title');
-			units[title] = $(el).text().regex(/([0-9]+)/);
-		});
-		if (length(units)) {
-			quest[name].units = units;
-		}
-		tmp = $('.quest_act_gen img', el);
-		if (tmp.length && tmp.attr('title')) {
-			quest[name].general = tmp.attr('title');
+		if (type !== 2) { // That's everything for subquests
+			if (type === 3) { // Special / boss quests create unique items
+				quest[name].unique = true;
+			}
+			tmp = $('.qd_1 img', el).last();
+			if (tmp.length && tmp.attr('title')) {
+				quest[name].item	= tmp.attr('title').trim();
+				quest[name].itemimg	= tmp.attr('src').filepart();
+			}
+			units = {};
+			$('.quest_req >div >div >div', el).each(function(i,el){
+				var title = $('img', el).attr('title');
+				units[title] = $(el).text().regex(/([0-9]+)/);
+			});
+			if (length(units)) {
+				quest[name].units = units;
+			}
+			tmp = $('.quest_act_gen img', el);
+			if (tmp.length && tmp.attr('title')) {
+				quest[name].general = tmp.attr('title');
+			}
 		}
 	});
 	return false;
@@ -165,8 +164,8 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].area == 'quest' && this.data[i].type !== 2 && this.data[i].land >= best_land && (this.data[i].influence < 100 || this.data[i].unique)) {
-						best_land = Math.max(this.runtime.best_land, this.data[i].land);
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || this.data[i].unique) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && this.data[i].energy < this.data[best].energy))) {
+						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
 					break;
@@ -191,8 +190,8 @@ Quest.update = function(type) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
-			debug('Quest: Wanting to perform - ' + best + ' (energy: ' + this.runtime.energy + ')');
-			Dashboard.status(this, best + ' (energy: ' + this.runtime.energy + ')');
+			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
+			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
 		} else {
 			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
 			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
