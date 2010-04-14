@@ -164,7 +164,7 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || this.data[i].unique) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && this.data[i].energy < this.data[best].energy))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && this.data[i].energy < this.data[best].energy))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
