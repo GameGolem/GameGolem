@@ -134,7 +134,7 @@ Quest.update = function(type) {
 			list.push(this.data[i].item);
 		}
 	}
-	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+	Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
@@ -149,7 +149,8 @@ Quest.update = function(type) {
 			if ((this.option.what === 'Influence' && typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy))
 			|| (this.option.what === 'Experience' && (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)))
 			|| (this.option.what === 'Cash' && (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)))
-			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
+			|| (this.option.what === 'Advancement' && this.data[i].area == 'quest' && (this.data[i].influence < 100 && (!best || (this.data[i].land > this.data[best].land)) || (best && (this.data[i].land == this.data[best].land) && this.data[i].itemimg && (this.data[i].itemimg.search(/boss_/i) != -1))))
+			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.option.what !== 'Advancement' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
 				best = i;
 			}
 		}
@@ -196,6 +197,7 @@ Quest.work = function(state) {
 		} else {
 			switch(this.option.what) {
 				case 'Influence':
+				case 'Advancement':
 				case 'Experience':
 					general = Generals.best('under level 4');
 					if (general === 'any' && this.data[best].influence < 100) {
@@ -239,6 +241,11 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
+	
+	if (this.option.what === 'Advancement' && this.data[best].itemimg && this.data[best].itemimg.search(/boss_/i) != -1) { // If we just completed a boss quest, check for a new quest land.
+		Page.to('quests_quest' + (this.data[best].land + 2));
+	}
+	
 	if (this.option.unique && this.data[best].unique) {
 		Page.to('keep_alchemy');
 //		Page.to('quests_quest' + (this.data[best].land + 2)); Really ought to check for new quests - but also need to not repeat needlessly

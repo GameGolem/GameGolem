@@ -2965,7 +2965,7 @@ History.option = null;
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.average') + this.get('income.average')}));
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
 	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
@@ -3822,24 +3822,24 @@ Monster.types = {
 		timer:259200 // 72 hours
 	},
 	// Raid
-/*
+
 	raid_easy: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list1.jpg',
-		image:'raid_1_large.jpg',// ???
-		image:'raid_2_large.jpg',// ???
-		
+		image:'raid_title_raid_a1.jpg',
+		image2:'raid_title_raid_a2.jpg',
+		dead:'raid_1_large_victory.jpg',
+		achievement:100,
 		timer:216000, // 60 hours
-		timer:302400, // 84 hours
+		timer2:302400, // 84 hours
 		raid:true
 	},
-*/
+
 	raid: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list2.jpg',
-		// raid_b1_large.jpg
-		image:'raid_map_1.jpg',
-		image2:'raid_map_2.jpg',
+		image:'raid_title_raid_b1.jpg',
+		image2:'raid_title_raid_b2.jpg',
 		dead:'raid_1_large_victory.jpg',
 		achievement:100,
 		timer:319920, // 88 hours, 52 minutes
@@ -3870,7 +3870,7 @@ Monster.types = {
 		list:'boss_keira_list.jpg',
 		image:'boss_keira.jpg',
 		dead:'boss_keira_dead.jpg',
-		achievement:84000,
+		achievement:30000,
 		timer:172800, // 48 hours
 		mpool:1
 	},
@@ -4052,10 +4052,10 @@ Monster.parse = function(change) {
 				type = i;
 				timer = Monster.types[i].timer;
 				dead = true;
-			} else if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
+			} else if (Monster.types[i].image && ($('img[src$="'+Monster.types[i].image+'"]').length || $('div[style*="'+Monster.types[i].image+'"]').length)) {
 				type = i;
 				timer = Monster.types[i].timer;
-			} else if (Monster.types[i].image2 && $('img[src$="'+Monster.types[i].image2+'"]').length) {
+			} else if (Monster.types[i].image2 && ($('img[src$="'+Monster.types[i].image2+'"]').length || $('div[style*="'+Monster.types[i].image2+'"]').length)) {
 				type = i;
 				timer = Monster.types[i].timer2 || Monster.types[i].timer;
 			}
@@ -4117,7 +4117,6 @@ Monster.parse = function(change) {
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
-		
 		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 			return false;
 		}
@@ -4301,11 +4300,9 @@ Monster.work = function(state) {
 				id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
 			}
 			new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
-//			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
 			$('input[name*="target_id"]').val(new_id); // Changing the ID for the button we're gonna push.
 		}
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
-//		debug('Actual Army Ratio: ' + (target_info[1]/Player.get('army')) + ' (' + this.option.armyratio + '), Actual Level Ratio: ' + (target_info[0]/Player.get('level')) + ' (' + this.option.levelratio + ')');
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria
 			debug('The Raid target is not valid according to the options set (army ratio or level ratio).');
 			Page.to('battle_raid', '');
@@ -4313,6 +4310,7 @@ Monster.work = function(state) {
 		}
 	}
 	
+	this.runtime.current = this.runtime.uid = this.runtime.type = null; // reset this info each time we attack so that we can check against Achievement, Loot, or just cycle our target.
 	Page.click(btn);
 	return true;
 };
@@ -4820,7 +4818,7 @@ Quest.update = function(type) {
 			list.push(this.data[i].item);
 		}
 	}
-	Config.set('quest_reward', ['Nothing', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+	Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {
@@ -4835,7 +4833,8 @@ Quest.update = function(type) {
 			if ((this.option.what === 'Influence' && typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy))
 			|| (this.option.what === 'Experience' && (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)))
 			|| (this.option.what === 'Cash' && (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)))
-			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
+			|| (this.option.what === 'Advancement' && this.data[i].area == 'quest' && (this.data[i].influence < 100 && (!best || (this.data[i].land > this.data[best].land)) || (best && (this.data[i].land == this.data[best].land) && this.data[i].itemimg && (this.data[i].itemimg.search(/boss_/i) != -1))))
+			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.option.what !== 'Advancement' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
 				best = i;
 			}
 		}
@@ -4882,6 +4881,7 @@ Quest.work = function(state) {
 		} else {
 			switch(this.option.what) {
 				case 'Influence':
+				case 'Advancement':
 				case 'Experience':
 					general = Generals.best('under level 4');
 					if (general === 'any' && this.data[best].influence < 100) {
@@ -4925,6 +4925,11 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
+	
+	if (this.option.what === 'Advancement' && this.data[best].itemimg && this.data[best].itemimg.search(/boss_/i) != -1) { // If we just completed a boss quest, check for a new quest land.
+		Page.to('quests_quest' + (this.data[best].land + 2));
+	}
+	
 	if (this.option.unique && this.data[best].unique) {
 		Page.to('keep_alchemy');
 //		Page.to('quests_quest' + (this.data[best].land + 2)); Really ought to check for new quests - but also need to not repeat needlessly

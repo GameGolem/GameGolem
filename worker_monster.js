@@ -76,24 +76,24 @@ Monster.types = {
 		timer:259200 // 72 hours
 	},
 	// Raid
-/*
+
 	raid_easy: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list1.jpg',
-		image:'raid_1_large.jpg',// ???
-		image:'raid_2_large.jpg',// ???
-		
+		image:'raid_title_raid_a1.jpg',
+		image2:'raid_title_raid_a2.jpg',
+		dead:'raid_1_large_victory.jpg',
+		achievement:100,
 		timer:216000, // 60 hours
-		timer:302400, // 84 hours
+		timer2:302400, // 84 hours
 		raid:true
 	},
-*/
+
 	raid: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list2.jpg',
-		// raid_b1_large.jpg
-		image:'raid_map_1.jpg',
-		image2:'raid_map_2.jpg',
+		image:'raid_title_raid_b1.jpg',
+		image2:'raid_title_raid_b2.jpg',
 		dead:'raid_1_large_victory.jpg',
 		achievement:100,
 		timer:319920, // 88 hours, 52 minutes
@@ -306,10 +306,10 @@ Monster.parse = function(change) {
 				type = i;
 				timer = Monster.types[i].timer;
 				dead = true;
-			} else if (Monster.types[i].image && $('img[src$="'+Monster.types[i].image+'"]').length) {
+			} else if (Monster.types[i].image && ($('img[src$="'+Monster.types[i].image+'"]').length || $('div[style*="'+Monster.types[i].image+'"]').length)) {
 				type = i;
 				timer = Monster.types[i].timer;
-			} else if (Monster.types[i].image2 && $('img[src$="'+Monster.types[i].image2+'"]').length) {
+			} else if (Monster.types[i].image2 && ($('img[src$="'+Monster.types[i].image2+'"]').length || $('div[style*="'+Monster.types[i].image2+'"]').length)) {
 				type = i;
 				timer = Monster.types[i].timer2 || Monster.types[i].timer;
 			}
@@ -371,7 +371,6 @@ Monster.parse = function(change) {
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
-		
 		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 			return false;
 		}
@@ -555,11 +554,9 @@ Monster.work = function(state) {
 				id_list.push(k); // Grabbing a list of valid CA user IDs from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
 			}
 			new_id = (id_list[Math.floor(Math.random() * (id_list.length))] || 0);
-//			debug('Replacing Raid ID:' + $('input[name*="target_id"]:first').val() + ' with ID:' + new_id);
 			$('input[name*="target_id"]').val(new_id); // Changing the ID for the button we're gonna push.
 		}
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
-//		debug('Actual Army Ratio: ' + (target_info[1]/Player.get('army')) + ' (' + this.option.armyratio + '), Actual Level Ratio: ' + (target_info[0]/Player.get('level')) + ' (' + this.option.levelratio + ')');
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria
 			debug('The Raid target is not valid according to the options set (army ratio or level ratio).');
 			Page.to('battle_raid', '');
@@ -567,6 +564,7 @@ Monster.work = function(state) {
 		}
 	}
 	
+	this.runtime.current = this.runtime.uid = this.runtime.type = null; // reset this info each time we attack so that we can check against Achievement, Loot, or just cycle our target.
 	Page.click(btn);
 	return true;
 };
