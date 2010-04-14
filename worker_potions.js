@@ -1,7 +1,7 @@
 /********** Worker.Potions **********
 * Automatically drinks potions
 */
-var Potions = new Worker('Potions', 'keep_stats');
+var Potions = new Worker('Potions', '*');
 
 Potions.option = {
 	energy:35,
@@ -26,46 +26,31 @@ Potions.display = [
 	}
 ];
 
-Potions.init = function() {
-//	this._watch(Quest);
-};
-
-/*
-<span class="result_body"><div style="padding: 3px 0pt; width: 726px;">
-                    			<div style="clear: both;"></div>
-                    			<div style="padding: 0px 5px 0pt; float: left; width: 100px; text-align: center;">
-                    			    <img src="http://image2.castleagegame.com/304/graphics/land_elves.gif">
-                    			</div>
-                    			<div style="padding: 20px 0pt 0pt; float: left; width: 420px; text-align: left;">
-                    			   Elven Alchemist - My lord, I have concocted a special potion for you: 10 Point Stamina Potion!
-                				</div>
-                    			<div style="padding: 0px 5px 0pt; float: left; width: 100px; text-align: center;">
-                    			    <img height="90" src="http://image2.castleagegame.com/304/graphics/potion_stamina.jpg">
-                    			</div>
-                    			<div style="clear: both;"></div>
-                    		</div>				</span>
-*/
-
 Potions.parse = function(change) {
-	this.data = {};
-	$('.statsT2:eq(2) .statUnit').each(function(i,el){
-		var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
-		if (info && info[0] && info[1]) {
-			Potions.data[info[0]] = info[1];
-		}
+	// No need to parse out Income potions as about to visit the Keep anyway...
+	$('.result_body:contains("You have acquired the Energy Potion!")').each(function(i,el){
+		Potions.data['Energy'] = (Potions.data['Energy'] || 0) + 1;
 	});
+	if (Page.page === 'keep_stats') {
+		this.data = {}; // Reset potion count completely at the keep
+		$('.statsT2:eq(2) .statUnit').each(function(i,el){
+			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
+			if (info && info[0] && info[1]) {
+				Potions.data[info[0]] = info[1];
+			}
+		});
+	}
 	return false;
 };
 
 Potions.update = function(type) {
-	var txt = [];
+	var txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-//	Page.to('keep_stats'); UGH!!!!
 	for(var i in this.data) {
 		if (this.data[i]) {
 			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
 		}
-		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+		if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 			this.runtime.drink = true;
 		}
 	}
