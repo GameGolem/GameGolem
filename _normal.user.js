@@ -4520,7 +4520,7 @@ Monster.work = function(state) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
 					if ((Monster.option.choice === 'All')
 					|| (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= Monster.types[type].achievement)
-					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= (2 * Monster.types[type].achievement))) {
+					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= ((Monster.data[uid][type].name.search(/your/i) != -1 && Monster.data[uid].type.search(/keira/i) != -1) ? (200000) : (2 * Monster.types[type].achievement)))) {	// Special case for your own Keira to get her soul.
 						list.push([uid, type]);
 					} else if (!(best || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)
@@ -5205,7 +5205,7 @@ Quest.update = function(type) {
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
 			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
-			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
+			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ', influence: ' + this.data[best].influence + '%)');
 		} else {
 			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
 			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
@@ -5563,6 +5563,7 @@ Town.update = function(type) {
 };
 
 Town.work = function(state) {
+	var qty;
 	if (!this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
 		return false;
 	}
@@ -5571,8 +5572,14 @@ Town.work = function(state) {
 	}
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.runtime.best) {
+			qty = 0;
+			$('.eq_buy_costs select[name="amount"]:eq(0) option', el).each(function(j,elm){
+				if (!qty || (($(elm).val() > qty) && ($(elm).val() <= Town.runtime.buy))) {
+					qty = $(elm).val();
+				}
+			});
 			debug('Town: Buying ' + Town.runtime.buy + ' x ' + Town.runtime.best + ' for $' + addCommas(Town.runtime.cost));
-			$('.eq_buy_costs select[name="Amount"]:eq(0)', el).val(Town.runtime.buy > 5 ? 10 : (Town.runtime.buy > 1 ? 5 : 1));
+			$('.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 			Page.click($('.eq_buy_costs input[name="Buy"]', el));
 		}
 	});

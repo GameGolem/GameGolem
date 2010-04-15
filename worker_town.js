@@ -186,6 +186,7 @@ Town.update = function(type) {
 };
 
 Town.work = function(state) {
+	var qty;
 	if (!this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
 		return false;
 	}
@@ -194,8 +195,14 @@ Town.work = function(state) {
 	}
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.runtime.best) {
+			qty = 0;
+			$('.eq_buy_costs select[name="amount"]:eq(0) option', el).each(function(j,elm){
+				if (!qty || (($(elm).val() > qty) && ($(elm).val() <= Town.runtime.buy))) {
+					qty = $(elm).val();
+				}
+			});
 			debug('Town: Buying ' + Town.runtime.buy + ' x ' + Town.runtime.best + ' for $' + addCommas(Town.runtime.cost));
-			$('.eq_buy_costs select[name="Amount"]:eq(0)', el).val(Town.runtime.buy > 5 ? 10 : (Town.runtime.buy > 1 ? 5 : 1));
+			$('.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 			Page.click($('.eq_buy_costs input[name="Buy"]', el));
 		}
 	});

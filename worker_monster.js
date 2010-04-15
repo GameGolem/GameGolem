@@ -470,7 +470,7 @@ Monster.work = function(state) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
 					if ((Monster.option.choice === 'All')
 					|| (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= Monster.types[type].achievement)
-					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= (2 * Monster.types[type].achievement))) {
+					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= ((Monster.data[uid][type].name.search(/your/i) != -1 && Monster.data[uid].type.search(/keira/i) != -1) ? (200000) : (2 * Monster.types[type].achievement)))) {	// Special case for your own Keira to get her soul.
 						list.push([uid, type]);
 					} else if (!(best || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)

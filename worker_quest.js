@@ -198,7 +198,7 @@ Quest.update = function(type) {
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
 			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
-			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
+			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ', influence: ' + this.data[best].influence + '%)');
 		} else {
 			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
 			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
