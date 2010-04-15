@@ -2,6 +2,7 @@
 * Has everything to do with the config
 */
 var Config = new Worker('Config');
+
 Config.settings = {
 	system:true,
 	keep:true

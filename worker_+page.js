@@ -2,6 +2,7 @@
 * All navigation including reloading
 */
 var Page = new Worker('Page');
+
 Page.settings = {
 	system:true,
 	unsortable:true,
@@ -20,6 +21,7 @@ Page.when = null;
 Page.retry = 0;
 Page.checking = true;
 Page.node_trigger = null;
+Page.loading = false;
 
 Page.display = [
 	{
@@ -165,13 +167,12 @@ Page.identify = function() {
 	return this.page;
 };
 
-Page.loading = false;
-Page.to = function(page, args) {
+Page.to = function(page, args, force) {
 	if (Queue.option.pause) {
 		debug('Trying to load page when paused...');
 		return true;
 	}
-	if (page === this.page && typeof args === 'undefined') {
+	if (!force && page === this.page && typeof args === 'undefined') {
 		return true;
 	}
 	if (!args) {
@@ -186,8 +187,12 @@ Page.to = function(page, args) {
 		} else {
 			this.last = this.last + args;
 		}
-		debug('Navigating to '+this.last+' ('+this.pageNames[page].url+')');
-		this.ajaxload();
+		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
+		if (force) {
+			eval('window.setInterval(function(){window.location.href="' + this.last + '";}, ' + (seconds * 100) + ')');
+		} else {
+			this.ajaxload();
+		}
 	}
 	return false;
 };

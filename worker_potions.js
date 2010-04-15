@@ -1,7 +1,13 @@
 /********** Worker.Potions **********
 * Automatically drinks potions
 */
-var Potions = new Worker('Potions', '*');
+var Potions = new Worker('Potions');
+
+Potions.defaults = {
+	castle_age:{
+		pages:'*'
+	}
+};
 
 Potions.option = {
 	energy:35,
