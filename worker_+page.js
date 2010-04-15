@@ -172,7 +172,7 @@ Page.to = function(page, args, force) {
 		debug('Trying to load page when paused...');
 		return true;
 	}
-	if (!force && page === this.page && typeof args === 'undefined') {
+	if (page === this.page && (force || typeof args === 'undefined')) {
 		return true;
 	}
 	if (!args) {
@@ -189,7 +189,7 @@ Page.to = function(page, args, force) {
 		}
 		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
-			eval('window.setInterval(function(){window.location.href="' + this.last + '";}, ' + (seconds * 100) + ')');
+			eval('window.setInterval(function(){window.location.href="' + this.last + '";}, 100)');
 		} else {
 			this.ajaxload();
 		}
