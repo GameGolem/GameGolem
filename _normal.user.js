@@ -5322,6 +5322,18 @@ Town.init = function() {
 
 Town.parse = function(change) {
 	if (!change) {
+		// Fix for broken magic page!!
+		$('.eq_buy_row').each(function(i,el){
+			if (!$('.eq_buy_costs_int', el).length) {
+				$('.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('.eq_buy_costs_int').append($('.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
+			}
+			if (!$('.eq_buy_stats_int', el).length) {
+				$('.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('.eq_buy_stats_int').append($('.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
+			}
+			if (!$('.eq_buy_txt_int', el).length) {
+				$('.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('.eq_buy_txt_int').append($('.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
+			}
+		});
 		var unit = Town.data, page = Page.page.substr(5);
 		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
 			var i, stats = $('div.eq_buy_stats', el), name = $('.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
