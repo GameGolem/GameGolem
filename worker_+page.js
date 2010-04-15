@@ -189,7 +189,8 @@ Page.to = function(page, args, force) {
 		}
 		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
-			eval('window.setInterval(function(){window.location.href="' + this.last + '";}, 100)');
+//			this.loading=true;
+			window.location.href = this.last;
 		} else {
 			this.ajaxload();
 		}

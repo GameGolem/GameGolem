@@ -263,7 +263,7 @@ Monster.types = {
 		list:'castle_siege_list.jpg',
 		image:'castle_siege_large.jpg',
 		dead:'castle_siege_dead.jpg',
-		achievement:10000,
+		achievement:1000,
 		timer:604800, // 168 hours
 		mpool:3		
 	},
@@ -569,7 +569,7 @@ Monster.work = function(state) {
 		}
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria
-			debug('The Raid target is not valid according to the options set (army ratio or level ratio).');
+			debug('No valid Raid target.');
 			Page.to('battle_raid', '');
 			return true;
 		}
