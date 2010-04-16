@@ -136,13 +136,13 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 			
 var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
-	if (typeof a === 'object' || typeof a === 'array') {
+	if (isArray(a)) {
+		for(i=0; i<a.length; i++) {
+			t += sum(a[i]);
+		}
+	} else if (typeof a === 'object') {
 		for(i in a) {
-			if (typeof a[i] === 'number') {
-				t += a[i];
-			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
-				t = parseFloat(a[i]);
-			}
+			t += sum(a[i]);
 		}
 	} else if (typeof a === 'number') {
 		t = a;
@@ -255,7 +255,7 @@ if (typeof GM_getValue !== 'undefined') {
 	}
 }
 
-plural = function(i) {
+var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };
 

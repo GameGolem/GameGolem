@@ -291,7 +291,7 @@ Battle.update = function(type) {
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found');
-			this._remind(60);
+			this._remind(60); // No targets, so check again in 1 minute...
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));

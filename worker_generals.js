@@ -58,8 +58,8 @@ Generals.update = function(type) {
 	}
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
-			attack = Math.floor(Player.get('attack')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack/i) || 0)	+ (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defend = Math.floor(Player.get('defense')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense/i) || 0)	+ (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack = Math.floor(Player.get('attack')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i))		+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
+			defend = Math.floor(Player.get('defense')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));

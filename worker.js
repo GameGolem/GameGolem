@@ -188,7 +188,8 @@ function Worker(name,pages,settings) {
 	};
 
 	this._remind = function(seconds) {
-		eval('window.setInterval(function(){' + this.name + '._update("reminder");}, ' + (seconds * 1000) + ')');
+		var me = this;
+		window.setTimeout(function(){me._update('reminder');}, seconds * 1000);
 	};
 
 	this._save = function(type) {

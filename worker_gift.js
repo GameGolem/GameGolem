@@ -48,7 +48,7 @@ Gift.display = [
 	}
 ];
 
-Gift.init - function() {
+Gift.init = function() {
 	delete this.data.uid;
 	delete this.data.lastgift;
 	if (length(this.data.gifts)) {
