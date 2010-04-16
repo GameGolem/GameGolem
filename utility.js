@@ -27,7 +27,7 @@ String.prototype.regex = function(r) {
 	if (a) {
 		a.shift();
 		for (i=0; i<a.length; i++) {
-			if (a[i] && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 				a[i] = parseFloat(a[i]);
 			}
 		}
@@ -140,13 +140,13 @@ var sum = function (a) { // Adds the values of all array entries together
 		for(i in a) {
 			if (typeof a[i] === 'number') {
 				t += a[i];
-			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 				t = parseFloat(a[i]);
 			}
 		}
 	} else if (typeof a === 'number') {
 		t = a;
-	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 		t = parseFloat(a);
 	}
 	return t;
