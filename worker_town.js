@@ -124,7 +124,7 @@ Town.getInvade = function(army) {
 	def += getAttDef(data, null, 'def', army, 'invade');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='magic'){list.push(i);}}, 'att', army, 'invade');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
 	return {attack:att, defend:def};
 };
@@ -133,7 +133,7 @@ Town.getDuel = function() {
 	var att = 0, def = 0, data = this.data;
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='magic'){list.push(i);}}, 'att', 1, 'duel');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
@@ -250,7 +250,7 @@ Town.dashboard = function() {
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'att', 'invade', 'Weapons')
-			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
+			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
@@ -262,7 +262,7 @@ Town.dashboard = function() {
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'def', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'def', 'invade', 'Weapons')
-			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
+			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
