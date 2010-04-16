@@ -2350,7 +2350,7 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1) {
+	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < 1) {
 //		debug('Battle: Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return false;
 	}
@@ -4059,7 +4059,7 @@ LevelUp.work = function(state) {
 	}
 	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
-	if (runtime.level === Player.get('level') && Player.get('health') < 10) { // If we're still trying to level up and we don't have enough health then heal us up...
+	if (runtime.level === Player.get('level') && Player.get('health') < 13 && Player.get('stamina')) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
 		runtime.heal_me = true;
 		return true;
 	}
@@ -5238,7 +5238,6 @@ Quest.update = function(type) {
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
 			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
-//			Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ', influence: ' + this.data[best].influence + '%)');
 		} else {
 			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
 			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience

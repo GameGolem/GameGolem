@@ -309,7 +309,7 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < 10 || Queue.burn.stamina < 1) {
+	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < 1) {
 //		debug('Battle: Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return false;
 	}
