@@ -8,7 +8,7 @@ Generals.option = null;
 
 Generals.defaults = {
 	castle_age:{
-		pages:'heroes_generals'
+		pages:'*'
 	}
 };
 
@@ -26,25 +26,30 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var $elements = $('.generalSmallContainer2'), data = this.data;
-	if ($elements.length < length(data)) {
-		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
-//		Page.to('heroes_generals', ''); // Force reload
-		return false;
+	if ($('div.results').text().match(/has gained a level!/i)) {
+		this.data[Player.get('general')].level++; // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 	}
-	$elements.each(function(i,el){
-		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
-		if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-			if (!data[name] || data[name].level !== level) {
-				data[name] = data[name] || {};
-				data[name].img		= $('.imgButton', el).attr('src').filepart();
-				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
-				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
-				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-			}
+	if (Page.page === 'heroes_generals') {
+		var $elements = $('.generalSmallContainer2'), data = this.data;
+		if ($elements.length < length(data)) {
+			debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
+	//		Page.to('heroes_generals', ''); // Force reload
+			return false;
 		}
-	});
+		$elements.each(function(i,el){
+			var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
+			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
+				if (!data[name] || data[name].level !== level) {
+					data[name] = data[name] || {};
+					data[name].img		= $('.imgButton', el).attr('src').filepart();
+					data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
+					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
+					data[name].level	= level; // Might only be 4 so far, however...
+					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+				}
+			}
+		});
+	}
 	return false;
 };
 
@@ -119,6 +124,7 @@ Generals.best = function(type) {
 		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
+		case 'bank':		return 'Aeris';
 		case 'invade':
 			for (i in Generals.data) {
 				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.get('general'))) {

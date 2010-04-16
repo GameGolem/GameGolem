@@ -39,7 +39,7 @@ Bank.work = function(state) {
 	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
 		return false;
 	}
-	if (!state || !Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;
@@ -49,7 +49,7 @@ Bank.stash = function(amount) {
 	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
 		return true;
 	}
-	if (!Generals.to(Bank.option.general ? 'Aeris' : 'any') || !Page.to('keep_stats')) {
+	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
 	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
@@ -72,7 +72,7 @@ Bank.retrieve = function(amount) {
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
-	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - Bank.option.keep);
+	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - this.option.keep);
 	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}

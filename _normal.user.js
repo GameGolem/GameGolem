@@ -2000,7 +2000,7 @@ Bank.work = function(state) {
 	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
 		return false;
 	}
-	if (!state || !Bank.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
 		return true;
 	}
 	return false;
@@ -2010,7 +2010,7 @@ Bank.stash = function(amount) {
 	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
 		return true;
 	}
-	if (!Generals.to(Bank.option.general ? 'Aeris' : 'any') || !Page.to('keep_stats')) {
+	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
 	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
@@ -2033,7 +2033,7 @@ Bank.retrieve = function(amount) {
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
-	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - Bank.option.keep);
+	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - this.option.keep);
 	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}
@@ -2667,7 +2667,7 @@ Generals.option = null;
 
 Generals.defaults = {
 	castle_age:{
-		pages:'heroes_generals'
+		pages:'*'
 	}
 };
 
@@ -2685,25 +2685,30 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var $elements = $('.generalSmallContainer2'), data = this.data;
-	if ($elements.length < length(data)) {
-		debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
-//		Page.to('heroes_generals', ''); // Force reload
-		return false;
+	if ($('div.results').text().match(/has gained a level!/i)) {
+		this.data[Player.get('general')].level++; // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 	}
-	$elements.each(function(i,el){
-		var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
-		if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-			if (!data[name] || data[name].level !== level) {
-				data[name] = data[name] || {};
-				data[name].img		= $('.imgButton', el).attr('src').filepart();
-				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
-				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
-				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-			}
+	if (Page.page === 'heroes_generals') {
+		var $elements = $('.generalSmallContainer2'), data = this.data;
+		if ($elements.length < length(data)) {
+			debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
+	//		Page.to('heroes_generals', ''); // Force reload
+			return false;
 		}
-	});
+		$elements.each(function(i,el){
+			var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
+			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
+				if (!data[name] || data[name].level !== level) {
+					data[name] = data[name] || {};
+					data[name].img		= $('.imgButton', el).attr('src').filepart();
+					data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
+					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
+					data[name].level	= level; // Might only be 4 so far, however...
+					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+				}
+			}
+		});
+	}
 	return false;
 };
 
@@ -2778,6 +2783,7 @@ Generals.best = function(type) {
 		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
+		case 'bank':		return 'Aeris';
 		case 'invade':
 			for (i in Generals.data) {
 				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.get('general'))) {
@@ -5132,7 +5138,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var quest = this.data, area, land = null;
+	var quest = this.data, area, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -5142,6 +5148,11 @@ Quest.parse = function(change) {
 	} else {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
+	}
+	for (i in quest) {
+		if (quest[i].area === area && (!land || quest[i].land === land)) {
+			delete quest[i];
+		}
 	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
 		var name, level, influence, reward, units, energy, tmp, type = 0;

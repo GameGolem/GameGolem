@@ -60,7 +60,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var quest = this.data, area, land = null;
+	var quest = this.data, area, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -70,6 +70,11 @@ Quest.parse = function(change) {
 	} else {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
+	}
+	for (i in quest) {
+		if (quest[i].area === area && (!land || quest[i].land === land)) {
+			delete quest[i];
+		}
 	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
 		var name, level, influence, reward, units, energy, tmp, type = 0;
