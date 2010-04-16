@@ -2707,7 +2707,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, att_when_att = 0, def_when_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -2723,6 +2723,7 @@ Generals.update = function(type) {
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
 			att_when_att = (data[i].skills.regex(/Attack is increased by ([-+]?[0-9]+) when attacked/i) || 0);
 			def_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
+			monster_att = (data[i].skills.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
 			data[i].invade = {
 				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
@@ -2732,7 +2733,7 @@ Generals.update = function(type) {
 				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
 			};
 			data[i].monster = {
-				att: Math.floor(duel.attack + data[i].att + attack),
+				att: Math.floor(duel.attack + data[i].att + attack + monster_att),
 				def: Math.floor(duel.defend + data[i].def + defend) // Fortify, so no def_when_att
 			};
 		}
