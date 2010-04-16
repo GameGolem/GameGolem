@@ -59,10 +59,10 @@ Gift.init - function() {
 		for (var i in this.data.todo) {
 			if (!(/[^0-9]/g).test(i)) {	// If we have an old entry
 				var random_gift_id = Math.floor(Math.random() * gift_ids.length);
-				if (!todo[gift_ids[random_gift_id]]) {
-					todo[gift_ids[random_gift_id]] = [];
+				if (!this.data.todo[gift_ids[random_gift_id]]) {
+					this.data.todo[gift_ids[random_gift_id]] = [];
 				}
-				todo[gift_ids[random_gift_id]].push(i);
+				this.data.todo[gift_ids[random_gift_id]].push(i);
 				delete this.data.todo[i];
 			}
 		}
@@ -191,7 +191,7 @@ Gift.work = function(state) {
 		switch(this.option.type) {
 			case 'Random':
 				for (i in received) {
-					if (length(this.data.gifts) {
+					if (length(this.data.gifts)) {
 						gift_ids = [];
 						for (j in this.data.gifts) {
 							gift_ids.push(j);
