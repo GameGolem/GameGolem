@@ -58,13 +58,13 @@ Generals.update = function(type) {
 	}
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
-			attack = Math.floor(Player.get('attack')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/gi))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defend = Math.floor(Player.get('defense')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/gi))+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack = Math.floor(Player.get('attack')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack/i) || 0)	+ (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
+			defend = Math.floor(Player.get('defense')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense/i) || 0)	+ (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = sum(data[i].skills.regex(/Attack is increased by ([-+]?[0-9]+) when attacked/i));
-			def_when_att = sum(data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i));
+			att_when_att = (data[i].skills.regex(/Attack is increased by ([-+]?[0-9]+) when attacked/i) || 0);
+			def_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
 			data[i].invade = {
 				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
@@ -75,7 +75,7 @@ Generals.update = function(type) {
 			};
 			data[i].monster = {
 				att: Math.floor(duel.attack + data[i].att + attack),
-				def: Math.floor(duel.defend + data[i].def + defend + def_when_att)
+				def: Math.floor(duel.defend + data[i].def + defend) // Fortify, so no def_when_att
 			};
 		}
 	}
