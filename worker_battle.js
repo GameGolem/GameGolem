@@ -244,7 +244,7 @@ Battle.update = function(type) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && Monster.count) {
+	if (!points && this.option.monster && Monster.get('runtime.count')) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -259,7 +259,8 @@ Battle.update = function(type) {
 			if (!/[^0-9]/g.test(i)) {
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses)) { // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
@@ -272,7 +273,7 @@ Battle.update = function(type) {
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
-				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
+				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference

@@ -1437,7 +1437,7 @@ Page.to = function(page, args, force) {
 		}
 		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
-//			this.loading=true;
+			this.loading = true;
 			window.location.href = this.last;
 		} else {
 			this.ajaxload();
@@ -2285,7 +2285,7 @@ Battle.update = function(type) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && Monster.count) {
+	if (!points && this.option.monster && Monster.get('runtime.count')) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -2300,7 +2300,8 @@ Battle.update = function(type) {
 			if (!/[^0-9]/g.test(i)) {
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses)) { // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
@@ -2313,7 +2314,7 @@ Battle.update = function(type) {
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
-				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
+				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
@@ -2894,7 +2895,7 @@ Generals.dashboard = function(sort, rev) {
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts');
+var Gift = new Worker('Gift');
 
 Gift.settings = {
 	keep:true
@@ -2918,10 +2919,16 @@ Gift.option = {
 
 Gift.runtime = {
 	work:false,
-	gift_waiting: false,
-	gift_sent: 0,
-	sent_id: null,
-	gift:{ sender_id: null, sender_ca_name: null, sender_fb_name: null, name: null, id: null}
+	gift_waiting:false,
+	gift_sent:0,
+	sent_id:null,
+	gift:{
+		sender_id:null,
+		sender_ca_name:null,
+		sender_fb_name:null,
+		name:null,
+		id:null
+	}
 };
 
 Gift.display = [
@@ -3012,7 +3019,6 @@ Gift.parse = function(change) {
 };
 
 Gift.work = function(state) {
-	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
 			return true;
@@ -3042,6 +3048,8 @@ Gift.work = function(state) {
 		}
 	}
 	
+	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
+
 	if (!received.length && !length(todo)) {
 		this.runtime.work = false;
 		return true;
@@ -4520,7 +4528,7 @@ Monster.work = function(state) {
 				if (Monster.data[uid][type].state === 'engage' && Monster.data[uid][type].finish > Date.now()) {
 					if ((Monster.option.choice === 'All')
 					|| (Monster.option.choice === 'Achievement' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= Monster.types[type].achievement)
-					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= ((Monster.data[uid][type].name.search(/your/i) != -1 && Monster.data[uid].type.search(/keira/i) != -1) ? (200000) : (2 * Monster.types[type].achievement)))) {	// Special case for your own Keira to get her soul.
+					|| (Monster.option.choice === 'Loot' && Monster.types[type].achievement && Monster.data[uid][type].damage[userID] && Monster.data[uid][type].damage[userID] <= ((uid == userID && type === 'keira') ? 200000 : 2 * Monster.types[type].achievement))) {	// Special case for your own Keira to get her soul.
 						list.push([uid, type]);
 					} else if (!(best || Monster.option.choice === 'Achievement' || Monster.option.choice === 'Loot')
 					|| (Monster.option.choice === 'Strongest' && Monster.data[uid][type].health > Monster.data[best[0]][best[1]].health)

@@ -2,7 +2,7 @@
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
-var Gift = new Worker('Gift', 'index army_invite army_gifts');
+var Gift = new Worker('Gift');
 
 Gift.settings = {
 	keep:true
@@ -26,10 +26,16 @@ Gift.option = {
 
 Gift.runtime = {
 	work:false,
-	gift_waiting: false,
-	gift_sent: 0,
-	sent_id: null,
-	gift:{ sender_id: null, sender_ca_name: null, sender_fb_name: null, name: null, id: null}
+	gift_waiting:false,
+	gift_sent:0,
+	sent_id:null,
+	gift:{
+		sender_id:null,
+		sender_ca_name:null,
+		sender_fb_name:null,
+		name:null,
+		id:null
+	}
 };
 
 Gift.display = [
@@ -120,7 +126,6 @@ Gift.parse = function(change) {
 };
 
 Gift.work = function(state) {
-	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
 			return true;
@@ -150,6 +155,8 @@ Gift.work = function(state) {
 		}
 	}
 	
+	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
+
 	if (!received.length && !length(todo)) {
 		this.runtime.work = false;
 		return true;
