@@ -523,7 +523,7 @@ Monster.work = function(state) {
 		}
 		
 	} else if (Monster.data[uid][type].defense && Monster.data[uid][type].defense <= Monster.option.fortify && Queue.burn.energy >= 10) {
-		if (!Generals.to(Generals.best('defend'))) {
+		if (!Generals.to(Generals.best('fortify'))) {
 			return true;
 		}
 		debug('Monster: Fortify '+uid);
@@ -534,7 +534,7 @@ Monster.work = function(state) {
 			}
 		}
 	} else if (Monster.data[uid][type].dispel && Monster.data[uid][type].dispel >= Monster.option.dispel && Queue.burn.energy >= 10) {
-		if (!Generals.to(Generals.best('defend'))) {
+		if (!Generals.to(Generals.best('dispel'))) {
 			return true;
 		}
 		debug('Monster: Dispel '+uid);
@@ -545,7 +545,7 @@ Monster.work = function(state) {
 			}
 		}
 	} else {
-		if (!Generals.to(Generals.best('duel'))) {
+		if (!Generals.to(Generals.best('monster'))) {
 			return true;
 		}
 		debug('Monster: Attack '+uid);

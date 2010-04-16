@@ -58,8 +58,8 @@ Generals.update = function(type) {
 	}
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
-			attack = Player.get('attack') + (data[i].skills.regex(/([-+]?[0-9]+) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0);
-			defend = Player.get('defense') + (data[i].skills.regex(/([-+]?[0-9]+) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0);
+			attack = Math.floor(Player.get('attack') + (data[i].skills.regex(/([-]?[0-9]*\.?[0-9]*) Player Attack/i) || 0) + (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0) + ((length(data)-1) * data[i].skills.regex(/Increase ([-]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i)));
+			defend = Math.floor(Player.get('defense') + (data[i].skills.regex(/([-]?[0-9]*\.?[0-9]*) Player Defense/i) || 0) + (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0) + ((length(data)-1) * data[i].skills.regex(/Increase ([-]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i)));
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
@@ -70,6 +70,10 @@ Generals.update = function(type) {
 			data[i].duel = {
 				att: Math.floor(duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
 				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+			};
+			data[i].monster = {
+				att: Math.floor(duel.attack + data[i].att + attack),
+				def: Math.floor(duel.defend + data[i].def + defend)
 			};
 		}
 	}
@@ -139,6 +143,21 @@ Generals.best = function(type) {
 				}
 			}
 			return (best || 'any');
+		case 'monster':
+			for (i in Generals.data) {
+				if (!best || (Generals.data[i].monster && Generals.data[i].monster.att > Generals.data[best].monster.att)) {
+					best = i;
+				}
+			}
+			return (best || 'any');
+		case 'dispel':
+		case 'fortify':
+			for (i in Generals.data) {
+				if (!best || (Generals.data[i].monster && Generals.data[i].monster.def > Generals.data[best].monster.def)) {
+					best = i;
+				}
+			}
+			return (best || 'any');
 		case 'defend':
 			for (i in Generals.data) {
 				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.get('general'))) {
@@ -176,7 +195,7 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0;
+	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0;
 
 	if (typeof sort === 'undefined') {
 		Generals.order = [];
@@ -195,7 +214,7 @@ Generals.dashboard = function(sort, rev) {
 				aa = (Generals.data[a].level || 0);
 				bb = (Generals.data[b].level || 0);
 			} else {
-				type = (sort<5 ? 'invade' : 'duel');
+				type = (sort<5 ? 'invade' : (sort<7 ? 'duel' : 'monster'));
 				x = (sort%2 ? 'att' : 'def');
 				aa = (Generals.data[a][type][x] || 0);
 				bb = (Generals.data[b][type][x] || 0);
@@ -211,8 +230,10 @@ Generals.dashboard = function(sort, rev) {
 		idef = Math.max(idef, Generals.data[i].invade ? Generals.data[i].invade.def : 1);
 		datt = Math.max(datt, Generals.data[i].duel ? Generals.data[i].duel.att : 1);
 		ddef = Math.max(ddef, Generals.data[i].duel ? Generals.data[i].duel.def : 1);
+		matt = Math.max(matt, Generals.data[i].monster ? Generals.data[i].monster.att : 1);
+		mdef = Math.max(mdef, Generals.data[i].monster ? Generals.data[i].monster.def : 1);
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
@@ -223,6 +244,8 @@ Generals.dashboard = function(sort, rev) {
 		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
 		output.push(Generals.data[i].duel ? (datt == Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt == Generals.data[i].duel.att ? '</strong>' : '') : '?');
 		output.push(Generals.data[i].duel ? (ddef == Generals.data[i].duel.def ? '<strong>' : '') + addCommas(Generals.data[i].duel.def) + (ddef == Generals.data[i].duel.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (matt == Generals.data[i].monster.att ? '<strong>' : '') + addCommas(Generals.data[i].monster.att) + (matt == Generals.data[i].monster.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (mdef == Generals.data[i].monster.def ? '<strong>' : '') + addCommas(Generals.data[i].monster.def) + (mdef == Generals.data[i].monster.def ? '</strong>' : '') : '?');
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
