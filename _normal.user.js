@@ -188,7 +188,7 @@ String.prototype.regex = function(r) {
 	if (a) {
 		a.shift();
 		for (i=0; i<a.length; i++) {
-			if (a[i] && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 				a[i] = parseFloat(a[i]);
 			}
 		}
@@ -301,13 +301,13 @@ var sum = function (a) { // Adds the values of all array entries together
 		for(i in a) {
 			if (typeof a[i] === 'number') {
 				t += a[i];
-			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+			} else if (typeof a[i] === 'string' && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 				t = parseFloat(a[i]);
 			}
 		}
 	} else if (typeof a === 'number') {
 		t = a;
-	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]+\.?[0-9]*$/) >= 0) {
+	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 		t = parseFloat(a);
 	}
 	return t;
@@ -1437,7 +1437,7 @@ Page.to = function(page, args, force) {
 		}
 		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
-//			this.loading = true;
+//			this.loading=true;
 			window.location.href = this.last;
 		} else {
 			this.ajaxload();
@@ -2707,7 +2707,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, att_when_att = 0, def_when_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -2716,22 +2716,24 @@ Generals.update = function(type) {
 	}
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
-			attack = Math.floor(Player.get('attack')	+ sum(data[i].skills.regex(/([-]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defend = Math.floor(Player.get('defense')	+ sum(data[i].skills.regex(/([-]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))+ ((data[i].skills.regex(/Increase ([-]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack = Math.floor(Player.get('attack')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack/i) || 0)	+ (data[i].skills.regex(/Increase Player Attack by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
+			defend = Math.floor(Player.get('defense')	+ (data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense/i) || 0)	+ (data[i].skills.regex(/Increase Player Defense by ([0-9]+)/i) || 0)	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
+			att_when_att = (data[i].skills.regex(/Attack is increased by ([-+]?[0-9]+) when attacked/i) || 0);
+			def_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
 			data[i].invade = {
 				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7)) * army) + gen_def)
+				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			};
 			data[i].duel = {
 				att: Math.floor(duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0) + (attack * 0.7))
+				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
 			};
 			data[i].monster = {
 				att: Math.floor(duel.attack + data[i].att + attack),
-				def: Math.floor(duel.defend + data[i].def + defend)
+				def: Math.floor(duel.defend + data[i].def + defend) // Fortify, so no def_when_att
 			};
 		}
 	}
@@ -2971,6 +2973,27 @@ Gift.display = [
 	}
 ];
 
+Gift.init - function() {
+	delete this.data.uid;
+	delete this.data.lastgift;
+	if (length(this.data.gifts)) {
+		var gift_ids = [];
+		for (var j in this.data.gifts) {
+			gift_ids.push(j);
+		}
+		for (var i in this.data.todo) {
+			if (!(/[^0-9]/g).test(i)) {	// If we have an old entry
+				var random_gift_id = Math.floor(Math.random() * gift_ids.length);
+				if (!this.data.todo[gift_ids[random_gift_id]]) {
+					this.data.todo[gift_ids[random_gift_id]] = [];
+				}
+				this.data.todo[gift_ids[random_gift_id]].push(i);
+				delete this.data.todo[i];
+			}
+		}
+	}
+};
+
 Gift.parse = function(change) {
 	if (change) {
 		return false;
@@ -3093,7 +3116,7 @@ Gift.work = function(state) {
 		switch(this.option.type) {
 			case 'Random':
 				for (i in received) {
-					if (this.data.gifts.length) {
+					if (length(this.data.gifts)) {
 						gift_ids = [];
 						for (j in this.data.gifts) {
 							gift_ids.push(j);
@@ -5544,7 +5567,7 @@ Town.getInvade = function(army) {
 	def += getAttDef(data, null, 'def', army, 'invade');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='magic'){list.push(i);}}, 'att', army, 'invade');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
 	return {attack:att, defend:def};
 };
@@ -5553,7 +5576,7 @@ Town.getDuel = function() {
 	var att = 0, def = 0, data = this.data;
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='magic'){list.push(i);}}, 'att', 1, 'duel');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
@@ -5670,7 +5693,7 @@ Town.dashboard = function() {
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'att', 'invade', 'Weapons')
-			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
+			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
@@ -5682,7 +5705,7 @@ Town.dashboard = function() {
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'def', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'def', 'invade', 'Weapons')
-			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
+			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'invade', 'Magic')
 			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
