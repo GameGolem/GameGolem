@@ -54,7 +54,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, defend, army, gen_att, gen_def, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -63,13 +63,19 @@ Generals.update = function(type) {
 	}
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
-			attack = Math.floor(Player.get('attack')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i))		+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defend = Math.floor(Player.get('defense')	+ sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack = Player.get('attack') + attack_bonus;
+			defend = Player.get('defense') + defense_bonus;
+			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
+			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = (data[i].skills.regex(/Attack is increased by ([-+]?[0-9]+) when attacked/i) || 0);
+			att_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Attack when attacked/i) || 0);
 			def_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
+			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
+			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
 			monster_att = (data[i].skills.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
 			data[i].invade = {
 				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
@@ -83,6 +89,21 @@ Generals.update = function(type) {
 				att: Math.floor(duel.attack + data[i].att + attack + monster_att),
 				def: Math.floor(duel.defend + data[i].def + defend) // Fortify, so no def_when_att
 			};
+			data[i].potential = {
+				bank: (data[i].skills.regex(/Bank Fee/i) ? 1 : 0),
+				defense: Math.floor(duel.defend + (data[i].def + 4 - data[i].level) + ((data[i].att + 4 - data[i].level) * 0.7) + defense_potential + def_when_att_potential + ((attack_potential + att_when_att_potential) * 0.7)),
+				income: (data[i].skills.regex(/Increase Income by ([0-9]+)/i) * 4) / data[i].level,
+				invade: Math.floor(invade.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + ((attack_potential + (defense_potential * 0.7)) * army) + gen_att),
+				duel: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + attack_potential + (defense_potential * 0.7)),
+				monster: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + attack_potential + (monster_att * 4) / data[i].level),
+				raid_invade: 0,
+				raid_duel: 0,
+				influence: (data[i].skills.regex(/Influence ([0-9]+)% Faster/i) || 0),
+				demi: (data[i].skills.regex(/Extra Demi Points/i) ? 1 : 0),
+				cash: (data[i].skills.regex(/Bonus ([0-9]+) Gold/i) || 0)
+			};
+			data[i].potential.raid_invade = (data[i].potential.defense + data[i].potential.invade);
+			data[i].potential.raid_duel = (data[i].potential.defense + data[i].potential.duel);
 		}
 	}
 };

@@ -182,7 +182,8 @@ Gift.work = function(state) {
 
 	if (!received.length && !length(todo)) {
 		this.runtime.work = false;
-		return true;
+		Page.to('keep_alchemy');
+		return false;
 	}
 	
 	// We have received gifts and need to clear out the facebook confirmation page
@@ -250,30 +251,16 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo)) {
 		for (i in todo) {
-//			var temp_gift_url = 'http://apps.facebook.com/castle_age/gift.php?app_friends=true&giftSelection=' + this.data.gifts[i].slot;
-//			if (window.location.href != temp_gift_url) {
-//				window.location.href = temp_gift_url;
-//			}
-			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)) {
-				return true;
-			}
-/*			if (Page.page !== 'army_gifts' || !$('div[id^="_gift'+this.data.gifts[i].slot+'"] div[style="giftpage_select.jpg"]') || !$('img[src*="giftpage_ca_friends_on.gif"]')) {
-				Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot)
-				return true;
-			}*/
 			if ($('div.unselected_list').children().length) {
 				debug('Gift: Sending out ' + this.data.gifts[i].name);
 				k = 0;
-//				debug('clicking on each recipient');
 				for (j in todo[i]) {	// Need to limit to 30 at a time somehow
 					if (k< 30) {
 						if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
 							debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
 							continue;
 						}
-//						debug('clicking '+$('div.unselected_list input[value=\'' + todo[i][j] + '\']').attr('value'));
 						Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
-//						$('div.unselected_list input[value="' + j + '"]').click();
 						k++;
 					}
 				}
@@ -282,19 +269,17 @@ Gift.work = function(state) {
 					return true;
 				}
 				this.runtime.sent_id = i;
-//				debug('clicking '+$('input[value^=\'Send\']').attr('value'));
 				this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
 				Page.click('input[value^="Send"]');
 				$('input[value^="Send"]').click();
 				return true;
 			} else {
-//				debug('Gift: Can\'t find unselected_list.');
+				Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)
 				return true;
 			}
 		}
 	}
 	
-	Page.to('keep_alchemy');
 	return false;
 };
 

@@ -158,7 +158,7 @@ Quest.update = function(type) {
 		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
-		best = this.runtime.best || null;
+		best = (this.data[this.runtime.best].influence < 100 ? (this.runtime.best || null) : null);
 		for (i in this.data) {
 			switch(this.option.what) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
