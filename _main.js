@@ -30,7 +30,9 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 var log = console.log;
 
 if (show_debug) {
-	var debug = console.log;
+	var debug = function(txt) {
+		console.log('[' + (new Date()).format('G:i:s') + '] ' + txt);
+	};
 } else {
 	var debug = function(){};
 }

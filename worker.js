@@ -97,233 +97,233 @@ function Worker(name,pages,settings) {
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
+}
 
-	// Private functions - only override if you know exactly what you're doing
-	this._flush = function() {
-		this._save();
-		if (!this.settings.keep) {
-			delete this.data;
-		}
-	};
+// Private functions - only override if you know exactly what you're doing
+Worker.prototype._flush = function() {
+	this._save();
+	if (!this.settings.keep) {
+		delete this.data;
+	}
+};
 
-	this._get = function(what) { // 'path.to.data'
-		if (!this._loaded) {
-			this._init();
+Worker.prototype._get = function(what) { // 'path.to.data'
+	if (!this._loaded) {
+		this._init();
+	}
+	this._unflush();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+		data = this[x.shift()];
+	}
+	try {
+		switch(x.length) {
+			case 0:	return data;
+			case 1:	return data[x[0]];
+			case 2: return data[x[0]][x[1]];
+			case 3: return data[x[0]][x[1]][x[2]];
+			case 4: return data[x[0]][x[1]][x[2]][x[3]];
+			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
+			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
+			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
+			default:break;
 		}
-		this._unflush();
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-			data = this[x.shift()];
-		}
+	} catch(e) {}
+	return null;
+};
+
+Worker.prototype._init = function() {
+	if (this._loaded) {
+		return;
+	}
+	this._loaded = true;
+	if (this.init) {
 		try {
-			switch(x.length) {
-				case 0:	return data;
-				case 1:	return data[x[0]];
-				case 2: return data[x[0]][x[1]];
-				case 3: return data[x[0]][x[1]][x[2]];
-				case 4: return data[x[0]][x[1]][x[2]][x[3]];
-				case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
-				case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-				case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
-			}
-		} catch(err) {
-			return null;
-		}
-	};
-
-	this._init = function() {
-		if (this._loaded) {
-			return;
-		}
-		this._loaded = true;
-		if (this.init) {
-			try {
-				this.init();
-			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
-			}
-		}
-	};
-
-	this._load = function(type) {
-		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-			this._load('data');
-			this._load('option');
-			this._load('runtime');
-			return;
-		}
-		var old, v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name) || this[type];
-		if (typeof v !== 'string') { // Should never happen as all our info is objects!
-			this[type] = v;
-			return;
-		}
-		switch(v.charAt(0)) {
-			case '"': // Should never happen as all our info is objects!
-				this[type] = v.replace(/^"|"$/g,'');
-				return;
-			case '(':
-			case '[':
-				if (!this[type] || typeof this[type] !== 'array' && typeof this[type] !== 'object') {
-					this[type] = eval(v);
-					return;
-				}
-//				old = this[type].toSource();
-				this[type] = $.extend(true, {}, this[type], eval(v));
-//				if (old !== this[type].toSource()) {
-//					this._update(type);
-//				}
-				return;
-		}
-	};
-
-	this._parse = function(change) {
-		if (this.parse) {
-			try {
-				return this.parse(change);
-			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
-			}
-		}
-		return false;
-	};
-
-	this._remind = function(seconds) {
-		var me = this;
-		window.setTimeout(function(){me._update('reminder');}, seconds * 1000);
-	};
-
-	this._save = function(type) {
-		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-			return this._save('data') + this._save('option') + this._save('runtime');
-		}
-		if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
-			return false;
-		}
-		var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
-		switch(typeof this[type]) {
-			case 'string': // Should never happen as all our info is objects!
-				v = '"' + this[type] + '"';
-				break;
-			case 'array':
-			case 'object':
-				v = this[type].toSource();
-				break;
-			default: // Should never happen as all our info is objects!
-				v = this[type];
-				break;
-		}
-		if (getItem(n) === 'undefined' || getItem(n) !== v) {
-			this._working[type] = true;
-			this._changed = Date.now();
-			this._update(type);
-			setItem(n, v);
-			this._working[type] = false;
-			return true;
-		}
-		return false;
-	};
-
-	this._set = function(what, value) {
-		if (!this._loaded) {
-			this._init();
-		}
-		this._unflush();
-		var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-		if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-			data = this[x.shift()];
-		}
-		try {
-			switch(x.length) {
-				case 0:	data = value; break; // Nobody should ever do this!!
-				case 1:	data[x[0]] = value; break;
-				case 2: data[x[0]][x[1]] = value; break;
-				case 3: data[x[0]][x[1]][x[2]] = value; break;
-				case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
-				case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
-				case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
-				case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
-			}
-			this._save();
-		} catch(err) {
-			return null;
-		}
-	};
-
-	this._setup = function() {
-		if (this.defaults && this.defaults[APP]) {
-			for (var i in this.defaults[APP]) {
-				this[i] = this.defaults[APP][i];
-			}
-		}
-		if (this.settings.system || !this.defaults || this.defaults[APP]) {
-			this._load();
-		} else { // Get us out of the list!!!
-			Workers.splice(Workers.indexOf(this), 1);
-		}
-	};
-
-	this._unflush = function() {
-		if (!this._loaded) {
-			this._init();
-		}
-		if (!this.settings.keep && !this.data) {
-			this._load('data');
+			this.init();
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
 	}
+};
 
-	this._update = function(type) {
-		if (this._loaded && (this.update || this._watching.length)) {
-			var i, flush = false;
-			this._working.update = true;
-			if (!this.data) {
-				flush = true;
-				this._unflush();
-			}
-			if (this.update) {
-				try {
-					this.update(type);
-				}catch(e) {
-					debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
-				}
-			}
-			for (i=0; i<this._watching.length; i++) {
-				if (this._watching[i] === this) {
-					if (this.update) {
-						try {
-							this.update(this);
-						}catch(e) {
-							debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
-						}
-					}
-				} else {
-					this._watching[i]._update(this);
-				}
-			}
-			if (flush) {
-				this._flush();
-			}
-			this._working.update = false;
-		}
-	};
-
-	this._watch = function(worker) {
-		for (var i=0; i<worker._watching.length; i++) {
-			if (worker._watching[i] === this) {
+Worker.prototype._load = function(type) {
+	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+		this._load('data');
+		this._load('option');
+		this._load('runtime');
+		return;
+	}
+	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name) || this[type];
+	if (typeof v !== 'string') { // Should never happen as all our info is objects!
+		this[type] = v;
+		return;
+	}
+	switch(v.charAt(0)) {
+		case '"': // Should never happen as all our info is objects!
+			this[type] = v.replace(/^"|"$/g,'');
+			return;
+		case '(':
+		case '[':
+			v = (new Function('return ' + v))();
+			if (!this[type] || typeof this[type] !== 'array' && typeof this[type] !== 'object') {
+				this[type] = v;
 				return;
 			}
-		}
-		worker._watching.push(this);
-	};
+			this[type] = $.extend(true, {}, this[type], v);
+			return;
+		default: // Should never happen as we want encoded data...
+			this[type] = v;
+			return;
+	}
+};
 
-	this._work = function(state) {
-		if (this.work) {
+Worker.prototype._parse = function(change) {
+	if (this.parse) {
+		try {
+			return this.parse(change);
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+		}
+	}
+	return false;
+};
+
+Worker.prototype._remind = function(seconds) {
+	var me = this;
+	window.setTimeout(function(){me._update('reminder');}, seconds * 1000);
+};
+
+Worker.prototype._save = function(type) {
+	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+		return this._save('data') + this._save('option') + this._save('runtime');
+	}
+	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
+		return false;
+	}
+	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
+	switch(typeof this[type]) {
+		case 'string': // Should never happen as all our info is objects!
+			v = '"' + this[type] + '"';
+			break;
+		case 'array':
+		case 'object':
+			v = this[type].toSource();
+			break;
+		default: // Should never happen as all our info is objects!
+			v = this[type];
+			break;
+	}
+	if (getItem(n) === 'undefined' || getItem(n) !== v) {
+		this._working[type] = true;
+		this._changed = Date.now();
+		this._update(type);
+		setItem(n, v);
+		this._working[type] = false;
+		return true;
+	}
+	return false;
+};
+
+Worker.prototype._set = function(what, value) {
+	if (!this._loaded) {
+		this._init();
+	}
+	this._unflush();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
+	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
+		data = this[x.shift()];
+	}
+	try {
+		switch(x.length) {
+			case 0:	data = value; break; // Nobody should ever do this!!
+			case 1:	data[x[0]] = value; break;
+			case 2: data[x[0]][x[1]] = value; break;
+			case 3: data[x[0]][x[1]][x[2]] = value; break;
+			case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
+			case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
+			case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
+			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
+			default:break;
+		}
+		this._save();
+	} catch(e) {}
+	return null;
+};
+
+Worker.prototype._setup = function() {
+	if (this.defaults && this.defaults[APP]) {
+		for (var i in this.defaults[APP]) {
+			this[i] = this.defaults[APP][i];
+		}
+	}
+	if (this.settings.system || !this.defaults || this.defaults[APP]) {
+		this._load();
+	} else { // Get us out of the list!!!
+		Workers.splice(Workers.indexOf(this), 1);
+	}
+};
+
+Worker.prototype._unflush = function() {
+	if (!this._loaded) {
+		this._init();
+	}
+	if (!this.settings.keep && !this.data) {
+		this._load('data');
+	}
+};
+
+Worker.prototype._update = function(type) {
+	if (this._loaded && (this.update || this._watching.length)) {
+		var i, flush = false;
+		this._working.update = true;
+		if (!this.data) {
+			flush = true;
+			this._unflush();
+		}
+		if (this.update) {
 			try {
-				return this.work(state);
+				this.update(type);
 			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+				debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
 			}
 		}
-		return false;
-	};
-}
+		for (i=0; i<this._watching.length; i++) {
+			if (this._watching[i] === this) {
+				if (this.update) {
+					try {
+						this.update(this);
+					}catch(e) {
+						debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
+					}
+				}
+			} else {
+				this._watching[i]._update(this);
+			}
+		}
+		if (flush) {
+			this._flush();
+		}
+		this._working.update = false;
+	}
+};
+
+Worker.prototype._watch = function(worker) {
+	for (var i=0; i<worker._watching.length; i++) {
+		if (worker._watching[i] === this) {
+			return;
+		}
+	}
+	worker._watching.push(this);
+};
+
+Worker.prototype._work = function(state) {
+	if (this.work) {
+		try {
+			return this.work(state);
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+		}
+	}
+	return false;
+};
 
