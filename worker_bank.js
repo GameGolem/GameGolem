@@ -36,7 +36,7 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
+	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank))) {
 		return false;
 	}
 	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {

@@ -1999,7 +1999,7 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank)) {
+	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('current') || !WorkerByName(Queue.get('current')).settings.bank))) {
 		return false;
 	}
 	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
@@ -4814,12 +4814,14 @@ News.parse = function(change) {
 					my_xp = txt.regex(/([0-9]+) experience/i);
 					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = txt.regex(/\$([0-9]+)/i);
+					History.add([time, 'battle+lose'], -1);
 				} else {
 					lose++;
 					user[uid].win++;
 					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
 					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
+					History.add([time, 'battle+win'], 1);
 				}
 				if (time > last_time) {
 //					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
@@ -5238,6 +5240,7 @@ Quest.update = function(type) {
 		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
+		best = this.runtime.best || null;
 		for (i in this.data) {
 			switch(this.option.what) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
