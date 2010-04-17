@@ -152,8 +152,10 @@ Battle.parse = function(change) {
 				data[uid].dead = Date.now();
 			} else if ($('img[src*="battle_victory"]').length) {
 				data[uid].win = (data[uid].win || 0) + 1;
+				History.add('battle+win',1);
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
+				History.add('battle+loss',-1);
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}

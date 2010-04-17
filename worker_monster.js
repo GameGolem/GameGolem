@@ -347,8 +347,14 @@ Monster.parse = function(change) {
 				}
 				monster.state = 'assist';
 			}
-			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
+			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{
 				monster.battle_count = (monster.battle_count || 0) + 1;
+			}
+			if ($('img[src$="battle_victory"]').length){
+				History.add('raid+win',1);
+			}
+			if ($('img[src$="battle_defeat"]').length){
+				History.add('raid+loss',-1);
 			}
 			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');

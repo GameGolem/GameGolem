@@ -2196,8 +2196,10 @@ Battle.parse = function(change) {
 				data[uid].dead = Date.now();
 			} else if ($('img[src*="battle_victory"]').length) {
 				data[uid].win = (data[uid].win || 0) + 1;
+				History.add('battle+win',1);
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
+				History.add('battle+loss',-1);
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
@@ -4470,8 +4472,14 @@ Monster.parse = function(change) {
 				}
 				monster.state = 'assist';
 			}
-			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"]').length)	{
+			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{
 				monster.battle_count = (monster.battle_count || 0) + 1;
+			}
+			if ($('img[src$="battle_victory"]').length){
+				History.add('raid+win',1);
+			}
+			if ($('img[src$="battle_defeat"]').length){
+				History.add('raid+loss',-1);
 			}
 			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
