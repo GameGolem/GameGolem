@@ -11,7 +11,7 @@ Land.defaults = {
 
 Land.option = {
 	enabled:true,
-	wait:48,
+//	wait:48,
 	best:null,
 	onlyten:false
 };
@@ -29,16 +29,17 @@ Land.display = [
 		label:'Auto-Buy Land',
 		checkbox:true
 	},{
-		id:'wait',
+/*		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
 		suffix:'hours',
 		help:'There has been a lot of testing in this code, it is the fastest way to increase your income despite appearances!'
-	},{
+	},{*/
 		advanced:true,
 		id:'onlyten',
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
-		checkbox:true
+		checkbox:true,
+		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
 	}
 ];
 
@@ -59,7 +60,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), income = Player.get('income') + Player.get('average_income'), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0;
 	for (var i in this.data) {
 		if (this.data[i].buy) {
 			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
@@ -68,12 +69,31 @@ Land.update = function() {
 		}
 	}
 	if (best) {
-		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 10 / income < this.option.wait)) {
+/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
 			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].own >= 10 && this.data[best].cost * 5 / income < this.option.wait)) {
+		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].cost * 5 / income < this.option.wait)) {
 			buy = Math.min(this.data[best].max - this.data[best].own, 5);
 		} else {
 			buy = 1;
+		}*/
+		
+		//	This calculates the perfect time to switch the amounts to buy.
+		//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
+		//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
+		//	It's different for each land because each land has a different "time to payoff the increased cost".
+		
+		var cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
+		var time_to_payoff_increase = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
+		if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
+			buy = Math.min(this.data[best].max - this.data[best].own, 10);
+		} else if ((this.data[best].cost * 5) <= worth) {							// If instead we can afford 5, buy 5.
+			buy = Math.min(this.data[best].max - this.data[best].own, 5);
+		} else if (this.data[best].cost / income > time_to_payoff_increase){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
+			buy = 1;
+		} else if (this.data[best].cost * 5 / income > time_to_payoff_increase){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
+			buy = Math.min(this.data[best].max - this.data[best].own, 5);
+		} else {																	// Otherwise buy 10 because that's the max.
+			buy = Math.min(this.data[best].max - this.data[best].own, 10);
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost;
