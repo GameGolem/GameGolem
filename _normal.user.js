@@ -4848,14 +4848,12 @@ News.parse = function(change) {
 					my_xp = txt.regex(/([0-9]+) experience/i);
 					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = txt.regex(/\$([0-9]+)/i);
-					History.add([time, 'battle+lose'], -1);
 				} else {
 					lose++;
 					user[uid].win++;
 					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
 					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
-					History.add([time, 'battle+win'], 1);
 				}
 				if (time > last_time) {
 //					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
@@ -4863,6 +4861,8 @@ News.parse = function(change) {
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);
 					History.add([time, 'income+battle'], my_cash);
+					History.add([time, 'battle+win'], win);
+					History.add([time, 'battle+loss'], lose);
 				}
 				xp += my_xp;
 				bp += my_bp;
