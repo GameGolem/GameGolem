@@ -10,7 +10,7 @@ var LevelUp = new Worker('LevelUp');
 LevelUp.data = null;
 
 LevelUp.settings = {
-	unsortable:true
+	unsortable:false
 };
 
 LevelUp.defaults = {
