@@ -3108,6 +3108,10 @@ Gift.parse = function(change) {
 };
 
 Gift.work = function(state) {
+	if (length(todo) && (this.runtime.gift_delay < Date.now())) {
+		this.runtime.work = true;
+		return true;
+	}
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
 			return true;
@@ -3139,7 +3143,7 @@ Gift.work = function(state) {
 	
 	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
 
-	if (!received.length && !length(todo)) {
+	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
 		return false;
@@ -3201,6 +3205,10 @@ Gift.work = function(state) {
 		if ($('div.dialog_buttons input[value="Send"]').length){
 			this.runtime.gift_sent = null;
 			Page.click('div.dialog_buttons input[value="Send"]');
+		} else if ($('span:contains("Out of requests")')) {
+			debug('Gift: We have run out of gifts to send.  Waiting one hour to retry.');
+			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
+			Page.click('div.dialog_buttons input[value="Okay"]');
 		}
 		return true;
 	} else if (this.runtime.gift_sent) {
@@ -3208,7 +3216,7 @@ Gift.work = function(state) {
 	}
 	
 	// Give some gifts back
-	if (length(todo)) {
+	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
 			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){
 				return true;
@@ -5186,7 +5194,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var quest = this.data, area, land = null, i;
+	var quest = this.data, area = null, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -5199,6 +5207,7 @@ Quest.parse = function(change) {
 	}
 	for (i in quest) {
 		if (quest[i].area === area && (!land || quest[i].land === land)) {
+			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
 			delete quest[i];
 		}
 	}
@@ -5306,6 +5315,7 @@ Quest.update = function(type) {
 					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
+						debug('Quest: Best Quest is currently ' + i);
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...

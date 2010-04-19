@@ -60,7 +60,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var quest = this.data, area, land = null, i;
+	var quest = this.data, area = null, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -73,6 +73,7 @@ Quest.parse = function(change) {
 	}
 	for (i in quest) {
 		if (quest[i].area === area && (!land || quest[i].land === land)) {
+			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
 			delete quest[i];
 		}
 	}
@@ -180,6 +181,7 @@ Quest.update = function(type) {
 					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
+						debug('Quest: Best Quest is currently ' + i);
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...
