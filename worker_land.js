@@ -86,8 +86,6 @@ Land.update = function() {
 		var time_to_payoff_increase = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
 		if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
 			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if ((this.data[best].cost * 5) <= worth) {							// If instead we can afford 5, buy 5.
-			buy = Math.min(this.data[best].max - this.data[best].own, 5);
 		} else if (this.data[best].cost / income > time_to_payoff_increase){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
 			buy = 1;
 		} else if (this.data[best].cost * 5 / income > time_to_payoff_increase){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
