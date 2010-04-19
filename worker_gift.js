@@ -251,6 +251,9 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo)) {
 		for (i in todo) {
+			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){
+				return true;
+			}
 			if ($('div.unselected_list').children().length) {
 				debug('Gift: Sending out ' + this.data.gifts[i].name);
 				k = 0;
@@ -274,7 +277,6 @@ Gift.work = function(state) {
 				$('input[value^="Send"]').click();
 				return true;
 			} else {
-				Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)
 				return true;
 			}
 		}

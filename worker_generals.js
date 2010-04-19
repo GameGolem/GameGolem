@@ -99,6 +99,7 @@ Generals.update = function(type) {
 				raid_invade: 0,
 				raid_duel: 0,
 				influence: (data[i].skills.regex(/Influence ([0-9]+)% Faster/i) || 0),
+				drops: (data[i].skills.regex(/Chance ([0-9]+)% Drops/i) || 0),
 				demi: (data[i].skills.regex(/Extra Demi Points/i) ? 1 : 0),
 				cash: (data[i].skills.regex(/Bonus ([0-9]+) Gold/i) || 0)
 			};

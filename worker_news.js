@@ -27,18 +27,21 @@ News.parse = function(change) {
 			} else {
 				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
 				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
+				var result = null;
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
 					my_xp = txt.regex(/([0-9]+) experience/i);
 					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = txt.regex(/\$([0-9]+)/i);
+					result = 'win';
 				} else {
 					lose++;
 					user[uid].win++;
 					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
 					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
+					result = 'loss';
 				}
 				if (time > last_time) {
 //					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
@@ -46,8 +49,14 @@ News.parse = function(change) {
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);
 					History.add([time, 'income+battle'], my_cash);
-					History.add([time, 'battle+win'], win);
-					History.add([time, 'battle+loss'], lose);
+					switch (result) {
+						case 'win':
+							History.add([time, 'battle+win'], 1);
+							break;
+						case 'loss':
+							History.add([time, 'battle+loss'], -1)
+							break;
+					}
 				}
 				xp += my_xp;
 				bp += my_bp;

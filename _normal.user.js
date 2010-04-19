@@ -2762,6 +2762,7 @@ Generals.update = function(type) {
 				raid_invade: 0,
 				raid_duel: 0,
 				influence: (data[i].skills.regex(/Influence ([0-9]+)% Faster/i) || 0),
+				drops: (data[i].skills.regex(/Chance ([0-9]+)% Drops/i) || 0),
 				demi: (data[i].skills.regex(/Extra Demi Points/i) ? 1 : 0),
 				cash: (data[i].skills.regex(/Bonus ([0-9]+) Gold/i) || 0)
 			};
@@ -3209,6 +3210,9 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo)) {
 		for (i in todo) {
+			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){
+				return true;
+			}
 			if ($('div.unselected_list').children().length) {
 				debug('Gift: Sending out ' + this.data.gifts[i].name);
 				k = 0;
@@ -3232,7 +3236,6 @@ Gift.work = function(state) {
 				$('input[value^="Send"]').click();
 				return true;
 			} else {
-				Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)
 				return true;
 			}
 		}
@@ -4842,18 +4845,21 @@ News.parse = function(change) {
 			} else {
 				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
 				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
+				var result = null;
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
 					my_xp = txt.regex(/([0-9]+) experience/i);
 					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = txt.regex(/\$([0-9]+)/i);
+					result = 'win';
 				} else {
 					lose++;
 					user[uid].win++;
 					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
 					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
 					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
+					result = 'loss';
 				}
 				if (time > last_time) {
 //					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
@@ -4861,8 +4867,14 @@ News.parse = function(change) {
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);
 					History.add([time, 'income+battle'], my_cash);
-					History.add([time, 'battle+win'], win);
-					History.add([time, 'battle+loss'], lose);
+					switch (result) {
+						case 'win':
+							History.add([time, 'battle+win'], 1);
+							break;
+						case 'loss':
+							History.add([time, 'battle+loss'], -1)
+							break;
+					}
 				}
 				xp += my_xp;
 				bp += my_bp;
@@ -5293,7 +5305,7 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && (this.data[i].unique || this.data[i].energy < this.data[best].energy)))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
@@ -5336,7 +5348,7 @@ Quest.update = function(type) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ', influence: ' + this.data[best].influence + '%)');
+		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -5420,7 +5432,9 @@ Quest.work = function(state) {
 		Alchemy.set(['ingredients', this.data[i].itemimg], 1)
 	}
 	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
-		Page.to('quests_quest' + (this.data[best].land + 2));
+		if (this.data[best].land < 6) {	// There are still lands to explore
+			Page.to('quests_quest' + (this.data[best].land + 2));
+		}
 	}
 	return true;
 };

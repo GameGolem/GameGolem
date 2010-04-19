@@ -177,7 +177,7 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && (this.data[i].unique || this.data[i].energy < this.data[best].energy)))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
@@ -220,7 +220,7 @@ Quest.update = function(type) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ', influence: ' + this.data[best].influence + '%)');
+		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -304,7 +304,9 @@ Quest.work = function(state) {
 		Alchemy.set(['ingredients', this.data[i].itemimg], 1)
 	}
 	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
-		Page.to('quests_quest' + (this.data[best].land + 2));
+		if (this.data[best].land < 6) {	// There are still lands to explore
+			Page.to('quests_quest' + (this.data[best].land + 2));
+		}
 	}
 	return true;
 };
