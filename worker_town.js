@@ -197,11 +197,11 @@ Town.work = function(state) {
 		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.runtime.best) {
 			qty = 0;
 			$('.eq_buy_costs select[name="amount"]:eq(0) option', el).each(function(j,elm){
-				if (!qty || (($(elm).val() > qty) && ($(elm).val() <= Town.runtime.buy))) {
-					qty = $(elm).val();
+				if ((parseInt($(elm).val()) > qty) && (Town.runtime.buy >= parseInt($(elm).val()))) {
+					qty = parseInt($(elm).val());
 				}
 			});
-			debug('Town: Buying ' + Town.runtime.buy + ' x ' + Town.runtime.best + ' for $' + addCommas(Town.runtime.cost));
+			debug('Town: Buying ' + qty + ' x ' + Town.runtime.best + ' for $' + addCommas(qty*Town.runtime.cost/Town.runtime.buy));
 			$('.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 			Page.click($('.eq_buy_costs input[name="Buy"]', el));
 		}
