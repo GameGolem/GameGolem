@@ -159,6 +159,7 @@ Quest.update = function(type) {
 		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
+		debug('Quest: option = ' + this.option.what);
 		best = (this.runtime.best && (this.data[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in this.data) {
 			switch(this.option.what) {
@@ -178,10 +179,9 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > this.data[best].land || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > (this.data[best].land || 0) || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
-						debug('Quest: Best Quest is currently ' + i);
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...
