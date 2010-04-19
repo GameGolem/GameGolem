@@ -626,6 +626,7 @@ Monster.dashboard = function(sort, rev) {
 	th(output, 'Damage');
 	th(output, 'Time Left');
 	th(output, 'Kill In', 'title="(estimated)"');
+	th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<Monster.order.length; o++) {
 		i = Monster.order[o][0];
@@ -653,8 +654,17 @@ Monster.dashboard = function(sort, rev) {
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
 		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
+		th(output, '<a class="golem-monster-delete" name="'+i+'_'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
 		tr(list, output.join(''));
 	}
+	$('a.golem-monster-delete').live('click', function(event){
+		var x = $(this).attr('name').split('_');
+		delete Monster.data[x[0]][x[1]];
+		if (!length(Monster.data[x[0]])) {
+			delete Monster.data[x[0]];
+		}
+		Monster.dashboard();
+	});
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
 	if (typeof sort !== 'undefined') {
