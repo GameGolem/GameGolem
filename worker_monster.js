@@ -131,7 +131,7 @@ Monster.types = {
 		mpool:1
 	},
 	keira: {
-		name:'Keira, the Dread Knight',
+		name:'Keira the Dread Knight',
 		list:'boss_keira_list.jpg',
 		image:'boss_keira.jpg',
 		dead:'boss_keira_dead.jpg',
@@ -358,7 +358,8 @@ Monster.parse = function(change) {
 			}
 			if (!monster.name) {
 				tmp = $('img[linked="true"][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
-				monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+//				monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+				monster.name = tmp.regex(/(.+)'s /i);
 			}
 			$health = $('img[src$="monster_health_background.jpg"]').parent();
 			monster.health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
@@ -418,7 +419,8 @@ Monster.parse = function(change) {
 				Monster.data[uid][type].name = 'You';
 			} else {
 				tmp = $(el).parent().parent().children().eq(2).text().trim();
-				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+//				Monster.data[uid][type].name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+				Monster.data[uid][type].name = tmp.regex(/(.+)'s /i);
 			}
 			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2: Monster.data[uid][type].state = 'reward'; break;
@@ -654,11 +656,11 @@ Monster.dashboard = function(sort, rev) {
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
 		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
-		th(output, '<a class="golem-monster-delete" name="'+i+'_'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
+		th(output, '<a class="golem-monster-delete" name="'+i+'+'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
 		tr(list, output.join(''));
 	}
 	$('a.golem-monster-delete').live('click', function(event){
-		var x = $(this).attr('name').split('_');
+		var x = $(this).attr('name').split('+');
 		delete Monster.data[x[0]][x[1]];
 		if (!length(Monster.data[x[0]])) {
 			delete Monster.data[x[0]];
