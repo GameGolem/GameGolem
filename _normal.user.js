@@ -3861,12 +3861,13 @@ Land.update = function() {
 		//	It's different for each land because each land has a different "time to payoff the increased cost".
 		
 		var cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
-		var time_to_payoff_increase = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
+		var time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
+		time_limit = time_limit * 1.5;		// fudge factor to take into account that most of the time we won't be buying the same property twice in a row, so we will have a bit more time to recoup the extra costs.
 		if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
 			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if (this.data[best].cost / income > time_to_payoff_increase){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
+		} else if (this.data[best].cost / income > time_limit){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
 			buy = 1;
-		} else if (this.data[best].cost * 5 / income > time_to_payoff_increase){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
+		} else if (this.data[best].cost * 5 / income > time_limit){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
 			buy = Math.min(this.data[best].max - this.data[best].own, 5);
 		} else {																	// Otherwise buy 10 because that's the max.
 			buy = Math.min(this.data[best].max - this.data[best].own, 10);
