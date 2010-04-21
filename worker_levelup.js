@@ -180,12 +180,12 @@ LevelUp.work = function(state) {
 	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
-			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  energy > Player.get('maxenergy') / 2) { // Burn half our energy
+			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  energy >= Player.get('maxenergy')) {
 				Queue.burn.energy = energy;
 				Queue.burn.stamina = 0;
 				return false;
 			}
-			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  stamina > Player.get('stamina') / 2) { // Burn half our stamina
+			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  stamina >= Player.get('maxstamina')) {
 				Queue.burn.energy = 0;
 				Queue.burn.stamina = stamina;
 				return false;

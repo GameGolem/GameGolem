@@ -3326,7 +3326,7 @@ Gift.work = function(state) {
 							return true;
 						}
 						this.runtime.sent_id = i;
-						this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
+						this.runtime.gift_sent = Date.now() + (60000);	// wait max 60 seconds for the popup.
 						Page.click('input[value^="Send"]');
 						return true;
 					} else {
@@ -4186,12 +4186,12 @@ LevelUp.work = function(state) {
 	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
-			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  energy > Player.get('maxenergy') / 2) { // Burn half our energy
+			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  energy >= Player.get('maxenergy')) {
 				Queue.burn.energy = energy;
 				Queue.burn.stamina = 0;
 				return false;
 			}
-			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  stamina > Player.get('stamina') / 2) { // Burn half our stamina
+			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  stamina >= Player.get('maxstamina')) {
 				Queue.burn.energy = 0;
 				Queue.burn.stamina = stamina;
 				return false;
@@ -5076,17 +5076,17 @@ Player.parse = function(change) {
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.energy		= tmp[0] || 0;
-		data.maxenergy	= tmp[1] || 0;
+//		data.maxenergy	= tmp[1] || 0;
 	}
 	if ($('#app'+APPID+'_health_current_value').length) {
 		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.health		= tmp[0] || 0;
-		data.maxhealth	= tmp[1] || 0;
+//		data.maxhealth	= tmp[1] || 0;
 	}
 	if ($('#app'+APPID+'_stamina_current_value').length) {
 		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.stamina	= tmp[0] || 0;
-		data.maxstamina	= tmp[1] || 0;
+//		data.maxstamina	= tmp[1] || 0;
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -5106,8 +5106,11 @@ Player.parse = function(change) {
 			data.myname = $('div.keep_stat_title > span', keep).text().regex(/"(.*)"/);
 			data.rank = $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/([0-9]+)/);
 			stats = $('div.attribute_stat_container', keep);
+			data.maxenergy = $(stats).eq(0).text().regex(/([0-9]+)/);
+			data.maxstamina = $(stats).eq(1).text().regex(/([0-9]+)/);
 			data.attack = $(stats).eq(2).text().regex(/([0-9]+)/);
 			data.defense = $(stats).eq(3).text().regex(/([0-9]+)/);
+			data.maxhealth = $(stats).eq(4).text().regex(/([0-9]+)/);
 			data.bank = parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10);
 			stats = $('.statsTB table table:contains("Total Income")').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
 			data.maxincome = stats[0];
