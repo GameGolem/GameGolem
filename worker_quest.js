@@ -72,8 +72,8 @@ Quest.parse = function(change) {
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
 	for (i in quest) {
-		if (quest[i].area === area && (!land || quest[i].land === land)) {
-			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
+		if (quest[i].area === area && (area !== 'quest' || quest[i].land === land)) {
+//			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
 			delete quest[i];
 		}
 	}
@@ -229,7 +229,7 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	var i, j, general = null, best = this.runtime.best;
-	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
+	if (!best || !this.data[best] || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
