@@ -229,7 +229,7 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	var i, j, general = null, best = this.runtime.best;
-	if (!best || !this.data[best] || this.runtime.energy > Queue.burn.energy) {
+	if (!best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
