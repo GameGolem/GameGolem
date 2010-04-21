@@ -2394,8 +2394,15 @@ Battle.dashboard = function(sort, rev) {
 		for (i in data) {
 			this.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
 		this.order.sort(function(a,b) {
 			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
@@ -2668,6 +2675,7 @@ Elite.work = function(state) {
 */
 var Generals = new Worker('Generals');
 Generals.option = null;
+Generals.data = {};
 
 Generals.defaults = {
 	castle_age:{
@@ -2709,6 +2717,11 @@ Generals.parse = function(change) {
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 					data[name].level	= level; // Might only be 4 so far, however...
 					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+					if (level >= 4){	// If we just leveled up to level 4, remove the priority
+						if (data[name].priority) {
+							delete data[name].priority;
+						}
+					}
 				}
 			}
 		});
@@ -2717,13 +2730,29 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
 		Config.set('generals', ['any'].concat(list.sort()));
 	}
+	
+	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+	for (i in data) {
+		if (data[i].level < 4) {
+			priority_list.push([i, data[i].priority]);
+		}
+	}
+	priority_list.sort(function(a,b) {
+		return (a[1] - b[1]);
+	});
+	for (i in priority_list){
+		data[priority_list[i][0]].priority = parseInt(i)+1;
+	}
+	this.runtime.max_priority = priority_list.length;
+	// End Priority Stuff
+	
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
 			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
@@ -2861,7 +2890,7 @@ Generals.best = function(type) {
 			}
 			return (best || 'any');
 		case 'under level 4':
-			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
+/*			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
 				return Player.get('general');
 			}
 			best = 0;
@@ -2875,7 +2904,12 @@ Generals.best = function(type) {
 					list.push(i);
 				}
 			}
-			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';
+			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';*/
+			for (i in Generals.data){
+				if (Generals.data[i].priority == 1){
+					return i;
+				}
+			}
 		default:
 			return 'any';
 	}
@@ -2903,8 +2937,15 @@ Generals.dashboard = function(sort, rev) {
 		for (i in Generals.data) {
 			Generals.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	if (typeof sort !== 'undefined') {
 		Generals.order.sort(function(a,b) {
 			var aa, bb, type, x;
@@ -2914,9 +2955,12 @@ Generals.dashboard = function(sort, rev) {
 			} else if (sort == 2) {
 				aa = (Generals.data[a].level || 0);
 				bb = (Generals.data[b].level || 0);
+			} else if (sort == 3) {
+				aa = (Generals.data[a].priority || 999999);
+				bb = (Generals.data[b].priority || 999999);
 			} else {
-				type = (sort<5 ? 'invade' : (sort<7 ? 'duel' : 'monster'));
-				x = (sort%2 ? 'att' : 'def');
+				type = (sort<6 ? 'invade' : (sort<8 ? 'duel' : 'monster'));
+				x = (sort%2 ? 'def' : 'att');
 				aa = (Generals.data[a][type][x] || 0);
 				bb = (Generals.data[b][type][x] || 0);
 			}
@@ -2934,13 +2978,14 @@ Generals.dashboard = function(sort, rev) {
 		matt = Math.max(matt, Generals.data[i].monster ? Generals.data[i].monster.att : 1);
 		mdef = Math.max(mdef, Generals.data[i].monster ? Generals.data[i].monster.def : 1);
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Usage<br>Order</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
 		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
 		output.push(i);
 		output.push(Generals.data[i].level);
+		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
 		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
 		output.push(Generals.data[i].duel ? (datt == Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt == Generals.data[i].duel.att ? '</strong>' : '') : '?');
@@ -2950,6 +2995,44 @@ Generals.dashboard = function(sort, rev) {
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
+	$('a.golem-moveup').live('click', function(event){
+		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		Generals._unflush();
+		for(var i in Generals.data){
+			if (Generals.data[i].priority == x){
+				gup = i;
+			}
+			if (Generals.data[i].priority == (x-1)){
+				gdown = i;
+			}
+		}
+		if (gdown && gup) {
+			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			Generals.data[gdown].priority++;
+			Generals.data[gup].priority--;
+		}
+		Generals.dashboard(sort,rev);
+		return false;
+	});
+	$('a.golem-movedown').live('click', function(event){
+		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		Generals._unflush();
+		for(var i in Generals.data){
+			if (Generals.data[i].priority == x){
+				gdown = i;
+			}
+			if (Generals.data[i].priority == (x+1)){
+				gup = i;
+			}
+		}
+		if (gdown && gup) {
+			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			Generals.data[gdown].priority++;
+			Generals.data[gup].priority--;
+		}
+		Generals.dashboard(sort,rev);
+		return false;
+	});
 	$('#golem-dashboard-Generals').html(list.join(''));
 	$('#golem-dashboard-Generals tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {
@@ -4163,6 +4246,7 @@ LevelUp.get = function(what) {
 * Automates Monster
 */
 var Monster = new Worker('Monster');
+Monster.data = {};
 
 Monster.settings = {
 	keep:true
@@ -4660,7 +4744,12 @@ Monster.work = function(state) {
 		uid  = Monster.runtime.uid  = best[0];
 		type = Monster.runtime.type = best[1];
 	}
-	if (Queue.burn.stamina < (((Monster.option.raid.search('x5') == -1) && Monster.types[type].raid) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	// If we must fortify or dispel before we can fight, and our target needs fortifying or dispelling, and we don't have enough energy, quit and wait until we have enough energy.
+	if(Queue.burn.energy < 10 && Monster.option.first && ((typeof Monster.data[uid][type].defense !== 'undefined' && Monster.data[uid][type].defense < Monster.option.fortify) || (typeof Monster.data[uid][type].dispel !== 'undefined' && Monster.data[uid][type].dispel > Monster.option.dispel))){
+		return false;
+	}
+	// If we don't have enough stamina to fight and we can't dispel or fortify, quit and wait until we have enough stamina
+	if (Queue.burn.stamina < (((Monster.option.raid.search('x5') == -1) && Monster.types[type].raid) ? 1 : 5) && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense ==='undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (Monster.types[type].raid) {
@@ -4753,7 +4842,6 @@ Monster.order = null;
 Monster.dashboard = function(sort, rev) {
 	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3}, blank;
 	if (typeof sort === 'undefined') {
-		sort = 1; // Default = sort by name
 		Monster.order = [];
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
@@ -4761,6 +4849,14 @@ Monster.dashboard = function(sort, rev) {
 			}
 		}
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	Monster.order.sort(function(a,b) {
 		var aa, bb;
 		if (state[Monster.data[a[0]][a[1]].state] > state[Monster.data[b[0]][b[1]].state]) {
@@ -4820,16 +4916,18 @@ Monster.dashboard = function(sort, rev) {
 		th(output, '<a class="golem-monster-delete" name="'+i+'+'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
 		tr(list, output.join(''));
 	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Monster').html(list.join(''));
 	$('a.golem-monster-delete').live('click', function(event){
 		var x = $(this).attr('name').split('+');
+		Monster._unflush();
 		delete Monster.data[x[0]][x[1]];
 		if (!length(Monster.data[x[0]])) {
 			delete Monster.data[x[0]];
 		}
 		Monster.dashboard();
+		return false;
 	});
-	list.push('</tbody></table>');
-	$('#golem-dashboard-Monster').html(list.join(''));
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Monster thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
@@ -5372,16 +5470,6 @@ Quest.update = function(type) {
 		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	if (this.option.monster && Monster.data) {
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
-					return false;
-				}
-			}
-		}
-	}
 };
 
 Quest.work = function(state) {
@@ -5391,6 +5479,18 @@ Quest.work = function(state) {
 			return Bank.work(true);
 		}
 		return false;
+	}
+	if (this.option.monster && Monster.data) {
+		for (i in Monster.data) {
+			for (j in Monster.data[i]) {
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense < Monster.option.fortify) {
+					return false;
+				}
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].dispel === 'number' && Monster.data[i][j].dispel > Monster.option.dispel) {
+					return false;
+				}
+			}
+		}
 	}
 	if (!state) {
 		return true;
@@ -5468,8 +5568,15 @@ Quest.dashboard = function(sort, rev) {
 		for (i in this.data) {
 			this.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	function getValue(q){
 		switch(sort) {
 			case 0:	// general

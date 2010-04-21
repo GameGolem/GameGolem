@@ -350,8 +350,15 @@ Battle.dashboard = function(sort, rev) {
 		for (i in data) {
 			this.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
 		this.order.sort(function(a,b) {
 			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);

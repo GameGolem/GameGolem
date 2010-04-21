@@ -5,6 +5,7 @@
 */
 var Generals = new Worker('Generals');
 Generals.option = null;
+Generals.data = {};
 
 Generals.defaults = {
 	castle_age:{
@@ -46,6 +47,11 @@ Generals.parse = function(change) {
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 					data[name].level	= level; // Might only be 4 so far, however...
 					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+					if (level >= 4){	// If we just leveled up to level 4, remove the priority
+						if (data[name].priority) {
+							delete data[name].priority;
+						}
+					}
 				}
 			}
 		});
@@ -54,13 +60,29 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type) {
-	var data = this.data, i, list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
 		Config.set('generals', ['any'].concat(list.sort()));
 	}
+	
+	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+	for (i in data) {
+		if (data[i].level < 4) {
+			priority_list.push([i, data[i].priority]);
+		}
+	}
+	priority_list.sort(function(a,b) {
+		return (a[1] - b[1]);
+	});
+	for (i in priority_list){
+		data[priority_list[i][0]].priority = parseInt(i)+1;
+	}
+	this.runtime.max_priority = priority_list.length;
+	// End Priority Stuff
+	
 	if ((type === 'data' || type === Town) && invade && duel) {
 		for (i in data) {
 			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
@@ -198,7 +220,7 @@ Generals.best = function(type) {
 			}
 			return (best || 'any');
 		case 'under level 4':
-			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
+/*			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
 				return Player.get('general');
 			}
 			best = 0;
@@ -212,7 +234,12 @@ Generals.best = function(type) {
 					list.push(i);
 				}
 			}
-			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';
+			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';*/
+			for (i in Generals.data){
+				if (Generals.data[i].priority == 1){
+					return i;
+				}
+			}
 		default:
 			return 'any';
 	}
@@ -240,8 +267,15 @@ Generals.dashboard = function(sort, rev) {
 		for (i in Generals.data) {
 			Generals.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	if (typeof sort !== 'undefined') {
 		Generals.order.sort(function(a,b) {
 			var aa, bb, type, x;
@@ -251,9 +285,12 @@ Generals.dashboard = function(sort, rev) {
 			} else if (sort == 2) {
 				aa = (Generals.data[a].level || 0);
 				bb = (Generals.data[b].level || 0);
+			} else if (sort == 3) {
+				aa = (Generals.data[a].priority || 999999);
+				bb = (Generals.data[b].priority || 999999);
 			} else {
-				type = (sort<5 ? 'invade' : (sort<7 ? 'duel' : 'monster'));
-				x = (sort%2 ? 'att' : 'def');
+				type = (sort<6 ? 'invade' : (sort<8 ? 'duel' : 'monster'));
+				x = (sort%2 ? 'def' : 'att');
 				aa = (Generals.data[a][type][x] || 0);
 				bb = (Generals.data[b][type][x] || 0);
 			}
@@ -271,13 +308,14 @@ Generals.dashboard = function(sort, rev) {
 		matt = Math.max(matt, Generals.data[i].monster ? Generals.data[i].monster.att : 1);
 		mdef = Math.max(mdef, Generals.data[i].monster ? Generals.data[i].monster.def : 1);
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Usage<br>Order</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
 		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
 		output.push(i);
 		output.push(Generals.data[i].level);
+		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
 		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
 		output.push(Generals.data[i].duel ? (datt == Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt == Generals.data[i].duel.att ? '</strong>' : '') : '?');
@@ -287,6 +325,44 @@ Generals.dashboard = function(sort, rev) {
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
+	$('a.golem-moveup').live('click', function(event){
+		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		Generals._unflush();
+		for(var i in Generals.data){
+			if (Generals.data[i].priority == x){
+				gup = i;
+			}
+			if (Generals.data[i].priority == (x-1)){
+				gdown = i;
+			}
+		}
+		if (gdown && gup) {
+			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			Generals.data[gdown].priority++;
+			Generals.data[gup].priority--;
+		}
+		Generals.dashboard(sort,rev);
+		return false;
+	});
+	$('a.golem-movedown').live('click', function(event){
+		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		Generals._unflush();
+		for(var i in Generals.data){
+			if (Generals.data[i].priority == x){
+				gdown = i;
+			}
+			if (Generals.data[i].priority == (x+1)){
+				gup = i;
+			}
+		}
+		if (gdown && gup) {
+			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			Generals.data[gdown].priority++;
+			Generals.data[gup].priority--;
+		}
+		Generals.dashboard(sort,rev);
+		return false;
+	});
 	$('#golem-dashboard-Generals').html(list.join(''));
 	$('#golem-dashboard-Generals tbody tr td:nth-child(2)').css('text-align', 'left');
 	if (typeof sort !== 'undefined') {

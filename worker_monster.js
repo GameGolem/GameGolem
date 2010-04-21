@@ -2,6 +2,7 @@
 * Automates Monster
 */
 var Monster = new Worker('Monster');
+Monster.data = {};
 
 Monster.settings = {
 	keep:true
@@ -499,7 +500,12 @@ Monster.work = function(state) {
 		uid  = Monster.runtime.uid  = best[0];
 		type = Monster.runtime.type = best[1];
 	}
-	if (Queue.burn.stamina < (((Monster.option.raid.search('x5') == -1) && Monster.types[type].raid) ? 1 : 5) && (Queue.burn.energy < 10 || (!Monster.option.first && (typeof Monster.data[uid][type].defense === 'undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
+	// If we must fortify or dispel before we can fight, and our target needs fortifying or dispelling, and we don't have enough energy, quit and wait until we have enough energy.
+	if(Queue.burn.energy < 10 && Monster.option.first && ((typeof Monster.data[uid][type].defense !== 'undefined' && Monster.data[uid][type].defense < Monster.option.fortify) || (typeof Monster.data[uid][type].dispel !== 'undefined' && Monster.data[uid][type].dispel > Monster.option.dispel))){
+		return false;
+	}
+	// If we don't have enough stamina to fight and we can't dispel or fortify, quit and wait until we have enough stamina
+	if (Queue.burn.stamina < (((Monster.option.raid.search('x5') == -1) && Monster.types[type].raid) ? 1 : 5) && (Queue.burn.energy < 10 || ((typeof Monster.data[uid][type].defense ==='undefined' || Monster.data[uid][type].defense > Monster.option.fortify) && (typeof Monster.data[uid][type].dispel === 'undefined' || Monster.data[uid][type].dispel < Monster.option.dispel)))) {
 		return false;
 	}
 	if (Monster.types[type].raid) {
@@ -592,7 +598,6 @@ Monster.order = null;
 Monster.dashboard = function(sort, rev) {
 	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', 'dispel', null, 'timer', 'eta'], state = {engage:0, assist:1, reward:2, complete:3}, blank;
 	if (typeof sort === 'undefined') {
-		sort = 1; // Default = sort by name
 		Monster.order = [];
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
@@ -600,6 +605,14 @@ Monster.dashboard = function(sort, rev) {
 			}
 		}
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	Monster.order.sort(function(a,b) {
 		var aa, bb;
 		if (state[Monster.data[a[0]][a[1]].state] > state[Monster.data[b[0]][b[1]].state]) {
@@ -659,16 +672,18 @@ Monster.dashboard = function(sort, rev) {
 		th(output, '<a class="golem-monster-delete" name="'+i+'+'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
 		tr(list, output.join(''));
 	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Monster').html(list.join(''));
 	$('a.golem-monster-delete').live('click', function(event){
 		var x = $(this).attr('name').split('+');
+		Monster._unflush();
 		delete Monster.data[x[0]][x[1]];
 		if (!length(Monster.data[x[0]])) {
 			delete Monster.data[x[0]];
 		}
 		Monster.dashboard();
+		return false;
 	});
-	list.push('</tbody></table>');
-	$('#golem-dashboard-Monster').html(list.join(''));
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Monster thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}

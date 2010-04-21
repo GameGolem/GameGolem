@@ -225,16 +225,6 @@ Quest.update = function(type) {
 		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	if (this.option.monster && Monster.data) {
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense <= Monster.option.fortify) {
-					return false;
-				}
-			}
-		}
-	}
 };
 
 Quest.work = function(state) {
@@ -244,6 +234,18 @@ Quest.work = function(state) {
 			return Bank.work(true);
 		}
 		return false;
+	}
+	if (this.option.monster && Monster.data) {
+		for (i in Monster.data) {
+			for (j in Monster.data[i]) {
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense < Monster.option.fortify) {
+					return false;
+				}
+				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].dispel === 'number' && Monster.data[i][j].dispel > Monster.option.dispel) {
+					return false;
+				}
+			}
+		}
 	}
 	if (!state) {
 		return true;
@@ -321,8 +323,15 @@ Quest.dashboard = function(sort, rev) {
 		for (i in this.data) {
 			this.order.push(i);
 		}
-		sort = 1; // Default = sort by name
 	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
 	function getValue(q){
 		switch(sort) {
 			case 0:	// general
