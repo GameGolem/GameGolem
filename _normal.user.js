@@ -5335,8 +5335,8 @@ Quest.parse = function(change) {
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
 	for (i in quest) {
-		if (quest[i].area === area && (!land || quest[i].land === land)) {
-			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
+		if (quest[i].area === area && (area !== 'quest' || quest[i].land === land)) {
+//			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
 			delete quest[i];
 		}
 	}
@@ -5442,7 +5442,7 @@ Quest.update = function(type) {
 					}
 					break;
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > (this.data[best].land || 0) || (this.data[i].land === this.data[best].land && ((this.data[i].unique && !length(Player.data[this.data[i].item])) || this.data[i].energy < this.data[best].energy)))) {
+					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > (this.data[best].land || 0) || (this.data[i].land === this.data[best].land && (this.data[i].unique && !length(Player.data[this.data[i].item]))))) {
 						best_land = Math.max(best_land, this.data[i].land);
 						best = i;
 					}
@@ -5492,7 +5492,7 @@ Quest.update = function(type) {
 
 Quest.work = function(state) {
 	var i, j, general = null, best = this.runtime.best;
-	if (!this.runtime.best || this.runtime.energy > Queue.burn.energy) {
+	if (!best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
