@@ -222,7 +222,7 @@ Quest.update = function(type) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
+		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (typeof this.data[best].influence !== 'undefined' ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
 };

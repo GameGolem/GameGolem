@@ -259,30 +259,43 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
-			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){
+			if (!Page.to('army_gifts')){
 				return true;
 			}
-			if ($('div.unselected_list').children().length) {
-				debug('Gift: Sending out ' + this.data.gifts[i].name);
-				k = 0;
-				for (j in todo[i]) {	// Need to limit to 30 at a time somehow
-					if (k< 30) {
-						if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-							debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
-							continue;
+			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
+				if ($('img[src*="giftpage_ca_friends_on"]').length){
+					if ($('div.unselected_list').children().length) {
+						debug('Gift: Sending out ' + this.data.gifts[i].name);
+						k = 0;
+						for (j in todo[i]) {
+							if (k< 30) {	// Need to limit to 30 at a time
+								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
+									debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
+									continue;
+								}
+								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
+								k++;
+							}
 						}
-						Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
-						k++;
+						if (k == 0) {
+						delete todo[i];
+							return true;
+						}
+						this.runtime.sent_id = i;
+						this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
+						Page.click('input[value^="Send"]');
+						return true;
+					} else {
+						return true;
 					}
-				}
-				if (k == 0) {
-					delete todo[i];
+				} else if ($('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]').length) {
+					Page.click('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]');
+					return true;
+				} else {
 					return true;
 				}
-				this.runtime.sent_id = i;
-				this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
-				Page.click('input[value^="Send"]');
-				$('input[value^="Send"]').click();
+			} else if ($('div[style*="giftpage_select"]').length) {
+				Page.click('a[href*="giftSelection='+this.data.gifts[i].slot+'"]:parent');
 				return true;
 			} else {
 				return true;

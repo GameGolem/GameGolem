@@ -2708,13 +2708,15 @@ Generals.parse = function(change) {
 			return false;
 		}
 		$elements.each(function(i,el){
-			var name = $('.general_name_div3_padding', el).text().trim(), level = $(el).text().regex(/Level ([0-9]+)/i);
+			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i));
+			var progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i));
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-				if (!data[name] || data[name].level !== level) {
+				if (!data[name] || data[name].level !== level || data[name].progress !== progress) {
 					data[name] = data[name] || {};
 					data[name].img		= $('.imgButton', el).attr('src').filepart();
 					data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
+					data[name].progress	= progress;
 					data[name].level	= level; // Might only be 4 so far, however...
 					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 					if (level >= 4){	// If we just leveled up to level 4, remove the priority
@@ -2978,13 +2980,13 @@ Generals.dashboard = function(sort, rev) {
 		matt = Math.max(matt, Generals.data[i].monster ? Generals.data[i].monster.att : 1);
 		mdef = Math.max(mdef, Generals.data[i].monster ? Generals.data[i].monster.def : 1);
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Usage<br>Order</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Quest<br>Rank</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
 		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
 		output.push(i);
-		output.push(Generals.data[i].level);
+		output.push('<div title="'+(Generals.data[i].progress || 'unknown')+'%">'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
 		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
 		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
@@ -3301,30 +3303,43 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
-			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){
+			if (!Page.to('army_gifts')){
 				return true;
 			}
-			if ($('div.unselected_list').children().length) {
-				debug('Gift: Sending out ' + this.data.gifts[i].name);
-				k = 0;
-				for (j in todo[i]) {	// Need to limit to 30 at a time somehow
-					if (k< 30) {
-						if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-							debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
-							continue;
+			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
+				if ($('img[src*="giftpage_ca_friends_on"]').length){
+					if ($('div.unselected_list').children().length) {
+						debug('Gift: Sending out ' + this.data.gifts[i].name);
+						k = 0;
+						for (j in todo[i]) {
+							if (k< 30) {	// Need to limit to 30 at a time
+								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
+									debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
+									continue;
+								}
+								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
+								k++;
+							}
 						}
-						Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
-						k++;
+						if (k == 0) {
+						delete todo[i];
+							return true;
+						}
+						this.runtime.sent_id = i;
+						this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
+						Page.click('input[value^="Send"]');
+						return true;
+					} else {
+						return true;
 					}
-				}
-				if (k == 0) {
-					delete todo[i];
+				} else if ($('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]').length) {
+					Page.click('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]');
+					return true;
+				} else {
 					return true;
 				}
-				this.runtime.sent_id = i;
-				this.runtime.gift_sent = Date.now() + (30000);	// wait max 30 seconds for the popup.
-				Page.click('input[value^="Send"]');
-				$('input[value^="Send"]').click();
+			} else if ($('div[style*="giftpage_select"]').length) {
+				Page.click('a[href*="giftSelection='+this.data.gifts[i].slot+'"]:parent');
 				return true;
 			} else {
 				return true;
@@ -5467,7 +5482,7 @@ Quest.update = function(type) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (this.data[best].influence ? (', influence: ' + this.data[best].influence + '%)') : ''));
+		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (typeof this.data[best].influence !== 'undefined' ? (', influence: ' + this.data[best].influence + '%)') : ''));
 	}
 
 };
