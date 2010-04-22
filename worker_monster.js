@@ -312,7 +312,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, dead = false, monster, timer;
 	if (Page.page === 'keep_monster_active') { // In a monster
-		this.runtime.current = uid = $('img[linked="true"][size="square"]').attr('uid');
+		this.runtime.current = uid = $('img[linked][size="square"]').attr('uid');
 		for (i in Monster.types) {
 			if (Monster.types[i].dead && $('img[src$="'+Monster.types[i].dead+'"]').length) {
 				type = i;
