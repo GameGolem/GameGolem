@@ -192,6 +192,7 @@ Gift.work = function(state) {
 	
 	// We have received gifts and need to clear out the facebook confirmation page
 	if (received.length) {
+		Page.to('army_gifts');
 		// Fill out our todo list with gifts to send, or not.
 		switch(this.option.type) {
 			case 'Random':
