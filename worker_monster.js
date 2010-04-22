@@ -303,7 +303,11 @@ Monster.types = {
 
 Monster.dispel = ['input[src=$"button_dispel.gif"]', 'input[src$="nm_secondary_heal.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
-Monster.monster = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]'];
+Monster.strengthen = ['input[src$="nm_secondary_strengthen.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]'];
+Monster.health = ['input[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
+Monster.shield = ['img[src$="bar_dispel.gif"]'];
+Monster.defense = ['input[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
 
 Monster.init = function() {
 	var i, j;
@@ -375,6 +379,8 @@ Monster.parse = function(change) {
 //				monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
 				monster.name = tmp.regex(/(.+)'s /i);
 			}
+			// Need to change this stuff to use the arrays
+			// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
 			$health = $('img[src$="monster_health_background.jpg"]').parent();
 			monster.health = $health.length ? ($health.width() / $health.parent().width() * 100) : 0;
 			$defense = $('img[src$="seamonster_ship_health.jpg"]').parent();
@@ -535,7 +541,7 @@ Monster.update = function(what) {
 		this.runtime.attack = true;
 		this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : 5;
 		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid
-		Dashboard.status(this, 'Next: ' + (this.runtime.fortify ? (this.data[uid][type].defense ? 'Fortify' : 'Dispel') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
+		Dashboard.status(this, 'Next: ' + (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 	} else {
 		Dashboard.status(this);
 	}
@@ -581,11 +587,12 @@ Monster.work = function(state) {
 				break;
 		}
 	} else {
-		j = (this.runtime.fortify && Queue.burn.energy >= 10) ? (this.data[uid][type].defense ? 'fortify' : 'dispel') : 'monster';
+		// Need a switch statement here to handle deciding to strengthen or fortify based on our class.
+		j = (this.runtime.fortify && Queue.burn.energy >= 10) ? (this.data[uid][type].dispel ? 'dispel' : 'fortify') : 'attack';
 		if (!Generals.to(Generals.best(j))) {
 			return true;
 		}
-		debug('Monster: Try to ' + (j === 'monster' ? 'attack' : j) + ' ' + uid + '\'s ' + this.types[type].name);
+		debug('Monster: Try to ' + j + ' ' + uid + '\'s ' + this.types[type].name);
 		for (i=0; i<this[j].length; i++) {
 			debug('btn = '+this[j][i]);
 			btn = $(this[j][i]);
