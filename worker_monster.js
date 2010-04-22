@@ -285,6 +285,15 @@ Monster.types = {
 		achievement:11000000,
 		timer:604800, // 168 hours
 		mpool:3		
+	},
+	bahamut: {
+		name:'Bahamut, the Volcanic Dragon',
+		list:'nm_volcanic_list.jpg',
+		image:'nm_volcanic_large.jpg',
+		dead:'nm_volcanic_dead.jpg',
+		achievement:11000000, // Guesswork
+		timer:604800, // 168 hours
+		mpool:3	
 	}
 };
 
