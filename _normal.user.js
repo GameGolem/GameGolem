@@ -4557,9 +4557,9 @@ Monster.types = {
 	}
 };
 
-Monster.dispel = ['input[src=$"button_dispel.gif"]'];
+Monster.dispel = ['input[src=$"button_dispel.gif"]', 'input[src$="nm_secondary_heal.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]'];
 
 Monster.init = function() {
 	var i, j;
