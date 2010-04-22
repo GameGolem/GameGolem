@@ -535,7 +535,7 @@ Monster.update = function(what) {
 						}
 						break;
 					case 'Shortest':
-						if (!best || this.data[i][j].timer < this.data[best[0]][best[1]].timer) {
+						if (!best || this.data[i][j].eta < this.data[best[0]][best[1]].eta) {
 							best = [i, j];
 						}
 						break;
@@ -551,7 +551,8 @@ Monster.update = function(what) {
 	if (list.length) {
 		best = list[Math.floor(Math.random()*list.length)];
 	}
-	if ((!uid || !type) && best) {
+//	if ((!uid || !type) && best) {
+	if (best) {
 		uid  = best[0];
 		type = best[1];
 	}
@@ -724,7 +725,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong class="overlay">' + monster.state + '</strong><img src="' + imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '"></a>', 'title="' + Monster.types[j].name + '"');
 		th(output, Monster.data[i][j].name);
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
-		td(output, blank ? '' : isNumber(monster.totaldefense) ? monster.totaldefense.round(1)+'%' : '');
+		td(output, blank ? '' : isNumber(monster.totaldefense) ? monster.totaldefense.round(1)+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+monster.strength.round(1)+'%"' : ''));
 		td(output, blank ? '' : isNumber(monster.dispel) ? (monster.dispel).round(1)+'%' : '');
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
