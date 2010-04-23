@@ -2987,7 +2987,7 @@ Generals.dashboard = function(sort, rev) {
 		output = [];
 		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="' + Generals.data[i].skills + '">');
 		output.push(i);
-		output.push('<div title="'+(typeof Generals.data[i].progress !== 'undefined' ? Generals.data[i].progress : 'unknown')+'%">'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
+		output.push('<div'+(isNumber(Generals.data[i].progress) ? ' title="'+Generals.data[i].progress+'%"' : '')+'>'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
 		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
 		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
@@ -4279,7 +4279,8 @@ Monster.option = {
 	fortify: 50,
 	dispel: 50,
 	first:false,
-	choice: 'All',
+	choice: 'Any',
+	stop: 'Loot',
 	armyratio: 1,
 	levelratio: 'Any',
 	force1: true,
@@ -4315,11 +4316,16 @@ Monster.display = [
 		checkbox:true,
 		help:'Without this setting you will fortify whenever Energy is available'
 	},{
-		label:'"All" is currently Random...'
+		label:'"Any" is currently Random...'
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement', 'Loot']
+		select:['Any', 'Strongest', 'Weakest', 'Shortest', 'Spread']
+	},{
+		id:'stop',
+		label:'Stop',
+		select:['Never', 'Achievement', 'Loot'],
+		help:'Select when to stop attacking a target.'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -4569,6 +4575,7 @@ Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamo
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
+Monster.stun_img = ['img[src$="nm_stun_bar.gif"]'];
 
 Monster.init = function() {
 	var i, j;
@@ -4580,6 +4587,7 @@ Monster.init = function() {
 			}
 		}
 	}
+	this._watch(Player);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
@@ -4762,6 +4770,10 @@ Monster.update = function(what) {
 		this.runtime.uid = uid = null;
 		this.runtime.type = type = null;
 	}
+	// Testing this out
+	uid = null;
+	type = null;
+	
 	this.runtime.check = false;
 	for (i in this.data) { // Look for a new target...
 		for (j in this.data[i]) {
@@ -4770,49 +4782,52 @@ Monster.update = function(what) {
 				break;
 			}
 //			debug('Checking monster '+i+'\'s '+j);
-			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now()) {
-				switch(this.option.choice) {
-					case 'All':
-						list.push([i, j]);
+			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && Player.get('health') >= (this.types[j].raid ? 13 : 10) && Player.get('stamina') >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)) {
+				switch(this.option.stop) {
+					default:
+					case 'Never':
+						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
 						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= this.types[j].achievement) {
-							list.push([i, j]);
+							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
 						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
-							list.push([i, j]);
-						}
-						break;
-					case 'Strongest':
-						if (!best || this.data[i][j].health > this.data[best[0]][best[1]].health) {
-							best = [i, j];
-						}
-						break;
-					case 'Weakest':
-						if (!best || this.data[i][j].health < this.data[best[0]][best[1]].health) {
-							best = [i, j];
-						}
-						break;
-					case 'Shortest':
-						if (!best || this.data[i][j].timer < this.data[best[0]][best[1]].timer) {
-							best = [i, j];
-						}
-						break;
-					case 'Spread':
-						if (!best || this.data[i][j].battle_count < this.data[best[0]][best[1]].battle_count) {
-							best = [i, j];
+							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 				}
 			}
 		}
 	}
-	if (list.length) {
-		best = list[Math.floor(Math.random()*list.length)];
+	list.sort( function(a,b){
+		var aa, bb;
+		switch(Monster.option.choice) {
+			case 'Any':
+				return (Math.random()-0.5);
+				break;
+			case 'Strongest':
+				return b[2] - a[2];
+				break;
+			case 'Weakest':
+				return a[2] - b[2];
+				break;
+			case 'Shortest':
+				return a[3] - b[3];
+				break;
+			case 'Spread':
+				return a[4] - b[4];
+				break;
+		}
+	});
+	if (list.length){
+		best = list[0];
 	}
-	if ((!uid || !type) && best) {
+	delete list;
+//	if ((!uid || !type) && best) {
+	if (best) {
 		uid  = best[0];
 		type = best[1];
 	}
@@ -4830,9 +4845,9 @@ Monster.update = function(what) {
 		this.runtime.attack = true;
 		this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : 5;
 		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid
-		Dashboard.status(this, 'Next: ' + (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
+		Dashboard.status(this, (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, 'Nothing to do.');
 	}
 };
 
@@ -4985,7 +5000,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong class="overlay">' + monster.state + '</strong><img src="' + imagepath + Monster.types[j].list + '" style="width:90px;height:25px" alt="' + j + '"></a>', 'title="' + Monster.types[j].name + '"');
 		th(output, Monster.data[i][j].name);
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
-		td(output, blank ? '' : isNumber(monster.totaldefense) ? monster.totaldefense.round(1)+'%' : '');
+		td(output, blank ? '' : isNumber(monster.totaldefense) ? monster.totaldefense.round(1)+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+monster.strength.round(1)+'%"' : ''));
 		td(output, blank ? '' : isNumber(monster.dispel) ? (monster.dispel).round(1)+'%' : '');
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');

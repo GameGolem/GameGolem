@@ -18,7 +18,8 @@ Monster.option = {
 	fortify: 50,
 	dispel: 50,
 	first:false,
-	choice: 'All',
+	choice: 'Any',
+	stop: 'Loot',
 	armyratio: 1,
 	levelratio: 'Any',
 	force1: true,
@@ -54,11 +55,16 @@ Monster.display = [
 		checkbox:true,
 		help:'Without this setting you will fortify whenever Energy is available'
 	},{
-		label:'"All" is currently Random...'
+		label:'"Any" is currently Random...'
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['All', 'Strongest', 'Weakest', 'Shortest', 'Spread', 'Achievement', 'Loot']
+		select:['Any', 'Strongest', 'Weakest', 'Shortest', 'Spread']
+	},{
+		id:'stop',
+		label:'Stop',
+		select:['Never', 'Achievement', 'Loot'],
+		help:'Select when to stop attacking a target.'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -308,6 +314,7 @@ Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamo
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
+Monster.stun_img = ['img[src$="nm_stun_bar.gif"]'];
 
 Monster.init = function() {
 	var i, j;
@@ -319,6 +326,7 @@ Monster.init = function() {
 			}
 		}
 	}
+	this._watch(Player);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
@@ -501,6 +509,10 @@ Monster.update = function(what) {
 		this.runtime.uid = uid = null;
 		this.runtime.type = type = null;
 	}
+	// Testing this out
+	uid = null;
+	type = null;
+	
 	this.runtime.check = false;
 	for (i in this.data) { // Look for a new target...
 		for (j in this.data[i]) {
@@ -509,48 +521,50 @@ Monster.update = function(what) {
 				break;
 			}
 //			debug('Checking monster '+i+'\'s '+j);
-			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now()) {
-				switch(this.option.choice) {
-					case 'All':
-						list.push([i, j]);
+			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && Player.get('health') >= (this.types[j].raid ? 13 : 10) && Player.get('stamina') >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)) {
+				switch(this.option.stop) {
+					default:
+					case 'Never':
+						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
 						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= this.types[j].achievement) {
-							list.push([i, j]);
+							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
 						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
-							list.push([i, j]);
-						}
-						break;
-					case 'Strongest':
-						if (!best || this.data[i][j].health > this.data[best[0]][best[1]].health) {
-							best = [i, j];
-						}
-						break;
-					case 'Weakest':
-						if (!best || this.data[i][j].health < this.data[best[0]][best[1]].health) {
-							best = [i, j];
-						}
-						break;
-					case 'Shortest':
-						if (!best || this.data[i][j].eta < this.data[best[0]][best[1]].eta) {
-							best = [i, j];
-						}
-						break;
-					case 'Spread':
-						if (!best || this.data[i][j].battle_count < this.data[best[0]][best[1]].battle_count) {
-							best = [i, j];
+							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 				}
 			}
 		}
 	}
-	if (list.length) {
-		best = list[Math.floor(Math.random()*list.length)];
+	list.sort( function(a,b){
+		var aa, bb;
+		switch(Monster.option.choice) {
+			case 'Any':
+				return (Math.random()-0.5);
+				break;
+			case 'Strongest':
+				return b[2] - a[2];
+				break;
+			case 'Weakest':
+				return a[2] - b[2];
+				break;
+			case 'Shortest':
+				return a[3] - b[3];
+				break;
+			case 'Spread':
+				return a[4] - b[4];
+				break;
+		}
+	});
+	if (list.length){
+		best = list[0];
 	}
+	delete list;
 //	if ((!uid || !type) && best) {
 	if (best) {
 		uid  = best[0];
@@ -570,9 +584,9 @@ Monster.update = function(what) {
 		this.runtime.attack = true;
 		this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : 5;
 		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid
-		Dashboard.status(this, 'Next: ' + (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
+		Dashboard.status(this, (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, 'Nothing to do.');
 	}
 };
 
