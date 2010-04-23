@@ -166,7 +166,7 @@ LevelUp.update = function(type) {
 LevelUp.work = function(state) {
 	var i, runtime = this.runtime, general, energy = Player.get('energy'), stamina = Player.get('stamina');
 	if (runtime.running && this.option.income) {
-		if (Queue.get('current') === Income) {
+		if (Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
 		} else {
 			Generals.set('runtime.disabled', true);
