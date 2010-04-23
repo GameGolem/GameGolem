@@ -4,10 +4,6 @@
 var Monster = new Worker('Monster');
 Monster.data = {};
 
-Monster.settings = {
-	keep:true
-};
-
 Monster.defaults = {
 	castle_age:{
 		pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
@@ -31,7 +27,7 @@ Monster.runtime = {
 	check:false, // got monster pages to visit and parse
 	uid:null,
 	type:null,
-	fortify:false, // true to fortify / defend
+	fortify:false, // true if we can fortify / defend / etc
 	attack:false, // true to attack
 	stamina:5, // stamina to burn
 	health:10 // minimum health to attack

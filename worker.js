@@ -8,9 +8,13 @@ new Worker(name, pages, settings)
 .pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
 .data			- Object, for public reading, automatically saved
 .option			- Object, our options, changed from outide ourselves
-.settings		- Object, various values for various sections, default is always false
-				unsortable - stops a worker being sorted in the queue, prevents this.work(true)
-				keep - without this data is flushed when not used - noly keep if other workers regularly access you
+.settings		- Object, various values for various sections, default is always false / blank
+				system (true/false) - exists for all games
+				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
+				advanced (true/false) - only visible when "Advanced" is checked
+				before (array of worker names) - never let these workers get before us when sorting
+				after (array of worker names) - never let these workers get after us when sorting
+				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 .display		- Create the display object for the settings page.
 
 *** User functions ***

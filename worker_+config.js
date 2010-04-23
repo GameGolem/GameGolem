@@ -16,7 +16,7 @@ Config.option = {
 
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i;
+	var $btn, $golem_config, $newPanel, i, j, k;
 	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -54,15 +54,51 @@ Config.init = function() {
 		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
 refreshPositions:true, stop:function(){Config.updateOptions();} })
 		.droppable({ tolerance:'pointer', over:function(e,ui) {
-			if (Config.getPlace($(this).attr('id')) < Config.getPlace($(ui.draggable).attr('id'))) {
+			var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+			if (me.settings.before) {
+				for(i=0; i<me.settings.before.length; i++) {
+//					debug('Compare '+me.settings.before[i]+' ('+arrayIndexOf(order, me.settings.before[i])+') <= '+me.name+' ('+newplace+')'); 
+					if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+						return;
+					}
+				}
+			}
+			if (me.settings.after) {
+				for(i=0; i<me.settings.after.length; i++) {
+//					debug('Compare '+me.settings.after[i]+' ('+arrayIndexOf(order, me.settings.after[i])+') >= '+me.name+' ('+newplace+')'); 
+					if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+						return;
+					}
+				}
+			}
+			if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
 				$(this).before(ui.draggable);
 			} else {
 				$(this).after(ui.draggable);
 			}
 		} });
-	for (i in Workers) { // Update all select elements
-		if (Workers[i].select) {
-			Workers[i].select();
+	for (i in Workers) { // Propagate all before and after settings
+		if (Workers[i].settings.before) {
+			for (j=0; j<Workers[i].settings.before.length; j++) {
+				k = WorkerByName(Workers[i].settings.before[j]);
+				if (k) {
+					k.settings.after = k.settings.after || [];
+					k.settings.after.push(Workers[i].name);
+					k.settings.after = unique(k.settings.after);
+//					debug('Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
+				}
+			}
+		}
+		if (Workers[i].settings.after) {
+			for (j=0; j<Workers[i].settings.after.length; j++) {
+				k = WorkerByName(Workers[i].settings.after[j]);
+				if (k) {
+					k.settings.before = k.settings.before || [];
+					k.settings.before.push(Workers[i].name);
+					k.settings.before = unique(k.settings.before);
+//					debug('Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
+				}
+			}
 		}
 	}
 	$('input.golem_addselect').live('click', function(){
@@ -98,7 +134,7 @@ Config.makePanel = function(worker) {
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
 	show = findInArray(Config.option.active, worker.id);
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ?  ' golem-advanced' + (Config.option.advanced ? '' : '" style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced"' + (Config.option.advanced ? '' : ' style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -249,15 +285,7 @@ Config.set = function(key, value) {
 Config.updateOptions = function() {
 //	debug('Options changed');
 	// Get order of panels first
-	var found = {}, i;
-	Queue.option.queue = [];
-	$('#golem_config > div').each(function(i,el){
-		var name = WorkerById($(el).attr('id')).name;
-		if (!found[name]) {
-			Queue.option.queue.push(name);
-		}
-		found[name] = true;
-	});
+	Queue.option.queue = this.getOrder();
 	// Now can we see the advanced stuff
 	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
@@ -287,13 +315,11 @@ Config.updateOptions = function() {
 	}
 };
 
-Config.getPlace = function(id) {
-	var place = -1;
+Config.getOrder = function() {
+	var order = [];
 	$('#golem_config > div').each(function(i,el){
-		if ($(el).attr('id') === id && place === -1) {
-			place = i;
-		}
+		order.push($(el).attr('name'));
 	});
-	return place;
+	return unique(order);
 };
 

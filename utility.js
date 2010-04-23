@@ -171,6 +171,29 @@ var findInArray = function(list, value) {
 	return false;
 };
 
+var arrayIndexOf = function(list, value) {
+	if (isArray(list)) {
+		for (var i=0; i<list.length; i++) {
+			if (list[i] === value) {
+				return i;
+			}
+		}
+	}
+	return -1;
+};
+
+var arrayLastIndexOf = function(list, value) {
+	if (isArray(list)) {
+		for (var i=list.length-1; i>=0; i--) {
+			if (list[i] === value) {
+				return i;
+			}
+		}
+	}
+	return -1;
+};
+
+
 var sortObject = function(object, sortfunc) {
 	var list = [];
 	for (i in object) {
