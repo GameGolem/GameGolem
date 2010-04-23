@@ -19,6 +19,7 @@ Monster.option = {
 	dispel: 50,
 	first:false,
 	choice: 'Any',
+	ignore_stats:true,
 	stop: 'Loot',
 	armyratio: 1,
 	levelratio: 'Any',
@@ -38,7 +39,7 @@ Monster.runtime = {
 
 Monster.display = [
 	{
-		label:'Work in progress...'
+		label:'<b>---Fortification/Dispel---</b>'
 	},{
 		id:'fortify',
 		label:'Fortify Below',
@@ -53,9 +54,15 @@ Monster.display = [
 		id:'first',
 		label:'Fortify Before Attacking',
 		checkbox:true,
-		help:'Without this setting you will fortify whenever Energy is available'
+		help:'Must be checked to fortify.'
 	},{
-		label:'"Any" is currently Random...'
+		label:'<b>---Who To Fight---</b>'
+	},{
+		advanced:true,
+		id:'ignore_stats',
+		label:'Ignore Player Stats',
+		checkbox:true,
+		help:'Do not use the current health or stamina as criteria for choosing monsters.'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -65,6 +72,8 @@ Monster.display = [
 		label:'Stop',
 		select:['Never', 'Achievement', 'Loot'],
 		help:'Select when to stop attacking a target.'
+	},{
+		label:'<b>---Raids---</b>'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -84,6 +93,8 @@ Monster.display = [
 		label:'Force +1',
 		checkbox:true,
 		help:'Force the first player in the list to aid.'
+	},{
+		label:'<b>---Dashboard Options---</b>'
 	},{
 		id:'assist',
 		label:'Use Assist Links in Dashboard',
@@ -521,7 +532,7 @@ Monster.update = function(what) {
 				break;
 			}
 //			debug('Checking monster '+i+'\'s '+j);
-			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && Player.get('health') >= (this.types[j].raid ? 13 : 10) && Player.get('stamina') >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)) {
+			if (this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Player.get('stamina') >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
 				switch(this.option.stop) {
 					default:
 					case 'Never':
