@@ -210,7 +210,7 @@ Page.ajaxload = function() {
 			Page.ajaxload();
 		},
 		success:function(data){
-			if (data.lastIndexOf('</html>') !== -1 && data.lastIndexOf('single_popup') !== -1) { // Last things in source if loaded correctly...
+			if (data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
 				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
