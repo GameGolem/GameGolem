@@ -81,7 +81,11 @@ Settings.update = function(type) {
 	}
 };
 
-Settings.set = function(what) {
+Settings.set = function(what, value) {
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
+		return this._set(what, value);
+	}
 	this._unflush();
 	this.data[what] = {};
 	for (var i in Workers) {
@@ -92,6 +96,10 @@ Settings.set = function(what) {
 };
 
 Settings.get = function(what) {
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
+		return this._get(what);
+	}
 	this._unflush();
 	if (this.data[what]) {
 		for (var i in Workers) {

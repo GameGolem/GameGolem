@@ -132,7 +132,7 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'-');
 	show = findInArray(Config.option.active, worker.id);
 	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced"' + (Config.option.advanced ? '' : ' style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
@@ -142,8 +142,8 @@ Config.makePanel = function(worker) {
 				txt = [];
 				list = [];
 				o = $.extend(true, {}, options, display[i]);
-				o.real_id = PREFIX + worker.name + '_' + o.id;
-				o.value = worker.option[o.id] || null;
+				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/,'-') + '_' + o.id;
+				o.value = worker.get('option.'+o.id) || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.hr) {
 					txt.push('<br><hr style="clear:both;margin:0;">');
@@ -296,17 +296,20 @@ Config.updateOptions = function() {
 				return;
 			}
 			if ($(el).attr('type') === 'checkbox') {
-				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
+				val = $(el).attr('checked');
 			} else if ($(el).attr('multiple')) {
 				val = [];
 				$('option', el).each(function(i,el){ val.push($(el).text()); });
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
 			} else {
 				val = $(el).attr('value') || ($(el).val() || null);
 				if (val && val.search(/[^0-9.]/) === -1) {
 					val = parseFloat(val);
 				}
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			}
+			try {
+				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
+			} catch(e) {
+				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + tmp.toSource() + ') = ' + e.message);
 			}
 		}
 	});

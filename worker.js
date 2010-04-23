@@ -112,14 +112,17 @@ Worker.prototype._flush = function() {
 };
 
 Worker.prototype._get = function(what) { // 'path.to.data'
-	if (!this._loaded) {
-		this._init();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+		x.unshift('data');
 	}
-	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-		data = this[x.shift()];
+	if (x[0] === 'data') {
+		if (!this._loaded) {
+			this._init();
+		}
+		this._unflush();
 	}
+	data = this[x.shift()];
 	try {
 		switch(x.length) {
 			case 0:	return data;
@@ -132,7 +135,9 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			default:break;
 		}
-	} catch(e) {}
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+	}
 	return null;
 };
 
@@ -229,14 +234,17 @@ Worker.prototype._save = function(type) {
 };
 
 Worker.prototype._set = function(what, value) {
-	if (!this._loaded) {
-		this._init();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+		x.unshift('data');
 	}
-	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-		data = this[x.shift()];
+	if (x[0] === 'data') {
+		if (!this._loaded) {
+			this._init();
+		}
+		this._unflush();
 	}
+	data = this[x.shift()];
 	try {
 		switch(x.length) {
 			case 0:	data = value; break; // Nobody should ever do this!!
@@ -249,8 +257,10 @@ Worker.prototype._set = function(what, value) {
 			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
 			default:break;
 		}
-		this._save();
-	} catch(e) {}
+//		this._save();
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
+	}
 	return null;
 };
 

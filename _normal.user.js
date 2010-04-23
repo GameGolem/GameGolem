@@ -77,7 +77,7 @@ if (typeof APP !== 'undefined') {
 			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 		} catch(e) {
 			log('ERROR: Bad Page Load!!!');
-			window.location.href = window.location.href; // Force reload without retrying
+			Page.reload();
 			return;
 		}
 		do_css();
@@ -234,7 +234,7 @@ var makeTimer = function(sec) {
 
 var WorkerByName = function(name) { // Get worker object by Worker.name
 	for (var i=0; i<Workers.length; i++) {
-		if (Workers[i].name === name) {
+		if (Workers[i].name.toLowerCase() === name.toLowerCase()) {
 			return Workers[i];
 		}
 	}
@@ -624,14 +624,17 @@ Worker.prototype._flush = function() {
 };
 
 Worker.prototype._get = function(what) { // 'path.to.data'
-	if (!this._loaded) {
-		this._init();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+		x.unshift('data');
 	}
-	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-		data = this[x.shift()];
+	if (x[0] === 'data') {
+		if (!this._loaded) {
+			this._init();
+		}
+		this._unflush();
 	}
+	data = this[x.shift()];
 	try {
 		switch(x.length) {
 			case 0:	return data;
@@ -644,7 +647,9 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			default:break;
 		}
-	} catch(e) {}
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+	}
 	return null;
 };
 
@@ -741,14 +746,17 @@ Worker.prototype._save = function(type) {
 };
 
 Worker.prototype._set = function(what, value) {
-	if (!this._loaded) {
-		this._init();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+		x.unshift('data');
 	}
-	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.data;
-	if (x.length && (x[0] === 'data' || x[0] === 'option' || x[0] === 'runtime')) {
-		data = this[x.shift()];
+	if (x[0] === 'data') {
+		if (!this._loaded) {
+			this._init();
+		}
+		this._unflush();
 	}
+	data = this[x.shift()];
 	try {
 		switch(x.length) {
 			case 0:	data = value; break; // Nobody should ever do this!!
@@ -761,8 +769,10 @@ Worker.prototype._set = function(what, value) {
 			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
 			default:break;
 		}
-		this._save();
-	} catch(e) {}
+//		this._save();
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
+	}
 	return null;
 };
 
@@ -977,7 +987,7 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'_');
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'-');
 	show = findInArray(Config.option.active, worker.id);
 	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced"' + (Config.option.advanced ? '' : ' style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
@@ -987,8 +997,8 @@ Config.makePanel = function(worker) {
 				txt = [];
 				list = [];
 				o = $.extend(true, {}, options, display[i]);
-				o.real_id = PREFIX + worker.name + '_' + o.id;
-				o.value = worker.option[o.id] || null;
+				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/,'-') + '_' + o.id;
+				o.value = worker.get('option.'+o.id) || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.hr) {
 					txt.push('<br><hr style="clear:both;margin:0;">');
@@ -1141,17 +1151,20 @@ Config.updateOptions = function() {
 				return;
 			}
 			if ($(el).attr('type') === 'checkbox') {
-				WorkerByName(tmp[0]).option[tmp[1]] = $(el).attr('checked');
+				val = $(el).attr('checked');
 			} else if ($(el).attr('multiple')) {
 				val = [];
 				$('option', el).each(function(i,el){ val.push($(el).text()); });
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
 			} else {
 				val = $(el).attr('value') || ($(el).val() || null);
 				if (val && val.search(/[^0-9.]/) === -1) {
 					val = parseFloat(val);
 				}
-				WorkerByName(tmp[0]).option[tmp[1]] = val;
+			}
+			try {
+				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
+			} catch(e) {
+				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + tmp.toSource() + ') = ' + e.message);
 			}
 		}
 	});
@@ -1444,7 +1457,7 @@ Page.work = function(state) {
 
 Page.identify = function() {
 	this.page = '';
-	if (!$('#app'+APPID+'_globalContainer').length) {
+	if (!$('#app_content_'+APPID).length) {
 		this.reload();
 		return null;
 	}
@@ -1530,7 +1543,8 @@ Page.ajaxload = function() {
 };
 
 Page.reload = function() {
-	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
+	debug('Page.reload()');
+	window.location.href = window.location.href;
 };
 
 Page.click = function(el) {
@@ -1828,7 +1842,11 @@ Settings.update = function(type) {
 	}
 };
 
-Settings.set = function(what) {
+Settings.set = function(what, value) {
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
+		return this._set(what, value);
+	}
 	this._unflush();
 	this.data[what] = {};
 	for (var i in Workers) {
@@ -1839,6 +1857,10 @@ Settings.set = function(what) {
 };
 
 Settings.get = function(what) {
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
+		return this._get(what);
+	}
 	this._unflush();
 	if (this.data[what]) {
 		for (var i in Workers) {
@@ -3500,7 +3522,7 @@ History.defaults = {
 History.dashboard = function() {
 	var i, max = 0, list = [], output = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.average')}));
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
 	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
@@ -4353,7 +4375,7 @@ Monster.runtime = {
 
 Monster.display = [
 	{
-		label:'<b>---Fortification/Dispel---</b>'
+		title:'Fortification/Dispel'
 	},{
 		id:'fortify',
 		label:'Fortify Below',
@@ -4370,7 +4392,7 @@ Monster.display = [
 		checkbox:true,
 		help:'Must be checked to fortify.'
 	},{
-		label:'<b>---Who To Fight---</b>'
+		title:'Who To Fight'
 	},{
 		advanced:true,
 		id:'ignore_stats',
@@ -4387,7 +4409,7 @@ Monster.display = [
 		select:['Never', 'Achievement', 'Loot'],
 		help:'Select when to stop attacking a target.'
 	},{
-		label:'<b>---Raids---</b>'
+		title:'Raids'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -4408,7 +4430,7 @@ Monster.display = [
 		checkbox:true,
 		help:'Force the first player in the list to aid.'
 	},{
-		label:'<b>---Dashboard Options---</b>'
+		title:'Dashboard Options'
 	},{
 		id:'assist',
 		label:'Use Assist Links in Dashboard',

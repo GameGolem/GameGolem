@@ -60,7 +60,7 @@ if (typeof APP !== 'undefined') {
 			imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 		} catch(e) {
 			log('ERROR: Bad Page Load!!!');
-			window.location.href = window.location.href; // Force reload without retrying
+			Page.reload();
 			return;
 		}
 		do_css();

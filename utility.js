@@ -71,7 +71,7 @@ var makeTimer = function(sec) {
 
 var WorkerByName = function(name) { // Get worker object by Worker.name
 	for (var i=0; i<Workers.length; i++) {
-		if (Workers[i].name === name) {
+		if (Workers[i].name.toLowerCase() === name.toLowerCase()) {
 			return Workers[i];
 		}
 	}

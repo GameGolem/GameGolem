@@ -35,7 +35,7 @@ Monster.runtime = {
 
 Monster.display = [
 	{
-		label:'<b>---Fortification/Dispel---</b>'
+		title:'Fortification/Dispel'
 	},{
 		id:'fortify',
 		label:'Fortify Below',
@@ -52,7 +52,7 @@ Monster.display = [
 		checkbox:true,
 		help:'Must be checked to fortify.'
 	},{
-		label:'<b>---Who To Fight---</b>'
+		title:'Who To Fight'
 	},{
 		advanced:true,
 		id:'ignore_stats',
@@ -69,7 +69,7 @@ Monster.display = [
 		select:['Never', 'Achievement', 'Loot'],
 		help:'Select when to stop attacking a target.'
 	},{
-		label:'<b>---Raids---</b>'
+		title:'Raids'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -90,7 +90,7 @@ Monster.display = [
 		checkbox:true,
 		help:'Force the first player in the list to aid.'
 	},{
-		label:'<b>---Dashboard Options---</b>'
+		title:'Dashboard Options'
 	},{
 		id:'assist',
 		label:'Use Assist Links in Dashboard',

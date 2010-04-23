@@ -140,7 +140,7 @@ Page.work = function(state) {
 
 Page.identify = function() {
 	this.page = '';
-	if (!$('#app'+APPID+'_globalContainer').length) {
+	if (!$('#app_content_'+APPID).length) {
 		this.reload();
 		return null;
 	}
@@ -226,7 +226,8 @@ Page.ajaxload = function() {
 };
 
 Page.reload = function() {
-	window.location.href = 'http://apps.facebook.com/castle_age/index.php?bm=1';
+	debug('Page.reload()');
+	window.location.href = window.location.href;
 };
 
 Page.click = function(el) {
