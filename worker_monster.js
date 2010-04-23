@@ -316,8 +316,8 @@ Monster.types = {
 
 Monster.dispel = ['input[src=$"button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="seamonster_fortify.gif"]', 'input[src$="nm_secondary_heal.gif"]', 'input[src$="nm_secondary_strengthen.gif"]'];
-Monster.strengthen = ['input[src$="nm_secondary_strengthen.gif"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]', 'input[src$="nm_primary_bolt.gif"]', 'input[src$="nm_primary_stab.gif"]'];
+Monster.secondary = ['input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
