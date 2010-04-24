@@ -55,19 +55,19 @@ Config.init = function() {
 refreshPositions:true, stop:function(){Config.updateOptions();} })
 		.droppable({ tolerance:'pointer', over:function(e,ui) {
 			var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-			if (me.settings.before) {
-				for(i=0; i<me.settings.before.length; i++) {
-//					debug('Compare '+me.settings.before[i]+' ('+arrayIndexOf(order, me.settings.before[i])+') <= '+me.name+' ('+newplace+')'); 
-					if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-						return;
+			if (arrayIndexOf(order, 'Idle') >= newplace) {
+				if (me.settings.before) {
+					for(i=0; i<me.settings.before.length; i++) {
+						if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+							return;
+						}
 					}
 				}
-			}
-			if (me.settings.after) {
-				for(i=0; i<me.settings.after.length; i++) {
-//					debug('Compare '+me.settings.after[i]+' ('+arrayIndexOf(order, me.settings.after[i])+') >= '+me.name+' ('+newplace+')'); 
-					if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-						return;
+				if (me.settings.after) {
+					for(i=0; i<me.settings.after.length; i++) {
+						if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+							return;
+						}
 					}
 				}
 			}
