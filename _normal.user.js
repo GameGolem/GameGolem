@@ -2726,7 +2726,7 @@ Elite.work = function(state) {
 		}
 		return true;
 	}
-	if ((!this.option.elite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || (this.runtime.waitarena + (this.option.every * 3600000)) > Date.now())) {
+	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || !this.runtime.nextarena || (this.runtime.waitarena + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
 	if (!state) {
