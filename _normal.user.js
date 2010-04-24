@@ -1959,6 +1959,7 @@ Alchemy.defaults = {
 
 Alchemy.data = {
 	ingredients:{},
+	summons:{},
 	recipe:{}
 };
 
@@ -2017,12 +2018,10 @@ Alchemy.parse = function(change) {
 
 Alchemy.update = function() {
 	var best = null, recipe = this.data.recipe, r, i;
-	if (!this.option.summon) {
-		for (r in recipe) {
-			if (recipe[r].type === 'Summons') {
-				for (i in recipe[r].ingredients) {
-					this.data.ingredients[i] = 0;
-				}
+	for (r in recipe) {
+		if (recipe[r].type === 'Summons') {
+			for (i in recipe[r].ingredients) {
+				this.data.summons[i] = true;
 			}
 		}
 	}
@@ -2030,7 +2029,7 @@ Alchemy.update = function() {
 		if (recipe[r].type === 'Recipe') {
 			best = r;
 			for (i in recipe[r].ingredients) {
-				if ((!this.option.hearts && i === 'raid_hearts.gif') || recipe[r].ingredients[i] > (this.data.ingredients[i] || 0)) {
+				if ((!this.option.hearts && i === 'raid_hearts.gif') || (!this.option.summon && this.data.summons[i]) || recipe[r].ingredients[i] > (this.data.ingredients[i] || 0)) {
 					best = null;
 					break;
 				}
@@ -2049,12 +2048,9 @@ Alchemy.work = function(state) {
 		return true;
 	}
 	debug('Alchemy: Perform - ' + this.runtime.best);
-	$('div.alchemyRecipeBack').each(function(i,el){
-		if($('div.recipeTitle', el).text().indexOf(this.runtime.best) >= 0) {
-			Page.click($('input[type="image"]', el));
-			return true;
-		}
-	});
+	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
+		Page.reload(); // Can't find the recipe we just parsed when coming here...
+	}
 	return true;
 };
 
