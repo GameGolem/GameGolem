@@ -987,7 +987,7 @@ Config.makePanel = function(worker) {
 	if (!display) {
 		return false;
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/,'-');
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	show = findInArray(Config.option.active, worker.id);
 	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced"' + (Config.option.advanced ? '' : ' style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
@@ -997,7 +997,7 @@ Config.makePanel = function(worker) {
 				txt = [];
 				list = [];
 				o = $.extend(true, {}, options, display[i]);
-				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/,'-') + '_' + o.id;
+				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
 				o.value = worker.get('option.'+o.id) || null;
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.hr) {
@@ -1810,7 +1810,7 @@ Settings.update = function(type) {
 	if (type === 'option') {
 		var i, list = [];
 		if (this.oldwhich !== this.option.which) {
-			$('#' + PREFIX + this.name + '_name').val(this.option.which);
+			$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_name').val(this.option.which);
 			this.option.name = this.option.which;
 			this.oldwhich = this.option.which;
 		}
@@ -1819,9 +1819,11 @@ Settings.update = function(type) {
 			case 'None':
 				break;
 			case 'Load':
+				debug('Settings: Loading ' + this.option.which);
 				this.get(this.option.which);
 				break;
 			case 'Save':
+				debug('Settings: Saving ' + this.option.name);
 				this.set(this.option.name);
 				this.option.which = this.option.name;
 				break;
@@ -1833,7 +1835,7 @@ Settings.update = function(type) {
 				this.option.name = '- default -';
 				break;
 		}
-		$('#' + PREFIX + this.name + '_action').val('None');
+		$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_action').val('None');
 		this.option.action = 'None';
 		for (i in this.data) {
 			list.push(i);
@@ -2370,7 +2372,7 @@ Battle.update = function(type) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && Monster.get('runtime.count')) {
+	if (!points && this.option.monster && Monster.get('runtime.uid') && Monster.get('runtime.type')) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -4940,7 +4942,7 @@ Monster.update = function(what) {
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], uid = this.runtime.uid, type = this.runtime.type, btn = null;
 
-	if (!this.runtime.check && (!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health)) {
+	if (!this.runtime.check && (!uid || !type || ((!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health)))) {
 		return false;
 	}
 	if (!state) {
@@ -4955,8 +4957,9 @@ Monster.work = function(state) {
 				}
 			}
 		}
+		this.runtime.check = false;
+		return true;
 	}
-
 	if (this.types[type].raid) { // Raid has different buttons and generals
 		if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;

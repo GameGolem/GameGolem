@@ -600,7 +600,7 @@ Monster.update = function(what) {
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], uid = this.runtime.uid, type = this.runtime.type, btn = null;
 
-	if (!this.runtime.check && (!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health)) {
+	if (!this.runtime.check && (!uid || !type || ((!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health)))) {
 		return false;
 	}
 	if (!state) {
@@ -615,8 +615,9 @@ Monster.work = function(state) {
 				}
 			}
 		}
+		this.runtime.check = false;
+		return true;
 	}
-
 	if (this.types[type].raid) { // Raid has different buttons and generals
 		if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;
