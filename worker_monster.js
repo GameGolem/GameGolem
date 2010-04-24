@@ -593,6 +593,8 @@ Monster.update = function(what) {
 		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid
 		Dashboard.status(this, (this.runtime.fortify ? (this.data[uid][type].dispel ? 'Dispel' : 'Fortify') : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 	} else {
+		this.runtime.attack = false;
+		this.runtime.fortify = false;
 		Dashboard.status(this, 'Nothing to do.');
 	}
 };
@@ -600,7 +602,7 @@ Monster.update = function(what) {
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], uid = this.runtime.uid, type = this.runtime.type, btn = null;
 
-	if (!this.runtime.check && (!uid || !type || ((!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health)))) {
+	if (!this.runtime.check && ((!this.runtime.fortify || Queue.burn.energy < 10 || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health))) {
 		return false;
 	}
 	if (!state) {
