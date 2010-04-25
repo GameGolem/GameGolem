@@ -1378,6 +1378,7 @@ Page.defaults = {
 			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
 			oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
 			oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+			oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
 			keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
 			keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
 			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
@@ -2977,14 +2978,14 @@ Generals.best = function(type) {
 			return (best || 'any');
 		case 'raid-invade':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && (2*Generals.data[i].invade.att + Generals.data[i].invade.def) > (2*Generals.data[best].invade.att + Generals.data[best].invade.def))) {
+				if (!best || (Generals.data[i].invade && (Generals.data[i].invade.att) > (Generals.data[best].invade.att))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'raid-duel':
 			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && (2*Generals.data[i].duel.att + Generals.data[i].duel.def) > (2*Generals.data[best].duel.att + Generals.data[best].duel.def))) {
+				if (!best || (Generals.data[i].duel && (Generals.data[i].duel.att) > (Generals.data[best].duel.att))) {
 					best = i;
 				}
 			}
