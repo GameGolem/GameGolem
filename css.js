@@ -17,7 +17,7 @@ $('head').append("<style type=\"text/css\">\
 #golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
 #golem-dashboard tbody th { text-align: left; font-weight: normal; }\
 #golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
-#golem-dashboard > div { height: 163px; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
+#golem-dashboard > div { height: 163px; overflow: hidden; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
 #golem-dashboard > div > div { padding: 2px; }\
 #golem-dashboard .golem-status { width: 100%; }\
 #golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
