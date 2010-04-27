@@ -77,6 +77,10 @@ Quest.parse = function(change) {
 			delete quest[i];
 		}
 	}
+	if ($('div.quests_background,div.quests_background_sub').length !== $('div.quests_background .quest_progress,div.quests_background_sub .quest_sub_progress').length) {
+		Page.to(Page.page, '');// Force a page reload as we're pretty sure it's a bad page load!
+		return false;
+	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
 		var name, level, influence, reward, units, energy, tmp, type = 0;
 		if ($(el).hasClass('quests_background_sub')) { // Subquest
@@ -159,8 +163,8 @@ Quest.update = function(type) {
 		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
-		debug('Quest: option = ' + this.option.what);
-		best = (this.runtime.best && (this.data[this.runtime.best].influence < 100) ? this.runtime.best : null);
+//		debug('Quest: option = ' + this.option.what);
+//		best = (this.runtime.best && this.data[this.runtime.best] && (this.data[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in this.data) {
 			switch(this.option.what) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
@@ -190,15 +194,6 @@ Quest.update = function(type) {
 					}
 					break;
 			}
-/* Old code
-			if ((this.option.what === 'Influence' && typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy))
-			|| (this.option.what === 'Experience' && (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)))
-			|| (this.option.what === 'Cash' && (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)))
-			|| (this.option.what === 'Advancement' && this.data[i].area == 'quest' && (this.data[i].influence < 100 && (!best || (this.data[i].land > this.data[best].land)) || (best && (this.data[i].land == this.data[best].land) && this.data[i].itemimg && (this.data[i].itemimg.search(/boss_/i) != -1))))
-			|| (this.option.what !== 'Influence' && this.option.what !== 'Experience' && this.option.what !== 'Cash' && this.option.what !== 'Advancement' && this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy))) {
-				best = i;
-			}
-*/
 		}
 	}
 	if (best !== this.runtime.best) {
@@ -206,25 +201,24 @@ Quest.update = function(type) {
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
 			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
-		} else {
-			// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
-			if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
-				this.option.what = 'Experience';
-				$('#' + PREFIX + this.name + '_what').val('Experience');
-				Dashboard.status(this, 'No quests found, switching to Experience');
-			} else if (this.option.what === 'Advancement') { // Main quests at 100%, let's change to Influence
-				this.option.what = 'Influence';
-				$('#' + PREFIX + this.name + '_what').val('Influence');
-				Dashboard.status(this, 'No unfinished lands found, switching to Influence');
-			} else {
-				Dashboard.status(this);
-			}
 		}
 	}
 	if (best) {
 		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (typeof this.data[best].influence !== 'undefined' ? (', influence: ' + this.data[best].influence + '%)') : ''));
+	} else {
+		// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
+		if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
+			this.option.what = 'Experience';
+			$('select:golem(quest,what)').val('Experience');
+			Dashboard.status(this, 'No quests found, switching to Experience');
+		} else if (this.option.what === 'Advancement') { // Main quests at 100%, let's change to Influence
+			this.option.what = 'Influence';
+			$('select:golem(quest,what)').val('Influence');
+			Dashboard.status(this, 'No unfinished lands found, switching to Influence');
+		} else {
+			Dashboard.status(this);
+		}
 	}
-
 };
 
 Quest.work = function(state) {

@@ -7,7 +7,8 @@ Title.data = null;
 
 Title.settings = {
 	system:true,
-	unsortable:true
+	unsortable:true,
+	advanced:true
 };
 
 Title.option = {
@@ -25,7 +26,8 @@ Title.display = [
 		text:true,
 		size:24
 	},{
-		info:'Useful Values:<br>{energy}/{maxenergy} - Energy<br>{stamina}/{maxstamina} - Stamina<br>{level} - Level<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
+		title:'Useful Values',
+		info:'{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
 	}
 ];
 
