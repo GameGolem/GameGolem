@@ -388,14 +388,14 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 					list[units[i]].use = {};
 				}
 				list[units[i]].use[(user+'_'+x)] = Math.min(count, own);
-			} else if (list[units[i]].use) {
-				delete list[units[i]].use[user+'_'+x];
+			} else if (length(list[units[i]].use)) {
+				delete list[units[i]].use[(user+'_'+x)];
 				if (!length(list[units[i]].use)) {
 					delete list[units[i]].use;
 				}
 			}
 		}
-		if (count <= 0) {break;}
+//		if (count <= 0) {break;}
 		own = Math.min(count, own);
 		attack += own * list[units[i]].att;
 		defend += own * list[units[i]].def;
@@ -4916,12 +4916,12 @@ Monster.update = function(what) {
 	this.runtime.check = false;
 	for (i in this.data) { // Look for a new target...
 		for (j in this.data[i]) {
-			if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < (Date.now() - 3600000)) && (typeof this.data[i][j].ignore !== 'undefined' && !this.data[i][j].ignore)) { // Check monster progress every hour
+			if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < (Date.now() - 3600000)) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) { // Check monster progress every hour
 				this.runtime.check = true; // Do we need to parse info from a blank monster?
 				break;
 			}
 //			debug('Checking monster '+i+'\'s '+j);
-			if ((typeof this.data[i][j].ignore !== 'undefined' && !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Player.get('stamina') >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
+			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
 				switch(this.option.stop) {
 					default:
 					case 'Never':
@@ -5006,7 +5006,7 @@ Monster.work = function(state) {
 	if (this.runtime.check) { // Parse pages of monsters we've not got the info for
 		for (i in this.data) {
 			for (j in this.data[i]) {
-				if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - 3600000) && (typeof this.data[i][j].ignore !== 'undefined' && !this.data[i][j].ignore)) {
+				if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - 3600000) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
 					Page.to(this.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
 					return true;
 				}
@@ -5903,7 +5903,7 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {Queue:runtime.current}, {energy}e, {stamina}s, {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {Queue:runtime.current} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
 };
 
 Title.display = [

@@ -13,7 +13,7 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {Queue:runtime.current}, {energy}e, {stamina}s, {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {Queue:runtime.current} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
 };
 
 Title.display = [

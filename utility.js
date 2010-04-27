@@ -225,14 +225,14 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 					list[units[i]].use = {};
 				}
 				list[units[i]].use[(user+'_'+x)] = Math.min(count, own);
-			} else if (list[units[i]].use) {
-				delete list[units[i]].use[user+'_'+x];
+			} else if (length(list[units[i]].use)) {
+				delete list[units[i]].use[(user+'_'+x)];
 				if (!length(list[units[i]].use)) {
 					delete list[units[i]].use;
 				}
 			}
 		}
-		if (count <= 0) {break;}
+//		if (count <= 0) {break;}
 		own = Math.min(count, own);
 		attack += own * list[units[i]].att;
 		defend += own * list[units[i]].def;
