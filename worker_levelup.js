@@ -195,6 +195,12 @@ LevelUp.work = function(state) {
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
+		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
+			Generals.set('runtime.disabled', false);
+			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
+			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
+			Battle.set('option.monster', runtime.battle_monster);
+			runtime.running = false;
 		}
 		return false;
 	}
@@ -205,17 +211,19 @@ LevelUp.work = function(state) {
 		runtime.heal_me = false;
 	}
 	if (!runtime.running || state) { // We're not running yet, or we have focus
-		general = Generals.best(this.option.general); // Get our level up general
-		if (general && general !== 'any' && general !== Player.get('general')) { // If we want to change...
-			if (!state || !Generals.to(this.option.general)) { // ...then change
-				return true;
-			}
-		}
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
 		Battle.set('option.monster', false);
-		Generals.set('runtime.disabled', true);
+	}
+	general = Generals.best(this.option.general); // Get our level up general
+	if (general && general !== 'any' && Player.get('exp_needed') < 25) { // If we want to change...
+		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
+		if (general === Player.get('general') || Generals.to(this.option.general)) { // ...then change if needed
+			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
+		} else {
+			return true;	// Try to change generals again
+		}
 	}
 	// We don't have focus, but we do want to level up quicker
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything

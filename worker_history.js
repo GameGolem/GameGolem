@@ -272,11 +272,8 @@ History.makeGraph = function(type, title, iscash, goal) {
 		if (this.data[i]) {
 			for (j in type) {
 				value[i][j] = this.get(i + '.' + type[j]);
-				if (typeof value[i][j] !== 'undefined') {
-					min = Math.min(min, value[i][j]);
-					max = Math.max(max, value[i][j]);
-				}
 			}
+			min = Math.min(min, sum(value[i]));
 			max = Math.max(max, sum(value[i]));
 		}
 	}
@@ -308,8 +305,10 @@ History.makeGraph = function(type, title, iscash, goal) {
 		output = [];
 		numbers = [];
 		title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
+		var count = 0;
 		for (j in value[i]) {
-			bars.push('<div style="height:' + Math.max(Math.ceil((value[i][j] - min) / (max - min) * 100), 0) + 'px;"></div>');
+			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
+			count++;
 			if (value[i][j]) {
 				numbers.push((value[i][j] ? (iscash ? '$' : '') + addCommas(value[i][j]) : ''));
 			}
