@@ -5647,6 +5647,7 @@ Quest.parse = function(change) {
 			}
 		}
 	});
+	this.data = sortObject(quest, function(a,b){return a > b;});// So they always appear in the same order
 	return false;
 };
 
