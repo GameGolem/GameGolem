@@ -322,7 +322,7 @@ Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_backgr
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
 Monster.secondary_img = ['img[src$="nm_stun_bar.gif"]'];
-Monster.class_img = ['img[src$="nm_class_warrior.jpg"]', 'img[src$="nm_class_cleric.jpg"]', 'img[src$="nm_class_rogue.jpg"]', 'img[src$="nm_class_mage.jpg"]', ];
+Monster.class_img = ['img[src$="nm_class_warrior.jpg"]', 'img[src$="nm_class_cleric.jpg"]', 'img[src$="nm_class_rogue.jpg"]', 'img[src$="nm_class_mage.jpg"]'];
 Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage'];
 
 Monster.init = function() {
