@@ -92,7 +92,7 @@ Page.parse_all = function() {
 	Page.identify();
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
-		if (Workers[i].pages && (Workers[i].pages==='*' || (Page.page && Workers[i].pages.indexOf(Page.page)>=0)) && Workers[i].parse) {
+		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page && Workers[i].pages.indexOf(Page.page)>=0))) {
 			Workers[i]._unflush();
 			if (Workers[i]._parse(false)) {
 				list.push(Workers[i]);
@@ -114,14 +114,13 @@ Page.work = function(state) {
 	}
 	var i, l, list, found = null;
 	for (i=0; i<Workers.length && !found; i++) {
-		if (!Workers[i].pages || Workers[i].pages==='*') {
-			continue;
-		}
-		list = Workers[i].pages.split(' ');
-		for (l=0; l<list.length; l++) {
-			if (this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
-				found = list[l];
-				break;
+		if (Workers[i].pages) {
+			list = Workers[i].pages.split(' ');
+			for (l=0; l<list.length; l++) {
+				if (list[l] !== '*' && this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
+					found = list[l];
+					break;
+				}
 			}
 		}
 	}
