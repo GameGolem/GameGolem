@@ -180,7 +180,7 @@ Monster.types = {
 		list:'death_list.jpg',
 		image:'death_large.jpg',
 		dead:'death_dead.jpg',
-		achievement:10000000,
+		achievement:1000000,
 		timer:345000, // 95 hours, 50 minutes
 		mpool:1		
 	},
@@ -290,7 +290,7 @@ Monster.types = {
 		list:'earth_element_list.jpg',
 		image:'earth_element_large.jpg',
 		dead:'earth_element_dead.jpg',
-		achievement:10000000,
+		achievement:1000000,
 		timer:604800, // 168 hours
 		mpool:3		
 	},
@@ -299,7 +299,7 @@ Monster.types = {
 		list:'water_list.jpg',
 		image:'water_large.jpg',
 		dead:'water_dead.jpg',
-		achievement:10000000,
+		achievement:1000000,
 		timer:604800, // 168 hours
 		mpool:3		
 	},
@@ -308,7 +308,7 @@ Monster.types = {
 		list:'nm_volcanic_list.jpg',
 		image:'nm_volcanic_large.jpg',
 		dead:'nm_volcanic_dead.jpg',
-		achievement:10000000, // Guesswork
+		achievement:1000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3	
 	}
@@ -557,12 +557,12 @@ Monster.update = function(what) {
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
-						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= this.types[j].achievement) {
+						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < this.types[j].achievement) {
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
-						if (this.types[j].achievement && this.data[i][j].damage[userID] && this.data[i][j].damage[userID] <= ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
+						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
