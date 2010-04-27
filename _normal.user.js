@@ -358,12 +358,15 @@ var arrayLastIndexOf = function(list, value) {
 
 
 var sortObject = function(object, sortfunc) {
-	var list = [];
+	var list = [], output = {};
 	for (i in object) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
-	return list;
+	for (i=0; i<list.length; i++) {
+		output[list[i]] = object[list[i]];
+	}
+	return output;
 };
 
 var getAttDefList = [];
@@ -3645,14 +3648,14 @@ History.math = {
 		return list[Math.floor(list.length / 2)];
 	},
 	mode: function(list) {
-		var i, j = 0, count = 0, num = {}, tmp;
+		var i, j = 0, count = 0, num = {};
 		for (i in list) {
 			num[list[i]] = (num[list[i]] || 0) + 1
 		}
-		tmp = sortObject(num, function(a,b){return num[b]-num[a];});
-		for (i in tmp) {
-			if (num[tmp[i]] === num[tmp[0]]) {
-				j += parseInt(tmp[i]);
+		num = sortObject(num, function(a,b){return num[b]-num[a];});
+		for (i in num) {
+			if (num[i] === num[0]) {
+				j += parseInt(num[i]);
 				count++;
 			}
 		}
@@ -5261,9 +5264,8 @@ News.parse = function(change) {
 			list.push('You ' + (cash >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + '<b class="gold">$' + addCommas(Math.abs(cash)) + '</b></span>.');
 			list.push('You ' + (bp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(bp)) + '</span> Battle Points.');
 			list.push('');
-			order = sortObject(user, function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
-			for (j=0; j<order.length; j++) {
-				i = order[j];
+			user = sortObject(user, function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
+			for (i in user) {
 				list.push('<strong title="' + i + '">' + user[i].name + '</strong> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + (user[i].win>1?'s':'') : '') + (user[i].lose ? (user[i].win ? ' and ' : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + (user[i].lose>1?'s':'') : '') + '.');
 			}
 			if (deaths) {

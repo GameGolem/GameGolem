@@ -137,14 +137,14 @@ History.math = {
 		return list[Math.floor(list.length / 2)];
 	},
 	mode: function(list) {
-		var i, j = 0, count = 0, num = {}, tmp;
+		var i, j = 0, count = 0, num = {};
 		for (i in list) {
 			num[list[i]] = (num[list[i]] || 0) + 1
 		}
-		tmp = sortObject(num, function(a,b){return num[b]-num[a];});
-		for (i in tmp) {
-			if (num[tmp[i]] === num[tmp[0]]) {
-				j += parseInt(tmp[i]);
+		num = sortObject(num, function(a,b){return num[b]-num[a];});
+		for (i in num) {
+			if (num[i] === num[0]) {
+				j += parseInt(num[i]);
 				count++;
 			}
 		}

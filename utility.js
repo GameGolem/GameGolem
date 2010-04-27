@@ -195,12 +195,15 @@ var arrayLastIndexOf = function(list, value) {
 
 
 var sortObject = function(object, sortfunc) {
-	var list = [];
+	var list = [], output = {};
 	for (i in object) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
-	return list;
+	for (i=0; i<list.length; i++) {
+		output[list[i]] = object[list[i]];
+	}
+	return output;
 };
 
 var getAttDefList = [];
