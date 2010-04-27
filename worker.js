@@ -117,9 +117,7 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
+		!this._loaded && this._init();
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -146,12 +144,10 @@ Worker.prototype._init = function() {
 		return;
 	}
 	this._loaded = true;
-	if (this.init) {
-		try {
-			this.init();
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
-		}
+	try {
+		this.init && this.init();
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 	}
 };
 
@@ -187,12 +183,10 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._parse = function(change) {
-	if (this.parse) {
-		try {
-			return this.parse(change);
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
-		}
+	try {
+		return this.parse && this.parse(change);
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 	}
 	return false;
 };
@@ -239,9 +233,7 @@ Worker.prototype._set = function(what, value) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
+		!this._loaded && this._init();
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -278,12 +270,8 @@ Worker.prototype._setup = function() {
 };
 
 Worker.prototype._unflush = function() {
-	if (!this._loaded) {
-		this._init();
-	}
-	if (!this.settings.keep && !this.data) {
-		this._load('data');
-	}
+	!this._loaded && this._init();
+	!this.settings.keep && !this.data && this._load('data');
 };
 
 Worker.prototype._update = function(type) {
@@ -294,49 +282,36 @@ Worker.prototype._update = function(type) {
 			flush = true;
 			this._unflush();
 		}
-		if (this.update) {
-			try {
-				this.update(type);
-			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
-			}
+		try {
+			this.update && this.update(type);
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
 		}
 		for (i=0; i<this._watching.length; i++) {
 			if (this._watching[i] === this) {
-				if (this.update) {
-					try {
-						this.update(this);
-					}catch(e) {
-						debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
-					}
+				try {
+					this.update && this.update(this);
+				}catch(e) {
+					debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
 				}
 			} else {
 				this._watching[i]._update(this);
 			}
 		}
-		if (flush) {
-			this._flush();
-		}
+		flush && this._flush();
 		this._working.update = false;
 	}
 };
 
 Worker.prototype._watch = function(worker) {
-	for (var i=0; i<worker._watching.length; i++) {
-		if (worker._watching[i] === this) {
-			return;
-		}
-	}
-	worker._watching.push(this);
+	!findInArray(worker._watching,this) && worker._watching.push(this);
 };
 
 Worker.prototype._work = function(state) {
-	if (this.work) {
-		try {
-			return this.work(state);
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
-		}
+	try {
+		return this.work && this.work(state);
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
 	return false;
 };

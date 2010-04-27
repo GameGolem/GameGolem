@@ -241,6 +241,8 @@ LevelUp.work = function(state) {
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
+		case 'timer':		return makeTimer(this.get('level_timer'));
+		case 'time':		return (new Date(this.get('level_time'))).format('l g:i a');
 		case 'level_timer':	return Math.floor((this.get('level_time') - now) / 1000);
 		case 'level_time':	return now + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':

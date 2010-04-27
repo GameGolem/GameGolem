@@ -629,9 +629,7 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
+		!this._loaded && this._init();
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -658,12 +656,10 @@ Worker.prototype._init = function() {
 		return;
 	}
 	this._loaded = true;
-	if (this.init) {
-		try {
-			this.init();
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
-		}
+	try {
+		this.init && this.init();
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 	}
 };
 
@@ -699,12 +695,10 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._parse = function(change) {
-	if (this.parse) {
-		try {
-			return this.parse(change);
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
-		}
+	try {
+		return this.parse && this.parse(change);
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 	}
 	return false;
 };
@@ -751,9 +745,7 @@ Worker.prototype._set = function(what, value) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
+		!this._loaded && this._init();
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -790,12 +782,8 @@ Worker.prototype._setup = function() {
 };
 
 Worker.prototype._unflush = function() {
-	if (!this._loaded) {
-		this._init();
-	}
-	if (!this.settings.keep && !this.data) {
-		this._load('data');
-	}
+	!this._loaded && this._init();
+	!this.settings.keep && !this.data && this._load('data');
 };
 
 Worker.prototype._update = function(type) {
@@ -806,49 +794,36 @@ Worker.prototype._update = function(type) {
 			flush = true;
 			this._unflush();
 		}
-		if (this.update) {
-			try {
-				this.update(type);
-			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
-			}
+		try {
+			this.update && this.update(type);
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
 		}
 		for (i=0; i<this._watching.length; i++) {
 			if (this._watching[i] === this) {
-				if (this.update) {
-					try {
-						this.update(this);
-					}catch(e) {
-						debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
-					}
+				try {
+					this.update && this.update(this);
+				}catch(e) {
+					debug(e.name + ' in ' + this.name + '.update(this): ' + e.message);
 				}
 			} else {
 				this._watching[i]._update(this);
 			}
 		}
-		if (flush) {
-			this._flush();
-		}
+		flush && this._flush();
 		this._working.update = false;
 	}
 };
 
 Worker.prototype._watch = function(worker) {
-	for (var i=0; i<worker._watching.length; i++) {
-		if (worker._watching[i] === this) {
-			return;
-		}
-	}
-	worker._watching.push(this);
+	!findInArray(worker._watching,this) && worker._watching.push(this);
 };
 
 Worker.prototype._work = function(state) {
-	if (this.work) {
-		try {
-			return this.work(state);
-		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
-		}
+	try {
+		return this.work && this.work(state);
+	}catch(e) {
+		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
 	return false;
 };
@@ -1587,7 +1562,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ["Page", "Queue", "Settings", "Income", "LevelUp", "Elite", "Quest", "Monster", "Battle", "Heal", "Land", "Town", "Bank", "Alchemy", "Blessing", "Gift", "Upgrade", "Potions", "Idle"],
+	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Idle'],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -3786,10 +3761,8 @@ History.makeGraph = function(type, title, iscash, goal) {
 		goal = null;
 	}
 	if (goal && length(goal)) {
-		for (i in goal) {
-			min = Math.min(min, goal[i]);
-			max = Math.max(max, goal[i]);
-		}
+		min = Math.min(min, sum(goal));
+		max = Math.max(max, sum(goal));
 	}
 	if (typeof type === 'string') {
 		type = [type];
@@ -3799,11 +3772,8 @@ History.makeGraph = function(type, title, iscash, goal) {
 		if (this.data[i]) {
 			for (j in type) {
 				value[i][j] = this.get(i + '.' + type[j]);
-				if (typeof value[i][j] !== 'undefined') {
-					min = Math.min(min, value[i][j]);
-					max = Math.max(max, value[i][j]);
-				}
 			}
+			min = Math.min(min, sum(value[i]));
 			max = Math.max(max, sum(value[i]));
 		}
 	}
@@ -4369,6 +4339,8 @@ LevelUp.work = function(state) {
 LevelUp.get = function(what) {
 	var now = Date.now();
 	switch(what) {
+		case 'timer':		return makeTimer(this.get('level_timer'));
+		case 'time':		return (new Date(this.get('level_time'))).format('l g:i a');
 		case 'level_timer':	return Math.floor((this.get('level_time') - now) / 1000);
 		case 'level_time':	return now + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
@@ -5860,6 +5832,81 @@ Quest.dashboard = function(sort, rev) {
 	}
 };
 
+/********** Worker.Title **********
+* Changes the window title to user defined data.
+* String may contain {stamina} or {Player:stamina} using the worker name (default Player)
+*/
+var Title = new Worker('Title');
+Title.data = null;
+
+Title.settings = {
+	system:true,
+	unsortable:true
+};
+
+Title.option = {
+	enabled:false,
+	title:"CA: {Queue:runtime.current}, {energy}en, {stamina}st, {exp_needed}xp by {LevelUp:time}"
+};
+
+Title.display = [
+	{
+		id:'enabled',
+		label:'Change Window Title',
+		checkbox:true
+	},{
+		id:'title',
+		text:true,
+		size:24
+	},{
+		info:'Useful Values:<br>{energy}/{maxenergy} - Energy<br>{stamina}/{maxstamina} - Stamina<br>{level} - Level<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
+	}
+];
+
+Title.old = null; // Old title, in case we ever have to change back
+
+Title.init = function() {
+	this._watch(Player);
+};
+
+/***** Title.update() *****
+* 1. Split option.title into sections containing at most one bit of text and one {value}
+* 2. Output the plain text first
+* 3. Split the {value} in case it's really {worker:value}
+* 4. Output worker.get(value)
+* 5. Watch worker for changes
+*/
+Title.update = function(type) {
+	if (this.option.enabled && this.option.title) {
+		var i, tmp, what, worker, value, output = '', parts = this.option.title.match(/([^}]+\}?)/g);// split into "text {option}"
+		for (i in parts) {
+			tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
+			output += tmp[0];
+			if (tmp[1]) {
+				worker = Player;
+				what = tmp[1].split(':');// if option is "worker:value" then deal with it here
+				if (what[1]) {
+					worker = WorkerByName(what.shift());
+				}
+				if (worker) {
+					value = worker.get(what[0]);
+					output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
+					this._watch(worker); // Doesn't matter how often we add, it's only there once...
+				} else {
+					debug('Title: Bad worker specified = "' + tmp[1] + '"');
+				}
+			}
+		}
+		if (!this.old) {
+			this.old = document.title;
+		}
+		document.title = output;
+	} else if (this.old) {
+		document.title = this.old;
+		this.old = null;
+	}
+};
+
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
@@ -5982,7 +6029,7 @@ Town.getInvade = function(army) {
 	var att = 0, def = 0, data = this.data;
 	att += getAttDef(data, function(list,i,units){if (units[i].page==='soldiers'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].type && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade');
 	def += getAttDef(data, null, 'def', army, 'invade');
