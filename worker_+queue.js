@@ -140,6 +140,15 @@ Queue.run = function() {
 		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
 		this.option.burn_energy = this.burn.energy > 0;
 	}
+	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
+	if (Player.get('energy') >= Player.get('maxenergy')){
+		this.burn.stamina = 0;	// Focus on burning energy
+		debug('Queue: At max energy, burning energy first.');
+	} else if (Player.get('stamina') >= Player.get('maxstamina')){
+		this.burn.energy = 0;	// Focus on burning stamina
+		debug('Queue: At max stamina, burning stamina first.');
+	}
+	
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
