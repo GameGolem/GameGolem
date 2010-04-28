@@ -3240,7 +3240,14 @@ Gift.parse = function(change) {
 			this.runtime.gift.sender_ca_name = $('span.result_body').text().regex(/[\t\n]*(.+) has sent you a gift/i);
 			this.runtime.gift.name = $('span.result_body').text().regex(/has sent you a gift:\s+(.+)!/i);
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
-			debug('Gift: ' + this.runtime.gift.sender_ca_name + ' has a gift of ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
+			debug('Gift: ' + this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
+			this.runtime.gift_waiting = true;
+			return true
+		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
+			this.runtime.gift.sender_ca_name = 'A Warrior';
+			this.runtime.gift.name = 'Random Soldier';
+			this.runtime.gift.id = 'random_soldier';
+			debug('Gift: ' + this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
 			return true
 		}
@@ -3264,7 +3271,7 @@ Gift.parse = function(change) {
 		// Accepted gift first
 //		debug('Gift: Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
-			if ($('div.result').text().indexOf('accepted the gift') >= 0) { // and we have just accepted a gift
+			if ($('div.result').text().indexOf('accepted the gift') >= 0 || $('div.result').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
 				debug('Gift: Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 				received.push(this.runtime.gift); // add the gift to our list of received gifts.  We will use this to clear facebook notifications and possibly return gifts
 				this.runtime.work = true;	// We need to clear our facebook notifications and/or return gifts
@@ -3348,46 +3355,45 @@ Gift.work = function(state) {
 		return false;
 	}
 	
-	// We have received gifts and need to clear out the facebook confirmation page
+	// We have received gifts so we need to figure out what to send back.
 	if (received.length) {
 		Page.to('army_gifts');
 		// Fill out our todo list with gifts to send, or not.
-		switch(this.option.type) {
-			case 'Random':
-				for (i in received) {
+		for (i in received){
+			var temptype = this.option.type;
+			if (typeof this.data.gifts[received[i].id] === 'undefined') {
+				debug('Gift: ' + received[i].id+' was not found in our sendable gift list.');
+				temptype = 'Random';
+			}
+			switch(temptype) {
+				case 'Random':
 					if (length(this.data.gifts)) {
 						gift_ids = [];
 						for (j in this.data.gifts) {
 							gift_ids.push(j);
 						}
 						random_gift_id = Math.floor(Math.random() * gift_ids.length);
-						debug('Gift: will randomly send a ' + this.data.gifts[random_gift_id].name + ' to ' + received[i].sender_ca_name);
+						debug('Gift: will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
 						if (!todo[gift_ids[random_gift_id]]) {
 							todo[gift_ids[random_gift_id]] = [];
 						}
 						todo[gift_ids[random_gift_id]].push(received[i].sender_id);
 					}
-				}
-				this.runtime.work = true;
-				break;
-			case 'Same as Received':
-				for (i in received) {
-					if (!length(this.data.gifts[received[i].id])) {
-						debug('Gift: ' + received[i].id+' was not found in our sendable gift list (ignoring).');
-						continue;
-					}
+					this.runtime.work = true;
+					break;
+				case 'Same as Received':
 					debug('Gift: will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
 					if (!todo[received[i].id]) {
 						todo[received[i].id] = [];
 					}
 					todo[received[i].id].push(received[i].sender_id);
-				}
-				this.runtime.work = true;
-				break;
-			case 'None':
-			default:
-				this.runtime.work = false;	// Since we aren't returning gifts, we don't need to do any more work.
-				break;
+					this.runtime.work = true;
+					break;
+				case 'None':
+				default:
+					this.runtime.work = false;	// Since we aren't returning gifts, we don't need to do any more work.
+					break;
+			}
 		}
 		
 		// Clear the facebook notifications and empty the received list.
@@ -3402,9 +3408,9 @@ Gift.work = function(state) {
 	
 	if (this.runtime.gift_sent > Date.now()) {	// We have sent gift(s) and are waiting for the fb popup
 //		debug('Gift: Waiting for FB popup.');
-		if ($('div.dialog_buttons input[value="Send"]').length){
+		if ($('div.dialog_buttons input[name="sendit"]').length){
 			this.runtime.gift_sent = null;
-			Page.click('div.dialog_buttons input[value="Send"]');
+			Page.click('div.dialog_buttons input[name="sendit"]');
 		} else if ($('span:contains("Out of requests")')) {
 			debug('Gift: We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
@@ -3429,7 +3435,7 @@ Gift.work = function(state) {
 						for (j in todo[i]) {
 							if (k< 30) {	// Need to limit to 30 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-									debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
+//									debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
 								}
 								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
@@ -5062,7 +5068,7 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || !$('img[linked][uid="'+uid+'"]').length) {
+	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || typeof $('img[linked][uid="'+uid+'"]') === 'undefined') {
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
