@@ -677,7 +677,7 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || typeof $('img[linked][uid="'+uid+'"]') === 'undefined') {
+	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || $('img[linked]').attr('uid') != uid) {
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}

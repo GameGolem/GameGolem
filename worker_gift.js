@@ -203,7 +203,7 @@ Gift.work = function(state) {
 		// Fill out our todo list with gifts to send, or not.
 		for (i in received){
 			var temptype = this.option.type;
-			if (typeof this.data.gifts[received[i].id] === 'undefined') {
+			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type != 'None') {
 				debug('Gift: ' + received[i].id+' was not found in our sendable gift list.');
 				temptype = 'Random';
 			}
