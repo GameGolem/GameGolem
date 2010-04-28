@@ -4279,8 +4279,6 @@ LevelUp.work = function(state) {
 	if (runtime.running && this.option.income) {
 		if (Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
-		} else {
-			Generals.set('runtime.disabled', true);
 		}
 	}
 	if (runtime.old_quest) {
@@ -4306,12 +4304,14 @@ LevelUp.work = function(state) {
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
+//			debug('LevelUp: running '+runtime.running);
 		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
+//			debug('LevelUp: running '+runtime.running);
 		}
 		return false;
 	}
@@ -4325,12 +4325,14 @@ LevelUp.work = function(state) {
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
+//		debug('LevelUp: running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
 	general = Generals.best(this.option.general); // Get our level up general
 	if (general && general !== 'any' && Player.get('exp_needed') < 25) { // If we want to change...
 		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
-		if (general === Player.get('general') || Generals.to(this.option.general)) { // ...then change if needed
+		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
+//			debug('LevelUp: Disabling Generals because we are within 25 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
 		} else {
 			return true;	// Try to change generals again
@@ -4923,7 +4925,6 @@ Monster.update = function(what) {
 				this.runtime.check = true; // Do we need to parse info from a blank monster?
 				break;
 			}
-//			debug('Checking monster '+i+'\'s '+j);
 			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
 				switch(this.option.stop) {
 					default:
@@ -4931,12 +4932,12 @@ Monster.update = function(what) {
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
-						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < this.types[j].achievement) {
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < this.types[j].achievement)) {
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
-						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {	// Special case for your own Keira to get her soul.
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
