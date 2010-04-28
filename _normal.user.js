@@ -5176,7 +5176,7 @@ Monster.dashboard = function(sort, rev) {
 //		td(output, '<div style="background-image:url(\''+image_url+'\'); background-size: 72px auto contain"><a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong>' + monster.state + '</strong></a></div>', 'title="' + Monster.types[j].name + '"');
 		th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
-		td(output, blank ? '' : isNumber(monster.totaldefense) ? (monster.totaldefense.round(1)-50)+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+(monster.strength.round(1)-50)+'%"' : ''));
+		td(output, blank ? '' : isNumber(monster.totaldefense) ? ((monster.totaldefense-50).round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));
 //		td(output, blank ? '' : isNumber(monster.dispel) ? (monster.dispel).round(1)+'%' : '');
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
