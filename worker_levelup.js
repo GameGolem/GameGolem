@@ -168,8 +168,6 @@ LevelUp.work = function(state) {
 	if (runtime.running && this.option.income) {
 		if (Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
-		} else {
-			Generals.set('runtime.disabled', true);
 		}
 	}
 	if (runtime.old_quest) {
@@ -195,12 +193,14 @@ LevelUp.work = function(state) {
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
+//			debug('LevelUp: running '+runtime.running);
 		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
+//			debug('LevelUp: running '+runtime.running);
 		}
 		return false;
 	}
@@ -214,12 +214,14 @@ LevelUp.work = function(state) {
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
+//		debug('LevelUp: running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
 	general = Generals.best(this.option.general); // Get our level up general
 	if (general && general !== 'any' && Player.get('exp_needed') < 25) { // If we want to change...
 		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
-		if (general === Player.get('general') || Generals.to(this.option.general)) { // ...then change if needed
+		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
+//			debug('LevelUp: Disabling Generals because we are within 25 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
 		} else {
 			return true;	// Try to change generals again

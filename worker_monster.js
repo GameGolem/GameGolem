@@ -549,7 +549,6 @@ Monster.update = function(what) {
 				this.runtime.check = true; // Do we need to parse info from a blank monster?
 				break;
 			}
-//			debug('Checking monster '+i+'\'s '+j);
 			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
 				switch(this.option.stop) {
 					default:
@@ -557,12 +556,12 @@ Monster.update = function(what) {
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
-						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < this.types[j].achievement) {
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < this.types[j].achievement)) {
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
-						if (isNumber(this.types[j].achievement) && isNumber(this.data[i][j].damage[userID]) && this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement)) {	// Special case for your own Keira to get her soul.
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {	// Special case for your own Keira to get her soul.
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
