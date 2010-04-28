@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for castle age game
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		30.9
+// @version		31.0
 // @include		http://apps.facebook.com/castle_age/*
 // @include		http://apps.facebook.com/reqs.php
 // @require		http://cloutman.com/jquery-latest.min.js
@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var a,show_debug=true,VERSION=30.9,script_started=Date.now(),userID=0,imagepath="",applications={"reqs.php":["","Gifts"],castle_age:["46755028429","Castle Age"]};if(window.location.hostname==="apps.facebook.com"||window.location.hostname==="apps.new.facebook.com")for(var i in applications)if(window.location.pathname.indexOf(i)===1){var APP=i,APPID=applications[i][0],APPNAME=applications[i][1],PREFIX="golem"+APPID+"_";break}
+var a,show_debug=true,VERSION=31,script_started=Date.now(),userID=0,imagepath="",applications={"reqs.php":["","Gifts"],castle_age:["46755028429","Castle Age"]};if(window.location.hostname==="apps.facebook.com"||window.location.hostname==="apps.new.facebook.com")for(var i in applications)if(window.location.pathname.indexOf(i)===1){var APP=i,APPID=applications[i][0],APPNAME=applications[i][1],PREFIX="golem"+APPID+"_";break}
 var log=console.log,debug=show_debug?function(b){console.log("["+(new Date).format("G:i:s")+"] "+b)}:function(){};if(typeof unsafeWindow==="undefined")unsafeWindow=window;
 typeof APP!=="undefined"&&$(document).ready(function(){var b;userID=$("head").html().regex(/user:([0-9]+),/i);if(!userID||typeof userID!=="number"||userID===0){log("ERROR: No Facebook UserID!!!");window.location.href=window.location.href}else if(APP!=="reqs.php"){try{imagepath=$("#app"+APPID+"_globalContainer img:eq(0)").attr("src").pathpart()}catch(c){log("ERROR: Bad Page Load!!!");Page.reload();return}do_css();Page.identify();for(b=0;b<Workers.length;b++)Workers[b]._setup();for(b=0;b<Workers.length;b++)Workers[b]._init();
 for(b=0;b<Workers.length;b++){Workers[b]._update();Workers[b]._flush()}Page.parse_all()}});
