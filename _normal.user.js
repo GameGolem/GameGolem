@@ -4941,12 +4941,12 @@ Monster.update = function(what) {
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						break;
 					case 'Achievement':
-						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < this.types[j].achievement)) {
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < this.types[j].achievement)) {
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
 					case 'Loot':
-						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || this.data[i][j].damage[userID] < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {	// Special case for your own Keira to get her soul.
+						if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {	// Special case for your own Keira to get her soul.
 							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
 						}
 						break;
@@ -5120,10 +5120,10 @@ Monster.dashboard = function(sort, rev) {
 //			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[userID] : 0;
 //			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[userID] : 0;
 			if (typeof Monster.data[a[0]][a[1]].damage !== 'undefined'){
-				aa = Monster.data[a[0]][a[1]].damage[userID];
+				aa = sum(Monster.data[a[0]][a[1]].damage[userID]);
 			}
 			if (typeof Monster.data[b[0]][b[1]].damage !== 'undefined'){
-				bb = Monster.data[b[0]][b[1]].damage[userID];
+				bb = sum(Monster.data[b[0]][b[1]].damage[userID]);
 			}
 		}
 		if (typeof aa === 'undefined') {
