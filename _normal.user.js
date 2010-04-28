@@ -4785,7 +4785,7 @@ Monster.parse = function(change) {
 				}
 				monster.state = 'assist';
 			}
-			if ($('img[src$="icon_weapon.gif"],img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{
+			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
 				monster.battle_count = (monster.battle_count || 0) + 1;
 			}
 			if ($('img[src$="battle_victory"]').length){
