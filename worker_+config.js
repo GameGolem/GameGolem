@@ -121,7 +121,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
-		$('.golem-advanced').css('display', Config.option.advanced ? 'block' : 'none');}
+		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
 };
 
