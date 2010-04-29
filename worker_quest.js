@@ -246,7 +246,7 @@ Quest.work = function(state) {
 		return true;
 	}
 	if (this.option.general) {
-		if (this.data[best].general && typeof this.data[best].influence !== 'undefined' && this.data[best].influence < 100) {
+		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return true;

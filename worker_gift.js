@@ -290,7 +290,7 @@ Gift.work = function(state) {
 						}
 						this.runtime.sent_id = i;
 						this.runtime.gift_sent = Date.now() + (60000);	// wait max 60 seconds for the popup.
-						Page.click('input[value^="Send"]');
+						Page.click('input[name="send"]');
 						return true;
 					} else {
 						return true;
