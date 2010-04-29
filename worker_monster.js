@@ -16,7 +16,7 @@ Monster.option = {
 	first:false,
 	choice: 'Any',
 	ignore_stats:true,
-	stop: 'Loot',
+	stop: 'Never',
 	armyratio: 1,
 	levelratio: 'Any',
 	force1: true,
