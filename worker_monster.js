@@ -433,6 +433,7 @@ Monster.parse = function(change) {
 				if ($(Monster['shield_img'][i]).length){
 					$dispel = $(Monster['shield_img'][i]).parent();
 					monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
+					monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
 					break;
 				}
 			}
