@@ -4386,7 +4386,7 @@ Monster.defaults = {
 };
 
 Monster.option = {
-	fortify: 50,
+	fortify: 80,
 //	dispel: 50,
 	first:false,
 	choice: 'Any',
@@ -4395,7 +4395,8 @@ Monster.option = {
 	armyratio: 1,
 	levelratio: 'Any',
 	force1: true,
-	raid: 'Invade x5'
+	raid: 'Invade x5',
+	assist: true
 };
 
 Monster.runtime = {
@@ -4465,9 +4466,14 @@ Monster.display = [
 		checkbox:true,
 		help:'Force the first player in the list to aid.'
 	},{
-		title:'Dashboard Options'
+		title:'Siege Assist Options'
 	},{
 		id:'assist',
+		label:'Assist with Sieges',
+		help:'Spend stamina to assist with sieges.',
+		checkbox:true
+	},{
+		id:'assist_links',
 		label:'Use Assist Links in Dashboard',
 		checkbox:true
 	}
@@ -5053,9 +5059,15 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || $('img[linked]').attr('uid') != uid) {
+	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || $('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid) {
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return true; // Reload if we can't find the button or we're on the wrong page
+	}
+	if (this.option.assist && typeof $('input[name="help with dragon"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name="help with dragon"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
+		this.data[uid][type].phase = $('input[name="help with dragon"]').attr('title').regex(/ (.*)/i);
+		debug('Monster: Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
+		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
+		return true;	//	
 	}
 	if (this.types[type].raid) {
 		battle_list = Battle.get('user')
@@ -5150,7 +5162,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		if (Monster.option.assist && (monster.state === 'engage' || monster.state === 'assist')) {
+		if (Monster.option.assist_link && (monster.state === 'engage' || monster.state === 'assist')) {
 			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
 		} else {
 			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
@@ -5158,11 +5170,9 @@ Monster.dashboard = function(sort, rev) {
 		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + '"');
 		var image_url = imagepath + Monster.types[j].list;
 //		debug(image_url);
-//		td(output, '<div style="background-image:url(\''+image_url+'\'); background-size: 72px auto contain"><a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><strong>' + monster.state + '</strong></a></div>', 'title="' + Monster.types[j].name + '"');
 		th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
 		td(output, blank ? '' : isNumber(monster.totaldefense) ? ((monster.totaldefense-50).round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));
-//		td(output, blank ? '' : isNumber(monster.dispel) ? (monster.dispel).round(1)+'%' : '');
 		td(output, blank ? '' : monster.state === 'engage' ? addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(1) + '%)' : '', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
 		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
