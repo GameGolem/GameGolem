@@ -23,6 +23,7 @@ LevelUp.option = {
 	enabled:false,
 	income:true,
 	general:'any',
+        order:'stamina',
 	algorithm:'Per Action'
 };
 
@@ -62,6 +63,11 @@ LevelUp.display = [
 		select:['any', 'Energy', 'Stamina'],
 		help:'Select which type of general to use when leveling up.'
 	},{
+                id:'order',
+                label:'Spend first ',
+                select:['Energy','Stamina'],
+                help:'Select which resource you want to spend first when leveling up.'
+        },{
 		id:'algorithm',
 		label:'Estimation Method',
 		select:['Per Action', 'Per Hour'],
@@ -228,6 +234,8 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
+    if (this.option.order !== 'Stamina' || !stamina){
+        debug('LevelUp: Running Energy Burn');
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		runtime.old_quest = Quest.runtime.best;
 		runtime.old_quest_energy = Quest.runtime.energy;
@@ -237,6 +245,9 @@ LevelUp.work = function(state) {
 		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
 		return false;
 	}
+        else
+            {debug('LevelUp: Running Stamina Burn first');}
+    }
 	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...

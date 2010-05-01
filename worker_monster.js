@@ -17,6 +17,7 @@ Monster.option = {
 	choice: 'Any',
 	ignore_stats:true,
 	stop: 'Never',
+        own: true,
 	armyratio: 1,
 	levelratio: 'Any',
 	force1: true,
@@ -70,6 +71,12 @@ Monster.display = [
 		select:['Never', 'Achievement', 'Loot'],
 		help:'Select when to stop attacking a target.'
 	},{
+                advanced:true,
+                id:'own',
+                label:'Always attack Own monsters?',
+                checkbox:true,
+                help:'Always have golem attack monsters you spawned regardless of Stop option.'
+        },{
 		title:'Raids'
 	},{
 		id:'raid',
@@ -557,7 +564,8 @@ Monster.update = function(what) {
 				break;
 			}
 			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
-                if (this.data[i][j].name === 'You'){
+                if (this.data[i][j].name === 'You' && this.option.own){
+                    debug('Monster: Attacking own Monster' + this.option.own)
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
                     break;
                 }
