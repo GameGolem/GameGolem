@@ -54,42 +54,34 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought/i,
 	Helmet:	/cowl|crown|helm|horns|mask|veil/i,
 	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
-	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Faerie Wings/i,
+	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
 };
 
 Town.init = function() {
 	if (this.data.soldiers || this.data.blacksmith || this.data.magic) { // Need to reparse with new code...
 		this.data = {};
-		delete Page.data.town_soldiers;
-		delete Page.data.town_blacksmith;
-		delete Page.data.town_magic;
+		Page.set('town_soldiers', 0);
+		Page.set('town_blacksmith', 0);
+		Page.set('town_magic', 0);
 	}
 };
 
 Town.parse = function(change) {
 	if (!change) {
-		// Fix for broken magic page!!
-		$('.eq_buy_row').each(function(i,el){
-			if (!$('.eq_buy_costs_int', el).length) {
-				$('.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('.eq_buy_costs_int').append($('.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
-			}
-			if (!$('.eq_buy_stats_int', el).length) {
-				$('.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('.eq_buy_stats_int').append($('.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
-			}
-			if (!$('.eq_buy_txt_int', el).length) {
-				$('.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('.eq_buy_txt_int').append($('.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
-			}
-		});
 		var unit = Town.data, page = Page.page.substr(5);
-		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
-			var i, stats = $('div.eq_buy_stats', el), name = $('.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
+		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
+			// Fix for broken magic page!!
+			!$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
+			!$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
+			!$('div.eq_buy_txt_int', el).length && $('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
+			var i, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
 			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
-			unit[name].att = $('.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
-			unit[name].def = $('.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
+			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
+			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
 			if (cost) {
 				unit[name].cost = parseInt(cost, 10);
 				unit[name].buy = [];
@@ -106,7 +98,7 @@ Town.parse = function(change) {
 			}
 		});
 	} else if (Page.page==='town_blacksmith') {
-		$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
+		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
 			var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
 			if (Town.data[name].type) {
 				$el.parent().append('<br>'+Town.data[name].type);
@@ -159,7 +151,7 @@ Town.update = function(type) {
 				for (u in quests[i].units) {
 					if (data[u] && data[u].cost && data[u].own < quests[i].units[u]) {
 						best = u;
-						buy = quests[i].units[u] - data[u].own;
+						buy = quests[i].units[u];
 					}
 				}
 			}
@@ -190,23 +182,33 @@ Town.work = function(state) {
 	if (!this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
 		return false;
 	}
-	if (!state || !Bank.retrieve(this.runtime.cost) || (this.data[this.runtime.best].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[this.runtime.best].page)) {
+	if (!state || !this.buy(this.runtime.best, this.runtime.buy)) {
 		return true;
 	}
-	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
-		if ($('.eq_buy_txt strong:first', el).text().trim() === Town.runtime.best) {
-			qty = 0;
-			$('.eq_buy_costs select[name="amount"]:eq(0) option', el).each(function(j,elm){
-				if ((parseInt($(elm).val()) > qty) && (Town.runtime.buy >= parseInt($(elm).val()))) {
-					qty = parseInt($(elm).val());
-				}
-			});
-			debug('Town: Buying ' + qty + ' x ' + Town.runtime.best + ' for $' + addCommas(qty*Town.runtime.cost/Town.runtime.buy));
-			$('.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
-			Page.click($('.eq_buy_costs input[name="Buy"]', el));
+	return false;
+};
+
+Town.buy = function(item, number) { // number is absolute including already owned
+	this._unflush();
+	if (!this.data[item] || !this.data[item].buy || this.data[item].own >= number || !this.data[item].cost || !Bank.worth(this.data[item].cost * (number - this.data[item].own))) {
+		return true; // We (pretend?) we own them
+	}
+	if (!Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
+		return false;
+	}
+	number -= this.data[item].own;
+	var i, qty = 0;
+	for (i=0; i<this.data[item].buy.length && this.data[item].buy[i] <= number; i++) {
+		qty = this.data[item].buy[i];
+	}
+	$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
+		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
+			debug('Town: Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+			$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
+			Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
 	});
-	return true;
+	return false;
 };
 
 var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
