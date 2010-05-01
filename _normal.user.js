@@ -4026,17 +4026,28 @@ Land.display = [
 Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		var name = $('img', el).attr('alt'), tmp;
-		Land.data[name] = {};
-		Land.data[name].income = $('.land_buy_info .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-		Land.data[name].max = $('.land_buy_info', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
-		Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-		tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
-		if (tmp) {
-			Land.data[name].buy = tmp;
+		if (!change) {
+			// Fix for broken land page!!
+			if (!$('.land_buy_image_int', el).length) {
+				$('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
+			}
+			if (!$('.land_buy_info_int', el).length) {
+				$('.land_buy_info', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"]', el));
+			}
+			Land.data[name] = {};
+			Land.data[name].income = $('.land_buy_info .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			Land.data[name].max = $('.land_buy_info', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
+			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
+			if (tmp) {
+				Land.data[name].buy = tmp;
+			}
+			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+		} else {
+			$('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
 		}
-		Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 	});
-	return false;
+	return true;
 };
 
 Land.update = function() {
