@@ -158,28 +158,17 @@ Worker.prototype._load = function(type) {
 		this._load('runtime');
 		return;
 	}
-	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name) || this[type];
-	if (typeof v !== 'string') { // Should never happen as all our info is objects!
-		this[type] = v;
+	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
+	if (!v) { // Use default values
 		return;
 	}
-	switch(v.charAt(0)) {
-		case '"': // Should never happen as all our info is objects!
-			this[type] = v.replace(/^"|"$/g,'');
-			return;
-		case '(':
-		case '[':
-			v = (new Function('return ' + v))();
-			if (!this[type] || typeof this[type] !== 'array' && typeof this[type] !== 'object') {
-				this[type] = v;
-				return;
-			}
-			this[type] = $.extend(true, {}, this[type], v);
-			return;
-		default: // Should never happen as we want encoded data...
-			this[type] = v;
-			return;
+	try {
+		v = JSON.parse(v);
+	} catch(e) {
+		debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
+		v = eval(v); // We used to save our data in non-JSON format...
 	}
+	this[type] = $.extend(true, {}, this[type], v);
 };
 
 Worker.prototype._parse = function(change) {
@@ -203,19 +192,7 @@ Worker.prototype._save = function(type) {
 	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 		return false;
 	}
-	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
-	switch(typeof this[type]) {
-		case 'string': // Should never happen as all our info is objects!
-			v = '"' + this[type] + '"';
-			break;
-		case 'array':
-		case 'object':
-			v = this[type].toSource();
-			break;
-		default: // Should never happen as all our info is objects!
-			v = this[type];
-			break;
-	}
+	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._working[type] = true;
 		this._changed = Date.now();
