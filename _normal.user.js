@@ -4937,7 +4937,7 @@ Monster.update = function(what) {
 			}
 			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
                 if (this.data[i][j].name === 'You' && this.option.own){
-                    debug('Monster: Attacking own Monster' + this.option.own)
+                    //debug('Monster: Attacking own Monster ' + this.option.own)
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
                     break;
                 }
