@@ -195,6 +195,8 @@ Page.to = function(page, args, force) {
 		} else {
 			this.ajaxload();
 		}
+                //Trying to determine way to see "White Page" after navigation.
+                debug('Page: Locating Cash amount ' + Player.get('cash'));
 	}
 	return false;
 };
