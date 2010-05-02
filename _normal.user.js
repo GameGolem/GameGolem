@@ -4851,7 +4851,7 @@ Monster.parse = function(change) {
 			if (types[type].raid) {
 				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
 			} else {
-				monster.total = Math.floor(100 * monster.damage_total / (100 - monster.health));
+				monster.total = Math.ceil((1 + 100 * monster.damage_total) / (monster.health == 100 ? 0.1 : (100 - monster.health)));
 			}
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
@@ -5074,11 +5074,11 @@ Monster.work = function(state) {
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
-	if (this.option.assist && typeof $('input[name="help with dragon"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name="help with dragon"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
-		this.data[uid][type].phase = $('input[name="help with dragon"]').attr('title').regex(/ (.*)/i);
+	if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
+		this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
 		debug('Monster: Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
-		return true;	//	
+		return true;
 	}
 	if (this.types[type].raid) {
 		battle_list = Battle.get('user')
