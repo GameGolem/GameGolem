@@ -148,7 +148,7 @@ Monster.types = {
 		list:'stone_giant_list.jpg',
 		image:'stone_giant_large.jpg',
 		dead:'stone_giant_dead.jpg',
-		achievement:40000,
+		achievement:20000,
 		timer:259200, // 72 hours
 		mpool:1
 	},
@@ -157,7 +157,7 @@ Monster.types = {
 		list:'orc_boss_list.jpg',
 		image:'orc_boss.jpg',
 		dead:'orc_boss_dead.jpg',
-		achievement:25000,
+		achievement:15000,
 		timer:259200, // 72 hours
 		mpool:1
 	},
@@ -175,7 +175,7 @@ Monster.types = {
 		list:'boss_lotus_list.jpg',
 		image:'boss_lotus.jpg',
 		dead:'boss_lotus_big_dead.jpg',
-		achievement:1250000,
+		achievement:500000,
 		timer:172800, // 48 hours
 		mpool:1		
 	},
@@ -184,7 +184,7 @@ Monster.types = {
 		list:'boss_mephistopheles_list.jpg',
 		image:'boss_mephistopheles_large.jpg',
 		dead:'boss_mephistopheles_dead.jpg',
-		achievement:282000,
+		achievement:100000,
 		timer:172800, // 48 hours
 		mpool:1		
 	},
@@ -198,11 +198,11 @@ Monster.types = {
 		mpool:1		
 	},
 	sylvanus: {
-		name:'Sylvanas the Sorceress Queen',
+		name:'Sylvana the Sorceress Queen',
 		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large.jpg',
 		dead:'boss_sylvanus_dead.jpg',
-		achievement:120000,
+		achievement:50000,
 		timer:172800, // 48 hours
 		mpool:1		
 	},
@@ -212,7 +212,7 @@ Monster.types = {
 		list:'dragon_list_green.jpg',
 		image:'dragon_monster_green.jpg',
 		dead:'dead_dragon_image_green.jpg',
-		achievement:64000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -221,7 +221,7 @@ Monster.types = {
 		list:'dragon_list_blue.jpg',
 		image:'dragon_monster_blue.jpg',
 		dead:'dead_dragon_image_blue.jpg',
-		achievement:85000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -230,7 +230,7 @@ Monster.types = {
 		list:'dragon_list_yellow.jpg',
 		image:'dragon_monster_gold.jpg',
 		dead:'dead_dragon_image_gold.jpg',
-		achievement:180000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -239,7 +239,7 @@ Monster.types = {
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
 		dead:'dead_dragon_image_red.jpg',
-		achievement:350000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -248,7 +248,7 @@ Monster.types = {
 		list:'seamonster_list_purple.jpg',
 		image:'seamonster_purple.jpg',
 		//dead:'seamonster_dead.jpg',
-		achievement:600000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -257,7 +257,7 @@ Monster.types = {
 		list:'seamonster_list_red.jpg',
 		image:'seamonster_red.jpg',
 		//dead:'seamonster_dead.jpg',
-		achievement:930000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -266,7 +266,7 @@ Monster.types = {
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
 		//dead:'seamonster_dead.jpg',
-		achievement:150000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
@@ -275,7 +275,7 @@ Monster.types = {
 		list:'seamonster_list_blue.jpg',
 		image:'seamonster_blue.jpg',
 		//dead:'seamonster_dead.jpg',
-		achievement:300000,
+		achievement:100000,
 		timer:259200, // 72 hours
 		mpool:2		
 	},
