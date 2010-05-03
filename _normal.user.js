@@ -4014,6 +4014,12 @@ Land.display = [
 		checkbox:true,
 		help:'You can sell land above your Max at full price.'
 	},{
+		exploit:true,
+		id:'land_exp',
+		label:'Sell Extra Land 10 at a time',
+		checkbox:true,
+		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower amount.'
+	},{
 /*		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
@@ -4025,12 +4031,6 @@ Land.display = [
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
 		checkbox:true,
 		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
-	},{
-		exploit:true,
-		id:'land_exp',
-		label:'Sell 10x extra lands',
-		checkbox:true,
-		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower amount.'
 	}
 ];
 
@@ -4059,6 +4059,12 @@ Land.parse = function(change) {
 
 Land.update = function() {
 	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0;
+	
+	if (this.option.land_exp) {
+		$('input:golem(land,sell)').attr('checked',true);
+		this.option.sell = true;
+	}
+	
 	for (var i in this.data) {
 		if (this.option.sell && this.data[i].own > this.data[i].max) {
 			best = i;
