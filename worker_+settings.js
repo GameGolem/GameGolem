@@ -49,7 +49,7 @@ Settings.update = function(type) {
 	if (type === 'option') {
 		var i, list = [];
 		if (this.oldwhich !== this.option.which) {
-			$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_name').val(this.option.which);
+			$('input:golem(settings,name)').val(this.option.which);
 			this.option.name = this.option.which;
 			this.oldwhich = this.option.which;
 		}
@@ -74,7 +74,7 @@ Settings.update = function(type) {
 				this.option.name = '- default -';
 				break;
 		}
-		$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_action').val('None');
+		$('select:golem(settings,action)').val('None');
 		this.option.action = 'None';
 		for (i in this.data) {
 			list.push(i);

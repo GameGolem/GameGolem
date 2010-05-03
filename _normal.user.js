@@ -1783,7 +1783,7 @@ Settings.update = function(type) {
 	if (type === 'option') {
 		var i, list = [];
 		if (this.oldwhich !== this.option.which) {
-			$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_name').val(this.option.which);
+			$('input:golem(settings,name)').val(this.option.which);
 			this.option.name = this.option.which;
 			this.oldwhich = this.option.which;
 		}
@@ -1808,7 +1808,7 @@ Settings.update = function(type) {
 				this.option.name = '- default -';
 				break;
 		}
-		$('#' + PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_action').val('None');
+		$('select:golem(settings,action)').val('None');
 		this.option.action = 'None';
 		for (i in this.data) {
 			list.push(i);
@@ -3971,8 +3971,8 @@ Land.defaults = {
 Land.option = {
 	enabled:true,
 //	wait:48,
-	best:null,
-	onlyten:false
+	onlyten:false,
+	sell:true
 };
 
 Land.runtime = {
@@ -3987,6 +3987,11 @@ Land.display = [
 		id:'enabled',
 		label:'Auto-Buy Land',
 		checkbox:true
+	},{
+		id:'sell',
+		label:'Sell Extra Land',
+		checkbox:true,
+		help:'You can sell land above your Max at full price.'
 	},{
 /*		id:'wait',
 		label:'Maximum Wait Time',
@@ -4026,8 +4031,13 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost = 0;
 	for (var i in this.data) {
+		if (this.option.sell && this.data[i].own > this.data[i].max) {
+			best = i;
+			buy = this.data[i].max - this.data[i].own;// Negative number means sell
+			break;
+		}
 		if (this.data[i].buy) {
 			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
 				best = i;
@@ -4035,34 +4045,37 @@ Land.update = function() {
 		}
 	}
 	if (best) {
-/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
-			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if ((this.data[best].cost * 5) <= worth || (this.data[best].cost * 5 / income < this.option.wait)) {
-			buy = Math.min(this.data[best].max - this.data[best].own, 5);
-		} else {
-			buy = 1;
-		}*/
-		
-		//	This calculates the perfect time to switch the amounts to buy.
-		//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
-		//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
-		//	It's different for each land because each land has a different "time to payoff the increased cost".
-		
-		var cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
-		var time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
-		time_limit = time_limit * 1.5;		// fudge factor to take into account that most of the time we won't be buying the same property twice in a row, so we will have a bit more time to recoup the extra costs.
-		if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
-			buy = Math.min(this.data[best].max - this.data[best].own, 10);
-		} else if (this.data[best].cost / income > time_limit){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
-			buy = 1;
-		} else if (this.data[best].cost * 5 / income > time_limit){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
-			buy = Math.min(this.data[best].max - this.data[best].own, 5);
-		} else {																	// Otherwise buy 10 because that's the max.
-			buy = Math.min(this.data[best].max - this.data[best].own, 10);
+		if (!buy) {
+	/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
+				buy = Math.min(this.data[best].max - this.data[best].own, 10);
+			} else if ((this.data[best].cost * 5) <= worth || (this.data[best].cost * 5 / income < this.option.wait)) {
+				buy = Math.min(this.data[best].max - this.data[best].own, 5);
+			} else {
+				buy = 1;
+			}*/
+			
+			//	This calculates the perfect time to switch the amounts to buy.
+			//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
+			//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
+			//	It's different for each land because each land has a different "time to payoff the increased cost".
+			
+			var cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
+			var time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
+			time_limit = time_limit * 1.5;		// fudge factor to take into account that most of the time we won't be buying the same property twice in a row, so we will have a bit more time to recoup the extra costs.
+			if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
+				buy = Math.min(this.data[best].max - this.data[best].own, 10);
+			} else if (this.data[best].cost / income > time_limit){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
+				buy = 1;
+			} else if (this.data[best].cost * 5 / income > time_limit){	// If it will take longer to save for 5 lands than it will take to payoff the increased cost, buy 5.
+				buy = Math.min(this.data[best].max - this.data[best].own, 5);
+			} else {																	// Otherwise buy 10 because that's the max.
+				buy = Math.min(this.data[best].max - this.data[best].own, 10);
+			}
+			cost = buy * this.data[best].cost;
 		}
 		this.runtime.buy = buy;
-		this.runtime.cost = buy * this.data[best].cost;
-		Dashboard.status(this, (this.runtime.buy ? 'Buying ' : 'Want to buy ') + buy + 'x ' + best + ' for $' + addCommas(buy * this.data[best].cost));
+		this.runtime.cost = cost;
+		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(buy) * this.data[best].cost));
 	} else {
 		Dashboard.status(this);
 	}
@@ -4085,10 +4098,15 @@ Land.work = function(state) {
 //	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		if ($('img', el).attr('alt') === Land.runtime.best) {
-			debug('Land: Buying ' + Land.runtime.buy + ' x ' + Land.runtime.best + ' for $' + addCommas(Land.runtime.cost));
-			$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.runtime.buy > 5 ? 10 : (Land.runtime.buy > 1 ? 5 : 1));
-			Page.click($('.land_buy_costs input[name="Buy"]', el));
-			$('#'+PREFIX+'Land_current').text('None');
+			if (Land.runtime.buy > 0) {
+				debug('Land: Buying ' + Land.runtime.buy + ' x ' + Land.runtime.best + ' for $' + addCommas(Land.runtime.cost));
+				$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.runtime.buy > 5 ? 10 : (Land.runtime.buy > 1 ? 5 : 1));
+				Page.click($('.land_buy_costs input[name="Buy"]', el));
+			} else {
+				debug('Land: Selling ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best);
+				$('select', $('.land_buy_costs .gold', el).parent().parent().next()).val(Land.runtime.buy <= -10 ? 10 : (Land.runtime.buy <= -5 ? 5 : 1));
+				Page.click($('.land_buy_costs input[name="Sell"]', el));
+			}
 		}
 	});
 	return true;
