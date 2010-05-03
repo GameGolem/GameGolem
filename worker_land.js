@@ -13,7 +13,8 @@ Land.option = {
 	enabled:true,
 //	wait:48,
 	onlyten:false,
-	sell:false
+	sell:false,
+	land_exp:false
 };
 
 Land.runtime = {
@@ -46,6 +47,12 @@ Land.display = [
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
 		checkbox:true,
 		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
+	},{
+		exploit:true,
+		id:'land_exp',
+		label:'Sell 10x extra lands',
+		checkbox:true,
+		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower amount.'
 	}
 ];
 
@@ -78,6 +85,9 @@ Land.update = function() {
 		if (this.option.sell && this.data[i].own > this.data[i].max) {
 			best = i;
 			buy = this.data[i].max - this.data[i].own;// Negative number means sell
+			if (this.option.land_exp) {
+				buy = -10;
+			}
 			break;
 		}
 		if (this.data[i].buy) {
