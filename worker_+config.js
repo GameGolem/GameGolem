@@ -268,7 +268,7 @@ Config.makePanel = function(worker) {
 
 Config.set = function(key, value) {
 	this._unflush();
-	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
+	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){
 			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
@@ -316,7 +316,7 @@ Config.updateOptions = function() {
 			try {
 				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
-				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + tmp.toSource() + ') = ' + e.message);
+				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
 	});

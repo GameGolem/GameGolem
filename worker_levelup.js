@@ -134,7 +134,7 @@ LevelUp.update = function(type) {
 				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
 			}
 		}
-//		debug('Quickest '+quests.length+' Quests: '+quests.toSource());
+//		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
 	} else if (type === Player) {
 		if (exp !== runtime.exp) { // Experience has changed...
 			if (runtime.stamina > stamina) {

@@ -386,7 +386,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
 		if (user) {
 			if (Math.min(count, own) > 0) {
-//				debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+list[units[i]].toSource());
+//				debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}
@@ -1078,7 +1078,7 @@ Config.makePanel = function(worker) {
 
 Config.set = function(key, value) {
 	this._unflush();
-	if (!this.data[key] || this.data[key].toSource() !== value.toSource()) {
+	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){
 			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
@@ -1126,7 +1126,7 @@ Config.updateOptions = function() {
 			try {
 				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
-				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + tmp.toSource() + ') = ' + e.message);
+				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
 	});
@@ -4230,7 +4230,7 @@ LevelUp.update = function(type) {
 				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
 			}
 		}
-//		debug('Quickest '+quests.length+' Quests: '+quests.toSource());
+//		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
 	} else if (type === Player) {
 		if (exp !== runtime.exp) { // Experience has changed...
 			if (runtime.stamina > stamina) {
