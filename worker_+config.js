@@ -257,7 +257,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + ' style="clear:both;' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + '"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + ' style="clear:both;' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + (o.exploit ? 'border:1px solid red;background:#ffeeee;' : '') + '"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '<br style="clear:both"></div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
