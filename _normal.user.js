@@ -1015,7 +1015,7 @@ Config.makePanel = function(worker) {
 							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
 								o.select = this.data[o.select];
 							} else {
-								break; // deliverate fallthrough
+								break; // deliberate fallthrough
 							}
 						case 'array':
 						case 'object':
@@ -1093,17 +1093,17 @@ Config.set = function(key, value) {
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){
-			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
+			var worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
 			if (isArray(list)) {
 				for (i=0; i<list.length; i++) {
-					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
 				}
 			} else {
 				for (i in list) {
-					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+					options.push('<option value="' + i + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
 				}
 			}
-			$(el).html(options.join(''));
+			$(el).html(options.join('')).val(val);
 		});
 		this._save();
 		return true;
@@ -2822,7 +2822,7 @@ Generals.parse = function(change) {
 
 Generals.update = function(type) {
 	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	if (type === 'data') {
+	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
@@ -5707,12 +5707,14 @@ Quest.parse = function(change) {
 Quest.update = function(type) {
 	// First let's update the Quest dropdown list(s)...
 	var i, j, best = null, best_land = 0, list = [];
-	for (i in this.data) {
-		if (this.data[i].item && !this.data[i].unique) {
-			list.push(this.data[i].item);
+	if (!type || type === 'data') {
+		for (i in this.data) {
+			if (this.data[i].item && !this.data[i].unique) {
+				list.push(this.data[i].item);
+			}
 		}
+		Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	}
-	Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {

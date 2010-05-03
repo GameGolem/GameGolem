@@ -193,7 +193,7 @@ Config.makePanel = function(worker) {
 							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
 								o.select = this.data[o.select];
 							} else {
-								break; // deliverate fallthrough
+								break; // deliberate fallthrough
 							}
 						case 'array':
 						case 'object':
@@ -271,17 +271,17 @@ Config.set = function(key, value) {
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(i,el){
-			var tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i), val = tmp ? WorkerByName(tmp[0]).option[tmp[1]] : null, list = Config.data[key], options = [];
+			var worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
 			if (isArray(list)) {
 				for (i=0; i<list.length; i++) {
-					options.push('<option value="' + list[i] + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
 				}
 			} else {
 				for (i in list) {
-					options.push('<option value="' + i + '"' + (val==i ? ' selected' : '') + '>' + list[i] + '</option>');
+					options.push('<option value="' + i + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
 				}
 			}
-			$(el).html(options.join(''));
+			$(el).html(options.join('')).val(val);
 		});
 		this._save();
 		return true;

@@ -148,12 +148,14 @@ Quest.parse = function(change) {
 Quest.update = function(type) {
 	// First let's update the Quest dropdown list(s)...
 	var i, j, best = null, best_land = 0, list = [];
-	for (i in this.data) {
-		if (this.data[i].item && !this.data[i].unique) {
-			list.push(this.data[i].item);
+	if (!type || type === 'data') {
+		for (i in this.data) {
+			if (this.data[i].item && !this.data[i].unique) {
+				list.push(this.data[i].item);
+			}
 		}
+		Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	}
-	Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {
 		for (i in this.data) {

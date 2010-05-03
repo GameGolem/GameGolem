@@ -63,7 +63,7 @@ Generals.parse = function(change) {
 
 Generals.update = function(type) {
 	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
-	if (type === 'data') {
+	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
