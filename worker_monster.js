@@ -559,7 +559,7 @@ Monster.update = function(what) {
 	this.runtime.check = false;
 	for (i in this.data) { // Look for a new target...
 		for (j in this.data[i]) {
-			if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < (Date.now() - 3600000)) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) { // Check monster progress every hour
+			if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < (Date.now() - 3600000)) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && (this.data[i][j].state !== 'complete')) { // Check monster progress every hour
 				this.runtime.check = true; // Do we need to parse info from a blank monster?
 				break;
 			}
