@@ -11,7 +11,8 @@ Config.settings = {
 Config.option = {
 	display:'block',
 	fixed:true,
-	advanced:false
+	advanced:false,
+	exploit:false
 };
 
 Config.init = function() {
@@ -109,7 +110,13 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		return false;
 	};
 	$('input.golem_addselect').live('click', function(){
-		$('select.golem_multiple', $(this).parent()).append('<option>'+$('.golem_select', $(this).parent()).val()+'</option>');
+		var i, value, values = $('.golem_select', $(this).parent()).val().split(',');
+		for (i=0; i<values.length; i++) {
+			value = values[i].trim();
+			if (value) {
+				$('select.golem_multiple', $(this).parent()).append('<option>' + value + '</option>');
+			}
+		}
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').live('click', function(){
@@ -140,8 +147,8 @@ Config.makePanel = function(worker) {
 		return false;
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	show = findInArray(Config.option.active, worker.id);
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced"' + (Config.option.advanced ? '' : ' style="display:none;"') : '"') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
+	show = findInArray(this.option.active, worker.id);
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon">' + worker.name + '<img class="golem-lock"></h3></div>');
 	switch (typeof display) {
 		case 'array':
 		case 'object':
@@ -250,7 +257,7 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div style="clear:both;' + (o.advanced ? (Config.option.advanced ? '"' : 'display:none;"') + ' class="golem-advanced"' : '"') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
+				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + ' style="clear:both;' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + '"' + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '</div>');
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '<div style="clear:both"></div></div>');
 			return $head;
