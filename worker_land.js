@@ -40,7 +40,7 @@ Land.display = [
 		id:'land_exp',
 		label:'Sell Extra Land 10 at a time',
 		checkbox:true,
-		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower amount.'
+		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower cost.'
 //	},{
 /*		id:'wait',
 		label:'Maximum Wait Time',
