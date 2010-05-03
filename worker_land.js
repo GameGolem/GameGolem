@@ -13,7 +13,7 @@ Land.option = {
 	enabled:true,
 //	wait:48,
 	onlyten:false,
-	sell:true
+	sell:false
 };
 
 Land.runtime = {
@@ -29,6 +29,7 @@ Land.display = [
 		label:'Auto-Buy Land',
 		checkbox:true
 	},{
+		advanced:true,
 		id:'sell',
 		label:'Sell Extra Land',
 		checkbox:true,

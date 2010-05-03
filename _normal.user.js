@@ -62,7 +62,7 @@ if (typeof unsafeWindow === 'undefined') {
 * Runs when the page has finished loading, but the external data might still be coming in
 */
 if (typeof APP !== 'undefined') {
-	$(document).ready(function() {
+	var document_ready = function() {
 		var i;
 		userID = $('head').html().regex(/user:([0-9]+),/i);
 		if (!userID || typeof userID !== 'number' || userID === 0) {
@@ -93,7 +93,19 @@ if (typeof APP !== 'undefined') {
 			Workers[i]._flush();
 		}
 		Page.parse_all(); // Call once to get the ball rolling...
-	});
+	}
+	if (typeof jQuery !== 'undefined') {
+		$(document).ready(document_ready);
+	} else {
+		var head = document.getElementsByTagName('head')[0] || document.documentElement, g = document.createElement('script');
+		g.src = 'http://www.google.com/jsapi';
+		g.type = 'text/javascript';
+		g.async = false;
+		head.insertBefore(g, head.firstChild);
+		google.load("jquery", "1.4");
+		google.load("jqueryui", "1.8");
+		google.setOnLoadCallback(document_ready);
+	}
 }
 
 /********** CSS code **********
