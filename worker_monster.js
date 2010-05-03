@@ -71,12 +71,12 @@ Monster.display = [
 		select:['Never', 'Achievement', 'Loot'],
 		help:'Select when to stop attacking a target.'
 	},{
-                advanced:true,
-                id:'own',
-                label:'Always attack Own monsters?',
-                checkbox:true,
-                help:'Always have golem attack monsters you spawned regardless of Stop option.'
-        },{
+		advanced:true,
+		id:'own',
+		label:'Never stop on Your Monsters',
+		checkbox:true,
+		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
+	},{
 		title:'Raids'
 	},{
 		id:'raid',
