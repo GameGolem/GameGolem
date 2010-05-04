@@ -538,13 +538,15 @@ Monster.update = function(what) {
 	this.runtime.count = 0;
 	for (i in this.data) { // Flush unknown monsters
 		for (j in this.data[i]) {
-			if (!this.data[i][j].state) {
+			if (!this.data[i][j].state || this.data[i][j].state === null) {
+                                debug('Monster: Found Invalid Monster State=(' + this.data[i][j].state + ')');
 				delete this.data[i][j];
 			} else if (this.data[i][j].state === 'engage') {
 				this.runtime.count++;
 			}
 		}
 		if (!length(this.data[i])) { // Delete uid's without an active monster
+                        debug('Monster: Found Invalid Monster ID=(' + this.data[i] + ')');
 			delete this.data[i];
 		}
 	}

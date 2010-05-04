@@ -234,7 +234,7 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-    if (this.option.order !== 'Stamina' || !stamina){
+    if (this.option.order !== 'Stamina' || !stamina || (stamina < 5 && Battle.option.monster && !Battle.option.points)){
         debug('LevelUp: Running Energy Burn');
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		runtime.old_quest = Quest.runtime.best;
@@ -244,10 +244,10 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
 		return false;
-	}
+	}}
         else
-            {debug('LevelUp: Running Stamina Burn first');}
-    }
+            {debug('LevelUp: Running Stamina Burn');}
+    
 	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...

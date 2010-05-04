@@ -776,14 +776,14 @@ Worker.prototype._setup = function() {
 
 Worker.prototype._unflush = function() {
 	!this._loaded && this._init();
-	!this.settings.keep && typeof this.data === 'undefined' && this._load('data');
+	!this.settings.keep && !this.data && this._load('data');
 };
 
 Worker.prototype._update = function(type) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		var i, flush = false;
 		this._working.update = true;
-		if (typeof this.data === 'undefined') {
+		if (!this.data) {
 			flush = true;
 			this._unflush();
 		}
@@ -990,7 +990,7 @@ Config.makePanel = function(worker) {
 				}
 				if (o.label) {
 					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-					if (o.text || o.checkbox || o.select) {
+					if (o.text || o.checkbox || o.select || o.radio) {
 						txt.push('<span style="float:right;">');
 					} else if (o.multiple) {
 						txt.push('<br>');
@@ -1073,11 +1073,41 @@ Config.makePanel = function(worker) {
 						txt.push('<select class="golem_select">'+list.join('')+'</select>');
 					}
 					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
-				}
+				} else if (o.radio){
+                                    switch (typeof o.radio) {
+						/* case 'number':
+							step = Divisor(o.radio);
+							for (x=0; x<=o.radio; x+=step) {
+								list.push('<input type="radio" name="'+ o.real_id + '"' + o.className + o.alt +'" value=' + x + (o.value==x ? ' checked' : '') + '>' + x + '</input><br>');
+							}
+							break;
+						case 'string':
+							o.className = ' class="golem_'+o.radio+'"';
+							if (this.data && this.data[o.radio] && (typeof this.data[o.radio] === 'array' || typeof this.data[o.radio] === 'object')) {
+								o.radio = this.data[o.radio];
+							} else {
+								break; // deliverate fallthrough
+							}*/
+						case 'array':
+						case 'object':
+							if (isArray(o.radio)) {
+								for (x=0; x<o.radio.length; x++) {
+									list.push('<input id="' + o.real_id + '" type="radio" name="' + o.id + '" value="' + o.radio[x] + '"' + (o.value==o.radio[x] ? ' checked' : '') + '>' + o.radio[x] + (o.suffix ? ' '+o.suffix : '') + '</input>');
+								}
+							} else {
+								for (x in o.radio) {
+									list.push('<input id="' + o.real_id + '" type="radio" name="' + o.id + '" value="' + x + '"' + (o.value==x ? ' checked' : '') + '>' + o.radio[x] + (o.suffix ? ' '+o.suffix : '') + '</input>');
+								}
+							}
+							break;
+					}
+					txt.push( list.join(''));
+
+                                }
 				if (o.after) {
 					txt.push(' '+o.after);
 				}
-				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
+				if (o.label && (o.text || o.checkbox || o.select || o.multiple || o.radio)) {
 					txt.push('</span>');
 				}
 				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + (o.advanced || o.exploit ? ' style="' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + (o.exploit ? 'border:1px solid red;background:#ffeeee;' : '') + '"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '<br></div>');
@@ -1134,6 +1164,8 @@ Config.updateOptions = function() {
 			}
 			if ($(el).attr('type') === 'checkbox') {
 				val = $(el).attr('checked');
+                        } else if ($(el).attr('type') === 'radio' && $(el).attr('checked')) {
+				val = $(el).value;
 			} else if ($(el).attr('multiple')) {
 				val = [];
 				$('option', el).each(function(i,el){ val.push($(el).text()); });
@@ -2363,7 +2395,7 @@ Battle.parse = function(change) {
 Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
-	Player.get('rank') && status.push('Rank ' + Player.get('rank') + ' ' + (typeof this.data.rank !== 'undefined' ? this.data.rank[Player.get('rank')].name : '') + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	status.push('Rank ' + Player.get('rank') + ' ' + this.data.rank[Player.get('rank')].name + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	status.push('Demi Points Earned Today: '
 	+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
 	+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
@@ -4278,7 +4310,7 @@ LevelUp.update = function(type) {
 	if (type === Quest) { // Now work out the quickest quests to level up
 		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
 		for (i in quest_data) { // Fill out with the best exp for every energy cost
-			if (typeof quests[quest_data[i].energy] === 'undefined' || quest_data[i].exp > quests[quest_data[i].energy][0]) {
+			if (!quests[quest_data[i].energy] || quest_data[i].exp > quests[quest_data[i].energy][0]) {
 				quests[quest_data[i].energy] = [quest_data[i].exp, [i]];
 			}
 		}
@@ -4401,7 +4433,7 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-    if (this.option.order !== 'Stamina' || !stamina){
+    if (this.option.order !== 'Stamina' || !stamina || (stamina < 5 && Battle.option.monster && !Battle.option.points)){
         debug('LevelUp: Running Energy Burn');
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		runtime.old_quest = Quest.runtime.best;
@@ -4411,10 +4443,10 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
 		return false;
-	}
+	}}
         else
-            {debug('LevelUp: Running Stamina Burn first');}
-    }
+            {debug('LevelUp: Running Stamina Burn');}
+    
 	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
@@ -4981,13 +5013,15 @@ Monster.update = function(what) {
 	this.runtime.count = 0;
 	for (i in this.data) { // Flush unknown monsters
 		for (j in this.data[i]) {
-			if (!this.data[i][j].state) {
+			if (!this.data[i][j].state || this.data[i][j].state === null) {
+                                debug('Monster: Found Invalid Monster State=(' + this.data[i][j].state + ')');
 				delete this.data[i][j];
 			} else if (this.data[i][j].state === 'engage') {
 				this.runtime.count++;
 			}
 		}
 		if (!length(this.data[i])) { // Delete uid's without an active monster
+                        debug('Monster: Found Invalid Monster ID=(' + this.data[i] + ')');
 			delete this.data[i];
 		}
 	}
@@ -6076,6 +6110,7 @@ Town.defaults = {
 };
 
 Town.option = {
+	general:true,
 	number:'Minimum',
 	maxcost:'$100k',
 	units:'All',
@@ -6091,6 +6126,10 @@ Town.runtime = {
 Town.display = [
 	{
 		label:'Work in progress...'
+	},{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
 	},{
 		id:'number',
 		label:'Buy Number',
@@ -6258,7 +6297,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	if (!this.data[item] || !this.data[item].buy || this.data[item].own >= number || !this.data[item].cost || !Bank.worth(this.data[item].cost * (number - this.data[item].own))) {
 		return true; // We (pretend?) we own them
 	}
-	if (!Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
+	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
 	number -= this.data[item].own;
