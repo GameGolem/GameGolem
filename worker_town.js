@@ -11,6 +11,7 @@ Town.defaults = {
 };
 
 Town.option = {
+	general:true,
 	number:'Minimum',
 	maxcost:'$100k',
 	units:'All',
@@ -26,6 +27,10 @@ Town.runtime = {
 Town.display = [
 	{
 		label:'Work in progress...'
+	},{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
 	},{
 		id:'number',
 		label:'Buy Number',
@@ -193,7 +198,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	if (!this.data[item] || !this.data[item].buy || this.data[item].own >= number || !this.data[item].cost || !Bank.worth(this.data[item].cost * (number - this.data[item].own))) {
 		return true; // We (pretend?) we own them
 	}
-	if (!Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
+	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
 	number -= this.data[item].own;
