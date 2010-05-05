@@ -990,7 +990,7 @@ Config.makePanel = function(worker) {
 				}
 				if (o.label) {
 					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-					if (o.text || o.checkbox || o.select || o.radio) {
+					if (o.text || o.checkbox || o.select) {
 						txt.push('<span style="float:right;">');
 					} else if (o.multiple) {
 						txt.push('<br>');
@@ -1073,41 +1073,11 @@ Config.makePanel = function(worker) {
 						txt.push('<select class="golem_select">'+list.join('')+'</select>');
 					}
 					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
-				} else if (o.radio){
-                                    switch (typeof o.radio) {
-						/* case 'number':
-							step = Divisor(o.radio);
-							for (x=0; x<=o.radio; x+=step) {
-								list.push('<input type="radio" name="'+ o.real_id + '"' + o.className + o.alt +'" value=' + x + (o.value==x ? ' checked' : '') + '>' + x + '</input><br>');
-							}
-							break;
-						case 'string':
-							o.className = ' class="golem_'+o.radio+'"';
-							if (this.data && this.data[o.radio] && (typeof this.data[o.radio] === 'array' || typeof this.data[o.radio] === 'object')) {
-								o.radio = this.data[o.radio];
-							} else {
-								break; // deliverate fallthrough
-							}*/
-						case 'array':
-						case 'object':
-							if (isArray(o.radio)) {
-								for (x=0; x<o.radio.length; x++) {
-									list.push('<input id="' + o.real_id + '" type="radio" name="' + o.id + '" value="' + o.radio[x] + '"' + (o.value==o.radio[x] ? ' checked' : '') + '>' + o.radio[x] + (o.suffix ? ' '+o.suffix : '') + '</input>');
-								}
-							} else {
-								for (x in o.radio) {
-									list.push('<input id="' + o.real_id + '" type="radio" name="' + o.id + '" value="' + x + '"' + (o.value==x ? ' checked' : '') + '>' + o.radio[x] + (o.suffix ? ' '+o.suffix : '') + '</input>');
-								}
-							}
-							break;
-					}
-					txt.push( list.join(''));
-
-                                }
+				}
 				if (o.after) {
 					txt.push(' '+o.after);
 				}
-				if (o.label && (o.text || o.checkbox || o.select || o.multiple || o.radio)) {
+				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
 				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + (o.advanced || o.exploit ? ' style="' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + (o.exploit ? 'border:1px solid red;background:#ffeeee;' : '') + '"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '<br></div>');
@@ -1164,8 +1134,6 @@ Config.updateOptions = function() {
 			}
 			if ($(el).attr('type') === 'checkbox') {
 				val = $(el).attr('checked');
-                        } else if ($(el).attr('type') === 'radio' && $(el).attr('checked')) {
-				val = $(el).value;
 			} else if ($(el).attr('multiple')) {
 				val = [];
 				$('option', el).each(function(i,el){ val.push($(el).text()); });
