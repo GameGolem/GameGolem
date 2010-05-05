@@ -11,7 +11,8 @@ Blessing.defaults = {
 };
 
 Blessing.option = {
-	which:'Stamina'
+	which:'Stamina',
+        display:'False'
 };
 
 Blessing.runtime = {
@@ -19,11 +20,17 @@ Blessing.runtime = {
 };
 
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
-Blessing.display = [{
+Blessing.display = [
+    {
 	id:'which',
 	label:'Which',
 	select:Blessing.which
-}];
+    },{
+        id:'display',
+        label:'Display in Blessing info on *',
+        checkbox:true
+    }
+];
 
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
@@ -36,6 +43,39 @@ Blessing.parse = function(change) {
 		}
 	}
 	return false;
+};
+
+Blessing.update = function(){
+    var d, demi;
+     if (this.option.display && this.option.which !== 'None'){
+         d = new Date(this.runtime.when);
+         switch(this.option.which){
+             case 'Energy':
+                 demi = 'Ambrosia (' + this.option.which + ')';
+                 break;
+             case 'Attack':
+                 demi = 'Malekus (' + this.option.which + ')';
+                 break;
+             case 'Defense':
+                 demi = 'Corvintheus (' + this.option.which + ')';
+                 break;
+             case 'Defense':
+                 demi = 'Corvintheus (' + this.option.which + ')';
+                 break;
+             case 'Health':
+                 demi = 'Aurora (' + this.option.which + ')';
+                 break;
+             case 'Stamina':
+                 demi = 'Azeron (' + this.option.which + ')';
+                 break;
+             default:
+                 demi = 'Unknown';
+                 break;
+         }
+         Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+     } else {
+         Dashboard.status(this);
+     }
 };
 
 Blessing.work = function(state) {

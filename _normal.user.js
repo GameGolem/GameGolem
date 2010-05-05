@@ -1372,7 +1372,9 @@ Page.defaults = {
 			army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
 			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'}
+			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
+                        apprentice:                     {url:'apprentice.php', image:'ma_main_learn_more.jpg'},
+                        apprentice_collect:             {url:'apprentice.php?collect=true', selector:'div[style*="ma_view_progress_main.gif"]'}
 		}
 	}
 };
@@ -2573,7 +2575,8 @@ Blessing.defaults = {
 };
 
 Blessing.option = {
-	which:'Stamina'
+	which:'Stamina',
+        display:'False'
 };
 
 Blessing.runtime = {
@@ -2581,11 +2584,17 @@ Blessing.runtime = {
 };
 
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
-Blessing.display = [{
+Blessing.display = [
+    {
 	id:'which',
 	label:'Which',
 	select:Blessing.which
-}];
+    },{
+        id:'display',
+        label:'Display in Blessing info on *',
+        checkbox:true
+    }
+];
 
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
@@ -2598,6 +2607,39 @@ Blessing.parse = function(change) {
 		}
 	}
 	return false;
+};
+
+Blessing.update = function(){
+    var d, demi;
+     if (this.option.display && this.option.which !== 'None'){
+         d = new Date(this.runtime.when);
+         switch(this.option.which){
+             case 'Energy':
+                 demi = 'Ambrosia (' + this.option.which + ')';
+                 break;
+             case 'Attack':
+                 demi = 'Malekus (' + this.option.which + ')';
+                 break;
+             case 'Defense':
+                 demi = 'Corvintheus (' + this.option.which + ')';
+                 break;
+             case 'Defense':
+                 demi = 'Corvintheus (' + this.option.which + ')';
+                 break;
+             case 'Health':
+                 demi = 'Aurora (' + this.option.which + ')';
+                 break;
+             case 'Stamina':
+                 demi = 'Azeron (' + this.option.which + ')';
+                 break;
+             default:
+                 demi = 'Unknown';
+                 break;
+         }
+         Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+     } else {
+         Dashboard.status(this);
+     }
 };
 
 Blessing.work = function(state) {
@@ -3864,8 +3906,8 @@ Idle.option = {
 	quests: 'Never',
 	town: 'Never',
 	battle: 'Quarterly',
-	monsters: 'Hourly'	
-	
+	monsters: 'Hourly',
+        collect: 'Never'
 };
 
 Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
@@ -3902,6 +3944,10 @@ Idle.display = [
 		id:'monsters',
 		label:'Monsters',
 		select:Idle.when
+	},{
+                id:'collect',
+                label:'Apprentice Reward',
+                select:Idle.when
 	}
 ];
 
@@ -3915,7 +3961,8 @@ Idle.work = function(state) {
 		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_demiquests', 'quests_atlantis'],
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle'], //, 'battle_arena'
-		monsters:['keep_monster', 'battle_raid']
+		monsters:['keep_monster', 'battle_raid'],
+                collect:['apprentice_collect']
 	}, when = { 'Never':0, 'Quarterly':900000, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
 		return true;
@@ -4913,6 +4960,9 @@ Monster.parse = function(change) {
 			monster.damage = {};
 			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 				var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
+				if (monster.raid){
+                                    tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
+                                }
 				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
 				monster.damage_total += dmg;
 			});

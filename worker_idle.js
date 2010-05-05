@@ -15,8 +15,8 @@ Idle.option = {
 	quests: 'Never',
 	town: 'Never',
 	battle: 'Quarterly',
-	monsters: 'Hourly'	
-	
+	monsters: 'Hourly',
+        collect: 'Never'
 };
 
 Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
@@ -53,6 +53,10 @@ Idle.display = [
 		id:'monsters',
 		label:'Monsters',
 		select:Idle.when
+	},{
+                id:'collect',
+                label:'Apprentice Reward',
+                select:Idle.when
 	}
 ];
 
@@ -66,7 +70,8 @@ Idle.work = function(state) {
 		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_demiquests', 'quests_atlantis'],
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle'], //, 'battle_arena'
-		monsters:['keep_monster', 'battle_raid']
+		monsters:['keep_monster', 'battle_raid'],
+                collect:['apprentice_collect']
 	}, when = { 'Never':0, 'Quarterly':900000, 'Hourly':3600000, '2 Hours':7200000, '6 Hours':21600000, '12 Hours':43200000, 'Daily':86400000, 'Weekly':604800000 };
 	if (!Generals.to(this.option.general)) {
 		return true;
