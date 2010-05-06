@@ -138,7 +138,7 @@ var sum = function (a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
 		for(i=0; i<a.length; i++) {
-			t += sum(a[i]);
+			t += sum(a[i] || 0);
 		}
 	} else if (typeof a === 'object') {
 		for(i in a) {

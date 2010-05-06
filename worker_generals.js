@@ -86,6 +86,7 @@ Generals.update = function(type) {
 	// End Priority Stuff
 	
 	if ((type === 'data' || type === Town) && invade && duel) {
+		debug('General: Calculating stats');
 		for (i in data) {
 			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
@@ -96,7 +97,7 @@ Generals.update = function(type) {
 			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Attack when attacked/i) || 0);
+			att_when_att = (data[i].skills.regex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/i) || 0);
 			def_when_att = (data[i].skills.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
 			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation

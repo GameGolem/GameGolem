@@ -211,8 +211,7 @@ Page.ajaxload = function() {
 			Page.ajaxload();
 		},
 		success:function(data){
-//		if (data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
-		if (data.indexOf('app'+APPID+'_results_container') !== -1){
+		if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
 				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
