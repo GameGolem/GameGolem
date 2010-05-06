@@ -2576,7 +2576,7 @@ Blessing.defaults = {
 
 Blessing.option = {
 	which:'Stamina',
-        display:'False'
+        display: false
 };
 
 Blessing.runtime = {
