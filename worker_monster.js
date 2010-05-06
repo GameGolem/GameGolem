@@ -471,10 +471,13 @@ Monster.parse = function(change) {
 			monster.damage_total = 0;
 			monster.damage = {};
 			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
-				var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-				if (monster.raid){
-                                    tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,''), dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-                                }
+				var user = $(el).attr('href').regex(/user=([0-9]+)/i);
+				if (types[type].raid){
+				    var tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
+                                } else {
+				    var tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
+				}
+				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
 				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
 				monster.damage_total += dmg;
 			});
