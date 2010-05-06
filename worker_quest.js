@@ -73,7 +73,7 @@ Quest.parse = function(change) {
 	}
 	for (i in quest) {
 		if (quest[i].area === area && (area !== 'quest' || quest[i].land === land)) {
-//			debug('Quest: Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
+//			debug(this.name,'Deleting ' + i + '(' + (Quest.land[quest[i].land] || quest[i].area) + ')');
 			delete quest[i];
 		}
 	}
@@ -166,7 +166,7 @@ Quest.update = function(type) {
 		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
-//		debug('Quest: option = ' + this.option.what);
+//		debug(this.name,'option = ' + this.option.what);
 //		best = (this.runtime.best && this.data[this.runtime.best] && (this.data[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in this.data) {
 			switch(this.option.what) {
@@ -203,7 +203,7 @@ Quest.update = function(type) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = this.data[best].energy;
-			debug('Quest: Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
+			debug(this.name,'Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
 		}
 	}
 	if (best) {
@@ -292,12 +292,12 @@ Quest.work = function(state) {
 			}
 			break;
 		default:
-			debug('Quest: Can\'t get to quest area!');
+			log(this.name,'Can\'t get to quest area!');
 			return false;
 	}
-	debug('Quest: Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
+	debug(this.name,'Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
 	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		debug('Quest: Can\'t find button for ' + best + ', so deleting and re-visiting page...');
+		debug(this.name,'Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();
 	}

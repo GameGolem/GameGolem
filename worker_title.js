@@ -61,7 +61,7 @@ Title.update = function(type) {
 					output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
 					this._watch(worker); // Doesn't matter how often we add, it's only there once...
 				} else {
-					debug('Title: Bad worker specified = "' + tmp[1] + '"');
+					debug(this.name,'Bad worker specified = "' + tmp[1] + '"');
 				}
 			}
 		}

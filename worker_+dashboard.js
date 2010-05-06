@@ -105,7 +105,7 @@ Dashboard.update = function(type) {
 			worker._unflush();
 			worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
+			log(this.name,e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
 		$('#'+id).empty();

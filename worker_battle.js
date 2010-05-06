@@ -219,7 +219,7 @@ Battle.update = function(type) {
 		}
 	}
 	if (length(this.data.user) > this.option.cache) { // Need to prune our target cache
-//		debug('Battle: Pruning target cache');
+//		debug(this.name,'Pruning target cache');
 		list = [];
 		for (i in data) {
 			list.push(i);
@@ -312,7 +312,7 @@ Battle.update = function(type) {
 */
 Battle.work = function(state) {
 	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < 1) {
-//		debug('Battle: Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
+//		debug(this.name,'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return false;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
@@ -320,10 +320,10 @@ Battle.work = function(state) {
 	}
 	var $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {
-		debug('Battle: Unable to find attack buttons, forcing reload');
+		debug(this.name,'Unable to find attack buttons, forcing reload');
 		Page.to('index');
 	} else {
-		log('Battle: Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		log(this.name,'Battle: Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}

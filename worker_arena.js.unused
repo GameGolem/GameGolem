@@ -156,7 +156,7 @@ Arena.update = function(type) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our attack cache
-//		debug('Arena: Pruning target cache');
+//		debug(this.name,'Pruning target cache');
 		for (i in data) {
 			list.push(i);
 		}
@@ -219,9 +219,9 @@ Arena.work = function(state) {
 		return true;
 	}
 	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
-	debug('Arena: Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
+	debug(this.name,'Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
-		log('Arena: Unable to find attack buttons, forcing reload');
+		log(this.name,'Arena: Unable to find attack buttons, forcing reload');
 		Page.to('index');
 	} else {
 		$('input[name="target_id"]', $form).attr('value', uid);

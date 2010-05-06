@@ -42,11 +42,11 @@ Heal.me = function() {
 	if (!Page.to('keep_stats')) {
 		return true;
 	}
-	debug('Heal: Healing...');
+	debug(this.name,'Healing...');
 	if ($('input[value="Heal Wounds"]').length) {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
-		log('Danger Danger Will Robinson... Unable to heal!');
+		log(this.name,'Danger Danger Will Robinson... Unable to heal!');
 	}
 	return false;
 };

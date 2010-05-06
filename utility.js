@@ -223,7 +223,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
 		if (user) {
 			if (Math.min(count, own) > 0) {
-//				debug('Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
+//				debug('Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}

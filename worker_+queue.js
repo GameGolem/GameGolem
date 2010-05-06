@@ -78,7 +78,7 @@ Queue.init = function() {
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
 		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, Workers[i].name)) {
-			log('Adding '+Workers[i].name+' to Queue');
+			log(this.name,'Adding '+Workers[i].name+' to Queue');
 			if (Workers[i].settings.unsortable) {
 				this.option.queue.unshift(Workers[i].name);
 			} else {
@@ -90,7 +90,7 @@ Queue.init = function() {
 		worker = WorkerByName(this.option.queue[i]);
 		if (worker && worker.id) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
-				debug('Queue: Trigger '+worker.name+' (continue after load)');
+				debug(this.name,'Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.id));
@@ -101,7 +101,7 @@ Queue.init = function() {
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
-		debug('State: '+((Queue.option.pause)?"paused":"running"));
+		debug('Queue','State: '+((Queue.option.pause)?"paused":"running"));
 		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
@@ -130,7 +130,7 @@ Queue.run = function() {
 	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
-//	debug('Start Queue');
+//	debug(this.name,'Start Queue');
 	this.burn.stamina = this.burn.energy = 0;
 	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
 		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
@@ -143,15 +143,15 @@ Queue.run = function() {
 	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
 /*	if (Player.get('energy') >= Player.get('maxenergy')){
 		this.burn.stamina = 0;	// Focus on burning energy
-		debug('Queue: At max energy, burning energy first.');
+		debug(this.name,'At max energy, burning energy first.');
 	} else if (Player.get('stamina') >= Player.get('maxstamina')){
 		this.burn.energy = 0;	// Focus on burning stamina
-		debug('Queue: At max stamina, burning stamina first.');
+		debug(this.name,'At max stamina, burning stamina first.');
 	}
 */	
 	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
-//			debug(Workers[i].name + '.work(false);');
+//			debug(this.name,Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
 			Workers[i]._work(false);
 		}
@@ -161,7 +161,7 @@ Queue.run = function() {
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
-//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+//		debug(this.name,worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 		if (this.runtime.current === worker.name) {
 			worker._unflush();
 			result = worker._work(true);
@@ -173,7 +173,7 @@ Queue.run = function() {
 			if (worker.id) {
 				$('#'+worker.id+' > h3').css('font-weight', 'normal');
 			}
-			debug('Queue: End '+worker.name);
+			debug(this.name,'End '+worker.name);
 		}
 		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
 			continue;
@@ -183,7 +183,7 @@ Queue.run = function() {
 			continue;
 		}
 		if (this.runtime.current) {
-			debug('Queue: Interrupt '+this.runtime.current);
+			debug(this.name,'Interrupt '+this.runtime.current);
 			if (WorkerByName(this.runtime.current).id) {
 				$('#'+WorkerByName(this.runtime.current).id+' > h3').css('font-weight', 'normal');
 			}
@@ -192,9 +192,9 @@ Queue.run = function() {
 		if (worker.id) {
 			$('#'+worker.id+' > h3').css('font-weight', 'bold');
 		}
-		debug('Queue: Trigger '+worker.name);
+		debug(this.name,'Trigger ' + worker.name);
 	}
-//	debug('End Queue');
+//	debug(this.name,'End Queue');
 	for (i=0; i<Workers.length; i++) {
 		Workers[i]._flush();
 	}

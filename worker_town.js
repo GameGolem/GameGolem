@@ -208,7 +208,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	}
 	$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-			debug('Town: Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+			debug(this.name,'Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
 			$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 			Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}

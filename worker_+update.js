@@ -52,14 +52,14 @@ Update.work = function(state) {
 	if (!this.runtime.found && Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
 		this.runtime.lastcheck = Date.now();
 		/*
-		debug('Checking trunk revisions');
+		debug(this.name,'Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
 			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
 					var release = evt.responseText.regex(/"_release.user.js":\["[^"]*","([0-9]+)"/i), beta = evt.responseText.regex(/"_normal.user.js":\["[^"]*","([0-9]+)"/i);
-					debug('Version: '+release+', Beta: '+beta);
+					debug(this.name,'Version: '+release+', Beta: '+beta);
 				}
 			}
 		});
@@ -80,7 +80,7 @@ Update.work = function(state) {
 							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
 							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://game-golem.googlecode.com/svn/trunk/_release.user.js';}, "Skip":function(){$(this).dialog("close");}} });
 						}
-						log('New version available: '+remoteVersion);
+						log(this.name,'New version available: '+remoteVersion);
 					} else if (Update.get('runtime.force')) {
 						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
 						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });

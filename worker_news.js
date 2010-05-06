@@ -44,7 +44,7 @@ News.parse = function(change) {
 					result = 'loss';
 				}
 				if (time > last_time) {
-//					debug('News: Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
+//					debug(this.name,'Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', income = '+my_cash);
 					time = Math.floor(time / 3600000);
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);

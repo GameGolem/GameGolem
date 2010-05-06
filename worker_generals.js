@@ -33,7 +33,7 @@ Generals.parse = function(change) {
 	if (Page.page === 'heroes_generals') {
 		var $elements = $('.generalSmallContainer2'), data = this.data;
 		if ($elements.length < length(data)) {
-			debug('Generals: Different number of generals, have '+$elements.length+', want '+length(data));
+			debug(this.name,'Different number of generals, have '+$elements.length+', want '+length(data));
 	//		Page.to('heroes_generals', ''); // Force reload
 			return false;
 		}
@@ -86,7 +86,7 @@ Generals.update = function(type) {
 	// End Priority Stuff
 	
 	if ((type === 'data' || type === Town) && invade && duel) {
-		debug('General: Calculating stats');
+		//debug(this.name,'Calculating stats');
 		for (i in data) {
 			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
@@ -146,13 +146,13 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!name || !this.data[name]) {
-		log('General "'+name+'" requested but not found!');
+		log(this.name,'General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!Page.to('heroes_generals')) {
 		return false;
 	}
-	debug('Changing to General '+name);
+	debug(this.name,'Changing to General '+name);
 	Page.click('input[src$="' + this.data[name].img + '"]');
 	this.data[name].used = (this.data[name].used || 0) + 1;
 	return false;
@@ -256,7 +256,7 @@ Generals.best = function(type) {
 		}
 	}
 //	if (best) {
-//		debug('Best general found: '+best);
+//		debug(this.name,'Best general found: '+best);
 //	}
 	return (best || 'any');
 };
@@ -340,7 +340,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			debug(this.name,'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}
@@ -359,7 +359,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Generals: Priority: Swapping '+gup+' with '+gdown);
+			debug(this.name,'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}

@@ -77,27 +77,27 @@ Gift.parse = function(change) {
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// We need to get the image of the gift from the index page.
-//		debug('Gift: Checking for a waiting gift and getting the id of the gift.');
+//		debug(this.name,'Checking for a waiting gift and getting the id of the gift.');
 		if ($('span.result_body').text().indexOf('has sent you a gift') >= 0) {
 			this.runtime.gift.sender_ca_name = $('span.result_body').text().regex(/[\t\n]*(.+) has sent you a gift/i);
 			this.runtime.gift.name = $('span.result_body').text().regex(/has sent you a gift:\s+(.+)!/i);
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
-			debug('Gift: ' + this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
+			debug(this.name,this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
 			this.runtime.gift_waiting = true;
 			return true
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
-			debug('Gift: ' + this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
+			debug(this.name,this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
 			return true
 		}
 	} else if (Page.page === 'army_invite') {
 		// Check for sent
-//		debug('Gift: Checking for sent gifts.');
+//		debug(this.name,'Checking for sent gifts.');
 		if (this.runtime.sent_id && $('div.result').text().indexOf('request sent') >= 0) {
-			debug('Gift: ' + gifts[this.runtime.sent_id].name+' sent.');
+			debug(this.name,gifts[this.runtime.sent_id].name+' sent.');
 			for (j=0; j < Math.min(todo[this.runtime.sent_id].length, 30); j++) {	// Remove the IDs from the list because we have sent them
 				todo[this.runtime.sent_id].shift();
 			}
@@ -111,40 +111,40 @@ Gift.parse = function(change) {
 		}
 		
 		// Accepted gift first
-//		debug('Gift: Checking for accepted gift.');
+//		debug(this.name,'Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
 			if ($('div.result').text().indexOf('accepted the gift') >= 0 || $('div.result').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
-				debug('Gift: Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+				debug(this.name,'Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 				received.push(this.runtime.gift); // add the gift to our list of received gifts.  We will use this to clear facebook notifications and possibly return gifts
 				this.runtime.work = true;	// We need to clear our facebook notifications and/or return gifts
 				this.runtime.gift = {}; // reset our runtime gift tracker
 			}
 		}
 		// Check for gifts
-//		debug('Gift: Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');		
+//		debug(this.name,'Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
 		if ($('div.messages').text().indexOf('gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
 			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
 				return false;	// let the work function send us to the index page to get the info.
 			}
-//			debug('Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
+//			debug(this.name,'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
 			this.runtime.gift.sender_id = $('div.messages img[uid]').first().attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
 			if (this.runtime.gift.sender_id) {
 				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
-//				debug('Gift: Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
+//				debug(this.name,'Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
 			} else {
-				debug("Gift: Can't find the gift sender's ID.");
+				log(this.name,"Can't find the gift sender's ID.");
 			}
 		} else {
 			this.runtime.gift_waiting = false;
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
-//		debug('Gift: Parsing gifts.');
-//		debug('Gifts found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
+//		debug(this.name,'Parsing gifts.');
+//		debug(this.name,'Found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
 		$('div[id*="_giftContainer"] div[id*="_gift"]').each(function(i,el){
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!',''), slot = $(el).attr('id').regex(/_gift([0-9]+)/);
-//			debug('Gift adding: '+name+'('+id+') to slot '+slot);
+//			debug(this.name,'Adding: '+name+'('+id+') to slot '+slot);
 			if (!gifts[id]) {
 				gifts[id] = {};
 			}
@@ -183,7 +183,7 @@ Gift.work = function(state) {
 		if (!Page.to('army_invite')) {
 			return true;
 		}
-//		debug('Gift: Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+//		debug(this.name,'Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + this.runtime.gift.sender_id) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
 			return true;
 		}
@@ -204,7 +204,7 @@ Gift.work = function(state) {
 		for (i in received){
 			var temptype = this.option.type;
 			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type != 'None') {
-				debug('Gift: ' + received[i].id+' was not found in our sendable gift list.');
+				debug(this.name,received[i].id+' was not found in our sendable gift list.');
 				temptype = 'Random';
 			}
 			switch(temptype) {
@@ -215,7 +215,7 @@ Gift.work = function(state) {
 							gift_ids.push(j);
 						}
 						random_gift_id = Math.floor(Math.random() * gift_ids.length);
-						debug('Gift: will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
+						debug(this.name,'Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
 						if (!todo[gift_ids[random_gift_id]]) {
 							todo[gift_ids[random_gift_id]] = [];
 						}
@@ -224,7 +224,7 @@ Gift.work = function(state) {
 					this.runtime.work = true;
 					break;
 				case 'Same as Received':
-					debug('Gift: will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
+					debug(this.name,'Will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
 					if (!todo[received[i].id]) {
 						todo[received[i].id] = [];
 					}
@@ -249,12 +249,12 @@ Gift.work = function(state) {
 	}
 	
 	if (this.runtime.gift_sent > Date.now()) {	// We have sent gift(s) and are waiting for the fb popup
-//		debug('Gift: Waiting for FB popup.');
+//		debug(this.name,'Waiting for FB popup.');
 		if ($('div.dialog_buttons input[name="sendit"]').length){
 			this.runtime.gift_sent = null;
 			Page.click('div.dialog_buttons input[name="sendit"]');
 		} else if ($('span:contains("Out of requests")')) {
-			debug('Gift: We have run out of gifts to send.  Waiting one hour to retry.');
+			debug(this.name,'We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[value="Okay"]');
 		}
@@ -272,12 +272,12 @@ Gift.work = function(state) {
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
 				if ($('img[src*="giftpage_ca_friends_on"]').length){
 					if ($('div.unselected_list').children().length) {
-						debug('Gift: Sending out ' + this.data.gifts[i].name);
+						debug(this.name,'Sending out ' + this.data.gifts[i].name);
 						k = 0;
 						for (j in todo[i]) {
 							if (k< 30) {	// Need to limit to 30 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-//									debug('Gift: User '+todo[i][j]+' wasn\'t in the CA friend list.');
+//									debug(this.name,'User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
 								}
 								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');

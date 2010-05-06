@@ -134,7 +134,7 @@ LevelUp.update = function(type) {
 				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
 			}
 		}
-//		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
+//		debug(this.name,'Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
 	} else if (type === Player) {
 		if (exp !== runtime.exp) { // Experience has changed...
 			if (runtime.stamina > stamina) {
@@ -199,14 +199,14 @@ LevelUp.work = function(state) {
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-//			debug('LevelUp: running '+runtime.running);
+//			debug(this.name,'running '+runtime.running);
 		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-//			debug('LevelUp: running '+runtime.running);
+//			debug(this.name,'Running '+runtime.running);
 		}
 		return false;
 	}
@@ -220,14 +220,14 @@ LevelUp.work = function(state) {
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
-//		debug('LevelUp: running '+runtime.running);
+//		debug(this.name,'Running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
 	general = Generals.best(this.option.general); // Get our level up general
 	if (general && general !== 'any' && Player.get('exp_needed') < 25) { // If we want to change...
 		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
 		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
-//			debug('LevelUp: Disabling Generals because we are within 25 XP from leveling.');
+//			debug(this.name,'Disabling Generals because we are within 25 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
 		} else {
 			return true;	// Try to change generals again
@@ -235,7 +235,7 @@ LevelUp.work = function(state) {
 	}
 	// We don't have focus, but we do want to level up quicker
     if (this.option.order !== 'Stamina' || !stamina || (stamina < 5 && Battle.option.monster && !Battle.option.points)){
-        debug('LevelUp: Running Energy Burn');
+        debug(this.name,'Running Energy Burn');
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		runtime.old_quest = Quest.runtime.best;
 		runtime.old_quest_energy = Quest.runtime.energy;
@@ -246,7 +246,7 @@ LevelUp.work = function(state) {
 		return false;
 	}}
         else
-            {debug('LevelUp: Running Stamina Burn');}
+            {debug(this.name,'Running Stamina Burn');}
     
 	Quest._update('data'); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all

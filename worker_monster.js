@@ -329,7 +329,7 @@ Monster.types = {
 
 //Monster.dispel = ['input[src$="button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="button_dispel.gif"]', 'input[src$="seamonster_fortify.gif"]', 'input[src$="nm_secondary_heal.gif"]', 'input[src$="nm_secondary_strengthen.gif"]', 'input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]', 'input[src$="nm_primary_bolt.gif"]', 'input[src$="nm_primary_stab.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]', 'input[src$="nm_primary_bolt.gif"]', 'input[src$="nm_primary_stab.gif"]','input[src$="power_button_5.gif"]','input[src$="button_bash_5.gif"]'];
 Monster.secondary = ['input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
@@ -370,22 +370,22 @@ Monster.parse = function(change) {
 		uid = $('img[linked][size="square"]').attr('uid');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length) {
-//				debug('Found a dead '+i);
+//				debug(this.name,'Found a dead '+i);
 				type = i;
 				timer = types[i].timer;
 				dead = true;
 			} else if (types[i].image && ($('img[src$="'+types[i].image+'"]').length || $('div[style*="'+types[i].image+'"]').length)) {
-//				debug('Parsing '+i);
+//				debug(this.name,'Parsing '+i);
 				type = i;
 				timer = types[i].timer;
 			} else if (types[i].image2 && ($('img[src$="'+types[i].image2+'"]').length || $('div[style*="'+types[i].image2+'"]').length)) {
-//				debug('Parsing second stage '+i);
+//				debug(this.name,'Parsing second stage '+i);
 				type = i;
 				timer = types[i].timer2 || types[i].timer;
 			}
 		}
 		if (!uid || !type) {
-			debug('Monster: Unknown monster (probably dead)');
+			debug(this.name,'Unknown monster (probably dead)');
 			return false;
 		}
 		data[uid] = data[uid] || {};
@@ -462,10 +462,10 @@ Monster.parse = function(change) {
 				}
 			}
 			
-/*			debug('Parsed Monster Health: '+monster.health.round(1)+'%');
-			if (isNumber(monster.dispel)) { debug('Parsed Monster Dispel: '+ monster.dispel.round(1)+'%');}
-			if (isNumber(monster.defense)) { debug('Parsed Monster Defense: '+monster.defense.round(1)+'%(Total: '+monster.totaldefense.round(1)+'%)');}
-			if (isNumber(monster.strength)) { debug('Parsed Monster Strength: '+ monster.strength.round(1)+'%');}
+/*			debug(this.name,'Parsed Monster Health: '+monster.health.round(1)+'%');
+			if (isNumber(monster.dispel)) { debug(this.name,'Parsed Monster Dispel: '+ monster.dispel.round(1)+'%');}
+			if (isNumber(monster.defense)) { debug(this.name,'Parsed Monster Defense: '+monster.defense.round(1)+'%(Total: '+monster.totaldefense.round(1)+'%)');}
+			if (isNumber(monster.strength)) { debug(this.name,'Parsed Monster Strength: '+ monster.strength.round(1)+'%');}
 */			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			monster.finish = Date.now() + (monster.timer * 1000);
 			monster.damage_total = 0;
@@ -545,14 +545,14 @@ Monster.update = function(what) {
 	for (i in this.data) { // Flush unknown monsters
 		for (j in this.data[i]) {
 			if (!this.data[i][j].state || this.data[i][j].state === null) {
-                                debug('Monster: Found Invalid Monster State=(' + this.data[i][j].state + ')');
+                                log(this.name,'Found Invalid Monster State=(' + this.data[i][j].state + ')');
 				delete this.data[i][j];
 			} else if (this.data[i][j].state === 'engage') {
 				this.runtime.count++;
 			}
 		}
 		if (!length(this.data[i])) { // Delete uid's without an active monster
-                        debug('Monster: Found Invalid Monster ID=(' + this.data[i] + ')');
+                        log(this.name,'Found Invalid Monster ID=(' + this.data[i] + ')');
 			delete this.data[i];
 		}
 	}
@@ -572,8 +572,11 @@ Monster.update = function(what) {
 				break;
 			}
 			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= (this.types[j].raid ? 13 : 10) && Queue.burn.stamina >= ((this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : 5)))) {
+                if (!this.data[i][j].battle_count){
+                    this.data[i][j].battle_count = 0;
+                }
                 if (this.data[i][j].name === 'You' && this.option.own){
-                    //debug('Monster: Attacking own Monster ' + this.option.own)
+                    //debug(this.name,'Attacking own Monster ' + this.option.own)
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count]);
                     break;
                 }
@@ -676,7 +679,7 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
 			return true;
 		}
-//		debug('Raid: '+this.option.raid+' '+uid);
+//		debug(this.name,'Raid: '+this.option.raid+' '+uid);
 		switch(this.option.raid) {
 			case 'Invade':
 				btn = $('input[src$="raid_attack_button.gif"]:first');
@@ -696,23 +699,28 @@ Monster.work = function(state) {
 		if (!Generals.to(Generals.best(j))) {
 			return true;
 		}
-		debug('Monster: Try to ' + j + ' ' + uid + '\'s ' + this.types[type].name);
+		debug(this.name,'Try to ' + j + ' ' + uid + '\'s ' + this.types[type].name);
 		for (i=0; i<this[j].length; i++) {
-//			debug('trying btn = '+this[j][i]);
+//			debug(this.name,'Trying btn = '+this[j][i]);
 			btn = $(this[j][i]);
 			if (btn.length) {
-//				debug('found btn = '+this[j][i]);
+//				debug(this.name,'Found btn = '+this[j][i]);
 				break;
 			}
 		}
 	}
-	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || $('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid) {
+	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid && $('div[style*="nm_top"] img[linked]').attr('uid') != uid)) {
+/*		debug(this.name,'Reloading page. Button = ' + btn.attr('name'));
+                debug(this.name,'Reloading page. Page.page = '+ Page.page);
+                debug(this.name,'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
+*/
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
 	if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
+		debug(this.name,'Current Siege Phase is: '+ $('input[name*="help with"]').attr('title').regex(/ (.*)/i));
 		this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
-		debug('Monster: Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
+		debug(this.name,'Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
 		return true;
 	}
@@ -726,12 +734,13 @@ Monster.work = function(state) {
 		}
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
-			debug('Monster: No valid Raid target!');
+			log(this.name,'No valid Raid target!');
 			Page.to('battle_raid', ''); // Force a page reload to change the targets
 			return true;
 		}
 	}
 	this.runtime.uid = this.runtime.type = null; // Force us to choose a new target...
+        //debug(this.name,'Clicking Button ' + btn.attr('name'));
 	Page.click(btn);
 	return true;
 };
@@ -816,7 +825,7 @@ Monster.dashboard = function(sort, rev) {
 		}
 		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + '"');
 		var image_url = imagepath + Monster.types[j].list;
-//		debug(image_url);
+//		debug(this.name,image_url);
 		th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
 		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
 		td(output, blank ? '' : isNumber(monster.totaldefense) ? ((monster.totaldefense-50).round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));

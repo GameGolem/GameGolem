@@ -165,13 +165,13 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-//	debug('this.identify("'+Page.page+'")');
+	//debug(this.name,'this.identify("'+Page.page+'")');
 	return this.page;
 };
 
 Page.to = function(page, args, force) {
 	if (Queue.option.pause) {
-		debug('Trying to load page when paused...');
+		debug(this.name,'Trying to load page when paused...');
 		return true;
 	}
 	if (page === this.page && (force || typeof args === 'undefined')) {
@@ -189,7 +189,7 @@ Page.to = function(page, args, force) {
 		} else {
 			this.last = this.last + args;
 		}
-		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
+		debug(this.name,'Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
 //			this.loading=true;
 			window.location.href = this.last;
@@ -227,13 +227,13 @@ Page.ajaxload = function() {
 };
 
 Page.reload = function() {
-	debug('Page.reload()');
+	debug(this.name,'Page.reload()');
 	window.location.href = window.location.href;
 };
 
 Page.click = function(el) {
 	if (!$(el).length) {
-		debug('Page.click: Unable to find element - '+el);
+		log(this.name,'Page.click: Unable to find element - '+el);
 		return false;
 	}
 	var e = document.createEvent("MouseEvents");
