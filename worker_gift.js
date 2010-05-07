@@ -270,7 +270,7 @@ Gift.work = function(state) {
 				return true;
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
-				if ($('img[src*="giftpage_ca_friends_on"]').length){
+				if ($('img[src*="gift_invite_castle_on"]').length){
 					if ($('div.unselected_list').children().length) {
 						debug(this.name,'Sending out ' + this.data.gifts[i].name);
 						k = 0;
@@ -295,8 +295,8 @@ Gift.work = function(state) {
 					} else {
 						return true;
 					}
-				} else if ($('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]').length) {
-					Page.click('div.tabBtn img.imgButton[src*="giftpage_ca_friends_off"]');
+				} else if ($('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]').length) {
+					Page.click('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]');
 					return true;
 				} else {
 					return true;
