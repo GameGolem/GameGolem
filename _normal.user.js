@@ -1466,7 +1466,7 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-//	debug(this.name,'this.identify("'+Page.page+'")');
+	//debug(this.name,'this.identify("'+Page.page+'")');
 	return this.page;
 };
 
@@ -4818,7 +4818,13 @@ Monster.types = {
 
 //Monster.dispel = ['input[src$="button_dispel.gif"]'];
 Monster.fortify = ['input[src$="attack_monster_button3.jpg"]', 'input[src$="button_dispel.gif"]', 'input[src$="seamonster_fortify.gif"]', 'input[src$="nm_secondary_heal.gif"]', 'input[src$="nm_secondary_strengthen.gif"]', 'input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
-Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]', 'input[src$="nm_primary_bolt.gif"]', 'input[src$="nm_primary_stab.gif"]','input[src$="power_button_5.gif"]','input[src$="button_bash_5.gif"]'];
+Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamonster_power.gif"]', 'input[src$="attack_monster_button.jpg"]', 'input[src$="event_attack2.gif"]', 'input[src$="event_attack1.gif"]', 'input[src$="nm_primary_smite.gif"]', 'input[src$="nm_primary_bash.gif"]', 'input[src$="nm_primary_bolt.gif"]', 'input[src$="nm_primary_stab.gif"]'
+    ,'input[src$="power_button_5.gif"]','input[src$="button_bash_5.gif"]','input[src$="nm_primary_smite_5.gif"]', 'input[src$="nm_primary_bolt_5.gif"]', 'input[src$="nm_primary_stab_5.gif"]'
+    ,'input[src$="power_button_10.gif"]','input[src$="button_bash_10.gif"]','input[src$="nm_primary_smite_10.gif"]', 'input[src$="nm_primary_bolt_10.gif"]', 'input[src$="nm_primary_stab_10.gif"]'
+    ,'input[src$="power_button_20.gif"]','input[src$="button_bash_20.gif"]','input[src$="nm_primary_smite_20.gif"]', 'input[src$="nm_primary_bolt_20.gif"]', 'input[src$="nm_primary_stab_20.gif"]'
+    ,'input[src$="power_button_30.gif"]','input[src$="button_bash_30.gif"]','input[src$="nm_primary_smite_30.gif"]', 'input[src$="nm_primary_bolt_30.gif"]', 'input[src$="nm_primary_stab_30.gif"]'
+    ,'input[src$="power_button_50.gif"]','input[src$="button_bash_50.gif"]','input[src$="nm_primary_smite_50.gif"]', 'input[src$="nm_primary_bolt_50.gif"]', 'input[src$="nm_primary_stab_50.gif"]'];
+Monster.attack_fallback = ['input[src*="seamonster_power"]', 'input[src*="nm_primary_smite"]', 'input[src*="nm_primary_bash"]', 'input[src*="nm_primary_bolt"]', 'input[src*="nm_primary_stab"]','input[src*="power_button"]','input[src*="button_bash"]','input[src*="attack_monster_button"]', 'input[src*="event_attack"]'];
 Monster.secondary = ['input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
@@ -5184,19 +5190,36 @@ Monster.work = function(state) {
 				break;
 		}
 	} else {
-		j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack';
+		if(this.data[uid][type].button_fail <= 5 || !this.data[uid][type].button_fail){
+                    //Primary method of finding button.
+                    //debug(this.name,"Setting Primary button location.");
+                    j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack';
+                } else{
+                    //Enable fallback method of finding attack button.
+                    //debug(this.name,"Setting Fallback button location.");
+                    j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack_fallback';
+                }
 		if (!Generals.to(Generals.best(j))) {
 			return true;
 		}
-		debug(this.name,'Try to ' + j + ' ' + uid + '\'s ' + this.types[type].name);
+		debug(this.name,'Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 		for (i=0; i<this[j].length; i++) {
-//			debug(this.name,'Trying btn = '+this[j][i]);
+			//debug(this.name,'Trying btn = '+this[j][i]);
 			btn = $(this[j][i]);
 			if (btn.length) {
-//				debug(this.name,'Found btn = '+this[j][i]);
+				//debug(this.name,'Found btn = '+this[j][i]);
+                                this.data[uid][type].button_fail = 0;
 				break;
 			}
-		}
+                }
+                if (!btn || !btn.length){
+                    this.data[uid][type].button_fail = this.data[uid][type].button_fail + 1;
+                    debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Button Fail = ' + this.data[uid][type].button_fail);
+                }
+                if (this.data[uid][type].button_fail > 10){                    
+                    log(this.name,'Ignoring Monster ' + this.data[uid][type].name + '\'s ' + this.types[type].name + this.data[uid][type] + ': Unable to locate ' + j + ' button ' + this.data[uid][type].button_fail + ' times!');
+                    this.data[uid][type].ignore = true;
+                    this.data[uid][type].button_fail = 0;}
 	}
 	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid && $('div[style*="nm_top"] img[linked]').attr('uid') != uid)) {
 /*		debug(this.name,'Reloading page. Button = ' + btn.attr('name'));
@@ -5207,7 +5230,7 @@ Monster.work = function(state) {
 		return true; // Reload if we can't find the button or we're on the wrong page
 	}
 	if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
-		debug(this.name,'Current Siege Phase is: '+ $('input[name*="help with"]').attr('title').regex(/ (.*)/i));
+		debug(this.name,'Current Siege Phase is: '+ this.data[uid][type].phase);
 		this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
 		debug(this.name,'Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
 		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
@@ -5231,6 +5254,7 @@ Monster.work = function(state) {
 	this.runtime.uid = this.runtime.type = null; // Force us to choose a new target...
         //debug(this.name,'Clicking Button ' + btn.attr('name'));
 	Page.click(btn);
+        this.data[uid][type].button_fail = 0;
 	return true;
 };
 
