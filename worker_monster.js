@@ -475,8 +475,19 @@ Monster.parse = function(change) {
 */			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			monster.finish = Date.now() + (monster.timer * 1000);
 			monster.damage_total = 0;
+                        monster.damage_siege = 0;
+                        monster.damage_players = 0;
 			monster.damage = {};
-			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
+			$('img[src*="siege_small"]').each(function(i,el){
+				var siege = $(el).parent().next().next().next().children().eq(0).text();
+                                var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
+                                var dmg = tmp.regex(/([0-9]+)/);
+                                //debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+				monster.damage[siege]  = [dmg];
+				monster.damage_siege += dmg;
+                                monster.damage_total += dmg;
+			});                        
+                        $('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 				var user = $(el).attr('href').regex(/user=([0-9]+)/i);
 				if (types[type].raid){
 				    var tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
@@ -485,9 +496,13 @@ Monster.parse = function(change) {
 				}
 				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
 				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
-				monster.damage_total += dmg;
+				monster.damage_players += dmg + fort;
+                                monster.damage_total += dmg + fort;
 			});
-			monster.dps = monster.damage_total / (timer - monster.timer);
+                        //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Siege Damage = ' + addCommas(this.data[uid][type].damage_siege));
+                        //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Player Damage = ' + addCommas(this.data[uid][type].damage_players));
+                        //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Total Damage = ' + addCommas(this.data[uid][type].damage_total));
+			monster.dps = monster.damage_players / (timer - monster.timer);
 			if (types[type].raid) {
 				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
 			} else {
