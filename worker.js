@@ -293,4 +293,3 @@ Worker.prototype._work = function(state) {
 	return false;
 };
 
-// Artifice commit test
