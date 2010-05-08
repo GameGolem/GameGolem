@@ -4823,7 +4823,8 @@ Monster.attack = ['input[src$="attack_monster_button2.jpg"]', 'input[src$="seamo
     ,'input[src$="power_button_10.gif"]','input[src$="button_bash_10.gif"]','input[src$="nm_primary_smite_10.gif"]', 'input[src$="nm_primary_bolt_10.gif"]', 'input[src$="nm_primary_stab_10.gif"]'
     ,'input[src$="power_button_20.gif"]','input[src$="button_bash_20.gif"]','input[src$="nm_primary_smite_20.gif"]', 'input[src$="nm_primary_bolt_20.gif"]', 'input[src$="nm_primary_stab_20.gif"]'
     ,'input[src$="power_button_30.gif"]','input[src$="button_bash_30.gif"]','input[src$="nm_primary_smite_30.gif"]', 'input[src$="nm_primary_bolt_30.gif"]', 'input[src$="nm_primary_stab_30.gif"]'
-    ,'input[src$="power_button_50.gif"]','input[src$="button_bash_50.gif"]','input[src$="nm_primary_smite_50.gif"]', 'input[src$="nm_primary_bolt_50.gif"]', 'input[src$="nm_primary_stab_50.gif"]'];
+    ,'input[src$="power_button_50.gif"]','input[src$="button_bash_50.gif"]','input[src$="nm_primary_smite_50.gif"]', 'input[src$="nm_primary_bolt_50.gif"]', 'input[src$="nm_primary_stab_50.gif"]'
+    ,'input[src$="button_nm_p_power_attack.gif"]'];
 Monster.attack_fallback = ['input[src*="seamonster_power"]', 'input[src*="nm_primary_smite"]', 'input[src*="nm_primary_bash"]', 'input[src*="nm_primary_bolt"]', 'input[src*="nm_primary_stab"]','input[src*="power_button"]','input[src*="button_bash"]','input[src*="attack_monster_button"]', 'input[src*="event_attack"]'];
 Monster.secondary = ['input[src$="nm_secondary_cripple.jpg"]', 'input[src$="nm_secondary_deflect.jpg"]'];
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
