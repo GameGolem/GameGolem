@@ -350,3 +350,6 @@ Date.replaceChars = {
 	U: function() { return this.getTime() / 1000; }
 };
 
+var iscaap = function() {
+	return (typeof caap != 'undefined');
+};
