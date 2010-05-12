@@ -528,6 +528,9 @@ Date.replaceChars = {
 	U: function() { return this.getTime() / 1000; }
 };
 
+var iscaap = function() {
+	return (typeof caap != 'undefined');
+};
 /* Worker Prototype
    ----------------
 new Worker(name, pages, settings)
@@ -4785,7 +4788,8 @@ Monster.types = {
 		dead:'castle_siege_dead.jpg',
 		achievement:1000,
 		timer:604800, // 168 hours
-		mpool:3		
+		mpool:3,
+		orcs:true
 	},
 	genesis: {
 		name:'Genesis, The Earth Elemental',
@@ -4967,6 +4971,7 @@ Monster.parse = function(change) {
 			monster.damage_total = 0;
                         monster.damage_siege = 0;
                         monster.damage_players = 0;
+			monster.fortify = 0;
 			monster.damage = {};
 			$('img[src*="siege_small"]').each(function(i,el){
 				var siege = $(el).parent().next().next().next().children().eq(0).text();
@@ -4975,7 +4980,6 @@ Monster.parse = function(change) {
                                 //debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
 				monster.damage[siege]  = [dmg];
 				monster.damage_siege += dmg;
-                                monster.damage_total += dmg;
 			});                        
                         $('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 				var user = $(el).attr('href').regex(/user=([0-9]+)/i);
@@ -4986,12 +4990,20 @@ Monster.parse = function(change) {
 				}
 				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
 				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
-				monster.damage_players += dmg + fort;
-                                monster.damage_total += dmg + fort;
+				monster.damage_players += dmg;
+				if (fort) {
+					monster.fortify += fort;
+				}
 			});
+			if(types[type].orcs) {
+			    monster.damage_total = Math.ceil(monster.damage_siege / 1000) + monster.damage_players
+			} else {
+			    monster.damage_total = monster.damage_siege + monster.damage_players;
+			}
                         //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Siege Damage = ' + addCommas(this.data[uid][type].damage_siege));
                         //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Player Damage = ' + addCommas(this.data[uid][type].damage_players));
                         //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Total Damage = ' + addCommas(this.data[uid][type].damage_total));
+                        //debug(this.name,'[UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' Fortify = ' + addCommas(this.data[uid][type].fortify));
 			monster.dps = monster.damage_players / (timer - monster.timer);
 			if (types[type].raid) {
 				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
