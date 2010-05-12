@@ -30,13 +30,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 var log = function(worker,txt){
     console.log('[' + (new Date()).format('G:i:s') + '] ' + worker + ': ' + txt);
 }
-
+var debug = null;
 if (show_debug) {
-	var debug = function(worker, txt) {
+	debug = function(worker, txt) {
 		console.log('[' + (new Date()).format('G:i:s') + '] ' + worker + ': ' + txt);
 	};
 } else {
-	var debug = function(){};
+	debug = function(){};
 }
 
 if (typeof unsafeWindow === 'undefined') {

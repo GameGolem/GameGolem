@@ -87,7 +87,7 @@ Land.update = function() {
 		this.option.sell = true;
 	}
 	
-	for (var i in this.data) {
+	for (i in this.data) {
 		if (this.option.sell && this.data[i].own > this.data[i].max) {
 			best = i;
 			buy = this.data[i].max - this.data[i].own;// Negative number means sell
