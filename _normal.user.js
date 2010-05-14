@@ -5235,10 +5235,13 @@ Monster.update = function(what) {
     this.runtime.type = type;
     if (uid && type) {
         if(this.option.first && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].totaldefense !== 'undefined' && this.data[uid][type].totaldefense < this.option.fortify && this.data[uid][type].defense < 100))) {
+            debug(this.name,"Setting Fortify to True (1)" );
             this.runtime.fortify = true;
-        } else if (typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
+        } else if (this.option.first && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
+            debug(this.name,"Setting Fortify to True (2)" );
             this.runtime.fortify = true;
         } else {
+            debug(this.name,"Setting Fortify to False");
             this.runtime.fortify = false;
         }
         if (Queue.burn.energy < 10) {
@@ -5305,14 +5308,15 @@ Monster.work = function(state) {
         if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
             //Primary method of finding button.
             //debug(this.name,"Setting Primary button location.");
-            if(this.types[type].fortify){
+            j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack';
+            if(this.types[type].fortify && j === 'fortify'){
                 b = $('input[name="' + this.types[type].fortify + '"]').length;
             } else {
                 b = $('input[name="Attack Dragon"]').length;
             }
             
             //debug(this.name,'Current number of buttons is ' + b);
-            j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack';
+            
             if (!Generals.to(Generals.best(j))) {
                 return true;
             }
