@@ -5235,13 +5235,13 @@ Monster.update = function(what) {
     this.runtime.type = type;
     if (uid && type) {
         if(this.option.first && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].totaldefense !== 'undefined' && this.data[uid][type].totaldefense < this.option.fortify && this.data[uid][type].defense < 100))) {
-            debug(this.name,"Setting Fortify to True (1)" );
+            //debug(this.name,"Setting Fortify to True (1)" );
             this.runtime.fortify = true;
         } else if (this.option.first && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
-            debug(this.name,"Setting Fortify to True (2)" );
+            //debug(this.name,"Setting Fortify to True (2)" );
             this.runtime.fortify = true;
         } else {
-            debug(this.name,"Setting Fortify to False");
+            //debug(this.name,"Setting Fortify to False");
             this.runtime.fortify = false;
         }
         if (Queue.burn.energy < 10) {
