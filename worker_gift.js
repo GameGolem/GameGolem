@@ -136,7 +136,9 @@ Gift.parse = function(change) {
 				log(this.name,"Can't find the gift sender's ID.");
 			}
 		} else {
+			debug(this.name,'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
+			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts

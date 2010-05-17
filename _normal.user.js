@@ -2096,6 +2096,14 @@ Bank.option = {
 	keep: 10000
 };
 
+Bank.caap_load = function() {
+	valuesList = {'above':'MaxInCash','hand':'MinInCash','keep':'minInStore'};
+	for (i in valuesList) {
+		this.option[i] = gm.getValue(valuesList[i]);
+		gm.log(i + ' =  '+ gm.getValue(valuesList[i]));
+	}
+};
+
 Bank.display = [
 	{
 		id:'general',
@@ -3338,7 +3346,9 @@ Gift.parse = function(change) {
 				log(this.name,"Can't find the gift sender's ID.");
 			}
 		} else {
+			debug(this.name,'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
+			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
