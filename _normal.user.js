@@ -3323,7 +3323,7 @@ Gift.parse = function(change) {
 		// Accepted gift first
 //		debug(this.name,'Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
-			if ($('div.result').text().indexOf('accepted the gift') >= 0 || $('div.result').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
+			if ($('div.game').text().indexOf('accepted the gift') >= 0 || $('div.game').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
 				debug(this.name,'Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 				received.push(this.runtime.gift); // add the gift to our list of received gifts.  We will use this to clear facebook notifications and possibly return gifts
 				this.runtime.work = true;	// We need to clear our facebook notifications and/or return gifts
@@ -3346,7 +3346,7 @@ Gift.parse = function(change) {
 				log(this.name,"Can't find the gift sender's ID.");
 			}
 		} else {
-			debug(this.name,'No more waiting gifts. Did we miss the gift accepted page?');
+//			debug(this.name,'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
@@ -3853,7 +3853,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 			for (j in type) {
 				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			min = Math.min(min, sum(value[i]));
+			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
 			max = Math.max(max, sum(value[i]));
 		}
 	}

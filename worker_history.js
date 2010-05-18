@@ -273,7 +273,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 			for (j in type) {
 				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			min = Math.min(min, sum(value[i]));
+			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
