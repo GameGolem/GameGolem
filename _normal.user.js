@@ -3354,12 +3354,12 @@ Gift.parse = function(change) {
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
 //		debug(this.name,'Parsing gifts.');
 //		debug(this.name,'Found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
+		this.data.gifts = {};
+		gifts = this.data.gifts;
 		$('div[id*="_giftContainer"] div[id*="_gift"]').each(function(i,el){
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!',''), slot = $(el).attr('id').regex(/_gift([0-9]+)/);
 //			debug(this.name,'Adding: '+name+'('+id+') to slot '+slot);
-			if (!gifts[id]) {
-				gifts[id] = {};
-			}
+			gifts[id] = {};
 			gifts[id].name = name;
 			gifts[id].slot = slot;
 		});
@@ -3479,6 +3479,22 @@ Gift.work = function(state) {
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
 			if (!Page.to('army_gifts')){
+				return true;
+			}
+			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
+				gift_ids = [];
+				for (j in this.data.gifts) {
+					gift_ids.push(j);
+				}
+				random_gift_id = Math.floor(Math.random() * gift_ids.length);
+				debug(this.name,'Unavaliable gift ('+i+') found in todo list. Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' instead.');
+				if (!todo[gift_ids[random_gift_id]]) {
+					todo[gift_ids[random_gift_id]] = [];
+				}
+				for (j in todo[i]) {
+					todo[gift_ids[random_gift_id]].push(todo[i][j]);
+				}
+				delete todo[i];
 				return true;
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
