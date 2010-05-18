@@ -6,6 +6,9 @@ var Idle = new Worker('Idle');
 Idle.defaults = {
 	castle_age:{}
 };
+Idle.settings ={
+    after:['LevelUp']
+};
 
 Idle.data = null;
 Idle.option = {

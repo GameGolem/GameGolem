@@ -10,7 +10,7 @@ var LevelUp = new Worker('LevelUp');
 LevelUp.data = null;
 
 LevelUp.settings = {
-	before:['Battle','Monster','Quest']
+	before:['Idle','Battle','Monster','Quest']
 };
 
 LevelUp.defaults = {
@@ -224,7 +224,7 @@ LevelUp.work = function(state) {
 		Battle.set('option.monster', false);
 	}
 	general = Generals.best(this.option.general); // Get our level up general
-	if (general && general !== 'any' && Player.get('exp_needed') < 25) { // If we want to change...
+	if (general && general !== 'any' && Player.get('exp_needed') < 100) { // If we want to change...
 		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
 		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
 //			debug(this.name,'Disabling Generals because we are within 25 XP from leveling.');
