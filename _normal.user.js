@@ -4869,6 +4869,7 @@ Monster.types = {
         list:'seamonster_list_blue.jpg',
         image:'seamonster_blue.jpg',
         dead:'seamonster_dead.jpg',
+        title:'seamonster_title_sapphire.jpg', //Guesswork. Needs verify.
         achievement:100000,
         timer:259200, // 72 hours
         mpool:2,
