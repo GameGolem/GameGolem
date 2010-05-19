@@ -4827,12 +4827,12 @@ Monster.types = {
         list:'seamonster_list_purple.jpg',
         image:'seamonster_purple.jpg',
         dead:'seamonster_dead.jpg',
-        title:'seamonster_title_amethyst.jpg',//Guesswork. Needs verify.
+        title:'seamonster_title_amethyst.jpg',
         achievement:100000,
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
-		secondary_src_sel:"button_nm_s_fortify",
+		secondary_src_sel:"fortify",
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -4846,7 +4846,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
-		secondary_src_sel:'button_nm_s_fortify',
+		secondary_src_sel:'fortify',
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -4860,7 +4860,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
-		secondary_src_sel:'button_nm_s_fortify',
+		secondary_src_sel:'fortify',
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -5451,7 +5451,7 @@ Monster.work = function(state) {
             if(this.types[type].fortify && j === 'fortify'){
                 b = $('input[src*="' + this.types[type].secondary_src_sel + '"]').length;
             } else {
-                b = $('input[name="Attack Dragon"][src*="attack"]').length;
+                b = $('input[name="Attack Dragon"][src*="attack"], input[name="Attack Dragon"][src*="power"]').length;
             }
             if (!Generals.to(Generals.best(j))) {
                 return true;
@@ -5460,7 +5460,7 @@ Monster.work = function(state) {
             switch(j){
                 case 'fortify':
                     if(this.types[type].secondary_src_sel){
-                        btn = $('input[src=*"' + this.types[type].secondary_src_sel + '"]').eq(0);                        
+                        btn = $('input[src*="' + this.types[type].secondary_src_sel + '"]').eq(0);                        
                         break;
                     } else{
                         break;
@@ -5469,12 +5469,12 @@ Monster.work = function(state) {
                 case 'attack':
                     for (i=b; i > 0; i--){
                         if (this.types[type].attacks[i-1] <= this.option.maxstamina && Player.get('stamina') >= this.types[type].attacks[i-1] ){
-                            btn = $('input[name="Attack Dragon"][src*="attack"]').eq(i-1);
+                            btn = $('input[name="Attack Dragon"][src*="attack"], input[name="Attack Dragon"][src*="power"]').eq(i-1);
                             break;
                         }
                     }
                     if (!btn && this.option.maxstamina < this.types[type].attacks[0]){
-                        btn = $('input[name="Attack Dragon"][src*="attack"]').eq(0);
+                        btn = $('input[name="Attack Dragon"][src*="attack"], input[name="Attack Dragon"][src*="power"]').eq(0);
                     }
                     break;
                 default:
