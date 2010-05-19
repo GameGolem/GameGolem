@@ -29,7 +29,7 @@ Monster.option = {
     check_interval:3600000,
     avoid_behind:false,
     avoid_hours:5,
-    behind_override:false,
+    behind_override:false
 };
 
 Monster.runtime = {
@@ -923,7 +923,7 @@ Monster.work = function(state) {
             if(this.types[type].fortify && j === 'fortify'){
                 b = $('input[name="' + this.types[type].fortify + '"]').length;
             } else {
-                b = $('input[name="Attack Dragon"]').length;
+                b = $('input[name="Attack Dragon"][src*="attack"]').length;
             }
             if (!Generals.to(Generals.best(j))) {
                 return true;
@@ -943,18 +943,18 @@ Monster.work = function(state) {
 
                 case 'attack':
                     if (this.types[type].energy_action){
-                        max = b - 2;
+                        max = b - 1;
                     } else {
                         max = b - 1;
                     }
                     for (i=max; i >= 0; i--){
                         if (this.types[type].attacks[i] <= this.option.maxstamina && Player.get('stamina') >= this.types[type].attacks[i] ){
-                            btn = $('input[name="Attack Dragon"]').eq(i);
+                            btn = $('input[name="Attack Dragon"][src*="attack"]').eq(i);
                             break;
                         }
                     }
                     if (!btn && this.option.maxstamina < this.types[type].attacks[0]){
-                        btn = $('input[name="Attack Dragon"]').eq(0);
+                        btn = $('input[name="Attack Dragon"][src*="attack"]').eq(0);
                     }
                     break;
                 default:
