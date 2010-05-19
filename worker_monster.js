@@ -243,6 +243,7 @@ Monster.types = {
         timer:345000, // 95 hours, 50 minutes
         mpool:1,
         energy_action:true,
+		secondary_src_sel:"button_nm_s_dispel.gif",
         attacks:[1,5,10,20,30,50]
     },
     sylvanus: {
@@ -311,6 +312,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
+		secondary_src_sel:"button_nm_s_fortify",
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -324,6 +326,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
+		secondary_src_sel:'button_nm_s_fortify',
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -337,6 +340,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
+		secondary_src_sel:'button_nm_s_fortify',
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -349,6 +353,7 @@ Monster.types = {
         timer:259200, // 72 hours
         mpool:2,
         energy_action:true,
+		secondary_src_sel:'fortify',
         fortify:'Defend against Monster',
         attacks:[1,5]
     },
@@ -373,7 +378,8 @@ Monster.types = {
         timer:604800, // 168 hours
         mpool:3,
         energy_action:true,
-        attacks:[5],
+		secondary_src_sel:"attack_monster_button3",
+		attacks:[5],
         orcs:true
     },
     genesis: {
@@ -385,6 +391,7 @@ Monster.types = {
         timer:604800, // 168 hours
         mpool:3,
         energy_action:true,
+		secondary_src_sel:"button_nm_s_fortify",
         attacks:[1,5,10,20,30,50]
     },
     ragnarok: {
@@ -396,6 +403,7 @@ Monster.types = {
         timer:604800, // 168 hours
         mpool:3,
         energy_action:true,
+		secondary_src_sel:"button_nm_s_dispel.gif",
         attacks:[1,5,10,20,30,50]
     },
     bahamut: {
@@ -921,7 +929,7 @@ Monster.work = function(state) {
             //Primary method of finding button.
             j = (this.runtime.fortify && Queue.burn.energy >= 10) ? 'fortify' : 'attack';
             if(this.types[type].fortify && j === 'fortify'){
-                b = $('input[name="' + this.types[type].fortify + '"]').length;
+                b = $('input[src*="' + this.types[type].secondary_src_sel + '"]').length;
             } else {
                 b = $('input[name="Attack Dragon"][src*="attack"]').length;
             }
@@ -931,25 +939,17 @@ Monster.work = function(state) {
             debug(this.name,'Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
             switch(j){
                 case 'fortify':
-                    if(this.types[type].fortify){
-                        max = b - 1;
-                        btn = $('input[name="' + this.types[type].fortify + '"]').eq(max);                        
+                    if(this.types[type].secondary_src_sel){
+                        btn = $('input[src=*"' + this.types[type].secondary_src_sel + '"]').eq(0);                        
                         break;
                     } else{
-                        max = b - 1;
-                        btn = $('input[name="Attack Dragon"]').eq(max);                        
                         break;
                     }
 
                 case 'attack':
-                    if (this.types[type].energy_action){
-                        max = b - 1;
-                    } else {
-                        max = b - 1;
-                    }
-                    for (i=max; i >= 0; i--){
-                        if (this.types[type].attacks[i] <= this.option.maxstamina && Player.get('stamina') >= this.types[type].attacks[i] ){
-                            btn = $('input[name="Attack Dragon"][src*="attack"]').eq(i);
+                    for (i=b; i > 0; i--){
+                        if (this.types[type].attacks[i-1] <= this.option.maxstamina && Player.get('stamina') >= this.types[type].attacks[i-1] ){
+                            btn = $('input[name="Attack Dragon"][src*="attack"]').eq(i-1);
                             break;
                         }
                     }
