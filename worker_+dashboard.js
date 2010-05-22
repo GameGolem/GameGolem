@@ -31,6 +31,9 @@ Dashboard.init = function() {
 			this._watch(Workers[i]);
 		}
 	}
+	if (iscaap()) {
+		return false;
+	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
@@ -91,6 +94,9 @@ Dashboard.init = function() {
 };
 
 Dashboard.parse = function(change) {
+	if (iscaap()) {
+		return false;
+	}
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 

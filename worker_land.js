@@ -17,6 +17,13 @@ Land.option = {
 	land_exp:false
 };
 
+Land.caap_load = function() {
+	valuesList = {'enabled':'autoBuyLand','sell':'SellLands'};
+	for (i in valuesList) {
+		this.option[i] = gm.getValue(valuesList[i]);
+	}
+};
+
 Land.runtime = {
 	lastlevel:0,
 	best:null,
@@ -73,7 +80,8 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			$('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
+			iscaap() &&	$('.land_buy_info strong:first', el).after('<strong title="Daily Return On Investment - higher is better"> | ROI ' + ((Land.data[name].own < Land.data[name].max) ? (Land.data[name].income * 2400) / Land.data[name].cost : 0).round(3) + '%</strong>');
+			!iscaap() && $('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
 		}
 	});
 	return true;

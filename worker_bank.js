@@ -23,7 +23,6 @@ Bank.caap_load = function() {
 	valuesList = {'above':'MaxInCash','hand':'MinInCash','keep':'minInStore'};
 	for (i in valuesList) {
 		this.option[i] = gm.getValue(valuesList[i]);
-		gm.log(i + ' =  '+ gm.getValue(valuesList[i]));
 	}
 };
 
@@ -48,6 +47,9 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
+	if (iscaap() && this.option.above === '') {
+		return false;
+	}
 	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('runtime.current') || WorkerByName(Queue.get('runtime.current')).settings.bank))) {
 		return false;
 	}
