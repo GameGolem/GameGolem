@@ -536,12 +536,12 @@ var iscaap = function() {
 new Worker(name, pages, settings)
 
 *** User data***
-.id				- If we have a .display then this is the html #id of the worker
-.name			- String, the same as our class name.
-.pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
-.data			- Object, for public reading, automatically saved
-.option			- Object, our options, changed from outide ourselves
-.settings		- Object, various values for various sections, default is always false / blank
+.id			     - If we have a .display then this is the html #id of the worker
+.name		   - String, the same as our class name.
+.pages		  - String, list of pages that we want in the form "town.soldiers keep.stats"
+.data		   - Object, for public reading, automatically saved
+.option		 - Object, our options, changed from outide ourselves
+.settings	       - Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
 				advanced (true/false) - only visible when "Advanced" is checked
@@ -551,22 +551,22 @@ new Worker(name, pages, settings)
 .display		- Create the display object for the settings page.
 
 *** User functions ***
-.init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
+.init()		 - After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
-.parse(change)	- This can read data from the current page and cannot perform any actions.
+.parse(change)  - This can read data from the current page and cannot perform any actions.
 				change = false - Not allowed to change *anything*, cannot read from other Workers.
 				change = true - Can now change inline and read from other Workers.
 				return true - We need to run again with status=1
 				return false - We're finished
-.work(state)	- Do anything we need to do when it's our turn - this includes page changes.
+.work(state)    - Do anything we need to do when it's our turn - this includes page changes.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call
 				state = true - It's our turn, do everything - Only true if not interrupted
 				return true if we need to keep working (after a delay etc)
 				return false when someone else can work
-.update(type)	- Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
+.update(type)   - Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
 				type = "data" or "option"
-.get(what)		- Calls this._get(what)
+.get(what)	      - Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
 .set(what,value)- Calls this._set(what,value)
@@ -582,24 +582,24 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._watching		- List of other workers that want to have .update() after this.update()
 
 *** Private functions ***
-._get(what)		- Returns the data requested, auto-loads if needed, what is 'path.to.data'
-._set(what,val)	- Sets this.data[what] to value, auto-loading if needed
+._get(what)				- Returns the data requested, auto-loads if needed, what is 'path.to.data'
+._set(what,val)			- Sets this.data[what] to value, auto-loading if needed
 
-._setup()		- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
-._init(keep)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
+._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
+._init(keep)			- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 
-._load(type)	- Loads data / option from storage, merges with current values, calls .update(type) on change
-._save(type)	- Saves data / option to storage, calls .update(type) on change
+._load(type)			- Loads data / option from storage, merges with current values, calls .update(type) on change
+._save(type)			- Saves data / option to storage, calls .update(type) on change
 
-._flush()		- Calls this._save() then deletes this.data if !this.settings.keep
-._unflush()		- Loads .data if it's not there already
+._flush()				- Calls this._save() then deletes this.data if !this.settings.keep
+._unflush()				- Loads .data if it's not there already
 
-._parse(change)	- Calls this.parse(change) inside a try / catch block
-._work(state)	- Calls this.work(state) inside a try / catch block
+._parse(change)			- Calls this.parse(change) inside a try / catch block
+._work(state)			- Calls this.work(state) inside a try / catch block
 
-._update(type)	- Calls this.update(type), loading and flushing .data if needed
-._watch(worker)	- Add a watcher to worker - so this.update() gets called whenever worker.update() does
-._remind(secs)	- Calls this._update('reminder') after a specified delay
+._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
+._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
+._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
 var Workers = [];
 
@@ -624,7 +624,7 @@ function Worker(name,pages,settings) {
 	this.init = null; //function() {};
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
-	this.update = null; //function(type){};
+	this.update = null; //function(type,worker){};
 	this.get = function(what) {return this._get(what);}; // Overload if needed
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
@@ -656,8 +656,8 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	data = this[x.shift()];
 	try {
 		switch(x.length) {
-			case 0:	return data;
-			case 1:	return data[x[0]];
+			case 0: return data;
+			case 1: return data[x[0]];
 			case 2: return data[x[0]][x[1]];
 			case 3: return data[x[0]][x[1]][x[2]];
 			case 4: return data[x[0]][x[1]][x[2]][x[3]];
@@ -749,8 +749,8 @@ Worker.prototype._set = function(what, value) {
 	data = this[x.shift()];
 	try {
 		switch(x.length) {
-			case 0:	data = value; break; // Nobody should ever do this!!
-			case 1:	data[x[0]] = value; break;
+			case 0: data = value; break; // Nobody should ever do this!!
+			case 1: data[x[0]] = value; break;
 			case 2: data[x[0]][x[1]] = value; break;
 			case 3: data[x[0]][x[1]][x[2]] = value; break;
 			case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
@@ -759,7 +759,7 @@ Worker.prototype._set = function(what, value) {
 			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
 			default:break;
 		}
-//		this._save();
+//	      this._save();
 	} catch(e) {
 		debug(this.name,e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
@@ -782,30 +782,31 @@ Worker.prototype._setup = function() {
 Worker.prototype._unflush = function() {
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
+	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
 };
 
-Worker.prototype._update = function(type) {
+Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		var i, flush = false;
 		this._working.update = true;
-		if (!this.data) {
+		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			this.update && this.update(type);
+			this.update && this.update(type, worker);
 		}catch(e) {
 			debug(this.name,e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
 		}
 		for (i=0; i<this._watching.length; i++) {
 			if (this._watching[i] === this) {
 				try {
-					this.update && this.update(this);
+					this.update && this.update(type, this);
 				}catch(e) {
 					debug(this.name,e.name + ' in ' + this.name + '.update(this): ' + e.message);
 				}
 			} else {
-				this._watching[i]._update(this);
+				this._watching[i]._update(type, this);
 			}
 		}
 		flush && this._flush();
@@ -844,6 +845,9 @@ Config.option = {
 };
 
 Config.init = function() {
+	if (iscaap()) {
+		return false;
+	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i, j, k;
 	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem v' + VERSION + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
@@ -1102,6 +1106,9 @@ Config.makePanel = function(worker) {
 };
 
 Config.set = function(key, value) {
+	if (iscaap()) {
+		return false;
+	}
 	this._unflush();
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
@@ -1201,6 +1208,9 @@ Dashboard.init = function() {
 			this._watch(Workers[i]);
 		}
 	}
+	if (iscaap()) {
+		return false;
+	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
@@ -1261,14 +1271,17 @@ Dashboard.init = function() {
 };
 
 Dashboard.parse = function(change) {
+	if (iscaap()) {
+		return false;
+	}
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
-Dashboard.update = function(type) {
-	if (!this._loaded || (type && typeof type !== 'object')) {
+Dashboard.update = function(type, worker) {
+	if (!this._loaded || !worker) {
 		return;
 	}
-	worker = type || WorkerByName(Dashboard.option.active.substr(16));
+	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
 	var id = 'golem-dashboard-'+worker.name;
 	if (this.option.active === id && this.option.display === 'block') {
 		try {
@@ -1581,6 +1594,10 @@ Queue.option = {
 	energy: 0
 };
 
+Queue.caap_load = function() {
+	this.option.pause = false;
+};
+
 Queue.display = [
 	{
 		label:'Drag the unlocked panels into the order you wish them run.'
@@ -1630,6 +1647,9 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
+	if (iscaap()) {
+		return false;
+	}
 	var i, worker, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
@@ -1667,6 +1687,9 @@ Queue.init = function() {
 };
 
 Queue.update = function(type) {
+	if (iscaap()) {
+		return false;
+	}
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
 		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
@@ -2100,7 +2123,6 @@ Bank.caap_load = function() {
 	valuesList = {'above':'MaxInCash','hand':'MinInCash','keep':'minInStore'};
 	for (i in valuesList) {
 		this.option[i] = gm.getValue(valuesList[i]);
-		gm.log(i + ' =  '+ gm.getValue(valuesList[i]));
 	}
 };
 
@@ -2125,6 +2147,9 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
+	if (iscaap() && this.option.above === '') {
+		return false;
+	}
 	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('runtime.current') || WorkerByName(Queue.get('runtime.current')).settings.bank))) {
 		return false;
 	}
@@ -2684,6 +2709,12 @@ Elite.option = {
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
 
+Elite.caap_load = function() {
+	this.option.prefer = gm.getListFromText('EliteArmyList');
+	this.option.elite = gm.getValue('AutoElite', false);
+	this.option.every = 1;
+};
+
 Elite.runtime = {
 	armylastpage:1,
 	armyextra:0,
@@ -2897,7 +2928,7 @@ Generals.parse = function(change) {
 	return false;
 };
 
-Generals.update = function(type) {
+Generals.update = function(type, worker) {
 	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
@@ -2921,7 +2952,7 @@ Generals.update = function(type) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if ((type === 'data' || type === Town) && invade && duel) {
+	if ((type === 'data' || worker === Town) && invade && duel) {
 		for (i in data) {
 			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
@@ -2996,6 +3027,34 @@ Generals.to = function(name) {
 Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [];
+	if (iscaap()) {
+		var caapGenerals = {
+			'BuyGeneral':			'cost',
+			'LevelUpGeneral':		'stamina',
+			'IncomeGeneral':		'income',
+			'SubQuestGeneral':		'influence',
+			'MonsterGeneral':		'cash',
+			'BankingGeneral':		'bank',
+			'BattleGeneral':		'invade',
+			'MonsterGeneral':		'monster',
+			'FortifyGeneral':		'dispel',
+			'IdleGeneral':			'defense'
+		};
+		//gm.log('which ' + type + ' lookup ' + caapGenerals[type]);
+		if (caapGenerals[type]) {
+			var caapGeneral = gm.getValue(type,'best');
+			if (/under level 4/i.test(caapGeneral)) {
+				type = 'under level 4';
+			} else if (/use current/i.test(caapGeneral)) {
+				return 'any';
+			} else if (!/^best$/i.test(caapGeneral)) {
+				return caapGeneral;
+			} else {
+				type = caapGenerals[type];
+			}
+		}
+		// Need to add reverse lookup for when golem code calls something set in caap
+	}
 	switch(type.toLowerCase()) {
 		case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
 		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
@@ -4091,6 +4150,13 @@ Land.option = {
 	land_exp:false
 };
 
+Land.caap_load = function() {
+	valuesList = {'enabled':'autoBuyLand','sell':'SellLands'};
+	for (i in valuesList) {
+		this.option[i] = gm.getValue(valuesList[i]);
+	}
+};
+
 Land.runtime = {
 	lastlevel:0,
 	best:null,
@@ -4147,7 +4213,8 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			$('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
+			iscaap() &&	$('.land_buy_info strong:first', el).after('<strong title="Daily Return On Investment - higher is better"> | ROI ' + ((Land.data[name].own < Land.data[name].max) ? (Land.data[name].income * 2400) / Land.data[name].cost : 0).round(3) + '%</strong>');
+			!iscaap() && $('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
 		}
 	});
 	return true;

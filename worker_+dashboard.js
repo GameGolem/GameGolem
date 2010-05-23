@@ -100,11 +100,11 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
-Dashboard.update = function(type) {
-	if (!this._loaded || (type && typeof type !== 'object')) {
+Dashboard.update = function(type, worker) {
+	if (!this._loaded || !worker) {
 		return;
 	}
-	worker = type || WorkerByName(Dashboard.option.active.substr(16));
+	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
 	var id = 'golem-dashboard-'+worker.name;
 	if (this.option.active === id && this.option.display === 'block') {
 		try {
