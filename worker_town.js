@@ -156,7 +156,7 @@ Town.update = function(type) {
 				for (u in quests[i].units) {
 					if (data[u] && data[u].cost && data[u].own < quests[i].units[u]) {
 						best = u;
-						buy = quests[i].units[u];
+						buy = quests[i].units[u] - data[u].own;
 					}
 				}
 			}
@@ -195,13 +195,12 @@ Town.work = function(state) {
 
 Town.buy = function(item, number) { // number is absolute including already owned
 	this._unflush();
-	if (!this.data[item] || !this.data[item].buy || this.data[item].own >= number || !this.data[item].cost || !Bank.worth(this.data[item].cost * (number - this.data[item].own))) {
+	if (!this.data[item] || !this.data[item].buy || !Bank.worth(this.runtime.cost)) {
 		return true; // We (pretend?) we own them
 	}
 	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || (this.data[item].page === 'soldiers' && !Generals.to('cost')) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	number -= this.data[item].own;
 	var i, qty = 0;
 	for (i=0; i<this.data[item].buy.length && this.data[item].buy[i] <= number; i++) {
 		qty = this.data[item].buy[i];
