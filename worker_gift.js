@@ -258,7 +258,7 @@ Gift.work = function(state) {
 		} else if ($('span:contains("Out of requests")')) {
 			debug(this.name,'We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
-			Page.click('div.dialog_buttons input[value="Okay"]');
+			Page.click('div.dialog_buttons input[name="ok"]');
 		}
 		return true;
 	} else if (this.runtime.gift_sent) {

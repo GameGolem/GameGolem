@@ -3529,7 +3529,7 @@ Gift.work = function(state) {
 		} else if ($('span:contains("Out of requests")')) {
 			debug(this.name,'We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
-			Page.click('div.dialog_buttons input[value="Okay"]');
+			Page.click('div.dialog_buttons input[name="ok"]');
 		}
 		return true;
 	} else if (this.runtime.gift_sent) {
@@ -6368,7 +6368,7 @@ Quest.work = function(state) {
 			return false;
 	}
 	debug(this.name,'Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"], div.action[title^="' + best + ' :"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug(this.name,'Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();
