@@ -491,27 +491,27 @@ Monster.parse = function(change) {
         uid = $('img[linked][size="square"]').attr('uid');
         for (i in types) {
             if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
-                //debug(this.name,'Found a dead '+i);
+                //debug('Found a dead '+i);
                 type = i;
                 timer = types[i].timer;
                 dead = true;
             } else if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && types[i].title && $('div[style*="'+types[i].title+'"]').length){
-                //debug(this.name,'Found a dead '+i);
+                //debug('Found a dead '+i);
                 type = i;
                 timer = types[i].timer;
                 dead = true;
             } else if (types[i].image && ($('img[src$="'+types[i].image+'"]').length || $('div[style*="'+types[i].image+'"]').length)) {
-                //debug(this.name,'Parsing '+i);
+                //debug('Parsing '+i);
                 type = i;
                 timer = types[i].timer;
             } else if (types[i].image2 && ($('img[src$="'+types[i].image2+'"]').length || $('div[style*="'+types[i].image2+'"]').length)) {
-                //debug(this.name,'Parsing second stage '+i);
+                //debug('Parsing second stage '+i);
                 type = i;
                 timer = types[i].timer2 || types[i].timer;
             }
         }
         if (!uid || !type) {
-            debug(this.name,'Unknown monster (probably dead)');
+            debug('Unknown monster (probably dead)');
             return false;
         }
         data[uid] = data[uid] || {};
@@ -535,7 +535,7 @@ Monster.parse = function(change) {
             }
             if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
                 monster.battle_count = (monster.battle_count || 0) + 1;
-            //debug(this.name,'Setting battle count to ' + monster.battle_count);
+            //debug('Setting battle count to ' + monster.battle_count);
             }
             if ($('img[src$="battle_victory"]').length){
                 History.add('raid+win',1);
@@ -719,14 +719,14 @@ Monster.update = function(what) {
     for (i in this.data) { // Flush unknown monsters
         for (j in this.data[i]) {
             if (!this.data[i][j].state || this.data[i][j].state === null) {
-                log(this.name,'Found Invalid Monster State=(' + this.data[i][j].state + ')');
+                log('Found Invalid Monster State=(' + this.data[i][j].state + ')');
                 delete this.data[i][j];
             } else if (this.data[i][j].state === 'engage') {
                 this.runtime.count++;
             }
         }
         if (!length(this.data[i])) { // Delete uid's without an active monster
-            log(this.name,'Found Invalid Monster ID=(' + this.data[i] + ')');
+            log('Found Invalid Monster ID=(' + this.data[i] + ')');
             delete this.data[i];
         }
     }
@@ -799,7 +799,7 @@ Monster.update = function(what) {
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
                 } else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
-                    //debug(this.name,'Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
+                    //debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
                 } else {
@@ -926,14 +926,14 @@ Monster.work = function(state) {
         for (i in this.data) {
             for (j in this.data[i]) {
                 if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
-                    debug(this.name, 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
+                    debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
                     Page.to(this.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
                     return true;
                 }
             }
         }
         this.runtime.check = false;
-        debug(this.name, 'Finished Monster / Raid review')
+        debug( 'Finished Monster / Raid review')
         return true;
     }
     if (this.types[type].raid) { // Raid has different buttons and generals
@@ -962,7 +962,7 @@ Monster.work = function(state) {
             if (!Generals.to(Generals.best(j))) {
                 return true;
             }
-            debug(this.name,'Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
+            debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
             switch(j){
                 case 'fortify':
                     if (!btn && this.option.maxenergy < this.types[type].defends[0]){
@@ -970,9 +970,9 @@ Monster.work = function(state) {
                     } else {
                         b = $(this.types[type].def_btn).length - 1;
                         for (i=b; i >= 0; i--){                            
-                            //debug(this.name,'Burn Energy is ' + Queue.burn.energy);
+                            //debug('Burn Energy is ' + Queue.burn.energy);
                             if (this.types[type].defends[i] <= this.option.maxenergy && Queue.burn.energy >= this.types[type].defends[i] ){
-                                //debug(this.name,'Button cost is ' + this.types[type].defends[i]);
+                                //debug('Button cost is ' + this.types[type].defends[i]);
                                 btn = $(this.types[type].def_btn).eq(i);
                                 break;
                             }
@@ -985,11 +985,11 @@ Monster.work = function(state) {
                         btn = $(this.types[type].atk_btn).eq(0).name;
                     } else {                        
                         b = $(this.types[type].atk_btn).length - 1;
-                        //debug(this.name,'B = ' + b);
+                        //debug('B = ' + b);
                         for (i=b; i >= 0; i--){                           
-                            //debug(this.name,'Burn Stamina is ' + Queue.burn.stamina);
+                            //debug('Burn Stamina is ' + Queue.burn.stamina);
                             if (this.types[type].attacks[i] <= this.option.maxstamina && Queue.burn.stamina >= this.types[type].attacks[i]){
-                                //debug(this.name,'Button cost is ' + this.types[type].attacks[i]);
+                                //debug('Button cost is ' + this.types[type].attacks[i]);
                                 btn = $(this.types[type].atk_btn).eq(i);
                                 break;
                             }
@@ -1003,23 +1003,23 @@ Monster.work = function(state) {
             this.data[uid][type].button_fail = this.data[uid][type].button_fail + 1;
         }
         if (this.data[uid][type].button_fail > 10){
-            log(this.name,'Ignoring Monster ' + this.data[uid][type].name + '\'s ' + this.types[type].name + this.data[uid][type] + ': Unable to locate ' + j + ' button ' + this.data[uid][type].button_fail + ' times!');
+            log('Ignoring Monster ' + this.data[uid][type].name + '\'s ' + this.types[type].name + this.data[uid][type] + ': Unable to locate ' + j + ' button ' + this.data[uid][type].button_fail + ' times!');
             this.data[uid][type].ignore = true;
             this.data[uid][type].button_fail = 0
         }
     }
     if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid && $('div[style*="nm_top"] img[linked]').attr('uid') != uid)) {
-        //debug(this.name,'Reloading page. Button = ' + btn.attr('name'));
-        //debug(this.name,'Reloading page. Page.page = '+ Page.page);
-        //debug(this.name,'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
+        //debug('Reloading page. Button = ' + btn.attr('name'));
+        //debug('Reloading page. Page.page = '+ Page.page);
+        //debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
         Page.to('keep_monster');
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
         return true; // Reload if we can't find the button or we're on the wrong page
     }
     if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
-        debug(this.name,'Current Siege Phase is: '+ this.data[uid][type].phase);
+        debug('Current Siege Phase is: '+ this.data[uid][type].phase);
         this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
-        debug(this.name,'Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
+        debug('Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
         return true;
     }
@@ -1033,13 +1033,13 @@ Monster.work = function(state) {
         }
         target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
         if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
-            log(this.name,'No valid Raid target!');
+            log('No valid Raid target!');
             Page.to('battle_raid', ''); // Force a page reload to change the targets
             return true;
         }
     }
     this.runtime.uid = this.runtime.type = null; // Force us to choose a new target...
-    //debug(this.name,'Clicking Button ' + btn.attr('name'));
+    //debug('Clicking Button ' + btn.attr('name'));
     Page.click(btn);
     this.data[uid][type].button_fail = 0;
     return true;
@@ -1130,7 +1130,7 @@ Monster.dashboard = function(sort, rev) {
         }
         td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + '"');
         var image_url = imagepath + Monster.types[j].list;
-        //debug(this.name,image_url);
+        //debug(image_url);
         th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
         td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
         td(output, blank ? '' : isNumber(monster.totaldefense) ? ((monster.totaldefense-50).round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));

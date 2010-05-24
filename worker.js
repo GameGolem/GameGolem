@@ -69,6 +69,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
 var Workers = [];
+var WorkerStack = []; // Use "WorkerStack.length && WorkerStack[WorkerStack.length-1].name" for current worker name...
 
 function Worker(name,pages,settings) {
 	Workers.push(this);
@@ -105,14 +106,17 @@ function Worker(name,pages,settings) {
 
 // Private functions - only override if you know exactly what you're doing
 Worker.prototype._flush = function() {
+	WorkerStack.push(this);
 	this._save();
 	if (!this.settings.keep) {
 		delete this.data;
 	}
+	WorkerStack.pop();
 };
 
 Worker.prototype._get = function(what) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	WorkerStack.push(this);
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, result = null;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
@@ -123,32 +127,35 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	data = this[x.shift()];
 	try {
 		switch(x.length) {
-			case 0: return data;
-			case 1: return data[x[0]];
-			case 2: return data[x[0]][x[1]];
-			case 3: return data[x[0]][x[1]][x[2]];
-			case 4: return data[x[0]][x[1]][x[2]][x[3]];
-			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
-			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
+			case 0: result = data;break;
+			case 1: result = data[x[0]];break;
+			case 2: result = data[x[0]][x[1]];break;
+			case 3: result = data[x[0]][x[1]][x[2]];break;
+			case 4: result = data[x[0]][x[1]][x[2]][x[3]];break;
+			case 5: result = data[x[0]][x[1]][x[2]][x[3]][x[4]];break;
+			case 6: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];break;
+			case 7: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];break;
 			default:break;
 		}
 	} catch(e) {
-		debug(this.name,e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
 	}
-	return null;
+	WorkerStack.pop();
+	return result;
 };
 
 Worker.prototype._init = function() {
 	if (this._loaded) {
 		return;
 	}
+	WorkerStack.push(this);
 	this._loaded = true;
 	try {
 		this.init && this.init();
 	}catch(e) {
-		debug(this.name,e.name + ' in ' + this.name + '.init(): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 	}
+	WorkerStack.pop();
 };
 
 Worker.prototype._load = function(type) {
@@ -158,31 +165,35 @@ Worker.prototype._load = function(type) {
 		this._load('runtime');
 		return;
 	}
+	WorkerStack.push(this);
 	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
-	if (!v) { // Use default values
-		return;
+	if (v) {
+		try {
+			v = JSON.parse(v);
+		} catch(e) {
+			debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
+			v = eval(v); // We used to save our data in non-JSON format...
+		}
+		this[type] = $.extend(true, {}, this[type], v);
 	}
-	try {
-		v = JSON.parse(v);
-	} catch(e) {
-		debug(this.name,this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
-		v = eval(v); // We used to save our data in non-JSON format...
-	}
-	this[type] = $.extend(true, {}, this[type], v);
+	WorkerStack.pop();
 };
 
 Worker.prototype._parse = function(change) {
+	WorkerStack.push(this);
+	var result = false;
 	try {
-		return this.parse && this.parse(change);
+		result = this.parse && this.parse(change);
 	}catch(e) {
-		debug(this.name,e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 	}
-	return false;
+	WorkerStack.pop();
+	return result;
 };
 
 Worker.prototype._remind = function(seconds) {
 	var me = this;
-	window.setTimeout(function(){me._update('reminder');}, seconds * 1000);
+	window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
 };
 
 Worker.prototype._save = function(type) {
@@ -194,17 +205,20 @@ Worker.prototype._save = function(type) {
 	}
 	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
+		WorkerStack.push(this);
 		this._working[type] = true;
 		this._changed = Date.now();
-		this._update(type);
+		this._update(type, null);
 		setItem(n, v);
 		this._working[type] = false;
+		WorkerStack.pop();
 		return true;
 	}
 	return false;
 };
 
 Worker.prototype._set = function(what, value) {
+	WorkerStack.push(this);
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
@@ -228,12 +242,14 @@ Worker.prototype._set = function(what, value) {
 		}
 //	      this._save();
 	} catch(e) {
-		debug(this.name,e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
+	WorkerStack.pop();
 	return null;
 };
 
 Worker.prototype._setup = function() {
+	WorkerStack.push(this);
 	if (this.defaults && this.defaults[APP]) {
 		for (var i in this.defaults[APP]) {
 			this[i] = this.defaults[APP][i];
@@ -244,16 +260,20 @@ Worker.prototype._setup = function() {
 	} else { // Get us out of the list!!!
 		Workers.splice(Workers.indexOf(this), 1);
 	}
+	WorkerStack.pop();
 };
 
 Worker.prototype._unflush = function() {
+	WorkerStack.push(this);
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
 	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
+	WorkerStack.pop();
 };
 
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
+		WorkerStack.push(this);
 		var i, flush = false;
 		this._working.update = true;
 		if (typeof this.data === 'undefined') {
@@ -263,21 +283,16 @@ Worker.prototype._update = function(type, worker) {
 		try {
 			this.update && this.update(type, worker);
 		}catch(e) {
-			debug(this.name,e.name + ' in ' + this.name + '.update(' + (type ? (typeof type === 'string' ? type : type.name) : '') + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
-		for (i=0; i<this._watching.length; i++) {
-			if (this._watching[i] === this) {
-				try {
-					this.update && this.update(type, this);
-				}catch(e) {
-					debug(this.name,e.name + ' in ' + this.name + '.update(this): ' + e.message);
-				}
-			} else {
+		if (!worker) {
+			for (i=0; i<this._watching.length; i++) {
 				this._watching[i]._update(type, this);
 			}
 		}
 		flush && this._flush();
 		this._working.update = false;
+		WorkerStack.pop();
 	}
 };
 
@@ -286,11 +301,14 @@ Worker.prototype._watch = function(worker) {
 };
 
 Worker.prototype._work = function(state) {
+	WorkerStack.push(this);
+	var result = false;
 	try {
-		return this.work && this.work(state);
+		result = this.work && this.work(state);
 	}catch(e) {
-		debug(this.name,e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
-	return false;
+	WorkerStack.pop();
+	return result;
 };
 

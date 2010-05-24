@@ -37,7 +37,7 @@ Income.work = function(state) {
 	if (!Income.option.margin) {
 		return false;
 	}
-//	debug(this.name,when + ', Margin: ' + Income.option.margin);
+//	debug(when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
@@ -50,7 +50,7 @@ Income.work = function(state) {
 	if (this.option.general && !Generals.to(Generals.best('income'))) {
 		return true;
 	}
-	debug(this.name,'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
+	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return true;
 };
 

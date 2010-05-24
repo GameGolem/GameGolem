@@ -265,6 +265,10 @@ var isNumber = function(num) {
 	return num && typeof num === 'number';
 };
 
+var isWorker = function(obj) {
+	return obj && findInArray(Workers,obj); // Only a worker if it's an active worker
+};
+
 if (typeof GM_getValue !== 'undefined') {
 	var setItem = function(n,v){GM_setValue(n, v);}
 	var getItem = function(n){return GM_getValue(n);}

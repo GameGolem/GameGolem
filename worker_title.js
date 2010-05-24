@@ -27,7 +27,7 @@ Title.display = [
 		size:24
 	},{
 		title:'Useful Values',
-		info:'{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
+		info:'{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
 	}
 ];
 
@@ -61,7 +61,7 @@ Title.update = function(type) {
 					output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
 					this._watch(worker); // Doesn't matter how often we add, it's only there once...
 				} else {
-					debug(this.name,'Bad worker specified = "' + tmp[1] + '"');
+					debug('Bad worker specified = "' + tmp[1] + '"');
 				}
 			}
 		}

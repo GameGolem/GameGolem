@@ -72,7 +72,7 @@ Potions.work = function(state) {
 	}
 	for(var i in this.data) {
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
-			debug(this.name,'Wanting to drink a ' + i + ' potion');
+			debug('Wanting to drink a ' + i + ' potion');
 			Page.click('.statUnit:contains("' + i + '") form .imgButton input');
 			break;
 		}

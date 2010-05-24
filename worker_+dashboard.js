@@ -101,17 +101,17 @@ Dashboard.parse = function(change) {
 };
 
 Dashboard.update = function(type, worker) {
-	if (!this._loaded || !worker) {
+	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	worker = worker || WorkerByName(Dashboard.option.active.substr(16));
+	worker = WorkerByName(Dashboard.option.active.substr(16));
 	var id = 'golem-dashboard-'+worker.name;
 	if (this.option.active === id && this.option.display === 'block') {
 		try {
 			worker._unflush();
 			worker.dashboard();
 		}catch(e) {
-			log(this.name,e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
+			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
 		$('#'+id).empty();

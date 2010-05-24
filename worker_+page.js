@@ -91,6 +91,7 @@ Page.init = function() {
 };
 
 Page.parse_all = function() {
+	WorkerStack.push(this);
 	Page.identify();
 	var i, list = [];
 	for (i=0; i<Workers.length; i++) {
@@ -107,8 +108,8 @@ Page.parse_all = function() {
 	for (i=0; i<Workers.length; i++) {
 		Workers[i]._flush();
 	}
-}
-
+	WorkerStack.pop();
+};
 
 Page.work = function(state) {
 	if (!this.checking) {
@@ -141,6 +142,7 @@ Page.work = function(state) {
 };
 
 Page.identify = function() {
+	WorkerStack.push(this);
 	this.page = '';
 	if (!$('#app_content_'+APPID).length) {
 		this.reload();
@@ -166,18 +168,20 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-	//debug(this.name,'this.identify("'+Page.page+'")');
+	//debug('this.identify("'+Page.page+'")');
+	WorkerStack.pop();
 	return this.page;
 };
 
 Page.to = function(page, args, force) {
 	if (Queue.option.pause) {
-		debug(this.name,'Trying to load page when paused...');
+		debug('Trying to load page when paused...');
 		return true;
 	}
 	if (page === this.page && (force || typeof args === 'undefined')) {
 		return true;
 	}
+	WorkerStack.push(this);
 	if (!args) {
 		args = '';
 	}
@@ -190,7 +194,7 @@ Page.to = function(page, args, force) {
 		} else {
 			this.last = this.last + args;
 		}
-		debug(this.name,'Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
+		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
 //			this.loading=true;
 			window.location.href = this.last;
@@ -198,6 +202,7 @@ Page.to = function(page, args, force) {
 			this.ajaxload();
 		}               
 	}
+	WorkerStack.pop();
 	return false;
 };
 
@@ -228,13 +233,13 @@ Page.ajaxload = function() {
 };
 
 Page.reload = function() {
-	debug(this.name,'Page.reload()');
+	debug('Page.reload()');
 	window.location.href = window.location.href;
 };
 
 Page.click = function(el) {
 	if (!$(el).length) {
-		log(this.name,'Page.click: Unable to find element - '+el);
+		log('Page.click: Unable to find element - '+el);
 		return false;
 	}
 	var e = document.createEvent("MouseEvents");

@@ -57,9 +57,9 @@ Idle.display = [
 		label:'Monsters',
 		select:Idle.when
 	},{
-                id:'collect',
-                label:'Apprentice Reward',
-                select:Idle.when
+		id:'collect',
+		label:'Apprentice Reward',
+		select:Idle.when
 	}
 ];
 
@@ -70,7 +70,7 @@ Idle.work = function(state) {
 	var i, p, time, pages = {
 		index:['index'],
 		alchemy:['keep_alchemy'],
-		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_demiquests', 'quests_atlantis'],
+		quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_quest7', 'quests_quest8', 'quests_demiquests', 'quests_atlantis'],
 		town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 		battle:['battle_battle'], //, 'battle_arena'
 		monsters:['keep_monster', 'battle_raid'],

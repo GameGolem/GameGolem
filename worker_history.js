@@ -52,18 +52,18 @@ History.update = function(type) {
 			delete this.data[i];
 		}
 	}
-//	debug(this.name,'Exp: '+this.get('exp'));
-//	debug(this.name,'Exp max: '+this.get('exp.max'));
-//	debug(this.name,'Exp max change: '+this.get('exp.max.change'));
-//	debug(this.name,'Exp min: '+this.get('exp.min'));
-//	debug(this.name,'Exp min change: '+this.get('exp.min.change'));
-//	debug(this.name,'Exp change: '+this.get('exp.change'));
-//	debug(this.name,'Exp mean: '+this.get('exp.mean.change'));
-//	debug(this.name,'Exp harmonic: '+this.get('exp.harmonic.change'));
-//	debug(this.name,'Exp geometric: '+this.get('exp.geometric.change'));
-//	debug(this.name,'Exp mode: '+this.get('exp.mode.change'));
-//	debug(this.name,'Exp median: '+this.get('exp.median.change'));
-//	debug(this.name,'Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+//	debug('Exp: '+this.get('exp'));
+//	debug('Exp max: '+this.get('exp.max'));
+//	debug('Exp max change: '+this.get('exp.max.change'));
+//	debug('Exp min: '+this.get('exp.min'));
+//	debug('Exp min change: '+this.get('exp.min.change'));
+//	debug('Exp change: '+this.get('exp.change'));
+//	debug('Exp mean: '+this.get('exp.mean.change'));
+//	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
+//	debug('Exp geometric: '+this.get('exp.geometric.change'));
+//	debug('Exp mode: '+this.get('exp.mode.change'));
+//	debug('Exp median: '+this.get('exp.median.change'));
+//	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -221,7 +221,7 @@ History.get = function(what) {
 				if (value !== null && last !== null) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
-						debug(this.name,'NaN: '+value+' - '+last);
+						debug('NaN: '+value+' - '+last);
 					}
 				}
 				last = value;

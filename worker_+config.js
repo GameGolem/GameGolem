@@ -89,7 +89,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
 					k.settings.after = unique(k.settings.after);
-//					debug(this.name,'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
+//					debug('Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
 				}
 			}
 		}
@@ -100,7 +100,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
 					k.settings.before = unique(k.settings.before);
-//					debug(this.name,'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
+//					debug('Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
 				}
 			}
 		}
@@ -303,7 +303,7 @@ Config.set = function(key, value) {
 };
 
 Config.updateOptions = function() {
-//	debug(this.name,'Options changed');
+//	debug('Options changed');
 	// Get order of panels first
 	Queue.option.queue = this.getOrder();
 	// Now can we see the advanced stuff
@@ -329,7 +329,7 @@ Config.updateOptions = function() {
 			try {
 				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
-				debug(this.name,e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
+				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
 	});

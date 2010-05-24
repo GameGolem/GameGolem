@@ -139,6 +139,7 @@ Player.get = function(what) {
 		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
+		case 'pause':			return (Queue.get('option.pause') ? '(Paused) ' : '');
 		default: return this._get(what);
 	}
 };

@@ -99,7 +99,7 @@ Alchemy.work = function(state) {
 	if (!state || !Page.to('keep_alchemy')) {
 		return true;
 	}
-	debug(this.name,'Perform - ' + this.runtime.best);
+	debug('Perform - ' + this.runtime.best);
 	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 		Page.reload(); // Can't find the recipe we just parsed when coming here...
 	}

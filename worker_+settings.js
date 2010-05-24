@@ -58,11 +58,11 @@ Settings.update = function(type) {
 			case 'None':
 				break;
 			case 'Load':
-				debug(this.name,'Loading ' + this.option.which);
+				debug('Loading ' + this.option.which);
 				this.get(this.option.which);
 				break;
 			case 'Save':
-				debug(this.name,'Saving ' + this.option.name);
+				debug('Saving ' + this.option.name);
 				this.set(this.option.name);
 				this.option.which = this.option.name;
 				break;

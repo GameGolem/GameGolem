@@ -75,7 +75,7 @@ Elite.parse = function(change) {
 				Elite.data[Elite.runtime.nextarena].arena = Date.now() + 3600000; // 1 hour
 			} else if ($(el).text().match(/YOUR Arena Guard is FULL/i)) {
 				Elite.runtime.waitarena = Date.now();
-				debug(this.name,this + 'Arena guard full, wait '+Elite.option.every+' hours');
+				debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
 			}
 		}
 		if ($(el).text().match(/Elite Guard, and they have joined/i)) {
@@ -84,7 +84,7 @@ Elite.parse = function(change) {
 			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 3600000; // 1 hour
 		} else if ($(el).text().match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
-			debug(this.name,'Elite guard full, wait '+Elite.option.every+' hours');
+			debug('Elite guard full, wait '+Elite.option.every+' hours');
 		}
 	});
 	if (Page.page === 'army_viewarmy') {
@@ -144,7 +144,7 @@ Elite.work = function(state) {
 	var i, j, found = null;
 	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
 		if (state) {
-			debug(this.name,'Filling army list');
+			debug('Filling army list');
 			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(this.data) + 1) / this.option.armyperpage));
 			Page.to('army_viewarmy', '?page=' + this.runtime.armylastpage);
 		}
@@ -160,13 +160,13 @@ Elite.work = function(state) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
-		debug(this.name,'Add Elite Guard member '+this.runtime.nextelite);
+		debug('Add Elite Guard member '+this.runtime.nextelite);
 		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.runtime.nextelite)) {
 			return true;
 		}
 	}
 	if ((this.runtime.waitarena + (this.option.every * 3600000)) <= Date.now()) {
-		debug(this.name,'Add Arena Guard member '+this.runtime.nextarena);
+		debug('Add Arena Guard member '+this.runtime.nextarena);
 		if (!Page.to('battle_arena', '?user=' + this.runtime.nextarena + '&lka=' + this.runtime.nextarena + '&agtw=1&ref=nf')) {
 			return true;
 		}
