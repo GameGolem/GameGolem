@@ -600,7 +600,9 @@ Monster.parse = function(change) {
                     monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
                     if ($defense.parent().width() < $defense.parent().parent().width()){
                         monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
-                    }
+                    } else {
+						monster.strength = 100;
+					}
                     monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
                     break;
                 }
