@@ -452,6 +452,19 @@ Monster.types = {
         attacks:[5,10,20,50],
         def_btn:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
         defends:[10,20,40,100]
+    },
+    azriel: {
+        name:'Azriel, the Angel of Wrath',
+        list:'nm_azriel_list.jpg',
+        image:'nm_azriel_large2.jpg',
+        dead:'nm_azriel_dead.jpg', //Guesswork
+        achievement:1000000, // Guesswork
+        timer:604800, // 168 hours
+        mpool:1,
+        atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+        attacks:[5,10,20,50],
+        def_btn:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+        defends:[10,20,40,100]
     }
 };
 
