@@ -3,6 +3,10 @@
 */
 var Battle = new Worker('Battle');
 
+Battle.settings = {
+	stateful:true
+};
+
 Battle.defaults = {
 	castle_age:{
 		pages:'battle_rank battle_battle'
@@ -328,7 +332,7 @@ Battle.work = function(state) {
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
-	return true;
+	return QUEUE_RELEASE;
 };
 
 Battle.rank = function(name) {

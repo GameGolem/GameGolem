@@ -4,6 +4,10 @@
 var Monster = new Worker('Monster');
 Monster.data = {};
 
+Monster.settings = {
+	stateful:true
+};
+
 Monster.defaults = {
     castle_age:{
         pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
@@ -922,7 +926,6 @@ Monster.work = function(state) {
         return true;
     }
     if (this.runtime.check) { // Parse pages of monsters we've not got the info for
-        
         for (i in this.data) {
             for (j in this.data[i]) {
                 if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
@@ -934,7 +937,7 @@ Monster.work = function(state) {
         }
         this.runtime.check = false;
         debug( 'Finished Monster / Raid review')
-        return true;
+        return QUEUE_RELEASE;
     }
     if (this.types[type].raid) { // Raid has different buttons and generals
         if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
@@ -1021,7 +1024,7 @@ Monster.work = function(state) {
         this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
         debug('Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
-        return true;
+        return QUEUE_RELEASE;
     }
     if (this.types[type].raid) {
         battle_list = Battle.get('user')
@@ -1042,7 +1045,7 @@ Monster.work = function(state) {
     //debug('Clicking Button ' + btn.attr('name'));
     Page.click(btn);
     this.data[uid][type].button_fail = 0;
-    return true;
+    return QUEUE_RELEASE;
 };
 
 Monster.order = null;

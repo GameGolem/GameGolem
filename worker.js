@@ -15,6 +15,8 @@ new Worker(name, pages, settings)
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
+				important (true/false) - can interrupt stateful workers [false]
+				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
 .display		- Create the display object for the settings page.
 
 *** User functions ***
@@ -25,6 +27,7 @@ new Worker(name, pages, settings)
 				change = false - Not allowed to change *anything*, cannot read from other Workers.
 				change = true - Can now change inline and read from other Workers.
 				return true - We need to run again with status=1
+				return QUEUE_RELEASE - We want to run again with status=1, but feel free to interrupt (makes us stateful)
 				return false - We're finished
 .work(state)    - Do anything we need to do when it's our turn - this includes page changes.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call

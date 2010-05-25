@@ -554,6 +554,8 @@ new Worker(name, pages, settings)
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
+				important (true/false) - can interrupt stateful workers [false]
+				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
 .display		- Create the display object for the settings page.
 
 *** User functions ***
@@ -564,6 +566,7 @@ new Worker(name, pages, settings)
 				change = false - Not allowed to change *anything*, cannot read from other Workers.
 				change = true - Can now change inline and read from other Workers.
 				return true - We need to run again with status=1
+				return QUEUE_RELEASE - We want to run again with status=1, but feel free to interrupt (makes us stateful)
 				return false - We're finished
 .work(state)    - Do anything we need to do when it's our turn - this includes page changes.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call
@@ -1603,6 +1606,8 @@ Page.clear = function() {
 var Queue = new Worker('Queue', '*');
 Queue.data = null;
 
+var QUEUE_RELEASE = -1;
+
 Queue.settings = {
 	system:true,
 	unsortable:true,
@@ -1733,7 +1738,7 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, result, now = Date.now();
+	var i, worker, current, result, now = Date.now(), next = null, release = false;
 	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;
 	}
@@ -1776,34 +1781,31 @@ Queue.run = function() {
 		if (this.runtime.current === worker.name) {
 			worker._unflush();
 			result = worker._work(true);
+			if (result === QUEUE_RELEASE) {
+				worker.settings.stateful = true;
+				release = true;
+			} else if (!result) {
+				this.runtime.current = null;
+				worker.id && $('#'+worker.id+' > h3').css('font-weight', 'normal');
+				debug('End '+worker.name);
+			}
 		} else {
 			result = worker._work(false);
 		}
-		if (!result && this.runtime.current === worker.name) {
-			this.runtime.current = null;
-			if (worker.id) {
-				$('#'+worker.id+' > h3').css('font-weight', 'normal');
-			}
-			debug('End '+worker.name);
+		if (!next && result) {
+			next = worker; // the worker who wants to take over
 		}
-		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
-			continue;
+	}
+	current = this.runtime.current ? WorkerByName(this.runtime.current) : null;
+	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
+		if (current) {
+			debug('Interrupt ' + current.name + ' with ' + next.name);
+			current.id && $('#'+current.id+' > h3').css('font-weight', 'normal');
+		} else {
+			debug('Trigger ' + next.name);
 		}
-		found = true;
-		if (this.runtime.current === worker.name) {
-			continue;
-		}
-		if (this.runtime.current) {
-			debug('Interrupt '+this.runtime.current);
-			if (WorkerByName(this.runtime.current).id) {
-				$('#'+WorkerByName(this.runtime.current).id+' > h3').css('font-weight', 'normal');
-			}
-		}
-		this.runtime.current = worker.name;
-		if (worker.id) {
-			$('#'+worker.id+' > h3').css('font-weight', 'bold');
-		}
-		debug('Trigger ' + worker.name);
+		this.runtime.current = next.name;
+		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
 	}
 //	debug('End Queue');
 	for (i=0; i<Workers.length; i++) {
@@ -2231,6 +2233,10 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 */
 var Battle = new Worker('Battle');
 
+Battle.settings = {
+	stateful:true
+};
+
 Battle.defaults = {
 	castle_age:{
 		pages:'battle_rank battle_battle'
@@ -2556,7 +2562,7 @@ Battle.work = function(state) {
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
-	return true;
+	return QUEUE_RELEASE;
 };
 
 Battle.rank = function(name) {
@@ -4116,6 +4122,10 @@ Idle.work = function(state) {
 var Income = new Worker('Income');
 Income.data = null;
 
+Income.settings = {
+	important:true
+};
+
 Income.defaults = {
 	castle_age:{}
 };
@@ -4624,6 +4634,10 @@ LevelUp.get = function(what) {
  */
 var Monster = new Worker('Monster');
 Monster.data = {};
+
+Monster.settings = {
+	stateful:true
+};
 
 Monster.defaults = {
     castle_age:{
@@ -5543,7 +5557,6 @@ Monster.work = function(state) {
         return true;
     }
     if (this.runtime.check) { // Parse pages of monsters we've not got the info for
-        
         for (i in this.data) {
             for (j in this.data[i]) {
                 if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
@@ -5555,7 +5568,7 @@ Monster.work = function(state) {
         }
         this.runtime.check = false;
         debug( 'Finished Monster / Raid review')
-        return true;
+        return QUEUE_RELEASE;
     }
     if (this.types[type].raid) { // Raid has different buttons and generals
         if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
@@ -5642,7 +5655,7 @@ Monster.work = function(state) {
         this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
         debug('Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
-        return true;
+        return QUEUE_RELEASE;
     }
     if (this.types[type].raid) {
         battle_list = Battle.get('user')
@@ -5663,7 +5676,7 @@ Monster.work = function(state) {
     //debug('Clicking Button ' + btn.attr('name'));
     Page.click(btn);
     this.data[uid][type].button_fail = 0;
-    return true;
+    return QUEUE_RELEASE;
 };
 
 Monster.order = null;
@@ -6109,6 +6122,10 @@ Potions.work = function(state) {
 // Should also look for quests_quest but that should never be used unless there's a new area
 var Quest = new Worker('Quest');
 
+Quest.settings = {
+	stateful:true
+};
+
 Quest.defaults = {
 	castle_age:{
 		pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_demiquests quests_atlantis'
@@ -6414,7 +6431,7 @@ Quest.work = function(state) {
 			Page.to('quests_quest' + (this.data[best].land + 2));
 		}
 	}
-	return true;
+	return QUEUE_RELEASE;
 };
 
 Quest.order = [];

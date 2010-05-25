@@ -4,6 +4,8 @@
 var Queue = new Worker('Queue', '*');
 Queue.data = null;
 
+var QUEUE_RELEASE = -1;
+
 Queue.settings = {
 	system:true,
 	unsortable:true,
@@ -134,7 +136,7 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	var i, worker, found = false, result, now = Date.now();
+	var i, worker, current, result, now = Date.now(), next = null, release = false;
 	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;
 	}
@@ -177,34 +179,31 @@ Queue.run = function() {
 		if (this.runtime.current === worker.name) {
 			worker._unflush();
 			result = worker._work(true);
+			if (result === QUEUE_RELEASE) {
+				worker.settings.stateful = true;
+				release = true;
+			} else if (!result) {
+				this.runtime.current = null;
+				worker.id && $('#'+worker.id+' > h3').css('font-weight', 'normal');
+				debug('End '+worker.name);
+			}
 		} else {
 			result = worker._work(false);
 		}
-		if (!result && this.runtime.current === worker.name) {
-			this.runtime.current = null;
-			if (worker.id) {
-				$('#'+worker.id+' > h3').css('font-weight', 'normal');
-			}
-			debug('End '+worker.name);
+		if (!next && result) {
+			next = worker; // the worker who wants to take over
 		}
-		if (!result || found) { // We will work(false) everything, but only one gets work(true) at a time
-			continue;
+	}
+	current = this.runtime.current ? WorkerByName(this.runtime.current) : null;
+	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
+		if (current) {
+			debug('Interrupt ' + current.name + ' with ' + next.name);
+			current.id && $('#'+current.id+' > h3').css('font-weight', 'normal');
+		} else {
+			debug('Trigger ' + next.name);
 		}
-		found = true;
-		if (this.runtime.current === worker.name) {
-			continue;
-		}
-		if (this.runtime.current) {
-			debug('Interrupt '+this.runtime.current);
-			if (WorkerByName(this.runtime.current).id) {
-				$('#'+WorkerByName(this.runtime.current).id+' > h3').css('font-weight', 'normal');
-			}
-		}
-		this.runtime.current = worker.name;
-		if (worker.id) {
-			$('#'+worker.id+' > h3').css('font-weight', 'bold');
-		}
-		debug('Trigger ' + worker.name);
+		this.runtime.current = next.name;
+		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
 	}
 //	debug('End Queue');
 	for (i=0; i<Workers.length; i++) {

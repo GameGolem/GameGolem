@@ -5,6 +5,10 @@
 var Income = new Worker('Income');
 Income.data = null;
 
+Income.settings = {
+	important:true
+};
+
 Income.defaults = {
 	castle_age:{}
 };
