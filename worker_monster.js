@@ -321,7 +321,7 @@ Monster.types = {
         image:'seamonster_purple.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_amethyst.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -335,7 +335,7 @@ Monster.types = {
         image:'seamonster_red.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_ancient.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -349,7 +349,7 @@ Monster.types = {
         image:'seamonster_green.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_emerald.jpg', //Guesswork. Needs verify.
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -363,7 +363,7 @@ Monster.types = {
         image:'seamonster_blue.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_sapphire.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
