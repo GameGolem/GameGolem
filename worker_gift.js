@@ -154,7 +154,7 @@ Gift.parse = function(change) {
 			gifts[id].slot = slot;
 		});
 		
-		if ($('div.result_body').text().indexOf('max gift limit for the day') >= 0){
+		if ($('span.result_body').text().indexOf('max gift limit for the day') >= 0){
 			debug('We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 		}
