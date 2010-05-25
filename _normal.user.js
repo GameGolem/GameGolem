@@ -680,7 +680,7 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 			default:break;
 		}
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		result = null;
 	}
 	WorkerStack.pop();
 	return result;
@@ -6282,19 +6282,19 @@ Quest.parse = function(change) {
 
 Quest.update = function(type) {
 	// First let's update the Quest dropdown list(s)...
-	var i, j, best = null, best_land = 0, list = [];
+	var i, unit, own, need, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
 	if (!type || type === 'data') {
-		for (i in this.data) {
-			if (this.data[i].item && !this.data[i].unique) {
-				list.push(this.data[i].item);
+		for (i in quests) {
+			if (quests[i].item && !quests[i].unique) {
+				list.push(quests[i].item);
 			}
 		}
 		Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	}
 	// Now choose the next quest...
-	if (this.option.unique && Alchemy._changed > this.lastunique) {
-		for (i in this.data) {
-			if (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]) && (!best || this.data[i].energy < this.data[best].energy)) {
+	if (this.option.unique && Alchemy._changed > this.lastunique) {// Only checking for unique if the Alchemy data has changed - saves CPU
+		for (i in quests) {
+			if (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]) && (!best || quests[i].energy < quests[best].energy)) {
 				best = i;
 			}
 		}
@@ -6302,60 +6302,69 @@ Quest.update = function(type) {
 	}
 	if (!best && this.option.what !== 'Nothing') {
 //		debug('option = ' + this.option.what);
-//		best = (this.runtime.best && this.data[this.runtime.best] && (this.data[this.runtime.best].influence < 100) ? this.runtime.best : null);
-		for (i in this.data) {
-			switch(this.option.what) {
-				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (typeof this.data[i].influence !== 'undefined' && this.data[i].influence < 100 && (!best || this.data[i].energy < this.data[best].energy)) {
-						best = i;
+//		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
+		for (i in quests) {
+			if (!quests[i].own) {// Only check for requirements if we don't already know about them (save loading Town)
+				if (quests[i].unique) {
+// Needs caching
+//					quests[i].own = Alchemy.get(['ingredients', quests[i].itemimg]) ? true : false;
+				} else {
+					own = need = 0;
+					for (unit in quests[i].units) {
+						own += Town.get([unit, 'own']) || 0;
+						need += quests[i].units[unit];
 					}
-					break;
+					quests[i].own = (own <= need);
+				}
+				if (!quests[i].own) { // Can't do a quest because we don't have all the items...
+					continue;
+				}
+			}
+			switch(this.option.what) { // Automatically fallback on type - but without changing option
+				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
+					if (quests[i].type !== 2 && typeof quests[i].land === 'number' && quests[i].land >= best_land && (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]))) && (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && (quests[i].unique && !length(Player.data[quests[i].item]))))) {
+						best_land = Math.max(best_land, quests[i].land);
+						best_advancement = i;
+					}
+				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
+					if (typeof quests[i].influence !== 'undefined' && quests[i].influence < 100 && (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+						best_influence = i;
+					}
 				case 'Experience': // Find the best exp per energy quest
-					if (!best || (this.data[i].energy / this.data[i].exp) < (this.data[best].energy / this.data[best].exp)) {
-						best = i;
+					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
+						best_experience = i;
 					}
 					break;
 				case 'Cash': // Find the best (average) cash per energy quest
-					if (!best || (this.data[i].energy / this.data[i].reward) < (this.data[best].energy / this.data[best].reward)) {
-						best = i;
-					}
-					break;
-				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (this.data[i].type !== 2 && typeof this.data[i].land === 'number' && this.data[i].land >= best_land && (this.data[i].influence < 100 || (this.data[i].unique && !Alchemy.get(['ingredients', this.data[i].itemimg]))) && (!best || this.data[i].land > (this.data[best].land || 0) || (this.data[i].land === this.data[best].land && (this.data[i].unique && !length(Player.data[this.data[i].item]))))) {
-						best_land = Math.max(best_land, this.data[i].land);
+					if (!best || (quests[i].energy / quests[i].reward) < (quests[best].energy / quests[best].reward)) {
 						best = i;
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...
-					if (this.data[i].item === this.option.what && (!best || this.data[i].energy < this.data[best].energy)) {
+					if (quests[i].item === this.option.what && (!best || quests[i].energy < quests[best].energy)) {
 						best = i;
 					}
 					break;
 			}
 		}
+		switch(this.option.what) { // Automatically fallback on type - but without changing option
+			case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
+			case 'Influence':	best = best_influence || best_experience;break;
+			case 'Experience':	best = best_experience;break;
+			default:break;
+		}
 	}
 	if (best !== this.runtime.best) {
 		this.runtime.best = best;
 		if (best) {
-			this.runtime.energy = this.data[best].energy;
-			debug('Wanting to perform - ' + best + ' in ' + (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + ')');
+			this.runtime.energy = quests[best].energy;
+			debug('Wanting to perform - ' + best + ' in ' + (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', reward: $' + addCommas(quests[best].reward) + ')');
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof this.data[best].land === 'number' ? this.land[this.data[best].land] : this.area[this.data[best].area]) + ': ' + best + ' (energy: ' + this.data[best].energy + ', experience: ' + this.data[best].exp + ', reward: $' + addCommas(this.data[best].reward) + (typeof this.data[best].influence !== 'undefined' ? (', influence: ' + this.data[best].influence + '%)') : ''));
+		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', reward: $' + addCommas(quests[best].reward) + (typeof quests[best].influence !== 'undefined' ? (', influence: ' + quests[best].influence + '%)') : ''));
 	} else {
-		// If we change the "what" then it will happen when saving data - options are saved afterwards which will re-run this to find a valid quest
-		if (this.option.what === 'Influence') { // All quests at 100% influnce, let's change to Experience
-			this.option.what = 'Experience';
-			$('select:golem(quest,what)').val('Experience');
-			Dashboard.status(this, 'No quests found, switching to Experience');
-		} else if (this.option.what === 'Advancement') { // Main quests at 100%, let's change to Influence
-			this.option.what = 'Influence';
-			$('select:golem(quest,what)').val('Influence');
-			Dashboard.status(this, 'No unfinished lands found, switching to Influence');
-		} else {
-			Dashboard.status(this);
-		}
+		Dashboard.status(this);
 	}
 };
 

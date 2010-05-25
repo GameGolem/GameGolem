@@ -141,7 +141,7 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 			default:break;
 		}
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		result = null;
 	}
 	WorkerStack.pop();
 	return result;
