@@ -2988,7 +2988,7 @@ Generals.update = function(type, worker) {
 	
 	if ((type === 'data' || worker === Town) && invade && duel) {
 		for (i in data) {
-			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
+			attack_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]*\.?[0-9]*) Attack/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(data[i].skills.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
 			attack = Player.get('attack') + attack_bonus;
 			defend = Player.get('defense') + defense_bonus;
@@ -4942,7 +4942,7 @@ Monster.types = {
         image:'seamonster_purple.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_amethyst.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -4956,7 +4956,7 @@ Monster.types = {
         image:'seamonster_red.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_ancient.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -4970,7 +4970,7 @@ Monster.types = {
         image:'seamonster_green.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_emerald.jpg', //Guesswork. Needs verify.
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
@@ -4984,7 +4984,7 @@ Monster.types = {
         image:'seamonster_blue.jpg',
         dead:'seamonster_dead.jpg',
         title:'seamonster_title_sapphire.jpg',
-        achievement:100000,
+        achievement:250000,
         timer:259200, // 72 hours
         mpool:2,
         atk_btn:'input[name="Attack Dragon"]',
