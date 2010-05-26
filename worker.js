@@ -91,13 +91,12 @@ if (typeof GM_getValue !== 'undefined') {
 	}
 }
 */
-// Global functions
-if (navigator.userAgent.toLowerCase().indexOf('chrome') !== -1) {
-	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
-	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
-} else { // In firefox so assume greasemonkey
+if (isGreasemonkey) {
 	var setItem = function(n,v){GM_setValue(n, v);}
 	var getItem = function(n){return GM_getValue(n);}
+} else {
+	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
+	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
 }
 
 function Worker(name,pages,settings) {
