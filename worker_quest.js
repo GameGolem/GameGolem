@@ -149,7 +149,10 @@ Quest.parse = function(change) {
 	return false;
 };
 
-Quest.update = function(type) {
+Quest.update = function(type,worker) {
+	if (worker === Town && type !== 'data') {
+		return; // Missing quest requirements
+	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
 	if (!type || type === 'data') {
@@ -163,8 +166,10 @@ Quest.update = function(type) {
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {// Only checking for unique if the Alchemy data has changed - saves CPU
 		for (i in quests) {
-			if (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]) && (!best || quests[i].energy < quests[best].energy)) {
-				best = i;
+			if (quests[i].unique) {
+				if (!Alchemy.get(['ingredients', quests[i].itemimg]) && (!best || quests[i].energy < quests[best].energy)) {
+					best = i;
+				}
 			}
 		}
 		this.lastunique = Date.now();
@@ -173,19 +178,16 @@ Quest.update = function(type) {
 //		debug('option = ' + this.option.what);
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
-			if (!quests[i].own) {// Only check for requirements if we don't already know about them (save loading Town)
-				if (quests[i].unique) {
-// Needs caching
-//					quests[i].own = Alchemy.get(['ingredients', quests[i].itemimg]) ? true : false;
-				} else {
-					own = need = 0;
-					for (unit in quests[i].units) {
-						own += Town.get([unit, 'own']) || 0;
-						need += quests[i].units[unit];
-					}
-					quests[i].own = (own <= need);
+			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
+				own = 0, need = 0;
+				for (unit in quests[i].units) {
+					own += Town.get([unit, 'own']) || 0;
+					need += quests[i].units[unit];
 				}
+				quests[i].own = (own >= need);
 				if (!quests[i].own) { // Can't do a quest because we don't have all the items...
+//					debug('Can\'t do "'+i+'" because we don\'t have the items...');
+					this._watch(Town); // Watch Town for updates...
 					continue;
 				}
 			}

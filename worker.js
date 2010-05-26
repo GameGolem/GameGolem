@@ -69,6 +69,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 ._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
 ._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
+._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
 ._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
 var Workers = [];
@@ -272,6 +273,10 @@ Worker.prototype._unflush = function() {
 	!this.settings.keep && !this.data && this._load('data');
 	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
 	WorkerStack.pop();
+};
+
+Worker.prototype._unwatch = function(worker) {
+	deleteElement(worker._watching,this);
 };
 
 Worker.prototype._update = function(type, worker) {
