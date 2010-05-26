@@ -395,9 +395,9 @@ Monster.types = {
         achievement:1000,
         timer:604800, // 168 hours
         mpool:3,
-        atk_btn:'input[name="Attack Dragon"][src*="attack_monster_button2"]',
+        atk_btn:'input[name="Attack Dragon"][src*="button_nm_p_power_attack"]',
         attacks:[5],
-        def_btn:'input[name="Attack Dragon"][src*="attack_monster_button3"]',
+        def_btn:'input[name="Attack Dragon"][src*="button_nm_s_fortify"]',
         defends:[10],
         orcs:true
     },
@@ -445,7 +445,7 @@ Monster.types = {
         list:'nm_volcanic_list_2.jpg',
         image:'nm_volcanic_large_2.jpg',
         dead:'nm_volcanic_dead_2.jpg', //Guesswork
-        achievement:1000000, // Guesswork
+        achievement:2000000, // Guesswork
         timer:604800, // 168 hours
         mpool:3,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -458,7 +458,7 @@ Monster.types = {
         list:'nm_azriel_list.jpg',
         image:'nm_azriel_large2.jpg',
         dead:'nm_azriel_dead.jpg', //Guesswork
-        achievement:1000000, // Guesswork
+        achievement:2000000, // Guesswork
         timer:604800, // 168 hours
         mpool:1,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
