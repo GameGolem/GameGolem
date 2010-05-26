@@ -2520,7 +2520,7 @@ Page.click = function(el) {
 	}
 	var e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
-	$(el).get(0).wrappedJSObject.dispatchEvent(e);
+	$(el).get(0).wrappedJSObject ? $(el).get(0).wrappedJSObject : $(el).get(0).dispatchEvent(e);
 	this.clear();
 	this.lastclick = el;
 	this.when = Date.now();
