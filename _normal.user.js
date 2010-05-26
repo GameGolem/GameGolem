@@ -4658,7 +4658,7 @@ var Monster = new Worker('Monster');
 Monster.data = {};
 
 Monster.settings = {
-	stateful:true
+    stateful:true
 };
 
 Monster.defaults = {
@@ -5263,8 +5263,8 @@ Monster.parse = function(change) {
                     if ($defense.parent().width() < $defense.parent().parent().width()){
                         monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
                     } else {
-						monster.strength = 100;
-					}
+                        monster.strength = 100;
+                    }
                     monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
                     break;
                 }
@@ -5470,13 +5470,13 @@ Monster.update = function(what) {
                 this.runtime.check = true; // Do we need to parse info from a blank monster?
                 break;
             }
-            req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < this.types[j].attacks[0] || this.option.maxstamina < this.types[j].attacks[0]) ? this.types[j].attacks[0] : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+            req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
             if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina ))) {
                 if (!this.data[i][j].battle_count){
                     this.data[i][j].battle_count = 0;
                 }
-                if (this.data[i][j].name === 'You' && this.option.own){                    
+                if (this.data[i][j].name === 'You' && this.option.own){
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
                 } else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
@@ -5562,10 +5562,10 @@ Monster.update = function(what) {
 
     this.runtime.uid = uid;
     this.runtime.type = type;
-    if (uid && type) {
-        this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < this.types[type].attacks[0] || this.option.maxstamina < this.types[type].attacks[0]) ? this.types[type].attacks[0] : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+    if (uid && type) {        
+        this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[type].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)) ? Math.min.apply( Math, this.types[type].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[type].attacks)) ? Math.max.apply( Math, this.types[type].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
         this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid        
-        this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < this.types[type].defends[0] || this.option.maxenergy < this.types[type].defends[0]) ? this.types[type].defends[0] : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
+        this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < Math.min.apply( Math, this.types[type].defends) || this.option.maxenergy < Math.min.apply( Math, this.types[type].defends)) ? Math.min.apply( Math, this.types[type].defends) : (this.option.minenergy > Math.max.apply( Math, this.types[type].defends)) ? Math.max.apply( Math, this.types[type].defends) : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
         if(this.option.fortify_active && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].totaldefense !== 'undefined' && this.data[uid][type].totaldefense < this.option.fortify && this.data[uid][type].defense < 100))) {
             this.runtime.fortify = true;
         } else if (this.option.fortify_active && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
@@ -5580,9 +5580,9 @@ Monster.update = function(what) {
         if (Player.get('health') > this.runtime.health && (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ) || (Queue.burn.stamina > this.runtime.stamina)){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (this.runtime.fortify && Queue.burn.energy < this.runtime.energy ){
-            Dashboard.status(this,'Waiting for ' + (this.runtime.energy - Queue.burn.energy) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max(((this.runtime.energy - Queue.burn.energy) + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Queue.burn.stamina < this.runtime.stamina){
-            Dashboard.status(this,'Waiting for ' + (this.runtime.stamina - Queue.burn.stamina) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max(((this.runtime.stamina - Queue.burn.stamina) + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Player.get('health') < this.runtime.health){
             Dashboard.status(this,'Waiting for ' + (this.runtime.health - Player.get('health')) + ' health to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         }
@@ -5661,7 +5661,7 @@ Monster.work = function(state) {
                     break;
                                       
                 case 'attack':
-                    if (!btn && this.option.maxstamina < this.types[type].attacks[0]){                        
+                    if (!btn && this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)){
                         btn = $(this.types[type].atk_btn).eq(0).name;
                     } else {                        
                         b = $(this.types[type].atk_btn).length - 1;
