@@ -48,6 +48,19 @@ cat _head.js \
     $(ls -1 worker_*.js | grep -v "\+") \
     > _normal.user.js
 
+### generate _normal.user.js ###
+echo "Joining files into _normal_chrome.user.js"
+cat _head.js \
+    _jquery-latest.min.js \
+    _jquery-ui-latest.min.js \
+    _main.js \
+    css.js \
+    utility.js \
+    worker.js \
+    $(ls -1 worker_+*.js) \
+    $(ls -1 worker_*.js | grep -v "\+") \
+    > _normal_chrome.user.js
+
 ### INSTALLED VERSION ###
 if [ "$update_firefox" = "Yes" ]; then
     echo "Installing new version to Firefox"
@@ -64,6 +77,8 @@ if [ "$build_release" = "Yes" ]; then
     if [ -r "$js_compiler" ]; then
       cat _head.js > _release.user.js
       java -jar "$js_compiler" --js _normal.user.js >> _release.user.js
+      cat _head.js > _release_chrome.user.js
+      java -jar "$js_compiler" --js _normal_chrome.user.js >> _release_chrome.user.js
     else
       echo "Error: missing js compiler."
     fi
