@@ -5235,9 +5235,9 @@ Monster.parse = function(change) {
                 // Attempt to check if we are in the wrong phase
                 if ($(Monster['class_off'][monster.mclass]).length === 0){
                     for(i in Monster['secondary_img']) {
-                        if ($(Monster['secondary_img'][i])) {
-                            $secondary = $(Monster['secondary_img'][i]);
-                            monster.secondary = $secondary.length ? (100 * $secondary.width() / $secondary.parent().width()) : 0;
+                        $secondary = $(Monster['secondary_img'][i]);
+                        if ($secondary.length) {
+                            monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
                             //debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
                             break;
                         }
