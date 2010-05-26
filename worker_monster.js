@@ -569,18 +569,23 @@ Monster.parse = function(change) {
             for (i in Monster['class_img']){
                 if ($(Monster['class_img'][i]).length){
                     monster.mclass = i;
-//                    debug('Monster class : '+Monster['class_name'][i]);
+                    //debug('Monster class : '+Monster['class_name'][i]);
                 }
             }
             if (monster.mclass > 1){	// If we are a Rogue or Mage
                 // Attempt to check if we are in the wrong phase
                 if ($(Monster['class_off'][monster.mclass]).length === 0){
-                    $secondary = $(Monster['secondary_img'][monster.mclass]);
-                    monster.secondary = $secondary.length ? (100 * $secondary.width() / $secondary.parent().width()) : 0;
-//                    debug(Monster['class_name'][monster.mclass]+" phase. Enable fortify.");
+                    for(i in Monster['secondary_img']) {
+                        if ($(Monster['secondary_img'][i])) {
+                            $secondary = $(Monster['secondary_img'][i]);
+                            monster.secondary = $secondary.length ? (100 * $secondary.width() / $secondary.parent().width()) : 0;
+                            //debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
+                            break;
+                        }
+                    }
                 }
                 else {
-//                    debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
+                    //debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
                 }
             }
             for (i in Monster['health_img']){
