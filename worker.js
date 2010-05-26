@@ -74,6 +74,31 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 */
 var Workers = [];
 var WorkerStack = []; // Use "WorkerStack.length && WorkerStack[WorkerStack.length-1].name" for current worker name...
+/*
+if (typeof GM_getValue !== 'undefined') {
+	var setItem = function(n,v){GM_setValue(n, v);}
+	var getItem = function(n){return GM_getValue(n);}
+} else {
+	if (typeof localStorage !== 'undefined') {
+		var setItem = function(n,v){localStorage.setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return localStorage.getItem('golem.' + APP + n);}
+	} else if (typeof window.localStorage !== 'undefined') {
+		var setItem = function(n,v){window.localStorage.setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return window.localStorage.getItem('golem.' + APP + n);}
+	} else if (typeof globalStorage !== 'undefined') {
+		var setItem = function(n,v){globalStorage[location.hostname].setItem('golem.' + APP + n, v);}
+		var getItem = function(n){return globalStorage[location.hostname].getItem('golem.' + APP + n);}
+	}
+}
+*/
+// Global functions
+if (navigator.userAgent.toLowerCase().indexOf('chrome') !== -1) {
+	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
+	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
+} else { // In firefox so assume greasemonkey
+	var setItem = function(n,v){GM_setValue(n, v);}
+	var getItem = function(n){return GM_getValue(n);}
+}
 
 function Worker(name,pages,settings) {
 	Workers.push(this);

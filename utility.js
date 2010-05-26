@@ -269,22 +269,6 @@ var isWorker = function(obj) {
 	return obj && findInArray(Workers,obj); // Only a worker if it's an active worker
 };
 
-if (typeof GM_getValue !== 'undefined') {
-	var setItem = function(n,v){GM_setValue(n, v);}
-	var getItem = function(n){return GM_getValue(n);}
-} else {
-	if (typeof localStorage !== 'undefined') {
-		var setItem = function(n,v){localStorage.setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return localStorage.getItem('golem.' + APP + n);}
-	} else if (typeof window.localStorage !== 'undefined') {
-		var setItem = function(n,v){window.localStorage.setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return window.localStorage.getItem('golem.' + APP + n);}
-	} else if (typeof globalStorage !== 'undefined') {
-		var setItem = function(n,v){globalStorage[location.hostname].setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return globalStorage[location.hostname].getItem('golem.' + APP + n);}
-	}
-}
-
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };

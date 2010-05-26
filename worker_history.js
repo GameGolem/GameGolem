@@ -173,7 +173,7 @@ History.get = function(what) {
 		return data;
 	}
 	for (i in data) {
-		if (data[i][x[0]] && typeof data[i][x[0]] === 'number') {
+		if (typeof data[i][x[0]] === 'number') {
 			exact = true;
 			break;
 		}
@@ -207,7 +207,7 @@ History.get = function(what) {
 		if (data[i]) {
 			value = null;
 			if (exact) {
-				if (data[i][x[0]]) {
+				if (typeof data[i][x[0]] === 'number') {
 					value = data[i][x[0]];
 				}
 			} else {

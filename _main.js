@@ -29,13 +29,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 var log = function(txt){
 //	console.log('[' + (new Date()).format('G:i:s') + '] ' + worker + ': ' + txt);
-	console.log('[' + (new Date()).format('G:i:s') + '] ' + (WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
+	console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
 }
 var debug = null;
 if (show_debug) {
 	debug = function(txt) {
 //		console.log('[' + (new Date()).format('G:i:s') + '] ' + worker + ': ' + txt);
-		console.log('[' + (new Date()).format('G:i:s') + '] ' + (WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
+		console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
 	};
 } else {
 	debug = function(){};
@@ -84,14 +84,23 @@ if (typeof APP !== 'undefined') {
 	if (typeof jQuery !== 'undefined') {
 		$(document).ready(document_ready);
 	} else {
-		var head = document.getElementsByTagName('head')[0] || document.documentElement, g = document.createElement('script');
-		g.src = 'http://www.google.com/jsapi';
-		g.type = 'text/javascript';
-		g.async = false;
-		head.insertBefore(g, head.firstChild);
-		google.load("jquery", "1.4");
-		google.load("jqueryui", "1.8");
-		google.setOnLoadCallback(document_ready);
+		var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
+//		a.async = b.async = false;
+		a.type = b.type = 'text/javascript';
+		a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js';
+		b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.1/jquery-ui.min.js';
+		head.appendChild(a);
+		head.appendChild(b);
+		log('Loading jQuery & jQueryUI');
+		(function jQwait() {
+			log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafewindow.jQuery);
+			if (typeof window.jQuery === 'undefined') {
+				window.setTimeout(jQwait, 10000);
+			} else {
+				log('jQuery Loaded...');
+				$(document).ready(document_ready);
+			}
+		})();
 	}
 }
 
