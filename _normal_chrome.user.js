@@ -1579,8 +1579,7 @@ Worker.prototype._flush = function() {
 };
 
 Worker.prototype._get = function(what) { // 'path.to.data'
-	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, result = null;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
@@ -1591,21 +1590,22 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	data = this[x.shift()];
 	try {
 		switch(x.length) {
-			case 0: result = data;break;
-			case 1: result = data[x[0]];break;
-			case 2: result = data[x[0]][x[1]];break;
-			case 3: result = data[x[0]][x[1]][x[2]];break;
-			case 4: result = data[x[0]][x[1]][x[2]][x[3]];break;
-			case 5: result = data[x[0]][x[1]][x[2]][x[3]][x[4]];break;
-			case 6: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];break;
-			case 7: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];break;
+			case 0: return data;
+			case 1: return data[x[0]];
+			case 2: return data[x[0]][x[1]];
+			case 3: return data[x[0]][x[1]][x[2]];
+			case 4: return data[x[0]][x[1]][x[2]][x[3]];
+			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
+			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
+			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			default:break;
 		}
 	} catch(e) {
-		result = null;
+		WorkerStack.push(this);
+		debug(this.name,e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		WorkerStack.pop();
 	}
-	WorkerStack.pop();
-	return result;
+	return null;
 };
 
 Worker.prototype._init = function() {
@@ -3926,7 +3926,7 @@ Generals.update = function(type, worker) {
 			defend = Player.get('defense') + defense_bonus;
 			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
 			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
-			army = (data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501);
+			army = Math.min(Player.get('army'),(data[i].skills.regex(/Increases? Army Limit to ([0-9]+)/i) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
 			att_when_att = (data[i].skills.regex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/i) || 0);
@@ -5567,7 +5567,7 @@ var Monster = new Worker('Monster');
 Monster.data = {};
 
 Monster.settings = {
-	stateful:true
+    stateful:true
 };
 
 Monster.defaults = {
@@ -5957,9 +5957,9 @@ Monster.types = {
         achievement:1000,
         timer:604800, // 168 hours
         mpool:3,
-        atk_btn:'input[name="Attack Dragon"][src*="attack_monster_button2"]',
+        atk_btn:'input[name="Attack Dragon"][src*="button_nm_p_power_attack"]',
         attacks:[5],
-        def_btn:'input[name="Attack Dragon"][src*="attack_monster_button3"]',
+        def_btn:'input[name="Attack Dragon"][src*="button_nm_s_fortify"]',
         defends:[10],
         orcs:true
     },
@@ -6007,7 +6007,7 @@ Monster.types = {
         list:'nm_volcanic_list_2.jpg',
         image:'nm_volcanic_large_2.jpg',
         dead:'nm_volcanic_dead_2.jpg', //Guesswork
-        achievement:1000000, // Guesswork
+        achievement:2000000, // Guesswork
         timer:604800, // 168 hours
         mpool:3,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -6020,7 +6020,7 @@ Monster.types = {
         list:'nm_azriel_list.jpg',
         image:'nm_azriel_large2.jpg',
         dead:'nm_azriel_dead.jpg', //Guesswork
-        achievement:1000000, // Guesswork
+        achievement:2000000, // Guesswork
         timer:604800, // 168 hours
         mpool:1,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -6172,8 +6172,8 @@ Monster.parse = function(change) {
                     if ($defense.parent().width() < $defense.parent().parent().width()){
                         monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
                     } else {
-						monster.strength = 100;
-					}
+                        monster.strength = 100;
+                    }
                     monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
                     break;
                 }
@@ -6379,13 +6379,14 @@ Monster.update = function(what) {
                 this.runtime.check = true; // Do we need to parse info from a blank monster?
                 break;
             }
-            req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < this.types[j].attacks[0] || this.option.maxstamina < this.types[j].attacks[0]) ? this.types[j].attacks[0] : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+            req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+			req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina ))) {
+            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Queue.burn.energy >= req_energy || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina ))) {
                 if (!this.data[i][j].battle_count){
                     this.data[i][j].battle_count = 0;
                 }
-                if (this.data[i][j].name === 'You' && this.option.own){                    
+                if (this.data[i][j].name === 'You' && this.option.own){
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
                 } else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
@@ -6471,10 +6472,10 @@ Monster.update = function(what) {
 
     this.runtime.uid = uid;
     this.runtime.type = type;
-    if (uid && type) {
-        this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < this.types[type].attacks[0] || this.option.maxstamina < this.types[type].attacks[0]) ? this.types[type].attacks[0] : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+    if (uid && type) {        
+        this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[type].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)) ? Math.min.apply( Math, this.types[type].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[type].attacks)) ? Math.max.apply( Math, this.types[type].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
         this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid        
-        this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < this.types[type].defends[0] || this.option.maxenergy < this.types[type].defends[0]) ? this.types[type].defends[0] : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
+        this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < Math.min.apply( Math, this.types[type].defends) || this.option.maxenergy < Math.min.apply( Math, this.types[type].defends)) ? Math.min.apply( Math, this.types[type].defends) : (this.option.minenergy > Math.max.apply( Math, this.types[type].defends)) ? Math.max.apply( Math, this.types[type].defends) : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
         if(this.option.fortify_active && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].totaldefense !== 'undefined' && this.data[uid][type].totaldefense < this.option.fortify && this.data[uid][type].defense < 100))) {
             this.runtime.fortify = true;
         } else if (this.option.fortify_active && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
@@ -6486,12 +6487,12 @@ Monster.update = function(what) {
             this.runtime.fortify = false;
         }
         this.runtime.attack = true;        
-        if (Player.get('health') > this.runtime.health && (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ) || (Queue.burn.stamina > this.runtime.stamina)){
+        if (Player.get('health') > this.runtime.health && (Queue.burn.stamina > this.runtime.stamina) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy )){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (this.runtime.fortify && Queue.burn.energy < this.runtime.energy ){
-            Dashboard.status(this,'Waiting for ' + (this.runtime.energy - Queue.burn.energy) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max(((this.runtime.energy - Queue.burn.energy) + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Queue.burn.stamina < this.runtime.stamina){
-            Dashboard.status(this,'Waiting for ' + (this.runtime.stamina - Queue.burn.stamina) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max(((this.runtime.stamina - Queue.burn.stamina) + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Player.get('health') < this.runtime.health){
             Dashboard.status(this,'Waiting for ' + (this.runtime.health - Player.get('health')) + ' health to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         }
@@ -6570,7 +6571,7 @@ Monster.work = function(state) {
                     break;
                                       
                 case 'attack':
-                    if (!btn && this.option.maxstamina < this.types[type].attacks[0]){                        
+                    if (!btn && this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)){
                         btn = $(this.types[type].atk_btn).eq(0).name;
                     } else {                        
                         b = $(this.types[type].atk_btn).length - 1;

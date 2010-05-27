@@ -670,8 +670,7 @@ Worker.prototype._flush = function() {
 };
 
 Worker.prototype._get = function(what) { // 'path.to.data'
-	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, result = null;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
@@ -682,21 +681,22 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	data = this[x.shift()];
 	try {
 		switch(x.length) {
-			case 0: result = data;break;
-			case 1: result = data[x[0]];break;
-			case 2: result = data[x[0]][x[1]];break;
-			case 3: result = data[x[0]][x[1]][x[2]];break;
-			case 4: result = data[x[0]][x[1]][x[2]][x[3]];break;
-			case 5: result = data[x[0]][x[1]][x[2]][x[3]][x[4]];break;
-			case 6: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];break;
-			case 7: result = data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];break;
+			case 0: return data;
+			case 1: return data[x[0]];
+			case 2: return data[x[0]][x[1]];
+			case 3: return data[x[0]][x[1]][x[2]];
+			case 4: return data[x[0]][x[1]][x[2]][x[3]];
+			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
+			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
+			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
 			default:break;
 		}
 	} catch(e) {
-		result = null;
+		WorkerStack.push(this);
+		debug(this.name,e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		WorkerStack.pop();
 	}
-	WorkerStack.pop();
-	return result;
+	return null;
 };
 
 Worker.prototype._init = function() {
