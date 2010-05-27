@@ -37,7 +37,7 @@ build_release="No"
 # Workdir
 cd $(dirname $0)
 
-rev=`svn info | awk '/^Revision:/{print $2}'`
+rev=`LANG=C svn info | awk '/^Revision:/{print $2}'`
 sed "s/\\\$WCREV\\\$/$rev/" _head_tortoise.tmpl > _head_tortoise.js
 
 ### generate _normal.user.js ###
