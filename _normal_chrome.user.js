@@ -6621,7 +6621,6 @@ Monster.work = function(state) {
         //debug('Reloading page. Button = ' + btn.attr('name'));
         //debug('Reloading page. Page.page = '+ Page.page);
         //debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
-        Page.to('keep_monster');
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
         return true; // Reload if we can't find the button or we're on the wrong page
     }
