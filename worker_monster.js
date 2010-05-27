@@ -4,10 +4,6 @@
 var Monster = new Worker('Monster');
 Monster.data = {};
 
-Monster.settings = {
-    stateful:true
-};
-
 Monster.defaults = {
     castle_age:{
         pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
@@ -942,7 +938,7 @@ Monster.update = function(what) {
         if ((Player.get('health') > this.runtime.health) && ((Queue.burn.stamina > this.runtime.stamina) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (this.runtime.fortify && Queue.burn.energy < this.runtime.energy ){
-            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max(((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy'))))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Queue.burn.stamina < this.runtime.stamina){
             Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max((this.runtime.stamina - Queue.burn.stamina),(this.runtime.stamina + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Player.get('health') < this.runtime.health){
@@ -959,10 +955,10 @@ Monster.work = function(state) {
     var i, j, target_info = [], battle_list, list = [], uid = this.runtime.uid, type = this.runtime.type, btn = null, b, max;
 
     if (!this.runtime.check && ((!this.runtime.fortify || Queue.burn.energy < this.runtime.energy || Player.get('health') < 10) && (!this.runtime.attack || Queue.burn.stamina < this.runtime.stamina || Player.get('health') < this.runtime.health))) {
-        return false;
+        return QUEUE_FINISH;
     }
     if (!state) {
-        return true;
+        return QUEUE_CONTINUE;
     }
     if (this.runtime.check) { // Parse pages of monsters we've not got the info for
         for (i in this.data) {
@@ -970,7 +966,7 @@ Monster.work = function(state) {
                 if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
                     debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
                     Page.to(this.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
-                    return true;
+                    return QUEUE_CONTINUE;
                 }
             }
         }
@@ -979,8 +975,8 @@ Monster.work = function(state) {
         return QUEUE_RELEASE;
     }
     if (this.types[type].raid) { // Raid has different buttons and generals
-        if (!Generals.to(Generals.best((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade'))) {
-            return true;
+        if (!Generals.to((this.option.raid.search('Invade') == -1) ? 'raid-duel' : 'raid-invade')) {
+            return QUEUE_CONTINUE;
         }       
         switch(this.option.raid) {
             case 'Invade':
@@ -1000,9 +996,8 @@ Monster.work = function(state) {
         if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
             //Primary method of finding button.
             j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-           
-            if (!Generals.to(Generals.best(j))) {
-                return true;
+            if (!Generals.to(j)) {
+                return QUEUE_CONTINUE;
             }
             debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
             switch(j){
@@ -1021,8 +1016,7 @@ Monster.work = function(state) {
                         }
                     }
                     break;
-                                      
-                case 'attack':
+				case 'attack':
                     if (!btn && this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)){
                         btn = $(this.types[type].atk_btn).eq(0).name;
                     } else {                        
@@ -1039,6 +1033,7 @@ Monster.work = function(state) {
                     }
                     break;
                 default:
+					break;
             }
         }
         if (!btn || !btn.length){
@@ -1055,7 +1050,7 @@ Monster.work = function(state) {
         //debug('Reloading page. Page.page = '+ Page.page);
         //debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
         Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
-        return true; // Reload if we can't find the button or we're on the wrong page
+        return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
     }
     if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
         debug('Current Siege Phase is: '+ this.data[uid][type].phase);
@@ -1076,7 +1071,7 @@ Monster.work = function(state) {
         if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
             log('No valid Raid target!');
             Page.to('battle_raid', ''); // Force a page reload to change the targets
-            return true;
+            return QUEUE_CONTINUE;
         }
     }
     this.runtime.uid = this.runtime.type = null; // Force us to choose a new target...

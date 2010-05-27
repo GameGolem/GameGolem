@@ -4,7 +4,11 @@
 var Queue = new Worker('Queue', '*');
 Queue.data = null;
 
-var QUEUE_RELEASE = -1;
+// worker.work() return values for stateful - ie, only let other things interrupt when it's "safe"
+var QUEUE_FINISH	= 0;// Finished everything, let something else work
+var QUEUE_CONTINUE	= 1;// Not finished at all, don't interrupt
+var QUEUE_RELEASE	= 2;// Not quite finished, but safe to interrupt 
+// worker.work() can also return true/false for "continue"/"finish" - which means they can be interrupted at any time
 
 Queue.settings = {
 	system:true,
@@ -111,7 +115,7 @@ Queue.init = function() {
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
-		debug('Queue','State: '+((Queue.option.pause)?"paused":"running"));
+		debug('State: '+((Queue.option.pause)?"paused":"running"));
 		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
@@ -179,10 +183,12 @@ Queue.run = function() {
 		if (this.runtime.current === worker.name) {
 			worker._unflush();
 			result = worker._work(true);
-			if (result === QUEUE_RELEASE) {
+			if (typeof result !== 'boolean') {// QUEUE_* are all numbers
 				worker.settings.stateful = true;
+			}
+			if (result === QUEUE_RELEASE) {
 				release = true;
-			} else if (!result) {
+			} else if (!result) {// false or QUEUE_FINISH
 				this.runtime.current = null;
 				worker.id && $('#'+worker.id+' > h3').css('font-weight', 'normal');
 				debug('End '+worker.name);

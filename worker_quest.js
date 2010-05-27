@@ -4,10 +4,6 @@
 // Should also look for quests_quest but that should never be used unless there's a new area
 var Quest = new Worker('Quest');
 
-Quest.settings = {
-	stateful:true
-};
-
 Quest.defaults = {
 	castle_age:{
 		pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_demiquests quests_atlantis'
@@ -245,28 +241,28 @@ Quest.work = function(state) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (this.option.monster && Monster.data) {
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && Monster.data[i][j].defense < Monster.option.fortify) {
-					return false;
+					return QUEUE_FINISH;
 				}
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].dispel === 'number' && Monster.data[i][j].dispel > Monster.option.dispel) {
-					return false;
+					return QUEUE_FINISH;
 				}
 			}
 		}
 	}
 	if (!state) {
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	if (this.option.general) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
-				return true;
+				return QUEUE_CONTINUE;
 			}
 		} else {
 			switch(this.option.what) {
@@ -286,29 +282,29 @@ Quest.work = function(state) {
 					break;
 			}
 			if (!Generals.to(general)) {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 		}
 	}
 	switch(this.data[best].area) {
 		case 'quest':
 			if (!Page.to('quests_quest' + (this.data[best].land + 1))) {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			break;
 		case 'demiquest':
 			if (!Page.to('quests_demiquests')) {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			break;
 		case 'atlantis':
 			if (!Page.to('quests_atlantis')) {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			break;
 		default:
 			log('Can\'t get to quest area!');
-			return false;
+			return QUEUE_FINISH;
 	}
 	debug('Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
 	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"], div.action[title^="' + best + ' :"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...

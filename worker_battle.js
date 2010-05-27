@@ -3,10 +3,6 @@
 */
 var Battle = new Worker('Battle');
 
-Battle.settings = {
-	stateful:true
-};
-
 Battle.defaults = {
 	castle_age:{
 		pages:'battle_rank battle_battle'
@@ -318,10 +314,10 @@ Battle.update = function(type) {
 Battle.work = function(state) {
 	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < 1) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	var $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
 	if (!$form.length) {

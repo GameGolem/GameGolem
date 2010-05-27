@@ -94,15 +94,15 @@ Alchemy.update = function() {
 
 Alchemy.work = function(state) {
 	if (!this.option.perform || !this.runtime.best) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_alchemy')) {
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	debug('Perform - ' + this.runtime.best);
 	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 		Page.reload(); // Can't find the recipe we just parsed when coming here...
 	}
-	return true;
+	return QUEUE_RELEASE;
 };
 

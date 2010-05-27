@@ -9,9 +9,6 @@ Town.defaults = {
 		pages:'town_soldiers town_blacksmith town_magic'
 	}
 };
-Town.settings = {
-    stateful:true
-};
 
 Town.option = {
 	general:true,
@@ -188,12 +185,12 @@ Town.update = function(type) {
 Town.work = function(state) {
 	var qty;
 	if (!this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!state || !this.buy(this.runtime.best, this.runtime.buy)) {
-		return QUEUE_RELEASE;
+		return QUEUE_CONTINUE;
 	}
-	return false;
+	return QUEUE_RELEASE;
 };
 
 Town.buy = function(item, number) { // number is absolute including already owned

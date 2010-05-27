@@ -30,12 +30,12 @@ Heal.display = [
 
 Heal.work = function(state) {
 	if (Player.get('health') >= Player.get('maxhealth') || Player.get('stamina') < Heal.option.stamina || Player.get('health') >= Heal.option.health) {
-		return false;
+		return QUEUE_FINISH;
 	}
-	if (!state) {
-		return true;
+	if (!state || this.me()) {
+		return QUEUE_CONTINUE;
 	}
-	return this.me();
+	return QUEUE_RELEASE;
 };
 
 Heal.me = function() {

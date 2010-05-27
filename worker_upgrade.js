@@ -54,10 +54,10 @@ Upgrade.work = function(state) {
 		this.runtime.run = 0;
 	}
 	if (!this.option.order.length || !points || (this.option.order[this.runtime.run]==='Stamina' && points<2)) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_stats')) {
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	switch (this.option.order[this.runtime.run]) {
 		case 'Energy':	btn = 'a[href$="?upgrade=energy_max"]';	break;
@@ -72,6 +72,6 @@ Upgrade.work = function(state) {
 	} else {
 		Page.reload(); // Only get here if we can't click!
 	}
-	return true;
+	return QUEUE_RELEASE;
 };
 

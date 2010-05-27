@@ -39,22 +39,19 @@ Income.display = [
 
 Income.work = function(state) {
 	if (!Income.option.margin) {
-		return false;
+		return QUEUE_FINISH;
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
-		return false;
+		return QUEUE_FINISH;
 	}
-	if (!state) {
-		return true;
-	}
-	if (this.option.general && !Generals.to(Generals.best('income'))) {
-		return true;
+	if (!state || (this.option.general && !Generals.to('income'))) {
+		return QUEUE_CONTINUE;
 	}
 	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
-	return true;
+	return QUEUE_CONTINUE;
 };
 

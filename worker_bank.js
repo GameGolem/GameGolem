@@ -48,14 +48,14 @@ Bank.display = [
 
 Bank.work = function(state) {
 	if (iscaap() && this.option.above === '') {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
-		return false;
-	} else {
-		this.stash(Player.get('cash') - this.option.hand);
-		return true;
+		return QUEUE_FINISH;
+	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
+		return QUEUE_CONTINUE;
 	}
+	return QUEUE_RELEASE;
 };
 
 Bank.stash = function(amount) {

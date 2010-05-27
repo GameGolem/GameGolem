@@ -80,12 +80,12 @@ Blessing.update = function(){
 
 Blessing.work = function(state) {
 	if (!this.option.which || this.option.which === 'None' || Date.now() <= this.runtime.when) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('oracle_demipower')) {
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	Page.click('#app'+APPID+'_symbols_form_'+this.which.indexOf(this.option.which)+' input.imgButton');
-	return true;
+	return QUEUE_RELEASE;
 };
 
