@@ -3,7 +3,7 @@ var show_debug = true;
 
 // Shouldn't touch
 var VERSION = "31.1";
-var SVN = '$Rev: 461 $'.replace(/[^0-9]/g,'');
+var SVN = '$Revision$'.replace(/[^0-9]/g,'');
 var script_started = Date.now();
 
 // Automatically filled
