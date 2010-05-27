@@ -4671,7 +4671,9 @@ Monster.defaults = {
 };
 
 Monster.option = {
-    fortify: 80,
+    fortify: 30,
+//	quest_over: 90,
+	min_to_attack: 0,
     //	dispel: 50,
     fortify_active:false,
     choice: 'Any',
@@ -4709,10 +4711,22 @@ Monster.display = [
     title:'Fortification'
 },{
     id:'fortify',
-    label:'Fortify Below',
-    select:[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    label:'Fortify Below (AB)',
+    text:30,
+	help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
     after:'%'
 },{
+/*	id:'quest_over',
+	label:'Quest if Over',
+	text:90,
+	after:'%'
+},{*/
+	id:'min_to_attack',
+	label:'Attack Over (AB)',
+	text:1,
+	help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+	after:'%'
+},{	
     id:'fortify_active',
     label:'Fortify Active',
     checkbox:true,
@@ -5255,7 +5269,7 @@ Monster.parse = function(change) {
                 if ($(Monster['shield_img'][i]).length){
                     $dispel = $(Monster['shield_img'][i]).parent();
                     monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
-                    monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
+                    monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
                     break;
                 }
             }
@@ -5268,7 +5282,7 @@ Monster.parse = function(change) {
                     } else {
                         monster.strength = 100;
                     }
-                    monster.totaldefense = monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1);
+                    monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
                     break;
                 }
             }
@@ -5476,7 +5490,7 @@ Monster.update = function(what) {
             req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
 			req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Queue.burn.energy >= req_energy || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina ))) {
+            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Queue.burn.energy >= req_energy || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina && (this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack)))) {
                 if (!this.data[i][j].battle_count){
                     this.data[i][j].battle_count = 0;
                 }
@@ -5570,7 +5584,7 @@ Monster.update = function(what) {
         this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[type].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)) ? Math.min.apply( Math, this.types[type].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[type].attacks)) ? Math.max.apply( Math, this.types[type].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
         this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid        
         this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < Math.min.apply( Math, this.types[type].defends) || this.option.maxenergy < Math.min.apply( Math, this.types[type].defends)) ? Math.min.apply( Math, this.types[type].defends) : (this.option.minenergy > Math.max.apply( Math, this.types[type].defends)) ? Math.max.apply( Math, this.types[type].defends) : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
-        if(this.option.fortify_active && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].totaldefense !== 'undefined' && this.data[uid][type].totaldefense < this.option.fortify && this.data[uid][type].defense < 100))) {
+        if(this.option.fortify_active && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].attackbonus !== 'undefined' && this.data[uid][type].attackbonus < this.option.fortify && this.data[uid][type].defense < 100))) {
             this.runtime.fortify = true;
         } else if (this.option.fortify_active && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){
             this.runtime.fortify = true;
@@ -5817,7 +5831,7 @@ Monster.dashboard = function(sort, rev) {
         //debug(image_url);
         th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
         td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
-        td(output, blank ? '' : isNumber(monster.totaldefense) ? ((monster.totaldefense-50).round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));
+        td(output, blank ? '' : isNumber(monster.attackbonus) ? (monster.attackbonus.round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));
         td(output, blank ? '' : monster.state !== 'engage' ? '' : (typeof monster.damage[userID] === 'undefined') ? '' : addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(2) + '%)', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
         td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
         td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
