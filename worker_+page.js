@@ -75,7 +75,7 @@ Page.defaults = {
 			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
-                        apprentice_collect:             {url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 		}
 	}
 };

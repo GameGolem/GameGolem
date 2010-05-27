@@ -10,7 +10,7 @@ Gift.settings = {
 
 Gift.defaults = {
 	castle_age:{
-		pages:'index army_invite army_gifts'
+		pages:'* index army_invite army_gifts'
 	}
 };
 
@@ -153,8 +153,8 @@ Gift.parse = function(change) {
 			gifts[id].name = name;
 			gifts[id].slot = slot;
 		});
-		
-		if ($('span.result_body').text().indexOf('max gift limit for the day') >= 0){
+	} else {
+		if ($('div.result').text().indexOf('have exceed') !== -1){
 			debug('We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 		}

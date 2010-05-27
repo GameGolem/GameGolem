@@ -2345,7 +2345,7 @@ Page.defaults = {
 			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
-                        apprentice_collect:             {url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 		}
 	}
 };
@@ -4245,7 +4245,7 @@ Gift.settings = {
 
 Gift.defaults = {
 	castle_age:{
-		pages:'index army_invite army_gifts'
+		pages:'* index army_invite army_gifts'
 	}
 };
 
@@ -4388,8 +4388,8 @@ Gift.parse = function(change) {
 			gifts[id].name = name;
 			gifts[id].slot = slot;
 		});
-		
-		if ($('span.result_body').text().indexOf('max gift limit for the day') >= 0){
+	} else {
+		if ($('div.result').text().indexOf('have exceed') !== -1){
 			debug('We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 		}
@@ -5693,7 +5693,7 @@ Monster.display = [
     advanced:true,
     id:'avoid_hours',
     label:'Upside-Down Hours',
-    select:[0,1,5,10,15,25,50],
+    text:5,
     help:'# of Hours Monster must be behind before preventing attacks.'
 },{
     advanced:true,

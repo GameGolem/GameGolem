@@ -128,7 +128,7 @@ Monster.display = [
     advanced:true,
     id:'avoid_hours',
     label:'Upside-Down Hours',
-    select:[0,1,5,10,15,25,50],
+    text:5,
     help:'# of Hours Monster must be behind before preventing attacks.'
 },{
     advanced:true,
