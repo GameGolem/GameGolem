@@ -37,9 +37,12 @@ build_release="No"
 # Workdir
 cd $(dirname $0)
 
+rev=`svn info | awk '/^Revision:/{print $2}'`
+sed "s/\\\$WCREV\\\$/$rev/" _head_tortoise.tmpl > _head_tortoise.js
+
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
-cat _head.js \
+cat _head*.js \
     _main.js \
     css.js \
     utility.js \
@@ -50,7 +53,7 @@ cat _head.js \
 
 ### generate _normal.user.js ###
 echo "Joining files into _normal_chrome.user.js"
-cat _head.js \
+cat _head*.js \
     _jquery-latest.min.js \
     _jquery-ui-latest.min.js \
     _main.js \
