@@ -53,10 +53,9 @@ Bank.work = function(state) {
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return false;
 	} else {
-                this.stash(Player.get('cash') - this.option.hand);
+		this.stash(Player.get('cash') - this.option.hand);
 		return true;
 	}
-	return false;
 };
 
 Bank.stash = function(amount) {

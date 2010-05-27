@@ -2205,10 +2205,9 @@ Bank.work = function(state) {
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return false;
 	} else {
-                this.stash(Player.get('cash') - this.option.hand);
+		this.stash(Player.get('cash') - this.option.hand);
 		return true;
 	}
-	return false;
 };
 
 Bank.stash = function(amount) {
@@ -5058,7 +5057,7 @@ Monster.types = {
         timer:604800, // 168 hours
         mpool:3,
         atk_btn:'input[name="Attack Dragon"]',
-        attacks:[1,5,10,20,50],
+        attacks:[1,5,10,20,50]
     },
     legion: {
         name:'Battle of the Dark Legion',
@@ -5493,7 +5492,7 @@ Monster.update = function(what) {
             req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
             req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Queue.burn.energy >= req_energy || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina && (this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack)))) {
+            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || (Player.get('health') >= req_health && (Queue.burn.energy >= req_energy || Queue.burn.stamina >= req_stamina))) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack)) {
                 if (!this.data[i][j].battle_count){
                     this.data[i][j].battle_count = 0;
                 }
