@@ -8,6 +8,9 @@ Land.defaults = {
 		pages:'town_land'
 	}
 };
+Land.settings = {
+    stateful:true
+};
 
 Land.option = {
 	enabled:true,
@@ -173,6 +176,6 @@ Land.work = function(state) {
 			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
 	});
-	return true;
+	return QUEUE_RELEASE;
 };
 

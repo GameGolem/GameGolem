@@ -50,10 +50,10 @@ Bank.work = function(state) {
 	if (iscaap() && this.option.above === '') {
 		return false;
 	}
-	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('runtime.current') || WorkerByName(Queue.get('runtime.current')).settings.bank))) {
+	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return false;
-	}
-	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	} else {
+                this.stash(Player.get('cash') - this.option.hand);
 		return true;
 	}
 	return false;

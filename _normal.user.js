@@ -2202,10 +2202,10 @@ Bank.work = function(state) {
 	if (iscaap() && this.option.above === '') {
 		return false;
 	}
-	if (Player.get('cash') <= 10 || (Player.get('cash') < this.option.above && (!Queue.get('runtime.current') || WorkerByName(Queue.get('runtime.current')).settings.bank))) {
+	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return false;
-	}
-	if (!state || !this.stash(Player.get('cash') - Math.min(this.option.above, this.option.hand))) {
+	} else {
+                this.stash(Player.get('cash') - this.option.hand);
 		return true;
 	}
 	return false;
@@ -4207,6 +4207,9 @@ Land.defaults = {
 		pages:'town_land'
 	}
 };
+Land.settings = {
+    stateful:true
+};
 
 Land.option = {
 	enabled:true,
@@ -4372,7 +4375,7 @@ Land.work = function(state) {
 			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
 	});
-	return true;
+	return QUEUE_RELEASE;
 };
 
 /********** Worker.LevelUp **********
@@ -4672,8 +4675,8 @@ Monster.defaults = {
 
 Monster.option = {
     fortify: 30,
-//	quest_over: 90,
-	min_to_attack: 0,
+    //	quest_over: 90,
+    min_to_attack: 0,
     //	dispel: 50,
     fortify_active:false,
     choice: 'Any',
@@ -4713,19 +4716,19 @@ Monster.display = [
     id:'fortify',
     label:'Fortify Below (AB)',
     text:30,
-	help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
+    help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
     after:'%'
 },{
-/*	id:'quest_over',
+    /*	id:'quest_over',
 	label:'Quest if Over',
 	text:90,
 	after:'%'
 },{*/
-	id:'min_to_attack',
-	label:'Attack Over (AB)',
+    id:'min_to_attack',
+    label:'Attack Over (AB)',
 	text:1,
-	help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
-	after:'%'
+    help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+    after:'%'
 },{	
     id:'fortify_active',
     label:'Fortify Active',
@@ -4784,7 +4787,7 @@ Monster.display = [
     advanced:true,
     id:'avoid_hours',
     label:'Upside-Down Hours',
-    text:5,
+    text:true,
     help:'# of Hours Monster must be behind before preventing attacks.'
 },{
     advanced:true,
@@ -5055,7 +5058,7 @@ Monster.types = {
         timer:604800, // 168 hours
         mpool:3,
         atk_btn:'input[name="Attack Dragon"]',
-        attacks:[1,5]
+        attacks:[1,5,10,20,50],
     },
     legion: {
         name:'Battle of the Dark Legion',
@@ -5065,10 +5068,10 @@ Monster.types = {
         achievement:1000,
         timer:604800, // 168 hours
         mpool:3,
-        atk_btn:'input[name="Attack Dragon"][src*="button_nm_p_power_attack"]',
-        attacks:[5],
-        def_btn:'input[name="Attack Dragon"][src*="button_nm_s_fortify"]',
-        defends:[10],
+        atk_btn:'input[name="Attack Dragon"][src*="attack"]',
+        attacks:[1,5,10,20,50],
+        def_btn:'input[name="Attack Dragon"][src*="fortify"]',
+        defends:[10,20,40,100],
         orcs:true
     },
     genesis: {
@@ -5239,7 +5242,7 @@ Monster.parse = function(change) {
             for (i in Monster['class_img']){
                 if ($(Monster['class_img'][i]).length){
                     monster.mclass = i;
-                    //debug('Monster class : '+Monster['class_name'][i]);
+                //debug('Monster class : '+Monster['class_name'][i]);
                 }
             }
             if (monster.mclass > 1){	// If we are a Rogue or Mage
@@ -5255,8 +5258,8 @@ Monster.parse = function(change) {
                     }
                 }
                 else {
-                    //debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
-                }
+            //debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
+            }
             }
             for (i in Monster['health_img']){
                 if ($(Monster['health_img'][i]).length){
@@ -5488,7 +5491,7 @@ Monster.update = function(what) {
                 break;
             }
             req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
-			req_energy = this.types[j].def_btn ? this.option.minenergy : null;
+            req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
             if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Queue.burn.energy >= req_energy || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina && (this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack)))) {
                 if (!this.data[i][j].battle_count){
@@ -5523,48 +5526,48 @@ Monster.update = function(what) {
             }
         }
     }
-    list.sort( function(a,b){       
-        switch(Monster.option.choice) {
-            case 'Any':
-                return (Math.random()-0.5);
-                break;
-            case 'Strongest':
-                return b[2] - a[2];
-                break;
-            case 'Weakest':
-                return a[2] - b[2];
-                break;
-            case 'Shortest ETD':
-                return a[3] - b[3];
-                break;
-            case 'Longest ETD':
-                return b[3] - a[3];
-                break;
-            case 'Spread':
-                return a[4] - b[4];
-                break;
-            case 'Max Damage':
-                return b[5] - a[5];
-                break;
-            case 'Min Damage':
-                return a[5] - b[5];
-                break;
-            case 'ETD Maintain':
-                if (a[7] < b[7]){                    
-                    return 1;
-                } else if (a[7] > b[7]){                    
-                    return -1;
-                } else {                    
-                    return 0;
-                }
-                break;
-        }
-    });
     if (list.length){
+        list.sort( function(a,b){
+            switch(Monster.option.choice) {
+                case 'Any':
+                    return (Math.random()-0.5);
+                    break;
+                case 'Strongest':
+                    return b[2] - a[2];
+                    break;
+                case 'Weakest':
+                    return a[2] - b[2];
+                    break;
+                case 'Shortest ETD':
+                    return a[3] - b[3];
+                    break;
+                case 'Longest ETD':
+                    return b[3] - a[3];
+                    break;
+                case 'Spread':
+                    return a[4] - b[4];
+                    break;
+                case 'Max Damage':
+                    return b[5] - a[5];
+                    break;
+                case 'Min Damage':
+                    return a[5] - b[5];
+                    break;
+                case 'ETD Maintain':
+                    if (a[7] < b[7]){
+                        return 1;
+                    } else if (a[7] > b[7]){
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                    break;
+            }
+        });    
         if (!this.option.avoid_behind){
             best = list[0];
         } else {
-            for (i=0; i <= list.length; i++){
+            for (i=0; i <= list.length - 1; i++){
                 if (((list[i][3]/3600000) - (list[i][6]/3600000)).round(0) <= this.option.avoid_hours ){
                     best = list[i];
                     break;
@@ -5595,12 +5598,12 @@ Monster.update = function(what) {
             this.runtime.fortify = false;
         }
         this.runtime.attack = true;        
-        if (Player.get('health') > this.runtime.health && (Queue.burn.stamina > this.runtime.stamina) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy )){
+        if ((Player.get('health') > this.runtime.health) && ((Queue.burn.stamina > this.runtime.stamina) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (this.runtime.fortify && Queue.burn.energy < this.runtime.energy ){
-            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max(((this.runtime.energy - Queue.burn.energy) + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max(((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy'))))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Queue.burn.stamina < this.runtime.stamina){
-            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max(((this.runtime.stamina - Queue.burn.stamina) + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max((this.runtime.stamina - Queue.burn.stamina),(this.runtime.stamina + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Player.get('health') < this.runtime.health){
             Dashboard.status(this,'Waiting for ' + (this.runtime.health - Player.get('health')) + ' health to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         }
@@ -6672,6 +6675,9 @@ Town.defaults = {
 		pages:'town_soldiers town_blacksmith town_magic'
 	}
 };
+Town.settings = {
+    stateful:true
+};
 
 Town.option = {
 	general:true,
@@ -6851,7 +6857,7 @@ Town.work = function(state) {
 		return false;
 	}
 	if (!state || !this.buy(this.runtime.best, this.runtime.buy)) {
-		return true;
+		return QUEUE_RELEASE;
 	}
 	return false;
 };

@@ -9,6 +9,9 @@ Town.defaults = {
 		pages:'town_soldiers town_blacksmith town_magic'
 	}
 };
+Town.settings = {
+    stateful:true
+};
 
 Town.option = {
 	general:true,
@@ -188,7 +191,7 @@ Town.work = function(state) {
 		return false;
 	}
 	if (!state || !this.buy(this.runtime.best, this.runtime.buy)) {
-		return true;
+		return QUEUE_RELEASE;
 	}
 	return false;
 };
