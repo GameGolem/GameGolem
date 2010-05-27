@@ -23,7 +23,7 @@ LevelUp.option = {
 	enabled:false,
 	income:true,
 	general:'any',
-        order:'stamina',
+	order:'stamina',
 	algorithm:'Per Action'
 };
 
@@ -63,11 +63,11 @@ LevelUp.display = [
 		select:['any', 'Energy', 'Stamina'],
 		help:'Select which type of general to use when leveling up.'
 	},{
-                id:'order',
-                label:'Spend first ',
-                select:['Energy','Stamina'],
-                help:'Select which resource you want to spend first when leveling up.'
-        },{
+		id:'order',
+		label:'Spend first ',
+		select:['Energy','Stamina'],
+		help:'Select which resource you want to spend first when leveling up.'
+	},{
 		id:'algorithm',
 		label:'Estimation Method',
 		select:['Per Action', 'Per Hour'],
@@ -106,9 +106,24 @@ LevelUp.parse = function(change) {
 	return true;
 }
 
-LevelUp.update = function(type) {
-	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data = Quest.get();
-	if (type === Quest) { // Now work out the quickest quests to level up
+LevelUp.update = function(type,worker) {
+	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data;
+	if (worker === Player || !length(runtime.quests)) {
+		if (exp !== runtime.exp) { // Experience has changed...
+			if (runtime.stamina > stamina) {
+				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
+				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
+			} else if (runtime.energy > energy) {
+				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
+				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
+			}
+		}
+		runtime.energy = energy;
+		runtime.stamina = stamina;
+		runtime.exp = exp;
+	}
+	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
+		quest_data = Quest.get();
 		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
 		for (i in quest_data) { // Fill out with the best exp for every energy cost
 			if (!quests[quest_data[i].energy] || quest_data[i].exp > quests[quest_data[i].energy][0]) {
@@ -128,26 +143,14 @@ LevelUp.update = function(type) {
 		while (quests.length > 1 && quests[quests.length-1][0] === quests[quests.length-2][0]) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
 			quests.pop();
 		}
-		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
-			if (quest_data[quests[i][1][0]].energy < i) {
-				quests[i][0] += quests[i - quest_data[quests[i][1][0]].energy][0];
-				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
-			}
-		}
+// No need to merge quests as we're only interested in the first one...
+//		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
+//			if (quest_data[quests[i][1][0]].energy < i) {
+//				quests[i][0] += quests[i - quest_data[quests[i][1][0]].energy][0];
+//				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
+//			}
+//		}
 //		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
-	} else if (type === Player) {
-		if (exp !== runtime.exp) { // Experience has changed...
-			if (runtime.stamina > stamina) {
-				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
-				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
-			} else if (runtime.energy > energy) {
-				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
-				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
-			}
-		}
-		runtime.energy = energy;
-		runtime.stamina = stamina;
-		runtime.exp = exp;
 	}
 	if (!this.runtime.quests.length) { // No known quests yet...
 		runtime.exp_possible = 1;
