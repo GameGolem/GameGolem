@@ -33,7 +33,7 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
+				console.log('[' + (revision && revision !== '$WCREV$' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + txt);
 			};
 		} else {
 			var debug = function(){};
