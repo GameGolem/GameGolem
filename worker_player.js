@@ -105,6 +105,7 @@ Player.parse = function(change) {
 		window.clearTimeout(this.runtime.stamina_timeout);
 		this.runtime.stamina_timeout = window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000);
 	}
+	$('strong#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(data.bank));
 	return false;
 };
 
