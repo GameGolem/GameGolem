@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="CA_GOLEM" default="Update Normal User" basedir=".">
+    <description>
+        Build file to process Castle Age Golem source files into one JavaScript file.
+        Different Build options to create various versions of the script.
+    </description>
+    <!-- Edit the following path to point to your FireFox profile you will be using for testing. -->
+    <property name="Coder1" location="C:/Users/Administrator/AppData/Roaming/Mozilla/Firefox/Profiles/686hbqwz.default/gm_scripts/rycochets_castle_age_gol/rycochets_castle_age_gol.user.js"/>
+    <property name="Coder2" location="C:/Users/Administrator/AppData/Roaming/Mozilla/Firefox/Profiles/rtquwiqc.HaploAW/gm_scripts/rycochets_castle_age_gol/rycochets_castle_age_gol.user.js"/>
+    <property name="TestDir" location="../branches/HaploAW_Working_Copy/trunk"/>
+    <!-- Create the build directory structure used by compile -->
+
+    <property name="revision" value="HEAD"/>
+
+    <!-- find out revision number of HEAD, need svn.exe installed on local machine -->
+    <exec executable="svn" outputproperty="svnlog.out">
+        <arg line="log ./ -r ${revision} -q"/>
+    </exec>
+    
+    <echo>${svnlog.out}</echo>
+
+    <!-- need ant-contrib.jar for this in lib dir of ant install
+        Point the following to the location of your ant-contrib.jar-->
+    <taskdef resource="net/sf/antcontrib/antlib.xml">
+        <classpath>
+            <pathelement location="../../ant-contrib/ant-contrib-1.0b3.jar"/>
+        </classpath>
+    </taskdef>
+    <propertyregex property="revision.number" input="${svnlog.out}" select="\1">
+        <regexp pattern="r([0-9]*)"/>
+    </propertyregex>
+    <echo>Revision found: ${revision.number}</echo>
+    <math result="RevNum" datatype="int" operation="add" operand1="${revision.number}" operand2="1"/>
+
+    <target name="Update Normal User Committed">
+
+        <delete file="./_normal.user.js"/>
+        <concat destfile="./_normal.user.js">
+            <filelist dir="./" files="_head.js"/>
+            <fileset dir="./"
+                     includes="_head_net*"/>
+            <filelist dir="./" files="_main.js"/>
+            <filelist dir="./" files="css.js"/>
+            <filelist dir="./" files="utility.js"/>
+            <filelist dir="./" files="worker.js"/>
+            <fileset dir="./"
+                     includes="worker_*.js"/>
+        </concat>
+        <replace file="./_normal.user.js" token="@@@" value="${RevNum}"/>
+        <delete file="./_normal_chrome.user.js"/>
+        <concat destfile="./_normal_chrome.user.js">
+            <filelist dir="./" files="_head.js"/>
+            <fileset dir="./"
+                     includes="_head_net*"/>
+            <filelist dir="./" files="_jquery-latest.min.js"/>
+            <filelist dir="./" files="_jquery-ui-latest.min.js"/>
+            <filelist dir="./" files="_main.js"/>
+            <filelist dir="./" files="css.js"/>
+            <filelist dir="./" files="utility.js"/>
+            <filelist dir="./" files="worker.js"/>
+            <fileset dir="./"
+                     includes="worker_*.js"/>
+        </concat>
+    </target>
+    <!-- Create the build directory structure used by compile
+    and install to FireFox profile as indicated  -->
+    <target name="Install Committed to Local FF">
+        <delete file="./_normal.user.js"/>
+        <concat destfile="./_normal.user.js">
+            <filelist dir="./" files="_head.js"/>
+            <fileset dir="./"
+                     includes="_head_net*"/>
+            <filelist dir="./" files="_main.js"/>
+            <filelist dir="./" files="css.js"/>
+            <filelist dir="./" files="utility.js"/>
+            <filelist dir="./" files="worker.js"/>
+            <fileset dir="./"
+                     includes="worker_*.js"/>
+        </concat>
+        <delete file="./_normal_chrome.user.js"/>
+        <concat destfile="./_normal_chrome.user.js">
+            <filelist dir="./" files="_head.js"/>
+            <fileset dir="./"
+                     includes="_head_net*"/>
+            <filelist dir="./" files="_jquery-latest.min.js"/>
+            <filelist dir="./" files="_jquery-ui-latest.min.js"/>
+            <filelist dir="./" files="_main.js"/>
+            <filelist dir="./" files="css.js"/>
+            <filelist dir="./" files="utility.js"/>
+            <filelist dir="./" files="worker.js"/>
+            <fileset dir="./"
+                     includes="worker_*.js"/>
+        </concat>
+        <copy file="./_normal.user.js" tofile="${Coder1}"/>
+        <copy file="./_normal.user.js" tofile="${Coder2}"/>
+    </target>
+    <!-- Create the build directory structure used by compile -->
+    <target name="Update Normal User Test">
+        <delete file="${TestDir}/_normal.user.js"/>
+        <concat destfile="${TestDir}/_normal.user.js">
+            <filelist dir="${TestDir}" files="_head.js"/>
+            <fileset dir="${TestDir}"
+                     includes="_head_net*"/>
+            <filelist dir="${TestDir}" files="_main.js"/>
+            <filelist dir="${TestDir}" files="css.js"/>
+            <filelist dir="${TestDir}" files="utility.js"/>
+            <filelist dir="${TestDir}" files="worker.js"/>
+            <fileset dir="${TestDir}"
+                     includes="worker_*.js"/>
+        </concat>
+    </target>
+    <!-- Create the build directory structure used by compile
+    and install to FireFox profile as indicated  -->
+    <target name="Install Test to Local FF">
+        <delete file="${TestDir}/_normal.user.js"/>
+        <concat destfile="${TestDir}/_normal.user.js">
+            <filelist dir="${TestDir}" files="_head.js"/>
+            <fileset dir="${TestDir}"
+                     includes="_head_net*"/>
+            <filelist dir="${TestDir}" files="_main.js"/>
+            <filelist dir="${TestDir}" files="css.js"/>
+            <filelist dir="${TestDir}" files="utility.js"/>
+            <filelist dir="${TestDir}" files="worker.js"/>
+            <fileset dir="${TestDir}"
+                     includes="worker_*.js"/>
+        </concat>
+        <copy file="${TestDir}/_normal.user.js" tofile="${Coder1}"/>
+        <copy file="${TestDir}/_normal.user.js" tofile="${Coder2}"/>
+    </target>
+</project>

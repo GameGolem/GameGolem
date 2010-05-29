@@ -15,8 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = /[0-9]+/.exec("$Rev$");
-
+var revision = "482";
 // User changeable
 var show_debug = true;
 
