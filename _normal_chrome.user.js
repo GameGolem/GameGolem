@@ -1,3 +1,21 @@
+// ==UserScript==
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		31.1
+// @include		http://apps.facebook.com/castle_age/*
+// @include		http://apps.facebook.com/reqs.php
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// ==/UserScript==
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = "$Rev$";
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -6903,7 +6921,7 @@ Player.parse = function(change) {
 	if (Page.page==='keep_stats') {
 		keep = $('div.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
-			data.myname = $('div.keep_stat_title > span', keep).text().regex(/"(.*)"/);
+			data.myname = $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/);
 			data.rank = $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/([0-9]+)/);
 			stats = $('div.attribute_stat_container', keep);
 			data.maxenergy = $(stats).eq(0).text().regex(/([0-9]+)/);
@@ -7491,7 +7509,7 @@ Title.display = [
 		size:24
 	},{
 		title:'Useful Values',
-		info:'{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
+		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
 	}
 ];
 
