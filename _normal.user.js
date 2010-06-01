@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "497";
+var revision = "498";
 // User changeable
 var show_debug = true;
 
@@ -6377,10 +6377,13 @@ Quest.update = function(type,worker) {
 				}
 				quests[i].own = (own >= need);
 				if (!quests[i].own) { // Can't do a quest because we don't have all the items...
-//					debug('Can\'t do "'+i+'" because we don\'t have the items...');
 					this._watch(Town); // Watch Town for updates...
 					continue;
 				}
+			}
+			if (!quests[i].own) { // Can't do a quest because we don't have all the items...
+//				debug('Can\'t do "'+i+'" because we don\'t have the items...');
+				continue;
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
