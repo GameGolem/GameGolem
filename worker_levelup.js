@@ -219,7 +219,7 @@ LevelUp.work = function(state) {
 		}
 		runtime.heal_me = false;
 	}
-	if (!runtime.running || state) { // We're not running yet, or we have focus
+	if (state && !runtime.running) { // We're not running yet and we have focus
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
@@ -230,7 +230,7 @@ LevelUp.work = function(state) {
 	if (general && general !== 'any' && Player.get('exp_needed') < 100) { // If we want to change...
 		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
 		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
-//			debug('Disabling Generals because we are within 25 XP from leveling.');
+//			debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
 		} else {
 			return true;	// Try to change generals again
