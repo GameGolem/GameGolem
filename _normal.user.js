@@ -5101,7 +5101,7 @@ Monster.types = {
         list:'nm_volcanic_list_2.jpg',
         image:'nm_volcanic_large_2.jpg',
         dead:'nm_volcanic_dead_2.jpg', //Guesswork
-        achievement:2000000, // Guesswork
+        achievement:3000000, // Guesswork
         timer:604800, // 168 hours
         mpool:3,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -6317,7 +6317,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
+	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
 	if (!type || type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && !quests[i].unique) {
@@ -6342,13 +6342,17 @@ Quest.update = function(type,worker) {
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
 			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
-				own = 0, need = 0;
+				own = 0, need = 0, noCanDo = false;
 				for (unit in quests[i].units) {
 					own = Town.get([unit, 'own']) || 0;
 					need = quests[i].units[unit];
 					if (need > own) {	// Need more than we own, skip this quest.
-						continue;
+						noCanDo = true;	// set flag
+						continue;	// no need to check more prerequisites.
 					}
+				}
+				if (noCanDo) {
+					continue;	// Skip to the next quest in the list
 				}
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
