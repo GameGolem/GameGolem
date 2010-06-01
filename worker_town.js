@@ -63,15 +63,6 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
 };
 
-Town.init = function() {
-	if (this.data.soldiers || this.data.blacksmith || this.data.magic) { // Need to reparse with new code...
-		this.data = {};
-		Page.set('town_soldiers', 0);
-		Page.set('town_blacksmith', 0);
-		Page.set('town_magic', 0);
-	}
-};
-
 Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);

@@ -18,12 +18,6 @@ Elite.option = {
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
 
-Elite.caap_load = function() {
-	this.option.prefer = gm.getListFromText('EliteArmyList');
-	this.option.elite = gm.getValue('AutoElite', false);
-	this.option.every = 1;
-};
-
 Elite.runtime = {
 	armylastpage:1,
 	armyextra:0,

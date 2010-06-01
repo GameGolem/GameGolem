@@ -17,13 +17,6 @@ Land.option = {
 	land_exp:false
 };
 
-Land.caap_load = function() {
-	valuesList = {'enabled':'autoBuyLand','sell':'SellLands'};
-	for (i in valuesList) {
-		this.option[i] = gm.getValue(valuesList[i]);
-	}
-};
-
 Land.runtime = {
 	lastlevel:0,
 	best:null,
