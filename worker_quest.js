@@ -174,7 +174,7 @@ Quest.update = function(type,worker) {
 //		debug('option = ' + this.option.what);
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
-			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
+			if (quests[i].units) {
 				own = 0, need = 0, noCanDo = false;
 				for (unit in quests[i].units) {
 					own = Town.get([unit, 'own']) || 0;

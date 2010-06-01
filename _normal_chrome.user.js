@@ -1,20 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -7250,7 +7233,7 @@ Quest.update = function(type,worker) {
 //		debug('option = ' + this.option.what);
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
-			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
+			if (quests[i].units) {
 				own = 0, need = 0, noCanDo = false;
 				for (unit in quests[i].units) {
 					own = Town.get([unit, 'own']) || 0;
