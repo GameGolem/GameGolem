@@ -177,18 +177,12 @@ Quest.update = function(type,worker) {
 			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
 				own = 0, need = 0;
 				for (unit in quests[i].units) {
-					own += Town.get([unit, 'own']) || 0;
-					need += quests[i].units[unit];
+					own = Town.get([unit, 'own']) || 0;
+					need = quests[i].units[unit];
+					if (need > own) {	// Need more than we own, skip this quest.
+						continue;
+					}
 				}
-				quests[i].own = (own >= need);
-				if (!quests[i].own) { // Can't do a quest because we don't have all the items...
-					this._watch(Town); // Watch Town for updates...
-					continue;
-				}
-			}
-			if (!quests[i].own) { // Can't do a quest because we don't have all the items...
-//				debug('Can\'t do "'+i+'" because we don\'t have the items...');
-				continue;
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)

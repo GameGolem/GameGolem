@@ -15,7 +15,6 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "498";
 // User changeable
 var show_debug = true;
 
@@ -129,7 +128,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
 .golem-config-fixed #golem_fixed { background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82') no-repeat; }\
-#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 1; }\
+#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 3; }\
 #golem-dashboard thead th { cursor: pointer }\
 #golem-dashboard thead th.golem-sort:after { content: '&darr;'; }\
 #golem-dashboard thead th.golem-sort-reverse:after { content: '&uarr;'; }\
@@ -1253,9 +1252,6 @@ Dashboard.init = function() {
 			this._watch(Workers[i]);
 		}
 	}
-	if (iscaap()) {
-		return false;
-	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
@@ -1284,7 +1280,6 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-
 	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
 	$('#golem_toggle_dash').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -1316,9 +1311,6 @@ Dashboard.init = function() {
 };
 
 Dashboard.parse = function(change) {
-	if (iscaap()) {
-		return false;
-	}
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
@@ -2176,13 +2168,6 @@ Bank.option = {
 	keep: 10000
 };
 
-Bank.caap_load = function() {
-	valuesList = {'above':'MaxInCash','hand':'MinInCash','keep':'minInStore'};
-	for (i in valuesList) {
-		this.option[i] = gm.getValue(valuesList[i]);
-	}
-};
-
 Bank.display = [
 	{
 		id:'general',
@@ -2228,7 +2213,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	WorkerByName(Queue.get('runtime.current')).settings.bank = true;
+	!iscaap() && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -2764,12 +2749,6 @@ Elite.option = {
 	every:12,
 	prefer:[],
 	armyperpage:25 // Read only, but if they change it and I don't notice...
-};
-
-Elite.caap_load = function() {
-	this.option.prefer = gm.getListFromText('EliteArmyList');
-	this.option.elite = gm.getValue('AutoElite', false);
-	this.option.every = 1;
 };
 
 Elite.runtime = {
@@ -4234,13 +4213,6 @@ Land.option = {
 	land_exp:false
 };
 
-Land.caap_load = function() {
-	valuesList = {'enabled':'autoBuyLand','sell':'SellLands'};
-	for (i in valuesList) {
-		this.option[i] = gm.getValue(valuesList[i]);
-	}
-};
-
 Land.runtime = {
 	lastlevel:0,
 	best:null,
@@ -5142,7 +5114,7 @@ Monster.types = {
         list:'nm_azriel_list.jpg',
         image:'nm_azriel_large2.jpg',
         dead:'nm_azriel_dead.jpg', //Guesswork
-        achievement:2000000, // Guesswork
+        achievement:3000000, // ~0.5%, 2X = ~1%
         timer:604800, // 168 hours
         mpool:1,
         atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -6372,18 +6344,12 @@ Quest.update = function(type,worker) {
 			if (quests[i].units && (typeof quests[i].own === 'undefined' || (quests[i].own === false && worker === Town))) {// Only check for requirements if we don't already know about them
 				own = 0, need = 0;
 				for (unit in quests[i].units) {
-					own += Town.get([unit, 'own']) || 0;
-					need += quests[i].units[unit];
+					own = Town.get([unit, 'own']) || 0;
+					need = quests[i].units[unit];
+					if (need > own) {	// Need more than we own, skip this quest.
+						continue;
+					}
 				}
-				quests[i].own = (own >= need);
-				if (!quests[i].own) { // Can't do a quest because we don't have all the items...
-					this._watch(Town); // Watch Town for updates...
-					continue;
-				}
-			}
-			if (!quests[i].own) { // Can't do a quest because we don't have all the items...
-//				debug('Can\'t do "'+i+'" because we don\'t have the items...');
-				continue;
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
@@ -6736,15 +6702,6 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
 	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
-};
-
-Town.init = function() {
-	if (this.data.soldiers || this.data.blacksmith || this.data.magic) { // Need to reparse with new code...
-		this.data = {};
-		Page.set('town_soldiers', 0);
-		Page.set('town_blacksmith', 0);
-		Page.set('town_magic', 0);
-	}
 };
 
 Town.parse = function(change) {
