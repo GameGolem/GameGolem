@@ -165,9 +165,9 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 			default:break;
 		}
 	} catch(e) {
-		WorkerStack.push(this);
-		debug(this.name,e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
-		WorkerStack.pop();
+//		WorkerStack.push(this);
+		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+//		WorkerStack.pop();
 	}
 	return null;
 };
@@ -246,7 +246,7 @@ Worker.prototype._save = function(type) {
 };
 
 Worker.prototype._set = function(what, value) {
-	WorkerStack.push(this);
+//	WorkerStack.push(this);
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
@@ -272,7 +272,7 @@ Worker.prototype._set = function(what, value) {
 	} catch(e) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
-	WorkerStack.pop();
+//	WorkerStack.pop();
 	return null;
 };
 
