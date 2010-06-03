@@ -4,10 +4,8 @@
 var Town = new Worker('Town');
 Town.data = {};
 
-Town.defaults = {
-	castle_age:{
-		pages:'town_soldiers town_blacksmith town_magic'
-	}
+Town.defaults['castle_age'] = {
+	pages:'town_soldiers town_blacksmith town_magic'
 };
 
 Town.option = {

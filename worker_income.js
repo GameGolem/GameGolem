@@ -9,9 +9,7 @@ Income.settings = {
 	important:true
 };
 
-Income.defaults = {
-	castle_age:{}
-};
+Income.defaults['castle_age'] = {};
 
 Income.option = {
 	general:true,

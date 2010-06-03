@@ -7,10 +7,8 @@ var Generals = new Worker('Generals');
 Generals.option = null;
 Generals.data = {};
 
-Generals.defaults = {
-	castle_age:{
-		pages:'* heroes_generals'
-	}
+Generals.defaults['castle_age'] = {
+	pages:'* heroes_generals'
 };
 
 Generals.runtime = {

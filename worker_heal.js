@@ -5,9 +5,7 @@
 var Heal = new Worker('Heal');
 Heal.data = null;
 
-Heal.defaults = {
-	castle_age:{}
-};
+Heal.defaults['castle_age'] = {};
 
 Heal.option = {
 	stamina: 0,

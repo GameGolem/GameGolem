@@ -21,16 +21,8 @@
 */
 var History = new Worker('History');
 History.option = null;
-
-History.defaults = {
-	castle_age:{
-		init: function() {
-			if (Player.data.history) {
-				this.data = Player.data.history;
-				delete Player.data.history;
-			}
-		}
-	}
+History.settings = {
+	system:true
 };
 
 History.dashboard = function() {
@@ -43,7 +35,6 @@ History.dashboard = function() {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 }
-
 
 History.update = function(type) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;

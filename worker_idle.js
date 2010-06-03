@@ -3,9 +3,7 @@
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
-Idle.defaults = {
-	castle_age:{}
-};
+Idle.defaults['castle_age'] = {};
 Idle.settings ={
     after:['LevelUp']
 };

@@ -3,10 +3,8 @@
 */
 var Land = new Worker('Land');
 
-Land.defaults = {
-	castle_age:{
-		pages:'town_land'
-	}
+Land.defaults['castle_age'] = {
+	pages:'town_land'
 };
 
 Land.option = {

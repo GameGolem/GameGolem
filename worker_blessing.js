@@ -4,10 +4,8 @@
 var Blessing = new Worker('Blessing');
 Blessing.data = null;
 
-Blessing.defaults = {
-	castle_age:{
-		pages:'oracle_demipower'
-	}
+Blessing.defaults['castle_age'] = {
+	pages:'oracle_demipower'
 };
 
 Blessing.option = {

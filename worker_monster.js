@@ -4,10 +4,8 @@
 var Monster = new Worker('Monster');
 Monster.data = {};
 
-Monster.defaults = {
-    castle_age:{
-        pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
-    }
+Monster.defaults['castle_age'] = {
+	pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
 };
 
 Monster.option = {

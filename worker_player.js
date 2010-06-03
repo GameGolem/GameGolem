@@ -8,10 +8,8 @@ Player.settings = {
 	keep:true
 };
 
-Player.defaults = {
-	castle_age:{
-		pages:'*'
-	}
+Player.defaults['castle_age'] = {
+	pages:'*'
 };
 
 Player.runtime = {

@@ -8,9 +8,7 @@ Bank.settings = {
 	after:['Land','Town']
 };
 
-Bank.defaults = {
-	castle_age:{}
-};
+Bank.defaults['castle_age'] = {};
 
 Bank.option = {
 	general: true,

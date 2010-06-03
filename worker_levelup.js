@@ -13,10 +13,8 @@ LevelUp.settings = {
 	before:['Idle','Battle','Monster','Quest']
 };
 
-LevelUp.defaults = {
-	castle_age:{
-		pages:'*'
-	}
+LevelUp.defaults['castle_age'] = {
+	pages:'*'
 };
 
 LevelUp.option = {

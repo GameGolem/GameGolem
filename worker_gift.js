@@ -8,10 +8,8 @@ Gift.settings = {
 	keep:true
 };
 
-Gift.defaults = {
-	castle_age:{
-		pages:'* index army_invite army_gifts'
-	}
+Gift.defaults['castle_age'] = {
+	pages:'* index army_invite army_gifts'
 };
 
 Gift.data = {

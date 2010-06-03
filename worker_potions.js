@@ -3,10 +3,8 @@
 */
 var Potions = new Worker('Potions');
 
-Potions.defaults = {
-	castle_age:{
-		pages:'*'
-	}
+Potions.defaults['castle_age'] = {
+	pages:'*'
 };
 
 Potions.option = {

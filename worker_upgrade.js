@@ -4,10 +4,8 @@
 var Upgrade = new Worker('Upgrade');
 Upgrade.data = null;
 
-Upgrade.defaults = {
-	castle_age:{
-		pages:'keep_stats'
-	}
+Upgrade.defaults['castle_age'] = {
+	pages:'keep_stats'
 };
 
 Upgrade.option = {
