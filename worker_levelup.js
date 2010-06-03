@@ -20,6 +20,7 @@ LevelUp.defaults['castle_age'] = {
 LevelUp.option = {
 	enabled:false,
 	income:true,
+        bank:true,
 	general:'any',
 	order:'stamina',
 	algorithm:'Per Action'
@@ -54,6 +55,10 @@ LevelUp.display = [
 	},{
 		id:'income',
 		label:'Allow Income General',
+		checkbox:true
+	},{
+		id:'bank',
+		label:'Allow Bank General',
 		checkbox:true
 	},{
 		id:'general',
@@ -105,7 +110,7 @@ LevelUp.parse = function(change) {
 }
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data;
+	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder();
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp !== runtime.exp) { // Experience has changed...
 			if (runtime.stamina > stamina) {
@@ -157,7 +162,10 @@ LevelUp.update = function(type,worker) {
 	} else {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
-	runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+        if ((arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Monster') && (Monster.runtime.attack)) || (arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Battle'))){
+            runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+        }
+
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
@@ -171,9 +179,14 @@ LevelUp.update = function(type,worker) {
 }
 
 LevelUp.work = function(state) {
-	var i, runtime = this.runtime, general, energy = Player.get('energy'), stamina = Player.get('stamina');
+	var i, runtime = this.runtime, general, energy = Player.get('energy'), stamina = Player.get('stamina'),order = Config.getOrder();
 	if (runtime.running && this.option.income) {
 		if (Queue.get('runtime.current') === Income) {
+			Generals.set('runtime.disabled', false);
+		}
+	}
+        if (runtime.running && this.option.bank) {
+		if (Queue.get('runtime.current') === Bank) {
 			Generals.set('runtime.disabled', false);
 		}
 	}
@@ -235,7 +248,7 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-    if (this.option.order !== 'Stamina' || !stamina || (stamina < 5 && Battle.option.monster && !Battle.option.points)){
+    if (this.option.order !== 'Stamina' || !stamina || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)))){
         debug('Running Energy Burn');
 	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 		runtime.old_quest = Quest.runtime.best;

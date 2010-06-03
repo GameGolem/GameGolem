@@ -111,7 +111,8 @@ Queue.init = function() {
 		}
 	}
 	$(document).click(function(){Queue.lastclick=Date.now();});
-
+        $(document).keypress(function(){Queue.lastclick=Date.now();});
+        
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;

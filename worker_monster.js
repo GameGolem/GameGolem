@@ -61,10 +61,10 @@ Monster.display = [
 },{*/
     id:'min_to_attack',
     label:'Attack Over (AB)',
-	text:1,
+    text:1,
     help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
     after:'%'
-},{	
+},{
     id:'fortify_active',
     label:'Fortify Active',
     checkbox:true,
@@ -510,7 +510,7 @@ Monster.init = function() {
 }
 
 Monster.parse = function(change) {
-    var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer;
+    var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer, atk_dmg, dfd_amount;
     var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
     if (Page.page === 'keep_monster_active' || Page.page === 'keep_monster_active2') { // In a monster or raid
         uid = $('img[linked][size="square"]').attr('uid');
@@ -557,6 +557,63 @@ Monster.parse = function(change) {
                     monster.assist = Date.now();
                 }
                 monster.state = 'assist';
+            }
+            if (this.runtime.attacked && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
+                //debug('Stamina after to attack' + Player.get('stamina'));
+                this.runtime.post_stamina = Player.get('stamina');
+                //debug('Battle stamina was ' + monster.battle_stamina);
+                if (monster.battle_stamina){
+                    monster.battle_stamina += this.runtime.pre_stamina - this.runtime.post_stamina;
+                } else{
+                    monster.battle_stamina = this.runtime.pre_stamina - this.runtime.post_stamina;
+                }
+                //debug('Setting battle stamina to ' + monster.battle_stamina);
+                atk_dmg = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
+                //debug('Damage done = ' + atk_dmg);
+                //debug('Pre-Stamina = ' + this.runtime.pre_stamina + ' & Post-Stamina = ' + this.runtime.post_stamina);
+                if (atk_dmg){
+                    if (monster.dmg_per_stamina){
+                        monster.dmg_per_stamina = Math.ceil((monster.dmg_per_stamina + (atk_dmg / (this.runtime.pre_stamina - this.runtime.post_stamina))) / 2);
+                    } else {
+                        monster.dmg_per_stamina = Math.ceil(atk_dmg / monster.battle_stamina);
+                    }
+                    //debug('Damage per stamina = ' + monster.dmg_per_stamina);
+                    if (monster.dmg_avg){
+                        monster.dmg_avg = Math.ceil((monster.dmg_avg + atk_dmg) / 2);
+                    } else{
+                        monster.dmg_avg = atk_dmg;
+                    }
+                    //debug('Avg Damage = ' + monster.dmg_avg);
+                }
+                this.runtime.pre_stamina = this.runtime.post_stamina = 0;
+                this.runtime.attacked = false;
+            }
+            if (this.runtime.defended && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
+                this.runtime.post_energy = Player.get('energy');
+                //debug('Pre-energy = ' + this.runtime.pre_energy + ' & Post-energy = ' + this.runtime.post_energy);
+                dfd_amount = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
+                //debug('Defend Amount = ' + dfd_amount);
+                if (monster.battle_energy){
+                    monster.battle_energy += this.runtime.pre_energy - this.runtime.post_energy;
+                } else{
+                    monster.battle_energy = this.runtime.pre_energy - this.runtime.post_energy;
+                }
+                if (dfd_amount){
+                    if (monster.dfd_per_energy){
+                        monster.dfd_per_energy = Math.ceil((monster.dfd_per_energy + (dfd_amount / (this.runtime.pre_energy - this.runtime.post_energy))) / 2);
+                    } else {
+                        monster.dfd_per_energy = Math.ceil(dfd_amount / monster.battle_energy);
+                    }
+                    //debug('Defend Amount per energy = ' + monster.dfd_per_energy);
+                    if (monster.dfd_avg){
+                        monster.dfd_avg = Math.ceil((monster.dfd_avg + dfd_amount) / 2);
+                    } else{
+                        monster.dfd_avg = dfd_amount;
+                    }
+                    //debug('Avg Defend = ' + monster.dfd_avg);
+                }
+                this.runtime.pre_energy = this.runtime.post_energy = 0;
+                this.runtime.defended = false;
             }
             if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
                 monster.battle_count = (monster.battle_count || 0) + 1;
@@ -650,29 +707,18 @@ Monster.parse = function(change) {
                 var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
                 monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
                 if (user === userID){
-                    if (monster.battle_count && monster.damage_user){
-                        monster.damage_avg = Math.ceil(monster.damage_user / monster.battle_count);
-                    //debug('Monster Damage','(1) Setting Avg Damage to ' + monster.damage_avg);
-                    } else {
-                        monster.damage_avg = monster.damage_user;
-                    //debug('Monster Damage','(2) Setting Avg Damage to ' + monster.damage_avg);
-                    }
-                    if ((monster.damage_avg > ((dmg - monster.damage_user) * 1.3)  || monster.damage_avg < ((dmg - monster.damage_user) * 1.3) )&& dmg !== monster.damage_user){
-                        //debug('Monster Damage','Last Attack was ' + (dmg - monster.damage_user));
-                        monster.damage_avg = Math.ceil(((dmg - monster.damage_user) + monster.damage_avg) /2);
-                    //debug('Monster Damage','(3) Setting Avg Damage to ' + monster.damage_avg);
-                    }
-                    
                     monster.damage_user = dmg;
-                    while (monster.damage_avg * monster.battle_count < monster.damage_user){
-                        //debug('Monster Damage','Battle count was ' + monster.battle_count);
-                        monster.battle_count++;
-                    //debug('Monster Damage','Setting battle count to ' + monster.battle_count);
-                    }
-                    while (monster.damage_avg * monster.battle_count > monster.damage_user * 1.2){
-                        //debug('Monster Damage','Battle count was ' + monster.battle_count);
-                        monster.battle_count--;
-                    //debug('Monster Damage','Setting battle count to ' + monster.battle_count);
+                    if (monster.dmg_per_stamina && monster.battle_stamina){
+                        while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
+                            //debug('Battle stamina was ' + monster.battle_stamina);
+                            monster.battle_stamina++;
+                            //debug('Setting battle stamina to ' + monster.battle_stamina);
+                        }
+                        while (monster.dmg_per_stamina * monster.battle_stamina >= monster.damage_user * 1.01){
+                            //debug('Battle stamina was ' + monster.battle_stamina);
+                            monster.battle_stamina--;
+                            //debug('Setting battle stamina to ' + monster.battle_stamina);
+                        }
                     }
                 }
                 monster.damage_players += dmg;
@@ -750,7 +796,7 @@ Monster.parse = function(change) {
 };
 
 Monster.update = function(what) {
-    var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health
+    var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy;
     this.runtime.count = 0;
     for (i in this.data) { // Flush unknown monsters
         for (j in this.data[i]) {
@@ -828,14 +874,14 @@ Monster.update = function(what) {
             req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
             req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack)))) {
+            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active))))) {
                 if (!this.data[i][j].battle_count){
-                    this.data[i][j].battle_count = 0;
+                    this.data[i][j].battle_count = 1;
                 }
                 if (this.data[i][j].name === 'You' && this.option.own){
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
-                } else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
+                } else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
                     //debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
                     list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
                     break;
@@ -932,11 +978,11 @@ Monster.update = function(what) {
         if (Queue.burn.energy < this.runtime.energy) {
             this.runtime.fortify = false;
         }
-        this.runtime.attack = true;        
-        if ((Player.get('health') > this.runtime.health) && ((Queue.burn.stamina > this.runtime.stamina) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
+            this.runtime.attack = true;
+        if ((Player.get('health') > this.runtime.health) && ((this.runtime.attack && (Queue.burn.stamina > this.runtime.stamina)) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
-        } else if (this.runtime.fortify && Queue.burn.energy < this.runtime.energy ){
-            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+        } else if ((this.runtime.fortify && Queue.burn.energy < this.runtime.energy) || !this.runtime.attack){
+            Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify || !this.runtime.attack ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Queue.burn.stamina < this.runtime.stamina){
             Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max((this.runtime.stamina - Queue.burn.stamina),(this.runtime.stamina + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if (Player.get('health') < this.runtime.health){
@@ -1014,13 +1060,13 @@ Monster.work = function(state) {
                         }
                     }
                     break;
-				case 'attack':
+                case 'attack':
                     if (!btn && this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)){
                         btn = $(this.types[type].atk_btn).eq(0).name;
-                    } else {                        
+                    } else {
                         b = $(this.types[type].atk_btn).length - 1;
                         //debug('B = ' + b);
-                        for (i=b; i >= 0; i--){                           
+                        for (i=b; i >= 0; i--){
                             //debug('Burn Stamina is ' + Queue.burn.stamina);
                             if (this.types[type].attacks[i] <= this.option.maxstamina && Queue.burn.stamina >= this.types[type].attacks[i]){
                                 //debug('Button cost is ' + this.types[type].attacks[i]);
@@ -1031,7 +1077,7 @@ Monster.work = function(state) {
                     }
                     break;
                 default:
-					break;
+                    break;
             }
         }
         if (!btn || !btn.length){
@@ -1073,10 +1119,27 @@ Monster.work = function(state) {
         }
     }
     this.runtime.uid = this.runtime.type = null; // Force us to choose a new target...
-    //debug('Clicking Button ' + btn.attr('name'));
-    Page.click(btn);
-    this.data[uid][type].button_fail = 0;
-    return QUEUE_RELEASE;
+    switch (j){
+        case 'fortify':
+            //debug('Energy prior to defense ' + Player.get('energy'));
+            this.runtime.pre_energy = Player.get('energy');
+            Page.click(btn);
+            this.runtime.defended = true;
+            this.data[uid][type].button_fail = 0;
+            return QUEUE_RELEASE;
+            break;
+        case 'attack':
+            //debug('Stamina prior to attack ' + Player.get('stamina'));
+            this.runtime.pre_stamina = Player.get('stamina');
+            Page.click(btn);
+            this.runtime.attacked = true;
+            this.data[uid][type].button_fail = 0;
+            return QUEUE_RELEASE;
+            break;
+        default:
+            Page.click(btn);
+            return QUEUE_RELEASE;
+    }
 };
 
 Monster.order = null;
