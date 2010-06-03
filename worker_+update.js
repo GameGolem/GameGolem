@@ -6,6 +6,7 @@ Update.data = null;
 Update.option = null;
 
 Update.settings = {
+	gm_only:true,// We need the cross-site ajax for our update checks
 	system:true
 };
 

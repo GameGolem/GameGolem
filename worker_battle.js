@@ -3,10 +3,8 @@
 */
 var Battle = new Worker('Battle');
 
-Battle.defaults = {
-	castle_age:{
-		pages:'battle_rank battle_battle'
-	}
+Battle.defaults['castle_age'] = {
+	pages:'battle_rank battle_battle'
 };
 
 Battle.data = {

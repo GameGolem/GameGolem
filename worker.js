@@ -3,12 +3,12 @@
 new Worker(name, pages, settings)
 
 *** User data***
-.id			     - If we have a .display then this is the html #id of the worker
-.name		   - String, the same as our class name.
-.pages		  - String, list of pages that we want in the form "town.soldiers keep.stats"
-.data		   - Object, for public reading, automatically saved
-.option		 - Object, our options, changed from outide ourselves
-.settings	       - Object, various values for various sections, default is always false / blank
+.id				- If we have a .display then this is the html #id of the worker
+.name			- String, the same as our class name.
+.pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
+.data			- Object, for public reading, automatically saved
+.option			- Object, our options, changed from outide ourselves
+.settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
 				advanced (true/false) - only visible when "Advanced" is checked
@@ -17,10 +17,12 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
+				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
+.defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
 *** User functions ***
-.init()		 - After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
+.init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
 .parse(change)  - This can read data from the current page and cannot perform any actions.
@@ -36,7 +38,7 @@ new Worker(name, pages, settings)
 				return false when someone else can work
 .update(type)   - Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
 				type = "data" or "option"
-.get(what)	      - Calls this._get(what)
+.get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
 .set(what,value)- Calls this._set(what,value)
@@ -107,7 +109,7 @@ function Worker(name,pages,settings) {
 	this.name = name;
 	this.pages = pages;
 
-	this.defaults = null; // {app:{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+	this.defaults = {}; // {'APP':{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 
@@ -278,12 +280,12 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	WorkerStack.push(this);
-	if (this.defaults && this.defaults[APP]) {
-		for (var i in this.defaults[APP]) {
-			this[i] = this.defaults[APP][i];
+	if ((!this.settings.gm_only || isGreasemonkey) && (this.settings.system || !length(this.defaults) || this.defaults[APP])) {
+		if (this.defaults[APP]) {
+			for (var i in this.defaults[APP]) {
+				this[i] = this.defaults[APP][i];
+			}
 		}
-	}
-	if (this.settings.system || !this.defaults || this.defaults[APP]) {
 		this._load();
 	} else { // Get us out of the list!!!
 		Workers.splice(Workers.indexOf(this), 1);
