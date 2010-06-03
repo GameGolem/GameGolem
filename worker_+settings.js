@@ -92,21 +92,21 @@ Settings.set = function(what, value) {
 	this.data[what] = {};
 	for (var i in Workers) {
 		if (Workers[i] !== this && Workers[i].option) {
-			this.data[what][Workers[i].name] = $.extend(true, {}, Workers[i].option);
+			this.data[what][i] = $.extend(true, {}, Workers[i].option);
 		}
 	}
 };
 
 Settings.get = function(what) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
 		return this._get(what);
 	}
 	this._unflush();
 	if (this.data[what]) {
-		for (var i in Workers) {
-			if (Workers[i] !== this && Workers[i].option && this.data[what][Workers[i].name]) {
-				Workers[i].option = $.extend(true, {}, this.data[what][Workers[i].name]);
+		for (i in Workers) {
+			if (Workers[i] !== this && Workers[i].option && this.data[what][i]) {
+				Workers[i].option = $.extend(true, {}, this.data[what][i]);
 				Workers[i]._save('option');
 			}
 		}

@@ -94,7 +94,7 @@ Page.parse_all = function() {
 	WorkerStack.push(this);
 	Page.identify();
 	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0))) {
 			Workers[i]._unflush();
 			if (Workers[i]._parse(false)) {
@@ -105,7 +105,7 @@ Page.parse_all = function() {
 	for (i in list) {
 		list[i]._parse(true);
 	}
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
@@ -116,7 +116,7 @@ Page.work = function(state) {
 		return false;
 	}
 	var i, l, list, found = null;
-	for (i=0; i<Workers.length && !found; i++) {
+	for (i in Workers) {
 		if (Workers[i].pages) {
 			list = Workers[i].pages.split(' ');
 			for (l=0; l<list.length; l++) {
@@ -125,6 +125,9 @@ Page.work = function(state) {
 					break;
 				}
 			}
+		}
+		if (found) {
+			break;
 		}
 	}
 	if (!state) {

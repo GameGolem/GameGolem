@@ -63,13 +63,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 			}
 			do_css();
 			Page.identify();
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._setup();
 			}
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._init();
 			}
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._update();
 				Workers[i]._flush();
 			}

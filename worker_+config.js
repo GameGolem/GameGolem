@@ -335,7 +335,7 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._save('option');
 	}
 };

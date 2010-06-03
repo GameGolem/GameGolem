@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "504";
+var revision = "509";
 // User changeable
 var show_debug = true;
 
@@ -26,7 +26,7 @@ var script_started = Date.now();
 // Automatically filled
 var userID = 0;
 var imagepath = '';
-var isGreasemonkey = (navigator.userAgent.toLowerCase().indexOf('chrome') === -1);
+var isGreasemonkey = (navigator.userAgent.toLowerCase().indexOf('chrome') === -1); // Need better checking, but chrome's extension code fakes GM functions
 
 // Decide which facebook app we're in...
 if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
@@ -81,13 +81,13 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 			}
 			do_css();
 			Page.identify();
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._setup();
 			}
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._init();
 			}
-			for (i=0; i<Workers.length; i++) {
+			for (i in Workers) {
 				Workers[i]._update();
 				Workers[i]._flush();
 			}
@@ -254,9 +254,9 @@ var makeTimer = function(sec) {
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
 };
 
-var WorkerByName = function(name) { // Get worker object by Worker.name
-	for (var i=0; i<Workers.length; i++) {
-		if (Workers[i].name.toLowerCase() === name.toLowerCase()) {
+var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
+	for (var i in Workers) {
+		if (i.toLowerCase() === name.toLowerCase()) {
 			return Workers[i];
 		}
 	}
@@ -264,7 +264,7 @@ var WorkerByName = function(name) { // Get worker object by Worker.name
 };
 
 var WorkerById = function(id) { // Get worker object by panel id
-	for (var i=0; i<Workers.length; i++) {
+	for (var i in Workers) {
 		if (Workers[i].id === id) {
 			return Workers[i];
 		}
@@ -314,8 +314,10 @@ var unique = function (a) { // Return an array with no duplicates
 };
 
 var deleteElement = function(list, value) { // Removes matching elements from an array
-	while (value in list) {
-		list.splice(list.indexOf(value), 1);
+	if (isArray(list)) {
+		while (value in list) {
+			list.splice(list.indexOf(value), 1);
+		}
 	}
 }
 			
@@ -451,7 +453,7 @@ var isNumber = function(num) {
 };
 
 var isWorker = function(obj) {
-	return obj && findInArray(Workers,obj); // Only a worker if it's an active worker
+	return obj && obj.name && Workers[obj.name] && Workers[obj.name] === obj; // Only a worker if it's an active worker
 };
 
 var plural = function(i) {
@@ -531,12 +533,12 @@ var iscaap = function() {
 new Worker(name, pages, settings)
 
 *** User data***
-.id			     - If we have a .display then this is the html #id of the worker
-.name		   - String, the same as our class name.
-.pages		  - String, list of pages that we want in the form "town.soldiers keep.stats"
-.data		   - Object, for public reading, automatically saved
-.option		 - Object, our options, changed from outide ourselves
-.settings	       - Object, various values for various sections, default is always false / blank
+.id				- If we have a .display then this is the html #id of the worker
+.name			- String, the same as our class name.
+.pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
+.data			- Object, for public reading, automatically saved
+.option			- Object, our options, changed from outide ourselves
+.settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
 				advanced (true/false) - only visible when "Advanced" is checked
@@ -545,10 +547,12 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
+				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
+.defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
 *** User functions ***
-.init()		 - After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
+.init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
 .parse(change)  - This can read data from the current page and cannot perform any actions.
@@ -564,7 +568,7 @@ new Worker(name, pages, settings)
 				return false when someone else can work
 .update(type)   - Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
 				type = "data" or "option"
-.get(what)	      - Calls this._get(what)
+.get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
 .set(what,value)- Calls this._set(what,value)
@@ -600,7 +604,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
 ._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
-var Workers = [];
+var Workers = {};// 'name':worker
 var WorkerStack = []; // Use "WorkerStack.length && WorkerStack[WorkerStack.length-1].name" for current worker name...
 /*
 if (typeof GM_getValue !== 'undefined') {
@@ -628,14 +632,14 @@ if (isGreasemonkey) {
 }
 
 function Worker(name,pages,settings) {
-	Workers.push(this);
+	Workers[name] = this;
 
 	// User data
 	this.id = null;
 	this.name = name;
 	this.pages = pages;
 
-	this.defaults = null; // {app:{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+	this.defaults = {}; // {'APP':{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 
@@ -806,15 +810,15 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	WorkerStack.push(this);
-	if (this.defaults && this.defaults[APP]) {
-		for (var i in this.defaults[APP]) {
-			this[i] = this.defaults[APP][i];
+	if ((!this.settings.gm_only || isGreasemonkey) && (this.settings.system || !length(this.defaults) || this.defaults[APP])) {
+		if (this.defaults[APP]) {
+			for (var i in this.defaults[APP]) {
+				this[i] = this.defaults[APP][i];
+			}
 		}
-	}
-	if (this.settings.system || !this.defaults || this.defaults[APP]) {
 		this._load();
 	} else { // Get us out of the list!!!
-		Workers.splice(Workers.indexOf(this), 1);
+		delete Workers[this.name];
 	}
 	WorkerStack.pop();
 };
@@ -828,7 +832,10 @@ Worker.prototype._unflush = function() {
 };
 
 Worker.prototype._unwatch = function(worker) {
-	deleteElement(worker._watching,this);
+	if (typeof worker === 'string') {
+		worker = WorkerByName(worker);
+	}
+	isWorker(worker) && deleteElement(worker._watching,this);
 };
 
 Worker.prototype._update = function(type, worker) {
@@ -857,7 +864,10 @@ Worker.prototype._update = function(type, worker) {
 };
 
 Worker.prototype._watch = function(worker) {
-	!findInArray(worker._watching,this) && worker._watching.push(this);
+	if (typeof worker === 'string') {
+		worker = WorkerByName(worker);
+	}
+	isWorker(worker) && !findInArray(worker._watching,this) && worker._watching.push(this);
 };
 
 Worker.prototype._work = function(state) {
@@ -1209,7 +1219,7 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._save('option');
 	}
 };
@@ -1244,13 +1254,13 @@ Dashboard.option = {
 
 Dashboard.init = function() {
 	var id, $btn, tabs = [], divs = [], active = this.option.active;
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		if (Workers[i].dashboard) {
-			id = 'golem-dashboard-'+Workers[i].name;
+			id = 'golem-dashboard-'+i;
 			if (!active) {
 				this.option.active = active = id;
 			}
-			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
+			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i]);
 		}
@@ -1337,9 +1347,9 @@ Dashboard.update = function(type, worker) {
 
 Dashboard.dashboard = function() {
 	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
-		if (this.data[Workers[i].name]) {
-			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
+	for (i in Workers) {
+		if (this.data[i]) {
+			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
 		}
 	}
 	list.sort(); // Ok with plain text as first thing that can change is name
@@ -1451,7 +1461,7 @@ Page.parse_all = function() {
 	WorkerStack.push(this);
 	Page.identify();
 	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0))) {
 			Workers[i]._unflush();
 			if (Workers[i]._parse(false)) {
@@ -1462,7 +1472,7 @@ Page.parse_all = function() {
 	for (i in list) {
 		list[i]._parse(true);
 	}
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
@@ -1473,7 +1483,7 @@ Page.work = function(state) {
 		return false;
 	}
 	var i, l, list, found = null;
-	for (i=0; i<Workers.length && !found; i++) {
+	for (i in Workers) {
 		if (Workers[i].pages) {
 			list = Workers[i].pages.split(' ');
 			for (l=0; l<list.length; l++) {
@@ -1482,6 +1492,9 @@ Page.work = function(state) {
 					break;
 				}
 			}
+		}
+		if (found) {
+			break;
 		}
 	}
 	if (!state) {
@@ -1704,12 +1717,12 @@ Queue.init = function() {
 	var i, worker, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, Workers[i].name)) {
-			log('Adding '+Workers[i].name+' to Queue');
+		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
+			log('Adding '+i+' to Queue');
 			if (Workers[i].settings.unsortable) {
-				this.option.queue.unshift(Workers[i].name);
+				this.option.queue.unshift(i);
 			} else {
-				this.option.queue.push(Workers[i].name);
+				this.option.queue.push(i);
 			}
 		}
 	}
@@ -1780,7 +1793,7 @@ Queue.run = function() {
 		debug('At max stamina, burning stamina first.');
 	}
 */	
-	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
+	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
@@ -1825,7 +1838,7 @@ Queue.run = function() {
 		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
 	}
 //	debug('End Queue');
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
@@ -1925,21 +1938,21 @@ Settings.set = function(what, value) {
 	this.data[what] = {};
 	for (var i in Workers) {
 		if (Workers[i] !== this && Workers[i].option) {
-			this.data[what][Workers[i].name] = $.extend(true, {}, Workers[i].option);
+			this.data[what][i] = $.extend(true, {}, Workers[i].option);
 		}
 	}
 };
 
 Settings.get = function(what) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
 		return this._get(what);
 	}
 	this._unflush();
 	if (this.data[what]) {
-		for (var i in Workers) {
-			if (Workers[i] !== this && Workers[i].option && this.data[what][Workers[i].name]) {
-				Workers[i].option = $.extend(true, {}, this.data[what][Workers[i].name]);
+		for (i in Workers) {
+			if (Workers[i] !== this && Workers[i].option && this.data[what][i]) {
+				Workers[i].option = $.extend(true, {}, this.data[what][i]);
 				Workers[i]._save('option');
 			}
 		}
@@ -1956,6 +1969,7 @@ Update.data = null;
 Update.option = null;
 
 Update.settings = {
+	gm_only:true,// We need the cross-site ajax for our update checks
 	system:true
 };
 
@@ -2242,10 +2256,8 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 */
 var Battle = new Worker('Battle');
 
-Battle.defaults = {
-	castle_age:{
-		pages:'battle_rank battle_battle'
-	}
+Battle.defaults['castle_age'] = {
+	pages:'battle_rank battle_battle'
 };
 
 Battle.data = {

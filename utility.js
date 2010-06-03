@@ -69,9 +69,9 @@ var makeTimer = function(sec) {
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
 };
 
-var WorkerByName = function(name) { // Get worker object by Worker.name
-	for (var i=0; i<Workers.length; i++) {
-		if (Workers[i].name.toLowerCase() === name.toLowerCase()) {
+var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
+	for (var i in Workers) {
+		if (i.toLowerCase() === name.toLowerCase()) {
 			return Workers[i];
 		}
 	}
@@ -79,7 +79,7 @@ var WorkerByName = function(name) { // Get worker object by Worker.name
 };
 
 var WorkerById = function(id) { // Get worker object by panel id
-	for (var i=0; i<Workers.length; i++) {
+	for (var i in Workers) {
 		if (Workers[i].id === id) {
 			return Workers[i];
 		}
@@ -129,8 +129,10 @@ var unique = function (a) { // Return an array with no duplicates
 };
 
 var deleteElement = function(list, value) { // Removes matching elements from an array
-	while (value in list) {
-		list.splice(list.indexOf(value), 1);
+	if (isArray(list)) {
+		while (value in list) {
+			list.splice(list.indexOf(value), 1);
+		}
 	}
 }
 			
@@ -266,7 +268,7 @@ var isNumber = function(num) {
 };
 
 var isWorker = function(obj) {
-	return obj && findInArray(Workers,obj); // Only a worker if it's an active worker
+	return obj && obj.name && Workers[obj.name] && Workers[obj.name] === obj; // Only a worker if it's an active worker
 };
 
 var plural = function(i) {

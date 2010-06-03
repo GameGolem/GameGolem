@@ -20,13 +20,13 @@ Dashboard.option = {
 
 Dashboard.init = function() {
 	var id, $btn, tabs = [], divs = [], active = this.option.active;
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		if (Workers[i].dashboard) {
-			id = 'golem-dashboard-'+Workers[i].name;
+			id = 'golem-dashboard-'+i;
 			if (!active) {
 				this.option.active = active = id;
 			}
-			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : Workers[i].name) + '</h3>');
+			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i]);
 		}
@@ -113,9 +113,9 @@ Dashboard.update = function(type, worker) {
 
 Dashboard.dashboard = function() {
 	var i, list = [];
-	for (i=0; i<Workers.length; i++) {
-		if (this.data[Workers[i].name]) {
-			list.push('<tr><th>' + Workers[i].name + ':</th><td id="golem-status-' + Workers[i].name + '">' + this.data[Workers[i].name] + '</td></tr>');
+	for (i in Workers) {
+		if (this.data[i]) {
+			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
 		}
 	}
 	list.sort(); // Ok with plain text as first thing that can change is name

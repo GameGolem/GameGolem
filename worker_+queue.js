@@ -91,12 +91,12 @@ Queue.init = function() {
 	var i, worker, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, Workers[i].name)) {
-			log('Adding '+Workers[i].name+' to Queue');
+		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
+			log('Adding '+i+' to Queue');
 			if (Workers[i].settings.unsortable) {
-				this.option.queue.unshift(Workers[i].name);
+				this.option.queue.unshift(i);
 			} else {
-				this.option.queue.push(Workers[i].name);
+				this.option.queue.push(i);
 			}
 		}
 	}
@@ -167,7 +167,7 @@ Queue.run = function() {
 		debug('At max stamina, burning stamina first.');
 	}
 */	
-	for (i=0; i<Workers.length; i++) { // Run any workers that don't have a display, can never get focus!!
+	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 		if (Workers[i].work && !Workers[i].display) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
@@ -212,7 +212,7 @@ Queue.run = function() {
 		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
 	}
 //	debug('End Queue');
-	for (i=0; i<Workers.length; i++) {
+	for (i in Workers) {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();

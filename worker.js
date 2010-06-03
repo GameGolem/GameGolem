@@ -74,7 +74,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
 ._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
-var Workers = [];
+var Workers = {};// 'name':worker
 var WorkerStack = []; // Use "WorkerStack.length && WorkerStack[WorkerStack.length-1].name" for current worker name...
 /*
 if (typeof GM_getValue !== 'undefined') {
@@ -102,7 +102,7 @@ if (isGreasemonkey) {
 }
 
 function Worker(name,pages,settings) {
-	Workers.push(this);
+	Workers[name] = this;
 
 	// User data
 	this.id = null;
@@ -288,7 +288,7 @@ Worker.prototype._setup = function() {
 		}
 		this._load();
 	} else { // Get us out of the list!!!
-		Workers.splice(Workers.indexOf(this), 1);
+		delete Workers[this.name];
 	}
 	WorkerStack.pop();
 };
@@ -302,7 +302,10 @@ Worker.prototype._unflush = function() {
 };
 
 Worker.prototype._unwatch = function(worker) {
-	deleteElement(worker._watching,this);
+	if (typeof worker === 'string') {
+		worker = WorkerByName(worker);
+	}
+	isWorker(worker) && deleteElement(worker._watching,this);
 };
 
 Worker.prototype._update = function(type, worker) {
@@ -331,7 +334,10 @@ Worker.prototype._update = function(type, worker) {
 };
 
 Worker.prototype._watch = function(worker) {
-	!findInArray(worker._watching,this) && worker._watching.push(this);
+	if (typeof worker === 'string') {
+		worker = WorkerByName(worker);
+	}
+	isWorker(worker) && !findInArray(worker._watching,this) && worker._watching.push(this);
 };
 
 Worker.prototype._work = function(state) {
