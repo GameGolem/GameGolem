@@ -1865,82 +1865,7 @@ Army.get = function(what, def) {
 	this._set('data.' + uid + '_last', Date.now()); // Remember when it was last accessed
 	return this._get('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), def);
 };
-/*
-Army.order = [];
-Army.dashboard = function(sort, rev) {
-	var i, o, list = [], output = [];
-	if (typeof sort === 'undefined') {
-		this.order = [];
-		for (i in this.data) {
-			this.order.push(i);
-		}
-	}
-	if (typeof sort === 'undefined') {
-		sort = (this.runtime.sort || 1);
-	}
-	if (typeof rev === 'undefined'){
-		rev = (this.runtime.rev || false);
-	}
-	this.runtime.sort = sort;
-	this.runtime.rev = rev;
-	function getValue(q){
-		switch(sort) {
-			case 0:	// general
-				return Army.data[q].general || 'zzz';
-			case 1: // name
-				return q;
-			case 2: // area
-				return typeof Army.data[q].land === 'number' && typeof Army.land[Army.data[q].land] !== 'undefined' ? Army.land[Army.data[q].land] : Army.area[Army.data[q].area];
-			case 3: // level
-				return (typeof Army.data[q].level !== 'undefined' ? Army.data[q].level : -1) * 100 + (Army.data[q].influence || 0);
-			case 4: // energy
-				return Army.data[q].energy;
-			case 5: // exp
-				return Army.data[q].exp / Army.data[q].energy;
-			case 6: // reward
-				return Army.data[q].reward / Army.data[q].energy;
-			case 7: // item
-				return Army.data[q].item || 'zzz';
-		}
-		return 0; // unknown
-	}
-	this.order.sort(function(a,b) {
-		var aa = getValue(a), bb = getValue(b);
-		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
-		}
-		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
-	});
-	th(output, 'General');
-	th(output, 'Name');
-	th(output, 'Area');
-	th(output, 'Level');
-	th(output, 'Energy');
-	th(output, '@&nbsp;Exp');
-	th(output, '@&nbsp;Reward');
-	th(output, 'Item');
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
-	for (o=0; o<this.order.length; o++) {
-		i = this.order[o];
-		output = [];
-		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
-		th(output, i);
-		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
-		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
-		td(output, this.data[i].energy);
-		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
-		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
-		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
-		tr(list, output.join(''), 'style="height:25px;"');
-	}
-	list.push('</tbody></table>');
-	$('#golem-dashboard-Army').html(list.join(''));
-	$('#golem-dashboard-Army tbody tr td:nth-child(2)').css('text-align', 'left');
-	if (typeof sort !== 'undefined') {
-		$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	}
-};
-*/
+
 
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -4436,7 +4361,10 @@ Generals.parse = function(change) {
 		$('div.generalContainerBox div:contains("Item Bonuses")').nextAll().each(function(i){
 			var temp = $('img', this).attr('title');
 			if (temp && temp.indexOf("[not owned]") == -1){
-				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim() + ', ';
+				if (weapon_bonus.length) {
+					weapon_bonus += ', ';
+				}
+				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 			}
 		});
 		var current = $('div.general_name_div3').first().text().trim();
@@ -4472,7 +4400,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -4516,17 +4444,20 @@ Generals.update = function(type, worker) {
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
 			monster_att = (skillcombo.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
 			monster_multiplier = 1+ (skillcombo.regex(/([-+]?[0-9]+)% Critical/i) || 0)/100;
+			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0));	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0));
+//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)));
 			data[i].invade = {
-				att: Math.floor(invade.attack + data[i].att + (data[i].def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
-				def: Math.floor(invade.defend + data[i].def + (data[i].att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
+				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
+				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			};
 			data[i].duel = {
-				att: Math.floor(duel.attack + data[i].att + (data[i].def * 0.7) + attack + (defend * 0.7)),
-				def: Math.floor(duel.defend + data[i].def + (data[i].att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
+				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
+				def: Math.floor(duel.defend + current_def + (current_att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
 			};
 			data[i].monster = {
-				att: Math.floor(monster_multiplier * (duel.attack + data[i].att + attack + monster_att)),
-				def: Math.floor(duel.defend + data[i].def + defend) // Fortify, so no def_when_att
+				att: Math.floor(monster_multiplier * (duel.attack + current_att + attack + monster_att)),
+				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			};
 			data[i].potential = {
 				bank: (skillcombo.regex(/Bank Fee/i) ? 1 : 0),
@@ -4742,7 +4673,7 @@ Generals.dashboard = function(sort, rev) {
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
-		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + Generals.data[i].skills + ', Weapon Bonus: ' + (Generals.data[i].weaponbonus || 'unknown') + '">');
+		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + Generals.data[i].skills + ', Weapon Bonus: ' + (typeof Generals.data[i].weaponbonus !== 'unknown' ? (Generals.data[i].weaponbonus ? Generals.data[i].weaponbonus : 'none') : 'unknown') + '">');
 		output.push(i);
 		output.push('<div'+(isNumber(Generals.data[i].progress) ? ' title="'+Generals.data[i].progress+'%"' : '')+'>'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
 		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
