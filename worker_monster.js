@@ -5,7 +5,7 @@ var Monster = new Worker('Monster');
 Monster.data = {};
 
 Monster.defaults['castle_age'] = {
-	pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
+    pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
 };
 
 Monster.option = {
@@ -583,7 +583,7 @@ Monster.parse = function(change) {
                     } else{
                         monster.dmg_avg = atk_dmg;
                     }
-                    //debug('Avg Damage = ' + monster.dmg_avg);
+                //debug('Avg Damage = ' + monster.dmg_avg);
                 }
                 this.runtime.pre_stamina = this.runtime.post_stamina = 0;
                 this.runtime.attacked = false;
@@ -610,7 +610,7 @@ Monster.parse = function(change) {
                     } else{
                         monster.dfd_avg = dfd_amount;
                     }
-                    //debug('Avg Defend = ' + monster.dfd_avg);
+                //debug('Avg Defend = ' + monster.dfd_avg);
                 }
                 this.runtime.pre_energy = this.runtime.post_energy = 0;
                 this.runtime.defended = false;
@@ -712,12 +712,12 @@ Monster.parse = function(change) {
                         while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
                             //debug('Battle stamina was ' + monster.battle_stamina);
                             monster.battle_stamina++;
-                            //debug('Setting battle stamina to ' + monster.battle_stamina);
+                        //debug('Setting battle stamina to ' + monster.battle_stamina);
                         }
                         while (monster.dmg_per_stamina * monster.battle_stamina >= monster.damage_user * 1.01){
                             //debug('Battle stamina was ' + monster.battle_stamina);
                             monster.battle_stamina--;
-                            //debug('Setting battle stamina to ' + monster.battle_stamina);
+                        //debug('Setting battle stamina to ' + monster.battle_stamina);
                         }
                     }
                 }
@@ -874,7 +874,7 @@ Monster.update = function(what) {
             req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
             req_energy = this.types[j].def_btn ? this.option.minenergy : null;
             req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active))))) {
+            if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
                 if (!this.data[i][j].battle_count){
                     this.data[i][j].battle_count = 1;
                 }
@@ -978,7 +978,7 @@ Monster.update = function(what) {
         if (Queue.burn.energy < this.runtime.energy) {
             this.runtime.fortify = false;
         }
-            this.runtime.attack = true;
+        this.runtime.attack = true;
         if ((Player.get('health') > this.runtime.health) && ((this.runtime.attack && (Queue.burn.stamina > this.runtime.stamina)) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
             Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
         } else if ((this.runtime.fortify && Queue.burn.energy < this.runtime.energy) || !this.runtime.attack){
@@ -1225,7 +1225,7 @@ Monster.dashboard = function(sort, rev) {
         } else {
             url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
         }
-        td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + '"');
+        td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + ' | Achievement: ' + addCommas(Monster.types[j].achievement) + ' | Loot: ' + addCommas(Monster.types[j].achievement * 2) + '"');
         var image_url = imagepath + Monster.types[j].list;
         //debug(image_url);
         th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
