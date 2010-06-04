@@ -1,21 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "519";
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -4462,8 +4444,8 @@ Generals.update = function(type, worker) {
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
 			monster_att = (skillcombo.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
 			monster_multiplier = 1+ (skillcombo.regex(/([-+]?[0-9]+)% Critical/i) || 0)/100;
-			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0));	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0));
+			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0)) : 0);
 //			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
