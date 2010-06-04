@@ -1,3 +1,21 @@
+// ==UserScript==
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		31.1
+// @include		http://apps.facebook.com/castle_age/*
+// @include		http://apps.facebook.com/reqs.php
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// ==/UserScript==
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = "521";
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -4368,7 +4386,9 @@ Generals.parse = function(change) {
 			}
 		});
 		var current = $('div.general_name_div3').first().text().trim();
-		data[current].weaponbonus = weapon_bonus;
+		if (data[current]){
+                    data[current].weaponbonus = weapon_bonus;
+                }
 		
 		if ($elements.length < length(data)) {
 			debug('Different number of generals, have '+$elements.length+', want '+length(data));

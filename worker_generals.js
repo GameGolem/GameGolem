@@ -44,7 +44,9 @@ Generals.parse = function(change) {
 			}
 		});
 		var current = $('div.general_name_div3').first().text().trim();
-		data[current].weaponbonus = weapon_bonus;
+		if (data[current]){
+                    data[current].weaponbonus = weapon_bonus;
+                }
 		
 		if ($elements.length < length(data)) {
 			debug('Different number of generals, have '+$elements.length+', want '+length(data));
