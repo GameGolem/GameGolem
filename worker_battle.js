@@ -18,6 +18,7 @@ Battle.option = {
 	points:true,
 	monster:true,
 	arena:false,
+	war:false,
 	losses:5,
 	type:'Invade',
 	bp:'Always',
@@ -64,6 +65,12 @@ Battle.display = [
 		id:'points',
 		label:'Always Get Demi-Points',
 		checkbox:true
+	},{
+		advanced:true,
+		id:'war',
+		label:'Dual in WAR',
+		checkbox:true,
+		help:'You must be above level 150, and uses 10 stamina per attack!'
 	},{
 //		advanced:true,
 //		id:'arena',
@@ -127,7 +134,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid, tmp;
+	var data, uid, tmp, myrank;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -163,21 +170,17 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
+		myrank = Player.get('rank');
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
-			if (!uid || !info) {
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);;
+			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (!Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
-			rank = Battle.rank(info[1]);
-			if ((Battle.option.bp === 'Always' && Player.get('rank') - rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - rank <= 5)) {
-				return;
-			}
-			if (!data[uid]) {
-				data[uid] = {};
-			}
+			data[uid] = data[uid] || {};
 			data[uid].name = $('a', el).text().trim();
-			data[uid].level = info[0];
+			data[uid].level = info.regex(/\(Level ([0-9]+)\)/i);
 			data[uid].rank = rank;
+			data[uid].war = info.regex(/War:[^(]+\(Rank ([0-9]+)\)/i);
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});

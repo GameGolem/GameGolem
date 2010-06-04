@@ -71,8 +71,9 @@ var makeTimer = function(sec) {
 
 var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
 	if (typeof name === 'string') {
+		name = name.toLowerCase();
 		for (var i in Workers) {
-			if (i.toLowerCase() === name.toLowerCase()) {
+			if (i.toLowerCase() === name) {
 				return Workers[i];
 			}
 		}

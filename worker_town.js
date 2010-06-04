@@ -64,7 +64,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);
-		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
+		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
 			// Fix for broken magic page!!
 			!$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
 			!$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
@@ -73,7 +73,7 @@ Town.parse = function(change) {
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
+			unit[name].own = $(costs).text().regex(/Owned: ([0-9]+)/i);
 			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
 			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
 			if (cost) {

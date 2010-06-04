@@ -256,8 +256,9 @@ var makeTimer = function(sec) {
 
 var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
 	if (typeof name === 'string') {
+		name = name.toLowerCase();
 		for (var i in Workers) {
-			if (i.toLowerCase() === name.toLowerCase()) {
+			if (i.toLowerCase() === name) {
 				return Workers[i];
 			}
 		}
@@ -923,6 +924,10 @@ Army.set = function(what, value) {
 	this._unflush();
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null;
 	// Worker first - if we want to pass a different ID then feel free
+	if (x[0] === 'option' || x[0] === 'runtime') {
+		return this._set(x, value);// Pasthrough
+	}
+	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
 		worker = x.shift();
 	} else if (isWorker(x[0])) {
@@ -947,6 +952,10 @@ Army.get = function(what, def) {
 	this._unflush();
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null, list, i;
 	// Worker first - if we want to pass a different ID then feel free
+	if (x[0] === 'option' || x[0] === 'runtime') {
+		return this._get(x, def);// Pasthrough
+	}
+	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
 		worker = x.shift();
 	} else if (isWorker(x[0])) {
@@ -974,7 +983,82 @@ Army.get = function(what, def) {
 	this._set('data.' + uid + '_last', Date.now()); // Remember when it was last accessed
 	return this._get('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), def);
 };
-
+/*
+Army.order = [];
+Army.dashboard = function(sort, rev) {
+	var i, o, list = [], output = [];
+	if (typeof sort === 'undefined') {
+		this.order = [];
+		for (i in this.data) {
+			this.order.push(i);
+		}
+	}
+	if (typeof sort === 'undefined') {
+		sort = (this.runtime.sort || 1);
+	}
+	if (typeof rev === 'undefined'){
+		rev = (this.runtime.rev || false);
+	}
+	this.runtime.sort = sort;
+	this.runtime.rev = rev;
+	function getValue(q){
+		switch(sort) {
+			case 0:	// general
+				return Army.data[q].general || 'zzz';
+			case 1: // name
+				return q;
+			case 2: // area
+				return typeof Army.data[q].land === 'number' && typeof Army.land[Army.data[q].land] !== 'undefined' ? Army.land[Army.data[q].land] : Army.area[Army.data[q].area];
+			case 3: // level
+				return (typeof Army.data[q].level !== 'undefined' ? Army.data[q].level : -1) * 100 + (Army.data[q].influence || 0);
+			case 4: // energy
+				return Army.data[q].energy;
+			case 5: // exp
+				return Army.data[q].exp / Army.data[q].energy;
+			case 6: // reward
+				return Army.data[q].reward / Army.data[q].energy;
+			case 7: // item
+				return Army.data[q].item || 'zzz';
+		}
+		return 0; // unknown
+	}
+	this.order.sort(function(a,b) {
+		var aa = getValue(a), bb = getValue(b);
+		if (typeof aa === 'string' || typeof bb === 'string') {
+			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+		}
+		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+	});
+	th(output, 'General');
+	th(output, 'Name');
+	th(output, 'Area');
+	th(output, 'Level');
+	th(output, 'Energy');
+	th(output, '@&nbsp;Exp');
+	th(output, '@&nbsp;Reward');
+	th(output, 'Item');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	for (o=0; o<this.order.length; o++) {
+		i = this.order[o];
+		output = [];
+		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
+		th(output, i);
+		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
+		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
+		td(output, this.data[i].energy);
+		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
+		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
+		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
+		tr(list, output.join(''), 'style="height:25px;"');
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Army').html(list.join(''));
+	$('#golem-dashboard-Army tbody tr td:nth-child(2)').css('text-align', 'left');
+	if (typeof sort !== 'undefined') {
+		$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	}
+};
+*/
 
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -2754,6 +2838,7 @@ Battle.option = {
 	points:true,
 	monster:true,
 	arena:false,
+	war:false,
 	losses:5,
 	type:'Invade',
 	bp:'Always',
@@ -2800,6 +2885,12 @@ Battle.display = [
 		id:'points',
 		label:'Always Get Demi-Points',
 		checkbox:true
+	},{
+		advanced:true,
+		id:'war',
+		label:'Dual in WAR',
+		checkbox:true,
+		help:'You must be above level 150, and uses 10 stamina per attack!'
 	},{
 //		advanced:true,
 //		id:'arena',
@@ -2863,7 +2954,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid, tmp;
+	var data, uid, tmp, myrank;
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -2899,21 +2990,17 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
+		myrank = Player.get('rank');
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
-			if (!uid || !info) {
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);;
+			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (!Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
-			rank = Battle.rank(info[1]);
-			if ((Battle.option.bp === 'Always' && Player.get('rank') - rank > 5) || (!Battle.option.bp === 'Never' && Player.get('rank') - rank <= 5)) {
-				return;
-			}
-			if (!data[uid]) {
-				data[uid] = {};
-			}
+			data[uid] = data[uid] || {};
 			data[uid].name = $('a', el).text().trim();
-			data[uid].level = info[0];
+			data[uid].level = info.regex(/\(Level ([0-9]+)\)/i);
 			data[uid].rank = rank;
+			data[uid].war = info.regex(/War:[^(]+\(Rank ([0-9]+)\)/i);
 			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
 		});
@@ -6320,9 +6407,9 @@ Player.get = function(what) {
 	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
 	switch(what) {
 		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
-		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
-//		case 'cash_timer':		var when = new Date();
-//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+//		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
+		case 'cash_timer':		var when = new Date();
+								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health':			return (this.data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
@@ -6880,7 +6967,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);
-		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(a,el){
+		$('.eq_buy_row,.eq_buy_row2').each(function(a,el){
 			// Fix for broken magic page!!
 			!$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
 			!$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
@@ -6889,7 +6976,7 @@ Town.parse = function(change) {
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-			unit[name].own = $('span:first-child', costs).text().regex(/Owned: ([0-9]+)/i);
+			unit[name].own = $(costs).text().regex(/Owned: ([0-9]+)/i);
 			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
 			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
 			if (cost) {
