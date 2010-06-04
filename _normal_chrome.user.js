@@ -1,21 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "512";
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1164,9 +1146,11 @@ var makeTimer = function(sec) {
 };
 
 var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
-	for (var i in Workers) {
-		if (i.toLowerCase() === name.toLowerCase()) {
-			return Workers[i];
+	if (typeof name === 'string') {
+		for (var i in Workers) {
+			if (i.toLowerCase() === name.toLowerCase()) {
+				return Workers[i];
+			}
 		}
 	}
 	return null;
@@ -1230,7 +1214,7 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 	}
 }
 			
-var sum = function (a) { // Adds the values of all array entries together
+var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
 		for(i=0; i<a.length; i++) {
@@ -1290,14 +1274,14 @@ var arrayLastIndexOf = function(list, value) {
 };
 
 
-var sortObject = function(object, sortfunc) {
+var sortObject = function(obj, sortfunc) {
 	var list = [], output = {};
-	for (i in object) {
+	for (i in obj) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
 	for (i=0; i<list.length; i++) {
-		output[list[i]] = object[list[i]];
+		output[list[i]] = obj[list[i]];
 	}
 	return output;
 };
@@ -1358,11 +1342,11 @@ var isArray = function(obj) {
 };
 
 var isNumber = function(num) {
-	return num && typeof num === 'number';
+	return typeof num === 'number';
 };
 
 var isWorker = function(obj) {
-	return obj && obj.name && Workers[obj.name] && Workers[obj.name] === obj; // Only a worker if it's an active worker
+	return obj && typeof obj === 'object' && typeof obj.name === 'string' && typeof Workers[obj.name] === 'object' && Workers[obj.name] === obj; // Only a worker if it's an active worker
 };
 
 var plural = function(i) {
@@ -1493,7 +1477,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._watching		- List of other workers that want to have .update() after this.update()
 
 *** Private functions ***
-._get(what)				- Returns the data requested, auto-loads if needed, what is 'path.to.data'
+._get(what,def)			- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
 ._set(what,val)			- Sets this.data[what] to value, auto-loading if needed
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
@@ -1562,7 +1546,7 @@ function Worker(name,pages,settings) {
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type,worker){};
-	this.get = function(what) {return this._get(what);}; // Overload if needed
+	this.get = function(what,def) {return this._get(what,def);}; // Overload if needed
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
@@ -1583,7 +1567,7 @@ Worker.prototype._flush = function() {
 	WorkerStack.pop();
 };
 
-Worker.prototype._get = function(what) { // 'path.to.data'
+Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
@@ -1594,23 +1578,22 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	}
 	data = this[x.shift()];
 	try {
-		switch(x.length) {
-			case 0: return data;
-			case 1: return data[x[0]];
-			case 2: return data[x[0]][x[1]];
-			case 3: return data[x[0]][x[1]][x[2]];
-			case 4: return data[x[0]][x[1]][x[2]][x[3]];
-			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
-			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
-			default:break;
-		}
+		return (function(a,b){
+			if (b.length) {
+				var c = b.shift();
+				return arguments.callee(a[c], b);
+			} else {
+				return a;
+			}
+		})(data,x);
 	} catch(e) {
 //		WorkerStack.push(this);
-		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		if (typeof def === 'undefined') {
+			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
+		}
 //		WorkerStack.pop();
 	}
-	return null;
+	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
 
 Worker.prototype._init = function() {
@@ -1688,7 +1671,7 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, where;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
@@ -1698,18 +1681,18 @@ Worker.prototype._set = function(what, value) {
 	}
 	data = this[x.shift()];
 	try {
-		switch(x.length) {
-			case 0: data = value; break; // Nobody should ever do this!!
-			case 1: data[x[0]] = value; break;
-			case 2: data[x[0]][x[1]] = value; break;
-			case 3: data[x[0]][x[1]][x[2]] = value; break;
-			case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
-			case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
-			case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
-			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
-			default:break;
-		}
-//	      this._save();
+		x.length && (function(a,b){ // Don't allow setting of root data/object/runtime
+			var c = b.shift();
+			if (b.length) {
+				if (typeof a[c] !== 'object') {
+					a[c] = {};
+				}
+				arguments.callee(a[c], b);
+			} else {
+				a[c] = value;
+			}
+		})(data,x);
+//		this._save();
 	} catch(e) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
@@ -1790,6 +1773,93 @@ Worker.prototype._work = function(state) {
 	WorkerStack.pop();
 	return result;
 };
+
+/********** Worker.Army **********
+* Stores data by facebook userid for any worker that wants to use it.
+* Data is stored as -
+* Army.data.uid.section[...] = value
+* section == '_info' for general use of any workers with data useful for many
+* section == '_last' is the last time the data was accessed (not including making a list)
+*/
+var Army = new Worker('Army');
+Army.data = {};
+
+Army.settings = {
+	system:true,
+	advanced:true
+};
+
+Army.option = {
+	forget:14// Number of days to remember any userid
+};
+
+Army.display = [
+	{
+		id:'forget',
+		label:'Forget after',
+		select:[1,2,3,4,5,6,7,14,21,28],
+		after:'days',
+		help:'This will delete any userID that\'s not been seen for a length of time'
+	}
+];
+
+// what = ['worker', userID, key ...]
+Army.set = function(what, value) {
+	this._unflush();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null;
+	// Worker first - if we want to pass a different ID then feel free
+	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
+		worker = x.shift();
+	} else if (isWorker(x[0])) {
+		worker = x.shift().name;
+	} else {
+		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+	}
+	// userID next
+	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
+		uid = x.shift();
+	}
+	if (!worker || !uid) { // Must have both worker name and userID to continue
+		return;
+	}
+//	log('this._set(\'data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+	this._set('data.' + uid + '._last', Date.now()); // Remember when it was last accessed
+	this._set('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), value);
+};
+
+// what = [] (for list of uids that this worker knows about), ['worker', userID, key ...]
+Army.get = function(what, def) {
+	this._unflush();
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null, list, i;
+	// Worker first - if we want to pass a different ID then feel free
+	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
+		worker = x.shift();
+	} else if (isWorker(x[0])) {
+		worker = x.shift().name;
+	} else {
+		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+	}
+	// No userid, so return a list of userid's used by this worker
+	if (worker && x.length === 0) {
+		list = [];
+		for (i in this.data) {
+			if (typeof this.data[i][worker] !== 'undefined') {
+				list.push(i);
+			}
+		}
+		return list;
+	}
+	// userID next
+	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
+		uid = x.shift();
+	}
+	if (!worker || !uid) { // Must have both worker name and userID to continue
+		return;
+	}
+	this._set('data.' + uid + '_last', Date.now()); // Remember when it was last accessed
+	return this._get('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), def);
+};
+
 
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -2104,7 +2174,7 @@ Config.updateOptions = function() {
 	// Now can we see the advanced stuff
 	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
-	$('#golem_config :input,#golem_config textarea').each(function(i,el){
+	$('#golem_config :input').each(function(i,el){
 		if ($(el).attr('id')) {
 			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
 			if (!tmp) {
@@ -2874,7 +2944,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Idle'],
+	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -3755,13 +3825,14 @@ Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
-	status.push('Demi Points Earned Today: '
-	+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
-	+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
-	+ '<img src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'" style="width:11px;height:11px;"> ' + (this.data.points[2] || 0) + '/10 '
-	+ '<img src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'" style="width:11px;height:11px;"> ' + (this.data.points[3] || 0) + '/10 '
-	+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
-
+	if (this.option.points) {
+		status.push('Demi Points Earned Today: '
+		+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
+		+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
+		+ '<img src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'" style="width:11px;height:11px;"> ' + (this.data.points[2] || 0) + '/10 '
+		+ '<img src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'" style="width:11px;height:11px;"> ' + (this.data.points[3] || 0) + '/10 '
+		+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
+	}
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (!this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
@@ -4093,33 +4164,41 @@ Elite.display = [
 ];
 
 Elite.init = function() { // Convert old elite guard list
-	for(i in this.data) {
-		if (typeof this.data[i] === 'number') {
-			this.data[i] = {elite:this.data[i]};
+	this.option.arena = false; // ARENA!!!!!!
+	if (length(this.data)) {
+		for (var i in this.data) {
+			Army.set(['_info', i, 'name'], this.data[i].name);
+			Army.set(['_info', i, 'level'], this.data[i].level);
+			Army.set(['Army', i], true); // Set for people in our actual army
+			this.data[i].elite && Army.set([i, 'elite'], this.data[i].elite);
+//			this.data[i].arena && Army.set([i, 'arena'], this.data[i].arena);
 		}
 	}
-	this.option.arena = false; // ARENA!!!!!!
+	this.data = {}; // Will set to null at some later date
 };
 
 Elite.parse = function(change) {
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text();
+/*Arena disabled
 		if (Elite.runtime.nextarena) {
 			if (txt.match(/has not joined in the Arena!/i)) {
+				Army.set([i, 'arena'], -1);
 				Elite.data[Elite.runtime.nextarena].arena = -1;
 			} else if (txt.match(/Arena Guard, and they have joined/i)) {
-				Elite.data[Elite.runtime.nextarena].arena = Date.now() + 43200000; // 12 hours
+				Army.set([i, 'arena'], Date.now() + 43200000); // 12 hours
 			} else if (txt.match(/'s Arena Guard is FULL/i)) {
-				Elite.data[Elite.runtime.nextarena].arena = Date.now() + 1800000; // half hour
+				Army.set([i, 'arena'], Date.now() + 1800000); // half hour
 			} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
 				Elite.runtime.waitarena = Date.now();
 				debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
 			}
 		}
+*/
 		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 43200000; // 12 hours
+			Army.set([i, 'elite'], Date.now() + 43200000); // 12 hours
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 1800000; // half hour
+			Army.set([i, 'elite'], Date.now() + 1800000); // half hour
 		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
 			debug('Elite guard full, wait '+Elite.option.every+' hours');
@@ -4130,9 +4209,9 @@ Elite.parse = function(change) {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			var uid = $(el).attr('uid'), who = $(el).parent().parent().next();
 			count++;
-			Elite.data[uid] = Elite.data[uid] || {};
-			Elite.data[uid].name = $('a', who).text();
-			Elite.data[uid].level = $(who).text().regex(/([0-9]+) Commander/i);
+			Army.set(['Army', uid], true); // Set for people in our actual army
+			Army.set(['_info', uid, 'name'], $('a', who).text());
+			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
 		});
 		if (count < 25) {
 			this.runtime.armyextra = Player.get('armymax') - length(this.data) - 1;
@@ -4142,23 +4221,27 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function() {
-	var i, j, tmp = [], now = Date.now(), check;
+	var a, i, j, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = this.runtime.nextarena = 0;
 	// Elite Guard
 	if (this.option.elite) {
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i) && this.data[i]) {
-				if (typeof this.data[i].elite !== 'number' || this.data[i].elite < now) {
+			if (Army.get(['Army', i])) {
+				a = Army.get([i, 'elite'], null);
+				if (a !== null && a < now) {
 					this.runtime.nextelite = i;
 					break;
 				}
 			}
 		}
 		if (!this.runtime.nextelite) {
-			for(i in this.data) {
-				if ((typeof this.data[i].elite !== 'number' || this.data[i].elite < now)) {
-					this.runtime.nextelite = i;
+			list = Army.get('Army');
+			for(i=0; i<list.length; i++) {
+				a = Army.get([list[i], 'elite'], null);
+				if (!a || a < now) {
+					this.runtime.nextelite = list[i];
+					break;
 				}
 			}
 		}
@@ -4166,21 +4249,25 @@ Elite.update = function() {
 		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
 	}
 	// Arena Guard
-/* - Currently Disabled!
+/* Arena Disabled!
 	if (this.option.arena) {
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i) && this.data[i]) {
-				if (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < now)) {
+			if (Army.get(['Army', i])) {
+				a = Army.get([i, 'arena'], null);
+				if (a !== null && a !== -1 && a < now) {
 					this.runtime.nextarena = i;
 					break;
 				}
 			}
 		}
 		if (!this.runtime.nextarena) {
-			for(i in this.data) {
-				if (!this.runtime.nextarena && (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < Date.now()))) {
-					this.runtime.nextarena = i;
+			list = Army.get('Army');
+			for(i=0; i<list.length; i++) {
+				a = Army.get([list[i], 'arena'], null);
+				if (!a || (a !== -1 && a < now)) {
+					this.runtime.nextarena = list[i];
+					break;
 				}
 			}
 		}
@@ -4196,7 +4283,7 @@ Elite.work = function(state) {
 	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
 		if (state) {
 			debug('Filling army list');
-			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(this.data) + 1) / this.option.armyperpage));
+			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
 			Page.to('army_viewarmy', '?page=' + this.runtime.armylastpage);
 		}
 		return true;
@@ -4207,21 +4294,23 @@ Elite.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(this.data) && !Page.to('army_viewarmy')) {
+	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add Elite Guard member '+this.runtime.nextelite);
+		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
 		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.runtime.nextelite)) {
 			return true;
 		}
 	}
+/* Arena Disabled
 	if ((this.runtime.waitarena + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add Arena Guard member '+this.runtime.nextarena);
+		debug('Add ' + Army.get(['_info', this.runtime.nextarena, 'name'], this.runtime.nextarena) + ' to Arena Guard');
 		if (!Page.to('battle_arena', '?user=' + this.runtime.nextarena + '&lka=' + this.runtime.nextarena + '&agtw=1&ref=nf')) {
 			return true;
 		}
 	}
+*/
 	return false;
 };
 
@@ -5495,7 +5584,7 @@ LevelUp.update = function(type,worker) {
 //		}
 //		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
 	}
-	if (!this.runtime.quests.length) { // No known quests yet...
+	if (this.runtime.quests.length <= 1) { // No known quests yet...
 		runtime.exp_possible = 1;
 	} else if (energy < this.runtime.quests.length) { // Energy from questing
 		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
@@ -7381,7 +7470,7 @@ Quest.update = function(type,worker) {
 			if (quests[i].units) {
 				own = 0, need = 0, noCanDo = false;
 				for (unit in quests[i].units) {
-					own = Town.get([unit, 'own']) || 0;
+					own = Town.get([unit, 'own'], 0);
 					need = quests[i].units[unit];
 					if (need > own) {	// Need more than we own, skip this quest.
 						noCanDo = true;	// set flag

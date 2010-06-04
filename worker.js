@@ -54,7 +54,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._watching		- List of other workers that want to have .update() after this.update()
 
 *** Private functions ***
-._get(what)				- Returns the data requested, auto-loads if needed, what is 'path.to.data'
+._get(what,def)			- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
 ._set(what,val)			- Sets this.data[what] to value, auto-loading if needed
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
@@ -123,7 +123,7 @@ function Worker(name,pages,settings) {
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type,worker){};
-	this.get = function(what) {return this._get(what);}; // Overload if needed
+	this.get = function(what,def) {return this._get(what,def);}; // Overload if needed
 	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
 
 	// Private data
@@ -144,7 +144,7 @@ Worker.prototype._flush = function() {
 	WorkerStack.pop();
 };
 
-Worker.prototype._get = function(what) { // 'path.to.data'
+Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
@@ -155,23 +155,22 @@ Worker.prototype._get = function(what) { // 'path.to.data'
 	}
 	data = this[x.shift()];
 	try {
-		switch(x.length) {
-			case 0: return data;
-			case 1: return data[x[0]];
-			case 2: return data[x[0]][x[1]];
-			case 3: return data[x[0]][x[1]][x[2]];
-			case 4: return data[x[0]][x[1]][x[2]][x[3]];
-			case 5: return data[x[0]][x[1]][x[2]][x[3]][x[4]];
-			case 6: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]];
-			case 7: return data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]];
-			default:break;
-		}
+		return (function(a,b){
+			if (b.length) {
+				var c = b.shift();
+				return arguments.callee(a[c], b);
+			} else {
+				return a;
+			}
+		})(data,x);
 	} catch(e) {
 //		WorkerStack.push(this);
-		debug(e.name + ' in ' + this.name + '.get('+what+'): ' + e.message);
+		if (typeof def === 'undefined') {
+			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
+		}
 //		WorkerStack.pop();
 	}
-	return null;
+	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
 
 Worker.prototype._init = function() {
@@ -249,7 +248,7 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, where;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
@@ -259,18 +258,18 @@ Worker.prototype._set = function(what, value) {
 	}
 	data = this[x.shift()];
 	try {
-		switch(x.length) {
-			case 0: data = value; break; // Nobody should ever do this!!
-			case 1: data[x[0]] = value; break;
-			case 2: data[x[0]][x[1]] = value; break;
-			case 3: data[x[0]][x[1]][x[2]] = value; break;
-			case 4: data[x[0]][x[1]][x[2]][x[3]] = value; break;
-			case 5: data[x[0]][x[1]][x[2]][x[3]][x[4]] = value; break;
-			case 6: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]] = value; break;
-			case 7: data[x[0]][x[1]][x[2]][x[3]][x[4]][x[5]][x[6]] = value; break;
-			default:break;
-		}
-//	      this._save();
+		x.length && (function(a,b){ // Don't allow setting of root data/object/runtime
+			var c = b.shift();
+			if (b.length) {
+				if (typeof a[c] !== 'object') {
+					a[c] = {};
+				}
+				arguments.callee(a[c], b);
+			} else {
+				a[c] = value;
+			}
+		})(data,x);
+//		this._save();
 	} catch(e) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}

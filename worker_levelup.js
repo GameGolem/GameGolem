@@ -155,7 +155,7 @@ LevelUp.update = function(type,worker) {
 //		}
 //		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
 	}
-	if (!this.runtime.quests.length) { // No known quests yet...
+	if (this.runtime.quests.length <= 1) { // No known quests yet...
 		runtime.exp_possible = 1;
 	} else if (energy < this.runtime.quests.length) { // Energy from questing
 		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];

@@ -70,9 +70,11 @@ var makeTimer = function(sec) {
 };
 
 var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
-	for (var i in Workers) {
-		if (i.toLowerCase() === name.toLowerCase()) {
-			return Workers[i];
+	if (typeof name === 'string') {
+		for (var i in Workers) {
+			if (i.toLowerCase() === name.toLowerCase()) {
+				return Workers[i];
+			}
 		}
 	}
 	return null;
@@ -136,7 +138,7 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 	}
 }
 			
-var sum = function (a) { // Adds the values of all array entries together
+var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
 		for(i=0; i<a.length; i++) {
@@ -196,14 +198,14 @@ var arrayLastIndexOf = function(list, value) {
 };
 
 
-var sortObject = function(object, sortfunc) {
+var sortObject = function(obj, sortfunc) {
 	var list = [], output = {};
-	for (i in object) {
+	for (i in obj) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
 	for (i=0; i<list.length; i++) {
-		output[list[i]] = object[list[i]];
+		output[list[i]] = obj[list[i]];
 	}
 	return output;
 };
@@ -264,11 +266,11 @@ var isArray = function(obj) {
 };
 
 var isNumber = function(num) {
-	return num && typeof num === 'number';
+	return typeof num === 'number';
 };
 
 var isWorker = function(obj) {
-	return obj && obj.name && Workers[obj.name] && Workers[obj.name] === obj; // Only a worker if it's an active worker
+	return obj && typeof obj === 'object' && typeof obj.name === 'string' && typeof Workers[obj.name] === 'object' && Workers[obj.name] === obj; // Only a worker if it's an active worker
 };
 
 var plural = function(i) {

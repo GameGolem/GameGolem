@@ -24,7 +24,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Idle'],
+	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,

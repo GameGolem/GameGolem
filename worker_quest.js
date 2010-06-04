@@ -175,7 +175,7 @@ Quest.update = function(type,worker) {
 			if (quests[i].units) {
 				own = 0, need = 0, noCanDo = false;
 				for (unit in quests[i].units) {
-					own = Town.get([unit, 'own']) || 0;
+					own = Town.get([unit, 'own'], 0);
 					need = quests[i].units[unit];
 					if (need > own) {	// Need more than we own, skip this quest.
 						noCanDo = true;	// set flag

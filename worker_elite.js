@@ -49,33 +49,41 @@ Elite.display = [
 ];
 
 Elite.init = function() { // Convert old elite guard list
-	for(i in this.data) {
-		if (typeof this.data[i] === 'number') {
-			this.data[i] = {elite:this.data[i]};
+	this.option.arena = false; // ARENA!!!!!!
+	if (length(this.data)) {
+		for (var i in this.data) {
+			Army.set(['_info', i, 'name'], this.data[i].name);
+			Army.set(['_info', i, 'level'], this.data[i].level);
+			Army.set(['Army', i], true); // Set for people in our actual army
+			this.data[i].elite && Army.set([i, 'elite'], this.data[i].elite);
+//			this.data[i].arena && Army.set([i, 'arena'], this.data[i].arena);
 		}
 	}
-	this.option.arena = false; // ARENA!!!!!!
+	this.data = {}; // Will set to null at some later date
 };
 
 Elite.parse = function(change) {
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text();
+/*Arena disabled
 		if (Elite.runtime.nextarena) {
 			if (txt.match(/has not joined in the Arena!/i)) {
+				Army.set([i, 'arena'], -1);
 				Elite.data[Elite.runtime.nextarena].arena = -1;
 			} else if (txt.match(/Arena Guard, and they have joined/i)) {
-				Elite.data[Elite.runtime.nextarena].arena = Date.now() + 43200000; // 12 hours
+				Army.set([i, 'arena'], Date.now() + 43200000); // 12 hours
 			} else if (txt.match(/'s Arena Guard is FULL/i)) {
-				Elite.data[Elite.runtime.nextarena].arena = Date.now() + 1800000; // half hour
+				Army.set([i, 'arena'], Date.now() + 1800000); // half hour
 			} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
 				Elite.runtime.waitarena = Date.now();
 				debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
 			}
 		}
+*/
 		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 43200000; // 12 hours
+			Army.set([i, 'elite'], Date.now() + 43200000); // 12 hours
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Elite.data[$('img', el).attr('uid')].elite = Date.now() + 1800000; // half hour
+			Army.set([i, 'elite'], Date.now() + 1800000); // half hour
 		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
 			debug('Elite guard full, wait '+Elite.option.every+' hours');
@@ -86,9 +94,9 @@ Elite.parse = function(change) {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			var uid = $(el).attr('uid'), who = $(el).parent().parent().next();
 			count++;
-			Elite.data[uid] = Elite.data[uid] || {};
-			Elite.data[uid].name = $('a', who).text();
-			Elite.data[uid].level = $(who).text().regex(/([0-9]+) Commander/i);
+			Army.set(['Army', uid], true); // Set for people in our actual army
+			Army.set(['_info', uid, 'name'], $('a', who).text());
+			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
 		});
 		if (count < 25) {
 			this.runtime.armyextra = Player.get('armymax') - length(this.data) - 1;
@@ -98,23 +106,27 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function() {
-	var i, j, tmp = [], now = Date.now(), check;
+	var a, i, j, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = this.runtime.nextarena = 0;
 	// Elite Guard
 	if (this.option.elite) {
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i) && this.data[i]) {
-				if (typeof this.data[i].elite !== 'number' || this.data[i].elite < now) {
+			if (Army.get(['Army', i])) {
+				a = Army.get([i, 'elite'], null);
+				if (a !== null && a < now) {
 					this.runtime.nextelite = i;
 					break;
 				}
 			}
 		}
 		if (!this.runtime.nextelite) {
-			for(i in this.data) {
-				if ((typeof this.data[i].elite !== 'number' || this.data[i].elite < now)) {
-					this.runtime.nextelite = i;
+			list = Army.get('Army');
+			for(i=0; i<list.length; i++) {
+				a = Army.get([list[i], 'elite'], null);
+				if (!a || a < now) {
+					this.runtime.nextelite = list[i];
+					break;
 				}
 			}
 		}
@@ -122,21 +134,25 @@ Elite.update = function() {
 		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
 	}
 	// Arena Guard
-/* - Currently Disabled!
+/* Arena Disabled!
 	if (this.option.arena) {
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i) && this.data[i]) {
-				if (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < now)) {
+			if (Army.get(['Army', i])) {
+				a = Army.get([i, 'arena'], null);
+				if (a !== null && a !== -1 && a < now) {
 					this.runtime.nextarena = i;
 					break;
 				}
 			}
 		}
 		if (!this.runtime.nextarena) {
-			for(i in this.data) {
-				if (!this.runtime.nextarena && (typeof this.data[i].arena !== 'number' || (this.data[i].arena !== -1 && this.data[i].arena < Date.now()))) {
-					this.runtime.nextarena = i;
+			list = Army.get('Army');
+			for(i=0; i<list.length; i++) {
+				a = Army.get([list[i], 'arena'], null);
+				if (!a || (a !== -1 && a < now)) {
+					this.runtime.nextarena = list[i];
+					break;
 				}
 			}
 		}
@@ -152,7 +168,7 @@ Elite.work = function(state) {
 	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
 		if (state) {
 			debug('Filling army list');
-			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(this.data) + 1) / this.option.armyperpage));
+			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
 			Page.to('army_viewarmy', '?page=' + this.runtime.armylastpage);
 		}
 		return true;
@@ -163,21 +179,23 @@ Elite.work = function(state) {
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(this.data) && !Page.to('army_viewarmy')) {
+	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add Elite Guard member '+this.runtime.nextelite);
+		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
 		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.runtime.nextelite)) {
 			return true;
 		}
 	}
+/* Arena Disabled
 	if ((this.runtime.waitarena + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add Arena Guard member '+this.runtime.nextarena);
+		debug('Add ' + Army.get(['_info', this.runtime.nextarena, 'name'], this.runtime.nextarena) + ' to Arena Guard');
 		if (!Page.to('battle_arena', '?user=' + this.runtime.nextarena + '&lka=' + this.runtime.nextarena + '&agtw=1&ref=nf')) {
 			return true;
 		}
 	}
+*/
 	return false;
 };
 
