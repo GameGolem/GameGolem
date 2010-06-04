@@ -1273,15 +1273,21 @@ var arrayLastIndexOf = function(list, value) {
 	return -1;
 };
 
-
-var sortObject = function(obj, sortfunc) {
+var sortObject = function(obj, sortfunc, deep) {
 	var list = [], output = {};
+	if (typeof deep === 'undefined') {
+		deep = false;
+	}
 	for (i in obj) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
 	for (i=0; i<list.length; i++) {
-		output[list[i]] = obj[list[i]];
+		if (deep && typeof obj[list[i]] === 'object') {
+			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
+		} else {
+			output[list[i]] = obj[list[i]];
+		}
 	}
 	return output;
 };
@@ -4007,7 +4013,7 @@ Battle.dashboard = function(sort, rev) {
 		data = this.data.user[this.order[o]];
 		output = [];
 		td(output, '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">', 'title="' + this.demi[data.align] + '"');
-		th(output, data.name, 'title="'+i+'"');
+		th(output, data.name, 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
@@ -4479,7 +4485,7 @@ Generals.to = function(name) {
 
 Generals.best = function(type) {
 	this._unflush();
-	var rx = '', best = null, bestval = 0, i, value, list = [];
+	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
 	if (iscaap()) {
 		var caapGenerals = {
 			'BuyGeneral':			'cost',
@@ -4520,81 +4526,66 @@ Generals.best = function(type) {
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 		case 'bank':		return 'Aeris';
 		case 'invade':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && Generals.data[i].invade.att > Generals.data[best].invade.att) || (Generals.data[i].invade && Generals.data[i].invade.att === Generals.data[best].invade.att && best !== Player.get('general'))) {
+			for (i in this.data) {
+				if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'duel':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.att > Generals.data[best].duel.att) || (Generals.data[i].duel && Generals.data[i].duel.att === Generals.data[best].duel.att && best !== Player.get('general'))) {
+			for (i in this.data) {
+				if (!best || (this.data[i].duel && this.data[i].duel.att > this.data[best].duel.att) || (this.data[i].duel && this.data[i].duel.att === this.data[best].duel.att && best !== current)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'raid-invade':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].invade && (Generals.data[i].invade.att) > (Generals.data[best].invade.att))) {
+			for (i in this.data) {
+				if (!best || (this.data[i].invade && (this.data[i].invade.att) > (this.data[best].invade.att))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'raid-duel':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && (Generals.data[i].duel.att) > (Generals.data[best].duel.att))) {
+			for (i in this.data) {
+				if (!best || (this.data[i].duel && (this.data[i].duel.att) > (this.data[best].duel.att))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'monster':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].monster && Generals.data[i].monster.att > Generals.data[best].monster.att)) {
+			for (i in this.data) {
+				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'dispel':
 		case 'fortify':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].monster && Generals.data[i].monster.def > Generals.data[best].monster.def)) {
+			for (i in this.data) {
+				if (!best || (this.data[i].monster && this.data[i].monster.def > this.data[best].monster.def)) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'defend':
-			for (i in Generals.data) {
-				if (!best || (Generals.data[i].duel && Generals.data[i].duel.def > Generals.data[best].duel.def) || (Generals.data[i].duel && Generals.data[i].duel.def === Generals.data[best].duel.def && best !== Player.get('general'))) {
+			for (i in this.data) {
+				if (!best || (this.data[i].duel && (this.data[i].duel.def > this.data[best].duel.def) || (this.data[i].duel.def === this.data[best].duel.def && best !== current))) {
 					best = i;
 				}
 			}
 			return (best || 'any');
 		case 'under level 4':
-/*			if (Generals.data[Player.get('general')] && Generals.data[Player.get('general')].level < 4) {
-				return Player.get('general');
-			}
-			best = 0;
-			for (i in Generals.data) {
-				if (Generals.data[i].level < 4) {
-					best = Math.max(best, (this.data[i].used || 0));
-				}
-			}
-			for (i in Generals.data) {
-				if ((Generals.data[i].used || 0) === best) {
-					list.push(i);
-				}
-			}
-			return list.length ? list[Math.floor(Math.random()*list.length)] : 'any';*/
-			for (i in Generals.data){
-				if (Generals.data[i].priority == 1){
+			for (i in this.data){
+				if (this.data[i].priority == 1){
 					return i;
 				}
 			}
 		default:
 			return 'any';
 	}
-	for (i in Generals.data) {
-		value = Generals.data[i].skills.regex(rx);
+	for (i in this.data) {
+		value = this.data[i].skills.regex(rx);
 		if (value) {
 			if (!best || value>bestval) {
 				best = i;

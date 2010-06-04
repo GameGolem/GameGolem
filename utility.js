@@ -197,15 +197,21 @@ var arrayLastIndexOf = function(list, value) {
 	return -1;
 };
 
-
-var sortObject = function(obj, sortfunc) {
+var sortObject = function(obj, sortfunc, deep) {
 	var list = [], output = {};
+	if (typeof deep === 'undefined') {
+		deep = false;
+	}
 	for (i in obj) {
 		list.push(i);
 	}
 	list.sort(sortfunc);
 	for (i=0; i<list.length; i++) {
-		output[list[i]] = obj[list[i]];
+		if (deep && typeof obj[list[i]] === 'object') {
+			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
+		} else {
+			output[list[i]] = obj[list[i]];
+		}
 	}
 	return output;
 };
