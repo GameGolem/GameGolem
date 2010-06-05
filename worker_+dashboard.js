@@ -26,7 +26,11 @@ Dashboard.init = function() {
 			if (!active) {
 				this.option.active = active = id;
 			}
-			tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
+			if (Workers[i] === this) { // Dashboard always comes first with the * tab
+				tabs.unshift('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+			} else {
+				tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
+			}
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i]);
 		}

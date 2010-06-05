@@ -17,6 +17,12 @@ Army.option = {
 	forget:14// Number of days to remember any userid
 };
 
+Army.runtime = {
+	update:{},// WorkerName:true, cleared in Army.update() as we poll each in turn
+	// Dashboard defaults:
+	sort:0,rev:false,show:'_info'
+};
+
 Army.display = [
 	{
 		id:'forget',
@@ -27,55 +33,75 @@ Army.display = [
 	}
 ];
 
+Army.update = function(type,worker) {
+	if (type === 'data' && !worker) {
+		var i;
+		for (i in this.runtime.update) {
+			if (this.runtime.update[i]) {
+				Workers[i]._update(type, this);
+				this.runtime.update[i] = false;
+			}
+		}
+	}
+};
+
+Army.init = function() {
+	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><img src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82"><p></p></div>');
+	$('#golem-army-tooltip > img').click(function(){$('#golem-army-tooltip').hide()});
+};
+
 // what = ['worker', userID, key ...]
 Army.set = function(what, value) {
 	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null;
-	// Worker first - if we want to pass a different ID then feel free
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._set(x, value);// Pasthrough
 	}
+	// Section first - either string id, worker.name, or current_worker.name
 	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		worker = x.shift();
+		section = x.shift();
 	} else if (isWorker(x[0])) {
-		worker = x.shift().name;
+		section = x.shift().name;
 	} else {
-		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!worker || !uid) { // Must have both worker name and userID to continue
+	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
-//	log('this._set(\'data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+//	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+	if (typeof Workers[section] !== 'undefined') {
+		this.runtime.update[section] = true;
+	}
 	this._set('data.' + uid + '._last', Date.now()); // Remember when it was last accessed
-	this._set('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), value);
+	this._set('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), value);
 };
 
-// what = [] (for list of uids that this worker knows about), ['worker', userID, key ...]
+// what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
 	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null, list, i;
-	// Worker first - if we want to pass a different ID then feel free
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list, i;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
+	// Section first - either string id, worker.name, or current_worker.name
 	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		worker = x.shift();
+		section = x.shift();
 	} else if (isWorker(x[0])) {
-		worker = x.shift().name;
+		section = x.shift().name;
 	} else {
-		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
-	// No userid, so return a list of userid's used by this worker
-	if (worker && x.length === 0) {
+	// No userid, so return a list of userid's used by this section
+	if (section && x.length === 0) {
 		list = [];
 		for (i in this.data) {
-			if (typeof this.data[i][worker] !== 'undefined') {
+			if (typeof this.data[i][section] !== 'undefined') {
 				list.push(i);
 			}
 		}
@@ -85,86 +111,116 @@ Army.get = function(what, def) {
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!worker || !uid) { // Must have both worker name and userID to continue
+	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
-	this._set('data.' + uid + '_last', Date.now()); // Remember when it was last accessed
-	return this._get('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), def);
+	this._set('data.' + uid + '._last', Date.now()); // Remember when it was last accessed
+	return this._get('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), def);
 };
-/*
+
+Army.info_callback = function(type, data, uid) {
+	switch(type) {
+		default:		return '';
+		case 'key':		return '_info';
+		case 'name':	return 'Name';
+		case 'label':	return data[uid]['_info']['name'] || uid;
+		case 'sort':	return data[uid]['_info'] ? data[uid]['_info']['name'] : '';
+		case 'tooltip':
+			return 'Name: ' + (data[uid]['_info']['name'] || '');
+			break;
+	}
+};
+
+Army.sectionlist = [
+	Army.info_callback
+];
+Army.section = function(name, callback) {
+	// Add a section to the dashboard.
+	// callback = function(type, data), returns text or html string
+	// type = 'id', 'sort', 'tooltip'
+	this.sectionlist.push(callback);
+};
+
 Army.order = [];
 Army.dashboard = function(sort, rev) {
-	var i, o, list = [], output = [];
-	if (typeof sort === 'undefined') {
+	var i, j, show = this.runtime.show, list = [], output = [], tmp = [];
+	if ($('#golem-dashboard-Army select').length) {
+		show = $('#golem-dashboard-Army select').attr('value');
+		if (show === 'All') {
+			show = '_info';
+		}
+	}
+	if (typeof sort === 'undefined' || 	this.runtime.show !== show) {
 		this.order = [];
 		for (i in this.data) {
-			this.order.push(i);
+			if (typeof this.data[i][show] !== 'undefined') {
+				this.order.push(i);
+			}
 		}
+		this.runtime.show = show;
 	}
-	if (typeof sort === 'undefined') {
-		sort = (this.runtime.sort || 1);
+	for (i in this.sectionlist) {
+		th(output, this.sectionlist[i]('name'));
+		j = this.sectionlist[i]('key');
+		tmp.push('<option value="' + j + '"' + (j == show ? ' selected' : '') + '>' + (j === '_info' ? 'All' : this.sectionlist[i]('name')) + '</option>');
 	}
-	if (typeof rev === 'undefined'){
-		rev = (this.runtime.rev || false);
+	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
+		this.runtime.sort = sort = typeof sort !== 'undefined' ? sort : (this.runtime.sort || 0);
+		this.runtime.rev = rev = typeof rev !== 'undefined' ? rev : (this.runtime.rev || false);
+		this.order.sort(function(a,b) {
+			var aa = 0, bb = 0;
+			try {
+				aa = sectionlist[sort]('sort', Army.data, a);
+			} catch(e){}
+			try {
+				bb = sectionlist[sort]('sort', Army.data, b);
+			} catch(e){}
+			if (typeof aa === 'string' || typeof bb === 'string') {
+				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			}
+			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
+		});
 	}
-	this.runtime.sort = sort;
-	this.runtime.rev = rev;
-	function getValue(q){
-		switch(sort) {
-			case 0:	// general
-				return Army.data[q].general || 'zzz';
-			case 1: // name
-				return q;
-			case 2: // area
-				return typeof Army.data[q].land === 'number' && typeof Army.land[Army.data[q].land] !== 'undefined' ? Army.land[Army.data[q].land] : Army.area[Army.data[q].area];
-			case 3: // level
-				return (typeof Army.data[q].level !== 'undefined' ? Army.data[q].level : -1) * 100 + (Army.data[q].influence || 0);
-			case 4: // energy
-				return Army.data[q].energy;
-			case 5: // exp
-				return Army.data[q].exp / Army.data[q].energy;
-			case 6: // reward
-				return Army.data[q].reward / Army.data[q].energy;
-			case 7: // item
-				return Army.data[q].item || 'zzz';
-		}
-		return 0; // unknown
-	}
-	this.order.sort(function(a,b) {
-		var aa = getValue(a), bb = getValue(b);
-		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
-		}
-		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
-	});
-	th(output, 'General');
-	th(output, 'Name');
-	th(output, 'Area');
-	th(output, 'Level');
-	th(output, 'Energy');
-	th(output, '@&nbsp;Exp');
-	th(output, '@&nbsp;Reward');
-	th(output, 'Item');
+	list.push('Show <select>' + tmp.join('') + '</select> - still very beta, so have patience...');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
-	for (o=0; o<this.order.length; o++) {
-		i = this.order[o];
+	for (j=0; j<this.order.length; j++) {
 		output = [];
-		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
-		th(output, i);
-		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
-		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
-		td(output, this.data[i].energy);
-		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
-		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
-		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
-		tr(list, output.join(''), 'style="height:25px;"');
+		for (i in this.sectionlist) {
+			try {
+				if (typeof this.data[this.order[j]][this.sectionlist[i]('key')] !== 'undefined') {
+					td(output, '<a>' + this.sectionlist[i]('label', this.data, this.order[j]) + '</a>');
+				} else {
+					td(output, '');
+				}
+			} catch(e) {
+				debug(e.name + ' in Army.dashboard(): ' + i + '("label"): ' + e.message);
+				td(output, '');
+			}
+		}
+		tr(list, output.join(''));//, 'style="height:25px;"');
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Army').html(list.join(''));
-	$('#golem-dashboard-Army tbody tr td:nth-child(2)').css('text-align', 'left');
-	if (typeof sort !== 'undefined') {
-		$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	}
+	$('#golem-dashboard-Army select').change(function(e){Army._unflush();Army.dashboard();});// Force a redraw
+	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	$('#golem-dashboard-Army tbody td a').click(function(e){
+		e.stopPropagation();
+		var $this, tooltip;
+		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
+		try {
+			Army._unflush();
+			tooltip = Army.sectionlist[$this.index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
+			if (tooltip) {
+				$('#golem-army-tooltip > p').html(tooltip);
+				$('#golem-army-tooltip').css({
+					top:($this.offset().top + $this.height()),
+					left:$this.closest('td').offset().left
+				}).show();
+			}
+		} catch(e) {
+			debug(e.name + ' in Army.dashboard(): ' + (Army.sectionlist ? Army.sectionlist[$this.index()]('name') : 'unknown') + '("tooltip"): ' + e.message);
+		}
+		return false;
+	});
 };
-*/
 
