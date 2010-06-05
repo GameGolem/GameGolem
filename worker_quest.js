@@ -106,6 +106,7 @@ Quest.parse = function(change) {
 		quest[name] = {};
 		quest[name].area = area;
 		quest[name].type = type;
+		quest[name].id = parseInt($('input[name="quest"]', el).val());
 		if (typeof land === 'number') {
 			quest[name].land = land;
 		}
@@ -306,7 +307,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	debug('Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"], div.action[title^="' + best + ' :"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click($('input[name="quest"][value="' + this.data[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();

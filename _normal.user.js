@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "523";
+var revision = "524";
 // User changeable
 var show_debug = true;
 
@@ -909,6 +909,10 @@ Army.option = {
 	forget:14// Number of days to remember any userid
 };
 
+Army.runtime = {
+	update:{}// WorkerName:true, cleared in Army.update() as we poll each in turn
+};
+
 Army.display = [
 	{
 		id:'forget',
@@ -919,55 +923,70 @@ Army.display = [
 	}
 ];
 
+Army.update = function(type,worker) {
+	if (type === 'data' && !worker) {
+		var i;
+		for (i in this.runtime.update) {
+			if (this.runtime.update[i]) {
+				Workers[i]._update(type, this);
+				this.runtime.update[i] = false;
+			}
+		}
+	}
+};
+
 // what = ['worker', userID, key ...]
 Army.set = function(what, value) {
 	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null;
-	// Worker first - if we want to pass a different ID then feel free
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._set(x, value);// Pasthrough
 	}
+	// Section first - either string id, worker.name, or current_worker.name
 	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		worker = x.shift();
+		section = x.shift();
 	} else if (isWorker(x[0])) {
-		worker = x.shift().name;
+		section = x.shift().name;
 	} else {
-		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!worker || !uid) { // Must have both worker name and userID to continue
+	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
-//	log('this._set(\'data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+//	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+	if (typeof Workers[section] !== 'undefined') {
+		this.runtime.update[section] = true;
+	}
 	this._set('data.' + uid + '._last', Date.now()); // Remember when it was last accessed
-	this._set('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), value);
+	this._set('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), value);
 };
 
-// what = [] (for list of uids that this worker knows about), ['worker', userID, key ...]
+// what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
 	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), worker = null, uid = null, list, i;
-	// Worker first - if we want to pass a different ID then feel free
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list, i;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
+	// Section first - either string id, worker.name, or current_worker.name
 	x[0] === 'data' && x.shift();// "data" is an illegal section
 	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		worker = x.shift();
+		section = x.shift();
 	} else if (isWorker(x[0])) {
-		worker = x.shift().name;
+		section = x.shift().name;
 	} else {
-		worker = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
-	// No userid, so return a list of userid's used by this worker
-	if (worker && x.length === 0) {
+	// No userid, so return a list of userid's used by this section
+	if (section && x.length === 0) {
 		list = [];
 		for (i in this.data) {
-			if (typeof this.data[i][worker] !== 'undefined') {
+			if (typeof this.data[i][section] !== 'undefined') {
 				list.push(i);
 			}
 		}
@@ -977,13 +996,13 @@ Army.get = function(what, def) {
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!worker || !uid) { // Must have both worker name and userID to continue
+	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
 	this._set('data.' + uid + '_last', Date.now()); // Remember when it was last accessed
-	return this._get('data.' + uid + '.' + worker + (x.length ? '.' + x.join('.') : ''), def);
+	return this._get('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), def);
 };
-/*
+/* Copied Quest code for now...
 Army.order = [];
 Army.dashboard = function(sort, rev) {
 	var i, o, list = [], output = [];
@@ -1912,7 +1931,8 @@ Page.defaults = {
 			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+//			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -6605,6 +6625,7 @@ Quest.parse = function(change) {
 		quest[name] = {};
 		quest[name].area = area;
 		quest[name].type = type;
+		quest[name].id = parseInt($('input[name="quest"]', el).val());
 		if (typeof land === 'number') {
 			quest[name].land = land;
 		}
@@ -6805,7 +6826,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	debug('Performing - ' + best + ' (energy: ' + this.data[best].energy + ')');
-	if (!Page.click('div.action[title^="' + best + ':"] input[type="image"], div.action[title^="' + best + ' :"] input[type="image"]')) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click($('input[name="quest"][value="' + this.data[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
 		Page.reload();
