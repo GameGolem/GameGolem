@@ -2219,13 +2219,14 @@ Config.makePanel = function(worker) {
 			}
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '</div>');
 			return $head;
-//		case 'function':
-//			$panel = display();
-//			if ($panel) {
-//				$head.append($panel);
-//				return $head;
-//			}
-//			return null;
+		case 'function':
+			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
+			try {
+				$('.golem-panel-content', $head).append(display());
+			} catch(e) {
+				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
+			}
+			return $head;
 		default:
 			return null;
 	}
@@ -3729,7 +3730,6 @@ Battle.option = {
 	points:true,
 	monster:true,
 	arena:false,
-	war:false,
 	losses:5,
 	type:'Invade',
 	bp:'Always',
@@ -3766,7 +3766,8 @@ Battle.display = [
 	},{
 		id:'type',
 		label:'Battle Type',
-		select:['Invade', 'Duel']
+		select:['Invade', 'Duel', 'War'],
+		help:'War needs level 150+, and is similar to Duel - though also uses 10 stamina'
 	},{
 		id:'losses',
 		label:'Attack Until',
@@ -3776,12 +3777,6 @@ Battle.display = [
 		id:'points',
 		label:'Always Get Demi-Points',
 		checkbox:true
-	},{
-		advanced:true,
-		id:'war',
-		label:'Dual in WAR',
-		checkbox:true,
-		help:'You must be above level 150, and uses 10 stamina per attack!'
 	},{
 //		advanced:true,
 //		id:'arena',
@@ -4025,7 +4020,7 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < 1) {
+	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < (this.option.type === 'War' ? 10 : 1)) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}

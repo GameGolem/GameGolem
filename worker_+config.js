@@ -267,12 +267,13 @@ Config.makePanel = function(worker) {
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '</div>');
 			return $head;
 		case 'function':
-			panel = display();
-			if (panel) {
-				$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel + '</div>');
-				return $head;
+			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
+			try {
+				$('.golem-panel-content', $head).append(display());
+			} catch(e) {
+				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
 			}
-			return null;
+			return $head;
 		default:
 			return null;
 	}
