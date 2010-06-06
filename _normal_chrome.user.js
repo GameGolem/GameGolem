@@ -3747,10 +3747,6 @@ Alchemy.work = function(state) {
 var Bank = new Worker('Bank');
 Bank.data = null;
 
-Bank.settings = {
-	after:['Land','Town']
-};
-
 Bank.defaults['castle_age'] = {};
 
 Bank.option = {
@@ -3805,7 +3801,6 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	!iscaap() && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -4760,7 +4755,6 @@ Generals.best = function(type) {
 		case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
 		case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
 		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
-		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 		case 'bank':		return 'Aeris';
@@ -4793,6 +4787,13 @@ Generals.best = function(type) {
 			}
 			return (best || 'any');
 		case 'monster':
+			for (i in this.data) {
+				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
+					best = i;
+				}
+			}
+			return (best || 'any');
+		case 'attack':
 			for (i in this.data) {
 				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
 					best = i;

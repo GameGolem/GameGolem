@@ -219,7 +219,6 @@ Generals.best = function(type) {
 		case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
 		case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
 		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
-		case 'attack':		rx = /([-+]?[0-9]+) Player Attack/i; break;
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 		case 'bank':		return 'Aeris';
@@ -252,6 +251,13 @@ Generals.best = function(type) {
 			}
 			return (best || 'any');
 		case 'monster':
+			for (i in this.data) {
+				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
+					best = i;
+				}
+			}
+			return (best || 'any');
+		case 'attack':
 			for (i in this.data) {
 				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
 					best = i;
