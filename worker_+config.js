@@ -161,7 +161,7 @@ Config.makePanel = function(worker) {
 				list = [];
 				o = $.extend(true, {}, options, display[i]);
 				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
-				o.value = worker.get('option.'+o.id) || null;
+				o.value = worker.get('option.'+o.id, null);
 				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 				if (o.hr) {
 					txt.push('<br><hr style="clear:both;margin:0;">');
@@ -188,7 +188,7 @@ Config.makePanel = function(worker) {
 						txt.push(o.info);
 					}
 				} else if (o.text) {
-					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || '') + '">');
+					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 				} else if (o.textarea) {
 					txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
 				} else if (o.checkbox) {
@@ -353,7 +353,7 @@ Config.updateOptions = function() {
 				$('option', el).each(function(i,el){ val.push($(el).text()); });
 			} else {
 				val = $(el).attr('value') || ($(el).val() || null);
-				if (val && val.search(/[^0-9.]/) === -1) {
+				if (val && val.search(/[^-0-9.]/) === -1) {
 					val = parseFloat(val);
 				}
 			}
@@ -379,7 +379,6 @@ Config.updateOptions = function() {
 		} else {
 			$(el).hide();
 		}
-		log('Checking require: ' + (typeof require === 'object' ? require.toSource() : require));
 	});
 	for (i in Workers) {
 		Workers[i]._save('option');
