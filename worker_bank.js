@@ -4,10 +4,6 @@
 var Bank = new Worker('Bank');
 Bank.data = null;
 
-Bank.settings = {
-	after:['Land','Town']
-};
-
 Bank.defaults['castle_age'] = {};
 
 Bank.option = {
