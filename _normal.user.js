@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "530";
+var revision = "532";
 // User changeable
 var show_debug = true;
 
@@ -2910,6 +2910,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
+	!iscaap() && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -5107,6 +5108,11 @@ Monster.display = [
 {
     title:'Fortification'
 },{
+    id:'fortify_active',
+    label:'Fortify Active',
+    checkbox:true,
+    help:'Must be checked to fortify.'
+},{
     id:'fortify',
     label:'Fortify Below (AB)',
     text:30,
@@ -5124,10 +5130,15 @@ Monster.display = [
     help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
     after:'%'
 },{
-    id:'fortify_active',
-    label:'Fortify Active',
-    checkbox:true,
-    help:'Must be checked to fortify.'
+    id:'minenergy',
+    label:'Min Energy Cost',
+    select:[10,20,40,100],
+    help:'Select the minimum energy for a single energy action'
+},{
+    id:'maxenergy',
+    label:'Max Energy Cost',
+    select:[10,20,40,100],
+    help:'Select the maximum energy for a single energy action'
 },{
     title:'Who To Fight'
 },{
@@ -5146,26 +5157,6 @@ Monster.display = [
     select:['Never', 'Achievement', 'Loot'],
     help:'Select when to stop attacking a target.'
 },{
-    id:'maxstamina',
-    label:'Max Stamina Cost',
-    select:[1,5,10,20,50],
-    help:'Select the maximum stamina for a single attack'
-},{
-    id:'minstamina',
-    label:'Min Stamina Cost',
-    select:[1,5,10,20,50],
-    help:'Select the minimum stamina for a single attack'
-},{
-    id:'maxenergy',
-    label:'Max Energy Cost',
-    select:[10,20,40,100],
-    help:'Select the maximum energy for a single energy action'
-},{
-    id:'minenergy',
-    label:'Min Energy Cost',
-    select:[10,20,40,100],
-    help:'Select the minimum energy for a single energy action'
-},{
     advanced:true,
     id:'own',
     label:'Never stop on Your Monsters',
@@ -5173,22 +5164,33 @@ Monster.display = [
     help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 },{
     advanced:true,
-    id:'avoid_behind',
-    label:'Avoid Upside-Down Monsters',
+    id:'behind_override',
+    label:'Rescue failing monsters',
     checkbox:true,
-    help:'Avoid Monsters that behind in ETD as compared to CA Timer.'
+    help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
+},{
+    advanced:true,
+    id:'avoid_behind',
+    label:'Avoid Lost-cause Monsters',
+    checkbox:true,
+    help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 },{
     advanced:true,
     id:'avoid_hours',
-    label:'Upside-Down Hours',
+    label:'Lost-cause if ETD is',
+    after:'hours after timer',
     text:true,
     help:'# of Hours Monster must be behind before preventing attacks.'
 },{
-    advanced:true,
-    id:'behind_override',
-    label:'Stop Override',
-    checkbox:true,
-    help:'Continue attacking monsters that meet Stop option but are upside-down (Kill In greater than Time Left). Attempts to bring Kill In below Time Left if damage is at or above Stop Option. Works in coordination with Avoid Upside-Down Monsters)'
+    id:'minstamina',
+    label:'Min Stamina Cost',
+    select:[1,5,10,20,50],
+    help:'Select the minimum stamina for a single attack'
+},{
+    id:'maxstamina',
+    label:'Max Stamina Cost',
+    select:[1,5,10,20,50],
+    help:'Select the maximum stamina for a single attack'
 },{
     title:'Raids'
 },{
