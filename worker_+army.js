@@ -20,7 +20,7 @@ Army.option = {
 Army.runtime = {
 	update:{},// WorkerName:true, cleared in Army.update() as we poll each in turn
 	// Dashboard defaults:
-	sort:0,rev:false,show:'_info'
+	sort:0,rev:false,show:0,info:'uid'
 };
 
 Army.display = [
@@ -46,8 +46,8 @@ Army.update = function(type,worker) {
 };
 
 Army.init = function() {
-	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><img src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82"><p></p></div>');
-	$('#golem-army-tooltip > img').click(function(){$('#golem-army-tooltip').hide()});
+	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
+	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
 };
 
 // what = ['worker', userID, key ...]
@@ -118,20 +118,46 @@ Army.get = function(what, def) {
 	return this._get('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), def);
 };
 
+Army.name_callback = function(type, data, uid) {
+	switch(type) {
+		default:		return null;
+		case 'key':		return '_info';
+//		case 'show':	return 'All';
+		case 'name':	return 'Name';
+		case 'label':
+		case 'sort':	return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
+//		case 'tooltip':	return null;
+	}
+};
 Army.info_callback = function(type, data, uid) {
 	switch(type) {
-		default:		return '';
+		default:		return null;
 		case 'key':		return '_info';
-		case 'name':	return 'Name';
-		case 'label':	return data[uid]['_info']['name'] || uid;
-		case 'sort':	return data[uid]['_info'] ? data[uid]['_info']['name'] : '';
+		case 'name':	return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';
+		case 'show':	return 'Info';
+		case 'label':
+		case 'sort':
+			switch (Army.runtime.info) {
+				default:
+					return typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
+				case 'uid':
+					return uid;
+			}
+		case 'has_tooltip':
+			return true;
 		case 'tooltip':
-			return 'Name: ' + (data[uid]['_info']['name'] || '');
+			return '<b>Name:</b> ' + (data[uid]['_info']['name'] || '');
 			break;
 	}
 };
 
+Army.infolist = {
+	'UserID':'uid',
+	'Level':'level',
+	'Army':'army'
+};
 Army.sectionlist = [
+	Army.name_callback,
 	Army.info_callback
 ];
 Army.section = function(name, callback) {
@@ -143,37 +169,47 @@ Army.section = function(name, callback) {
 
 Army.order = [];
 Army.dashboard = function(sort, rev) {
-	var i, j, show = this.runtime.show, list = [], output = [], tmp = [];
-	if ($('#golem-dashboard-Army select').length) {
-		show = $('#golem-dashboard-Army select').attr('value');
-		if (show === 'All') {
-			show = '_info';
-		}
+	var i, j, k, show = this.runtime.show, info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
+	if ($('#golem-army-show').length) {
+		show = parseInt($('#golem-army-show').attr('value'));
 	}
-	if (typeof sort === 'undefined' || 	this.runtime.show !== show) {
-		this.order = [];
-		for (i in this.data) {
-			if (typeof this.data[i][show] !== 'undefined') {
-				this.order.push(i);
-			}
-		}
+	if ($('#golem-army-info').length) {
+		info = $('#golem-army-info').attr('value');
+	}
+	if (typeof sort === 'undefined' || this.runtime.show !== show || this.runtime.info !== info) {
 		this.runtime.show = show;
+		this.runtime.info = info;
+		this.order = [];
+		k = this.sectionlist[show]('key');
+		for (i in this.data) {
+			try {
+				if (typeof this.data[i][k] !== 'undefined' && this.sectionlist[show]('label', Army.data, i) && this.sectionlist[show]('label', Army.data, i) !== '') {
+					this.order.push(i);
+				}
+			} catch(e){log('add failed')}
+		}
 	}
 	for (i in this.sectionlist) {
 		th(output, this.sectionlist[i]('name'));
-		j = this.sectionlist[i]('key');
-		tmp.push('<option value="' + j + '"' + (j == show ? ' selected' : '') + '>' + (j === '_info' ? 'All' : this.sectionlist[i]('name')) + '</option>');
+		k = this.sectionlist[i]('show');
+		if (k && k!== '') {
+			showsection.push('<option value="' + i + '"' + (i == show ? ' selected' : '') + '>' + k + '</option>');
+		}
 	}
+	for (i in this.infolist) {
+		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] == info ? ' selected' : '') + '>' + i + '</option>');
+	}
+	list.push('Limit entries to <select id="golem-army-show">' + showsection.join('') + '</select> ... Info: <select id="golem-army-info">' + showinfo.join('') + '</select>');
 	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
 		this.runtime.sort = sort = typeof sort !== 'undefined' ? sort : (this.runtime.sort || 0);
 		this.runtime.rev = rev = typeof rev !== 'undefined' ? rev : (this.runtime.rev || false);
 		this.order.sort(function(a,b) {
 			var aa = 0, bb = 0;
 			try {
-				aa = sectionlist[sort]('sort', Army.data, a);
+				aa = Army.sectionlist[sort]('sort', Army.data, a);
 			} catch(e){}
 			try {
-				bb = sectionlist[sort]('sort', Army.data, b);
+				bb = Army.sectionlist[sort]('sort', Army.data, b);
 			} catch(e){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
@@ -181,14 +217,18 @@ Army.dashboard = function(sort, rev) {
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
 	}
-	list.push('Show <select>' + tmp.join('') + '</select> - still very beta, so have patience...');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (j=0; j<this.order.length; j++) {
 		output = [];
 		for (i in this.sectionlist) {
 			try {
 				if (typeof this.data[this.order[j]][this.sectionlist[i]('key')] !== 'undefined') {
-					td(output, '<a>' + this.sectionlist[i]('label', this.data, this.order[j]) + '</a>');
+					k = this.sectionlist[i]('label', this.data, this.order[j]);
+					if (this.sectionlist[i]('has_tooltip') && k && k !== '') {
+						td(output, '<a>' + k + '</a>');
+					} else {
+						td(output, k || '');
+					}
 				} else {
 					td(output, '');
 				}
@@ -201,16 +241,17 @@ Army.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Army').html(list.join(''));
+	$('#golem-dashboard-Army td:first-child,#golem-dashboard-Army th:first-child').css('text-align', 'left');
 	$('#golem-dashboard-Army select').change(function(e){Army._unflush();Army.dashboard();});// Force a redraw
 	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-dashboard-Army tbody td a').click(function(e){
+	$('#golem-dashboard-Army td a').click(function(e){
 		e.stopPropagation();
 		var $this, tooltip;
 		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
 		try {
 			Army._unflush();
-			tooltip = Army.sectionlist[$this.index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
-			if (tooltip) {
+			tooltip = Army.sectionlist[$this.closest('td').index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
+			if (tooltip && tooltip !== '') {
 				$('#golem-army-tooltip > p').html(tooltip);
 				$('#golem-army-tooltip').css({
 					top:($this.offset().top + $this.height()),

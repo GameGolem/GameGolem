@@ -63,11 +63,17 @@ Elite.init = function() { // Convert old elite guard list
 
 	Army.section('Elite', function(type, data, uid) {
 		switch(type) {
-			default:		return '';
-			case 'key':		return 'Elite';
-			case 'name':	return 'Elite';
-			case 'label':	return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
-			case 'sort':	return data[uid]['Elite']['elite'];
+			default:		return null;
+			case 'key':
+			case 'name':
+			case 'show':
+				return 'Elite';
+			case 'label':
+				return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
+			case 'sort':
+				return typeof data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
+			case 'has_tooltip':
+				return true;
 			case 'tooltip':
 				return 'Added: ' + (data[uid]['_info']['name'] || '');
 				break;

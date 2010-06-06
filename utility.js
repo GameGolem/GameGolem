@@ -166,14 +166,25 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 };
 
 var findInArray = function(list, value) {
-	if (typeof list === 'array' || typeof list === 'object') {
-		for (var i in list) {
+	if (isArray(list)) {
+		for (var i=0; i<list.length; i++) {
 			if (list[i] === value) {
 				return true;
 			}
 		}
 	}
 	return false;
+};
+
+var findInObject = function(list, value) {
+	if (typeof list === 'object') {
+		for (var i in list) {
+			if (list[i] == value) {
+				return i;
+			}
+		}
+	}
+	return null;
 };
 
 var arrayIndexOf = function(list, value) {

@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "525";
+var revision = "526";
 // User changeable
 var show_debug = true;
 
@@ -125,9 +125,7 @@ $('head').append("<style type=\"text/css\">\
 .red { background: red !important; }\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
-.golem-tooltip > img { float: right; background: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0E%00%00%00%0E%08%03%00%00%00(%96%DD%E3%00%00%00%F9PLTE%B7HH%85HG%E1%9F%A9%B6HH%DEjJ%E1gt%D3%98%9E%D3eF%E1%83%8F%93F%40%85%40%3D%DAWc%D7Vb%8DA%3F%E1u%81%C0%5BG%A5DE%E3%A0%AB%B8NM%BCHK%A9%83%89%EC%BF%C4%ACEG%95BA%D7%81%87%E6%CE%D1%D1%95%A2%BCy%82%DFjK%E1%9F%AA%EE%C9%CF%CEx%83%E2%91%9C%DA%96%A0%E0XX%C2LL%CD%94%A0%D2fn%B4GI%E8%C2%C6%CEkv%D6fG%E2%9C%A6%C7t%7F%DEfs%C4RV%D2%87%91%CF%90%96%D1%60l%D6TT%A4%81%87%CESW%E0%97%9C%E8%BE%C5%9DCC%C0LX%BCmw%DD%BB%C0%DCr~%D6%7D%88%D7%97%A2%CFy%84%CF%92%9C%D7p%7B%E0%A2%AC%E1%A3%AD%D9q%7C%C4~%87%DD%C0%C4%D5oz%CE%84%8E%C2%86%8F%CC%8D%96%ED%CF%D4%C4r%7C%E2%C5%CA%F0%D2%D8%E4%A5%AF%D3KP%97HB%E6%AC%B5%FF%FF%FF%FF%FF%FF%CE0%0B%07%00%00%00StRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00f%89~Y%00%00%00%B4IDATx%DA%3C%C5g%17%81%00%18%06%D0%D7(%19%89Bfe%93U!%7B%EF%11%9E%FE%FF%8F%E18%8E%FB%E5%92%9B%AD%3E~%AAY%97*%FD%81r%FFR%06%FD%0Au%D2%AF%BFt%87%24%AF%E38%9B%0B%D6%9F%BC%12%D5%E2%85!%E67%2C1%2C%C4k%94%D2%8B%C8%9C%F78eP%D4S%14%D3%BA%C8%1D'%D8%E5%D0%D5bds*Z%B3%EBx%D1%82%CA%D9%24G%1B%A8OW%87m%1D%8D%A8L%3Cc%B0H%B6%DBI%B0%06%C3S(%1C%19%F5%F0%D1%1BE%C2!%F2%88%25%B3%EC%23%F2%95%CD%92%E8!%2B(%E4%FD%CD%40%A0%E9%CF%0BA%8B%DC%C4%F3%2F%E1%BE%05%18%00%AD%D8%24%FF%02%BAqR%00%00%00%00IEND%AEB%60%82\") center center no-repeat; }\
-.golem-tooltip > img:hover { background: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0E%00%00%00%0E%08%03%00%00%00(%96%DD%E3%00%00%00%F0PLTE%D6%00%00%C0%00%00%E1%00%00%D5R%5C%E0%00%00%D9%00%00%9B%00%00%C6%00%00%CD%00%00%C5%0B%00%C1%0E%0F%C3%0A%00%E6%22%00%D407%EA%B3%BD%ED%23%00i%00%00L%0D%0E%D3%00%00C%00%00%5D%00%00b%02%00%C6FO%F1%0D%00%D1%0B%00%DEy~%82%00%00v%00%00%96hr%8Dirp%0D%0E%A7%07%00%E8%99%99%AA%0E%0F%D5lr%EE%99%99%E6%00%00%C1pz%C9%0B%0C%E0%9D%9D%C8pz%AF%00%00%E6%0C%00%CB%00%00%E4%22%00%B3%15%00%D0%0B%0CP%00%00%D207%8F%00%00%C4%00%00%B8%0C%0D%EF%24%00%BC%0A%0B%E8%A9%AF%B5%00%00%D4%00%00%D8%00%00%C8%00%00%D5U%60%D5%84%85%B3%09%0A%D6Va%BD%00%00%C8-4%CF%00%00%D7%80%80%DB%00%00%C2%2C2%B7%00%00%DC%95%98%E3%00%00%D5ff%EE%BF%CA%D9Wb%C1%00%00k%00%00%DD%7C%8D%FF%FF%FF%FF%FF%FF%2FY%B8%C8%00%00%00PtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%13s%A6y%00%00%00%B2IDATx%DA%3C%C5U%12%82%00%00%05%C0%07%D8%8A%85%0D%B6%22vw'%88%FA%B8%FFmt%1C%C7%FDY8F%E0%F1%130%1C%D4%C7%95%F0%FD%2B%5C%19%D7QN%BD%FERex%24%DB%B6w3%AE%3FI%1E%0C%E5A%96%87%1B%2F%CC%0E%E4!r%3D%9D%8D%E9%86%DB%06%F5%5E%0Ej%7C%C4%A6p%E2%B5%C9Q%5CE%D4%ED%A5p%DC%CFW%02%BD%EE(%12.%1FKg%2C%96%25%FA%5C%09%F4k%B0X5%CD*-%D4%FAPD%B3m%F1%C3j%9B%A2%82X1%DD%CA%04%FD%FE%60%A6%95.%C6%90Ov%23%93P%A7%13%9AD%BA%C9%3C%1C%AD%F0%FC)h%CE%5B%80%01%00%B4%14%23%D5%5D%E5%26%DF%00%00%00%00IEND%AEB%60%82\") center center no-repeat; }\
-.golem-tooltip > img:active { background: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0E%00%00%00%0E%08%03%00%00%00(%96%DD%E3%00%00%00%EAPLTE%B2%00%00%B1%00%00%B6%00%00%B0%26%2B%BD%00%00%9A%0A%0BL%15%13%91%0E%0F%A3%0A%00%3B%00%00%93%1B%09%A5%00%00%A58%40F%00%00%AB%00%00%82r%7B%AA%00%00d%00%00%C1%1E%00%B8pzC%13%14n%00%00%C0%00%00%B9im%C5%1F%01%BE%1D%00%8C%0A%03Z%00%00%B2%5B%60%B1AI%C9%0D%00%5E%0D%0EP%00%00x%00%00%83%00%00%AE%06%07%A7%06%07%A3%0E%0F%93%00%00%C8%1F%00%B1%26%2B%BF%7D~%BB%00%00%C4%98%9F%C0%0C%00%C4%7D~%8Chr%B3pz%AE%0B%00%B8%7F%80%A6%00%00%A5%0B%00%97%00%00%BA%8A%8D%95%05%06%A7%24(%B6%7D~%B0DL%99%00%00%9B%05%06%B2DM%A8%00%00%A2%23'%B4%00%00%A0%00%00%C2%97%9B%B5%7F%80%AD%00%00%9C%00%00%BE%00%00%B0ST%B4EN%C7%A2%AAX%00%00%A1%00%00%B8dr%D1%D1%D2%FF%FF%FF%A1%5B%BF%DF%00%00%00NtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%ACM%FB%CE%00%00%00%B1IDATx%DA%3C%C5%E7%16%81%00%00%06%D0%AF%8C%08%D9%5Bde%CB%DE%9B%8A%7C%BD%FF%EBp%9C%8E%FB%E7%C2M%B7%1DO%3B%ED%C2%08T%06%CF%9FA%25%60%40%8A%BE%FF%A2%12%1A%AAm%DB%87%2B%B7%DF%D4%06%EA%5D_%9E%EB%25O%CC%FB%BAud%9B-N%F77%AE%A6l5%B3H%0A%11%EA%97%0Dw%3A%23B%12eqF%E7%FEX%1C%1D%CE%C42%B4%BE%C2%9E%08%E1%DC%A3%D2%D7%10%CB%C1%E2%C84G%B4%90%8B!%EC7%13%16%BF%AC%84%E9%0F%23S%AA%0E'%A1%F9%3C4%19VK%19%C4%83r%A1%93*%16S%9D%82%1C%8C%C3%1D%D7%5E%9E%DA%D8%FD%080%00g%F3%23%20i%8A%D0%D6%00%00%00%00IEND%AEB%60%82\") center center no-repeat; }\
+.golem-tooltip > a { float: right; color: red; }\
 .golem-config { float: none; margin-right: 0; }\
 .golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
@@ -356,14 +354,25 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 };
 
 var findInArray = function(list, value) {
-	if (typeof list === 'array' || typeof list === 'object') {
-		for (var i in list) {
+	if (isArray(list)) {
+		for (var i=0; i<list.length; i++) {
 			if (list[i] === value) {
 				return true;
 			}
 		}
 	}
 	return false;
+};
+
+var findInObject = function(list, value) {
+	if (typeof list === 'object') {
+		for (var i in list) {
+			if (list[i] == value) {
+				return i;
+			}
+		}
+	}
+	return null;
 };
 
 var arrayIndexOf = function(list, value) {
@@ -917,7 +926,7 @@ Army.option = {
 Army.runtime = {
 	update:{},// WorkerName:true, cleared in Army.update() as we poll each in turn
 	// Dashboard defaults:
-	sort:0,rev:false,show:'_info'
+	sort:0,rev:false,show:0,info:'uid'
 };
 
 Army.display = [
@@ -943,8 +952,8 @@ Army.update = function(type,worker) {
 };
 
 Army.init = function() {
-	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><img src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82"><p></p></div>');
-	$('#golem-army-tooltip > img').click(function(){$('#golem-army-tooltip').hide()});
+	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
+	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
 };
 
 // what = ['worker', userID, key ...]
@@ -1015,20 +1024,46 @@ Army.get = function(what, def) {
 	return this._get('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), def);
 };
 
+Army.name_callback = function(type, data, uid) {
+	switch(type) {
+		default:		return null;
+		case 'key':		return '_info';
+//		case 'show':	return 'All';
+		case 'name':	return 'Name';
+		case 'label':
+		case 'sort':	return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
+//		case 'tooltip':	return null;
+	}
+};
 Army.info_callback = function(type, data, uid) {
 	switch(type) {
-		default:		return '';
+		default:		return null;
 		case 'key':		return '_info';
-		case 'name':	return 'Name';
-		case 'label':	return data[uid]['_info']['name'] || uid;
-		case 'sort':	return data[uid]['_info'] ? data[uid]['_info']['name'] : '';
+		case 'name':	return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';
+		case 'show':	return 'Info';
+		case 'label':
+		case 'sort':
+			switch (Army.runtime.info) {
+				default:
+					return typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
+				case 'uid':
+					return uid;
+			}
+		case 'has_tooltip':
+			return true;
 		case 'tooltip':
-			return 'Name: ' + (data[uid]['_info']['name'] || '');
+			return '<b>Name:</b> ' + (data[uid]['_info']['name'] || '');
 			break;
 	}
 };
 
+Army.infolist = {
+	'UserID':'uid',
+	'Level':'level',
+	'Army':'army'
+};
 Army.sectionlist = [
+	Army.name_callback,
 	Army.info_callback
 ];
 Army.section = function(name, callback) {
@@ -1040,37 +1075,47 @@ Army.section = function(name, callback) {
 
 Army.order = [];
 Army.dashboard = function(sort, rev) {
-	var i, j, show = this.runtime.show, list = [], output = [], tmp = [];
-	if ($('#golem-dashboard-Army select').length) {
-		show = $('#golem-dashboard-Army select').attr('value');
-		if (show === 'All') {
-			show = '_info';
-		}
+	var i, j, k, show = this.runtime.show, info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
+	if ($('#golem-army-show').length) {
+		show = parseInt($('#golem-army-show').attr('value'));
 	}
-	if (typeof sort === 'undefined' || 	this.runtime.show !== show) {
-		this.order = [];
-		for (i in this.data) {
-			if (typeof this.data[i][show] !== 'undefined') {
-				this.order.push(i);
-			}
-		}
+	if ($('#golem-army-info').length) {
+		info = $('#golem-army-info').attr('value');
+	}
+	if (typeof sort === 'undefined' || this.runtime.show !== show || this.runtime.info !== info) {
 		this.runtime.show = show;
+		this.runtime.info = info;
+		this.order = [];
+		k = this.sectionlist[show]('key');
+		for (i in this.data) {
+			try {
+				if (typeof this.data[i][k] !== 'undefined' && this.sectionlist[show]('label', Army.data, i) && this.sectionlist[show]('label', Army.data, i) !== '') {
+					this.order.push(i);
+				}
+			} catch(e){log('add failed')}
+		}
 	}
 	for (i in this.sectionlist) {
 		th(output, this.sectionlist[i]('name'));
-		j = this.sectionlist[i]('key');
-		tmp.push('<option value="' + j + '"' + (j == show ? ' selected' : '') + '>' + (j === '_info' ? 'All' : this.sectionlist[i]('name')) + '</option>');
+		k = this.sectionlist[i]('show');
+		if (k && k!== '') {
+			showsection.push('<option value="' + i + '"' + (i == show ? ' selected' : '') + '>' + k + '</option>');
+		}
 	}
+	for (i in this.infolist) {
+		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] == info ? ' selected' : '') + '>' + i + '</option>');
+	}
+	list.push('Limit entries to <select id="golem-army-show">' + showsection.join('') + '</select> ... Info: <select id="golem-army-info">' + showinfo.join('') + '</select>');
 	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
 		this.runtime.sort = sort = typeof sort !== 'undefined' ? sort : (this.runtime.sort || 0);
 		this.runtime.rev = rev = typeof rev !== 'undefined' ? rev : (this.runtime.rev || false);
 		this.order.sort(function(a,b) {
 			var aa = 0, bb = 0;
 			try {
-				aa = sectionlist[sort]('sort', Army.data, a);
+				aa = Army.sectionlist[sort]('sort', Army.data, a);
 			} catch(e){}
 			try {
-				bb = sectionlist[sort]('sort', Army.data, b);
+				bb = Army.sectionlist[sort]('sort', Army.data, b);
 			} catch(e){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
@@ -1078,14 +1123,18 @@ Army.dashboard = function(sort, rev) {
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
 	}
-	list.push('Show <select>' + tmp.join('') + '</select> - still very beta, so have patience...');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (j=0; j<this.order.length; j++) {
 		output = [];
 		for (i in this.sectionlist) {
 			try {
 				if (typeof this.data[this.order[j]][this.sectionlist[i]('key')] !== 'undefined') {
-					td(output, '<a>' + this.sectionlist[i]('label', this.data, this.order[j]) + '</a>');
+					k = this.sectionlist[i]('label', this.data, this.order[j]);
+					if (this.sectionlist[i]('has_tooltip') && k && k !== '') {
+						td(output, '<a>' + k + '</a>');
+					} else {
+						td(output, k || '');
+					}
 				} else {
 					td(output, '');
 				}
@@ -1098,16 +1147,17 @@ Army.dashboard = function(sort, rev) {
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Army').html(list.join(''));
+	$('#golem-dashboard-Army td:first-child,#golem-dashboard-Army th:first-child').css('text-align', 'left');
 	$('#golem-dashboard-Army select').change(function(e){Army._unflush();Army.dashboard();});// Force a redraw
 	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-dashboard-Army tbody td a').click(function(e){
+	$('#golem-dashboard-Army td a').click(function(e){
 		e.stopPropagation();
 		var $this, tooltip;
 		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
 		try {
 			Army._unflush();
-			tooltip = Army.sectionlist[$this.index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
-			if (tooltip) {
+			tooltip = Army.sectionlist[$this.closest('td').index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
+			if (tooltip && tooltip !== '') {
 				$('#golem-army-tooltip > p').html(tooltip);
 				$('#golem-army-tooltip').css({
 					top:($this.offset().top + $this.height()),
@@ -3441,11 +3491,17 @@ Elite.init = function() { // Convert old elite guard list
 
 	Army.section('Elite', function(type, data, uid) {
 		switch(type) {
-			default:		return '';
-			case 'key':		return 'Elite';
-			case 'name':	return 'Elite';
-			case 'label':	return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
-			case 'sort':	return data[uid]['Elite']['elite'];
+			default:		return null;
+			case 'key':
+			case 'name':
+			case 'show':
+				return 'Elite';
+			case 'label':
+				return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
+			case 'sort':
+				return typeof data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
+			case 'has_tooltip':
+				return true;
 			case 'tooltip':
 				return 'Added: ' + (data[uid]['_info']['name'] || '');
 				break;
@@ -6282,7 +6338,13 @@ News.defaults['castle_age'] = {
 News.runtime = {
 	last:0
 };
-
+/* war victory -
+Victory! You were challenged to war by xyz
+You defeated your enemy, taking 0 damage and dealing 10 damage to your rival. You gained 43 experience points and $1,150,000. You have won 12 War Points!
+// war defeat -
+You were challenged by xyz
+You lost the war, taking 10 damage and losing $0. You have lost 4 War Points!
+*/
 News.parse = function(change) {
 	if (change) {
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;

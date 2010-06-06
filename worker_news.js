@@ -12,7 +12,13 @@ News.defaults['castle_age'] = {
 News.runtime = {
 	last:0
 };
-
+/* war victory -
+Victory! You were challenged to war by xyz
+You defeated your enemy, taking 0 damage and dealing 10 damage to your rival. You gained 43 experience points and $1,150,000. You have won 12 War Points!
+// war defeat -
+You were challenged by xyz
+You lost the war, taking 10 damage and losing $0. You have lost 4 War Points!
+*/
 News.parse = function(change) {
 	if (change) {
 		var xp = 0, bp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;
