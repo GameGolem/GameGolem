@@ -287,6 +287,10 @@ var isNumber = function(num) {
 	return typeof num === 'number';
 };
 
+var isString = function(num) {
+	return typeof num === 'string';
+};
+
 var isWorker = function(obj) {
 	return obj && typeof obj === 'object' && typeof obj.name === 'string' && typeof Workers[obj.name] === 'object' && Workers[obj.name] === obj; // Only a worker if it's an active worker
 };

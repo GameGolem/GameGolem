@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "532";
+var revision = "533";
 // User changeable
 var show_debug = true;
 
@@ -473,6 +473,10 @@ var isArray = function(obj) {
 
 var isNumber = function(num) {
 	return typeof num === 'number';
+};
+
+var isString = function(num) {
+	return typeof num === 'string';
 };
 
 var isWorker = function(obj) {
@@ -1309,7 +1313,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 };
 
 Config.makePanel = function(worker) {
-	var i, o, x, id, step, show, $head, $panel, display = worker.display, panel = [], txt = [], list = [], options = {
+	var i, o, x, y, req, id, step, show, $head, $panel, $option, display = worker.display, txt = [], list = [], options = {
 		before: '',
 		after: '',
 		suffix: '',
@@ -1328,6 +1332,7 @@ Config.makePanel = function(worker) {
 	switch (typeof display) {
 		case 'array':
 		case 'object':
+			$panel = $('<div class="golem-panel-content" style="font-size:smaller;"></div>');
 			for (i in display) {
 				txt = [];
 				list = [];
@@ -1435,9 +1440,36 @@ Config.makePanel = function(worker) {
 				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 					txt.push('</span>');
 				}
-				panel.push('<div' + (o.advanced  ? ' class="golem-advanced"' : '') + (o.advanced || o.exploit ? ' style="' + ((o.advanced && !this.option.advanced) || (o.exploit && !this.option.exploit) ? 'display:none;' : '') + (o.exploit ? 'border:1px solid red;background:#ffeeee;' : '') + '"' : '') + (o.help ? ' title="' + o.help + '"' : '') + '>' + txt.join('') + '<br></div>');
+				$option = $('<div>' + txt.join('') + '<br></div>');
+				if (o.require) {
+					if (typeof o.require === 'string') {
+						x = o.require;
+						o.require = {};
+						o.require[x] = true;
+					}
+					for (x in o.require) { // Make sure all paths are absolute, "worker.option.key" (option/runtime/data) and all values are in an array
+						if (typeof o.require[x] !== 'object') {
+							o.require[x] = [o.require[x]];
+						}
+						if (x.search(/\.(data|option|runtime)\./) === -1) {
+							o.require[worker.name + '.option.' + x] = o.require[x];
+							delete o.require[x];
+						} else if (x.search(/(data|option|runtime)\./) === 0) {
+							o.require[worker.name + '.' + x] = o.require[x];
+							delete o.require[x];
+						}
+					}
+					$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
+				}
+				o.advanced && $option.addClass('golem-advanced');
+				o.help && $option.attr('title', o.help);
+				(o.advanced || o.exploit) && $option.css('background','#ffeeee');
+				o.advanced && !this.option.advanced && $option.css('display','none');
+				o.exploit && !this.option.exploit && $option.css('display','none');
+				o.exploit && $option.css('border','1px solid red');
+				$panel.append($option);
 			}
-			$head.append('<div class="golem-panel-content" style="font-size:smaller;">' + panel.join('') + '</div>');
+			$head.append($panel);
 			return $head;
 		case 'function':
 			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
@@ -1508,6 +1540,23 @@ Config.updateOptions = function() {
 				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
+	});
+	$('.golem-require').each(function(i,el){
+		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
+		for (i in require) {
+			path = i.split('.');
+			worker = path.shift();
+			value = WorkerByName(worker).get(path,false);
+			if (!findInArray(require[i], value)) {
+				show = false;
+			}
+		}
+		if (show) {
+			$(el).show();
+		} else {
+			$(el).hide();
+		}
+		log('Checking require: ' + (typeof require === 'object' ? require.toSource() : require));
 	});
 	for (i in Workers) {
 		Workers[i]._save('option');
@@ -3020,11 +3069,13 @@ Battle.display = [
 		select:[100,200,300,400,500]
 	},{
 		id:'army',
+		require:{'type':'Invade'},
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
+//		require:{'type':'Duel'},
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'

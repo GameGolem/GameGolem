@@ -87,11 +87,13 @@ Battle.display = [
 		select:[100,200,300,400,500]
 	},{
 		id:'army',
+		require:{'type':'Invade'},
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
+//		require:{'type':'Duel'},
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
