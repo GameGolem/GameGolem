@@ -15,7 +15,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "537";
+var revision = "$Rev$";
+var revision = "539";
 // User changeable
 var show_debug = true;
 
@@ -4752,6 +4753,10 @@ Land.display = [
 */	}
 ];
 
+Land.init = function(){
+    this._watch(Bank);
+};
+
 Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		var name = $('img', el).attr('alt'), tmp;
@@ -4830,7 +4835,7 @@ Land.update = function() {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost; // May be negative if we're making money by selling
-		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(this.runtime.cost)));
+		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(this.runtime.cost)) + ' (Cash in bank: $' + addCommas(Player.get('bank')) + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -6654,13 +6659,14 @@ Player.get = function(what) {
 		case 'cash_timer':		var when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
+		case 'energy_timer':            return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health':			return (this.data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
+		case 'health_timer':            return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'stamina_timer':           return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'pause':			return (Queue.get('option.pause') ? '(Paused) ' : '');
+                case 'bank':                    return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		default: return this._get(what);
 	}
 };
@@ -7208,6 +7214,10 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
 };
 
+Town.init = function(){
+    this._watch(Bank);
+};
+
 Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);
@@ -7239,7 +7249,7 @@ Town.parse = function(change) {
 			}
 		});
 	} else if (Page.page==='town_blacksmith') {
-		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
+		$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 			var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
 			if (Town.data[name].type) {
 				$el.parent().append('<br>'+Town.data[name].type);
@@ -7312,7 +7322,7 @@ Town.update = function(type) {
 	if (best) {
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * data[best].cost;
-		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.runtime.cost));
+		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.runtime.cost) + ' (Cash in bank: $' + addCommas(Player.get('bank')) + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -7341,7 +7351,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	for (i=0; i<this.data[item].buy.length && this.data[item].buy[i] <= number; i++) {
 		qty = this.data[item].buy[i];
 	}
-	$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
+	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
 			debug('Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
 			$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);

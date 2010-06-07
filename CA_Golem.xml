@@ -136,7 +136,7 @@
     <!-- Create the build directory structure used by compile
     and install to FireFox profile as indicated  -->
     <target name="Install Test to Local FF">
-        <antcall target="Update Normal User Committed"></antcall>
+        <antcall target="Update Normal User Test"></antcall>
         <copy file="./_normal.user.js" tofile="${Coder1}"/>
         <copy file="./_normal.user.js" tofile="${Coder2}"/>
         <copy file="${TestDir}/_normal.user.js" tofile="${Coder1}"/>

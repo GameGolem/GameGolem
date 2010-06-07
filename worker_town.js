@@ -61,6 +61,10 @@ Town.blacksmith = { // Shield must come after armor (currently)
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
 };
 
+Town.init = function(){
+    this._watch(Bank);
+};
+
 Town.parse = function(change) {
 	if (!change) {
 		var unit = Town.data, page = Page.page.substr(5);
@@ -92,7 +96,7 @@ Town.parse = function(change) {
 			}
 		});
 	} else if (Page.page==='town_blacksmith') {
-		$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
+		$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 			var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
 			if (Town.data[name].type) {
 				$el.parent().append('<br>'+Town.data[name].type);
@@ -165,7 +169,7 @@ Town.update = function(type) {
 	if (best) {
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * data[best].cost;
-		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.runtime.cost));
+		Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best + ' for $' + addCommas(this.runtime.cost) + ' (Cash in bank: $' + addCommas(Player.get('bank')) + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -194,7 +198,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	for (i=0; i<this.data[item].buy.length && this.data[item].buy[i] <= number; i++) {
 		qty = this.data[item].buy[i];
 	}
-	$('tr.eq_buy_row,tr.eq_buy_row2').each(function(i,el){
+	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
 			debug('Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
 			$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);

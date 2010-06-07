@@ -54,6 +54,10 @@ Land.display = [
 */	}
 ];
 
+Land.init = function(){
+    this._watch(Bank);
+};
+
 Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		var name = $('img', el).attr('alt'), tmp;
@@ -132,7 +136,7 @@ Land.update = function() {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost; // May be negative if we're making money by selling
-		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(this.runtime.cost)));
+		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(this.runtime.cost)) + ' (Cash in bank: $' + addCommas(Player.get('bank')) + ')');
 	} else {
 		Dashboard.status(this);
 	}
