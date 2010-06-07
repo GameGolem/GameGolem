@@ -1,22 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "$Rev$";
-var revision = "539";
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -5191,12 +5172,11 @@ Gift.parse = function(change) {
 	
 	} else if (Page.page === 'gift_accept'){
 		// Check for sent
-		debug('Checking for sent gifts.');
-		debug('div#app'+APPID+'_results_main_wrapper(html): '+$('div#app'+APPID+'_results_main_wrapper').text().trim());
+//		debug('Checking for sent gifts.');
 		if (this.runtime.sent_id && $('div#app'+APPID+'_results_main_wrapper').text().indexOf('You have sent') >= 0) {
 			debug(gifts[this.runtime.sent_id].name+' sent.');
-			for (j=0; j < Math.min(todo[this.runtime.sent_id].length, 30); j++) {	// Remove the IDs from the list because we have sent them
-				todo[this.runtime.sent_id].shift();
+			for (j=todo[this.runtime.sent_id].length-1; j >= Math.max(todo[this.runtime.sent_id].length - 30, 0); j--) {	// Remove the IDs from the list because we have sent them
+				todo[this.runtime.sent_id].pop();
 			}
 			if (!todo[this.runtime.sent_id].length) {
 				delete todo[this.runtime.sent_id];
@@ -5365,7 +5345,7 @@ Gift.work = function(state) {
 					if ($('div.unselected_list').children().length) {
 						debug('Sending out ' + this.data.gifts[i].name);
 						k = 0;
-						for (j in todo[i]) {
+						for (j=todo[i].length-1; j>=0; j--) {
 							if (k< 30) {	// Need to limit to 30 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
 //									debug('User '+todo[i][j]+' wasn\'t in the CA friend list.');
