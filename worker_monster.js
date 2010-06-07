@@ -145,12 +145,13 @@ Monster.display = [
 },{
 	id:'armyratio',
 	require:{'raid':['Invade', 'Invade x5']},
-	label:'Target Army Ratio<br>(Only needed for Invade)',
+	label:'Target Army Ratio',
 	select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 	help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 },{
 	id:'levelratio',
-	label:'Target Level Ratio<br>(Mainly used for Duel)',
+	require:{'raid':['Duel', 'Duel x5']},
+	label:'Target Level Ratio',
 	select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 	help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 },{
@@ -1119,7 +1120,7 @@ Monster.work = function(state) {
 				$('input[name*="target_id"]').val((list[Math.floor(Math.random() * (list.length))] || 0)); // Changing the ID for the button we're gonna push.
 		 }
 		 target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
-		 if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio)) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio))){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
+		 if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio) && this.option.raid.indexOf('Invade') >= 0) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio) && this.option.raid.indexOf('Invade') == -1)){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
 				log('No valid Raid target!');
 				Page.to('battle_raid', ''); // Force a page reload to change the targets
 				return QUEUE_CONTINUE;
