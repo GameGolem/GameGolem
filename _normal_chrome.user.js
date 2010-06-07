@@ -2991,6 +2991,7 @@ Page.defaults = {
 			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
+			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'},
 			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 		}
 	}
@@ -5013,7 +5014,7 @@ Gift.settings = {
 };
 
 Gift.defaults['castle_age'] = {
-	pages:'* index army_invite army_gifts'
+	pages:'* index army_invite army_gifts gift_accept'
 };
 
 Gift.data = {
@@ -5096,22 +5097,6 @@ Gift.parse = function(change) {
 			return true
 		}
 	} else if (Page.page === 'army_invite') {
-		// Check for sent
-//		debug('Checking for sent gifts.');
-		if (this.runtime.sent_id && $('div.result').text().indexOf('request sent') >= 0) {
-			debug(gifts[this.runtime.sent_id].name+' sent.');
-			for (j=0; j < Math.min(todo[this.runtime.sent_id].length, 30); j++) {	// Remove the IDs from the list because we have sent them
-				todo[this.runtime.sent_id].shift();
-			}
-			if (!todo[this.runtime.sent_id].length) {
-				delete todo[this.runtime.sent_id];
-			}
-			this.runtime.sent_id = null;
-			if (todo.length == 0) {
-				this.runtime.work = false;
-			}
-		}
-		
 		// Accepted gift first
 //		debug('Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
@@ -5141,6 +5126,24 @@ Gift.parse = function(change) {
 //			debug('No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
+		}
+	
+	} else if (Page.page === 'gift_accept'){
+		// Check for sent
+		debug('Checking for sent gifts.');
+		debug('div#app'+APPID+'_results_main_wrapper(html): '+$('div#app'+APPID+'_results_main_wrapper').text().trim());
+		if (this.runtime.sent_id && $('div#app'+APPID+'_results_main_wrapper').text().indexOf('You have sent') >= 0) {
+			debug(gifts[this.runtime.sent_id].name+' sent.');
+			for (j=0; j < Math.min(todo[this.runtime.sent_id].length, 30); j++) {	// Remove the IDs from the list because we have sent them
+				todo[this.runtime.sent_id].shift();
+			}
+			if (!todo[this.runtime.sent_id].length) {
+				delete todo[this.runtime.sent_id];
+			}
+			this.runtime.sent_id = null;
+			if (todo.length == 0) {
+				this.runtime.work = false;
+			}
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
@@ -5210,7 +5213,7 @@ Gift.work = function(state) {
 	if (received.length) {
 		Page.to('army_gifts');
 		// Fill out our todo list with gifts to send, or not.
-		for (i in received){
+		for (i = received.length - 1; i >= 0; i--){
 			var temptype = this.option.type;
 			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type != 'None') {
 				debug(received[i].id+' was not found in our sendable gift list.');
@@ -5245,15 +5248,16 @@ Gift.work = function(state) {
 					this.runtime.work = false;	// Since we aren't returning gifts, we don't need to do any more work.
 					break;
 			}
+			received.pop();
 		}
 		
 		// Clear the facebook notifications and empty the received list.
-		for (i in received) {
+/*		for (i in received) {
 			// Go to the facebook page and click the "ignore" button for this entry
 			
 			// Then delete the entry from the received list.
 			received.shift();
-		}
+		}*/
 		
 	}
 	
@@ -5275,7 +5279,8 @@ Gift.work = function(state) {
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
-			if (!Page.to('army_gifts')){
+//			if (!Page.to('army_gifts')){
+			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 				return true;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
