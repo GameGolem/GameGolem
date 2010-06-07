@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "536";
+var revision = "537";
 // User changeable
 var show_debug = true;
 
@@ -375,6 +375,17 @@ var findInObject = function(list, value) {
 	return null;
 };
 
+var objectIndex = function(list, index) {
+	if (typeof list === 'object') {
+		for (var i in list) {
+			if (index-- <= 0) {
+				return i;
+			}
+		}
+	}
+	return null;
+};
+
 var arrayIndexOf = function(list, value) {
 	if (isArray(list)) {
 		for (var i=0; i<list.length; i++) {
@@ -485,6 +496,11 @@ var isWorker = function(obj) {
 
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
+};
+
+var makeTime = function(time, format) {
+	var d = new Date(time);
+	return d.format(typeof format !== 'undefined' && format ? format : 'l g:i a' );
 };
 
 // Simulates PHP's date function
@@ -930,7 +946,7 @@ Army.option = {
 Army.runtime = {
 	update:{},// WorkerName:true, cleared in Army.update() as we poll each in turn
 	// Dashboard defaults:
-	sort:0,rev:false,show:0,info:'uid'
+	sort:0,rev:false,show:'Name',info:'uid'
 };
 
 Army.display = [
@@ -958,6 +974,10 @@ Army.update = function(type,worker) {
 Army.init = function() {
 	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
 	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
+	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
+		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
+		return false;
+	});
 };
 
 // what = ['worker', userID, key ...]
@@ -1028,60 +1048,86 @@ Army.get = function(what, def) {
 	return this._get('data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : ''), def);
 };
 
-Army.name_callback = function(type, data, uid) {
-	switch(type) {
-		default:		return null;
-		case 'key':		return '_info';
-//		case 'show':	return 'All';
-		case 'name':	return 'Name';
-		case 'label':
-		case 'sort':	return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
-//		case 'tooltip':	return null;
-	}
-};
-Army.info_callback = function(type, data, uid) {
-	switch(type) {
-		default:		return null;
-		case 'key':		return '_info';
-		case 'name':	return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';
-		case 'show':	return 'Info';
-		case 'label':
-		case 'sort':
-			switch (Army.runtime.info) {
-				default:
-					return typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
-				case 'uid':
-					return uid;
-			}
-		case 'has_tooltip':
-			return true;
-		case 'tooltip':
-			return '<b>Name:</b> ' + (data[uid]['_info']['name'] || '');
-			break;
-	}
-};
-
 Army.infolist = {
 	'UserID':'uid',
 	'Level':'level',
 	'Army':'army'
 };
-Army.sectionlist = [
-	Army.name_callback,
-	Army.info_callback
-];
-Army.section = function(name, callback) {
+Army.sectionlist = {
+	'Name':{ // First column = Name
+		'key':'_info',
+		'name':'Name',
+		'label':function(data,uid){
+			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : '';
+		},
+		'sort':function(data,uid){
+			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
+		},
+		'tooltip':function(data,uid){
+			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
+			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + (function(obj,indent){
+				var i, output = '';
+				for(i in obj) {
+					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
+					if (isArray(obj[i])) {
+						output = output + '[<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + ']';
+					} else if (typeof obj[i] === 'object') {
+						output = output + '{<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + '}';
+					} else if (typeof obj[i] === 'string') {
+						output = output + '"' + obj[i] + '"';
+					} else {
+						output = output + obj[i];
+					}
+					output = output + ',<br>';
+				}
+				return output;
+			})(data[uid],space).replace(/,<br>$/, '<br>') + '}');
+			return $tooltip;
+		}
+	},
+	'Info':{ // Second column = Info
+		'key':'_info',
+		'name':function(){return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';},
+		'show':'Info',
+		'label':function(data,uid){
+			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : '';
+		},
+		'sort':function(data,uid){
+			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
+		}
+	}
+};
+Army.section = function(name, object) {
 	// Add a section to the dashboard.
 	// callback = function(type, data), returns text or html string
 	// type = 'id', 'sort', 'tooltip'
-	this.sectionlist.push(callback);
+	this.sectionlist[name] = object;
+};
+Army.getSection = function(show, key, uid) {
+	try {
+		if (isNumber(show)) {
+			show = objectIndex(this.sectionlist, show);
+		}
+		switch(typeof this.sectionlist[show][key]) {
+			case 'string':
+				return this.sectionlist[show][key];
+			case 'function':
+				return this.sectionlist[show][key](this.data, uid);
+			default:
+				return '';
+		}
+	} catch(e){
+// *Really* don't want to do anything in the catch as it's performance sensitive!
+//		debug(e.name + ' in Army.sectionlist(' + show + ', ' + (key || 'null') + ', ' + (uid || 'null') + '): ' + e.message);
+	}
+	return '';
 };
 
 Army.order = [];
 Army.dashboard = function(sort, rev) {
 	var i, j, k, show = this.runtime.show, info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
 	if ($('#golem-army-show').length) {
-		show = parseInt($('#golem-army-show').attr('value'));
+		show = $('#golem-army-show').attr('value');
 	}
 	if ($('#golem-army-info').length) {
 		info = $('#golem-army-info').attr('value');
@@ -1090,18 +1136,18 @@ Army.dashboard = function(sort, rev) {
 		this.runtime.show = show;
 		this.runtime.info = info;
 		this.order = [];
-		k = this.sectionlist[show]('key');
+		k = this.getSection(show, 'key', 'baddy');
 		for (i in this.data) {
 			try {
-				if (typeof this.data[i][k] !== 'undefined' && this.sectionlist[show]('label', Army.data, i) && this.sectionlist[show]('label', Army.data, i) !== '') {
+				if (typeof this.data[i][k] !== 'undefined' && this.getSection(show, 'label', i) && this.getSection(show, 'label', i) !== '') {
 					this.order.push(i);
 				}
 			} catch(e){log('add failed')}
 		}
 	}
 	for (i in this.sectionlist) {
-		th(output, this.sectionlist[i]('name'));
-		k = this.sectionlist[i]('show');
+		th(output, this.getSection(i, 'name'));
+		k = this.getSection(i, 'show');
 		if (k && k!== '') {
 			showsection.push('<option value="' + i + '"' + (i == show ? ' selected' : '') + '>' + k + '</option>');
 		}
@@ -1116,10 +1162,10 @@ Army.dashboard = function(sort, rev) {
 		this.order.sort(function(a,b) {
 			var aa = 0, bb = 0;
 			try {
-				aa = Army.sectionlist[sort]('sort', Army.data, a);
+				aa = Army.getSection(sort, 'sort', a);
 			} catch(e){}
 			try {
-				bb = Army.sectionlist[sort]('sort', Army.data, b);
+				bb = Army.getSection(sort, 'sort', b);
 			} catch(e){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
@@ -1132,9 +1178,9 @@ Army.dashboard = function(sort, rev) {
 		output = [];
 		for (i in this.sectionlist) {
 			try {
-				if (typeof this.data[this.order[j]][this.sectionlist[i]('key')] !== 'undefined') {
-					k = this.sectionlist[i]('label', this.data, this.order[j]);
-					if (this.sectionlist[i]('has_tooltip') && k && k !== '') {
+				if (typeof this.data[this.order[j]][this.getSection(i,'key', 'bad')] !== 'undefined') {
+					k = this.getSection(i,'label', this.order[j]);
+					if (this.sectionlist[i]['tooltip'] && k && k !== '') {
 						td(output, '<a>' + k + '</a>');
 					} else {
 						td(output, k || '');
@@ -1160,7 +1206,7 @@ Army.dashboard = function(sort, rev) {
 		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
 		try {
 			Army._unflush();
-			tooltip = Army.sectionlist[$this.closest('td').index()]('tooltip', Army.data, Army.order[$this.closest('tr').index()]);
+			tooltip = Army.getSection($this.closest('td').index(), 'tooltip', Army.order[$this.closest('tr').index()]);
 			if (tooltip && tooltip !== '') {
 				$('#golem-army-tooltip > p').html(tooltip);
 				$('#golem-army-tooltip').css({
@@ -1169,7 +1215,7 @@ Army.dashboard = function(sort, rev) {
 				}).show();
 			}
 		} catch(e) {
-			debug(e.name + ' in Army.dashboard(): ' + (Army.sectionlist ? Army.sectionlist[$this.index()]('name') : 'unknown') + '("tooltip"): ' + e.message);
+			debug(e.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e.message);
 		}
 		return false;
 	});
@@ -3536,22 +3582,18 @@ Elite.init = function() { // Convert old elite guard list
 	}
 	this.data = {}; // Will set to null at some later date
 
-	Army.section('Elite', function(type, data, uid) {
-		switch(type) {
-			default:		return null;
-			case 'key':
-			case 'name':
-			case 'show':
-				return 'Elite';
-			case 'label':
-				return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
-			case 'sort':
-				return typeof data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
-			case 'has_tooltip':
-				return true;
-			case 'tooltip':
-				return 'Added: ' + (data[uid]['_info']['name'] || '');
-				break;
+	Army.section(this.name, {
+		'key':'Elite',
+		'name':'Elite',
+		'show':'Elite',
+		'label':function(data,uid){
+			return (findInArray(Elite.option.prefer,uid) ? '*' : '') + (typeof data[uid]['Elite'] === 'undefined' ? '' : typeof data[uid]['Elite']['elite'] !== 'undefined' ? 'member' : '');
+		},
+		'sort':function(data,uid){
+			return typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
+		},
+		'tooltip':function(data,uid){
+			return '<b>Member Until:</b> ' + (typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? makeTime(data[uid]['Elite']['elite']) : 'unknown');
 		}
 	});
 };

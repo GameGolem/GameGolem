@@ -187,6 +187,17 @@ var findInObject = function(list, value) {
 	return null;
 };
 
+var objectIndex = function(list, index) {
+	if (typeof list === 'object') {
+		for (var i in list) {
+			if (index-- <= 0) {
+				return i;
+			}
+		}
+	}
+	return null;
+};
+
 var arrayIndexOf = function(list, value) {
 	if (isArray(list)) {
 		for (var i=0; i<list.length; i++) {
@@ -297,6 +308,11 @@ var isWorker = function(obj) {
 
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
+};
+
+var makeTime = function(time, format) {
+	var d = new Date(time);
+	return d.format(typeof format !== 'undefined' && format ? format : 'l g:i a' );
 };
 
 // Simulates PHP's date function

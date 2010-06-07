@@ -61,22 +61,18 @@ Elite.init = function() { // Convert old elite guard list
 	}
 	this.data = {}; // Will set to null at some later date
 
-	Army.section('Elite', function(type, data, uid) {
-		switch(type) {
-			default:		return null;
-			case 'key':
-			case 'name':
-			case 'show':
-				return 'Elite';
-			case 'label':
-				return data[uid]['Elite']['elite'] ? 'for <span class="golem-time" name="' + data[uid]['Elite']['elite'] + '">' + makeTimer((data[uid]['Elite']['elite'] - Date.now()) / 1000) + '</span>' : '';
-			case 'sort':
-				return typeof data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
-			case 'has_tooltip':
-				return true;
-			case 'tooltip':
-				return 'Added: ' + (data[uid]['_info']['name'] || '');
-				break;
+	Army.section(this.name, {
+		'key':'Elite',
+		'name':'Elite',
+		'show':'Elite',
+		'label':function(data,uid){
+			return (findInArray(Elite.option.prefer,uid) ? '*' : '') + (typeof data[uid]['Elite'] === 'undefined' ? '' : typeof data[uid]['Elite']['elite'] !== 'undefined' ? 'member' : '');
+		},
+		'sort':function(data,uid){
+			return typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
+		},
+		'tooltip':function(data,uid){
+			return '<b>Member Until:</b> ' + (typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? makeTime(data[uid]['Elite']['elite']) : 'unknown');
 		}
 	});
 };
