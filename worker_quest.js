@@ -9,7 +9,7 @@ Quest.defaults['castle_age'] = {
 };
 
 Quest.option = {
-	general:true,
+	general:'Best',
 	what:'Influence',
 	unique:true,
 	monster:true,
@@ -27,8 +27,8 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
-		label:'Use Best General',
-		checkbox:true
+		label:'Subquest General',
+		select:'bestgenerals'
 	},{
 		id:'what',
 		label:'Quest for',
@@ -265,21 +265,25 @@ Quest.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			switch(this.option.what) {
-				case 'Influence':
-				case 'Advancement':
-				case 'Experience':
-					general = Generals.best('under level 4');
-					if (general === 'any' && this.data[best].influence < 100) {
-						general = Generals.best('influence');
-					}
-					break;
-				case 'Cash':
-					general = Generals.best('cash');
-					break;
-				default:
-					general = Generals.best('item');
-					break;
+			if (this.option.general !== 'Best') {
+				general = this.option.general;
+			} else {
+				switch(this.option.what) {
+					case 'Influence':
+					case 'Advancement':
+					case 'Experience':
+						general = Generals.best('under level 4');
+						if (general === 'any' && this.data[best].influence < 100) {
+							general = Generals.best('influence');
+						}
+						break;
+					case 'Cash':
+						general = Generals.best('cash');
+						break;
+					default:
+						general = Generals.best('item');
+						break;
+				}
 			}
 			if (!Generals.to(general)) {
 				return QUEUE_CONTINUE;

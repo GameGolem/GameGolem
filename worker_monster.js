@@ -14,6 +14,7 @@ Monster.option = {
 	min_to_attack: 0,
 	//	dispel: 50,
 	fortify_active:false,
+	fortify_general:'Best',
 	choice: 'Any',
 	ignore_stats:true,
 	stop: 'Never',
@@ -23,6 +24,7 @@ Monster.option = {
 	force1: true,
 	raid: 'Invade x5',
 	assist: true,
+	attack_general:'Best',
 	maxstamina: 5,
 	minstamina: 5,
 	maxenergy: 10,
@@ -52,6 +54,10 @@ Monster.display = [
 	label:'Fortify Active',
 	checkbox:true,
 	help:'Must be checked to fortify.'
+},{
+	id:'general_fortify',
+	label:'Fortify General',
+	select:'bestgenerals'
 },{
 	id:'fortify',
 	require:'fortify_active',
@@ -86,6 +92,10 @@ Monster.display = [
 	help:'Select the maximum energy for a single energy action'
 },{
 	title:'Who To Fight'
+},{
+	id:'general_attack',
+	label:'Attack General',
+	select:'bestgenerals'
 },{
 	advanced:true,
 	id:'ignore_stats',
@@ -656,10 +666,9 @@ Monster.parse = function(change) {
 									break;
 								}
 						 }
+					} else {
+					//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
 					}
-					else {
-				//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
-				}
 				}
 				for (i in Monster['health_img']){
 					if ($(Monster['health_img'][i]).length){
@@ -1048,7 +1057,7 @@ Monster.work = function(state) {
 		 if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 				//Primary method of finding button.
 				j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-				if (!Generals.to(j)) {
+				if (!Generals.to(this.option['general_'+j])) {
 					return QUEUE_CONTINUE;
 				}
 				debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);

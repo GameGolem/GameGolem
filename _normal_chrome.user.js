@@ -1,21 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (543+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -4868,7 +4850,8 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		Config.set('generals', ['any'].concat(list.sort()));
+		Config.set('generals', ['Any'].concat(list.sort()));
+		Config.set('bestgenerals', ['Best','Under Level 4','Any'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -6220,6 +6203,7 @@ Monster.option = {
 	min_to_attack: 0,
 	//	dispel: 50,
 	fortify_active:false,
+	fortify_general:'Best',
 	choice: 'Any',
 	ignore_stats:true,
 	stop: 'Never',
@@ -6229,6 +6213,7 @@ Monster.option = {
 	force1: true,
 	raid: 'Invade x5',
 	assist: true,
+	attack_general:'Best',
 	maxstamina: 5,
 	minstamina: 5,
 	maxenergy: 10,
@@ -6258,6 +6243,10 @@ Monster.display = [
 	label:'Fortify Active',
 	checkbox:true,
 	help:'Must be checked to fortify.'
+},{
+	id:'general_fortify',
+	label:'Fortify General',
+	select:'bestgenerals'
 },{
 	id:'fortify',
 	require:'fortify_active',
@@ -6292,6 +6281,10 @@ Monster.display = [
 	help:'Select the maximum energy for a single energy action'
 },{
 	title:'Who To Fight'
+},{
+	id:'general_attack',
+	label:'Attack General',
+	select:'bestgenerals'
 },{
 	advanced:true,
 	id:'ignore_stats',
@@ -6862,10 +6855,9 @@ Monster.parse = function(change) {
 									break;
 								}
 						 }
+					} else {
+					//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
 					}
-					else {
-				//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
-				}
 				}
 				for (i in Monster['health_img']){
 					if ($(Monster['health_img'][i]).length){
@@ -7254,7 +7246,7 @@ Monster.work = function(state) {
 		 if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 				//Primary method of finding button.
 				j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-				if (!Generals.to(j)) {
+				if (!Generals.to(this.option['general_'+j])) {
 					return QUEUE_CONTINUE;
 				}
 				debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
@@ -7806,7 +7798,7 @@ Quest.defaults['castle_age'] = {
 };
 
 Quest.option = {
-	general:true,
+	general:'Best',
 	what:'Influence',
 	unique:true,
 	monster:true,
@@ -7824,8 +7816,8 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
-		label:'Use Best General',
-		checkbox:true
+		label:'Subquest General',
+		select:'bestgenerals'
 	},{
 		id:'what',
 		label:'Quest for',
@@ -8062,21 +8054,25 @@ Quest.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			switch(this.option.what) {
-				case 'Influence':
-				case 'Advancement':
-				case 'Experience':
-					general = Generals.best('under level 4');
-					if (general === 'any' && this.data[best].influence < 100) {
-						general = Generals.best('influence');
-					}
-					break;
-				case 'Cash':
-					general = Generals.best('cash');
-					break;
-				default:
-					general = Generals.best('item');
-					break;
+			if (this.option.general !== 'Best') {
+				general = this.option.general;
+			} else {
+				switch(this.option.what) {
+					case 'Influence':
+					case 'Advancement':
+					case 'Experience':
+						general = Generals.best('under level 4');
+						if (general === 'any' && this.data[best].influence < 100) {
+							general = Generals.best('influence');
+						}
+						break;
+					case 'Cash':
+						general = Generals.best('cash');
+						break;
+					default:
+						general = Generals.best('item');
+						break;
+				}
 			}
 			if (!Generals.to(general)) {
 				return QUEUE_CONTINUE;
