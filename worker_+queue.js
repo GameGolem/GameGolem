@@ -141,7 +141,7 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
-	if (isWorker(Tabs) && !Tabs.active) {// Disabled tabs don't get to do anything!!!
+	if (isWorker(Window) && !Window.active) {// Disabled tabs don't get to do anything!!!
 		return;
 	}
 	var i, worker, current, result, now = Date.now(), next = null, release = false;
