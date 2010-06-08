@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (549+1);
+var revision = (550+1);
 // User changeable
 var show_debug = true;
 
@@ -2739,6 +2739,7 @@ Tabs.init = function() {
 	this.data['list'] = this.data['list'] || {};
 	this.data['list'][this.tab_id] = now;
 //	log('Adding tab "' + this.tab_id + '"');
+	debug('Adding tab "' + this.tab_id + '"');
 	if (!this.data['active'] || this.data['active'] < now - 3000) {
 		this.active = true;
 		this.data['active'] = now;
@@ -2749,7 +2750,7 @@ Tabs.init = function() {
 	}
 	// Can't put as jQuery bind() for some reason...
 	(isGreasemonkey ? window.wrappedJSObject : window).onbeforeunload = function(event){
-//		log('Removing tab "' + Tabs.tab_id + '"');
+		debug('Tabs: Removing tab "' + Tabs.tab_id + '"');
 		Tabs._unflush();
 		if (Tabs.active) {
 			Tabs.data['active'] = null;
@@ -2763,14 +2764,12 @@ Tabs.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
 			Tabs.data['active'] = null;
 			Tabs.active = false;
-			Tabs._save('data');
 		} else if (!Tabs.data['active'] || Tabs.data['active'] < Date.now() - 3000) { // Make enabled
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
 			Tabs.data['active'] = Date.now();
 			Tabs.active = true;
-			Tabs._save('data');
 		}
 		Tabs._flush();
 	});
@@ -2796,8 +2795,16 @@ Tabs.update = function(type,worker) {
 		}
 	}
 	i = length(this.data['list']);
-	if (i === 1 && this.active) {
-		$('#golem-multiple').hide();
+	if (i === 1) {
+		if (this.active) {
+			$('#golem-multiple').hide();
+		} else {
+			$('#golem-multiple').html('Enabled').toggleClass('red green')
+			$('#golem_buttons').show();
+			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Tabs.data['active'] = Date.now();
+			Tabs.active = true;
+		}
 	} else if (i > 1) {
 		$('#golem-multiple').show();
 	}
