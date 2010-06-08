@@ -139,7 +139,7 @@ Army.sectionlist = {
 		},
 		'tooltip':function(data,uid){
 			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + (function(obj,indent){
+			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
 				var i, output = '';
 				for(i in obj) {
 					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
@@ -155,7 +155,7 @@ Army.sectionlist = {
 					output = output + ',<br>';
 				}
 				return output;
-			})(data[uid],space).replace(/,<br>$/, '<br>') + '}');
+			})(data[uid],space).replace(/,<br>$/, '<br>')) + '}<br>');
 			return $tooltip;
 		}
 	},

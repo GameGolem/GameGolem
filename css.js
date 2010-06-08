@@ -3,7 +3,10 @@
 */
 function do_css(){
 $('head').append("<style type=\"text/css\">\
-.red { background: red !important; }\
+.red { background: #ffd3d3 !important; }\
+.red:hover { background: #ffc0c0 !important; }\
+.green { background: #e6ffe6 !important; }\
+.green:hover { background: #d3ffd3 !important; }\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\

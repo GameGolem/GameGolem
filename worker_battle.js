@@ -322,7 +322,7 @@ Battle.work = function(state) {
 		debug('Unable to find attack buttons, forcing reload');
 		Page.to('index');
 	} else {
-		log('Battle: Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		log('Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}

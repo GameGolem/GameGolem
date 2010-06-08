@@ -10,15 +10,15 @@ Page.settings = {
 };
 
 Page.option = {
-	timeout: 15,
-	retry: 5
+	timeout:15,
+	reload:5
 };
 
 Page.page = '';
 Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
 Page.when = null;
-Page.retry = 0;
+Page.retry = 0; // Number of times we tried
 Page.checking = true;
 Page.node_trigger = null;
 Page.loading = false;
@@ -29,6 +29,11 @@ Page.display = [
 		label:'Retry after',
 		select:[10, 15, 30, 60],
 		after:'seconds'
+	},{
+		id:'reload',
+		label:'Reload after',
+		select:[3, 5, 7, 9, 11, 13, 15],
+		after:'tries'
 	}
 ];
 
@@ -152,6 +157,7 @@ Page.identify = function() {
 		this.reload();
 		return null;
 	}
+	this.clear();
 	var app_body = $('#app'+APPID+'_app_body'), p;
 	$('img', app_body).each(function(i,el){
 		var filename = $(el).attr('src').filepart();
@@ -226,8 +232,13 @@ Page.ajaxload = function() {
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
 				$('#app'+APPID+'_globalContainer').empty().append(data);
 			} else {
-				debug('Page not loaded correctly, reloading.');
-				Page.ajaxload();
+				if (++Page.retry < Page.option.retry) {
+					debug('Page not loaded correctly, retry last action.');
+					Page.ajaxload();
+				} else {
+					debug('Page not loaded correctly, reloading.');
+					Page.reload();
+				}
 			}
 		}
 	});
@@ -245,10 +256,18 @@ Page.click = function(el) {
 		log('Page.click: Unable to find element - '+el);
 		return false;
 	}
+	if (this.lastclick === el) {
+		if (++this.retry >= this.option.retry) {
+			debug('Element not clicked properly, reloading.');
+			Page.reload();
+			return true;
+		}
+	} else {
+		this.clear();
+	}
 	var e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	isGreasemonkey ? $(el).get(0).wrappedJSObject.dispatchEvent(e) : $(el).get(0).dispatchEvent(e);
-	this.clear();
 	this.lastclick = el;
 	this.when = Date.now();
 	return true;

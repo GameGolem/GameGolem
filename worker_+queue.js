@@ -114,10 +114,10 @@ Queue.init = function() {
         $(document).keypress(function(){Queue.lastclick=Date.now();});
         
 	Queue.lastpause = this.option.pause;
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
 		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
+		$(this).toggleClass('red green').attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
 	});

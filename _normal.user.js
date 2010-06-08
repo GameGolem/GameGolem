@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "539";
+var revision = "540";
 // User changeable
 var show_debug = true;
 
@@ -122,7 +122,10 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 */
 function do_css(){
 $('head').append("<style type=\"text/css\">\
-.red { background: red !important; }\
+.red { background: #ffd3d3 !important; }\
+.red:hover { background: #ffc0c0 !important; }\
+.green { background: #e6ffe6 !important; }\
+.green:hover { background: #d3ffd3 !important; }\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
@@ -1065,7 +1068,7 @@ Army.sectionlist = {
 		},
 		'tooltip':function(data,uid){
 			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + (function(obj,indent){
+			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
 				var i, output = '';
 				for(i in obj) {
 					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
@@ -1081,7 +1084,7 @@ Army.sectionlist = {
 					output = output + ',<br>';
 				}
 				return output;
-			})(data[uid],space).replace(/,<br>$/, '<br>') + '}');
+			})(data[uid],space).replace(/,<br>$/, '<br>')) + '}<br>');
 			return $tooltip;
 		}
 	},
@@ -2080,15 +2083,15 @@ Page.settings = {
 };
 
 Page.option = {
-	timeout: 15,
-	retry: 5
+	timeout:15,
+	reload:5
 };
 
 Page.page = '';
 Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
 Page.when = null;
-Page.retry = 0;
+Page.retry = 0; // Number of times we tried
 Page.checking = true;
 Page.node_trigger = null;
 Page.loading = false;
@@ -2099,6 +2102,11 @@ Page.display = [
 		label:'Retry after',
 		select:[10, 15, 30, 60],
 		after:'seconds'
+	},{
+		id:'reload',
+		label:'Reload after',
+		select:[3, 5, 7, 9, 11, 13, 15],
+		after:'tries'
 	}
 ];
 
@@ -2222,6 +2230,7 @@ Page.identify = function() {
 		this.reload();
 		return null;
 	}
+	this.clear();
 	var app_body = $('#app'+APPID+'_app_body'), p;
 	$('img', app_body).each(function(i,el){
 		var filename = $(el).attr('src').filepart();
@@ -2296,8 +2305,13 @@ Page.ajaxload = function() {
 				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
 				$('#app'+APPID+'_globalContainer').empty().append(data);
 			} else {
-				debug('Page not loaded correctly, reloading.');
-				Page.ajaxload();
+				if (++Page.retry < Page.option.retry) {
+					debug('Page not loaded correctly, retry last action.');
+					Page.ajaxload();
+				} else {
+					debug('Page not loaded correctly, reloading.');
+					Page.reload();
+				}
 			}
 		}
 	});
@@ -2315,10 +2329,18 @@ Page.click = function(el) {
 		log('Page.click: Unable to find element - '+el);
 		return false;
 	}
+	if (this.lastclick === el) {
+		if (++this.retry >= this.option.retry) {
+			debug('Element not clicked properly, reloading.');
+			Page.reload();
+			return true;
+		}
+	} else {
+		this.clear();
+	}
 	var e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	isGreasemonkey ? $(el).get(0).wrappedJSObject.dispatchEvent(e) : $(el).get(0).dispatchEvent(e);
-	this.clear();
 	this.lastclick = el;
 	this.when = Date.now();
 	return true;
@@ -2445,10 +2467,10 @@ Queue.init = function() {
         $(document).keypress(function(){Queue.lastclick=Date.now();});
         
 	Queue.lastpause = this.option.pause;
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':'') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
 		Queue.option.pause ^= true;
 		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red').attr('src', (Queue.option.pause?play:pause));
+		$(this).toggleClass('red green').attr('src', (Queue.option.pause?play:pause));
 		Page.clear();
 		Config.updateOptions();
 	});
@@ -3350,7 +3372,7 @@ Battle.work = function(state) {
 		debug('Unable to find attack buttons, forcing reload');
 		Page.to('index');
 	} else {
-		log('Battle: Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		log('Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
