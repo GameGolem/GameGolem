@@ -27,7 +27,7 @@ rem -----------------------------------------------------------------------
 rem _normal_chrome.user.js
 echo Joining files into _normal_chrome.user.js
 type _head*.js >_normal_chrome.user.js 2>nul
-type _jquery*.min.js >_normal_chrome.user.js 2>nul
+type _jquery*.min.js >>_normal_chrome.user.js 2>nul
 type _main.js >>_normal_chrome.user.js 2>nul
 type css.js >>_normal_chrome.user.js 2>nul
 type utility.js >>_normal_chrome.user.js 2>nul
