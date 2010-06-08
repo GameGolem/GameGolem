@@ -1,21 +1,3 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for castle age game
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
-// @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
-// @require		http://cloutman.com/jquery-latest.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (548+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -6739,6 +6721,8 @@ Monster.parse = function(change) {
 	var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'keep_monster_active2') { // In a monster or raid
 		 uid = $('img[linked][size="square"]').attr('uid');
+		 this.runtime.checkuid = this.runtime.checktype = null;
+		 debug('Parsing for Monster type');
 		 for (i in types) {
 				if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
 					//debug('Found a dead '+i);
@@ -6964,6 +6948,23 @@ Monster.parse = function(change) {
 				monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		 }
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
+		
+		if ($('div[style*="no_monster_back.jpg"]').attr('style')){
+			debug('Found a timed out monster.');
+			if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
+				debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + '\'s ' + this.runtime.checktype);
+				delete this.data[this.runtime.checkuid][this.runtime.checktype];
+				if (!length(this.data[this.runtime.checkuid])) {
+					delete this.data[this.runtime.checkuid];
+				}
+			} else {
+				debug('Unknown monster (timed out)');
+			}
+			this.runtime.checkuid = this.runtime.checktype = null;
+			return false;
+		}
+		this.runtime.checkuid = this.runtime.checktype = null;
+		
 		 if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 				return false;
 		 }
@@ -7233,6 +7234,8 @@ Monster.work = function(state) {
 				for (j in this.data[i]) {
 					if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
 						 debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
+						 this.runtime.checkuid = i;
+						 this.runtime.checktype = j;
 						 Page.to(this.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
 						 return QUEUE_CONTINUE;
 					}
