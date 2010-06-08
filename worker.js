@@ -94,8 +94,8 @@ if (typeof GM_getValue !== 'undefined') {
 }
 */
 if (isGreasemonkey) {
-	var setItem = function(n,v){GM_setValue(n, v);}
-	var getItem = function(n){return GM_getValue(n);}
+	var setItem = function(n,v){GM_setValue(n, v);}// Must make per-APP when we go to multi-app
+	var getItem = function(n){return GM_getValue(n);}// Must make per-APP when we go to multi-app
 } else {
 	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
 	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
@@ -220,6 +220,11 @@ Worker.prototype._parse = function(change) {
 	return result;
 };
 
+Worker.prototype._revive = function(seconds) {
+	var me = this;
+	return window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+};
+
 Worker.prototype._remind = function(seconds) {
 	var me = this;
 	window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
@@ -265,8 +270,15 @@ Worker.prototype._set = function(what, value) {
 					a[c] = {};
 				}
 				arguments.callee(a[c], b);
+//				if (!length(a[c])) {// Can clear out empty trees completely...
+//					delete a[c];
+//				}
 			} else {
-				a[c] = value;
+				if (typeof value !== 'undefined') {
+					a[c] = value;
+				} else {
+					delete a[c];
+				}
 			}
 		})(data,x);
 //		this._save();

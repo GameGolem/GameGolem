@@ -141,6 +141,9 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
+	if (isWorker(Tabs) && !Tabs.active) {// Disabled tabs don't get to do anything!!!
+		return;
+	}
 	var i, worker, current, result, now = Date.now(), next = null, release = false;
 	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;

@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = "540";
+var revision = (541+1);
 // User changeable
 var show_debug = true;
 
@@ -51,7 +51,7 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (typeof revision !== 'undefined' && revision !== '$WCREV$' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -130,11 +130,13 @@ $('head').append("<style type=\"text/css\">\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
 .golem-config { float: none; margin-right: 0; }\
-.golem-config > div { position: static; width: 196px; margin: 0; padding: 0; overflow: hidden; overflow-y: auto; }\
+.golem-config > div { position: static; width: 196px; padding: 4px; overflow: hidden; overflow-y: auto; }\
+.golem-config > div > div { margin-top: 4px; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-config-fixed { float: right; margin-right: 200px; }\
 .golem-config-fixed > div { position: fixed; }\
 .golem-config-fixed #golem_fixed { background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82') no-repeat; }\
+#golem-multiple { text-align: center; width: 188px; }\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 3; }\
 #golem-dashboard thead th { cursor: pointer }\
 #golem-dashboard thead th.golem-sort:after { content: '&darr;'; }\
@@ -177,7 +179,7 @@ table.golem-graph tbody td div.goal div:nth-last-child(4) { background: #aa00aa;
 img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
-.golem-title { padding: 4px; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
+.golem-title { padding: 4px; margin: -4px -4px 0 -4px !important; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
 .golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
 .golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
@@ -300,15 +302,16 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 };
 
 var length = function(obj) { // Find the number of entries in an object (also works on arrays)
-	var l = 0, i;
-	if (typeof obj === 'object') {
+	if (isArray(obj)) {
+		return obj.length;
+	} else if (typeof obj === 'object') {
+		var l = 0, i;
 		for(i in obj) {
 			l++;
 		}
-	} else if (typeof obj === 'array') {
-		l = obj.length;
+		return l;
 	}
-	return l;
+	return 0;
 };
 
 var unique = function (a) { // Return an array with no duplicates
@@ -670,8 +673,8 @@ if (typeof GM_getValue !== 'undefined') {
 }
 */
 if (isGreasemonkey) {
-	var setItem = function(n,v){GM_setValue(n, v);}
-	var getItem = function(n){return GM_getValue(n);}
+	var setItem = function(n,v){GM_setValue(n, v);}// Must make per-APP when we go to multi-app
+	var getItem = function(n){return GM_getValue(n);}// Must make per-APP when we go to multi-app
 } else {
 	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
 	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
@@ -796,6 +799,11 @@ Worker.prototype._parse = function(change) {
 	return result;
 };
 
+Worker.prototype._revive = function(seconds) {
+	var me = this;
+	return window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+};
+
 Worker.prototype._remind = function(seconds) {
 	var me = this;
 	window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
@@ -841,8 +849,15 @@ Worker.prototype._set = function(what, value) {
 					a[c] = {};
 				}
 				arguments.callee(a[c], b);
+//				if (!length(a[c])) {// Can clear out empty trees completely...
+//					delete a[c];
+//				}
 			} else {
-				a[c] = value;
+				if (typeof value !== 'undefined') {
+					a[c] = value;
+				} else {
+					delete a[c];
+				}
 			}
 		})(data,x);
 //		this._save();
@@ -1247,7 +1262,7 @@ Config.init = function() {
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i, j, k;
-	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem ' + (typeof revision !== 'undefined' && revision !== '$WCREV$' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons" style="margin:4px;"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="margin:0 4px;overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
+	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
@@ -2494,6 +2509,9 @@ Queue.update = function(type) {
 };
 
 Queue.run = function() {
+	if (isWorker(Tabs) && !Tabs.active) {// Disabled tabs don't get to do anything!!!
+		return;
+	}
 	var i, worker, current, result, now = Date.now(), next = null, release = false;
 	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
 		return;
@@ -2687,6 +2705,103 @@ Settings.get = function(what) {
 		Page.reload();
 	}
 	return;
+};
+
+/********** Worker.Tabs **********
+* Deals with multiple tabs being open at the same time...
+*
+* http://code.google.com/p/game-golem/issues/detail?id=86
+*
+* Use Tabs.data to store information - then it's auto-flushed when not used...
+*/
+var Tabs = new Worker('Tabs');
+Tabs.runtime = Tabs.option = null;
+Tabs._rootpath = false; // Override save path so we don't get limited to per-user
+
+Tabs.data = {
+	active:false,
+	list:{}
+};
+
+Tabs.settings = {
+	system:true
+};
+
+Tabs.active = false; // Are we the active tab (able to do anything)?
+Tabs.tab_id = 'golem_' + Date.now();
+
+/***** Tabs.init() *****
+1. Check if we're the only copy active or if the active copy hasn't updated in the last 3 seconds
+2. Add ourselves to the list of tabs using Tabs.tab_id
+*/
+Tabs.init = function() {
+	var i, now = Date.now();
+	this.data['list'] = this.data['list'] || {};
+	this.data['list'][this.tab_id] = now;
+//	log('Adding tab "' + this.tab_id + '"');
+	if (!this.data['active'] || this.data['active'] < now - 3000) {
+		this.active = true;
+		this.data['active'] = now;
+		$('.golem-title').after('<div id="golem-multiple" class="golem-button green" style="display:none;">Enabled</div>');
+	} else {
+		$('.golem-title').after('<div id="golem-multiple" class="golem-button red"><b>Disabled</b></div>');
+		$('#golem-multiple').nextAll().hide();
+	}
+	// Can't put as jQuery bind() for some reason...
+	(isGreasemonkey ? window.wrappedJSObject : window).onbeforeunload = function(event){
+//		log('Removing tab "' + Tabs.tab_id + '"');
+		Tabs._unflush();
+		if (Tabs.active) {
+			Tabs.data['active'] = null;
+		}
+		delete Tabs.data['list'][Tabs.tab_id];
+		Tabs._save('data');
+	};
+	$('#golem-multiple').click(function(event){
+		Tabs._unflush();
+		if (Tabs.active) {
+			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
+			Tabs.data['active'] = null;
+			Tabs.active = false;
+			Tabs._save('data');
+		} else if (!Tabs.data['active'] || Tabs.data['active'] < Date.now() - 3000) { // Make enabled
+			$(this).html('Enabled').toggleClass('red green')
+			$('#golem_buttons').show();
+			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Tabs.data['active'] = Date.now();
+			Tabs.active = true;
+			Tabs._save('data');
+		}
+		Tabs._flush();
+	});
+	this._revive(1); // Call us *every* 1 second - not ideal with loads of tabs, but good enough for half a dozen or more
+};
+
+/***** Tabs.update() *****
+*/
+Tabs.update = function(type,worker) {
+	if (type !== 'reminder') {
+		return;
+	}
+	this.data = this.data || {};
+	var i, now = Date.now();
+	if (this.active) {
+		this.data['active'] = now;
+	}
+	this.data['list'] = this.data['list'] || {};
+	this.data['list'][this.tab_id] = now;
+	for(i in this.data['list']) {
+		if (this.data['list'][i] < (now - 3000)) {
+			delete this.data['list'][i];
+		}
+	}
+	i = length(this.data['list']);
+	if (i === 1 && this.active) {
+		$('#golem-multiple').hide();
+	} else if (i > 1) {
+		$('#golem-multiple').show();
+	}
+	this._flush();// We really don't want to store data any longer than we really have to!
 };
 
 /********** Worker.Title **********
@@ -6685,7 +6800,7 @@ Player.get = function(what) {
 		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':           return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
-		case 'pause':			return (Queue.get('option.pause') ? '(Paused) ' : '');
+		case 'pause':			return isWorker(Tabs) && !Tabs.active ? '(Disabled) ' : isWorker(Queue) && Queue.get('option.pause') ? '(Paused) ' : '';
                 case 'bank':                    return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		default: return this._get(what);
 	}

@@ -33,7 +33,7 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (typeof revision !== 'undefined' && revision !== '$WCREV$' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};

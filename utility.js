@@ -109,15 +109,16 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 };
 
 var length = function(obj) { // Find the number of entries in an object (also works on arrays)
-	var l = 0, i;
-	if (typeof obj === 'object') {
+	if (isArray(obj)) {
+		return obj.length;
+	} else if (typeof obj === 'object') {
+		var l = 0, i;
 		for(i in obj) {
 			l++;
 		}
-	} else if (typeof obj === 'array') {
-		l = obj.length;
+		return l;
 	}
-	return l;
+	return 0;
 };
 
 var unique = function (a) { // Return an array with no duplicates
