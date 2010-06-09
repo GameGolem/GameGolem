@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (557+1);
+var revision = (558+1);
 // User changeable
 var show_debug = true;
 
@@ -147,7 +147,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
-.golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; z-index: 10; }\
+.golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; float: right; z-index: 10; }\
 .golem-config > div { margin-top: 4px; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-config-fixed { position: fixed; }\
@@ -1304,8 +1304,9 @@ Config.init = function() {
 		return false;
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i, j, k;
-	$('div.UIStandardFrame_SidebarAds').prepend('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	var $btn, $golem_config, $newPanel, i, j, k, $display;
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
@@ -1655,10 +1656,12 @@ Config.updateOptions = function() {
 		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
 		for (i in require) {
 			path = i.split('.');
-			worker = path.shift();
-			value = WorkerByName(worker).get(path,false);
-			if (!findInArray(require[i], value)) {
-				show = false;
+			worker = WorkerByName(path.shift());
+			if (worker) {
+				value = worker.get(path,false);
+				if (!findInArray(require[i], value)) {
+					show = false;
+				}
 			}
 		}
 		if (show) {
@@ -5446,7 +5449,7 @@ Monster.display = [
 	help:'Must be checked to fortify.'
 },{
 	id:'general_fortify',
-	require:{'Player.option':true},
+	require:{'Player.option.trusted':true},
 	label:'Fortify General',
 	select:'bestgenerals'
 },{
@@ -5923,239 +5926,238 @@ Monster.parse = function(change) {
 	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer, atk_dmg, dfd_amount;
 	var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'keep_monster_active2') { // In a monster or raid
-		 uid = $('img[linked][size="square"]').attr('uid');
-		 this.runtime.checkuid = this.runtime.checktype = null;
-		 debug('Parsing for Monster type');
-		 for (i in types) {
-				if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
-					//debug('Found a dead '+i);
-					type = i;
-					timer = types[i].timer;
-					dead = true;
-				} else if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && types[i].title && $('div[style*="'+types[i].title+'"]').length){
-					//debug('Found a dead '+i);
-					type = i;
-					timer = types[i].timer;
-					dead = true;
-				} else if (types[i].image && ($('img[src$="'+types[i].image+'"]').length || $('div[style*="'+types[i].image+'"]').length)) {
-					//debug('Parsing '+i);
-					type = i;
-					timer = types[i].timer;
-				} else if (types[i].image2 && ($('img[src$="'+types[i].image2+'"]').length || $('div[style*="'+types[i].image2+'"]').length)) {
-					//debug('Parsing second stage '+i);
-					type = i;
-					timer = types[i].timer2 || types[i].timer;
+		uid = $('img[linked][size="square"]').attr('uid');
+		this.runtime.checkuid = this.runtime.checktype = null;
+		debug('Parsing for Monster type');
+		for (i in types) {
+			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
+				//debug('Found a dead '+i);
+				type = i;
+				timer = types[i].timer;
+				dead = true;
+			} else if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && types[i].title && $('div[style*="'+types[i].title+'"]').length){
+				//debug('Found a dead '+i);
+				type = i;
+				timer = types[i].timer;
+				dead = true;
+			} else if (types[i].image && ($('img[src$="'+types[i].image+'"]').length || $('div[style*="'+types[i].image+'"]').length)) {
+				//debug('Parsing '+i);
+				type = i;
+				timer = types[i].timer;
+			} else if (types[i].image2 && ($('img[src$="'+types[i].image2+'"]').length || $('div[style*="'+types[i].image2+'"]').length)) {
+				//debug('Parsing second stage '+i);
+				type = i;
+				timer = types[i].timer2 || types[i].timer;
+			}
+		}
+		if (!uid || !type) {
+			debug('Unknown monster (probably dead)');
+			return false;
+		}
+		data[uid] = data[uid] || {};
+		data[uid][type] = data[uid][type] || {};
+		monster = data[uid][type];
+		monster.last = Date.now();
+		if ($('input[src*="collect_reward_button.jpg"]').length) {
+			monster.state = 'reward';
+			return false;
+		}
+		if (dead && monster.state === 'assist') {
+			monster.state = null;
+		} else if (dead && monster.state === 'engage') {
+			monster.state = 'reward';
+		} else {
+			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
+				if ($('span.result_body').text().match(/for your help in summoning/i)) {
+					monster.assist = Date.now();
 				}
-		 }
-		 if (!uid || !type) {
-				debug('Unknown monster (probably dead)');
-				return false;
-		 }
-		 data[uid] = data[uid] || {};
-		 data[uid][type] = data[uid][type] || {};
-		 monster = data[uid][type];
-		 monster.last = Date.now();
-		 if ($('input[src*="collect_reward_button.jpg"]').length) {
-				monster.state = 'reward';
-				return false;
-		 }
-		 if (dead && monster.state === 'assist') {
-				monster.state = null;
-		 } else if (dead && monster.state === 'engage') {
-				monster.state = 'reward';
-		 } else {
-				if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-					if ($('span.result_body').text().match(/for your help in summoning/i)) {
-						 monster.assist = Date.now();
+				monster.state = 'assist';
+			}
+			if (this.runtime.attacked && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
+				//debug('Stamina after to attack' + Player.get('stamina'));
+				this.runtime.post_stamina = Player.get('stamina');
+				//debug('Battle stamina was ' + monster.battle_stamina);
+				if (monster.battle_stamina){
+					 monster.battle_stamina += this.runtime.pre_stamina - this.runtime.post_stamina;
+				} else{
+					 monster.battle_stamina = this.runtime.pre_stamina - this.runtime.post_stamina;
+				}
+				//debug('Setting battle stamina to ' + monster.battle_stamina);
+				atk_dmg = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
+				//debug('Damage done = ' + atk_dmg);
+				//debug('Pre-Stamina = ' + this.runtime.pre_stamina + ' & Post-Stamina = ' + this.runtime.post_stamina);
+				if (atk_dmg){
+					if (monster.dmg_per_stamina){
+						monster.dmg_per_stamina = Math.ceil((monster.dmg_per_stamina + (atk_dmg / (this.runtime.pre_stamina - this.runtime.post_stamina))) / 2);
+					} else {
+							monster.dmg_per_stamina = Math.ceil(atk_dmg / monster.battle_stamina);
 					}
-					monster.state = 'assist';
-				}
-				if (this.runtime.attacked && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
-					//debug('Stamina after to attack' + Player.get('stamina'));
-					this.runtime.post_stamina = Player.get('stamina');
-					//debug('Battle stamina was ' + monster.battle_stamina);
-					if (monster.battle_stamina){
-						 monster.battle_stamina += this.runtime.pre_stamina - this.runtime.post_stamina;
+					//debug('Damage per stamina = ' + monster.dmg_per_stamina);
+					if (monster.dmg_avg){
+						monster.dmg_avg = Math.ceil((monster.dmg_avg + atk_dmg) / 2);
 					} else{
-						 monster.battle_stamina = this.runtime.pre_stamina - this.runtime.post_stamina;
+						monster.dmg_avg = atk_dmg;
 					}
-					//debug('Setting battle stamina to ' + monster.battle_stamina);
-					atk_dmg = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
-					//debug('Damage done = ' + atk_dmg);
-					//debug('Pre-Stamina = ' + this.runtime.pre_stamina + ' & Post-Stamina = ' + this.runtime.post_stamina);
-					if (atk_dmg){
-						 if (monster.dmg_per_stamina){
-								monster.dmg_per_stamina = Math.ceil((monster.dmg_per_stamina + (atk_dmg / (this.runtime.pre_stamina - this.runtime.post_stamina))) / 2);
-						 } else {
-								monster.dmg_per_stamina = Math.ceil(atk_dmg / monster.battle_stamina);
-						 }
-						 //debug('Damage per stamina = ' + monster.dmg_per_stamina);
-						 if (monster.dmg_avg){
-								monster.dmg_avg = Math.ceil((monster.dmg_avg + atk_dmg) / 2);
-						 } else{
-								monster.dmg_avg = atk_dmg;
-						 }
 					//debug('Avg Damage = ' + monster.dmg_avg);
-					}
-					this.runtime.pre_stamina = this.runtime.post_stamina = 0;
-					this.runtime.attacked = false;
 				}
-				if (this.runtime.defended && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
-					this.runtime.post_energy = Player.get('energy');
-					//debug('Pre-energy = ' + this.runtime.pre_energy + ' & Post-energy = ' + this.runtime.post_energy);
-					dfd_amount = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
-					//debug('Defend Amount = ' + dfd_amount);
-					if (monster.battle_energy){
-						 monster.battle_energy += this.runtime.pre_energy - this.runtime.post_energy;
+				this.runtime.pre_stamina = this.runtime.post_stamina = 0;
+				this.runtime.attacked = false;
+			}
+			if (this.runtime.defended && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
+				this.runtime.post_energy = Player.get('energy');
+				//debug('Pre-energy = ' + this.runtime.pre_energy + ' & Post-energy = ' + this.runtime.post_energy);
+				dfd_amount = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
+				//debug('Defend Amount = ' + dfd_amount);
+				if (monster.battle_energy){
+					monster.battle_energy += this.runtime.pre_energy - this.runtime.post_energy;
+				} else{
+					monster.battle_energy = this.runtime.pre_energy - this.runtime.post_energy;
+				}
+				if (dfd_amount){
+					if (monster.dfd_per_energy){
+						monster.dfd_per_energy = Math.ceil((monster.dfd_per_energy + (dfd_amount / (this.runtime.pre_energy - this.runtime.post_energy))) / 2);
+					} else {
+						monster.dfd_per_energy = Math.ceil(dfd_amount / monster.battle_energy);
+					}
+					//debug('Defend Amount per energy = ' + monster.dfd_per_energy);
+					if (monster.dfd_avg){
+						monster.dfd_avg = Math.ceil((monster.dfd_avg + dfd_amount) / 2);
 					} else{
-						 monster.battle_energy = this.runtime.pre_energy - this.runtime.post_energy;
+						monster.dfd_avg = dfd_amount;
 					}
-					if (dfd_amount){
-						 if (monster.dfd_per_energy){
-								monster.dfd_per_energy = Math.ceil((monster.dfd_per_energy + (dfd_amount / (this.runtime.pre_energy - this.runtime.post_energy))) / 2);
-						 } else {
-								monster.dfd_per_energy = Math.ceil(dfd_amount / monster.battle_energy);
-						 }
-						 //debug('Defend Amount per energy = ' + monster.dfd_per_energy);
-						 if (monster.dfd_avg){
-								monster.dfd_avg = Math.ceil((monster.dfd_avg + dfd_amount) / 2);
-						 } else{
-								monster.dfd_avg = dfd_amount;
-						 }
 					//debug('Avg Defend = ' + monster.dfd_avg);
-					}
-					this.runtime.pre_energy = this.runtime.post_energy = 0;
-					this.runtime.defended = false;
 				}
-				if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
-					monster.battle_count = (monster.battle_count || 0) + 1;
+				this.runtime.pre_energy = this.runtime.post_energy = 0;
+				this.runtime.defended = false;
+			}
+			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
+				monster.battle_count = (monster.battle_count || 0) + 1;
 				//debug('Setting battle count to ' + monster.battle_count);
-				}
-				if ($('img[src$="battle_victory"]').length){
-					History.add('raid+win',1);
-				}
-				if ($('img[src$="battle_defeat"]').length){
-					History.add('raid+loss',-1);
-				}
-				if (!monster.name) {
-					tmp = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
-					//				monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
-					monster.name = tmp.regex(/(.+)'s /i);
-				}
-				// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
-				for (i in Monster['class_img']){
-					if ($(Monster['class_img'][i]).length){
-						 monster.mclass = i;
+			}
+			if ($('img[src$="battle_victory"]').length){
+				History.add('raid+win',1);
+			}
+			if ($('img[src$="battle_defeat"]').length){
+				History.add('raid+loss',-1);
+			}
+			if (!monster.name) {
+				tmp = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
+				//monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
+				monster.name = tmp.regex(/(.+)'s /i);
+			}
+			// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
+			for (i in Monster['class_img']){
+				if ($(Monster['class_img'][i]).length){
+					monster.mclass = i;
 					//debug('Monster class : '+Monster['class_name'][i]);
-					}
 				}
-				if (monster.mclass > 1){	// If we are a Rogue or Mage
-					// Attempt to check if we are in the wrong phase
-					if ($(Monster['class_off'][monster.mclass]).length === 0){
-						 for(i in Monster['secondary_img']) {
-								$secondary = $(Monster['secondary_img'][i]);
-								if ($secondary.length) {
-									monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
-									//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
-									break;
-								}
-						 }
-					} else {
+			}
+			if (monster.mclass > 1){	// If we are a Rogue or Mage
+				// Attempt to check if we are in the wrong phase
+				if ($(Monster['class_off'][monster.mclass]).length === 0){
+					for(i in Monster['secondary_img']) {
+						$secondary = $(Monster['secondary_img'][i]);
+						if ($secondary.length) {
+							monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
+							//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
+							break;
+						}
+					}
+				} else {
 					//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
-					}
 				}
-				for (i in Monster['health_img']){
-					if ($(Monster['health_img'][i]).length){
-						 $health = $(Monster['health_img'][i]).parent();
-						 monster.health = $health.length ? (100 * $health.width() / $health.parent().width()) : 0;
-						 break;
-					}
+			}
+			for (i in Monster['health_img']){
+				if ($(Monster['health_img'][i]).length){
+					$health = $(Monster['health_img'][i]).parent();
+					monster.health = $health.length ? (100 * $health.width() / $health.parent().width()) : 0;
+					break;
 				}
-				for (i in Monster['shield_img']){
-					if ($(Monster['shield_img'][i]).length){
-						 $dispel = $(Monster['shield_img'][i]).parent();
-						 monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
-						 monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
-						 break;
-					}
+			}
+			for (i in Monster['shield_img']){
+				if ($(Monster['shield_img'][i]).length){
+					$dispel = $(Monster['shield_img'][i]).parent();
+					monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
+					monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
+					break;
 				}
-				for (i in Monster['defense_img']){
-					if ($(Monster['defense_img'][i]).length){
-						 $defense = $(Monster['defense_img'][i]).parent();
-						 monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
-						 if ($defense.parent().width() < $defense.parent().parent().width()){
-								monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
-						 } else {
-								monster.strength = 100;
-						 }
-						 monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
-						 break;
-					}
-				}
-				monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
-				monster.finish = Date.now() + (monster.timer * 1000);
-				monster.damage_total = 0;
-				monster.damage_siege = 0;
-				monster.damage_players = 0;
-				monster.fortify = 0;
-				monster.damage = {};
-				$('img[src*="siege_small"]').each(function(i,el){
-					var siege = $(el).parent().next().next().next().children().eq(0).text();
-					var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
-					var dmg = tmp.regex(/([0-9]+)/);
-					//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
-					monster.damage[siege]  = [dmg];
-					monster.damage_siege += dmg;
-				});
-				$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
-					var user = $(el).attr('href').regex(/user=([0-9]+)/i);
-					var tmp = null;
-					if (types[type].raid){
-						 tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
+			}
+			for (i in Monster['defense_img']){
+				if ($(Monster['defense_img'][i]).length){
+					$defense = $(Monster['defense_img'][i]).parent();
+					monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+					if ($defense.parent().width() < $defense.parent().parent().width()){
+						monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
 					} else {
-						 tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
+						monster.strength = 100;
 					}
-					var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-					monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
-					if (user === userID){
-						 monster.damage_user = dmg;
-						 if (monster.dmg_per_stamina && monster.battle_stamina){
-								while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
-									//debug('Battle stamina was ' + monster.battle_stamina);
-									monster.battle_stamina++;
-								//debug('Setting battle stamina to ' + monster.battle_stamina);
-								}
-								while (monster.dmg_per_stamina * monster.battle_stamina >= monster.damage_user * 1.01){
-									//debug('Battle stamina was ' + monster.battle_stamina);
-									monster.battle_stamina--;
-								//debug('Setting battle stamina to ' + monster.battle_stamina);
-								}
-						 }
-					}
-					monster.damage_players += dmg;
-					if (fort) {
-						 monster.fortify += fort;
-					}
-				});
-				if(types[type].orcs) {
-					monster.damage_total = Math.ceil(monster.damage_siege / 1000) + monster.damage_players
-				} else {
-					monster.damage_total = monster.damage_siege + monster.damage_players;
+					monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
+					break;
 				}
-				monster.dps = monster.damage_players / (timer - monster.timer);
-				if (types[type].raid) {
-					monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
+			}
+			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
+			monster.finish = Date.now() + (monster.timer * 1000);
+			monster.damage_total = 0;
+			monster.damage_siege = 0;
+			monster.damage_players = 0;
+			monster.fortify = 0;
+			monster.damage = {};
+			$('img[src*="siege_small"]').each(function(i,el){
+				var siege = $(el).parent().next().next().next().children().eq(0).text();
+				var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
+				var dmg = tmp.regex(/([0-9]+)/);
+				//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+				monster.damage[siege]  = [dmg];
+				monster.damage_siege += dmg;
+			});
+			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
+				var user = $(el).attr('href').regex(/user=([0-9]+)/i);
+				var tmp = null;
+				if (types[type].raid){
+					tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
 				} else {
-					monster.total = Math.ceil((1 + 100 * monster.damage_total) / (monster.health == 100 ? 0.1 : (100 - monster.health)));
+					tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
 				}
-				monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
-		 }
+				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
+				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
+				if (user === userID){
+					monster.damage_user = dmg;
+					if (monster.dmg_per_stamina && monster.battle_stamina){
+						while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
+							//debug('Battle stamina was ' + monster.battle_stamina);
+							monster.battle_stamina++;
+							//debug('Setting battle stamina to ' + monster.battle_stamina);
+						}
+						while (monster.dmg_per_stamina * monster.battle_stamina >= monster.damage_user * 1.01){
+							//debug('Battle stamina was ' + monster.battle_stamina);
+							monster.battle_stamina--;
+							//debug('Setting battle stamina to ' + monster.battle_stamina);
+						}
+					}
+				}
+				monster.damage_players += dmg;
+				if (fort) {
+					monster.fortify += fort;
+				}
+			});
+			if (types[type].orcs) {
+				monster.damage_total = Math.ceil(monster.damage_siege / 1000) + monster.damage_players
+			} else {
+				monster.damage_total = monster.damage_siege + monster.damage_players;
+			}
+			monster.dps = monster.damage_players / (timer - monster.timer);
+			if (types[type].raid) {
+				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
+			} else {
+				monster.total = Math.ceil((1 + 100 * monster.damage_total) / (monster.health == 100 ? 0.1 : (100 - monster.health)));
+			}
+			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
+		}
 	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
-		
 		if ($('div[style*="no_monster_back.jpg"]').attr('style')){
 			debug('Found a timed out monster.');
 			if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
-				debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + '\'s ' + this.runtime.checktype);
+				debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + "'s " + this.runtime.checktype);
 				delete this.data[this.runtime.checkuid][this.runtime.checktype];
 				if (!length(this.data[this.runtime.checkuid])) {
 					delete this.data[this.runtime.checkuid];
@@ -6167,58 +6169,58 @@ Monster.parse = function(change) {
 			return false;
 		}
 		this.runtime.checkuid = this.runtime.checktype = null;
-		
-		 if (!$('#app'+APPID+'_app_body div.imgButton').length) {
-				return false;
-		 }
-		 if (Page.page === 'battle_raid') {
-				raid = true;
-		 }
-		 for (uid in data) {
-				for (type in data[uid]) {
-					if (((Page.page === 'battle_raid' && this.types[type].raid) || (Page.page === 'keep_monster' && !this.types[type].raid)) && (data[uid][type].state === 'complete' || (data[uid][type].state === 'assist' && data[uid][type].finish < Date.now()))) {
-						 data[uid][type].state = null;
-					}
+
+		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
+			return false;
+		}
+		if (Page.page === 'battle_raid') {
+			raid = true;
+		}
+		for (uid in data) {
+			for (type in data[uid]) {
+				if (((Page.page === 'battle_raid' && this.types[type].raid) || (Page.page === 'keep_monster' && !this.types[type].raid)) && (data[uid][type].state === 'complete' || (data[uid][type].state === 'assist' && data[uid][type].finish < Date.now()))) {
+					 data[uid][type].state = null;
 				}
-		 }
-		 $('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
-				var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
-				for (i in types) {
-					if (tmp == types[i].list) {
-						 type = i;
-						 break;
-					}
+			}
+		}
+		$('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
+			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
+			for (i in types) {
+				if (tmp == types[i].list) {
+					 type = i;
+					 break;
 				}
-				if (!uid || type === 'unknown') {
-					return;
-				}
-				data[uid] = data[uid] || {};
-				data[uid][type] = data[uid][type] || {};
-				if (uid === userID) {
-					data[uid][type].name = 'You';
-				} else {
-					tmp = $(el).parent().parent().children().eq(2).text().trim();
-					data[uid][type].name = tmp.regex(/(.+)'s /i);
-				}
-				switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
-					case 2:
-						 data[uid][type].state = 'reward';
-						 break;
-					case 3:
-						 data[uid][type].state = 'engage';
-						 break;
-					case 4:
-						 //if (this.types[type].raid && data[uid][type].health) {
-						 //data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
-						 //} else {
-						 data[uid][type].state = 'complete';
-						 //}
-						 break;
-					default:
-						 data[uid][type].state = 'unknown';
-						 break; // Should probably delete, but keep it on the list...
-				}
-		 });
+			}
+			if (!uid || type === 'unknown') {
+				return;
+			}
+			data[uid] = data[uid] || {};
+			data[uid][type] = data[uid][type] || {};
+			if (uid === userID) {
+				data[uid][type].name = 'You';
+			} else {
+				tmp = $(el).parent().parent().children().eq(2).text().trim();
+				data[uid][type].name = tmp.regex(/(.+)'s /i);
+			}
+			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
+				case 2:
+					data[uid][type].state = 'reward';
+					break;
+				case 3:
+					data[uid][type].state = 'engage';
+					break;
+				case 4:
+					// if (this.types[type].raid && data[uid][type].health) {
+					//	data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+					// } else {
+					data[uid][type].state = 'complete';
+					// }
+					break;
+				default:
+					data[uid][type].state = 'unknown';
+					break; // Should probably delete, but keep it on the list...
+			}
+		});
 	}
 	return false;
 };
