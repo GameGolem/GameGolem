@@ -137,7 +137,37 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 };
 
 Config.makePanel = function(worker) {
-	var i, o, x, y, req, id, step, show, $head, $panel, $option, display = worker.display, txt = [], list = [], options = {
+	var i, $head, $panel;
+	if (!worker.display) {
+		return null;
+	}
+	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<img class="golem-lock" src="' + Images.lock + '"></h3></div>');
+	switch (typeof worker.display) {
+		case 'array':
+		case 'object':
+			$panel = $('<div class="golem-panel-content" style="font-size:smaller;"></div>');
+			for (i in worker.display) {
+				$panel.append(this.makeOption(worker, worker.display[i]));
+			}
+			$head.append($panel);
+			return $head;
+		case 'function':
+			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
+			try {
+				$('.golem-panel-content', $head).append(worker.display());
+			} catch(e) {
+				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
+			}
+			return $head;
+		default:
+			return null;
+	}
+};
+
+Config.makeOption = function(worker, args) {
+	var i, o, step, $option, txt = [], list = [];
+	o = $.extend(true, {}, {
 		before: '',
 		after: '',
 		suffix: '',
@@ -146,166 +176,138 @@ Config.makePanel = function(worker) {
 		size: 7,
 		min: 0,
 		max: 100
-	};
-	if (!display) {
-		return false;
+	}, args);
+	o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
+	o.value = worker.get('option.'+o.id, null);
+	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+	if (o.hr) {
+		txt.push('<br><hr style="clear:both;margin:0;">');
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	show = findInArray(this.option.active, worker.id);
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (show?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82">' + worker.name + '<img class="golem-lock" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82"></h3></div>');
-	switch (typeof display) {
-		case 'array':
-		case 'object':
-			$panel = $('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			for (i in display) {
-				txt = [];
-				list = [];
-				o = $.extend(true, {}, options, display[i]);
-				o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
-				o.value = worker.get('option.'+o.id, null);
-				o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
-				if (o.hr) {
-					txt.push('<br><hr style="clear:both;margin:0;">');
-				}
-				if (o.title) {
-					txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
-				}
-				if (o.label) {
-					txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-					if (o.text || o.checkbox || o.select) {
-						txt.push('<span style="float:right;">');
-					} else if (o.multiple) {
-						txt.push('<br>');
-					}
-				}
-				if (o.before) {
-					txt.push(o.before+' ');
-				}
-				// our different types of input elements
-				if (o.info) { // only useful for externally changed
-					if (o.id) {
-						txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
-					} else {
-						txt.push(o.info);
-					}
-				} else if (o.text) {
-					txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
-				} else if (o.textarea) {
-					txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
-				} else if (o.checkbox) {
-					txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
-				} else if (o.select) {
-					switch (typeof o.select) {
-						case 'number':
-							step = Divisor(o.select);
-							for (x=0; x<=o.select; x+=step) {
-								list.push('<option' + (o.value==x ? ' selected' : '') + '>' + x + '</option>');
-							}
-							break;
-						case 'string':
-							o.className = ' class="golem_'+o.select+'"';
-							if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
-								o.select = this.data[o.select];
-							} else {
-								break; // deliberate fallthrough
-							}
-						case 'array':
-						case 'object':
-							if (isArray(o.select)) {
-								for (x=0; x<o.select.length; x++) {
-									list.push('<option value="' + o.select[x] + '"' + (o.value==o.select[x] ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-							} else {
-								for (x in o.select) {
-									list.push('<option value="' + x + '"' + (o.value==x ? ' selected' : '') + '>' + o.select[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-								}
-							}
-							break;
-					}
-					txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
-				} else if (o.multiple) {
-					if (typeof o.value === 'array' || typeof o.value === 'object') {
-						for (i in o.value) {
-							list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
-						}
-					}
-					txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
-					if (typeof o.multiple === 'string') {
-						txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
-					} else {
-						list = [];
-						switch (typeof o.multiple) {
-							case 'number':
-								step = Divisor(o.select);
-								for (x=0; x<=o.multiple; x+=step) {
-									list.push('<option>' + x + '</option>');
-								}
-								break;
-							case 'array':
-							case 'object':
-								if (isArray(o.multiple)) {
-									for (x=0; x<o.multiple.length; x++) {
-										list.push('<option value="' + o.multiple[x] + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-									}
-								} else {
-									for (x in o.multiple) {
-										list.push('<option value="' + x + '">' + o.multiple[x] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-									}
-								}
-								break;
-						}
-						txt.push('<select class="golem_select">'+list.join('')+'</select>');
-					}
-					txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
-				}
-				if (o.after) {
-					txt.push(' '+o.after);
-				}
-				if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
-					txt.push('</span>');
-				}
-				$option = $('<div>' + txt.join('') + '<br></div>');
-				if (o.require) {
-					if (typeof o.require === 'string') {
-						x = o.require;
-						o.require = {};
-						o.require[x] = true;
-					}
-					for (x in o.require) { // Make sure all paths are absolute, "worker.option.key" (option/runtime/data) and all values are in an array
-						if (typeof o.require[x] !== 'object') {
-							o.require[x] = [o.require[x]];
-						}
-						if (x.search(/\.(data|option|runtime)\./) === -1) {
-							o.require[worker.name + '.option.' + x] = o.require[x];
-							delete o.require[x];
-						} else if (x.search(/(data|option|runtime)\./) === 0) {
-							o.require[worker.name + '.' + x] = o.require[x];
-							delete o.require[x];
-						}
-					}
-					$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
-				}
-				o.advanced && $option.addClass('golem-advanced');
-				o.help && $option.attr('title', o.help);
-				(o.advanced || o.exploit) && $option.css('background','#ffeeee');
-				o.advanced && !this.option.advanced && $option.css('display','none');
-				o.exploit && !this.option.exploit && $option.css('display','none');
-				o.exploit && $option.css('border','1px solid red');
-				$panel.append($option);
-			}
-			$head.append($panel);
-			return $head;
-		case 'function':
-			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			try {
-				$('.golem-panel-content', $head).append(display());
-			} catch(e) {
-				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
-			}
-			return $head;
-		default:
-			return null;
+	if (o.title) {
+		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
 	}
+	if (o.label) {
+		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
+		if (o.text || o.checkbox || o.select) {
+			txt.push('<span style="float:right;">');
+		} else if (o.multiple) {
+			txt.push('<br>');
+		}
+	}
+	if (o.before) {
+		txt.push(o.before+' ');
+	}
+	// our different types of input elements
+	if (o.info) { // only useful for externally changed
+		if (o.id) {
+			txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
+		} else {
+			txt.push(o.info);
+		}
+	} else if (o.text) {
+		txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+	} else if (o.textarea) {
+		txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
+	} else if (o.checkbox) {
+		txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+	} else if (o.select) {
+		switch (typeof o.select) {
+			case 'number':
+				step = Divisor(o.select);
+				for (i=0; i<=o.select; i+=step) {
+					list.push('<option' + (o.value==i ? ' selected' : '') + '>' + i + '</option>');
+				}
+				break;
+			case 'string':
+				o.className = ' class="golem_'+o.select+'"';
+				if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
+					o.select = this.data[o.select];
+				} else {
+					break; // deliberate fallthrough
+				}
+			case 'array':
+			case 'object':
+				if (isArray(o.select)) {
+					for (i=0; i<o.select.length; i++) {
+						list.push('<option value="' + o.select[i] + '"' + (o.value==o.select[i] ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					}
+				} else {
+					for (i in o.select) {
+						list.push('<option value="' + i + '"' + (o.value==i ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					}
+				}
+				break;
+		}
+		txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
+	} else if (o.multiple) {
+		if (typeof o.value === 'array' || typeof o.value === 'object') {
+			for (i in o.value) {
+				list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
+			}
+		}
+		txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
+		if (typeof o.multiple === 'string') {
+			txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+		} else {
+			list = [];
+			switch (typeof o.multiple) {
+				case 'number':
+					step = Divisor(o.select);
+					for (i=0; i<=o.multiple; i+=step) {
+						list.push('<option>' + i + '</option>');
+					}
+					break;
+				case 'array':
+				case 'object':
+					if (isArray(o.multiple)) {
+						for (i=0; i<o.multiple.length; i++) {
+							list.push('<option value="' + o.multiple[i] + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+						}
+					} else {
+						for (i in o.multiple) {
+							list.push('<option value="' + i + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+						}
+					}
+					break;
+			}
+			txt.push('<select class="golem_select">'+list.join('')+'</select>');
+		}
+		txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+	}
+	if (o.after) {
+		txt.push(' '+o.after);
+	}
+	if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
+		txt.push('</span>');
+	}
+	$option = $('<div>' + txt.join('') + '<br></div>');
+	if (o.require) {
+		if (typeof o.require === 'string') {
+			i = o.require;
+			o.require = {};
+			o.require[i] = true;
+		}
+		for (i in o.require) { // Make sure all paths are absolute, "worker.option.key" (option/runtime/data) and all values are in an array
+			if (typeof o.require[i] !== 'object') {
+				o.require[i] = [o.require[i]];
+			}
+			if (i.search(/\.(data|option|runtime)\./) === -1) {
+				o.require[worker.name + '.option.' + i] = o.require[i];
+				delete o.require[i];
+			} else if (i.search(/(data|option|runtime)\./) === 0) {
+				o.require[worker.name + '.' + i] = o.require[i];
+				delete o.require[i];
+			}
+		}
+		$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
+	}
+	o.advanced && $option.addClass('golem-advanced');
+	o.help && $option.attr('title', o.help);
+	(o.advanced || o.exploit) && $option.css('background','#ffeeee');
+	o.advanced && !this.option.advanced && $option.css('display','none');
+	o.exploit && !this.option.exploit && $option.css('display','none');
+	o.exploit && $option.css('border','1px solid red');
+	return $option;
 };
 
 Config.set = function(key, value) {

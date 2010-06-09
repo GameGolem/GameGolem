@@ -24,7 +24,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],
+	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -88,7 +88,7 @@ Queue.init = function() {
 	if (iscaap()) {
 		return false;
 	}
-	var i, worker, play = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82', pause = 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82';
+	var i, worker;
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
 		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
@@ -101,7 +101,7 @@ Queue.init = function() {
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
-		worker = WorkerByName(this.option.queue[i]);
+		worker = Workers[this.option.queue[i]];
 		if (worker && worker.id) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Trigger '+worker.name+' (continue after load)');
@@ -114,10 +114,10 @@ Queue.init = function() {
         $(document).keypress(function(){Queue.lastclick=Date.now();});
         
 	Queue.lastpause = this.option.pause;
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause?play:pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
 		Queue.option.pause ^= true;
 		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red green').attr('src', (Queue.option.pause?play:pause));
+		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
 		Page.clear();
 		Config.updateOptions();
 	});
@@ -179,7 +179,7 @@ Queue.run = function() {
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {
-		worker = WorkerByName(this.option.queue[i]);
+		worker = Workers[this.option.queue[i]];
 		if (!worker || !worker.work || !worker.display) {
 			continue;
 		}
@@ -187,9 +187,6 @@ Queue.run = function() {
 		if (this.runtime.current === worker.name) {
 			worker._unflush();
 			result = worker._work(true);
-			if (typeof result !== 'boolean') {// QUEUE_* are all numbers
-				worker.settings.stateful = true;
-			}
 			if (result === QUEUE_RELEASE) {
 				release = true;
 			} else if (!result) {// false or QUEUE_FINISH
@@ -200,11 +197,14 @@ Queue.run = function() {
 		} else {
 			result = worker._work(false);
 		}
+		if (!worker.settings.stateful && typeof result !== 'boolean') {// QUEUE_* are all numbers
+			worker.settings.stateful = true;
+		}
 		if (!next && result) {
 			next = worker; // the worker who wants to take over
 		}
 	}
-	current = this.runtime.current ? WorkerByName(this.runtime.current) : null;
+	current = this.runtime.current ? Workers[this.runtime.current] : null;
 	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 		if (current) {
 			debug('Interrupt ' + current.name + ' with ' + next.name);

@@ -231,11 +231,11 @@ Quest.update = function(type,worker) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = quests[best].energy;
-			debug('Wanting to perform - ' + best + ' in ' + (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', reward: $' + addCommas(quests[best].reward) + ')');
+			debug('Wanting to perform - ' + best + ' in ' + (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', gold: $' + addCommas(quests[best].reward) + ')');
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', reward: $' + addCommas(quests[best].reward) + (typeof quests[best].influence !== 'undefined' ? (', influence: ' + quests[best].influence + '%)') : ''));
+		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + ' ' + quests[best].energy + ' = ' + makeImage('exp') + ' ' + quests[best].exp + ' + ' + makeImage('gold') + ' $' + addCommas(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + ' ' + quests[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -249,15 +249,16 @@ Quest.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-	if (this.option.monster && Monster.data && Monster.option.fortify_active) {
+	if (this.option.monster && Monster.option.fortify_active) {
+		Monster._unflush();
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && (typeof Monster.data[i][j].mclass === 'undefined' || Monster.data[i][j].mclass < 2) && ((typeof Monster.data[i][j].attackbonus !== 'undefined' && Monster.data[i][j].attackbonus < Monster.option.fortify && Monster.data[i][j].defense < 100))) {
 					return QUEUE_FINISH;
 				}
-                                if (Monster.option.fortify_active && typeof Monster.data[i][j].mclass !== 'undefined' && Monster.data[i][j].mclass > 1 && typeof Monster.data[i][j].secondary !== 'undefined' && Monster.data[i][j].secondary < 100){
-                                        return QUEUE_FINISH;
-                                }
+				if (Monster.option.fortify_active && typeof Monster.data[i][j].mclass !== 'undefined' && Monster.data[i][j].mclass > 1 && typeof Monster.data[i][j].secondary !== 'undefined' && Monster.data[i][j].secondary < 100){
+					return QUEUE_FINISH;
+				}
 			}
 		}
 	}

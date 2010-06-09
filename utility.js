@@ -384,3 +384,13 @@ Date.replaceChars = {
 var iscaap = function() {
 	return (typeof caap != 'undefined');
 };
+
+var ucfirst = function(str) {
+	return str.charAt(0).toUpperCase() + str.substr(1);
+};
+
+var ucwords = function(str) {
+	return (str + '').replace(/^(.)|\s(.)/g, function($1){
+		return $1.toUpperCase();
+	});
+}

@@ -1,18 +1,16 @@
 /********** Worker.Elite() **********
 * Build your elite army
 */
-var Elite = new Worker('Elite', 'keep_eliteguard army_viewarmy battle_arena');
+var Elite = new Worker('Elite');
 Elite.data = {};
 
 Elite.defaults['castle_age'] = {
-	pages:'keep_eliteguard army_viewarmy battle_arena'
+	pages:'keep_eliteguard army_viewarmy'
 };
 
 Elite.option = {
 	elite:true,
-	arena:false,
 	every:12,
-	prefer:[],
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
 
@@ -20,17 +18,11 @@ Elite.runtime = {
 	armylastpage:1,
 	armyextra:0,
 	waitelite:0,
-	nextelite:0,
-	waitarena:0,
-	nextarena:0
+	nextelite:0
 };
 
 Elite.display = [
 	{
-//		id:'arena',
-//		label:'Fill Arena Guard',
-//		checkbox:true
-//	},{
 		id:'elite',
 		label:'Fill Elite Guard',
 		checkbox:true
@@ -40,23 +32,16 @@ Elite.display = [
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours',
 		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-	},{
-		advanced:true,
-		label:'Add UserIDs to prefer them over random army members. These <b>must</b> be in your army to be checked.',
-		id:'prefer',
-		multiple:'userid'
 	}
 ];
 
 Elite.init = function() { // Convert old elite guard list
-	this.option.arena = false; // ARENA!!!!!!
 	if (length(this.data)) {
 		for (var i in this.data) {
 			Army.set(['_info', i, 'name'], this.data[i].name);
 			Army.set(['_info', i, 'level'], this.data[i].level);
 			Army.set(['Army', i], true); // Set for people in our actual army
 			this.data[i].elite && Army.set([i, 'elite'], this.data[i].elite);
-//			this.data[i].arena && Army.set([i, 'arena'], this.data[i].arena);
 		}
 	}
 	this.data = {}; // Will set to null at some later date
@@ -66,13 +51,20 @@ Elite.init = function() { // Convert old elite guard list
 		'name':'Elite',
 		'show':'Elite',
 		'label':function(data,uid){
-			return (findInArray(Elite.option.prefer,uid) ? '*' : '') + (typeof data[uid]['Elite'] === 'undefined' ? '' : typeof data[uid]['Elite']['elite'] !== 'undefined' ? 'member' : '');
+			return (
+				Army.get(['Elite',uid,'prefer'], false)
+					? '<img src="' + Army.star_on + '">'
+					: '<img src="' + Army.star_off + '">')
+				+ (Army.get(['Elite',uid,'elite'], null)
+					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					: '');
 		},
 		'sort':function(data,uid){
-			return typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? data[uid]['Elite']['elite'] : null;
+			return Army.get(['Elite',uid,'elite'], null);// || Army.get(['Army',uid], null);
 		},
-		'tooltip':function(data,uid){
-			return '<b>Member Until:</b> ' + (typeof data[uid]['Elite'] === 'undefined' ? '' : data[uid]['Elite']['elite'] !== 'undefined' ? makeTime(data[uid]['Elite']['elite']) : 'unknown');
+		'click':function(data,uid){
+			Army.set(['Elite',uid,'prefer'], !Army.get(['Elite',uid,'prefer'], false))
+			return true;
 		}
 	});
 };
@@ -80,7 +72,7 @@ Elite.init = function() { // Convert old elite guard list
 Elite.parse = function(change) {
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text();
-/*Arena disabled
+/*Arena possibly gone for good
 		if (Elite.runtime.nextarena) {
 			if (txt.match(/has not joined in the Arena!/i)) {
 				Army.set([Elite.runtime.nextarena, 'arena'], -1);
@@ -125,20 +117,19 @@ Elite.parse = function(change) {
 Elite.update = function() {
 	var a, i, j, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = this.runtime.nextarena = 0;
-	// Elite Guard
 	if (this.option.elite) {
-		for(j=0; j<this.option.prefer.length; j++) {
-			i = this.option.prefer[j];
-			if (Army.get(['Army', i])) {
-				a = Army.get([i, 'elite'], null);
-				if (a !== null && a < now) {
-					this.runtime.nextelite = i;
+		list = Army.get('Elite');// Must be in the Elite list to have prefer set
+		for(i=0; i<list.length; i++) {
+			if (Army.get([list[i],'prefer'], false)) {
+				a = Army.get([list[i],'elite'], null);
+				if (!a || a < now) {
+					this.runtime.nextelite = list[i];
 					break;
 				}
 			}
 		}
+		list = Army.get('Army');// Otherwise lets just get everyone in the army
 		if (!this.runtime.nextelite) {
-			list = Army.get('Army');
 			for(i=0; i<list.length; i++) {
 				a = Army.get([list[i], 'elite'], null);
 				if (!a || a < now) {
@@ -150,33 +141,6 @@ Elite.update = function() {
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
 		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
 	}
-	// Arena Guard
-/* Arena Disabled!
-	if (this.option.arena) {
-		for(j=0; j<this.option.prefer.length; j++) {
-			i = this.option.prefer[j];
-			if (Army.get(['Army', i])) {
-				a = Army.get([i, 'arena'], null);
-				if (a !== null && a !== -1 && a < now) {
-					this.runtime.nextarena = i;
-					break;
-				}
-			}
-		}
-		if (!this.runtime.nextarena) {
-			list = Army.get('Army');
-			for(i=0; i<list.length; i++) {
-				a = Army.get([list[i], 'arena'], null);
-				if (!a || (a !== -1 && a < now)) {
-					this.runtime.nextarena = list[i];
-					break;
-				}
-			}
-		}
-		check = (this.runtime.waitarena + (this.option.every * 3600000));
-		tmp.push('Arena Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
-	}
-*/
 	Dashboard.status(this, tmp.join(', '));
 };
 
@@ -205,14 +169,6 @@ Elite.work = function(state) {
 			return true;
 		}
 	}
-/* Arena Disabled
-	if ((this.runtime.waitarena + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add ' + Army.get(['_info', this.runtime.nextarena, 'name'], this.runtime.nextarena) + ' to Arena Guard');
-		if (!Page.to('battle_arena', '?user=' + this.runtime.nextarena + '&lka=' + this.runtime.nextarena + '&agtw=1&ref=nf')) {
-			return true;
-		}
-	}
-*/
 	return false;
 };
 
