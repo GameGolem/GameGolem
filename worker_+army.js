@@ -46,7 +46,7 @@ Army.update = function(type,worker) {
 };
 
 Army.init = function() {
-	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
+	$('#content').append('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
 	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
 	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));

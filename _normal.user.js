@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (553+1);
+var revision = (554+1);
 // User changeable
 var show_debug = true;
 
@@ -988,7 +988,7 @@ Army.update = function(type,worker) {
 };
 
 Army.init = function() {
-	$('div.UIStandardFrame_Content').after('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
+	$('#content').append('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
 	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
 	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
@@ -2899,8 +2899,8 @@ Window.data = {
 };
 
 Window.global = {
-	'magic':'golem-magic-key',
-	'id':'#' + Date.now()
+	'_magic':'golem-magic-key',
+	'_id':'#' + Date.now()
 };
 
 Window.active = false; // Are we the active tab (able to do anything)?
@@ -2926,17 +2926,17 @@ Window.init = function() {
 	var now = Date.now(), data;
 	try {
 		data = JSON.parse((isGreasemonkey ? window.wrappedJSObject : window).name);
-		if (typeof data === 'object' && typeof data['magic'] !== 'undefined' && data['magic'] === this.global['magic']) {
+		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
 			this.global = data;
 		}
 	} catch(e){};
-	debug('Adding tab "' + this.global['id'] + '"');
+//	debug('Adding tab "' + this.global['_id'] + '"');
 	(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['id']] = now;
-	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['id']) {
+	this.data['list'][this.global['_id']] = now;
+	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['_id']) {
 		this.active = true;
-		this.data['active'] = this.global['id'];
+		this.data['active'] = this.global['_id'];
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
@@ -2953,11 +2953,11 @@ Window.init = function() {
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
-			Window.data['active'] = Window.global['id'];
+			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
-			(function(){
+			!Window.warning && (function(){
 				if ($('#golem_window span').length) {
 					if ($('#golem_window span').css('color').indexOf('255') === -1) {
 						$('#golem_window span').animate({'color':'red'},200,arguments.callee);
@@ -2967,7 +2967,7 @@ Window.init = function() {
 				}
 			})();
 			window.clearTimeout(Window.warning);
-			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}}, 3000);
+			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
 		Window._flush();
 	});
@@ -2987,7 +2987,7 @@ Window.update = function(type,worker) {
 	var i, now = Date.now();
 	this.data = this.data || {};
 	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['id']] = now;
+	this.data['list'][this.global['_id']] = now;
 	for(i in this.data['list']) {
 		if (this.data['list'][i] < (now - this.timeout)) {
 			delete this.data['list'][i];
@@ -2999,7 +2999,7 @@ Window.update = function(type,worker) {
 			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
-			this.data['active'] = this.global['id'];
+			this.data['active'] = this.global['_id'];
 			this.active = true;
 		}
 		$('#golem_window').hide();
