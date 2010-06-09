@@ -27,7 +27,13 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
+		label:'Use Best General',
+		require:{'Player.option':false},
+		checkbox:true
+	},{
+		id:'manualgeneral',
 		label:'Subquest General',
+		require:{'Player.option':true},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -258,14 +264,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general) {
+	if (this.option.general || Player.option.trusted) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (this.option.general !== 'Best') {
+			if (Player.option.trusted && this.option.manualgeneral !== 'Best') {
 				general = this.option.general;
 			} else {
 				switch(this.option.what) {

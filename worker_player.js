@@ -2,7 +2,7 @@
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
-Player.option = null;
+Player.option.trusted = false;
 
 Player.settings = {
 	keep:true

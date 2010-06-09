@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (554+1);
+var revision = (556+1);
 // User changeable
 var show_debug = true;
 
@@ -5443,6 +5443,7 @@ Monster.display = [
 	help:'Must be checked to fortify.'
 },{
 	id:'general_fortify',
+	require:{'Player.option':true},
 	label:'Fortify General',
 	select:'bestgenerals'
 },{
@@ -5482,6 +5483,7 @@ Monster.display = [
 },{
 	id:'general_attack',
 	label:'Attack General',
+	require:{'Player.option':true},
 	select:'bestgenerals'
 },{
 	advanced:true,
@@ -6789,7 +6791,7 @@ News.parse = function(change) {
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
-Player.option = null;
+Player.option.trusted = false;
 
 Player.settings = {
 	keep:true
@@ -7040,7 +7042,13 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
+		label:'Use Best General',
+		require:{'Player.option':false},
+		checkbox:true
+	},{
+		id:'manualgeneral',
 		label:'Subquest General',
+		require:{'Player.option':true},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -7271,14 +7279,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general) {
+	if (this.option.general || Player.option.trusted) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (this.option.general !== 'Best') {
+			if (Player.option.trusted && this.option.manualgeneral !== 'Best') {
 				general = this.option.general;
 			} else {
 				switch(this.option.what) {

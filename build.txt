@@ -23,6 +23,12 @@ type utility.js >>_normal.user.js 2>nul
 type worker.js >>_normal.user.js 2>nul
 type worker_*.js >>_normal.user.js 2>nul
 
+rem ----------------------------------------------------------------------
+rem _normal_caap.user.js
+echo Joining files into _normal_caap.user.js
+copy _normal.user.js _normal_caap.user.js >nul
+type worker++caap.js >>_normal_caap.user.js 2>nul
+
 rem -----------------------------------------------------------------------
 rem _normal_chrome.user.js
 echo Joining files into _normal_chrome.user.js
@@ -35,11 +41,17 @@ type worker.js >>_normal_chrome.user.js 2>nul
 type worker_*.js >>_normal_chrome.user.js 2>nul
 
 rem ----------------------------------------------------------------------
+rem _normal_chrome_caap.user.js
+echo Joining files into _normal_chrome_caap.user.js
+copy _normal.user.js _normal_chrome_caap.user.js >nul
+type worker++caap.js >>_normal_chrome_caap.user.js 2>nul
+
+rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
 rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
 
 rem echo Installing new version to Firefox
-rem copy _normal.user.js "C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js" >nul
+rem copy _normal.user.js "C:\Documents and Settings\Owner\Application Data\Mozilla\Firefox\Profiles\of4omik4.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js" >nul
 
 rem --------------------------------------------------------------------------------------
 rem MINIMISED VERSION - This will fail on errors so use is advised - required for release!

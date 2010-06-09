@@ -56,6 +56,7 @@ Monster.display = [
 	help:'Must be checked to fortify.'
 },{
 	id:'general_fortify',
+	require:{'Player.option':true},
 	label:'Fortify General',
 	select:'bestgenerals'
 },{
@@ -95,6 +96,7 @@ Monster.display = [
 },{
 	id:'general_attack',
 	label:'Attack General',
+	require:{'Player.option':true},
 	select:'bestgenerals'
 },{
 	advanced:true,

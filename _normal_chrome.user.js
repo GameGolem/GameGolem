@@ -1,3 +1,21 @@
+// ==UserScript==
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for castle age game
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		31.1
+// @include		http://apps.facebook.com/castle_age/*
+// @include		http://apps.facebook.com/reqs.php
+// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// ==/UserScript==
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = (556+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -6334,6 +6352,7 @@ Monster.display = [
 	help:'Must be checked to fortify.'
 },{
 	id:'general_fortify',
+	require:{'Player.option':true},
 	label:'Fortify General',
 	select:'bestgenerals'
 },{
@@ -6373,6 +6392,7 @@ Monster.display = [
 },{
 	id:'general_attack',
 	label:'Attack General',
+	require:{'Player.option':true},
 	select:'bestgenerals'
 },{
 	advanced:true,
@@ -7680,7 +7700,7 @@ News.parse = function(change) {
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
-Player.option = null;
+Player.option.trusted = false;
 
 Player.settings = {
 	keep:true
@@ -7931,7 +7951,13 @@ Quest.current = null;
 Quest.display = [
 	{
 		id:'general',
+		label:'Use Best General',
+		require:{'Player.option':false},
+		checkbox:true
+	},{
+		id:'manualgeneral',
 		label:'Subquest General',
+		require:{'Player.option':true},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -8162,14 +8188,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general) {
+	if (this.option.general || Player.option.trusted) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (this.option.general !== 'Best') {
+			if (Player.option.trusted && this.option.manualgeneral !== 'Best') {
 				general = this.option.general;
 			} else {
 				switch(this.option.what) {
