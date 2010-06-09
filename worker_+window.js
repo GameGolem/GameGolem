@@ -25,6 +25,7 @@ Window.global = {
 
 Window.active = false; // Are we the active tab (able to do anything)?
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
+Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 /***** Window.init() *****
 1. First try to load window.name information
@@ -57,12 +58,12 @@ Window.init = function() {
 		this.active = true;
 		this.data['active'] = this.global['id'];
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
-		$('.golem-title').after('<div id="golem-multiple" class="golem-button green" style="display:none;">Enabled</div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
-		$('.golem-title').after('<div id="golem-multiple" class="golem-button red"><b>Disabled</b></div>');
-		$('#golem-multiple').nextAll().hide();
+		$('.golem-title').after('<div id="golem_window" class="golem-button red"><b>Disabled</b></div>');
+		$('#golem_window').nextAll().hide();
 	}
-	$('#golem-multiple').click(function(event){
+	$('#golem_window').click(function(event){
 		Window._unflush();
 		if (Window.active) {
 			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
@@ -74,6 +75,19 @@ Window.init = function() {
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
 			Window.data['active'] = Window.global['id'];
 			Window.active = true;
+		} else {// Not able to go active
+			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
+			(function(){
+				if ($('#golem_window span').length) {
+					if ($('#golem_window span').css('color').indexOf('255') === -1) {
+						$('#golem_window span').animate({'color':'red'},200,arguments.callee);
+					} else {
+						$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+					}
+				}
+			})();
+			window.clearTimeout(Window.warning);
+			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}}, 3000);
 		}
 		Window._flush();
 	});
@@ -102,15 +116,15 @@ Window.update = function(type,worker) {
 	i = length(this.data['list']);
 	if (i === 1) {
 		if (!this.active) {
-			$('#golem-multiple').html('Enabled').toggleClass('red green')
+			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
 			this.data['active'] = this.global['id'];
 			this.active = true;
 		}
-		$('#golem-multiple').hide();
+		$('#golem_window').hide();
 	} else if (i > 1) {
-		$('#golem-multiple').show();
+		$('#golem_window').show();
 	}
 	this._flush();// We really don't want to store data any longer than we really have to!
 };

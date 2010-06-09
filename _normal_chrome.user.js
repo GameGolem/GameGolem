@@ -1020,14 +1020,12 @@ $('head').append("<style type=\"text/css\">\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
-.golem-config { float: none; margin-right: 0; }\
-.golem-config > div { position: static; width: 196px; padding: 4px; margin-bottom: 4px; overflow: hidden; overflow-y: auto; z-index: 10; }\
-.golem-config > div > div { margin-top: 4px; }\
+.golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; z-index: 10; }\
+.golem-config > div { margin-top: 4px; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
-.golem-config-fixed { float: right; margin-right: 200px; }\
-.golem-config-fixed > div { position: fixed; }\
+.golem-config-fixed { position: fixed; }\
 .golem-config-fixed #golem_fixed { background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%005IDATx%DAb%60A%03%0C%C4%0901%83%00%13%92%0A%B0%00%0B)%02%8C%CCLLL%CC%0Cx%0CefF%E8%81%B9%83%19%DDa%84%05H%F0%1C%40%80%01%00%FE9%03%C7%D4%8CU%A3%00%00%00%00IEND%AEB%60%82') no-repeat; }\
-#golem-multiple { text-align: center; width: 188px; }\
+#golem_window { text-align: center; display: block !important; }\
 #golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 3; }\
 #golem-dashboard thead th { cursor: pointer }\
 #golem-dashboard thead th.golem-sort:after { content: '&darr;'; }\
@@ -2153,7 +2151,7 @@ Config.init = function() {
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i, j, k;
-	$('div.UIStandardFrame_Content').after('<div class="golem-config' + (Config.option.fixed?' golem-config-fixed':'') + '"><div class="ui-widget-content"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div></div>');
+	$('div.UIStandardFrame_SidebarAds').prepend('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
@@ -2265,6 +2263,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
+	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
 
 Config.makePanel = function(worker) {
@@ -3797,6 +3796,7 @@ Window.global = {
 
 Window.active = false; // Are we the active tab (able to do anything)?
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
+Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 /***** Window.init() *****
 1. First try to load window.name information
@@ -3829,12 +3829,12 @@ Window.init = function() {
 		this.active = true;
 		this.data['active'] = this.global['id'];
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
-		$('.golem-title').after('<div id="golem-multiple" class="golem-button green" style="display:none;">Enabled</div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
-		$('.golem-title').after('<div id="golem-multiple" class="golem-button red"><b>Disabled</b></div>');
-		$('#golem-multiple').nextAll().hide();
+		$('.golem-title').after('<div id="golem_window" class="golem-button red"><b>Disabled</b></div>');
+		$('#golem_window').nextAll().hide();
 	}
-	$('#golem-multiple').click(function(event){
+	$('#golem_window').click(function(event){
 		Window._unflush();
 		if (Window.active) {
 			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
@@ -3846,6 +3846,19 @@ Window.init = function() {
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
 			Window.data['active'] = Window.global['id'];
 			Window.active = true;
+		} else {// Not able to go active
+			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
+			(function(){
+				if ($('#golem_window span').length) {
+					if ($('#golem_window span').css('color').indexOf('255') === -1) {
+						$('#golem_window span').animate({'color':'red'},200,arguments.callee);
+					} else {
+						$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+					}
+				}
+			})();
+			window.clearTimeout(Window.warning);
+			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}}, 3000);
 		}
 		Window._flush();
 	});
@@ -3874,15 +3887,15 @@ Window.update = function(type,worker) {
 	i = length(this.data['list']);
 	if (i === 1) {
 		if (!this.active) {
-			$('#golem-multiple').html('Enabled').toggleClass('red green')
+			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
 			this.data['active'] = this.global['id'];
 			this.active = true;
 		}
-		$('#golem-multiple').hide();
+		$('#golem_window').hide();
 	} else if (i > 1) {
-		$('#golem-multiple').show();
+		$('#golem_window').show();
 	}
 	this._flush();// We really don't want to store data any longer than we really have to!
 };
