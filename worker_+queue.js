@@ -119,12 +119,20 @@ Queue.init = function() {
 		debug('State: ' + (paused ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', (paused ? Images.play : Images.pause));
 		Page.clear();
+		Queue.clearCurrent();
 		Config.updateOptions();
-		Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
 };
+
+Queue.clearCurrent = function() {
+	var current = this.get('runtime.current', null)
+	if (current) {
+		$('#'+Workers[current].name+' > h3').css('font-weight', 'normal');
+		this.set('runtime.current', null);// Make sure we deal with changed circumstances
+	}
+}
 
 Queue.update = function(type) {
 	if (iscaap()) {

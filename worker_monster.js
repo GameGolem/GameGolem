@@ -9,22 +9,23 @@ Monster.defaults['castle_age'] = {
 };
 
 Monster.option = {
+	general:true,
+	general_fortify:'any',
+	general_attack:'any',
 	fortify: 30,
 	//	quest_over: 90,
 	min_to_attack: 0,
 	//	dispel: 50,
 	fortify_active:false,
-	fortify_general:'Best',
 	choice: 'Any',
 	ignore_stats:true,
 	stop: 'Never',
 	own: true,
-	armyratio: 1,
+	armyratio: 'Any',
 	levelratio: 'Any',
 	force1: true,
 	raid: 'Invade x5',
 	assist: true,
-	attack_general:'Best',
 	maxstamina: 5,
 	minstamina: 5,
 	maxenergy: 10,
@@ -48,6 +49,10 @@ Monster.runtime = {
 
 Monster.display = [
 	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
 		title:'Fortification'
 	},{
 		id:'fortify_active',
@@ -55,8 +60,9 @@ Monster.display = [
 		checkbox:true,
 		help:'Must be checked to fortify.'
 	},{
+		advanced:true,
 		id:'general_fortify',
-		require:{'Player.option.trusted':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -94,9 +100,10 @@ Monster.display = [
 	},{
 		title:'Who To Fight'
 	},{
+		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'Player.option':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		select:'bestgenerals'
 	},{
 		advanced:true,
@@ -1070,7 +1077,7 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to(this.option['general_'+j])) {
+			if (!Generals.to(this.option.general ? j : Player.get('option.trusted') ? this.option['general_'+j] : 'any')) {
 				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);

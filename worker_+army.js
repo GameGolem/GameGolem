@@ -117,7 +117,8 @@ Army.get = function(what, def) {
 	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
-	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
+// Removed for performance reasons...
+//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
 	x.unshift('data', uid, section);
 	return this._get(x, def);
 };

@@ -73,7 +73,7 @@ Window.init = function() {
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active

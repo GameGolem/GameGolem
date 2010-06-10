@@ -46,7 +46,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update();
+		Dashboard.update('', WorkerByName(Dashboard.option.active.substr(16)));
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -101,17 +101,16 @@ Dashboard.update = function(type, worker) {
 	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	worker = WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name;
-	if (this.option.active === id && this.option.display === 'block') {
+	if (this.option.active === 'golem-dashboard-'+worker.name && this.option.display === 'block') {
 		try {
+//			debug('Calling ' + worker.name + '.dashboard() = ' + type);
 			worker._unflush();
 			worker.dashboard();
 		}catch(e) {
 			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
-		$('#'+id).empty();
+		$('#golem-dashboard-'+worker.name).empty();
 	}
 };
 

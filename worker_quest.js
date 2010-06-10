@@ -9,7 +9,8 @@ Quest.defaults['castle_age'] = {
 };
 
 Quest.option = {
-	general:'Best',
+	general:true,
+	general_choice:'any',
 	what:'Influence',
 	unique:true,
 	monster:true,
@@ -20,7 +21,7 @@ Quest.runtime = {
 	best:null,
 	energy:0
 };
-
+Player.option.trusted = false;
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -28,12 +29,12 @@ Quest.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Player.option':false},
 		checkbox:true
 	},{
-		id:'manualgeneral',
+		advanced:true,
+		id:'general_choice',
 		label:'Subquest General',
-		require:{'Player.option':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -272,8 +273,8 @@ Quest.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Player.option.trusted && this.option.manualgeneral !== 'Best') {
-				general = this.option.general;
+			if (Player.get('option.trusted') && !this.option.general) {
+				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {
 					case 'Influence':

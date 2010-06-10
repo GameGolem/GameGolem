@@ -81,7 +81,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			} else {
 				$(this).after(ui.draggable);
 			}
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
 		} });
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
@@ -135,6 +135,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
+	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
 
@@ -369,6 +370,10 @@ Config.updateOptions = function() {
 			}
 		}
 	});
+	this.checkRequire();
+};
+
+Config.checkRequire = function() {
 	$('.golem-require').each(function(i,el){
 		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
 		for (i in require) {
@@ -376,8 +381,14 @@ Config.updateOptions = function() {
 			worker = WorkerByName(path.shift());
 			if (worker) {
 				value = worker.get(path,false);
-				if (!findInArray(require[i], value)) {
-					show = false;
+				if (isArray(require[i])) {
+					if (findInArray(require[i][0], value)) {
+						show = false;
+					}
+				} else {
+					if (!findInArray(require[i], value)) {
+						show = false;
+					}
 				}
 			}
 		}

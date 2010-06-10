@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (565+1);
+var revision = (566+1);
 // User changeable
 var show_debug = true;
 
@@ -1096,7 +1096,8 @@ Army.get = function(what, def) {
 	if (!section || !uid) { // Must have both section name and userID to continue
 		return;
 	}
-	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
+// Removed for performance reasons...
+//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
 	x.unshift('data', uid, section);
 	return this._get(x, def);
 };
@@ -1368,7 +1369,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			} else {
 				$(this).after(ui.draggable);
 			}
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
 		} });
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
@@ -1422,6 +1423,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
+	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
 
@@ -1656,6 +1658,10 @@ Config.updateOptions = function() {
 			}
 		}
 	});
+	this.checkRequire();
+};
+
+Config.checkRequire = function() {
 	$('.golem-require').each(function(i,el){
 		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
 		for (i in require) {
@@ -1663,8 +1669,14 @@ Config.updateOptions = function() {
 			worker = WorkerByName(path.shift());
 			if (worker) {
 				value = worker.get(path,false);
-				if (!findInArray(require[i], value)) {
-					show = false;
+				if (isArray(require[i])) {
+					if (findInArray(require[i][0], value)) {
+						show = false;
+					}
+				} else {
+					if (!findInArray(require[i], value)) {
+						show = false;
+					}
 				}
 			}
 		}
@@ -1735,7 +1747,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update();
+		Dashboard.update('', WorkerByName(Dashboard.option.active.substr(16)));
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -1790,17 +1802,16 @@ Dashboard.update = function(type, worker) {
 	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	worker = WorkerByName(Dashboard.option.active.substr(16));
-	var id = 'golem-dashboard-'+worker.name;
-	if (this.option.active === id && this.option.display === 'block') {
+	if (this.option.active === 'golem-dashboard-'+worker.name && this.option.display === 'block') {
 		try {
+//			debug('Calling ' + worker.name + '.dashboard() = ' + type);
 			worker._unflush();
 			worker.dashboard();
 		}catch(e) {
 			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
-		$('#'+id).empty();
+		$('#golem-dashboard-'+worker.name).empty();
 	}
 };
 
@@ -2545,12 +2556,20 @@ Queue.init = function() {
 		debug('State: ' + (paused ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', (paused ? Images.play : Images.pause));
 		Page.clear();
+		Queue.clearCurrent();
 		Config.updateOptions();
-		Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
 };
+
+Queue.clearCurrent = function() {
+	var current = this.get('runtime.current', null)
+	if (current) {
+		$('#'+Workers[current].name+' > h3').css('font-weight', 'normal');
+		this.set('runtime.current', null);// Make sure we deal with changed circumstances
+	}
+}
 
 Queue.update = function(type) {
 	if (iscaap()) {
@@ -3013,7 +3032,7 @@ Window.init = function() {
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
@@ -4067,7 +4086,7 @@ Generals.update = function(type, worker) {
 			list.push(i);
 		}
 		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['best','under level 4','any'].concat(list));
+		Config.set('bestgenerals', ['any','best','under level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -5415,22 +5434,23 @@ Monster.defaults['castle_age'] = {
 };
 
 Monster.option = {
+	general:true,
+	general_fortify:'any',
+	general_attack:'any',
 	fortify: 30,
 	//	quest_over: 90,
 	min_to_attack: 0,
 	//	dispel: 50,
 	fortify_active:false,
-	fortify_general:'Best',
 	choice: 'Any',
 	ignore_stats:true,
 	stop: 'Never',
 	own: true,
-	armyratio: 1,
+	armyratio: 'Any',
 	levelratio: 'Any',
 	force1: true,
 	raid: 'Invade x5',
 	assist: true,
-	attack_general:'Best',
 	maxstamina: 5,
 	minstamina: 5,
 	maxenergy: 10,
@@ -5454,6 +5474,10 @@ Monster.runtime = {
 
 Monster.display = [
 	{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
 		title:'Fortification'
 	},{
 		id:'fortify_active',
@@ -5461,8 +5485,9 @@ Monster.display = [
 		checkbox:true,
 		help:'Must be checked to fortify.'
 	},{
+		advanced:true,
 		id:'general_fortify',
-		require:{'Player.option.trusted':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -5500,9 +5525,10 @@ Monster.display = [
 	},{
 		title:'Who To Fight'
 	},{
+		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'Player.option':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		select:'bestgenerals'
 	},{
 		advanced:true,
@@ -6476,7 +6502,7 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to(this.option['general_'+j])) {
+			if (!Generals.to(this.option.general ? j : Player.get('option.trusted') ? this.option['general_'+j] : 'any')) {
 				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
@@ -7033,7 +7059,8 @@ Quest.defaults['castle_age'] = {
 };
 
 Quest.option = {
-	general:'Best',
+	general:true,
+	general_choice:'any',
 	what:'Influence',
 	unique:true,
 	monster:true,
@@ -7044,7 +7071,7 @@ Quest.runtime = {
 	best:null,
 	energy:0
 };
-
+Player.option.trusted = false;
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -7052,12 +7079,12 @@ Quest.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Player.option':false},
 		checkbox:true
 	},{
-		id:'manualgeneral',
+		advanced:true,
+		id:'general_choice',
 		label:'Subquest General',
-		require:{'Player.option':true},
+		require:{'general':[[true]], 'Player.option.trusted':true},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -7296,8 +7323,8 @@ Quest.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Player.option.trusted && this.option.manualgeneral !== 'Best') {
-				general = this.option.general;
+			if (Player.get('option.trusted') && !this.option.general) {
+				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {
 					case 'Influence':
