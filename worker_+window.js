@@ -73,6 +73,7 @@ Window.init = function() {
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
@@ -119,6 +120,7 @@ Window.update = function(type,worker) {
 			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			this.data['active'] = this.global['_id'];
 			this.active = true;
 		}

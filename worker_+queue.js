@@ -115,11 +115,12 @@ Queue.init = function() {
         
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
-		Queue.option.pause ^= true;
-		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
+		var paused = Queue.set('option.pause', !Queue.get('option.pause', false));
+		debug('State: ' + (paused ? "paused" : "running"));
+		$(this).toggleClass('red green').attr('src', (paused ? Images.play : Images.pause));
 		Page.clear();
 		Config.updateOptions();
+		Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay

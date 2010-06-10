@@ -81,6 +81,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			} else {
 				$(this).after(ui.draggable);
 			}
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 		} });
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {

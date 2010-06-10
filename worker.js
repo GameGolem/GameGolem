@@ -166,7 +166,7 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	} catch(e) {
 //		WorkerStack.push(this);
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.get('+what.toString()+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message);
 		}
 //		WorkerStack.pop();
 	}
@@ -283,7 +283,7 @@ Worker.prototype._set = function(what, value) {
 		})(data,x);
 //		this._save();
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
 	}
 //	WorkerStack.pop();
 	return value;

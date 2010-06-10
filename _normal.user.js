@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (561+1);
+var revision = (564+1);
 // User changeable
 var show_debug = true;
 
@@ -777,7 +777,7 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	} catch(e) {
 //		WorkerStack.push(this);
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.get('+what.toString()+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message);
 		}
 //		WorkerStack.pop();
 	}
@@ -894,10 +894,10 @@ Worker.prototype._set = function(what, value) {
 		})(data,x);
 //		this._save();
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
 	}
 //	WorkerStack.pop();
-	return null;
+	return value;
 };
 
 Worker.prototype._setup = function() {
@@ -1368,6 +1368,7 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 			} else {
 				$(this).after(ui.draggable);
 			}
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 		} });
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
@@ -2535,11 +2536,12 @@ Queue.init = function() {
         
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
-		Queue.option.pause ^= true;
-		debug('State: '+((Queue.option.pause)?"paused":"running"));
-		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
+		var paused = Queue.set('option.pause', !Queue.get('option.pause', false));
+		debug('State: ' + (paused ? "paused" : "running"));
+		$(this).toggleClass('red green').attr('src', (paused ? Images.play : Images.pause));
 		Page.clear();
 		Config.updateOptions();
+		Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
@@ -3006,6 +3008,7 @@ Window.init = function() {
 			$(this).html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
@@ -3052,6 +3055,7 @@ Window.update = function(type,worker) {
 			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
 			$('#golem_buttons').show();
 			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			this.data['active'] = this.global['_id'];
 			this.active = true;
 		}
@@ -3134,7 +3138,7 @@ Alchemy.data = {
 };
 
 Alchemy.option = {
-	perform:true,
+	perform:false,
 	hearts:false,
 	summon:false
 };
