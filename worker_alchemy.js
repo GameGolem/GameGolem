@@ -14,7 +14,7 @@ Alchemy.data = {
 };
 
 Alchemy.option = {
-	perform:true,
+	perform:false,
 	hearts:false,
 	summon:false
 };
