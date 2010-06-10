@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (566+1);
+var revision = (567+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1940,6 +1940,11 @@ Army.init = function() {
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
 	});
+	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
+		if (this.data[i].regex(/[^0-9]/g)) {
+			delete this.data[i];
+		}
+	}
 };
 
 // what = ['worker', userID, key ...]

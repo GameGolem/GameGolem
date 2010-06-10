@@ -52,6 +52,11 @@ Army.init = function() {
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
 	});
+	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
+		if (this.data[i].regex(/[^0-9]/g)) {
+			delete this.data[i];
+		}
+	}
 };
 
 // what = ['worker', userID, key ...]
