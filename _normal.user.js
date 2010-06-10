@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (564+1);
+var revision = (565+1);
 // User changeable
 var show_debug = true;
 
@@ -2294,7 +2294,8 @@ Page.work = function(state) {
 
 Page.identify = function() {
 	this.page = '';
-	if (!$('#app_content_'+APPID).length) {
+	if (!$('#app_content_'+APPID+' > div > div').length || !$('#app'+APPID+'_globalContainer > div > div').length) {
+		debug('Page apparently not loaded correctly, reloading.');
 		this.reload();
 		return null;
 	}
@@ -2367,11 +2368,15 @@ Page.ajaxload = function() {
 			Page.ajaxload();
 		},
 		success:function(data){
-		if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
+			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
 				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-				$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
-				$('#app'+APPID+'_globalContainer').empty().append(data);
+				if (data.indexOf(APP) === -1) {// Should be loads of links to the right page within the source
+					arguments.callee('');// save duplicating code, just call us again with no data
+				} else {
+					$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
+					$('#app'+APPID+'_globalContainer').replaceWith(data);
+				}
 			} else {
 				if (++Page.retry < Page.option.retry) {
 					debug('Page not loaded correctly, retry last action.');
