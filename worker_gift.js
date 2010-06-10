@@ -260,7 +260,7 @@ Gift.work = function(state) {
 		if ($('div.dialog_buttons input[name="sendit"]').length){
 			this.runtime.gift_sent = null;
 			Page.click('div.dialog_buttons input[name="sendit"]');
-		} else if ($('span:contains("Out of requests")')) {
+		} else if ($('span:contains("Out of requests")').text().indexOf('Out of requests') >= 0) {
 			debug('We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[name="ok"]');
@@ -274,7 +274,21 @@ Gift.work = function(state) {
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
 //			if (!Page.to('army_gifts')){
-			if (!Page.to('army_gifts', '?app_friends=true&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
+			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has be removed from the game
+				for (j in this.data.gifts){
+					if (this.data.gifts[j].slot == 1){
+						if (typeof todo[j] === 'undefined'){
+							todo[j] = todo[i];
+						} else {
+							todo[j] = todo[j].concat(todo[i]);
+						}
+						delete todo[i];
+						break;
+					}
+				}
+				continue;
+			}
+			if (!Page.to('army_gifts', '?app_friends=c&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 				return true;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
