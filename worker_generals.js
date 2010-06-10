@@ -83,8 +83,8 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		Config.set('generals', ['Any'].concat(list.sort()));
-		Config.set('bestgenerals', ['Best','Under Level 4','Any'].concat(list));
+		Config.set('generals', ['any'].concat(list.sort()));
+		Config.set('bestgenerals', ['best','under level 4','any'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
