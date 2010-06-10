@@ -29,7 +29,7 @@ Monster.option = {
 	minstamina: 5,
 	maxenergy: 10,
 	minenergy: 10,
-	monster_check:'Hourly',
+//	monster_check:'Hourly',
 	check_interval:3600000,
 	avoid_behind:false,
 	avoid_hours:5,
@@ -47,148 +47,156 @@ Monster.runtime = {
 };
 
 Monster.display = [
-{
-	title:'Fortification'
-},{
-	id:'fortify_active',
-	label:'Fortify Active',
-	checkbox:true,
-	help:'Must be checked to fortify.'
-},{
-	id:'general_fortify',
-	require:{'Player.option.trusted':true},
-	label:'Fortify General',
-	select:'bestgenerals'
-},{
-	id:'fortify',
-	require:'fortify_active',
-	label:'Fortify Below (AB)',
-	text:30,
-	help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
-	after:'%'
-},{
-	/*	id:'quest_over',
-	require:'fortify_active',
-	label:'Quest if Over',
-	text:90,
-	after:'%'
-},{*/
-	id:'min_to_attack',
-	require:'fortify_active',
-	label:'Attack Over (AB)',
-	text:1,
-	help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
-	after:'%'
-},{
-	id:'minenergy',
- 	require:'fortify_active',
-	label:'Min Energy Cost',
-	select:[10,20,40,100],
-	help:'Select the minimum energy for a single energy action'
-},{
-	id:'maxenergy',
-	require:'fortify_active',
-	label:'Max Energy Cost',
-	select:[10,20,40,100],
-	help:'Select the maximum energy for a single energy action'
-},{
-	title:'Who To Fight'
-},{
-	id:'general_attack',
-	label:'Attack General',
-	require:{'Player.option':true},
-	select:'bestgenerals'
-},{
-	advanced:true,
-	id:'ignore_stats',
-	label:'Ignore Player Stats',
-	checkbox:true,
-	help:'Do not use the current health or stamina as criteria for choosing monsters.'
-},{
-	id:'choice',
-	label:'Attack',
-	select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Mim Damage','ETD Maintain']
-},{
-	id:'stop',
-	label:'Stop',
-	select:['Never', 'Achievement', 'Loot'],
-	help:'Select when to stop attacking a target.'
-},{
-	advanced:true,
-	id:'own',
-	label:'Never stop on Your Monsters',
-	checkbox:true,
-	help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
-},{
-	advanced:true,
-	id:'behind_override',
-	label:'Rescue failing monsters',
-	checkbox:true,
-	help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
-},{
-	advanced:true,
-	id:'avoid_behind',
-	label:'Avoid Lost-cause Monsters',
-	checkbox:true,
-	help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
-},{
-	advanced:true,
-	id:'avoid_hours',
-	label:'Lost-cause if ETD is',
-	after:'hours after timer',
-	text:true,
-	help:'# of Hours Monster must be behind before preventing attacks.'
-},{
-	id:'minstamina',
-	label:'Min Stamina Cost',
-	select:[1,5,10,20,50],
-	help:'Select the minimum stamina for a single attack'
-},{
-	id:'maxstamina',
-	label:'Max Stamina Cost',
-	select:[1,5,10,20,50],
-	help:'Select the maximum stamina for a single attack'
-},{
-	title:'Raids'
-},{
-	id:'raid',
-	label:'Raid',
-	select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
-},{
-	id:'armyratio',
-	require:{'raid':['Invade', 'Invade x5']},
-	label:'Target Army Ratio',
-	select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-	help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
-},{
-	id:'levelratio',
-	require:{'raid':['Duel', 'Duel x5']},
-	label:'Target Level Ratio',
-	select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-	help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
-},{
-	id:'force1',
-	label:'Force +1',
-	checkbox:true,
-	help:'Force the first player in the list to aid.'
-},{
-	title:'Siege Assist Options'
-},{
-	id:'assist',
-	label:'Assist with Sieges',
-	help:'Spend stamina to assist with sieges.',
-	checkbox:true
-},{
-	id:'assist_links',
-	label:'Use Assist Links in Dashboard',
-	checkbox:true
-},{
-	advanced:true,
-	id:'monster_check',
-	label:'Monster Review',
-	select:['Quarterly','1/2 Hour','Hourly','2 Hours','6 Hours','12 Hours','Daily','Weekly'],
-	help:'Sets how ofter to check Monster Stats.'
-}
+	{
+		title:'Fortification'
+	},{
+		id:'fortify_active',
+		label:'Fortify Active',
+		checkbox:true,
+		help:'Must be checked to fortify.'
+	},{
+		id:'general_fortify',
+		require:{'Player.option.trusted':true},
+		label:'Fortify General',
+		select:'bestgenerals'
+	},{
+		id:'fortify',
+		require:'fortify_active',
+		label:'Fortify Below (AB)',
+		text:30,
+		help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
+		after:'%'
+	},{
+		/*	id:'quest_over',
+		require:'fortify_active',
+		label:'Quest if Over',
+		text:90,
+		after:'%'
+	},{*/
+		id:'min_to_attack',
+		require:'fortify_active',
+		label:'Attack Over (AB)',
+		text:1,
+		help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+		after:'%'
+	},{
+		id:'minenergy',
+		require:'fortify_active',
+		label:'Min Energy Cost',
+		select:[10,20,40,100],
+		help:'Select the minimum energy for a single energy action'
+	},{
+		id:'maxenergy',
+		require:'fortify_active',
+		label:'Max Energy Cost',
+		select:[10,20,40,100],
+		help:'Select the maximum energy for a single energy action'
+	},{
+		title:'Who To Fight'
+	},{
+		id:'general_attack',
+		label:'Attack General',
+		require:{'Player.option':true},
+		select:'bestgenerals'
+	},{
+		advanced:true,
+		id:'ignore_stats',
+		label:'Ignore Player Stats',
+		checkbox:true,
+		help:'Do not use the current health or stamina as criteria for choosing monsters.'
+	},{
+		id:'choice',
+		label:'Attack',
+		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Mim Damage','ETD Maintain']
+	},{
+		id:'stop',
+		label:'Stop',
+		select:['Never', 'Achievement', 'Loot'],
+		help:'Select when to stop attacking a target.'
+	},{
+		advanced:true,
+		id:'own',
+		label:'Never stop on Your Monsters',
+		checkbox:true,
+		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
+	},{
+		advanced:true,
+		id:'behind_override',
+		label:'Rescue failing monsters',
+		checkbox:true,
+		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
+	},{
+		advanced:true,
+		id:'avoid_behind',
+		label:'Avoid Lost-cause Monsters',
+		checkbox:true,
+		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
+	},{
+		advanced:true,
+		id:'avoid_hours',
+		label:'Lost-cause if ETD is',
+		after:'hours after timer',
+		text:true,
+		help:'# of Hours Monster must be behind before preventing attacks.'
+	},{
+		id:'minstamina',
+		label:'Min Stamina Cost',
+		select:[1,5,10,20,50],
+		help:'Select the minimum stamina for a single attack'
+	},{
+		id:'maxstamina',
+		label:'Max Stamina Cost',
+		select:[1,5,10,20,50],
+		help:'Select the maximum stamina for a single attack'
+	},{
+		title:'Raids'
+	},{
+		id:'raid',
+		label:'Raid',
+		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+	},{
+		id:'armyratio',
+		require:{'raid':['Invade', 'Invade x5']},
+		label:'Target Army Ratio',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+	},{
+		id:'levelratio',
+		require:{'raid':['Duel', 'Duel x5']},
+		label:'Target Level Ratio',
+		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+	},{
+		id:'force1',
+		label:'Force +1',
+		checkbox:true,
+		help:'Force the first player in the list to aid.'
+	},{
+		title:'Siege Assist Options'
+	},{
+		id:'assist',
+		label:'Assist with Sieges',
+		help:'Spend stamina to assist with sieges.',
+		checkbox:true
+	},{
+		id:'assist_links',
+		label:'Use Assist Links in Dashboard',
+		checkbox:true
+	},{
+		advanced:true,
+		id:'check_interval',//monster_check
+		label:'Monster Review',
+		select:{
+			900000:'Quarterly',
+			1800000:'1/2 Hour',
+			3600000:'Hourly',
+			7200000:'2 Hours',
+			21600000:'6 Hours',
+			43200000:'12 Hours',
+			86400000:'Daily',
+			604800000:'Weekly'},
+		help:'Sets how ofter to check Monster Stats.'
+	}
 ];
 
 Monster.types = {
@@ -832,179 +840,162 @@ Monster.parse = function(change) {
 	return false;
 };
 
-Monster.update = function(what) {
+Monster.update = function(what,worker) {
+	if (what === 'runtime') {
+		return;
+	}
 	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy;
-	this.runtime.count = 0;
-	for (i in this.data) { // Flush unknown monsters
-		for (j in this.data[i]) {
-			if (!this.data[i][j].state || this.data[i][j].state === null) {
-				log('Found Invalid Monster State=(' + this.data[i][j].state + ')');
-				delete this.data[i][j];
-			} else if (this.data[i][j].state === 'engage') {
-				this.runtime.count++;
-			}
-		}
-		if (!length(this.data[i])) { // Delete uid's without an active monster
-			log('Found Invalid Monster ID=(' + this.data[i] + ')');
-			delete this.data[i];
-		}
-	}
-	if (!uid || !type || !this.data[uid] || !this.data[uid][type] || (this.data[uid][type].state !== 'engage' && this.data[uid][type].state !== 'assist')) { // If we've not got a valid target...
-		this.runtime.uid = uid = null;
-		this.runtime.type = type = null;
-	}
-	// Testing this out
-	uid = null;
-	type = null;
-	
-	//this.runtime.check = false;
-	switch (this.option.monster_check){
-		case 'Quarterly':
-			if (this.option.check_interval !== 900000){
-				this.option.check_interval = 900000;
-			}
-			break;
-		case '1/2 Hour':
-			if (this.option.check_interval !== 1800000){
-				this.option.check_interval = 1800000;
-			}
-			break;
-		case 'Hourly':
-			if (this.option.check_interval !== 3600000){
-				this.option.check_interval = 3600000;
-			}
-			break;
-		case '2 Hours':
-			if (this.option.check_interval !== 7200000){
-				this.option.check_interval = 7200000;
-			}
-				break;
-		case '6 Hours':
-			if (this.option.check_interval !== 21600000){
-				this.option.check_interval = 21600000;
-			}
-			break;
-		case '12 Hours':
-			if (this.option.check_interval !== 43200000){
-				this.option.check_interval = 43200000;
-			}
-			break;
-		case 'Daily':
-			if (this.option.check_interval !== 86400000){
-				this.option.check_interval = 86400000;
-			}
-			break;
-		case 'Weekly':
-			if (this.option.check_interval !== 604800000){
-				this.option.check_interval = 604800000;
-			}
-			break;
-	}
-	for (i in this.data) {
-		// Look for a new target...
-		for (j in this.data[i]) {
-			if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || (this.data[i][j].last < (Date.now() - this.option.check_interval))) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore && this.data[i][j].state !== 'complete') && !this.runtime.check) {
-				// Check monster progress every hour
-				this.runtime.check = true; // Do we need to parse info from a blank monster?
-				break;
-			}
-			req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
-			req_energy = this.types[j].def_btn ? this.option.minenergy : null;
-			req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-			if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
-				if (!this.data[i][j].battle_count){
-					this.data[i][j].battle_count = 1;
+	if (worker === Player) {
+		this.runtime.count = 0;
+		for (i in this.data) { // Flush unknown monsters
+			for (j in this.data[i]) {
+				if (!this.data[i][j].state || this.data[i][j].state === null) {
+					log('Found Invalid Monster State=(' + this.data[i][j].state + ')');
+					delete this.data[i][j];
+				} else if (this.data[i][j].state === 'engage') {
+					this.runtime.count++;
 				}
-				if (this.data[i][j].name === 'You' && this.option.own){
-					list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+			}
+			if (!length(this.data[i])) { // Delete uid's without an active monster
+				log('Found Invalid Monster ID=(' + this.data[i] + ')');
+				delete this.data[i];
+			}
+		}
+		if (!uid || !type || !this.data[uid] || !this.data[uid][type] || (this.data[uid][type].state !== 'engage' && this.data[uid][type].state !== 'assist')) { // If we've not got a valid target...
+			this.runtime.uid = uid = null;
+			this.runtime.type = type = null;
+		}
+		// Testing this out
+		uid = null;
+		type = null;
+		
+		//this.runtime.check = false;
+		for (i in this.data) {
+			// Look for a new target...
+			for (j in this.data[i]) {
+				if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || (this.data[i][j].last < (Date.now() - this.option.check_interval))) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore && this.data[i][j].state !== 'complete') && !this.runtime.check) {
+					// Check monster progress every hour
+					this.runtime.check = true; // Do we need to parse info from a blank monster?
 					break;
-				} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
-					//debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
-					list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-					break;
-				} else {
-					switch(this.option.stop) {
-						default:
-						case 'Never':
-							list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-							break;
-						case 'Achievement':
-							if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < this.types[j].achievement)) {
-								list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-							}
-							break;
-						case 'Loot':
-							if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {
-								// Special case for your own Keira to get her soul.
-								list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-							}
-							break;
+				}
+				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
+				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
+				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
+					if (!this.data[i][j].battle_count){
+						this.data[i][j].battle_count = 1;
 					}
-				}
-			}
-		}
-	}
-	if (list.length){
-		list.sort( function(a,b){
-			switch(Monster.option.choice) {
-				case 'Any':
-					return (Math.random()-0.5);
-					break;
-				case 'Strongest':
-					return b[2] - a[2];
-					break;
-				case 'Weakest':
-					return a[2] - b[2];
-					break;
-				case 'Shortest ETD':
-					return a[3] - b[3];
-					break;
-				case 'Longest ETD':
-					return b[3] - a[3];
-					break;
-				case 'Spread':
-					return a[4] - b[4];
-					break;
-				case 'Max Damage':
-					return b[5] - a[5];
-					break;
-				case 'Min Damage':
-					return a[5] - b[5];
-					break;
-				case 'ETD Maintain':
-					if (a[7] < b[7]){
-						return 1;
-					} else if (a[7] > b[7]){
-						return -1;
+					if (this.data[i][j].name === 'You' && this.option.own){
+						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+						break;
+					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
+						//debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
+						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+						break;
 					} else {
-						return 0;
+						switch(this.option.stop) {
+							default:
+							case 'Never':
+								list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+								break;
+							case 'Achievement':
+								if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < this.types[j].achievement)) {
+									list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+								}
+								break;
+							case 'Loot':
+								if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {
+									// Special case for your own Keira to get her soul.
+									list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+								}
+								break;
+						}
 					}
-					break;
-			}
-		});	
-		if (!this.option.avoid_behind){
-			best = list[0];
-		} else {
-			for (i=0; i <= list.length - 1; i++){
-				if (((list[i][3]/3600000) - (list[i][6]/3600000)).round(0) <= this.option.avoid_hours ){
-					best = list[i];
-					break;
 				}
 			}
 		}
-	}
-	delete list;
-	if (best) {
-		uid  = best[0];
-		type = best[1];
-	}
+		if (list.length){
+			list.sort( function(a,b){
+				switch(Monster.option.choice) {
+					case 'Any':
+						return (Math.random()-0.5);
+						break;
+					case 'Strongest':
+						return b[2] - a[2];
+						break;
+					case 'Weakest':
+						return a[2] - b[2];
+						break;
+					case 'Shortest ETD':
+						return a[3] - b[3];
+						break;
+					case 'Longest ETD':
+						return b[3] - a[3];
+						break;
+					case 'Spread':
+						return a[4] - b[4];
+						break;
+					case 'Max Damage':
+						return b[5] - a[5];
+						break;
+					case 'Min Damage':
+						return a[5] - b[5];
+						break;
+					case 'ETD Maintain':
+						if (a[7] < b[7]){
+							return 1;
+						} else if (a[7] > b[7]){
+							return -1;
+						} else {
+							return 0;
+						}
+						break;
+				}
+			});	
+			if (!this.option.avoid_behind){
+				best = list[0];
+			} else {
+				for (i=0; i <= list.length - 1; i++){
+					if (((list[i][3]/3600000) - (list[i][6]/3600000)).round(0) <= this.option.avoid_hours ){
+						best = list[i];
+						break;
+					}
+				}
+			}
+		}
+		delete list;
+		if (best) {
+			uid  = best[0];
+			type = best[1];
+		}
 
-	this.runtime.uid = uid;
-	this.runtime.type = type;
+		this.runtime.uid = uid;
+		this.runtime.type = type;
+	} // END IF worker===Player
 	if (uid && type) {		
-		this.runtime.stamina = (this.types[type].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[type].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[type].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[type].attacks)) ? Math.min.apply( Math, this.types[type].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[type].attacks)) ? Math.max.apply( Math, this.types[type].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
+		this.runtime.stamina = 
+			(this.types[type].raid && this.option.raid.search('x5') == -1)
+			? 1
+			: (this.types[type].raid)
+				? 5
+				: (this.option.minstamina < Math.min.apply(Math, this.types[type].attacks) || this.option.maxstamina < Math.min.apply(Math, this.types[type].attacks))
+					? Math.min.apply(Math, this.types[type].attacks)
+					: (this.option.minstamina > Math.max.apply(Math, this.types[type].attacks))
+						? Math.max.apply(Math, this.types[type].attacks)
+						: (this.option.minstamina > this.option.maxstamina)
+							? this.option.maxstamina
+							: this.option.minstamina;
+		this.runtime.energy =
+			(!this.types[type].defends)
+			? 10
+			: (this.option.minenergy < Math.min.apply(Math, this.types[type].defends) || this.option.maxenergy < Math.min.apply(Math, this.types[type].defends))
+				? Math.min.apply(Math, this.types[type].defends)
+				: (this.option.minenergy > Math.max.apply(Math, this.types[type].defends))
+					? Math.max.apply(Math, this.types[type].defends)
+					: (this.option.minenergy > this.option.maxenergy)
+						? this.option.maxenergy
+						: this.option.minenergy;
 		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid		
-		this.runtime.energy = (!this.types[type].defends) ? 10 : (this.option.minenergy < Math.min.apply( Math, this.types[type].defends) || this.option.maxenergy < Math.min.apply( Math, this.types[type].defends)) ? Math.min.apply( Math, this.types[type].defends) : (this.option.minenergy > Math.max.apply( Math, this.types[type].defends)) ? Math.max.apply( Math, this.types[type].defends) : (this.option.minenergy > this.option.maxenergy) ? this.option.maxenergy : this.option.minenergy;
 		if(this.option.fortify_active && (typeof this.data[uid][type].mclass === 'undefined' || this.data[uid][type].mclass < 2) && ((typeof this.data[uid][type].attackbonus !== 'undefined' && this.data[uid][type].attackbonus < this.option.fortify && this.data[uid][type].defense < 100))) {
 			this.runtime.fortify = true;
 		} else if (this.option.fortify_active && typeof this.data[uid][type].mclass !== 'undefined' && this.data[uid][type].mclass > 1 && typeof this.data[uid][type].secondary !== 'undefined' && this.data[uid][type].secondary < 100){

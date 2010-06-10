@@ -324,6 +324,9 @@ Worker.prototype._update = function(type, worker) {
 		WorkerStack.push(this);
 		var i, flush = false;
 		this._working.update = true;
+		if (typeof worker === 'undefined') {
+			worker = null;
+		}
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();

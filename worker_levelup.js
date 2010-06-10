@@ -20,7 +20,7 @@ LevelUp.defaults['castle_age'] = {
 LevelUp.option = {
 	enabled:false,
 	income:true,
-        bank:true,
+	bank:true,
 	general:'any',
 	order:'stamina',
 	algorithm:'Per Action'
@@ -162,9 +162,9 @@ LevelUp.update = function(type,worker) {
 	} else {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
-        if ((arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Monster') && (Monster.runtime.attack)) || (arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Battle'))){
-            runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
-        }
+		if ((arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Monster') && (Monster.runtime.attack)) || (arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Battle'))){
+			runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+		}
 
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
@@ -176,19 +176,23 @@ LevelUp.update = function(type,worker) {
 	} else {
 		Dashboard.status(this);
 	}
+	if (!this.option.enabled || this.option.general === 'any') {
+		Generals.set('runtime.disabled', false);
+	}
 }
 
 LevelUp.work = function(state) {
-	var i, runtime = this.runtime, general, energy = Player.get('energy'), stamina = Player.get('stamina'),order = Config.getOrder();
-	if (runtime.running && this.option.income) {
-		if (Queue.get('runtime.current') === Income) {
+	var i, runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
+	if (runtime.running && this.option.general !== 'any') {
+		if (this.option.income && Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
-		}
-	}
-        if (runtime.running && this.option.bank) {
-		if (Queue.get('runtime.current') === Bank) {
+		} else if (this.option.bank && Queue.get('runtime.current') === Bank) {
 			Generals.set('runtime.disabled', false);
+		} else {
+			Generals.set('runtime.disabled', true);
 		}
+	} else if (!runtime.running) {
+		Generals.set('runtime.disabled', false);
 	}
 	if (runtime.old_quest) {
 		Quest.runtime.best = runtime.old_quest;
@@ -198,35 +202,33 @@ LevelUp.work = function(state) {
 	}
 	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
 		if (runtime.running && runtime.level < Player.get('level')) { // We've just levelled up
-			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  energy >= Player.get('maxenergy')) {
+			if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' && energy >= Player.get('maxenergy')) {
 				Queue.burn.energy = energy;
 				Queue.burn.stamina = 0;
-				return false;
+				return QUEUE_FINISH;
 			}
-			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' &&  stamina >= Player.get('maxstamina')) {
+			if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' && stamina >= Player.get('maxstamina')) {
 				Queue.burn.energy = 0;
 				Queue.burn.stamina = stamina;
-				return false;
+				return QUEUE_FINISH;
 			}
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-//			debug('running '+runtime.running);
 		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-//			debug('Running '+runtime.running);
 		}
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (state && runtime.heal_me) {
 		if (Heal.me()) {
-			return true;
+			return QUEUE_CONTINUE;
 		}
 		runtime.heal_me = false;
 	}
@@ -237,55 +239,54 @@ LevelUp.work = function(state) {
 //		debug('Running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
-	general = Generals.best(this.option.general); // Get our level up general
-	if (general && general !== 'any' && Player.get('exp_needed') < 100) { // If we want to change...
-		Generals.set('runtime.disabled', false);	// make sure changing Generals is not disabled
-		if (general === Player.get('general') || Generals.to(general)) { // ...then change if needed
+	// Get our level up general if we're less than 100 exp from level up
+	if (this.option.general !== 'any' && Player.get('exp_needed') < 100) {
+		Generals.set('runtime.disabled', false);
+		if (Generals.to(this.option.general)) { 
 //			debug('Disabling Generals because we are within 100 XP from leveling.');
-			Generals.set('runtime.disabled', true);	// and lock the General se we can level up.
+			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
-			return true;	// Try to change generals again
+			return QUEUE_CONTINUE;	// Try to change generals again
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-    if (this.option.order !== 'Stamina' || !stamina || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)))){
-        debug('Running Energy Burn');
-	if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
-		runtime.old_quest = Quest.runtime.best;
-		runtime.old_quest_energy = Quest.runtime.energy;
-		Queue.burn.energy = energy;
-		Queue.burn.stamina = 0;
-		Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
-		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
-		return false;
-	}}
-        else
-            {debug('Running Stamina Burn');}
-    
-	Quest._update('data'); // Force Quest to decide it's best quest again...
+	if (this.option.order !== 'Stamina' || !stamina || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)))){
+		debug('Running Energy Burn');
+		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
+			runtime.old_quest = Quest.runtime.best;
+			runtime.old_quest_energy = Quest.runtime.energy;
+			Queue.burn.energy = energy;
+			Queue.burn.stamina = 0;
+			Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+			Quest.runtime.energy = energy; // Ok, we're lying, but it works...
+			return QUEUE_FINISH;
+		}
+	} else {
+		debug('Running Stamina Burn');
+	}
+	Quest._update('data', null); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
 	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
 		runtime.heal_me = true;
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
 	Queue.burn.stamina = stamina; // Make sure we can burn everything, even the stuff we're saving
-	return false;
+	return QUEUE_FINISH;
 };
 
-LevelUp.get = function(what) {
-	var now = Date.now();
+LevelUp.get = function(what,def) {
 	switch(what) {
 		case 'timer':		return makeTimer(this.get('level_timer'));
 		case 'time':		return (new Date(this.get('level_time'))).format('l g:i a');
-		case 'level_timer':	return Math.floor((this.get('level_time') - now) / 1000);
-		case 'level_time':	return now + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
+		case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
+		case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
 			if (this.option.algorithm == 'Per Hour') {
 				return History.get('exp.average.change');
 			} else {
 				return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
 			}
-		default: return this._get(what);
+		default: return this._get(what,def);
 	}
 }
