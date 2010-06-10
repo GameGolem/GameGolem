@@ -286,7 +286,7 @@ Worker.prototype._set = function(what, value) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
 //	WorkerStack.pop();
-	return null;
+	return value;
 };
 
 Worker.prototype._setup = function() {
