@@ -24,7 +24,8 @@ Battle.option = {
 	army:1.1,
 	level:1.1,
 	preferonly:'Sometimes',
-	prefer:[]
+	prefer:[],
+	between:0
 };
 
 Battle.runtime = {
@@ -85,6 +86,22 @@ Battle.display = [
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[100,200,300,400,500]
+	},{
+		advanced:true,
+		id:'between',
+		label:'Time Between Attacks<br>(On same target)',
+		select:{
+			0:'none',
+			300000:'5 mins',
+			900000:'15 mins',
+			1800000:'30 mins',
+			3600000:'1 hour',
+			7200000:'2 hours',
+			21600000:'6 hours',
+			43200000:'12 hours',
+			86400000:'24 hours'
+		},
+		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
 	},{
 		id:'army',
 		require:{'type':'Invade'},
@@ -154,9 +171,11 @@ Battle.parse = function(change) {
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
+				data[uid].last = Date.now();
 				History.add('battle+win',1);
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
+				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
@@ -260,6 +279,7 @@ Battle.update = function(type) {
 			if (!/[^0-9]/g.test(i)) {
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
+				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
@@ -271,6 +291,7 @@ Battle.update = function(type) {
 		if (this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !this.option.prefer.length) || (this.option.preferonly === 'Until Dead' && !list.length)) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
