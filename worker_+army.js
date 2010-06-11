@@ -53,7 +53,7 @@ Army.init = function() {
 		return false;
 	});
 	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
-		if (this.data[i].regex(/[^0-9]/g)) {
+		if (typeof i === 'string' && i.regex(/[^0-9]/g)) {
 			delete this.data[i];
 		}
 	}
