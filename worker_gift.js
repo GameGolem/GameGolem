@@ -269,6 +269,10 @@ Gift.work = function(state) {
 	} else if (this.runtime.gift_sent) {
 		this.runtime.gift_sent = null;
 	}
+	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
+		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
+		return true;
+	}
 	
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
@@ -323,7 +327,7 @@ Gift.work = function(state) {
 							}
 						}
 						if (k == 0) {
-						delete todo[i];
+							delete todo[i];
 							return true;
 						}
 						this.runtime.sent_id = i;

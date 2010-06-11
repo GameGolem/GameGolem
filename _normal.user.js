@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (569+1);
+var revision = (570+1);
 // User changeable
 var show_debug = true;
 
@@ -3628,7 +3628,7 @@ Battle.update = function(type) {
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
-			status.push('Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found');
@@ -4694,6 +4694,10 @@ Gift.work = function(state) {
 	} else if (this.runtime.gift_sent) {
 		this.runtime.gift_sent = null;
 	}
+	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
+		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
+		return true;
+	}
 	
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
@@ -4748,7 +4752,7 @@ Gift.work = function(state) {
 							}
 						}
 						if (k == 0) {
-						delete todo[i];
+							delete todo[i];
 							return true;
 						}
 						this.runtime.sent_id = i;
