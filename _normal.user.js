@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (576+1);
+var revision = (577+1);
 // User changeable
 var show_debug = true;
 
@@ -2582,7 +2582,7 @@ Queue.init = function() {
 Queue.clearCurrent = function() {
 	var current = this.get('runtime.current', null)
 	if (current) {
-		$('#'+Workers[current].name+' > h3').css('font-weight', 'normal');
+		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
 	}
 }

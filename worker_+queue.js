@@ -129,7 +129,7 @@ Queue.init = function() {
 Queue.clearCurrent = function() {
 	var current = this.get('runtime.current', null)
 	if (current) {
-		$('#'+Workers[current].name+' > h3').css('font-weight', 'normal');
+		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
 	}
 }
