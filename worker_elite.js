@@ -51,19 +51,35 @@ Elite.init = function() { // Convert old elite guard list
 		'name':'Elite',
 		'show':'Elite',
 		'label':function(data,uid){
-			return (
-				Army.get(['Elite',uid,'prefer'], false)
+			return ('Elite' in data[uid]
+				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
 					? '<img src="' + Army.star_on + '">'
 					: '<img src="' + Army.star_off + '">')
-				+ (Army.get(['Elite',uid,'elite'], null)
+				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
 					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
-					: '');
+					: '')
+				: ('Army' in data[uid] && data[uid]['Army']
+					? '<img src="' + Army.star_off + '">'
+					: '')
+				);
 		},
 		'sort':function(data,uid){
-			return Army.get(['Elite',uid,'elite'], null);// || Army.get(['Army',uid], null);
+			if (!'Elite' in data[uid] && !'Army' in data[uid] && !data[uid]['Army']) {
+				return 0;
+			}
+			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
+					? Date.now()
+					: 0)
+				+ ('elite' in data[uid]['Elite']
+					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					: 0));
 		},
 		'click':function(data,uid){
-			Army.set(['Elite',uid,'prefer'], !Army.get(['Elite',uid,'prefer'], false))
+			if (Army.get(['Elite',uid,'prefer'], false)) {
+				Army.set(['Elite',uid,'prefer'])
+			} else {
+				Army.set(['Elite',uid,'prefer'], true)
+			}
 			return true;
 		}
 	});

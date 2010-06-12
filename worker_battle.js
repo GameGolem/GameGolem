@@ -219,7 +219,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, weight, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points) {
@@ -240,6 +240,13 @@ Battle.update = function(type) {
 //		debug('Pruning target cache');
 		list = [];
 		for (i in data) {
+/*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
+			if (Battle.option.bp === 'Always') { weight += ((data[i].rank || 0) - rank) / 2; }
+			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i].rank || 0)) / 2; }
+			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
+			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
+			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
+*/
 			list.push(i);
 		}
 		list.sort(function(a,b) {
@@ -298,7 +305,11 @@ Battle.update = function(type) {
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
-				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+				if (Battle.option.bp === 'Always') {
+					for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+						list.push(i);
+					}
+				} else {
 					list.push(i);
 				}
 				count++;

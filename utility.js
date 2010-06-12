@@ -304,7 +304,9 @@ var isString = function(num) {
 };
 
 var isWorker = function(obj) {
-	return obj && typeof obj === 'object' && typeof obj.name === 'string' && typeof Workers[obj.name] === 'object' && Workers[obj.name] === obj; // Only a worker if it's an active worker
+	// Big shortcut for being inside a try/catch block
+	try {return Workers[obj.name] === obj;}
+	catch(e) {return false;}
 };
 
 var plural = function(i) {

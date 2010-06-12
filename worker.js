@@ -269,17 +269,19 @@ Worker.prototype._set = function(what, value) {
 				if (typeof a[c] !== 'object') {
 					a[c] = {};
 				}
-				arguments.callee(a[c], b);
-//				if (!length(a[c])) {// Can clear out empty trees completely...
-//					delete a[c];
-//				}
-			} else {
-				if (typeof value !== 'undefined') {
-					a[c] = value;
-				} else {
+				if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
 					delete a[c];
+					return false
+				}
+			} else {
+				if (typeof value === 'undefined') {
+					delete a[c];
+					return false
+				} else {
+					a[c] = value;
 				}
 			}
+			return true;
 		})(data,x);
 //		this._save();
 	} catch(e) {

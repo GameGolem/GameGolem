@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (575+1);
+var revision = (576+1);
 // User changeable
 var show_debug = true;
 
@@ -519,7 +519,9 @@ var isString = function(num) {
 };
 
 var isWorker = function(obj) {
-	return obj && typeof obj === 'object' && typeof obj.name === 'string' && typeof Workers[obj.name] === 'object' && Workers[obj.name] === obj; // Only a worker if it's an active worker
+	// Big shortcut for being inside a try/catch block
+	try {return Workers[obj.name] === obj;}
+	catch(e) {return false;}
 };
 
 var plural = function(i) {
@@ -880,17 +882,19 @@ Worker.prototype._set = function(what, value) {
 				if (typeof a[c] !== 'object') {
 					a[c] = {};
 				}
-				arguments.callee(a[c], b);
-//				if (!length(a[c])) {// Can clear out empty trees completely...
-//					delete a[c];
-//				}
-			} else {
-				if (typeof value !== 'undefined') {
-					a[c] = value;
-				} else {
+				if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
 					delete a[c];
+					return false
+				}
+			} else {
+				if (typeof value === 'undefined') {
+					delete a[c];
+					return false
+				} else {
+					a[c] = value;
 				}
 			}
+			return true;
 		})(data,x);
 //		this._save();
 	} catch(e) {
@@ -1014,12 +1018,9 @@ Army.display = [
 
 Army.update = function(type,worker) {
 	if (type === 'data' && !worker) {
-		var i;
-		for (i in this.runtime.update) {
-			if (this.runtime.update[i]) {
-				Workers[i]._update(type, this);
-				this.runtime.update[i] = false;
-			}
+		for (var i in this.runtime.update) {
+			Workers[i]._update(type, this);
+			delete this.runtime.update[i];
 		}
 	}
 };
@@ -1040,16 +1041,15 @@ Army.init = function() {
 
 // what = ['worker', userID, key ...]
 Army.set = function(what, value) {
-	this._unflush();
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._set(x, value);// Pasthrough
 	}
 	// Section first - either string id, worker.name, or current_worker.name
-	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else if (isWorker(x[0])) {
+	if (isWorker(x[0])) {
 		section = x.shift().name;
+	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
+		section = x.shift();
 	} else {
 		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
@@ -1061,38 +1061,40 @@ Army.set = function(what, value) {
 		return;
 	}
 //	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
-	if (typeof Workers[section] !== 'undefined') {
+	if (section in Workers && !section in this.runtime.update) {
 		this.runtime.update[section] = true;
 	}
-	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
+// Removed for performance reasons...
+//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
 	x.unshift('data', uid, section);
 	return this._set(x, value);
 };
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	this._unflush();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list, i;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
 	// Section first - either string id, worker.name, or current_worker.name
-	if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else if (isWorker(x[0])) {
+	if (isWorker(x[0])) {
 		section = x.shift().name;
+	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
+		section = x.shift();
 	} else {
 		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
 	}
 	// No userid, so return a list of userid's used by this section
 	if (section && x.length === 0) {
-		list = [];
-		for (i in this.data) {
-			if (typeof this.data[i][section] !== 'undefined') {
-				list.push(i);
+		return (function(section){
+			var i, list = [];
+			for (i in this.data) {
+				if (section in this.data[i]) {
+					list.push(i);
+				}
 			}
-		}
-		return list;
+			return list;
+		})(section);
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
@@ -1200,7 +1202,7 @@ Army.dashboard = function(sort, rev) {
 		for (i in this.data) {
 			try {
 				label = this.getSection(show, 'sort', i);
-				if (label !== null && label !== '') {
+				if (label) {
 					this.order.push(i);
 				}
 			} catch(e){}
@@ -1267,15 +1269,16 @@ Army.dashboard = function(sort, rev) {
 		var $this, section, uid, tooltip;
 		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
 		try {
-			section = $this.closest('td').index();
-			uid = $this.closest('tr').index();
+			section = objectIndex(Army.sectionlist, $this.closest('td').index());
+			uid = Army.order[$this.closest('tr').index()];
 			Army._unflush();
-			if (Army.sectionlist[objectIndex(Army.sectionlist, section)]['click']) {
-				if (Army.getSection(section, 'click', Army.order[uid])) {
-					$this.html('<a>' + Army.getSection(section, 'label', Army.order[uid]) + '</a>');
+			if ('click' in Army.sectionlist[section]) {
+				if (Army.getSection(section, 'click', uid)) {
+					$this.html('<a>' + Army.getSection(section, 'label', uid) + '</a>');
+//					Army.dashboard(Army.runtime.show, Army.runtime.rev);
 				}
 			} else {
-				tooltip = Army.getSection(section, 'tooltip', Army.order[uid]);
+				tooltip = Army.getSection(section, 'tooltip', uid);
 				if (tooltip && tooltip !== '') {
 					$('#golem-army-tooltip > p').html(tooltip);
 					$('#golem-army-tooltip').css({
@@ -1678,13 +1681,13 @@ Config.checkRequire = function() {
 					if (isArray(require[i][j])) {
 //						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
 						for (k=0; k<require[i][j].length; k++) {
-							if (require[i][j][k] == value) {
+							if (require[i][j][k] === value) {
 								show = false;
 							}
 						}
 					} else {
 //						log('Require: '+i+', '+require[i][j]+' = '+value);
-						if (require[i][j] != value) {
+						if (require[i][j] !== value) {
 							show = false;
 						}
 					}
@@ -3567,7 +3570,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, weight, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points) {
@@ -3588,6 +3591,13 @@ Battle.update = function(type) {
 //		debug('Pruning target cache');
 		list = [];
 		for (i in data) {
+/*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
+			if (Battle.option.bp === 'Always') { weight += ((data[i].rank || 0) - rank) / 2; }
+			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i].rank || 0)) / 2; }
+			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
+			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
+			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
+*/
 			list.push(i);
 		}
 		list.sort(function(a,b) {
@@ -3646,7 +3656,11 @@ Battle.update = function(type) {
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
-				for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+				if (Battle.option.bp === 'Always') {
+					for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+						list.push(i);
+					}
+				} else {
 					list.push(i);
 				}
 				count++;
@@ -3913,19 +3927,35 @@ Elite.init = function() { // Convert old elite guard list
 		'name':'Elite',
 		'show':'Elite',
 		'label':function(data,uid){
-			return (
-				Army.get(['Elite',uid,'prefer'], false)
+			return ('Elite' in data[uid]
+				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
 					? '<img src="' + Army.star_on + '">'
 					: '<img src="' + Army.star_off + '">')
-				+ (Army.get(['Elite',uid,'elite'], null)
+				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
 					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
-					: '');
+					: '')
+				: ('Army' in data[uid] && data[uid]['Army']
+					? '<img src="' + Army.star_off + '">'
+					: '')
+				);
 		},
 		'sort':function(data,uid){
-			return Army.get(['Elite',uid,'elite'], null);// || Army.get(['Army',uid], null);
+			if (!'Elite' in data[uid] && !'Army' in data[uid] && !data[uid]['Army']) {
+				return 0;
+			}
+			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
+					? Date.now()
+					: 0)
+				+ ('elite' in data[uid]['Elite']
+					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					: 0));
 		},
 		'click':function(data,uid){
-			Army.set(['Elite',uid,'prefer'], !Army.get(['Elite',uid,'prefer'], false))
+			if (Army.get(['Elite',uid,'prefer'], false)) {
+				Army.set(['Elite',uid,'prefer'])
+			} else {
+				Army.set(['Elite',uid,'prefer'], true)
+			}
 			return true;
 		}
 	});
