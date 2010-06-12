@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (578+1);
+var revision = (579+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1105,6 +1105,7 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 .golem-title { padding: 4px; margin: -4px -4px 0 -4px !important; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
 .golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel-header input { float: right; margin: 2px; }\
 .golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
 .golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
 .golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
@@ -2338,6 +2339,9 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
+	$('.golem-panel-header input').click(function(event){
+		event.stopPropagation(true);
+	});
 	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
@@ -2348,7 +2352,7 @@ Config.makePanel = function(worker) {
 		return null;
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<img class="golem-lock" src="' + Images.lock + '"></h3></div>');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3></div>');
 	switch (typeof worker.display) {
 		case 'array':
 		case 'object':
@@ -3504,6 +3508,7 @@ Queue.update = function(type) {
 	if (iscaap()) {
 		return false;
 	}
+	var i, $worker;
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
 		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
@@ -3513,6 +3518,23 @@ Queue.update = function(type) {
 		this.lasttimer = -1;
 	}
 	this.lastpause = this.option.pause;
+	for (i in Workers) {
+		$worker = $('#'+Workers[i].id+' .golem-panel-header');
+		if (Queue.enabled(Workers[i])) {
+			if ($worker.hasClass('red')) {
+				$worker.removeClass('red');
+				Workers[i]._update('option', null);
+			}
+		} else {
+			if (!$worker.hasClass('red')) {
+				$worker.addClass('red');
+				Workers[i]._update('option', null);
+			}
+		}
+	}
+	if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
+		this.clearCurrent();
+	}
 };
 
 Queue.run = function() {
@@ -3547,7 +3569,7 @@ Queue.run = function() {
 	}
 */	
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display) {
+		if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
 			Workers[i]._work(false);
@@ -3555,7 +3577,7 @@ Queue.run = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {
 		worker = Workers[this.option.queue[i]];
-		if (!worker || !worker.work || !worker.display) {
+		if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
 			continue;
 		}
 //		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -3595,6 +3617,10 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
+};
+
+Queue.enabled = function(worker) {
+	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
 };
 
 /********** Worker.Settings **********
@@ -4798,7 +4824,7 @@ Elite.defaults['castle_age'] = {
 };
 
 Elite.option = {
-	elite:true,
+//	elite:true,
 	every:12,
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
@@ -4930,13 +4956,14 @@ Elite.parse = function(change) {
 
 Elite.update = function(type,worker) {
 	var i, list, tmp = [], now = Date.now(), check, prefer = false;
-	this.runtime.nextelite = this.runtime.nextarena = 0;
-	if (this.option.elite) {
+	this.runtime.nextelite = 0;
+	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			if (Army.get([list[i],'elite'], 0) < now) {
-				Army.set([list[i],'elite'])// If they can be added then we'll delete the old time...
-				this.runtime.nextelite = list[i];
+			check = Army.get([list[i],'elite'], 0);
+			if (check < now) {
+				check && Army.set([list[i],'elite'])// Delete the old time if it exists...
+				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army ratherr than later
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					break;
 				}
@@ -4954,7 +4981,7 @@ Elite.update = function(type,worker) {
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
 		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
 	}
-	Dashboard.status(this, tmp.join(', '));
+	Dashboard.status(this, tmp.join('<br>'));
 };
 
 Elite.work = function(state) {
@@ -4967,13 +4994,13 @@ Elite.work = function(state) {
 		}
 		return true;
 	}
-	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || !this.runtime.nextarena || (this.runtime.waitarena + (this.option.every * 3600000)) > Date.now())) {
+	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
+	if (!this.runtime.nextelite && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {

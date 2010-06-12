@@ -9,7 +9,7 @@ Elite.defaults['castle_age'] = {
 };
 
 Elite.option = {
-	elite:true,
+//	elite:true,
 	every:12,
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
@@ -141,13 +141,14 @@ Elite.parse = function(change) {
 
 Elite.update = function(type,worker) {
 	var i, list, tmp = [], now = Date.now(), check, prefer = false;
-	this.runtime.nextelite = this.runtime.nextarena = 0;
-	if (this.option.elite) {
+	this.runtime.nextelite = 0;
+	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			if (Army.get([list[i],'elite'], 0) < now) {
-				Army.set([list[i],'elite'])// If they can be added then we'll delete the old time...
-				this.runtime.nextelite = list[i];
+			check = Army.get([list[i],'elite'], 0);
+			if (check < now) {
+				check && Army.set([list[i],'elite'])// Delete the old time if it exists...
+				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army ratherr than later
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					break;
 				}
@@ -165,7 +166,7 @@ Elite.update = function(type,worker) {
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
 		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
 	}
-	Dashboard.status(this, tmp.join(', '));
+	Dashboard.status(this, tmp.join('<br>'));
 };
 
 Elite.work = function(state) {
@@ -178,13 +179,13 @@ Elite.work = function(state) {
 		}
 		return true;
 	}
-	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || !this.runtime.nextarena || (this.runtime.waitarena + (this.option.every * 3600000)) > Date.now())) {
+	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
+	if (!this.runtime.nextelite && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {

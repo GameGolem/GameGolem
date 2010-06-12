@@ -135,6 +135,9 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		Config.updateOptions();
 		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
 	);
+	$('.golem-panel-header input').click(function(event){
+		event.stopPropagation(true);
+	});
 	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
@@ -145,7 +148,7 @@ Config.makePanel = function(worker) {
 		return null;
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<img class="golem-lock" src="' + Images.lock + '"></h3></div>');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3></div>');
 	switch (typeof worker.display) {
 		case 'array':
 		case 'object':

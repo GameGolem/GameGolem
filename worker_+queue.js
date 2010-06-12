@@ -138,6 +138,7 @@ Queue.update = function(type) {
 	if (iscaap()) {
 		return false;
 	}
+	var i, $worker;
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
 		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
@@ -147,6 +148,23 @@ Queue.update = function(type) {
 		this.lasttimer = -1;
 	}
 	this.lastpause = this.option.pause;
+	for (i in Workers) {
+		$worker = $('#'+Workers[i].id+' .golem-panel-header');
+		if (Queue.enabled(Workers[i])) {
+			if ($worker.hasClass('red')) {
+				$worker.removeClass('red');
+				Workers[i]._update('option', null);
+			}
+		} else {
+			if (!$worker.hasClass('red')) {
+				$worker.addClass('red');
+				Workers[i]._update('option', null);
+			}
+		}
+	}
+	if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
+		this.clearCurrent();
+	}
 };
 
 Queue.run = function() {
@@ -181,7 +199,7 @@ Queue.run = function() {
 	}
 */	
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display) {
+		if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
 			Workers[i]._work(false);
@@ -189,7 +207,7 @@ Queue.run = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {
 		worker = Workers[this.option.queue[i]];
-		if (!worker || !worker.work || !worker.display) {
+		if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
 			continue;
 		}
 //		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -229,5 +247,9 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
+};
+
+Queue.enabled = function(worker) {
+	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
 };
 
