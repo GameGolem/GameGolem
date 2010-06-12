@@ -390,6 +390,8 @@ Config.checkRequire = function() {
 						show = false;
 					}
 				}
+			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
+				show = false;
 			}
 		}
 		if (show) {
