@@ -375,19 +375,23 @@ Config.updateOptions = function() {
 
 Config.checkRequire = function() {
 	$('.golem-require').each(function(i,el){
-		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
+		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
 		for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
 			if (worker) {
 				value = worker.get(path,false);
-				if (isArray(require[i])) {
-					if (findInArray(require[i][0], value)) {
-						show = false;
-					}
-				} else {
-					if (!findInArray(require[i], value)) {
-						show = false;
+				for (j=0; j<require[i].length; j++) {
+					if (isArray(require[i][j])) {
+						for (k=0; k<require[i][j].length; k++) {
+							if (findInArray(require[i][j][k], value)) {
+								show = false;
+							}
+						}
+					} else {
+						if (!findInArray(require[i][j], value)) {
+							show = false;
+						}
 					}
 				}
 			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
