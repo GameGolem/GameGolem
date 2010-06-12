@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (571+1);
+var revision = (575+1);
 // User changeable
 var show_debug = true;
 
@@ -1668,21 +1668,29 @@ Config.updateOptions = function() {
 
 Config.checkRequire = function() {
 	$('.golem-require').each(function(i,el){
-		var i, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
+		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
 		for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
 			if (worker) {
 				value = worker.get(path,false);
-				if (isArray(require[i])) {
-					if (findInArray(require[i][0], value)) {
-						show = false;
-					}
-				} else {
-					if (!findInArray(require[i], value)) {
-						show = false;
+				for (j=0; j<require[i].length; j++) {
+					if (isArray(require[i][j])) {
+//						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
+						for (k=0; k<require[i][j].length; k++) {
+							if (require[i][j][k] == value) {
+								show = false;
+							}
+						}
+					} else {
+//						log('Require: '+i+', '+require[i][j]+' = '+value);
+						if (require[i][j] != value) {
+							show = false;
+						}
 					}
 				}
+			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
+				show = false;
 			}
 		}
 		if (show) {
@@ -3450,7 +3458,7 @@ Battle.display = [
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
-//		require:{'type':'Duel'},
+		require:{'type':[['Invade']]},
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
@@ -3633,8 +3641,8 @@ Battle.update = function(type) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army)
-				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level)
+				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army && this.option.type === 'Invade')
+				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level && this.option.type !== 'Invade')
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
@@ -5632,13 +5640,13 @@ Monster.display = [
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
 	},{
 		id:'armyratio',
-		require:{'raid':['Invade', 'Invade x5']},
+		require:{'raid':[['Duel', 'Duel x5']]},
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:{'raid':['Duel', 'Duel x5']},
+		require:{'raid':[['Invade', 'Invade x5']]},
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'

@@ -163,13 +163,13 @@ Monster.display = [
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
 	},{
 		id:'armyratio',
-		require:{'raid':['Invade', 'Invade x5']},
+		require:{'raid':[['Duel', 'Duel x5']]},
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:{'raid':['Duel', 'Duel x5']},
+		require:{'raid':[['Invade', 'Invade x5']]},
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'

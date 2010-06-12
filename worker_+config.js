@@ -385,13 +385,13 @@ Config.checkRequire = function() {
 					if (isArray(require[i][j])) {
 //						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
 						for (k=0; k<require[i][j].length; k++) {
-							if (require[i][j][k] !== value) {
+							if (require[i][j][k] == value) {
 								show = false;
 							}
 						}
 					} else {
 //						log('Require: '+i+', '+require[i][j]+' = '+value);
-						if (require[i][j] !== value) {
+						if (require[i][j] != value) {
 							show = false;
 						}
 					}
