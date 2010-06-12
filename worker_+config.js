@@ -383,13 +383,15 @@ Config.checkRequire = function() {
 				value = worker.get(path,false);
 				for (j=0; j<require[i].length; j++) {
 					if (isArray(require[i][j])) {
+//						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
 						for (k=0; k<require[i][j].length; k++) {
-							if (findInArray(require[i][j][k], value)) {
+							if (require[i][j][k] !== value) {
 								show = false;
 							}
 						}
 					} else {
-						if (!findInArray(require[i][j], value)) {
+//						log('Require: '+i+', '+require[i][j]+' = '+value);
+						if (require[i][j] !== value) {
 							show = false;
 						}
 					}
