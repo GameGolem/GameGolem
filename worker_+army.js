@@ -89,7 +89,7 @@ Army.set = function(what, value) {
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list = [];
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
@@ -103,15 +103,13 @@ Army.get = function(what, def) {
 	}
 	// No userid, so return a list of userid's used by this section
 	if (section && x.length === 0) {
-		return (function(section){
-			var i, list = [];
-			for (i in this.data) {
-				if (section in this.data[i]) {
-					list.push(i);
-				}
+		this._unflush();
+		for (i in this.data) {
+			if (section in this.data[i]) {
+				list.push(i);
 			}
-			return list;
-		})(section);
+		}
+		return list;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {

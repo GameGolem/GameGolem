@@ -32,6 +32,10 @@ Elite.display = [
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours',
 		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
+	},{
+		id:'fill',
+		label:'Fill Now',
+		button:true
 	}
 ];
 
@@ -83,6 +87,11 @@ Elite.init = function() { // Convert old elite guard list
 			return true;
 		}
 	});
+	
+	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
+		Elite.set('runtime.waitelite', 0);
+		Elite._save('runtime');
+	});
 };
 
 Elite.parse = function(change) {
@@ -103,7 +112,7 @@ Elite.parse = function(change) {
 		}
 */
 		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 43200000); // 12 hours
+			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 1800000); // half hour
@@ -130,32 +139,31 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function() {
-	var a, i, j, list, tmp = [], now = Date.now(), check;
+Elite.update = function(type,worker) {
+	var i, list, tmp = [], now = Date.now(), check, prefer = false;
 	this.runtime.nextelite = this.runtime.nextarena = 0;
 	if (this.option.elite) {
-		list = Army.get('Elite');// Must be in the Elite list to have prefer set
+		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			if (Army.get([list[i],'prefer'], false)) {
-				a = Army.get([list[i],'elite'], null);
-				if (!a || a < now) {
-					this.runtime.nextelite = list[i];
+			if (Army.get([list[i],'elite'], 0) < now) {
+				Army.set([list[i],'elite'])// If they can be added then we'll delete the old time...
+				this.runtime.nextelite = list[i];
+				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					break;
 				}
 			}
 		}
-		list = Army.get('Army');// Otherwise lets just get everyone in the army
+		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		if (!this.runtime.nextelite) {
 			for(i=0; i<list.length; i++) {
-				a = Army.get([list[i], 'elite'], null);
-				if (!a || a < now) {
+				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
 					break;
 				}
 			}
 		}
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
-		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
+		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
 	}
 	Dashboard.status(this, tmp.join(', '));
 };

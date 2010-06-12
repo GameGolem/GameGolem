@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (577+1);
+var revision = (578+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1981,7 +1981,7 @@ Army.set = function(what, value) {
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list = [];
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
@@ -1995,15 +1995,13 @@ Army.get = function(what, def) {
 	}
 	// No userid, so return a list of userid's used by this section
 	if (section && x.length === 0) {
-		return (function(section){
-			var i, list = [];
-			for (i in this.data) {
-				if (section in this.data[i]) {
-					list.push(i);
-				}
+		this._unflush();
+		for (i in this.data) {
+			if (section in this.data[i]) {
+				list.push(i);
 			}
-			return list;
-		})(section);
+		}
+		return list;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
@@ -2373,6 +2371,10 @@ Config.makePanel = function(worker) {
 	}
 };
 
+Config.makeID = function(worker, id) {
+	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
+};
+
 Config.makeOption = function(worker, args) {
 	var i, o, step, $option, txt = [], list = [];
 	o = $.extend(true, {}, {
@@ -2385,7 +2387,7 @@ Config.makeOption = function(worker, args) {
 		min: 0,
 		max: 100
 	}, args);
-	o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
+	o.real_id = this.makeID(worker, o.id);
 	o.value = worker.get('option.'+o.id, null);
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
@@ -2394,7 +2396,7 @@ Config.makeOption = function(worker, args) {
 	if (o.title) {
 		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
 	}
-	if (o.label) {
+	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
 		if (o.text || o.checkbox || o.select) {
 			txt.push('<span style="float:right;">');
@@ -2418,6 +2420,8 @@ Config.makeOption = function(worker, args) {
 		txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
 		txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+	} else if (o.button) {
+		txt.push('<input type="button" id="' + o.real_id + '" value="' + o.label + '">');
 	} else if (o.select) {
 		switch (typeof o.select) {
 			case 'number':
@@ -2551,7 +2555,7 @@ Config.updateOptions = function() {
 	// Now can we see the advanced stuff
 	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
-	$('#golem_config :input').each(function(i,el){
+	$('#golem_config :input:not(:button)').each(function(i,el){
 		if ($(el).attr('id')) {
 			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
 			if (!tmp) {
@@ -4817,6 +4821,10 @@ Elite.display = [
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours',
 		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
+	},{
+		id:'fill',
+		label:'Fill Now',
+		button:true
 	}
 ];
 
@@ -4868,6 +4876,11 @@ Elite.init = function() { // Convert old elite guard list
 			return true;
 		}
 	});
+	
+	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
+		Elite.set('runtime.waitelite', 0);
+		Elite._save('runtime');
+	});
 };
 
 Elite.parse = function(change) {
@@ -4888,7 +4901,7 @@ Elite.parse = function(change) {
 		}
 */
 		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 43200000); // 12 hours
+			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 1800000); // half hour
@@ -4915,32 +4928,31 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function() {
-	var a, i, j, list, tmp = [], now = Date.now(), check;
+Elite.update = function(type,worker) {
+	var i, list, tmp = [], now = Date.now(), check, prefer = false;
 	this.runtime.nextelite = this.runtime.nextarena = 0;
 	if (this.option.elite) {
-		list = Army.get('Elite');// Must be in the Elite list to have prefer set
+		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			if (Army.get([list[i],'prefer'], false)) {
-				a = Army.get([list[i],'elite'], null);
-				if (!a || a < now) {
-					this.runtime.nextelite = list[i];
+			if (Army.get([list[i],'elite'], 0) < now) {
+				Army.set([list[i],'elite'])// If they can be added then we'll delete the old time...
+				this.runtime.nextelite = list[i];
+				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					break;
 				}
 			}
 		}
-		list = Army.get('Army');// Otherwise lets just get everyone in the army
+		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		if (!this.runtime.nextelite) {
 			for(i=0; i<list.length; i++) {
-				a = Army.get([list[i], 'elite'], null);
-				if (!a || a < now) {
+				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
 					break;
 				}
 			}
 		}
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
-		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
+		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
 	}
 	Dashboard.status(this, tmp.join(', '));
 };

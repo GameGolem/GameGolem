@@ -168,6 +168,10 @@ Config.makePanel = function(worker) {
 	}
 };
 
+Config.makeID = function(worker, id) {
+	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
+};
+
 Config.makeOption = function(worker, args) {
 	var i, o, step, $option, txt = [], list = [];
 	o = $.extend(true, {}, {
@@ -180,7 +184,7 @@ Config.makeOption = function(worker, args) {
 		min: 0,
 		max: 100
 	}, args);
-	o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
+	o.real_id = this.makeID(worker, o.id);
 	o.value = worker.get('option.'+o.id, null);
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
@@ -189,7 +193,7 @@ Config.makeOption = function(worker, args) {
 	if (o.title) {
 		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
 	}
-	if (o.label) {
+	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
 		if (o.text || o.checkbox || o.select) {
 			txt.push('<span style="float:right;">');
@@ -213,6 +217,8 @@ Config.makeOption = function(worker, args) {
 		txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
 		txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+	} else if (o.button) {
+		txt.push('<input type="button" id="' + o.real_id + '" value="' + o.label + '">');
 	} else if (o.select) {
 		switch (typeof o.select) {
 			case 'number':
@@ -346,7 +352,7 @@ Config.updateOptions = function() {
 	// Now can we see the advanced stuff
 	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
-	$('#golem_config :input').each(function(i,el){
+	$('#golem_config :input:not(:button)').each(function(i,el){
 		if ($(el).attr('id')) {
 			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
 			if (!tmp) {
