@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (579+1);
+var revision = (580+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1678,14 +1678,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	}
 	data = this[x.shift()];
 	try {
-		return (function(a,b,d){
+		return (function(a,b){
 			if (b.length) {
 				var c = b.shift();
-				return arguments.callee(a[c],b,d);
+				return arguments.callee(a[c],b);
 			} else {
-				return a !== 'undefined' ? a : d;
+				return typeof a !== 'undefined' ? a : def;
 			}
-		})(data,x,def);
+		})(data,x);
 	} catch(e) {
 //		WorkerStack.push(this);
 		if (typeof def === 'undefined') {
@@ -2352,7 +2352,7 @@ Config.makePanel = function(worker) {
 		return null;
 	}
 	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3></div>');
+	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3></div>');
 	switch (typeof worker.display) {
 		case 'array':
 		case 'object':
@@ -4962,15 +4962,16 @@ Elite.update = function(type,worker) {
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0);
 			if (check < now) {
-				check && Army.set([list[i],'elite'])// Delete the old time if it exists...
-				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army ratherr than later
+				check && Army.set([list[i],'elite']);// Delete the old time if it exists...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
+					this.runtime.nextelite = list[i];
 					break;
 				}
+				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army rather than later
 			}
 		}
-		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		if (!this.runtime.nextelite) {
+			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
 				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];

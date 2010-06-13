@@ -155,14 +155,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	}
 	data = this[x.shift()];
 	try {
-		return (function(a,b,d){
+		return (function(a,b){
 			if (b.length) {
 				var c = b.shift();
-				return arguments.callee(a[c],b,d);
+				return arguments.callee(a[c],b);
 			} else {
-				return a !== 'undefined' ? a : d;
+				return typeof a !== 'undefined' ? a : def;
 			}
-		})(data,x,def);
+		})(data,x);
 	} catch(e) {
 //		WorkerStack.push(this);
 		if (typeof def === 'undefined') {

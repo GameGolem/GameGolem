@@ -147,15 +147,16 @@ Elite.update = function(type,worker) {
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0);
 			if (check < now) {
-				check && Army.set([list[i],'elite'])// Delete the old time if it exists...
-				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army ratherr than later
+				check && Army.set([list[i],'elite']);// Delete the old time if it exists...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
+					this.runtime.nextelite = list[i];
 					break;
 				}
+				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army rather than later
 			}
 		}
-		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		if (!this.runtime.nextelite) {
+			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
 				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
