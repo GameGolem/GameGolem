@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (580+1);
+var revision = (581+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1042,6 +1042,10 @@ Images.stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%
 Images.lock = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82";
 Images.play = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82";
 Images.pause = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82";
+Images.star_off = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%96PLTE%E7%E8%E9%E7%E8%EA%F2%F3%F4%E4%E5%E6%DF%E0%E1%E1%E2%E3%DA%DB%DC%D2%D3%D4%D3%D4%D5%DE%DF%E0%F1%F2%F3%E8%E9%EB%D8%D9%DA%EF%F1%F2%EE%F0%F2%EB%ED%EF%EB%ED%EE%EA%EC%EE%F1%F3%F4%DF%E1%E1%E4%E6%E7%DB%DD%DD%E3%E4%E6%DA%DC%DD%EA%EB%ED%F0%F1%F2%E3%E4%E5%E2%E3%E4%EC%ED%EE%F5%F6%F8%F2%F3%F5%EC%EE%EF%DC%DE%DF%E4%E5%E7%EF%F0%F2%EA%EB%EC%F4%F5%F7%E7%E9%EA%F6%F7%F9%E6%E8%E9%DB%DD%DE%F3%F4%F6%EC%EE%EE%E0%E1%E2%ED%EE%EF%D4%D5%D6%F4%F5%F6%D5%D6%D7%F5%F6%F7%FF%FF%FFmf%FB%E3%00%00%002tRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%0DP%98%EF%00%00%00vIDATx%DA%3C%8D%D9%16%820%0CD%C3NE%C5%05%10%DC%C0%05%94ni%FF%FF%E7%A0%C1%E3%7D%C8%E4%BE%CC%80ux%1E%05%B8%F3Vj%FC%CBC%88j%91%DB%B3%C6f%85%99%BC%0F%20%D25%03c%5Ea%9C%96%B0Ci%08%89%1C%2C%C7%EB%EFw%05%7D%ACgXAm%9FP%FB%BE%3E_H%A2%20P*%82%2F%C9)%E96%87c%82%24y%EB%06%B7%7Bk'%01%06%00%92%E5%14%B02%9F%07%C0%00%00%00%00IEND%AEB%60%82";
+Images.star_on = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%FCPLTE%FF%ECx%EC%E5%D8%C2%956%DB%C3%8F%C4%968%C3%96%3A%F6%E2w%E5%D7%BB%C9%9D%3B%C2%959%CC%A5U%D3%B6w%EA%E3%D3%EE%E7%DA%FD%EA%5D%EA%E0%CC%FE%EFc%DC%B6A%FF%E3K%C2%937%C5%9A%3A%D7%BD%85%FE%F3%95%E1%BA%3B%E9%E0%CB%E0%BDH%EF%D6l%EF%E9%DF%E7%CCd%E8%DF%C9%F4%DFq%D6%AC%3C%CD%A2%3D%FF%F1%8A%E3%C6%60%D8%BE%88%F5%F5%F5%D0%B0k%F2%F2%EE%FF%E2P%EB%CEN%EE%C8%3C%EF%EC%E3%C3%957%C4%98%3A%EC%E4%D4%CA%A3S%DD%C6%9B%EC%D3k%E0%CF%AB%FF%EE%60%D6%BA%80%DA%BF%87%F1%F0%EB%EA%E1%CF%CF%AA%5D%FF%E5O%E2%D1%AF%FA%E9%83%F5%DDj%E7%C3%40%E8%C5C%C4%959%ED%D3i%E4%D7%BC%F2%EF%E7%C4%977%FB%EC%87%E0%C1_%FF%EF%80%FF%F5%99%C2%969%DC%C8%9F%C5%978%F3%F0%EC%D9%C1%90%DA%C4%94%D3%B4t%BF%8E.%C5%997%FF%EC%5C%FF%DEB%FF%F7%A0%FF%FF%FFv%E6%2F%B2%00%00%00TtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00S%F7r%D1%00%00%00%83IDATx%DAb%08%06%01f%130%C5%00%22%1C%99%3C%A5%E1%1Ce%19%7B_0G%85%97%5D%9FE%CCM%C4%DB%92%DF%8BA%D5%DF%C5%C0*(%C8YJ%89C%8F%C1%CC%8E-((H%D1%95%C1ZG%96!X%97U%8EA%3D0PS%5B%02d%80%83B%A0%90E%A0%BC%07%D84C%C1%00%01%3E%23%5Bc0GT%5C%C3%C9%5D%D2%86%0B%CC1%F7%E3%D6R%F3%11%E6%04s%18%19A%16%9A%F2%04%07%03%04%18%001%8C%20dI%CC%B1%85%00%00%00%00IEND%AEB%60%82";
+Images.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%22%22%22%FF%FF%FF%5E%87%201%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00'IDATx%DAb%60D%02%0C%E8%1C%06%08%00s%C0%0C%08A%12%07%CC%83s%40%3C%04%07*%83b%0F%02%00%04%18%00%18%EF%00Jb%DAw%FF%00%00%00%00IEND%AEB%60%82";
+Images.timer_red = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%CD%0A%0A%FF%FF%FF-%A2jr%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00(IDATx%DAb%60D%02%0C%40%04%01%60%0E%98%01%E1%91%C4%01%93p%0E%88Bp%A02(%F6%A0%BA%00%01%00%02%0C%00%15%0D%00J%D9%85%06%E0%00%00%00%00IEND%AEB%60%82";
 
 var makeImage = function(type, title) {
 	return '<img class="g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
@@ -2016,10 +2020,6 @@ Army.get = function(what, def) {
 	x.unshift('data', uid, section);
 	return this._get(x, def);
 };
-
-Army.star_off = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%96PLTE%E7%E8%E9%E7%E8%EA%F2%F3%F4%E4%E5%E6%DF%E0%E1%E1%E2%E3%DA%DB%DC%D2%D3%D4%D3%D4%D5%DE%DF%E0%F1%F2%F3%E8%E9%EB%D8%D9%DA%EF%F1%F2%EE%F0%F2%EB%ED%EF%EB%ED%EE%EA%EC%EE%F1%F3%F4%DF%E1%E1%E4%E6%E7%DB%DD%DD%E3%E4%E6%DA%DC%DD%EA%EB%ED%F0%F1%F2%E3%E4%E5%E2%E3%E4%EC%ED%EE%F5%F6%F8%F2%F3%F5%EC%EE%EF%DC%DE%DF%E4%E5%E7%EF%F0%F2%EA%EB%EC%F4%F5%F7%E7%E9%EA%F6%F7%F9%E6%E8%E9%DB%DD%DE%F3%F4%F6%EC%EE%EE%E0%E1%E2%ED%EE%EF%D4%D5%D6%F4%F5%F6%D5%D6%D7%F5%F6%F7%FF%FF%FFmf%FB%E3%00%00%002tRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%0DP%98%EF%00%00%00vIDATx%DA%3C%8D%D9%16%820%0CD%C3NE%C5%05%10%DC%C0%05%94ni%FF%FF%E7%A0%C1%E3%7D%C8%E4%BE%CC%80ux%1E%05%B8%F3Vj%FC%CBC%88j%91%DB%B3%C6f%85%99%BC%0F%20%D25%03c%5Ea%9C%96%B0Ci%08%89%1C%2C%C7%EB%EFw%05%7D%ACgXAm%9FP%FB%BE%3E_H%A2%20P*%82%2F%C9)%E96%87c%82%24y%EB%06%B7%7Bk'%01%06%00%92%E5%14%B02%9F%07%C0%00%00%00%00IEND%AEB%60%82";
-Army.star_on = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%FCPLTE%FF%ECx%EC%E5%D8%C2%956%DB%C3%8F%C4%968%C3%96%3A%F6%E2w%E5%D7%BB%C9%9D%3B%C2%959%CC%A5U%D3%B6w%EA%E3%D3%EE%E7%DA%FD%EA%5D%EA%E0%CC%FE%EFc%DC%B6A%FF%E3K%C2%937%C5%9A%3A%D7%BD%85%FE%F3%95%E1%BA%3B%E9%E0%CB%E0%BDH%EF%D6l%EF%E9%DF%E7%CCd%E8%DF%C9%F4%DFq%D6%AC%3C%CD%A2%3D%FF%F1%8A%E3%C6%60%D8%BE%88%F5%F5%F5%D0%B0k%F2%F2%EE%FF%E2P%EB%CEN%EE%C8%3C%EF%EC%E3%C3%957%C4%98%3A%EC%E4%D4%CA%A3S%DD%C6%9B%EC%D3k%E0%CF%AB%FF%EE%60%D6%BA%80%DA%BF%87%F1%F0%EB%EA%E1%CF%CF%AA%5D%FF%E5O%E2%D1%AF%FA%E9%83%F5%DDj%E7%C3%40%E8%C5C%C4%959%ED%D3i%E4%D7%BC%F2%EF%E7%C4%977%FB%EC%87%E0%C1_%FF%EF%80%FF%F5%99%C2%969%DC%C8%9F%C5%978%F3%F0%EC%D9%C1%90%DA%C4%94%D3%B4t%BF%8E.%C5%997%FF%EC%5C%FF%DEB%FF%F7%A0%FF%FF%FFv%E6%2F%B2%00%00%00TtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00S%F7r%D1%00%00%00%83IDATx%DAb%08%06%01f%130%C5%00%22%1C%99%3C%A5%E1%1Ce%19%7B_0G%85%97%5D%9FE%CCM%C4%DB%92%DF%8BA%D5%DF%C5%C0*(%C8YJ%89C%8F%C1%CC%8E-((H%D1%95%C1ZG%96!X%97U%8EA%3D0PS%5B%02d%80%83B%A0%90E%A0%BC%07%D84C%C1%00%01%3E%23%5Bc0GT%5C%C3%C9%5D%D2%86%0B%CC1%F7%E3%D6R%F3%11%E6%04s%18%19A%16%9A%F2%04%07%03%04%18%001%8C%20dI%CC%B1%85%00%00%00%00IEND%AEB%60%82";
-Army.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%22%22%22%FF%FF%FF%5E%87%201%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00'IDATx%DAb%60D%02%0C%E8%1C%06%08%00s%C0%0C%08A%12%07%CC%83s%40%3C%04%07*%83b%0F%02%00%04%18%00%18%EF%00Jb%DAw%FF%00%00%00%00IEND%AEB%60%82";
 
 Army.infolist = {
 	'UserID':'uid',
@@ -4872,13 +4872,16 @@ Elite.init = function() { // Convert old elite guard list
 		'label':function(data,uid){
 			return ('Elite' in data[uid]
 				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? '<img src="' + Army.star_on + '">'
-					: '<img src="' + Army.star_off + '">')
+					? '<img src="' + Images.star_on + '">'
+					: '<img src="' + Images.star_off + '">')
 				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
-					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					? ' <img src="' + Images.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					: '')
+				 + ('full' in data[uid]['Elite'] && data[uid]['Elite']['full']
+					? ' <img src="' + Images.timer_red + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
 					: '')
 				: ('Army' in data[uid] && data[uid]['Army']
-					? '<img src="' + Army.star_off + '">'
+					? '<img src="' + Images.star_off + '">'
 					: '')
 				);
 		},
@@ -4930,7 +4933,7 @@ Elite.parse = function(change) {
 			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 1800000); // half hour
+			Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
@@ -4961,8 +4964,8 @@ Elite.update = function(type,worker) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0);
-			if (check < now) {
-				check && Army.set([list[i],'elite']);// Delete the old time if it exists...
+			if (check < now && Army.get([list[i],'full'], now) < now) {
+				Army.set([list[i],check ? 'elite' : 'full']);// Delete the old timers if they exist...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					this.runtime.nextelite = list[i];
 					break;

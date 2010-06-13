@@ -57,13 +57,16 @@ Elite.init = function() { // Convert old elite guard list
 		'label':function(data,uid){
 			return ('Elite' in data[uid]
 				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? '<img src="' + Army.star_on + '">'
-					: '<img src="' + Army.star_off + '">')
+					? '<img src="' + Images.star_on + '">'
+					: '<img src="' + Images.star_off + '">')
 				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
-					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					? ' <img src="' + Images.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					: '')
+				 + ('full' in data[uid]['Elite'] && data[uid]['Elite']['full']
+					? ' <img src="' + Images.timer_red + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
 					: '')
 				: ('Army' in data[uid] && data[uid]['Army']
-					? '<img src="' + Army.star_off + '">'
+					? '<img src="' + Images.star_off + '">'
 					: '')
 				);
 		},
@@ -115,7 +118,7 @@ Elite.parse = function(change) {
 			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 1800000); // half hour
+			Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
@@ -146,8 +149,8 @@ Elite.update = function(type,worker) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0);
-			if (check < now) {
-				check && Army.set([list[i],'elite']);// Delete the old time if it exists...
+			if (check < now && Army.get([list[i],'full'], now) < now) {
+				Army.set([list[i],check ? 'elite' : 'full']);// Delete the old timers if they exist...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					this.runtime.nextelite = list[i];
 					break;
