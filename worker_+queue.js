@@ -53,25 +53,25 @@ Queue.display = [
 		size:3,
 		help:'This should be a multiple of Event Delay'
 	},{
+		id:'stamina',
+		before:'Keep',
+		select:'stamina',
+		after:'Stamina Always'
+	},{
 		id:'start_stamina',
-		before:'Save',
+		before:'Stock Up',
 		select:'stamina',
 		after:'Stamina Before Using'
 	},{
-		id:'stamina',
-		before:'Always Keep',
-		select:'stamina',
-		after:'Stamina'
+		id:'energy',
+		before:'Keep',
+		select:'energy',
+		after:'Energy Always'
 	},{
 		id:'start_energy',
-		before:'Save',
+		before:'Stock Up',
 		select:'energy',
 		after:'Energy Before Using'
-	},{
-		id:'energy',
-		before:'Always Keep',
-		select:'energy',
-		after:'Energy'
 	}
 ];
 
@@ -89,6 +89,7 @@ Queue.init = function() {
 		return false;
 	}
 	var i, worker;
+	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
 		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
@@ -165,6 +166,16 @@ Queue.update = function(type) {
 	if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
 		this.clearCurrent();
 	}
+	this.burn.stamina = this.burn.energy = 0;
+	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+		this.option.burn_stamina = this.burn.stamina > 0;
+	}
+	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+		this.option.burn_energy = this.burn.energy > 0;
+	}
+	//debug('Burnable stamina ' + this.burn.stamina +" burnable energy " + this.burn.energy );
 };
 
 Queue.run = function() {
@@ -180,15 +191,7 @@ Queue.run = function() {
 	}
 	WorkerStack.push(this);
 //	debug('Start Queue');
-	this.burn.stamina = this.burn.energy = 0;
-	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-		this.option.burn_stamina = this.burn.stamina > 0;
-	}
-	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-		this.option.burn_energy = this.burn.energy > 0;
-	}
+	
 	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
 /*	if (Player.get('energy') >= Player.get('maxenergy')){
 		this.burn.stamina = 0;	// Focus on burning energy

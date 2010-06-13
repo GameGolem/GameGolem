@@ -5,6 +5,10 @@
 var Caap = new Worker('Caap');
 Caap.data = null;
 
+Caap.runtime = {
+	enabled:true
+};
+
 Caap.init = function() {
-	Player.option.trusted = true;
+// Put brilliant code here
 };

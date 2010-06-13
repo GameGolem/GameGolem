@@ -36,7 +36,7 @@ Income.display = [
 ];
 
 Income.work = function(state) {
-	if (!Income.option.margin) {
+	if (!Income.option.margin || !this.option.general) {
 		return QUEUE_FINISH;
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);
@@ -46,7 +46,7 @@ Income.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-	if (!state || (this.option.general && !Generals.to('income'))) {
+	if (!state || !Generals.to('income')) {
 		return QUEUE_CONTINUE;
 	}
 	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');

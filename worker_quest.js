@@ -21,7 +21,7 @@ Quest.runtime = {
 	best:null,
 	energy:0
 };
-Player.option.trusted = false;
+
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -29,12 +29,13 @@ Quest.display = [
 	{
 		id:'general',
 		label:'Use Best General',
+		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		advanced:true,
 		id:'general_choice',
 		label:'Subquest General',
-		require:{'general':[[true]], 'Player.option.trusted':true},
+		require:'Caap.runtime.enabled',
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -157,6 +158,8 @@ Quest.update = function(type,worker) {
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
+	this._watch(Player);
+	this._watch(Queue);
 	if (!type || type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && !quests[i].unique) {
@@ -266,14 +269,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || Player.option.trusted) {
+	if (this.option.general || Caap.get('runtime.enabled')) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Player.get('option.trusted') && !this.option.general) {
+			if (Caap.get('runtime.enabled') && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {

@@ -83,8 +83,8 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','best','under level 4'].concat(list));
+		Config.set('generals', ['Any'].concat(list.sort()));
+		Config.set('bestgenerals', ['Any','Best','Under Level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -166,7 +166,7 @@ Generals.to = function(name) {
 	if (name && !this.data[name]) {
 		name = this.best(name);
 	}
-	if (!name || Player.get('general') === name || name === 'any') {
+	if (!name || Player.get('general') === name || /any/i.test(name)) {
 		return true;
 	}
 	if (!name || !this.data[name]) {

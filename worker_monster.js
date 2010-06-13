@@ -51,6 +51,7 @@ Monster.display = [
 	{
 		id:'general',
 		label:'Use Best General',
+		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		title:'Fortification'
@@ -62,7 +63,7 @@ Monster.display = [
 	},{
 		advanced:true,
 		id:'general_fortify',
-		require:{'general':[[true]], 'Player.option.trusted':true},
+		require:{'Caap.runtime.enabled':true,'fortify_active':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -103,14 +104,8 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'general':[[true]], 'Player.option.trusted':true},
+		require:'Caap.runtime.enabled',
 		select:'bestgenerals'
-	},{
-		advanced:true,
-		id:'ignore_stats',
-		label:'Ignore Player Stats',
-		checkbox:true,
-		help:'Do not use the current health or stamina as criteria for choosing monsters.'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -521,6 +516,8 @@ Monster.class_off = ['', '', 'img[src$="nm_s_off_cripple.gif"]', 'img[src$="nm_s
 
 Monster.init = function() {
 	var i, j;
+	this._watch(Player);
+	this._watch(Queue);
 	this.runtime.count = 0;
 	for (i in this.data) {
 		for (j in this.data[i]) {
@@ -536,7 +533,6 @@ Monster.init = function() {
 			}
 		}
 	}
-	this._watch(Player);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
@@ -851,7 +847,7 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy;
+	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy, label = null, amount = 0, fullname;
 	if (worker === Player) {
 		this.runtime.count = 0;
 		for (i in this.data) { // Flush unknown monsters
@@ -888,7 +884,16 @@ Monster.update = function(what,worker) {
 				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
 				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
 				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
+//				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
+				
+				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
+						&& this.data[i][j].state === 'engage'
+						&& this.data[i][j].finish > Date.now() 
+						&& (typeof this.data[i][j].attackbonus === 'undefined' 
+							|| this.data[i][j].attackbonus >= this.option.min_to_attack
+							|| (this.data[i][j].attackbonus <= this.option.fortify 
+								&& this.option.fortify_active))) {
+				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
 					}
@@ -1014,14 +1019,39 @@ Monster.update = function(what,worker) {
 			this.runtime.fortify = false;
 		}
 		this.runtime.attack = true;
-		if ((Player.get('health') > this.runtime.health) && ((this.runtime.attack && (Queue.burn.stamina > this.runtime.stamina)) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
-		} else if ((this.runtime.fortify && Queue.burn.energy < this.runtime.energy) || !this.runtime.attack){
-			Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify || !this.runtime.attack ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+		fullname = (this.data[uid][type].name === 'You' ? 'your ': (this.data[uid][type].name + '\'s '))
+				+ this.types[type].name;
+		if ((Player.get('health') > this.runtime.health
+					&& Queue.burn.stamina >= this.runtime.stamina)
+				|| (this.runtime.fortify
+					&& Queue.burn.energy >= this.runtime.energy )){
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
+					+ ' ' + fullname + ' (Min Stamina = ' + this.runtime.stamina 
+					+ ' & Min Energy = ' + this.runtime.energy + ')');
+		} else if (this.runtime.fortify 
+				&& Queue.burn.energy < this.runtime.energy){
+			label = 'energy';
+			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
+					? (this.runtime.energy - Queue.burn.energy)
+					: Math.max((this.runtime.energy - Queue.burn.energy)
+						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
+						,(Queue.option.start_energy - Player.get('energy')));
 		} else if (Queue.burn.stamina < this.runtime.stamina){
-			Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max((this.runtime.stamina - Queue.burn.stamina),(this.runtime.stamina + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+			label = 'stamina';
+			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
+					? (this.runtime.stamina - Queue.burn.stamina)
+					: Math.max((this.runtime.stamina - Queue.burn.stamina)
+						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
+						,(Queue.option.start_stamina - Player.get('stamina')));
 		} else if (Player.get('health') < this.runtime.health){
-			Dashboard.status(this,'Waiting for ' + (this.runtime.health - Player.get('health')) + ' health to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+			label = 'health';
+			amount = this.runtime.health - Player.get('health');
+		}
+		if (label) {
+			Dashboard.status(this,'Waiting for ' + amount + ' ' + label + ' to '
+					+ (this.runtime.fortify ? 'fortify ' : 'attack ') + fullname
+					+ ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = '
+					+ this.runtime.energy + ')');
 		}
 	} else {
 		this.runtime.attack = false;
@@ -1077,7 +1107,7 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to(this.option.general ? j : Player.get('option.trusted') ? this.option['general_'+j] : 'any')) {
+			if (!Generals.to((Caap.get('runtime.enabled') ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
 				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
