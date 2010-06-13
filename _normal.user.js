@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (587+1);
+var revision = (588+1);
 // User changeable
 var show_debug = true;
 
@@ -5779,7 +5779,7 @@ Monster.option = {
 	//	dispel: 50,
 	fortify_active:false,
 	choice: 'Any',
-	ignore_stats:true,
+	hide:false,
 	stop: 'Never',
 	own: true,
 	armyratio: 'Any',
@@ -5869,10 +5869,10 @@ Monster.display = [
 		select:'bestgenerals'
 	},{
 		advanced:true,
-		id:'ignore_stats',
-		label:'Ignore Player Stats',
+		id:'hide',
+		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		help:'Do not use the current health or stamina as criteria for choosing monsters.'
+		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -6657,9 +6657,9 @@ Monster.update = function(what,worker) {
 				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
 					&& this.data[i][j].state === 'engage'
 					&& this.data[i][j].finish > Date.now()
-					&& (this.option.ignore_stats || Player.get('health') >= req_health)
+					&& (!this.option.hide || Player.get('health') >= req_health)
 					&& (Queue.burn.energy >= req_energy
-						|| ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina)
+						|| ((!this.option.hide || Queue.burn.stamina >= req_stamina)
 							&& (typeof this.data[i][j].attackbonus === 'undefined'
 								|| this.data[i][j].attackbonus >= this.option.min_to_attack
 								|| (this.data[i][j].attackbonus <= this.option.fortify
