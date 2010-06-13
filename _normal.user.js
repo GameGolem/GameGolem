@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (586+1);
+var revision = (587+1);
 // User changeable
 var show_debug = true;
 
@@ -5868,6 +5868,12 @@ Monster.display = [
 		require:'Caap.runtime.enabled',
 		select:'bestgenerals'
 	},{
+		advanced:true,
+		id:'ignore_stats',
+		label:'Ignore Player Stats',
+		checkbox:true,
+		help:'Do not use the current health or stamina as criteria for choosing monsters.'
+	},{
 		id:'choice',
 		label:'Attack',
 		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Mim Damage','ETD Maintain']
@@ -6647,15 +6653,31 @@ Monster.update = function(what,worker) {
 				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
 				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
 				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-//				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
 				
 				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
+					&& this.data[i][j].state === 'engage'
+					&& this.data[i][j].finish > Date.now()
+					&& (this.option.ignore_stats || Player.get('health') >= req_health)
+					&& (Queue.burn.energy >= req_energy
+						|| ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina)
+							&& (typeof this.data[i][j].attackbonus === 'undefined'
+								|| this.data[i][j].attackbonus >= this.option.min_to_attack
+								|| (this.data[i][j].attackbonus <= this.option.fortify
+									&& this.option.fortify_active
+									&& Queue.burn.energy >= req_energy
+									)
+								)
+							)
+						)
+					){
+				
+/*				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
 						&& this.data[i][j].state === 'engage'
 						&& this.data[i][j].finish > Date.now() 
 						&& (typeof this.data[i][j].attackbonus === 'undefined' 
 							|| this.data[i][j].attackbonus >= this.option.min_to_attack
 							|| (this.data[i][j].attackbonus <= this.option.fortify 
-								&& this.option.fortify_active))) {
+								&& this.option.fortify_active))) {*/
 				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
