@@ -83,7 +83,7 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		// "any" MUST remain lower case
+		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
 		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
 	}

@@ -1028,8 +1028,8 @@ Monster.update = function(what,worker) {
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
 			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
-					+ ' ' + fullname + ' (Min Stamina = ' + this.runtime.stamina 
-					+ ' & Min Energy = ' + this.runtime.energy + ')');
+					+ ' ' + fullname
+					+ ' (' + makeImage('stamina') + ' ' + this.runtime.stamina + '+, ' + makeImage('energy') + ' ' + this.runtime.energy + '+)');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
 			label = 'energy';
@@ -1050,10 +1050,9 @@ Monster.update = function(what,worker) {
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {
-			Dashboard.status(this,'Waiting for ' + amount + ' ' + label + ' to '
+			Dashboard.status(this,'Waiting for ' + makeImage(label) + amount + ' to '
 					+ (this.runtime.fortify ? 'fortify ' : 'attack ') + fullname
-					+ ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = '
-					+ this.runtime.energy + ')');
+					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		}
 	} else {
 		this.runtime.attack = false;

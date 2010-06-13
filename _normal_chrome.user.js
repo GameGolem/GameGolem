@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (584+1);
+var revision = (586+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1051,7 +1051,7 @@ Images.potion_stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00
 
 
 var makeImage = function(type, title) {
-	return '<img class="g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
+	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
 }
 
 function do_css(){
@@ -1122,12 +1122,15 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%001IDATx%DAb%60D%03%0CD%0B000%A0%0800%C0D%E0%02%8C(%02%0C%0Cp%25%B8%05%18%09%0A%A0j%C1%B4%96%1C%BF%C0%01%40%80%01%00n%11%00%CF%7D%2Bk%9B%00%00%00%00IEND%AEB%60%82') no-repeat;}\
 .golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 #golem_window { text-align: center; display: block; }\
-img.g_energy { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.energy+"\") no-repeat; }\
-img.g_exp { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.exp+"\") no-repeat; }\
-img.g_gold { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.gold+"\") no-repeat; }\
-img.g_health { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.health+"\") no-repeat; }\
-img.g_percent { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.percent+"\") no-repeat; }\
-img.g_stamina { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.stamina+"\") no-repeat; }\
+img.g_image { width: 16px; height: 16px; margin-bottom: -4px; }\
+img.g_energy { background: url(\""+Images.energy+"\") no-repeat; }\
+img.g_exp { background: url(\""+Images.exp+"\") no-repeat; }\
+img.g_gold { background: url(\""+Images.gold+"\") no-repeat; }\
+img.g_health { background: url(\""+Images.health+"\") no-repeat; }\
+img.g_percent { background: url(\""+Images.percent+"\") no-repeat; }\
+img.g_stamina { background: url(\""+Images.stamina+"\") no-repeat; }\
+img.g_potion_stamina { background: url(\""+Images.potion_stamina+"\") no-repeat; }\
+img.g_potion_energy { background: url(\""+Images.potion_energy+"\") no-repeat; }\
 </style>");
 }
 // Utility functions
@@ -1310,7 +1313,7 @@ var findInArray = function(list, value) {
 };
 
 var findInObject = function(list, value) {
-	if (typeof list === 'object') {
+	if (isObject(list)) {
 		for (var i in list) {
 			if (list[i] == value) {
 				return i;
@@ -2345,8 +2348,8 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
+		$('.golem-advanced:not(".golem-require")').css('display', Config.option.advanced ? '' : 'none');
 		Config.checkRequire();
-//		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');
 	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
@@ -2640,11 +2643,13 @@ Config.updateOptions = function() {
 };
 
 Config.checkRequire = function(id) {
-	$((id ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
+//	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
+	$((typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
 		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
-		if ($(el).hasClass('golem-advanced') && !Config.option.advanced) {
-			show = false;
-		} else for (i in require) {
+		if ($(el).hasClass('golem-advanced')) {
+			show = Config.option.advanced;
+		}
+		for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
 			if (worker) {
@@ -2652,10 +2657,8 @@ Config.checkRequire = function(id) {
 				for (j=0; j<require[i].length; j++) {
 					if (isArray(require[i][j])) {
 //						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
-						for (k=0; k<require[i][j].length; k++) {
-							if (require[i][j][k] === value) {
-								show = false;
-							}
+						if (findInArray(require[i][j], value)) {
+							show = false;
 						}
 					} else {
 //						log('Require: '+i+', '+require[i][j]+' = '+value);
@@ -2664,8 +2667,8 @@ Config.checkRequire = function(id) {
 						}
 					}
 				}
-			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
-				show = false;
+			} else {
+				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
 			}
 		}
 		if (show) {
@@ -5299,7 +5302,7 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		// "any" MUST remain lower case
+		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
 		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
 	}
@@ -7695,8 +7698,8 @@ Monster.update = function(what,worker) {
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
 			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
-					+ ' ' + fullname + ' (Min Stamina = ' + this.runtime.stamina 
-					+ ' & Min Energy = ' + this.runtime.energy + ')');
+					+ ' ' + fullname
+					+ ' (' + makeImage('stamina') + ' ' + this.runtime.stamina + '+, ' + makeImage('energy') + ' ' + this.runtime.energy + '+)');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
 			label = 'energy';
@@ -7717,10 +7720,9 @@ Monster.update = function(what,worker) {
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {
-			Dashboard.status(this,'Waiting for ' + amount + ' ' + label + ' to '
+			Dashboard.status(this,'Waiting for ' + makeImage(label) + amount + ' to '
 					+ (this.runtime.fortify ? 'fortify ' : 'attack ') + fullname
-					+ ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = '
-					+ this.runtime.energy + ')');
+					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		}
 	} else {
 		this.runtime.attack = false;
@@ -8305,7 +8307,7 @@ Potions.update = function(type) {
 	if (Queue.enabled(this)) {
 		for(i in this.data) {
 			if (this.data[i]) {
-				txt.push('<img src="' + Images['potion_'+i.toLowerCase()] + '" alt="' + i + '" title="' + i + '" style="margin-bottom:-4px;"> ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
+				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()]);
 			}
 			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 				this.runtime.drink = true;
@@ -8574,7 +8576,7 @@ Quest.update = function(type,worker) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + ' ' + quests[best].energy + ' = ' + makeImage('exp') + ' ' + quests[best].exp + ' + ' + makeImage('gold') + ' $' + addCommas(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + ' ' + quests[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + quests[best].energy + ' = ' + makeImage('exp') + quests[best].exp + ' + ' + makeImage('gold') + '$' + addCommas(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + quests[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}

@@ -178,7 +178,7 @@ var findInArray = function(list, value) {
 };
 
 var findInObject = function(list, value) {
-	if (typeof list === 'object') {
+	if (isObject(list)) {
 		for (var i in list) {
 			if (list[i] == value) {
 				return i;

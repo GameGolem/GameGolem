@@ -134,8 +134,8 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
+		$('.golem-advanced:not(".golem-require")').css('display', Config.option.advanced ? '' : 'none');
 		Config.checkRequire();
-//		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');
 	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
@@ -429,11 +429,13 @@ Config.updateOptions = function() {
 };
 
 Config.checkRequire = function(id) {
-	$((id ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
+//	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
+	$((typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
 		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
-		if ($(el).hasClass('golem-advanced') && !Config.option.advanced) {
-			show = false;
-		} else for (i in require) {
+		if ($(el).hasClass('golem-advanced')) {
+			show = Config.option.advanced;
+		}
+		for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
 			if (worker) {
@@ -441,10 +443,8 @@ Config.checkRequire = function(id) {
 				for (j=0; j<require[i].length; j++) {
 					if (isArray(require[i][j])) {
 //						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
-						for (k=0; k<require[i][j].length; k++) {
-							if (require[i][j][k] === value) {
-								show = false;
-							}
+						if (findInArray(require[i][j], value)) {
+							show = false;
 						}
 					} else {
 //						log('Require: '+i+', '+require[i][j]+' = '+value);
@@ -453,8 +453,8 @@ Config.checkRequire = function(id) {
 						}
 					}
 				}
-			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
-				show = false;
+			} else {
+				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
 			}
 		}
 		if (show) {
