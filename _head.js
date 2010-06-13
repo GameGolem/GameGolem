@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Rycochet's Castle Age Golem
 // @namespace	golem
-// @description	Auto player for castle age game
+// @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		31.1
 // @include		http://apps.facebook.com/castle_age/*

@@ -2,6 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
+var isRelease = false;
 var VERSION = "31.1";
 var script_started = Date.now();
 

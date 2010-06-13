@@ -63,7 +63,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
-	Resources.useType('Energy');
+//	Resources.useType('Energy');
 };
 
 Quest.parse = function(change) {

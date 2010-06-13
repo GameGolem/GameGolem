@@ -22,7 +22,7 @@ Army.runtime = {
 	// Dashboard defaults:
 	sort:0,rev:false,show:'Name',info:'uid'
 };
-
+/*
 Army.display = [
 	{
 		id:'forget',
@@ -32,7 +32,7 @@ Army.display = [
 		help:'This will delete any userID that\'s not been seen for a length of time'
 	}
 ];
-
+*/
 Army.update = function(type,worker) {
 	if (type === 'data' && !worker) {
 		for (var i in this.runtime.update) {

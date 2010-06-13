@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Rycochet's Castle Age Golem
 // @namespace	golem
-// @description	Auto player for castle age game
+// @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		31.1
 // @include		http://apps.facebook.com/castle_age/*
@@ -15,11 +15,12 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (588+1);
+var revision = (589+1);
 // User changeable
 var show_debug = true;
 
 // Shouldn't touch
+var isRelease = false;
 var VERSION = "31.1";
 var script_started = Date.now();
 
@@ -139,7 +140,8 @@ Images.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00
 Images.timer_red = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%CD%0A%0A%FF%FF%FF-%A2jr%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00(IDATx%DAb%60D%02%0C%40%04%01%60%0E%98%01%E1%91%C4%01%93p%0E%88Bp%A02(%F6%A0%BA%00%01%00%02%0C%00%15%0D%00J%D9%85%06%E0%00%00%00%00IEND%AEB%60%82";
 Images.potion_energy = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01qPLTE%E4%E1%DE%0D%7B%FFM%94%FF%C4%D3%E1%EC%EC%EE%FB%FB%FA%02%99%FFQVa%00%9B%FC)r%FF%F7%F6%F6)p%FF%E9%EC%FF%FB%FA%FAttt%D4%E0%EB%00%7D%FF3%8D%E3%FA%F9%F9%07%7F%FD%20j%FF%5E%A2%D6DMR%AE%A3%9D%07Hr%3A%9A%ED%17%9E%E7q%93%C9%81%B7%D9%D7%E0%EB%F1%F1%F3%15i%FF%07%8F%FE%A4%C8%DDk%9C%CC%9A%B1%FF%F0%F0%F0%0D%98%DC%80~%7C%08%7C%FF%90%83r%5C%9C%CA%F3%F2%F0D%92%D2%06%95%FC%D1%CF%D9%0E%87%F9o%C9%F9%FD%FC%FC%9E%A0%A3%F5%F9%FD%C7%C0%B8d%60a%5D%84%AA%A1%B8%DDA%7F%CE%A0%A6%C3a%98%FEGHH%86%A2%BE%00%8F%FA%F5%F4%F2%F5%F5%F7%A8%A4%A2v%9D%FF%0Cz%FF%2Bs%FF%FA%FA%FA%00%B2%F8%02%96%FF%E7%EA%FFwwx%1D%94%E8%00%8E%FF*j%FF%AD%A3%96)%B1%F1%5D%BB%ED%0B%2Cl%F2%F1%F2%A1%90~r%AD%CAW%83%FF-%A1%F8%5D%A8%FA%BB%D0%E6%26%87%FC%D9%D4%CE%22%A8%F9e%8A%FF%12%9E%FF%05u%FF%19g%FF%13m%FFeq%87%20p%FF%03l%FFtfZ%3E%9E%E3%9C%C6%DF9w%FF)%C0%F4%17r%FF%D1%D2%DB%1Ey%B5%D4%E6%F9%00%85%FF%0Ep%FF%F4%F3%F1%8E%8E%91%23s%FF%0Do%FFY%BD%E4%8C%7Cl%BA%C8%FFG%86%FF%23%A0%EC%EC%ED%ED%20%BE%FF%00%8D%D24%8E%FF%00I%8A%FF%FF%FFC%9B%AE%8C%00%00%00%7BtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%93%C3%A8%EA%00%00%00%AAIDATx%DAb%A8%02%01%5E3si%7F0%AB%8A%01L%A6%FBITZ%20%0B%B0%B0%8B%C5%E9%22%0B%E4%F0%99%D83%20%0Bh%E5Z%A9%A1%08p%05f(%95%22%0B%08%15%B8%F8%A8%20%0B0%A7rD%24%3B%23%04B%F5%CB%D2%C2TeXa%02%FC!%15%0A%96L%C2%E5%8AP%01%03_%B6%84b%B7%A2%3C%1B)9%88%80Qp%96%7C%24%8F%B2%97%A3N%26D%C0NR%20%26%C8!%25%3E_O%16%22%10%60%EA%AA%EE%C4%C9-%E2%A9%5D%08%11%F0N%D4%8C%8A%8Ee%CC%16t%D7%80%DA%12.n%9D%E4Q%22jhl%0B%E4%00%04%18%00aI%5C8%B90%1DA%00%00%00%00IEND%AEB%60%82";
 Images.potion_stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01tPLTE%FD%B0Q%FD%FB%F7%FD%FB%F6%FA%60%24%FA%F5%EC%FE%FA%E9%F5%DA%BB%F4%D8%BB%FD%B0R%EE%E5%D7%EC%E1%C9%FA%F8%F3%ED%E7%D8%FB%F8%F1%7B%80%83%F9%95I%FB%F4%E9%FD%FC%F8%FE%FE%FB%F2kG%FFu%2C%FD%97%3B%E9g6%FF%7C)%E8%83X%FE%90%3A%FF%8D0%91%8D%88%FA%7F7%FC%5D%40%F7%9E%84%D4%95%80%88%7Fd%F8%F1%E5%DB%8BS%CF%AD%90%804%1E%FE%861%DDP4%FB%E8%D9%D8%C6%9E%E7%8BT%FE%D0%8D%F7bG%B0%A4%94%FCq.%FD%D2%81%F6%F4%F2%FDm%22%F0%BC%98%F7%F0%E5%FFh(%FE%9E%40%F0%86g%D6%3F!%FF%ABL%FD%BEj%BC%5BC%FF%9E%3C%E6%AC%8A%A3%9A%87%A8%A3%9B%F3%E4%D5%FD%B0P%FA%F5%ED%FE%FB%E8%F9b%23%F3%90V%F6j%3D%F9%F5%EC%F9E%13%F4%89d%FD%A8J%94%91%91jhl%FE%8D7%FE%AEH%FFr8%96*%0E%FD%A8DwY0%97%83x%95%8Fx%B0%B4%B5%FC%C9t%FC%A5%40%CC%C6%BDmcb%FD%C1%7D%FE%EE%C6%BD%B4%A4%DC%D6%D0%D9%AAy%95%89w%F8%A9x%EAU-%EA%E2%C9%D4%9F%81%F0m%40%F8~G%D4%8Fl%DF%8D%5E%FD%8E.%E9%CB%A6%BD%AE%98%FD%B1k%FE%E5%AB%ED%BD%A0%FD%BB%5E%FE%FA%F7%F3%26%0F%E0%97p%FA%F6%EB%FD%B7Q%FC%5B%23%9E%8Cn%FD%FC%F7%FE%999%F9%7C%2F%7Csf%C1%91i%FD%95M%F8%E2%CC%FF%FF%FFgb%E8%EA%00%00%00%7CtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%01j%DA1%00%00%00%ABIDATx%DAb%A8%06%01%C6t%A5%18%160%AB%9A%01Lr%05%A8%F8i%20%0B(%96%87%07%26%20%0B8H%F3%05s%22%0B%B8%DAzy%F2%20%0B%F0%CA%5B%26%1A!%0B0%99%E6%09%0B%20%0B%B0i%BB%B9%18%96%20%04%D8%E5dM%F8%D5%AC%05a%02Uq%95%BA%11%99ef%D9P%01!%F7%A24%0B%C7Hs%A7%F8%02%88%40n%B2A%A8%1EkV%A17%B3%3AD%80%DBY%DC%3FD%2B%C7%A3T%C6%0E%22%60Sa%AC%CA%C1%60%EF%23%92%1A%04%11%D0QH%F1%95%B2%92%14%D5%2C%8E%85%DA%12%1D%A5%2C!%96%94%9F%11%A6%0F%E4%00%04%18%00%BA%F5%5D7%DF%1B%AE%5B%00%00%00%00IEND%AEB%60%82";
-
+Images.beta = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%FF%FF%FFiii%92%95*%C3%00%00%00%01tRNS%00%40%E6%D8f%00%00%003IDATx%DAb%60%C0%00%8C%8C%E8%02%0C%8CD%A8%60D%16%05%B1%19%890%98%01%5D%1BV%7DX%04%181%EDG%B7%8C%91%90%2F0%0Df%60%00%080%00%15*%00%26%C7%CF%D9%E5%00%00%00%00IEND%AEB%60%82";
+Images.update = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82";
 
 var makeImage = function(type, title) {
 	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
@@ -212,7 +214,7 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C%D4%13%60%C0%10%60%C0%10%60%C0%10%60%20%A4%82%90-%149%1D%20%C0%00%81%0E%00%F1%DE%25%95%BE%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%001IDATx%DAb%60D%03%0CD%0B000%A0%0800%C0D%E0%02%8C(%02%0C%0Cp%25%B8%05%18%09%0A%A0j%C1%B4%96%1C%BF%C0%01%40%80%01%00n%11%00%CF%7D%2Bk%9B%00%00%00%00IEND%AEB%60%82') no-repeat;}\
 .golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82') no-repeat; }\
-#golem_window { text-align: center; display: block; }\
+.golem-info { text-align: center; display: block; }\
 img.g_image { width: 16px; height: 16px; margin-bottom: -4px; }\
 img.g_energy { background: url(\""+Images.energy+"\") no-repeat; }\
 img.g_exp { background: url(\""+Images.exp+"\") no-repeat; }\
@@ -1020,7 +1022,7 @@ Army.runtime = {
 	// Dashboard defaults:
 	sort:0,rev:false,show:'Name',info:'uid'
 };
-
+/*
 Army.display = [
 	{
 		id:'forget',
@@ -1030,7 +1032,7 @@ Army.display = [
 		help:'This will delete any userID that\'s not been seen for a length of time'
 	}
 ];
-
+*/
 Army.update = function(type,worker) {
 	if (type === 'data' && !worker) {
 		for (var i in this.runtime.update) {
@@ -1326,7 +1328,7 @@ Config.init = function() {
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i, j, k, $display;
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+VERSION : 'r'+revision) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -2775,146 +2777,6 @@ Queue.enabled = function(worker) {
 	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
 };
 
-/********** Worker.Resources **********
-* Store and report Resourcess
-
-Workers can add a type of Resources that they supply - Player would supply Energy and Stamina when parsing etc
-Workers request buckets of Resourcess during init() - each bucket gets a display in the normal Resources config panel.
-
-Resources stores the buckets as well as an overflow bucket - the overflow is used during level up
-
-Buckets may be either -
-"Shared" buckets are like now - first-come, first-served from a single source
-- or -
-"Exclusive" buckets are filled by a drip system, forcing workers to share Resourcess
-
-The Shared bucket has a priority of 0
-
-When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
-Priority is displayed as -5, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
-
-When a worker is disabled (Queue.option.enabled[worker] === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
-
-Buckets are filled in priority order, in cases of same priority, alphabetical order is used
-*/
-
-var Resources = new Worker('Resources');
-Resources.settings = {
-	system:true,
-	unsortable:true
-};
-
-Resources.option = {
-	types:{},
-	buckets:{}
-};
-
-Resources.runtime = {
-	types:{},// {'Energy':true}
-	buckets:{}
-};
-
-Resources.display = function() {
-	var type, worker, require, display = [];
-	if (!length(this.runtime.types)) {
-		return 'Discovering Resources...';
-	}
-	display.push({label:'Not doing anything yet...'});
-	for (type in this.option.types) {
-		display.push({
-			title:type
-		},{
-			id:'types.'+type,
-			label:'Allow '+type+' Use',
-			checkbox:true
-		});
-		for (worker in this.runtime.buckets) {
-			if (type in this.runtime.buckets[worker]) {
-				require = {};
-				require['buckets.'+worker+'.'+type] = 2;
-				require['types.'+type] = true;
-				display.push({
-					id:'buckets.'+worker+'.'+type,
-					require:'types.'+type,
-					label:worker,
-					select:{0:'None',1:'Shared',2:'Exclusive'}
-				},{
-					advanced:true,
-					id:'buckets.'+worker+'.priority',
-					require:require,
-					label:'...priority',
-					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
-				});
-			}
-		}
-	}
-	return display;
-};
-
-Resources.init = function() {
-//	Config.addOption({label:'test',checkbox:true});
-};
-
-/***** Resources.addType() *****
-Add a type of Resources
-*/
-Resources.addType = function(type) {
-	WorkerStack.push(this);
-	this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
-	this.set(['option','types',type], this.get(['option','types',type], true));
-	Config.makePanel();
-	WorkerStack.pop();
-};
-
-/***** Resources.useType() *****
-Register to use a type of resource
-Actually use a type of resource (must register with no amount first)
-*/
-Resources.useType = function(type, amount) {
-	if (!WorkerStack.length) {
-		return;
-	}
-	var worker = WorkerStack[WorkerStack.length-1];
-	if (typeof amount === 'undefined') {
-//		this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
-//		this.set(['option','types',type], this.get(['option','types',type], true));
-		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
-		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 1));
-		this.set(['option','buckets',worker.name,'priority'], this.get(['option','buckets',worker.name,'priority'], 5));
-	} else {
-	}
-};
-
-/***** Resources.add() *****
-type = name of Resources
-amount = amount to add
-abs = is an absolute amount, not relative
-1. Set the amount we have to the new value
-2. If we've gained, then share some out
-*/
-Resources.add = function(type, amount, abs) {
-	var change, old = this.get(['runtime','types',type], 0);
-	if (abs) {
-		change = amount - old;
-		this.set(['runtime','types',type], amount);
-	} else {
-		change = amount;
-		this.set(['runtime','types',type], amount + old);
-	}
-//	if (change > 0) {// We've gotten higher, lets share some out...
-//	}
-};
-
-Resources.get = function(what,def) {
-//	log('Resources.get('+what+', '+(def?def:'null')+')');
-	return this._get(what,def);
-};
-
-Resources.set = function(what,value) {
-//	log('Resources.set('+what+', '+(value?value:'null')+')');
-	return this._set(what,value);
-};
-
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
@@ -3123,12 +2985,10 @@ Update.settings = {
 
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
-	force:false,// Have we clicked a button, or is it an automatic check
-	last:0,
-	revision:0,
-	beta:0,
-	found:false// Have we found a new version
+	force:false// Have we clicked a button, or is it an automatic check
 };
+
+Update.found = false;
 
 /***** Update.init() *****
 1. Add a "Update Now" button to the button bar at the top of Config
@@ -3139,13 +2999,19 @@ Update.runtime = {
 2a. On clicking the button offer to install the latest WIP version
 */
 Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){if (Update.get('runtime.found')){window.location.href = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';} else {Update.set('runtime.force', true);Update.set('runtime.lastcheck', 0);}});
-	$('#golem_buttons').append($btn);
-	$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Beta Update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%FF%FF%FFiii%92%95*%C3%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%2FIDATx%DAb%60%C0%00%8CP%8CO%80%91%90%00%08%80H%14%25h%C60%10%2B%80l%0E%98%C3%88%AE%0ES%80%91%91T%8B%C0%00%20%C0%00%17G%00(%A6%C6G%AA%00%00%00%00IEND%AEB%60%82">').click(function(){
-		$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>This will update to the latest Work-In-Progress version of Castle Age Golem.<br><br>Are you sure you wish to run a potentially buggy update?<br><br>You must reload the page after installing to use the new version.</div>');
-		$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close").remove();window.location.href='http://game-golem.googlecode.com/svn/trunk/_normal.user.js';}, "Skip":function(){$(this).dialog("close").remove();}} });
+	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
+		$(this).addClass('red');
+		Update.runtime.force = true;
 	});
 	$('#golem_buttons').append($btn);
+	if (isRelease) {
+		$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Beta Update" src="' + Images.beta + '">').click(function(){
+			$(this).addClass('red');
+			isRelease = false;
+			Update.runtime.force = true;
+		});
+		$('#golem_buttons').append($btn);
+	}
 };
 
 /***** Update.work() *****
@@ -3153,29 +3019,47 @@ Update.init = function() {
 1b. Check that it's been more than 6 hours since the last update
 2a. Use AJAX to get the google trunk source webpage (list of files and revisions)
 2b. Parse out the revision string for both release and beta
-
-5. Compare with our own version
-6. Remember it if we have an update
-7. Notify the user -
-7a. Change the update button image
-7b. Show a requester to the user asking if they'd like to update
+3. Display a notification if there's a new version - 
 */
 Update.work = function(state) {
-	if (!this.runtime.found && Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+	if (!this.found && (this.runtime.force || Date.now() - this.runtime.lastcheck > 21600000)) {// 6+ hours since last check (60x60x6x1000ms)
 		this.runtime.lastcheck = Date.now();
-		/*
 		debug('Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
 			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
-					var release = evt.responseText.regex(/"_release.user.js":\["[^"]*","([0-9]+)"/i), beta = evt.responseText.regex(/"_normal.user.js":\["[^"]*","([0-9]+)"/i);
-					debug('Version: '+release+', Beta: '+beta);
+					var file, $btn;
+					file = evt.responseText.regex(/"trunk":{".*"_release.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+					if (file[0] > revision) {
+						$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
+						Update.found = true;
+						log('New version available: '+file[0]+', currently on r'+revision);
+					}
+					if (!isRelease) {
+						file = evt.responseText.regex(/"trunk":{".*"_normal.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+						if (file[0] > revision) {
+							$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
+							Update.found = true;
+							log('New revision available: '+file[0]+', currently on r'+revision);
+						}
+					}
+					if (Update.runtime.force && !Update.found) {
+						$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {
+							duration:5000,
+							complete:function(){log('test');$(this).remove();}
+						});
+						$('#golem_buttons').after($btn);
+					}
+					Update.runtime.force = false;
+					$('#golem_update').removeClass('red');
 				}
 			}
 		});
-		*/
+	}
+};
+/*
 		GM_xmlhttpRequest({
 			method: "GET",
 			url: 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js',
@@ -3201,8 +3085,7 @@ Update.work = function(state) {
 				}
 			}
 		});
-	}
-};
+*/
 
 /********** Worker.Window **********
 * Deals with multiple Windows being open at the same time...
@@ -3266,7 +3149,7 @@ Window.init = function() {
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
-		$('.golem-title').after('<div id="golem_window" class="golem-button red"><b>Disabled</b></div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button red"><b>Disabled</b></div>');
 		$('#golem_window').nextAll().hide();
 	}
 	$('#golem_window').click(function(event){
@@ -3715,7 +3598,7 @@ Battle.init = function() {
 //	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
-	Resources.useType('Stamina');
+//	Resources.useType('Stamina');
 };
 
 /***** Battle.parse() *****
@@ -5353,7 +5236,7 @@ Land.display = [
 
 Land.init = function(){
     this._watch(Bank);
-	Resources.useType('Gold');
+//	Resources.useType('Gold');
 };
 
 Land.parse = function(change) {
@@ -6305,8 +6188,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
-	Resources.useType('Energy');
-	Resources.useType('Stamina');
+//	Resources.useType('Energy');
+//	Resources.useType('Stamina');
 }
 
 Monster.parse = function(change) {
@@ -7249,9 +7132,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-	Resources.addType('Energy');
-	Resources.addType('Stamina');
-	Resources.addType('Gold');
+//	Resources.addType('Energy');
+//	Resources.addType('Stamina');
+//	Resources.addType('Gold');
 };
 
 Player.parse = function(change) {
@@ -7512,7 +7395,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
-	Resources.useType('Energy');
+//	Resources.useType('Energy');
 };
 
 Quest.parse = function(change) {
@@ -7928,7 +7811,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 
 Town.init = function(){
     this._watch(Bank);
-	Resources.useType('Gold');
+//	Resources.useType('Gold');
 };
 
 Town.parse = function(change) {

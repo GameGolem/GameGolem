@@ -60,7 +60,7 @@ Window.init = function() {
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
-		$('.golem-title').after('<div id="golem_window" class="golem-button red"><b>Disabled</b></div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button red"><b>Disabled</b></div>');
 		$('#golem_window').nextAll().hide();
 	}
 	$('#golem_window').click(function(event){

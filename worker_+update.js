@@ -12,12 +12,10 @@ Update.settings = {
 
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
-	force:false,// Have we clicked a button, or is it an automatic check
-	last:0,
-	revision:0,
-	beta:0,
-	found:false// Have we found a new version
+	force:false// Have we clicked a button, or is it an automatic check
 };
+
+Update.found = false;
 
 /***** Update.init() *****
 1. Add a "Update Now" button to the button bar at the top of Config
@@ -28,13 +26,19 @@ Update.runtime = {
 2a. On clicking the button offer to install the latest WIP version
 */
 Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){if (Update.get('runtime.found')){window.location.href = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';} else {Update.set('runtime.force', true);Update.set('runtime.lastcheck', 0);}});
-	$('#golem_buttons').append($btn);
-	$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Beta Update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%FF%FF%FFiii%92%95*%C3%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%2FIDATx%DAb%60%C0%00%8CP%8CO%80%91%90%00%08%80H%14%25h%C60%10%2B%80l%0E%98%C3%88%AE%0ES%80%91%91T%8B%C0%00%20%C0%00%17G%00(%A6%C6G%AA%00%00%00%00IEND%AEB%60%82">').click(function(){
-		$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>This will update to the latest Work-In-Progress version of Castle Age Golem.<br><br>Are you sure you wish to run a potentially buggy update?<br><br>You must reload the page after installing to use the new version.</div>');
-		$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close").remove();window.location.href='http://game-golem.googlecode.com/svn/trunk/_normal.user.js';}, "Skip":function(){$(this).dialog("close").remove();}} });
+	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
+		$(this).addClass('red');
+		Update.runtime.force = true;
 	});
 	$('#golem_buttons').append($btn);
+	if (isRelease) {
+		$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Beta Update" src="' + Images.beta + '">').click(function(){
+			$(this).addClass('red');
+			isRelease = false;
+			Update.runtime.force = true;
+		});
+		$('#golem_buttons').append($btn);
+	}
 };
 
 /***** Update.work() *****
@@ -42,29 +46,47 @@ Update.init = function() {
 1b. Check that it's been more than 6 hours since the last update
 2a. Use AJAX to get the google trunk source webpage (list of files and revisions)
 2b. Parse out the revision string for both release and beta
-
-5. Compare with our own version
-6. Remember it if we have an update
-7. Notify the user -
-7a. Change the update button image
-7b. Show a requester to the user asking if they'd like to update
+3. Display a notification if there's a new version - 
 */
 Update.work = function(state) {
-	if (!this.runtime.found && Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+	if (!this.found && (this.runtime.force || Date.now() - this.runtime.lastcheck > 21600000)) {// 6+ hours since last check (60x60x6x1000ms)
 		this.runtime.lastcheck = Date.now();
-		/*
 		debug('Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
 			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
-					var release = evt.responseText.regex(/"_release.user.js":\["[^"]*","([0-9]+)"/i), beta = evt.responseText.regex(/"_normal.user.js":\["[^"]*","([0-9]+)"/i);
-					debug('Version: '+release+', Beta: '+beta);
+					var file, $btn;
+					file = evt.responseText.regex(/"trunk":{".*"_release.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+					if (file[0] > revision) {
+						$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
+						Update.found = true;
+						log('New version available: '+file[0]+', currently on r'+revision);
+					}
+					if (!isRelease) {
+						file = evt.responseText.regex(/"trunk":{".*"_normal.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+						if (file[0] > revision) {
+							$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
+							Update.found = true;
+							log('New revision available: '+file[0]+', currently on r'+revision);
+						}
+					}
+					if (Update.runtime.force && !Update.found) {
+						$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {
+							duration:5000,
+							complete:function(){log('test');$(this).remove();}
+						});
+						$('#golem_buttons').after($btn);
+					}
+					Update.runtime.force = false;
+					$('#golem_update').removeClass('red');
 				}
 			}
 		});
-		*/
+	}
+};
+/*
 		GM_xmlhttpRequest({
 			method: "GET",
 			url: 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js',
@@ -90,6 +112,5 @@ Update.work = function(state) {
 				}
 			}
 		});
-	}
-};
+*/
 
