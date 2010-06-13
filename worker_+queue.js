@@ -85,7 +85,7 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	var i, worker;
@@ -136,7 +136,7 @@ Queue.clearCurrent = function() {
 }
 
 Queue.update = function(type) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	var i, $worker;

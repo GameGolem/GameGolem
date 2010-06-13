@@ -16,7 +16,7 @@ Config.option = {
 };
 
 Config.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
@@ -369,7 +369,7 @@ Config.makeOption = function(worker, args) {
 };
 
 Config.set = function(key, value) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	this._unflush();

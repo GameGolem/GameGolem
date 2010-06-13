@@ -12,7 +12,8 @@ Land.option = {
 //	wait:48,
 	onlyten:false,
 	sell:false,
-	land_exp:false
+	land_exp:false,
+	style:0
 };
 
 Land.runtime = {
@@ -39,19 +40,27 @@ Land.display = [
 		label:'Sell Extra Land 10 at a time',
 		checkbox:true,
 		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower cost.'
-//	},{
-/*		id:'wait',
+	},{
+		id:'style',
+		label:'ROI Style',
+		select:{0:'Percent', 1:'Daily'},
+		help:'This changes the display when visiting the LanD page.'
+	}
+/*
+	},{
+		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
 		suffix:'hours',
 		help:'There has been a lot of testing in this code, it is the fastest way to increase your income despite appearances!'
-	},{*/
-/*		advanced:true,
+	},{
+		advanced:true,
 		id:'onlyten',
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
 		checkbox:true,
 		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
-*/	}
+	}
+*/
 ];
 
 Land.init = function(){
@@ -76,8 +85,7 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			iscaap() &&	$('.land_buy_info strong:first', el).after('<strong title="Daily Return On Investment - higher is better"> | ROI ' + ((Land.data[name].own < Land.data[name].max) ? (Land.data[name].income * 2400) / Land.data[name].cost : 0).round(3) + '%</strong>');
-			!iscaap() && $('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
+			$('.land_buy_info strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
 	});
 	return true;

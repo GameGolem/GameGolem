@@ -83,8 +83,9 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		Config.set('generals', ['Any'].concat(list.sort()));
-		Config.set('bestgenerals', ['Any','Best','Under Level 4'].concat(list));
+		// "any" MUST remain lower case
+		Config.set('generals', ['any'].concat(list.sort()));
+		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -185,7 +186,7 @@ Generals.to = function(name) {
 Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		var caapGenerals = {
 			'BuyGeneral':			'cost',
 			'LevelUpGeneral':		'stamina',

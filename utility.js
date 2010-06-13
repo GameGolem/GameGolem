@@ -317,10 +317,6 @@ var isWorker = function(obj) {
 	catch(e) {return false;}
 };
 
-var iscaap = function() {
-	return ('Caap' in Workers);
-};
-
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };

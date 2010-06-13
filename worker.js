@@ -310,7 +310,7 @@ Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
-	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
+	('Caap' in Workers) && (typeof this.caap_load == 'function') && this.caap_load();
 	WorkerStack.pop();
 };
 

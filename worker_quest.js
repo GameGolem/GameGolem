@@ -270,14 +270,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || iscaap()) {
+	if (this.option.general || ('Caap' in Workers)) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (iscaap() && this.option.general_choice !== 'Best') {
+			if (('Caap' in Workers) && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {

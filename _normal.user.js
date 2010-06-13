@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (583+1);
+var revision = (584+1);
 // User changeable
 var show_debug = true;
 
@@ -540,10 +540,6 @@ var isWorker = function(obj) {
 	catch(e) {return false;}
 };
 
-var iscaap = function() {
-	return ('Caap' in Workers);
-};
-
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };
@@ -939,7 +935,7 @@ Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
-	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
+	('Caap' in Workers) && (typeof this.caap_load == 'function') && this.caap_load();
 	WorkerStack.pop();
 };
 
@@ -1322,7 +1318,7 @@ Config.option = {
 };
 
 Config.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
@@ -1675,7 +1671,7 @@ Config.makeOption = function(worker, args) {
 };
 
 Config.set = function(key, value) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	this._unflush();
@@ -2605,7 +2601,7 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	var i, worker;
@@ -2656,7 +2652,7 @@ Queue.clearCurrent = function() {
 }
 
 Queue.update = function(type) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	var i, $worker;
@@ -3532,7 +3528,7 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (iscaap() && this.option.above === '') {
+	if (('Caap' in Workers) && this.option.above === '') {
 		return QUEUE_FINISH;
 	}
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
@@ -3556,7 +3552,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	!iscaap() && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
+	!('Caap' in Workers) && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -4269,7 +4265,7 @@ Elite.update = function(type,worker) {
 		if (!this.runtime.nextelite) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
+				if (!Army.get([list[i]], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
 					break;
 				}
@@ -4394,8 +4390,9 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
-		Config.set('generals', ['Any'].concat(list.sort()));
-		Config.set('bestgenerals', ['Any','Best','Under Level 4'].concat(list));
+		// "any" MUST remain lower case
+		Config.set('generals', ['any'].concat(list.sort()));
+		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -4496,7 +4493,7 @@ Generals.to = function(name) {
 Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		var caapGenerals = {
 			'BuyGeneral':			'cost',
 			'LevelUpGeneral':		'stamina',
@@ -5300,7 +5297,8 @@ Land.option = {
 //	wait:48,
 	onlyten:false,
 	sell:false,
-	land_exp:false
+	land_exp:false,
+	style:0
 };
 
 Land.runtime = {
@@ -5327,19 +5325,27 @@ Land.display = [
 		label:'Sell Extra Land 10 at a time',
 		checkbox:true,
 		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower cost.'
-//	},{
-/*		id:'wait',
+	},{
+		id:'style',
+		label:'ROI Style',
+		select:{0:'Percent', 1:'Daily'},
+		help:'This changes the display when visiting the LanD page.'
+	}
+/*
+	},{
+		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
 		suffix:'hours',
 		help:'There has been a lot of testing in this code, it is the fastest way to increase your income despite appearances!'
-	},{*/
-/*		advanced:true,
+	},{
+		advanced:true,
 		id:'onlyten',
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
 		checkbox:true,
 		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
-*/	}
+	}
+*/
 ];
 
 Land.init = function(){
@@ -5364,8 +5370,7 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			iscaap() &&	$('.land_buy_info strong:first', el).after('<strong title="Daily Return On Investment - higher is better"> | ROI ' + ((Land.data[name].own < Land.data[name].max) ? (Land.data[name].income * 2400) / Land.data[name].cost : 0).round(3) + '%</strong>');
-			!iscaap() && $('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
+			$('.land_buy_info strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
 	});
 	return true;
@@ -6652,7 +6657,7 @@ Monster.update = function(what,worker) {
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
 					}
-					if (this.data[i][j].name === 'You' && this.option.own){
+					if (i === userID && this.option.own){
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
 						break;
 					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
@@ -6774,7 +6779,7 @@ Monster.update = function(what,worker) {
 			this.runtime.fortify = false;
 		}
 		this.runtime.attack = true;
-		fullname = (this.data[uid][type].name === 'You' ? 'your ': (this.data[uid][type].name + '\'s '))
+		fullname = (uid === userID ? 'your ': (this.data[uid][type].name + '\'s '))
 				+ this.types[type].name;
 		if ((Player.get('health') > this.runtime.health
 					&& Queue.burn.stamina >= this.runtime.stamina)
@@ -6862,8 +6867,14 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to((iscaap() ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
-				return QUEUE_CONTINUE;
+			if ('Caap' in Workers) {
+				if (!Generals.to((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j])) {
+					return QUEUE_CONTINUE;
+				}
+			} else {
+				if (this.option.general && !Generals.to(j)) {
+					return QUEUE_CONTINUE;
+				}
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 			switch(j){
@@ -7684,14 +7695,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || iscaap()) {
+	if (this.option.general || ('Caap' in Workers)) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (iscaap() && this.option.general_choice !== 'Best') {
+			if (('Caap' in Workers) && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {

@@ -899,7 +899,7 @@ Monster.update = function(what,worker) {
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
 					}
-					if (this.data[i][j].name === 'You' && this.option.own){
+					if (i === userID && this.option.own){
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
 						break;
 					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
@@ -1021,7 +1021,7 @@ Monster.update = function(what,worker) {
 			this.runtime.fortify = false;
 		}
 		this.runtime.attack = true;
-		fullname = (this.data[uid][type].name === 'You' ? 'your ': (this.data[uid][type].name + '\'s '))
+		fullname = (uid === userID ? 'your ': (this.data[uid][type].name + '\'s '))
 				+ this.types[type].name;
 		if ((Player.get('health') > this.runtime.health
 					&& Queue.burn.stamina >= this.runtime.stamina)
@@ -1109,8 +1109,14 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to((iscaap() ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
-				return QUEUE_CONTINUE;
+			if ('Caap' in Workers) {
+				if (!Generals.to((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j])) {
+					return QUEUE_CONTINUE;
+				}
+			} else {
+				if (this.option.general && !Generals.to(j)) {
+					return QUEUE_CONTINUE;
+				}
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 			switch(j){

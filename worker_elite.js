@@ -164,7 +164,7 @@ Elite.update = function(type,worker) {
 		if (!this.runtime.nextelite) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				if (!Army.get([list[i],'elite'], false)) {// Only try to add a non-member who's not already added
+				if (!Army.get([list[i]], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
 					break;
 				}
