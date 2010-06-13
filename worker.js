@@ -105,7 +105,7 @@ function Worker(name,pages,settings) {
 	Workers[name] = this;
 
 	// User data
-	this.id = null;
+	this.id = 'golem_panel_'+name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	this.name = name;
 	this.pages = pages;
 

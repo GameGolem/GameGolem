@@ -25,10 +25,6 @@ Alchemy.runtime = {
 
 Alchemy.display = [
 	{
-		id:'perform',
-		label:'Automatically Perform',
-		checkbox:true
-	},{
 		id:'hearts',
 		label:'Use Battle Hearts',
 		checkbox:true
@@ -91,7 +87,7 @@ Alchemy.update = function() {
 };
 
 Alchemy.work = function(state) {
-	if (!this.option.perform || !this.runtime.best) {
+	if (!this.runtime.best) {
 		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_alchemy')) {

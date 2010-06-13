@@ -48,14 +48,16 @@ Potions.parse = function(change) {
 };
 
 Potions.update = function(type) {
-	var txt = [], levelup = LevelUp.get('runtime.running');
+	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	for(var i in this.data) {
-		if (this.data[i]) {
-			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
-		}
-		if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
-			this.runtime.drink = true;
+	if (Queue.enabled(this)) {
+		for(i in this.data) {
+			if (this.data[i]) {
+				txt.push('<img src="' + Images['potion_'+i.toLowerCase()] + '" alt="' + i + '" title="' + i + '" style="margin-bottom:-4px;"> ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
+			}
+			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+				this.runtime.drink = true;
+			}
 		}
 	}
 	Dashboard.status(this, txt.join(', '));

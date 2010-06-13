@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (582+1);
+var revision = (583+1);
 /*!
  * jQuery JavaScript Library v1.4.2
  * http://jquery.com/
@@ -1046,6 +1046,9 @@ Images.star_off = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C
 Images.star_on = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%FCPLTE%FF%ECx%EC%E5%D8%C2%956%DB%C3%8F%C4%968%C3%96%3A%F6%E2w%E5%D7%BB%C9%9D%3B%C2%959%CC%A5U%D3%B6w%EA%E3%D3%EE%E7%DA%FD%EA%5D%EA%E0%CC%FE%EFc%DC%B6A%FF%E3K%C2%937%C5%9A%3A%D7%BD%85%FE%F3%95%E1%BA%3B%E9%E0%CB%E0%BDH%EF%D6l%EF%E9%DF%E7%CCd%E8%DF%C9%F4%DFq%D6%AC%3C%CD%A2%3D%FF%F1%8A%E3%C6%60%D8%BE%88%F5%F5%F5%D0%B0k%F2%F2%EE%FF%E2P%EB%CEN%EE%C8%3C%EF%EC%E3%C3%957%C4%98%3A%EC%E4%D4%CA%A3S%DD%C6%9B%EC%D3k%E0%CF%AB%FF%EE%60%D6%BA%80%DA%BF%87%F1%F0%EB%EA%E1%CF%CF%AA%5D%FF%E5O%E2%D1%AF%FA%E9%83%F5%DDj%E7%C3%40%E8%C5C%C4%959%ED%D3i%E4%D7%BC%F2%EF%E7%C4%977%FB%EC%87%E0%C1_%FF%EF%80%FF%F5%99%C2%969%DC%C8%9F%C5%978%F3%F0%EC%D9%C1%90%DA%C4%94%D3%B4t%BF%8E.%C5%997%FF%EC%5C%FF%DEB%FF%F7%A0%FF%FF%FFv%E6%2F%B2%00%00%00TtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00S%F7r%D1%00%00%00%83IDATx%DAb%08%06%01f%130%C5%00%22%1C%99%3C%A5%E1%1Ce%19%7B_0G%85%97%5D%9FE%CCM%C4%DB%92%DF%8BA%D5%DF%C5%C0*(%C8YJ%89C%8F%C1%CC%8E-((H%D1%95%C1ZG%96!X%97U%8EA%3D0PS%5B%02d%80%83B%A0%90E%A0%BC%07%D84C%C1%00%01%3E%23%5Bc0GT%5C%C3%C9%5D%D2%86%0B%CC1%F7%E3%D6R%F3%11%E6%04s%18%19A%16%9A%F2%04%07%03%04%18%001%8C%20dI%CC%B1%85%00%00%00%00IEND%AEB%60%82";
 Images.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%22%22%22%FF%FF%FF%5E%87%201%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00'IDATx%DAb%60D%02%0C%E8%1C%06%08%00s%C0%0C%08A%12%07%CC%83s%40%3C%04%07*%83b%0F%02%00%04%18%00%18%EF%00Jb%DAw%FF%00%00%00%00IEND%AEB%60%82";
 Images.timer_red = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%CD%0A%0A%FF%FF%FF-%A2jr%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00(IDATx%DAb%60D%02%0C%40%04%01%60%0E%98%01%E1%91%C4%01%93p%0E%88Bp%A02(%F6%A0%BA%00%01%00%02%0C%00%15%0D%00J%D9%85%06%E0%00%00%00%00IEND%AEB%60%82";
+Images.potion_energy = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01qPLTE%E4%E1%DE%0D%7B%FFM%94%FF%C4%D3%E1%EC%EC%EE%FB%FB%FA%02%99%FFQVa%00%9B%FC)r%FF%F7%F6%F6)p%FF%E9%EC%FF%FB%FA%FAttt%D4%E0%EB%00%7D%FF3%8D%E3%FA%F9%F9%07%7F%FD%20j%FF%5E%A2%D6DMR%AE%A3%9D%07Hr%3A%9A%ED%17%9E%E7q%93%C9%81%B7%D9%D7%E0%EB%F1%F1%F3%15i%FF%07%8F%FE%A4%C8%DDk%9C%CC%9A%B1%FF%F0%F0%F0%0D%98%DC%80~%7C%08%7C%FF%90%83r%5C%9C%CA%F3%F2%F0D%92%D2%06%95%FC%D1%CF%D9%0E%87%F9o%C9%F9%FD%FC%FC%9E%A0%A3%F5%F9%FD%C7%C0%B8d%60a%5D%84%AA%A1%B8%DDA%7F%CE%A0%A6%C3a%98%FEGHH%86%A2%BE%00%8F%FA%F5%F4%F2%F5%F5%F7%A8%A4%A2v%9D%FF%0Cz%FF%2Bs%FF%FA%FA%FA%00%B2%F8%02%96%FF%E7%EA%FFwwx%1D%94%E8%00%8E%FF*j%FF%AD%A3%96)%B1%F1%5D%BB%ED%0B%2Cl%F2%F1%F2%A1%90~r%AD%CAW%83%FF-%A1%F8%5D%A8%FA%BB%D0%E6%26%87%FC%D9%D4%CE%22%A8%F9e%8A%FF%12%9E%FF%05u%FF%19g%FF%13m%FFeq%87%20p%FF%03l%FFtfZ%3E%9E%E3%9C%C6%DF9w%FF)%C0%F4%17r%FF%D1%D2%DB%1Ey%B5%D4%E6%F9%00%85%FF%0Ep%FF%F4%F3%F1%8E%8E%91%23s%FF%0Do%FFY%BD%E4%8C%7Cl%BA%C8%FFG%86%FF%23%A0%EC%EC%ED%ED%20%BE%FF%00%8D%D24%8E%FF%00I%8A%FF%FF%FFC%9B%AE%8C%00%00%00%7BtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%93%C3%A8%EA%00%00%00%AAIDATx%DAb%A8%02%01%5E3si%7F0%AB%8A%01L%A6%FBITZ%20%0B%B0%B0%8B%C5%E9%22%0B%E4%F0%99%D83%20%0Bh%E5Z%A9%A1%08p%05f(%95%22%0B%08%15%B8%F8%A8%20%0B0%A7rD%24%3B%23%04B%F5%CB%D2%C2TeXa%02%FC!%15%0A%96L%C2%E5%8AP%01%03_%B6%84b%B7%A2%3C%1B)9%88%80Qp%96%7C%24%8F%B2%97%A3N%26D%C0NR%20%26%C8!%25%3E_O%16%22%10%60%EA%AA%EE%C4%C9-%E2%A9%5D%08%11%F0N%D4%8C%8A%8Ee%CC%16t%D7%80%DA%12.n%9D%E4Q%22jhl%0B%E4%00%04%18%00aI%5C8%B90%1DA%00%00%00%00IEND%AEB%60%82";
+Images.potion_stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01tPLTE%FD%B0Q%FD%FB%F7%FD%FB%F6%FA%60%24%FA%F5%EC%FE%FA%E9%F5%DA%BB%F4%D8%BB%FD%B0R%EE%E5%D7%EC%E1%C9%FA%F8%F3%ED%E7%D8%FB%F8%F1%7B%80%83%F9%95I%FB%F4%E9%FD%FC%F8%FE%FE%FB%F2kG%FFu%2C%FD%97%3B%E9g6%FF%7C)%E8%83X%FE%90%3A%FF%8D0%91%8D%88%FA%7F7%FC%5D%40%F7%9E%84%D4%95%80%88%7Fd%F8%F1%E5%DB%8BS%CF%AD%90%804%1E%FE%861%DDP4%FB%E8%D9%D8%C6%9E%E7%8BT%FE%D0%8D%F7bG%B0%A4%94%FCq.%FD%D2%81%F6%F4%F2%FDm%22%F0%BC%98%F7%F0%E5%FFh(%FE%9E%40%F0%86g%D6%3F!%FF%ABL%FD%BEj%BC%5BC%FF%9E%3C%E6%AC%8A%A3%9A%87%A8%A3%9B%F3%E4%D5%FD%B0P%FA%F5%ED%FE%FB%E8%F9b%23%F3%90V%F6j%3D%F9%F5%EC%F9E%13%F4%89d%FD%A8J%94%91%91jhl%FE%8D7%FE%AEH%FFr8%96*%0E%FD%A8DwY0%97%83x%95%8Fx%B0%B4%B5%FC%C9t%FC%A5%40%CC%C6%BDmcb%FD%C1%7D%FE%EE%C6%BD%B4%A4%DC%D6%D0%D9%AAy%95%89w%F8%A9x%EAU-%EA%E2%C9%D4%9F%81%F0m%40%F8~G%D4%8Fl%DF%8D%5E%FD%8E.%E9%CB%A6%BD%AE%98%FD%B1k%FE%E5%AB%ED%BD%A0%FD%BB%5E%FE%FA%F7%F3%26%0F%E0%97p%FA%F6%EB%FD%B7Q%FC%5B%23%9E%8Cn%FD%FC%F7%FE%999%F9%7C%2F%7Csf%C1%91i%FD%95M%F8%E2%CC%FF%FF%FFgb%E8%EA%00%00%00%7CtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%01j%DA1%00%00%00%ABIDATx%DAb%A8%06%01%C6t%A5%18%160%AB%9A%01Lr%05%A8%F8i%20%0B(%96%87%07%26%20%0B8H%F3%05s%22%0B%B8%DAzy%F2%20%0B%F0%CA%5B%26%1A!%0B0%99%E6%09%0B%20%0B%B0i%BB%B9%18%96%20%04%D8%E5dM%F8%D5%AC%05a%02Uq%95%BA%11%99ef%D9P%01!%F7%A24%0B%C7Hs%A7%F8%02%88%40n%B2A%A8%1EkV%A17%B3%3AD%80%DBY%DC%3FD%2B%C7%A3T%C6%0E%22%60Sa%AC%CA%C1%60%EF%23%92%1A%04%11%D0QH%F1%95%B2%92%14%D5%2C%8E%85%DA%12%1D%A5%2C!%96%94%9F%11%A6%0F%E4%00%04%18%00%BA%F5%5D7%DF%1B%AE%5B%00%00%00%00IEND%AEB%60%82";
+
 
 var makeImage = function(type, title) {
 	return '<img class="g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
@@ -1108,7 +1111,7 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 .golem-title { padding: 4px; margin: -4px -4px 0 -4px !important; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
-.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; width: 184px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
 .golem-panel-header input { float: right; margin: 2px; }\
 .golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
 .golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
@@ -1358,7 +1361,7 @@ var sortObject = function(obj, sortfunc, deep) {
 	for (i in obj) {
 		list.push(i);
 	}
-	list.sort(sortfunc);
+	sortfunc ? list.sort(sortfunc) : list.sort();
 	for (i=0; i<list.length; i++) {
 		if (deep && typeof obj[list[i]] === 'object') {
 			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
@@ -1420,22 +1423,34 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
-var isArray = function(obj) {   
+var isArray = function(obj) {// Not an object
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+};
+
+var isObject = function(obj) {// Not an array
+    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+};
+
+var isFunction = function(obj) {
+	return typeof obj === 'function';
 };
 
 var isNumber = function(num) {
 	return typeof num === 'number';
 };
 
-var isString = function(num) {
-	return typeof num === 'string';
+var isString = function(str) {
+	return typeof str === 'string';
 };
 
+// Big shortcut for being inside a try/catch block
 var isWorker = function(obj) {
-	// Big shortcut for being inside a try/catch block
 	try {return Workers[obj.name] === obj;}
 	catch(e) {return false;}
+};
+
+var iscaap = function() {
+	return ('Caap' in Workers);
 };
 
 var plural = function(i) {
@@ -1510,10 +1525,6 @@ Date.replaceChars = {
 	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
 	r: function() { return this.toString(); },
 	U: function() { return this.getTime() / 1000; }
-};
-
-var iscaap = function() {
-	return (typeof caap != 'undefined');
 };
 
 var ucfirst = function(str) {
@@ -1632,7 +1643,7 @@ function Worker(name,pages,settings) {
 	Workers[name] = this;
 
 	// User data
-	this.id = null;
+	this.id = 'golem_panel_'+name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	this.name = name;
 	this.pages = pages;
 
@@ -2238,11 +2249,9 @@ Config.init = function() {
 		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
 		Config._save('option');
 	});
-	$golem_config = $('#golem_config');
 	for (i in Workers) {
-		$golem_config.append(Config.makePanel(Workers[i]));
+		Config.makePanel(Workers[i], Workers[i].display);
 	}
-	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
 			$(this).next().hide('blind',function(){
@@ -2259,34 +2268,37 @@ Config.init = function() {
 			Config._save('option');
 		}
 	});
-	$golem_config.children('.golem-panel-sortable')
-		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
+//	$golem_config = $('#golem_config');
+	$('#golem_config')
+		.sortable({axis:"y"}) /*, items:'div', handle:'h3' - broken inside GM */
+		.children('.golem-panel-sortable')
+			.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
 refreshPositions:true, stop:function(){Config.updateOptions();} })
-		.droppable({ tolerance:'pointer', over:function(e,ui) {
-			var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-			if (arrayIndexOf(order, 'Idle') >= newplace) {
-				if (me.settings.before) {
-					for(i=0; i<me.settings.before.length; i++) {
-						if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-							return;
+			.droppable({ tolerance:'pointer', over:function(e,ui) {
+				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+				if (arrayIndexOf(order, 'Idle') >= newplace) {
+					if (me.settings.before) {
+						for(i=0; i<me.settings.before.length; i++) {
+							if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+								return;
+							}
+						}
+					}
+					if (me.settings.after) {
+						for(i=0; i<me.settings.after.length; i++) {
+							if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+								return;
+							}
 						}
 					}
 				}
-				if (me.settings.after) {
-					for(i=0; i<me.settings.after.length; i++) {
-						if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-							return;
-						}
-					}
+				if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+					$(this).before(ui.draggable);
+				} else {
+					$(this).after(ui.draggable);
 				}
-			}
-			if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
-				$(this).before(ui.draggable);
-			} else {
-				$(this).after(ui.draggable);
-			}
-			Queue.clearCurrent();// Make sure we deal with changed circumstances
-		} });
+				Queue.clearCurrent();// Make sure we deal with changed circumstances
+			} });
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
@@ -2332,13 +2344,14 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
 		Config.updateOptions();
 	});
-	$('input,textarea,select', $golem_config).change( function(){
+	$('#golem_config input,textarea,select').live('change', function(){
 		Config.updateOptions();
 	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
-		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
-	);
+		Config.checkRequire();
+//		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');
+	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
 	});
@@ -2346,37 +2359,81 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
 
-Config.makePanel = function(worker) {
-	var i, $head, $panel;
-	if (!worker.display) {
-		return null;
+Config.makePanel = function(worker, args) {
+	var i, $panel;
+	if (!isWorker(worker)) {
+		if (!WorkerStack.length) {
+			return;
+		}
+		args = worker;
+		worker = WorkerStack[WorkerStack.length-1];
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3></div>');
-	switch (typeof worker.display) {
-		case 'array':
-		case 'object':
-			$panel = $('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			for (i in worker.display) {
-				$panel.append(this.makeOption(worker, worker.display[i]));
-			}
-			$head.append($panel);
-			return $head;
-		case 'function':
-			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			try {
-				$('.golem-panel-content', $head).append(worker.display());
-			} catch(e) {
-				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
-			}
-			return $head;
-		default:
-			return null;
+	if (!args) {
+		if (!worker.display) {
+			return;
+		}
+		args = worker.display;
 	}
+//	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
+	if (!$('#'+worker.id).length) {
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+	}
+	$panel = $('#'+worker.id+' > div').empty();
+	if (isArray(args)) {
+		for (var i=0; i<args.length; i++) {
+			$panel.append(this.makeOption(worker, args[i]));
+		}
+	} else if (isObject(args)) {
+		$panel.append(this.makeOption(worker, args));
+	} else if (isString(args)) {
+		$panel.append(this.makeOption(worker, {title:args}));
+	} else if (isFunction(args)) {
+		try {
+			this.makePanel(worker, args.call(worker));
+		} catch(e) {
+			debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
+		}
+	}
+	this.checkRequire(worker.id);
 };
 
 Config.makeID = function(worker, id) {
 	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
+};
+
+Config.clearPanel = function(worker) {
+	this._init(); // Make sure we're properly loaded first!
+	if (!isWorker(worker)) {
+		if (!WorkerStack.length) {
+			return;
+		}
+		worker = WorkerStack[WorkerStack.length-1];
+	}
+	$('#'+worker.id+' > div').empty();
+};
+
+Config.addOption = function(worker, args) {
+	this._init(); // Make sure we're properly loaded first!
+	if (!isWorker(worker)) {
+		if (!worker || !WorkerStack.length) {
+			return;
+		}
+		args = worker;
+		worker = WorkerStack[WorkerStack.length-1];
+	}
+	if (isArray(args)) {
+		for (var i=0; i<args.length; i++) {
+			$('#'+worker.id+' > div').append(this.makeOption(worker, args[i]));
+		}
+	} else if (isObject(args)) {
+		$('#'+worker.id+' > div').append(this.makeOption(worker, args));
+	} else if (isString(args)) {
+		$('#'+worker.id+' > div').append(this.makeOption(worker, {title:args}));
+	} else if (isFunction(args)) {
+		this.addOption(worker, args());
+	} else {
+		debug(worker.name+' is trying to add an unknown type of panel');
+	}
 };
 
 Config.makeOption = function(worker, args) {
@@ -2586,10 +2643,12 @@ Config.updateOptions = function() {
 	this.checkRequire();
 };
 
-Config.checkRequire = function() {
-	$('.golem-require').each(function(i,el){
+Config.checkRequire = function(id) {
+	$((id ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
 		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
-		for (i in require) {
+		if ($(el).hasClass('golem-advanced') && !Config.option.advanced) {
+			show = false;
+		} else for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
 			if (worker) {
@@ -3394,7 +3453,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -3473,7 +3532,7 @@ Queue.init = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = Workers[this.option.queue[i]];
-		if (worker && worker.id) {
+		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
@@ -3624,6 +3683,146 @@ Queue.run = function() {
 
 Queue.enabled = function(worker) {
 	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
+};
+
+/********** Worker.Resources **********
+* Store and report Resourcess
+
+Workers can add a type of Resources that they supply - Player would supply Energy and Stamina when parsing etc
+Workers request buckets of Resourcess during init() - each bucket gets a display in the normal Resources config panel.
+
+Resources stores the buckets as well as an overflow bucket - the overflow is used during level up
+
+Buckets may be either -
+"Shared" buckets are like now - first-come, first-served from a single source
+- or -
+"Exclusive" buckets are filled by a drip system, forcing workers to share Resourcess
+
+The Shared bucket has a priority of 0
+
+When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
+Priority is displayed as -5, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
+
+When a worker is disabled (Queue.option.enabled[worker] === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
+
+Buckets are filled in priority order, in cases of same priority, alphabetical order is used
+*/
+
+var Resources = new Worker('Resources');
+Resources.settings = {
+	system:true,
+	unsortable:true
+};
+
+Resources.option = {
+	types:{},
+	buckets:{}
+};
+
+Resources.runtime = {
+	types:{},// {'Energy':true}
+	buckets:{}
+};
+
+Resources.display = function() {
+	var type, worker, require, display = [];
+	if (!length(this.runtime.types)) {
+		return 'Discovering Resources...';
+	}
+	display.push({label:'Not doing anything yet...'});
+	for (type in this.option.types) {
+		display.push({
+			title:type
+		},{
+			id:'types.'+type,
+			label:'Allow '+type+' Use',
+			checkbox:true
+		});
+		for (worker in this.runtime.buckets) {
+			if (type in this.runtime.buckets[worker]) {
+				require = {};
+				require['buckets.'+worker+'.'+type] = 2;
+				require['types.'+type] = true;
+				display.push({
+					id:'buckets.'+worker+'.'+type,
+					require:'types.'+type,
+					label:worker,
+					select:{0:'None',1:'Shared',2:'Exclusive'}
+				},{
+					advanced:true,
+					id:'buckets.'+worker+'.priority',
+					require:require,
+					label:'...priority',
+					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
+				});
+			}
+		}
+	}
+	return display;
+};
+
+Resources.init = function() {
+//	Config.addOption({label:'test',checkbox:true});
+};
+
+/***** Resources.addType() *****
+Add a type of Resources
+*/
+Resources.addType = function(type) {
+	WorkerStack.push(this);
+	this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
+	this.set(['option','types',type], this.get(['option','types',type], true));
+	Config.makePanel();
+	WorkerStack.pop();
+};
+
+/***** Resources.useType() *****
+Register to use a type of resource
+Actually use a type of resource (must register with no amount first)
+*/
+Resources.useType = function(type, amount) {
+	if (!WorkerStack.length) {
+		return;
+	}
+	var worker = WorkerStack[WorkerStack.length-1];
+	if (typeof amount === 'undefined') {
+//		this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
+//		this.set(['option','types',type], this.get(['option','types',type], true));
+		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
+		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 1));
+		this.set(['option','buckets',worker.name,'priority'], this.get(['option','buckets',worker.name,'priority'], 5));
+	} else {
+	}
+};
+
+/***** Resources.add() *****
+type = name of Resources
+amount = amount to add
+abs = is an absolute amount, not relative
+1. Set the amount we have to the new value
+2. If we've gained, then share some out
+*/
+Resources.add = function(type, amount, abs) {
+	var change, old = this.get(['runtime','types',type], 0);
+	if (abs) {
+		change = amount - old;
+		this.set(['runtime','types',type], amount);
+	} else {
+		change = amount;
+		this.set(['runtime','types',type], amount + old);
+	}
+//	if (change > 0) {// We've gotten higher, lets share some out...
+//	}
+};
+
+Resources.get = function(what,def) {
+//	log('Resources.get('+what+', '+(def?def:'null')+')');
+	return this._get(what,def);
+};
+
+Resources.set = function(what,value) {
+//	log('Resources.set('+what+', '+(value?value:'null')+')');
+	return this._set(what,value);
 };
 
 /********** Worker.Settings **********
@@ -4131,10 +4330,6 @@ Alchemy.runtime = {
 
 Alchemy.display = [
 	{
-		id:'perform',
-		label:'Automatically Perform',
-		checkbox:true
-	},{
 		id:'hearts',
 		label:'Use Battle Hearts',
 		checkbox:true
@@ -4197,7 +4392,7 @@ Alchemy.update = function() {
 };
 
 Alchemy.work = function(state) {
-	if (!this.option.perform || !this.runtime.best) {
+	if (!this.runtime.best) {
 		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_alchemy')) {
@@ -4430,6 +4625,7 @@ Battle.init = function() {
 //	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
+	Resources.useType('Stamina');
 };
 
 /***** Battle.parse() *****
@@ -4889,7 +5085,7 @@ Elite.init = function() { // Convert old elite guard list
 				);
 		},
 		'sort':function(data,uid){
-			if (!'Elite' in data[uid] && !'Army' in data[uid] && !data[uid]['Army']) {
+			if (!('Elite' in data[uid]) && !('Army' in data[uid]) && !data[uid]['Army']) {
 				return 0;
 			}
 			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
@@ -4897,6 +5093,9 @@ Elite.init = function() { // Convert old elite guard list
 					: 0)
 				+ ('elite' in data[uid]['Elite']
 					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					: 0)
+				+ ('full' in data[uid]['Elite']
+					? Date.now() - parseInt(data[uid]['Elite']['full'])
 					: 0));
 		},
 		'click':function(data,uid){
@@ -6054,6 +6253,7 @@ Land.display = [
 
 Land.init = function(){
     this._watch(Bank);
+	Resources.useType('Gold');
 };
 
 Land.parse = function(change) {
@@ -7000,6 +7200,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
+	Resources.useType('Energy');
+	Resources.useType('Stamina');
 }
 
 Monster.parse = function(change) {
@@ -7569,7 +7771,7 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to((Caap.get('runtime.enabled') ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
+			if (!Generals.to((iscaap() ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
 				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
@@ -7921,6 +8123,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
+	Resources.addType('Energy');
+	Resources.addType('Stamina');
+	Resources.addType('Gold');
 };
 
 Player.parse = function(change) {
@@ -8084,14 +8289,16 @@ Potions.parse = function(change) {
 };
 
 Potions.update = function(type) {
-	var txt = [], levelup = LevelUp.get('runtime.running');
+	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	for(var i in this.data) {
-		if (this.data[i]) {
-			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
-		}
-		if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
-			this.runtime.drink = true;
+	if (Queue.enabled(this)) {
+		for(i in this.data) {
+			if (this.data[i]) {
+				txt.push('<img src="' + Images['potion_'+i.toLowerCase()] + '" alt="' + i + '" title="' + i + '" style="margin-bottom:-4px;"> ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
+			}
+			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+				this.runtime.drink = true;
+			}
 		}
 	}
 	Dashboard.status(this, txt.join(', '));
@@ -8179,6 +8386,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
+	Resources.useType('Energy');
 };
 
 Quest.parse = function(change) {
@@ -8385,14 +8593,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || Caap.get('runtime.enabled')) {
+	if (this.option.general || iscaap()) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Caap.get('runtime.enabled') && this.option.general_choice !== 'Best') {
+			if (iscaap() && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {
@@ -8594,6 +8802,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 
 Town.init = function(){
     this._watch(Bank);
+	Resources.useType('Gold');
 };
 
 Town.parse = function(change) {

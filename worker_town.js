@@ -63,6 +63,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 
 Town.init = function(){
     this._watch(Bank);
+	Resources.useType('Gold');
 };
 
 Town.parse = function(change) {

@@ -137,6 +137,7 @@ Battle.init = function() {
 //	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
+	Resources.useType('Stamina');
 };
 
 /***** Battle.parse() *****

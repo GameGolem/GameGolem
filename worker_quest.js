@@ -63,6 +63,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
+	Resources.useType('Energy');
 };
 
 Quest.parse = function(change) {
@@ -269,14 +270,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || Caap.get('runtime.enabled')) {
+	if (this.option.general || iscaap()) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Caap.get('runtime.enabled') && this.option.general_choice !== 'Best') {
+			if (iscaap() && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {

@@ -538,6 +538,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
+	Resources.useType('Energy');
+	Resources.useType('Stamina');
 }
 
 Monster.parse = function(change) {
@@ -1107,7 +1109,7 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to((Caap.get('runtime.enabled') ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
+			if (!Generals.to((iscaap() ? ((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j]) : (this.option.general ? j : 'any')))) {
 				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);

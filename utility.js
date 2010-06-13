@@ -229,7 +229,7 @@ var sortObject = function(obj, sortfunc, deep) {
 	for (i in obj) {
 		list.push(i);
 	}
-	list.sort(sortfunc);
+	sortfunc ? list.sort(sortfunc) : list.sort();
 	for (i=0; i<list.length; i++) {
 		if (deep && typeof obj[list[i]] === 'object') {
 			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
@@ -291,22 +291,34 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
-var isArray = function(obj) {   
+var isArray = function(obj) {// Not an object
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+};
+
+var isObject = function(obj) {// Not an array
+    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+};
+
+var isFunction = function(obj) {
+	return typeof obj === 'function';
 };
 
 var isNumber = function(num) {
 	return typeof num === 'number';
 };
 
-var isString = function(num) {
-	return typeof num === 'string';
+var isString = function(str) {
+	return typeof str === 'string';
 };
 
+// Big shortcut for being inside a try/catch block
 var isWorker = function(obj) {
-	// Big shortcut for being inside a try/catch block
 	try {return Workers[obj.name] === obj;}
 	catch(e) {return false;}
+};
+
+var iscaap = function() {
+	return ('Caap' in Workers);
 };
 
 var plural = function(i) {
@@ -381,10 +393,6 @@ Date.replaceChars = {
 	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
 	r: function() { return this.toString(); },
 	U: function() { return this.getTime() / 1000; }
-};
-
-var iscaap = function() {
-	return (typeof caap != 'undefined');
 };
 
 var ucfirst = function(str) {

@@ -24,7 +24,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -103,7 +103,7 @@ Queue.init = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = Workers[this.option.queue[i]];
-		if (worker && worker.id) {
+		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');

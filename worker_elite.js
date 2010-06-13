@@ -71,7 +71,7 @@ Elite.init = function() { // Convert old elite guard list
 				);
 		},
 		'sort':function(data,uid){
-			if (!'Elite' in data[uid] && !'Army' in data[uid] && !data[uid]['Army']) {
+			if (!('Elite' in data[uid]) && !('Army' in data[uid]) && !data[uid]['Army']) {
 				return 0;
 			}
 			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
@@ -79,6 +79,9 @@ Elite.init = function() { // Convert old elite guard list
 					: 0)
 				+ ('elite' in data[uid]['Elite']
 					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					: 0)
+				+ ('full' in data[uid]['Elite']
+					? Date.now() - parseInt(data[uid]['Elite']['full'])
 					: 0));
 		},
 		'click':function(data,uid){
