@@ -2,8 +2,8 @@
 var show_debug = true;
 
 // Shouldn't touch
-var isRelease = false;
-var VERSION = "31.1";
+var isRelease = true;
+var VERSION = "31.3";
 var script_started = Date.now();
 
 // Automatically filled

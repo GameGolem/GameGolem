@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
+// @version		31.3
 // @include		http://apps.facebook.com/castle_age/*
 // @include		http://apps.facebook.com/reqs.php
 // @require		http://cloutman.com/jquery-latest.min.js
@@ -15,13 +15,13 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (589+1);
+var revision = (590+1);
 // User changeable
 var show_debug = true;
 
 // Shouldn't touch
-var isRelease = false;
-var VERSION = "31.1";
+var isRelease = true;
+var VERSION = "31.3";
 var script_started = Date.now();
 
 // Automatically filled

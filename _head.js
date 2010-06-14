@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
+// @version		31.3
 // @include		http://apps.facebook.com/castle_age/*
 // @include		http://apps.facebook.com/reqs.php
 // @require		http://cloutman.com/jquery-latest.min.js
