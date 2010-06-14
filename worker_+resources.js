@@ -48,24 +48,18 @@ Resources.display = function() {
 			title:type
 		},{
 			id:'types.'+type,
-			label:'Allow '+type+' Use',
-			checkbox:true
+			label:'Bucket Type',
+			select:{0:'None',1:'Shared',2:'Exclusive'}
 		});
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				require = {};
-				require['buckets.'+worker+'.'+type] = 2;
-				require['types.'+type] = true;
+//				require['buckets.'+worker+'.'+type] = 2;
+				require['types.'+type] = 2;
 				display.push({
-					id:'buckets.'+worker+'.'+type,
-					require:'types.'+type,
-					label:worker,
-					select:{0:'None',1:'Shared',2:'Exclusive'}
-				},{
-					advanced:true,
 					id:'buckets.'+worker+'.priority',
 					require:require,
-					label:'...priority',
+					label:'...<b>'+worker+'</b> priority',
 					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
 				});
 			}

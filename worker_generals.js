@@ -342,7 +342,7 @@ Generals.dashboard = function(sort, rev) {
 				bb = (Generals.data[b][type][x] || 0);
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});

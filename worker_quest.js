@@ -380,7 +380,7 @@ Quest.dashboard = function(sort, rev) {
 	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});

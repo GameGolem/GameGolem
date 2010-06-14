@@ -1,6 +1,6 @@
 @echo off
-rem -----------------------------------
-rem Please copy this file as "buid.bat"
+rem ----------------------------------------------------------------------
+rem Please copy this file as "build.bat"
 rem Edit to put in the correct paths for your system
 
 echo Deleting old user.js files
@@ -12,9 +12,10 @@ rem Must have TortoiseSVN installed for this to work!
 
 rem echo Creating revision file from TortoiseSVN...
 rem SubWCRev.exe . _head_tortoise.tmpl _head_revision.js >nul
+rem SubWCRev.exe . _chrome_manifest.tmpl .\chrome\manifest.json >nul
 
 rem ----------------------------------------------------------------------
-rem _normal.user.js
+rem _normal.user.js - Normal version
 echo Joining files into _normal.user.js
 type _head*.js >_normal.user.js 2>nul
 type _main.js >>_normal.user.js 2>nul
@@ -24,27 +25,21 @@ type worker.js >>_normal.user.js 2>nul
 type worker_*.js >>_normal.user.js 2>nul
 
 rem ----------------------------------------------------------------------
-rem _normal_caap.user.js
+rem .\chrome\golem.user.js - Google Chrome copy (unpacked extension)
+echo Copying to .\chrome\golem.user.js
+copy /Y _normal.user.js .\chrome\golem.user.js >nul 2>nul
+
+rem ----------------------------------------------------------------------
+rem _normal_caap.user.js - Caap/Golem hybrid
 echo Joining files into _normal_caap.user.js
 copy _normal.user.js _normal_caap.user.js >nul
 type worker++caap.js >>_normal_caap.user.js 2>nul
 
-rem -----------------------------------------------------------------------
-rem _normal_chrome.user.js
-echo Joining files into _normal_chrome.user.js
-type _head*.js >_normal_chrome.user.js 2>nul
-type _jquery*.min.js >>_normal_chrome.user.js 2>nul
-type _main.js >>_normal_chrome.user.js 2>nul
-type css.js >>_normal_chrome.user.js 2>nul
-type utility.js >>_normal_chrome.user.js 2>nul
-type worker.js >>_normal_chrome.user.js 2>nul
-type worker_*.js >>_normal_chrome.user.js 2>nul
-
 rem ----------------------------------------------------------------------
-rem _normal_chrome_caap.user.js
-echo Joining files into _normal_chrome_caap.user.js
-copy _normal.user.js _normal_chrome_caap.user.js >nul
-type worker++caap.js >>_normal_chrome_caap.user.js 2>nul
+rem .\chrome_caap\golem.user.js - Caap/Golem Google Chrome copy (unpacked extension)
+echo Copying to .\chrome_caap\golem.user.js
+copy /Y .\chrome\manifest.json .\chrome_caap\manifest.json >nul 2>nul
+copy /Y _normal_caap.user.js .\chrome\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox

@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (592+1);
+var revision = (593+1);
 // User changeable
 var show_debug = true;
 
@@ -156,6 +156,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
+#golem_config h3 { -webkit-user-select: none; -moz-user-select: none; }\
 .golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; float: right; z-index: 10; }\
 .golem-config > div { margin-top: 4px; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
@@ -1242,7 +1243,7 @@ Army.dashboard = function(sort, rev) {
 				bb = Army.getSection(sort, 'sort', b);
 			} catch(e){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
@@ -1362,35 +1363,50 @@ Config.init = function() {
 	});
 //	$golem_config = $('#golem_config');
 	$('#golem_config')
-		.sortable({axis:"y"}) /*, items:'div', handle:'h3' - broken inside GM */
+//		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
 		.children('.golem-panel-sortable')
-			.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
-refreshPositions:true, stop:function(){Config.updateOptions();} })
-			.droppable({ tolerance:'pointer', over:function(e,ui) {
-				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-				if (arrayIndexOf(order, 'Idle') >= newplace) {
-					if (me.settings.before) {
-						for(i=0; i<me.settings.before.length; i++) {
-							if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-								return;
+			.draggable({
+				axis:'y',
+				distance:5,
+				scroll:false,
+				handle:'h3',
+				helper:'clone',
+				opacity:0.75,
+				zIndex:100,
+				refreshPositions:true,
+				containment:'parent',
+				stop:function(event,ui) {
+					Queue.clearCurrent();// Make sure we deal with changed circumstances
+					Config.updateOptions();
+				}
+			})
+			.droppable({
+				tolerance:'pointer',
+				over:function(e,ui) {
+					var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+					if (arrayIndexOf(order, 'Idle') >= newplace) {
+						if (me.settings.before) {
+							for(i=0; i<me.settings.before.length; i++) {
+								if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+									return;
+								}
+							}
+						}
+						if (me.settings.after) {
+							for(i=0; i<me.settings.after.length; i++) {
+								if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+									return;
+								}
 							}
 						}
 					}
-					if (me.settings.after) {
-						for(i=0; i<me.settings.after.length; i++) {
-							if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-								return;
-							}
-						}
+					if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+						$(this).before(ui.draggable);
+					} else {
+						$(this).after(ui.draggable);
 					}
 				}
-				if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
-					$(this).before(ui.draggable);
-				} else {
-					$(this).after(ui.draggable);
-				}
-				Queue.clearCurrent();// Make sure we deal with changed circumstances
-			} });
+			});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
@@ -2829,24 +2845,18 @@ Resources.display = function() {
 			title:type
 		},{
 			id:'types.'+type,
-			label:'Allow '+type+' Use',
-			checkbox:true
+			label:'Bucket Type',
+			select:{0:'None',1:'Shared',2:'Exclusive'}
 		});
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				require = {};
-				require['buckets.'+worker+'.'+type] = 2;
-				require['types.'+type] = true;
+//				require['buckets.'+worker+'.'+type] = 2;
+				require['types.'+type] = 2;
 				display.push({
-					id:'buckets.'+worker+'.'+type,
-					require:'types.'+type,
-					label:worker,
-					select:{0:'None',1:'Shared',2:'Exclusive'}
-				},{
-					advanced:true,
 					id:'buckets.'+worker+'.priority',
 					require:require,
-					label:'...priority',
+					label:'...<b>'+worker+'</b> priority',
 					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
 				});
 			}
@@ -3970,7 +3980,7 @@ Battle.dashboard = function(sort, rev) {
 		this.order.sort(function(a,b) {
 			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});
@@ -4649,7 +4659,7 @@ Generals.dashboard = function(sort, rev) {
 				bb = (Generals.data[b][type][x] || 0);
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});
@@ -7047,7 +7057,7 @@ Monster.dashboard = function(sort, rev) {
 			return -1;
 		}
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
@@ -7826,7 +7836,7 @@ Quest.dashboard = function(sort, rev) {
 	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
@@ -8074,7 +8084,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Armor:4, Amulet:5, Gloves:6, Magic:7};
 	if (name) {
-		output.push('<div class="golem-panel"><h3 class="golem-panel-header">'+name+'</h3><div class="golem-panel-content">');
+		output.push('<div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">'+name+'</h3><div class="golem-panel-content">');
 	}
 	for (i in list) {
 		unitfunc(units, i, list);
@@ -8108,25 +8118,25 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 Town.dashboard = function() {
 	var left, right, generals = Generals.get(), duel = {}, best;
 	best = Generals.best('duel');
-	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'att', 'invade', 'Weapons')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'invade', 'Magic')
-			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'att', 'duel')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'duel')
 			+'</div></div></div>';
 	best = Generals.best('defend');
-	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'def', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'def', 'invade', 'Weapons')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'invade', 'Magic')
-			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'def', 'duel')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'duel')

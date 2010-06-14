@@ -395,7 +395,7 @@ Battle.dashboard = function(sort, rev) {
 		this.order.sort(function(a,b) {
 			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});

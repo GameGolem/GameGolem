@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name		Rycochet's Castle Age Golem
 // @namespace	golem
-// @description	Auto player for castle age game
+// @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.1
+// @version		31.4
 // @include		http://apps.facebook.com/castle_age/*
 // @include		http://apps.facebook.com/reqs.php
 // @require		http://cloutman.com/jquery-latest.min.js
@@ -15,12 +15,13 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (577+1);
+var revision = (593+1);
 // User changeable
 var show_debug = true;
 
 // Shouldn't touch
-var VERSION = "31.1";
+var isRelease = false;
+var VERSION = "31.4";
 var script_started = Date.now();
 
 // Automatically filled
@@ -133,9 +134,17 @@ Images.stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%
 Images.lock = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%00%00%00%00%00%00%A5g%B9%CF%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%0FIDATx%DAb%60%18%05%C8%00%20%C0%00%01%10%00%01%3BBBK%00%00%00%00IEND%AEB%60%82";
 Images.play = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%A7%A7%A7%C8%C8%C8YYY%40%40%40%00%00%00%9F0%E7%C0%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00%2BIDATx%DAb%60A%03%0CT%13%60fbD%13%60%86%0B%C1%05%60BH%02%CC%CC%0CxU%A0%99%81n%0BeN%07%080%00%03%EF%03%C6%E9%D4%E3)%00%00%00%00IEND%AEB%60%82";
 Images.pause = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%40%40%40%00%00%00i%D8%B3%D7%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%1AIDATx%DAb%60D%03%0CT%13%60%60%80%60%3A%0BP%E6t%80%00%03%00%7B%1E%00%E5E%89X%9D%00%00%00%00IEND%AEB%60%82";
+Images.star_off = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%96PLTE%E7%E8%E9%E7%E8%EA%F2%F3%F4%E4%E5%E6%DF%E0%E1%E1%E2%E3%DA%DB%DC%D2%D3%D4%D3%D4%D5%DE%DF%E0%F1%F2%F3%E8%E9%EB%D8%D9%DA%EF%F1%F2%EE%F0%F2%EB%ED%EF%EB%ED%EE%EA%EC%EE%F1%F3%F4%DF%E1%E1%E4%E6%E7%DB%DD%DD%E3%E4%E6%DA%DC%DD%EA%EB%ED%F0%F1%F2%E3%E4%E5%E2%E3%E4%EC%ED%EE%F5%F6%F8%F2%F3%F5%EC%EE%EF%DC%DE%DF%E4%E5%E7%EF%F0%F2%EA%EB%EC%F4%F5%F7%E7%E9%EA%F6%F7%F9%E6%E8%E9%DB%DD%DE%F3%F4%F6%EC%EE%EE%E0%E1%E2%ED%EE%EF%D4%D5%D6%F4%F5%F6%D5%D6%D7%F5%F6%F7%FF%FF%FFmf%FB%E3%00%00%002tRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%0DP%98%EF%00%00%00vIDATx%DA%3C%8D%D9%16%820%0CD%C3NE%C5%05%10%DC%C0%05%94ni%FF%FF%E7%A0%C1%E3%7D%C8%E4%BE%CC%80ux%1E%05%B8%F3Vj%FC%CBC%88j%91%DB%B3%C6f%85%99%BC%0F%20%D25%03c%5Ea%9C%96%B0Ci%08%89%1C%2C%C7%EB%EFw%05%7D%ACgXAm%9FP%FB%BE%3E_H%A2%20P*%82%2F%C9)%E96%87c%82%24y%EB%06%B7%7Bk'%01%06%00%92%E5%14%B02%9F%07%C0%00%00%00%00IEND%AEB%60%82";
+Images.star_on = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%FCPLTE%FF%ECx%EC%E5%D8%C2%956%DB%C3%8F%C4%968%C3%96%3A%F6%E2w%E5%D7%BB%C9%9D%3B%C2%959%CC%A5U%D3%B6w%EA%E3%D3%EE%E7%DA%FD%EA%5D%EA%E0%CC%FE%EFc%DC%B6A%FF%E3K%C2%937%C5%9A%3A%D7%BD%85%FE%F3%95%E1%BA%3B%E9%E0%CB%E0%BDH%EF%D6l%EF%E9%DF%E7%CCd%E8%DF%C9%F4%DFq%D6%AC%3C%CD%A2%3D%FF%F1%8A%E3%C6%60%D8%BE%88%F5%F5%F5%D0%B0k%F2%F2%EE%FF%E2P%EB%CEN%EE%C8%3C%EF%EC%E3%C3%957%C4%98%3A%EC%E4%D4%CA%A3S%DD%C6%9B%EC%D3k%E0%CF%AB%FF%EE%60%D6%BA%80%DA%BF%87%F1%F0%EB%EA%E1%CF%CF%AA%5D%FF%E5O%E2%D1%AF%FA%E9%83%F5%DDj%E7%C3%40%E8%C5C%C4%959%ED%D3i%E4%D7%BC%F2%EF%E7%C4%977%FB%EC%87%E0%C1_%FF%EF%80%FF%F5%99%C2%969%DC%C8%9F%C5%978%F3%F0%EC%D9%C1%90%DA%C4%94%D3%B4t%BF%8E.%C5%997%FF%EC%5C%FF%DEB%FF%F7%A0%FF%FF%FFv%E6%2F%B2%00%00%00TtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00S%F7r%D1%00%00%00%83IDATx%DAb%08%06%01f%130%C5%00%22%1C%99%3C%A5%E1%1Ce%19%7B_0G%85%97%5D%9FE%CCM%C4%DB%92%DF%8BA%D5%DF%C5%C0*(%C8YJ%89C%8F%C1%CC%8E-((H%D1%95%C1ZG%96!X%97U%8EA%3D0PS%5B%02d%80%83B%A0%90E%A0%BC%07%D84C%C1%00%01%3E%23%5Bc0GT%5C%C3%C9%5D%D2%86%0B%CC1%F7%E3%D6R%F3%11%E6%04s%18%19A%16%9A%F2%04%07%03%04%18%001%8C%20dI%CC%B1%85%00%00%00%00IEND%AEB%60%82";
+Images.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%22%22%22%FF%FF%FF%5E%87%201%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00'IDATx%DAb%60D%02%0C%E8%1C%06%08%00s%C0%0C%08A%12%07%CC%83s%40%3C%04%07*%83b%0F%02%00%04%18%00%18%EF%00Jb%DAw%FF%00%00%00%00IEND%AEB%60%82";
+Images.timer_red = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%CD%0A%0A%FF%FF%FF-%A2jr%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00(IDATx%DAb%60D%02%0C%40%04%01%60%0E%98%01%E1%91%C4%01%93p%0E%88Bp%A02(%F6%A0%BA%00%01%00%02%0C%00%15%0D%00J%D9%85%06%E0%00%00%00%00IEND%AEB%60%82";
+Images.potion_energy = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01qPLTE%E4%E1%DE%0D%7B%FFM%94%FF%C4%D3%E1%EC%EC%EE%FB%FB%FA%02%99%FFQVa%00%9B%FC)r%FF%F7%F6%F6)p%FF%E9%EC%FF%FB%FA%FAttt%D4%E0%EB%00%7D%FF3%8D%E3%FA%F9%F9%07%7F%FD%20j%FF%5E%A2%D6DMR%AE%A3%9D%07Hr%3A%9A%ED%17%9E%E7q%93%C9%81%B7%D9%D7%E0%EB%F1%F1%F3%15i%FF%07%8F%FE%A4%C8%DDk%9C%CC%9A%B1%FF%F0%F0%F0%0D%98%DC%80~%7C%08%7C%FF%90%83r%5C%9C%CA%F3%F2%F0D%92%D2%06%95%FC%D1%CF%D9%0E%87%F9o%C9%F9%FD%FC%FC%9E%A0%A3%F5%F9%FD%C7%C0%B8d%60a%5D%84%AA%A1%B8%DDA%7F%CE%A0%A6%C3a%98%FEGHH%86%A2%BE%00%8F%FA%F5%F4%F2%F5%F5%F7%A8%A4%A2v%9D%FF%0Cz%FF%2Bs%FF%FA%FA%FA%00%B2%F8%02%96%FF%E7%EA%FFwwx%1D%94%E8%00%8E%FF*j%FF%AD%A3%96)%B1%F1%5D%BB%ED%0B%2Cl%F2%F1%F2%A1%90~r%AD%CAW%83%FF-%A1%F8%5D%A8%FA%BB%D0%E6%26%87%FC%D9%D4%CE%22%A8%F9e%8A%FF%12%9E%FF%05u%FF%19g%FF%13m%FFeq%87%20p%FF%03l%FFtfZ%3E%9E%E3%9C%C6%DF9w%FF)%C0%F4%17r%FF%D1%D2%DB%1Ey%B5%D4%E6%F9%00%85%FF%0Ep%FF%F4%F3%F1%8E%8E%91%23s%FF%0Do%FFY%BD%E4%8C%7Cl%BA%C8%FFG%86%FF%23%A0%EC%EC%ED%ED%20%BE%FF%00%8D%D24%8E%FF%00I%8A%FF%FF%FFC%9B%AE%8C%00%00%00%7BtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%93%C3%A8%EA%00%00%00%AAIDATx%DAb%A8%02%01%5E3si%7F0%AB%8A%01L%A6%FBITZ%20%0B%B0%B0%8B%C5%E9%22%0B%E4%F0%99%D83%20%0Bh%E5Z%A9%A1%08p%05f(%95%22%0B%08%15%B8%F8%A8%20%0B0%A7rD%24%3B%23%04B%F5%CB%D2%C2TeXa%02%FC!%15%0A%96L%C2%E5%8AP%01%03_%B6%84b%B7%A2%3C%1B)9%88%80Qp%96%7C%24%8F%B2%97%A3N%26D%C0NR%20%26%C8!%25%3E_O%16%22%10%60%EA%AA%EE%C4%C9-%E2%A9%5D%08%11%F0N%D4%8C%8A%8Ee%CC%16t%D7%80%DA%12.n%9D%E4Q%22jhl%0B%E4%00%04%18%00aI%5C8%B90%1DA%00%00%00%00IEND%AEB%60%82";
+Images.potion_stamina = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01tPLTE%FD%B0Q%FD%FB%F7%FD%FB%F6%FA%60%24%FA%F5%EC%FE%FA%E9%F5%DA%BB%F4%D8%BB%FD%B0R%EE%E5%D7%EC%E1%C9%FA%F8%F3%ED%E7%D8%FB%F8%F1%7B%80%83%F9%95I%FB%F4%E9%FD%FC%F8%FE%FE%FB%F2kG%FFu%2C%FD%97%3B%E9g6%FF%7C)%E8%83X%FE%90%3A%FF%8D0%91%8D%88%FA%7F7%FC%5D%40%F7%9E%84%D4%95%80%88%7Fd%F8%F1%E5%DB%8BS%CF%AD%90%804%1E%FE%861%DDP4%FB%E8%D9%D8%C6%9E%E7%8BT%FE%D0%8D%F7bG%B0%A4%94%FCq.%FD%D2%81%F6%F4%F2%FDm%22%F0%BC%98%F7%F0%E5%FFh(%FE%9E%40%F0%86g%D6%3F!%FF%ABL%FD%BEj%BC%5BC%FF%9E%3C%E6%AC%8A%A3%9A%87%A8%A3%9B%F3%E4%D5%FD%B0P%FA%F5%ED%FE%FB%E8%F9b%23%F3%90V%F6j%3D%F9%F5%EC%F9E%13%F4%89d%FD%A8J%94%91%91jhl%FE%8D7%FE%AEH%FFr8%96*%0E%FD%A8DwY0%97%83x%95%8Fx%B0%B4%B5%FC%C9t%FC%A5%40%CC%C6%BDmcb%FD%C1%7D%FE%EE%C6%BD%B4%A4%DC%D6%D0%D9%AAy%95%89w%F8%A9x%EAU-%EA%E2%C9%D4%9F%81%F0m%40%F8~G%D4%8Fl%DF%8D%5E%FD%8E.%E9%CB%A6%BD%AE%98%FD%B1k%FE%E5%AB%ED%BD%A0%FD%BB%5E%FE%FA%F7%F3%26%0F%E0%97p%FA%F6%EB%FD%B7Q%FC%5B%23%9E%8Cn%FD%FC%F7%FE%999%F9%7C%2F%7Csf%C1%91i%FD%95M%F8%E2%CC%FF%FF%FFgb%E8%EA%00%00%00%7CtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%01j%DA1%00%00%00%ABIDATx%DAb%A8%06%01%C6t%A5%18%160%AB%9A%01Lr%05%A8%F8i%20%0B(%96%87%07%26%20%0B8H%F3%05s%22%0B%B8%DAzy%F2%20%0B%F0%CA%5B%26%1A!%0B0%99%E6%09%0B%20%0B%B0i%BB%B9%18%96%20%04%D8%E5dM%F8%D5%AC%05a%02Uq%95%BA%11%99ef%D9P%01!%F7%A24%0B%C7Hs%A7%F8%02%88%40n%B2A%A8%1EkV%A17%B3%3AD%80%DBY%DC%3FD%2B%C7%A3T%C6%0E%22%60Sa%AC%CA%C1%60%EF%23%92%1A%04%11%D0QH%F1%95%B2%92%14%D5%2C%8E%85%DA%12%1D%A5%2C!%96%94%9F%11%A6%0F%E4%00%04%18%00%BA%F5%5D7%DF%1B%AE%5B%00%00%00%00IEND%AEB%60%82";
+Images.beta = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%FF%FF%FFiii%92%95*%C3%00%00%00%01tRNS%00%40%E6%D8f%00%00%003IDATx%DAb%60%C0%00%8C%8C%E8%02%0C%8CD%A8%60D%16%05%B1%19%890%98%01%5D%1BV%7DX%04%181%EDG%B7%8C%91%90%2F0%0Df%60%00%080%00%15*%00%26%C7%CF%D9%E5%00%00%00%00IEND%AEB%60%82";
+Images.update = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82";
 
 var makeImage = function(type, title) {
-	return '<img class="g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
+	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
 }
 
 function do_css(){
@@ -147,6 +156,7 @@ $('head').append("<style type=\"text/css\">\
 .golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
 .golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
 .golem-tooltip > a { float: right; color: red; }\
+#golem_config h3 { -webkit-user-select: none; -moz-user-select: none; }\
 .golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; float: right; z-index: 10; }\
 .golem-config > div { margin-top: 4px; }\
 .golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%DE%DE%DE%DD%DD%DDcccUUU%00%00%00%23%06%7B1%00%00%00%05tRNS%FF%FF%FF%FF%00%FB%B6%0ES%00%00%00.IDATx%DAb%60A%03%0Cd%0B03%81%18LH%02%10%80%2C%C0%84%24%00%96d%C2%A7%02%AB%19L%8C%A8%B6P%C3%E9%08%00%10%60%00%00z%03%C7%24%170%91%00%00%00%00IEND%AEB%60%82') no-repeat; }\
@@ -195,7 +205,8 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
 .golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
 .golem-title { padding: 4px; margin: -4px -4px 0 -4px !important; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
-.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; width: 184px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
+.golem-panel-header input { float: right; margin: 2px; }\
 .golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
 .golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
 .golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
@@ -204,13 +215,16 @@ img.golem-button, img.golem-button-active { margin-bottom: -2px }\
 .golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C%D4%13%60%C0%10%60%C0%10%60%C0%10%60%20%A4%82%90-%149%1D%20%C0%00%81%0E%00%F1%DE%25%95%BE%00%00%00%00IEND%AEB%60%82') no-repeat; }\
 .golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%001IDATx%DAb%60D%03%0CD%0B000%A0%0800%C0D%E0%02%8C(%02%0C%0Cp%25%B8%05%18%09%0A%A0j%C1%B4%96%1C%BF%C0%01%40%80%01%00n%11%00%CF%7D%2Bk%9B%00%00%00%00IEND%AEB%60%82') no-repeat;}\
 .golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTEUUU%00%00%00%F5%04%9F%A0%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00%22IDATx%DAb%60D%03%0C4%13%60%80%00%24%15%08%3EL%0B%9C%CF%88N%D3%D0a%C8%00%20%C0%00%7F%DE%00%F1%CCc%A6b%00%00%00%00IEND%AEB%60%82') no-repeat; }\
-#golem_window { text-align: center; display: block; }\
-img.g_energy { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.energy+"\") no-repeat; }\
-img.g_exp { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.exp+"\") no-repeat; }\
-img.g_gold { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.gold+"\") no-repeat; }\
-img.g_health { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.health+"\") no-repeat; }\
-img.g_percent { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.percent+"\") no-repeat; }\
-img.g_stamina { width: 16px; height: 16px; margin-bottom: -4px; background: url(\""+Images.stamina+"\") no-repeat; }\
+.golem-info { text-align: center; display: block; }\
+img.g_image { width: 16px; height: 16px; margin-bottom: -4px; }\
+img.g_energy { background: url(\""+Images.energy+"\") no-repeat; }\
+img.g_exp { background: url(\""+Images.exp+"\") no-repeat; }\
+img.g_gold { background: url(\""+Images.gold+"\") no-repeat; }\
+img.g_health { background: url(\""+Images.health+"\") no-repeat; }\
+img.g_percent { background: url(\""+Images.percent+"\") no-repeat; }\
+img.g_stamina { background: url(\""+Images.stamina+"\") no-repeat; }\
+img.g_potion_stamina { background: url(\""+Images.potion_stamina+"\") no-repeat; }\
+img.g_potion_energy { background: url(\""+Images.potion_energy+"\") no-repeat; }\
 </style>");
 }
 // Utility functions
@@ -393,7 +407,7 @@ var findInArray = function(list, value) {
 };
 
 var findInObject = function(list, value) {
-	if (typeof list === 'object') {
+	if (isObject(list)) {
 		for (var i in list) {
 			if (list[i] == value) {
 				return i;
@@ -444,7 +458,7 @@ var sortObject = function(obj, sortfunc, deep) {
 	for (i in obj) {
 		list.push(i);
 	}
-	list.sort(sortfunc);
+	sortfunc ? list.sort(sortfunc) : list.sort();
 	for (i=0; i<list.length; i++) {
 		if (deep && typeof obj[list[i]] === 'object') {
 			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
@@ -506,20 +520,28 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
-var isArray = function(obj) {   
+var isArray = function(obj) {// Not an object
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+};
+
+var isObject = function(obj) {// Not an array
+    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+};
+
+var isFunction = function(obj) {
+	return typeof obj === 'function';
 };
 
 var isNumber = function(num) {
 	return typeof num === 'number';
 };
 
-var isString = function(num) {
-	return typeof num === 'string';
+var isString = function(str) {
+	return typeof str === 'string';
 };
 
+// Big shortcut for being inside a try/catch block
 var isWorker = function(obj) {
-	// Big shortcut for being inside a try/catch block
 	try {return Workers[obj.name] === obj;}
 	catch(e) {return false;}
 };
@@ -596,10 +618,6 @@ Date.replaceChars = {
 	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
 	r: function() { return this.toString(); },
 	U: function() { return this.getTime() / 1000; }
-};
-
-var iscaap = function() {
-	return (typeof caap != 'undefined');
 };
 
 var ucfirst = function(str) {
@@ -718,7 +736,7 @@ function Worker(name,pages,settings) {
 	Workers[name] = this;
 
 	// User data
-	this.id = null;
+	this.id = 'golem_panel_'+name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	this.name = name;
 	this.pages = pages;
 
@@ -768,14 +786,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	}
 	data = this[x.shift()];
 	try {
-		return (function(a,b,d){
+		return (function(a,b){
 			if (b.length) {
 				var c = b.shift();
-				return arguments.callee(a[c],b,d);
+				return arguments.callee(a[c],b);
 			} else {
-				return a !== 'undefined' ? a : d;
+				return typeof a !== 'undefined' ? a : def;
 			}
-		})(data,x,def);
+		})(data,x);
 	} catch(e) {
 //		WorkerStack.push(this);
 		if (typeof def === 'undefined') {
@@ -923,7 +941,7 @@ Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
-	iscaap() && (typeof this.caap_load == 'function') && this.caap_load();
+	('Caap' in Workers) && (typeof this.caap_load == 'function') && this.caap_load();
 	WorkerStack.pop();
 };
 
@@ -1005,7 +1023,7 @@ Army.runtime = {
 	// Dashboard defaults:
 	sort:0,rev:false,show:'Name',info:'uid'
 };
-
+/*
 Army.display = [
 	{
 		id:'forget',
@@ -1015,7 +1033,7 @@ Army.display = [
 		help:'This will delete any userID that\'s not been seen for a length of time'
 	}
 ];
-
+*/
 Army.update = function(type,worker) {
 	if (type === 'data' && !worker) {
 		for (var i in this.runtime.update) {
@@ -1072,7 +1090,7 @@ Army.set = function(what, value) {
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list = [];
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
@@ -1086,15 +1104,13 @@ Army.get = function(what, def) {
 	}
 	// No userid, so return a list of userid's used by this section
 	if (section && x.length === 0) {
-		return (function(section){
-			var i, list = [];
-			for (i in this.data) {
-				if (section in this.data[i]) {
-					list.push(i);
-				}
+		this._unflush();
+		for (i in this.data) {
+			if (section in this.data[i]) {
+				list.push(i);
 			}
-			return list;
-		})(section);
+		}
+		return list;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
@@ -1108,10 +1124,6 @@ Army.get = function(what, def) {
 	x.unshift('data', uid, section);
 	return this._get(x, def);
 };
-
-Army.star_off = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%96PLTE%E7%E8%E9%E7%E8%EA%F2%F3%F4%E4%E5%E6%DF%E0%E1%E1%E2%E3%DA%DB%DC%D2%D3%D4%D3%D4%D5%DE%DF%E0%F1%F2%F3%E8%E9%EB%D8%D9%DA%EF%F1%F2%EE%F0%F2%EB%ED%EF%EB%ED%EE%EA%EC%EE%F1%F3%F4%DF%E1%E1%E4%E6%E7%DB%DD%DD%E3%E4%E6%DA%DC%DD%EA%EB%ED%F0%F1%F2%E3%E4%E5%E2%E3%E4%EC%ED%EE%F5%F6%F8%F2%F3%F5%EC%EE%EF%DC%DE%DF%E4%E5%E7%EF%F0%F2%EA%EB%EC%F4%F5%F7%E7%E9%EA%F6%F7%F9%E6%E8%E9%DB%DD%DE%F3%F4%F6%EC%EE%EE%E0%E1%E2%ED%EE%EF%D4%D5%D6%F4%F5%F6%D5%D6%D7%F5%F6%F7%FF%FF%FFmf%FB%E3%00%00%002tRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%0DP%98%EF%00%00%00vIDATx%DA%3C%8D%D9%16%820%0CD%C3NE%C5%05%10%DC%C0%05%94ni%FF%FF%E7%A0%C1%E3%7D%C8%E4%BE%CC%80ux%1E%05%B8%F3Vj%FC%CBC%88j%91%DB%B3%C6f%85%99%BC%0F%20%D25%03c%5Ea%9C%96%B0Ci%08%89%1C%2C%C7%EB%EFw%05%7D%ACgXAm%9FP%FB%BE%3E_H%A2%20P*%82%2F%C9)%E96%87c%82%24y%EB%06%B7%7Bk'%01%06%00%92%E5%14%B02%9F%07%C0%00%00%00%00IEND%AEB%60%82";
-Army.star_on = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%FCPLTE%FF%ECx%EC%E5%D8%C2%956%DB%C3%8F%C4%968%C3%96%3A%F6%E2w%E5%D7%BB%C9%9D%3B%C2%959%CC%A5U%D3%B6w%EA%E3%D3%EE%E7%DA%FD%EA%5D%EA%E0%CC%FE%EFc%DC%B6A%FF%E3K%C2%937%C5%9A%3A%D7%BD%85%FE%F3%95%E1%BA%3B%E9%E0%CB%E0%BDH%EF%D6l%EF%E9%DF%E7%CCd%E8%DF%C9%F4%DFq%D6%AC%3C%CD%A2%3D%FF%F1%8A%E3%C6%60%D8%BE%88%F5%F5%F5%D0%B0k%F2%F2%EE%FF%E2P%EB%CEN%EE%C8%3C%EF%EC%E3%C3%957%C4%98%3A%EC%E4%D4%CA%A3S%DD%C6%9B%EC%D3k%E0%CF%AB%FF%EE%60%D6%BA%80%DA%BF%87%F1%F0%EB%EA%E1%CF%CF%AA%5D%FF%E5O%E2%D1%AF%FA%E9%83%F5%DDj%E7%C3%40%E8%C5C%C4%959%ED%D3i%E4%D7%BC%F2%EF%E7%C4%977%FB%EC%87%E0%C1_%FF%EF%80%FF%F5%99%C2%969%DC%C8%9F%C5%978%F3%F0%EC%D9%C1%90%DA%C4%94%D3%B4t%BF%8E.%C5%997%FF%EC%5C%FF%DEB%FF%F7%A0%FF%FF%FFv%E6%2F%B2%00%00%00TtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00S%F7r%D1%00%00%00%83IDATx%DAb%08%06%01f%130%C5%00%22%1C%99%3C%A5%E1%1Ce%19%7B_0G%85%97%5D%9FE%CCM%C4%DB%92%DF%8BA%D5%DF%C5%C0*(%C8YJ%89C%8F%C1%CC%8E-((H%D1%95%C1ZG%96!X%97U%8EA%3D0PS%5B%02d%80%83B%A0%90E%A0%BC%07%D84C%C1%00%01%3E%23%5Bc0GT%5C%C3%C9%5D%D2%86%0B%CC1%F7%E3%D6R%F3%11%E6%04s%18%19A%16%9A%F2%04%07%03%04%18%001%8C%20dI%CC%B1%85%00%00%00%00IEND%AEB%60%82";
-Army.timer = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0C%00%00%00%0C%08%03%00%00%00a%AB%AC%D5%00%00%00%06PLTE%22%22%22%FF%FF%FF%5E%87%201%00%00%00%02tRNS%FF%00%E5%B70J%00%00%00'IDATx%DAb%60D%02%0C%E8%1C%06%08%00s%C0%0C%08A%12%07%CC%83s%40%3C%04%07*%83b%0F%02%00%04%18%00%18%EF%00Jb%DAw%FF%00%00%00%00IEND%AEB%60%82";
 
 Army.infolist = {
 	'UserID':'uid',
@@ -1231,7 +1243,7 @@ Army.dashboard = function(sort, rev) {
 				bb = Army.getSection(sort, 'sort', b);
 			} catch(e){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
@@ -1312,12 +1324,12 @@ Config.option = {
 };
 
 Config.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $golem_config, $newPanel, i, j, k, $display;
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+VERSION : 'r'+revision) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -1330,11 +1342,9 @@ Config.init = function() {
 		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
 		Config._save('option');
 	});
-	$golem_config = $('#golem_config');
 	for (i in Workers) {
-		$golem_config.append(Config.makePanel(Workers[i]));
+		Config.makePanel(Workers[i], Workers[i].display);
 	}
-	$golem_config.sortable({axis:"y"}); //, items:'div', handle:'h3' - broken inside GM
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
 			$(this).next().hide('blind',function(){
@@ -1351,34 +1361,52 @@ Config.init = function() {
 			Config._save('option');
 		}
 	});
-	$golem_config.children('.golem-panel-sortable')
-		.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
-refreshPositions:true, stop:function(){Config.updateOptions();} })
-		.droppable({ tolerance:'pointer', over:function(e,ui) {
-			var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-			if (arrayIndexOf(order, 'Idle') >= newplace) {
-				if (me.settings.before) {
-					for(i=0; i<me.settings.before.length; i++) {
-						if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-							return;
+//	$golem_config = $('#golem_config');
+	$('#golem_config')
+//		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
+		.children('.golem-panel-sortable')
+			.draggable({
+				axis:'y',
+				distance:5,
+				scroll:false,
+				handle:'h3',
+				helper:'clone',
+				opacity:0.75,
+				zIndex:100,
+				refreshPositions:true,
+				containment:'parent',
+				stop:function(event,ui) {
+					Queue.clearCurrent();// Make sure we deal with changed circumstances
+					Config.updateOptions();
+				}
+			})
+			.droppable({
+				tolerance:'pointer',
+				over:function(e,ui) {
+					var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+					if (arrayIndexOf(order, 'Idle') >= newplace) {
+						if (me.settings.before) {
+							for(i=0; i<me.settings.before.length; i++) {
+								if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+									return;
+								}
+							}
+						}
+						if (me.settings.after) {
+							for(i=0; i<me.settings.after.length; i++) {
+								if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+									return;
+								}
+							}
 						}
 					}
-				}
-				if (me.settings.after) {
-					for(i=0; i<me.settings.after.length; i++) {
-						if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-							return;
-						}
+					if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+						$(this).before(ui.draggable);
+					} else {
+						$(this).after(ui.draggable);
 					}
 				}
-			}
-			if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
-				$(this).before(ui.draggable);
-			} else {
-				$(this).after(ui.draggable);
-			}
-			Queue.clearCurrent();// Make sure we deal with changed circumstances
-		} });
+			});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
@@ -1424,43 +1452,95 @@ refreshPositions:true, stop:function(){Config.updateOptions();} })
 		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
 		Config.updateOptions();
 	});
-	$('input,textarea,select', $golem_config).change( function(){
+	$('#golem_config input,textarea,select').live('change', function(){
 		Config.updateOptions();
 	});
 	$('#golem-config-advanced').click(function(){
 		Config.updateOptions();
-		$('.golem-advanced').css('display', Config.option.advanced ? '' : 'none');}
-	);
+		$('.golem-advanced:not(".golem-require")').css('display', Config.option.advanced ? '' : 'none');
+		Config.checkRequire();
+	});
+	$('.golem-panel-header input').click(function(event){
+		event.stopPropagation(true);
+	});
 	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 };
 
-Config.makePanel = function(worker) {
-	var i, $head, $panel;
-	if (!worker.display) {
-		return null;
+Config.makePanel = function(worker, args) {
+	var i, $panel;
+	if (!isWorker(worker)) {
+		if (!WorkerStack.length) {
+			return;
+		}
+		args = worker;
+		worker = WorkerStack[WorkerStack.length-1];
 	}
-	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
-	$head = $('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header "><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<img class="golem-lock" src="' + Images.lock + '"></h3></div>');
-	switch (typeof worker.display) {
-		case 'array':
-		case 'object':
-			$panel = $('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			for (i in worker.display) {
-				$panel.append(this.makeOption(worker, worker.display[i]));
-			}
-			$head.append($panel);
-			return $head;
-		case 'function':
-			$head.append('<div class="golem-panel-content" style="font-size:smaller;"></div>');
-			try {
-				$('.golem-panel-content', $head).append(worker.display());
-			} catch(e) {
-				debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
-			}
-			return $head;
-		default:
-			return null;
+	if (!args) {
+		if (!worker.display) {
+			return;
+		}
+		args = worker.display;
+	}
+//	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
+	if (!$('#'+worker.id).length) {
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+	}
+	$panel = $('#'+worker.id+' > div').empty();
+	if (isArray(args)) {
+		for (var i=0; i<args.length; i++) {
+			$panel.append(this.makeOption(worker, args[i]));
+		}
+	} else if (isObject(args)) {
+		$panel.append(this.makeOption(worker, args));
+	} else if (isString(args)) {
+		$panel.append(this.makeOption(worker, {title:args}));
+	} else if (isFunction(args)) {
+		try {
+			this.makePanel(worker, args.call(worker));
+		} catch(e) {
+			debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
+		}
+	}
+	this.checkRequire(worker.id);
+};
+
+Config.makeID = function(worker, id) {
+	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
+};
+
+Config.clearPanel = function(worker) {
+	this._init(); // Make sure we're properly loaded first!
+	if (!isWorker(worker)) {
+		if (!WorkerStack.length) {
+			return;
+		}
+		worker = WorkerStack[WorkerStack.length-1];
+	}
+	$('#'+worker.id+' > div').empty();
+};
+
+Config.addOption = function(worker, args) {
+	this._init(); // Make sure we're properly loaded first!
+	if (!isWorker(worker)) {
+		if (!worker || !WorkerStack.length) {
+			return;
+		}
+		args = worker;
+		worker = WorkerStack[WorkerStack.length-1];
+	}
+	if (isArray(args)) {
+		for (var i=0; i<args.length; i++) {
+			$('#'+worker.id+' > div').append(this.makeOption(worker, args[i]));
+		}
+	} else if (isObject(args)) {
+		$('#'+worker.id+' > div').append(this.makeOption(worker, args));
+	} else if (isString(args)) {
+		$('#'+worker.id+' > div').append(this.makeOption(worker, {title:args}));
+	} else if (isFunction(args)) {
+		this.addOption(worker, args());
+	} else {
+		debug(worker.name+' is trying to add an unknown type of panel');
 	}
 };
 
@@ -1476,7 +1556,7 @@ Config.makeOption = function(worker, args) {
 		min: 0,
 		max: 100
 	}, args);
-	o.real_id = PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + o.id;
+	o.real_id = this.makeID(worker, o.id);
 	o.value = worker.get('option.'+o.id, null);
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
@@ -1485,7 +1565,7 @@ Config.makeOption = function(worker, args) {
 	if (o.title) {
 		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
 	}
-	if (o.label) {
+	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
 		if (o.text || o.checkbox || o.select) {
 			txt.push('<span style="float:right;">');
@@ -1509,6 +1589,8 @@ Config.makeOption = function(worker, args) {
 		txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
 		txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+	} else if (o.button) {
+		txt.push('<input type="button" id="' + o.real_id + '" value="' + o.label + '">');
 	} else if (o.select) {
 		switch (typeof o.select) {
 			case 'number':
@@ -1610,7 +1692,7 @@ Config.makeOption = function(worker, args) {
 };
 
 Config.set = function(key, value) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	this._unflush();
@@ -1642,7 +1724,7 @@ Config.updateOptions = function() {
 	// Now can we see the advanced stuff
 	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
-	$('#golem_config :input').each(function(i,el){
+	$('#golem_config :input:not(:button)').each(function(i,el){
 		if ($(el).attr('id')) {
 			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
 			if (!tmp) {
@@ -1669,9 +1751,13 @@ Config.updateOptions = function() {
 	this.checkRequire();
 };
 
-Config.checkRequire = function() {
-	$('.golem-require').each(function(i,el){
+Config.checkRequire = function(id) {
+//	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
+	$((typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
 		var i, j, k, worker, path, value, show = true, require = JSON.parse($(el).attr('require'));
+		if ($(el).hasClass('golem-advanced')) {
+			show = Config.option.advanced;
+		}
 		for (i in require) {
 			path = i.split('.');
 			worker = WorkerByName(path.shift());
@@ -1680,10 +1766,8 @@ Config.checkRequire = function() {
 				for (j=0; j<require[i].length; j++) {
 					if (isArray(require[i][j])) {
 //						log('Require: NOT '+i+', '+require[i][j]+' = '+value);
-						for (k=0; k<require[i][j].length; k++) {
-							if (require[i][j][k] === value) {
-								show = false;
-							}
+						if (findInArray(require[i][j], value)) {
+							show = false;
 						}
 					} else {
 //						log('Require: '+i+', '+require[i][j]+' = '+value);
@@ -1692,8 +1776,8 @@ Config.checkRequire = function() {
 						}
 					}
 				}
-			} else if (!isArray(require[i])) {// Worker doesn't exist - assume it's not a typo, so only hide non-negative tests
-				show = false;
+			} else {
+				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
 			}
 		}
 		if (show) {
@@ -2477,7 +2561,7 @@ Queue.runtime = {
 Queue.option = {
 	delay: 5,
 	clickdelay: 5,
-	queue: ['Page', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -2506,25 +2590,25 @@ Queue.display = [
 		size:3,
 		help:'This should be a multiple of Event Delay'
 	},{
+		id:'stamina',
+		before:'Keep',
+		select:'stamina',
+		after:'Stamina Always'
+	},{
 		id:'start_stamina',
-		before:'Save',
+		before:'Stock Up',
 		select:'stamina',
 		after:'Stamina Before Using'
 	},{
-		id:'stamina',
-		before:'Always Keep',
-		select:'stamina',
-		after:'Stamina'
+		id:'energy',
+		before:'Keep',
+		select:'energy',
+		after:'Energy Always'
 	},{
 		id:'start_energy',
-		before:'Save',
+		before:'Stock Up',
 		select:'energy',
 		after:'Energy Before Using'
-	},{
-		id:'energy',
-		before:'Always Keep',
-		select:'energy',
-		after:'Energy'
 	}
 ];
 
@@ -2538,10 +2622,11 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
 	var i, worker;
+	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
 		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
@@ -2555,7 +2640,7 @@ Queue.init = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = Workers[this.option.queue[i]];
-		if (worker && worker.id) {
+		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
 				debug('Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
@@ -2563,9 +2648,11 @@ Queue.init = function() {
 			$('#golem_config').append($('#'+worker.id));
 		}
 	}
-	$(document).click(function(){Queue.lastclick=Date.now();});
-        $(document).keypress(function(){Queue.lastclick=Date.now();});
-        
+	$(document).bind('click keypress', function(event){
+		if (!event.target || !$(event.target).parents().is('#golem_config_frame,#golem-dashboard')) {
+			Queue.lastclick=Date.now();
+		}
+	});
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
 		var paused = Queue.set('option.pause', !Queue.get('option.pause', false));
@@ -2582,15 +2669,16 @@ Queue.init = function() {
 Queue.clearCurrent = function() {
 	var current = this.get('runtime.current', null)
 	if (current) {
-		$('#'+Workers[current].name+' > h3').css('font-weight', 'normal');
+		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
 	}
 }
 
 Queue.update = function(type) {
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		return false;
 	}
+	var i, $worker;
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
 		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
@@ -2600,6 +2688,33 @@ Queue.update = function(type) {
 		this.lasttimer = -1;
 	}
 	this.lastpause = this.option.pause;
+	for (i in Workers) {
+		$worker = $('#'+Workers[i].id+' .golem-panel-header');
+		if (Queue.enabled(Workers[i])) {
+			if ($worker.hasClass('red')) {
+				$worker.removeClass('red');
+				Workers[i]._update('option', null);
+			}
+		} else {
+			if (!$worker.hasClass('red')) {
+				$worker.addClass('red');
+				Workers[i]._update('option', null);
+			}
+		}
+	}
+	if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
+		this.clearCurrent();
+	}
+	this.burn.stamina = this.burn.energy = 0;
+	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+		this.option.burn_stamina = this.burn.stamina > 0;
+	}
+	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+		this.option.burn_energy = this.burn.energy > 0;
+	}
+	//debug('Burnable stamina ' + this.burn.stamina +" burnable energy " + this.burn.energy );
 };
 
 Queue.run = function() {
@@ -2615,15 +2730,7 @@ Queue.run = function() {
 	}
 	WorkerStack.push(this);
 //	debug('Start Queue');
-	this.burn.stamina = this.burn.energy = 0;
-	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-		this.option.burn_stamina = this.burn.stamina > 0;
-	}
-	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-		this.option.burn_energy = this.burn.energy > 0;
-	}
+	
 	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
 /*	if (Player.get('energy') >= Player.get('maxenergy')){
 		this.burn.stamina = 0;	// Focus on burning energy
@@ -2634,7 +2741,7 @@ Queue.run = function() {
 	}
 */	
 	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display) {
+		if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
 //			debug(Workers[i].name + '.work(false);');
 			Workers[i]._unflush();
 			Workers[i]._work(false);
@@ -2642,7 +2749,7 @@ Queue.run = function() {
 	}
 	for (i=0; i<this.option.queue.length; i++) {
 		worker = Workers[this.option.queue[i]];
-		if (!worker || !worker.work || !worker.display) {
+		if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
 			continue;
 		}
 //		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -2682,6 +2789,144 @@ Queue.run = function() {
 		Workers[i]._flush();
 	}
 	WorkerStack.pop();
+};
+
+Queue.enabled = function(worker) {
+	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
+};
+
+/********** Worker.Resources **********
+* Store and report Resourcess
+
+Workers can add a type of Resources that they supply - Player would supply Energy and Stamina when parsing etc
+Workers request buckets of Resourcess during init() - each bucket gets a display in the normal Resources config panel.
+
+Resources stores the buckets as well as an overflow bucket - the overflow is used during level up
+
+Buckets may be either -
+"Shared" buckets are like now - first-come, first-served from a single source
+- or -
+"Exclusive" buckets are filled by a drip system, forcing workers to share Resourcess
+
+The Shared bucket has a priority of 0
+
+When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
+Priority is displayed as -5, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
+
+When a worker is disabled (Queue.option.enabled[worker] === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
+
+Buckets are filled in priority order, in cases of same priority, alphabetical order is used
+*/
+
+var Resources = new Worker('Resources');
+Resources.settings = {
+	system:true,
+	unsortable:true
+};
+
+Resources.option = {
+	types:{},
+	buckets:{}
+};
+
+Resources.runtime = {
+	types:{},// {'Energy':true}
+	buckets:{}
+};
+
+Resources.display = function() {
+	var type, worker, require, display = [];
+	if (!length(this.runtime.types)) {
+		return 'Discovering Resources...';
+	}
+	display.push({label:'Not doing anything yet...'});
+	for (type in this.option.types) {
+		display.push({
+			title:type
+		},{
+			id:'types.'+type,
+			label:'Bucket Type',
+			select:{0:'None',1:'Shared',2:'Exclusive'}
+		});
+		for (worker in this.runtime.buckets) {
+			if (type in this.runtime.buckets[worker]) {
+				require = {};
+//				require['buckets.'+worker+'.'+type] = 2;
+				require['types.'+type] = 2;
+				display.push({
+					id:'buckets.'+worker+'.priority',
+					require:require,
+					label:'...<b>'+worker+'</b> priority',
+					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
+				});
+			}
+		}
+	}
+	return display;
+};
+
+Resources.init = function() {
+//	Config.addOption({label:'test',checkbox:true});
+};
+
+/***** Resources.addType() *****
+Add a type of Resources
+*/
+Resources.addType = function(type) {
+	WorkerStack.push(this);
+	this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
+	this.set(['option','types',type], this.get(['option','types',type], true));
+	Config.makePanel();
+	WorkerStack.pop();
+};
+
+/***** Resources.useType() *****
+Register to use a type of resource
+Actually use a type of resource (must register with no amount first)
+*/
+Resources.useType = function(type, amount) {
+	if (!WorkerStack.length) {
+		return;
+	}
+	var worker = WorkerStack[WorkerStack.length-1];
+	if (typeof amount === 'undefined') {
+//		this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
+//		this.set(['option','types',type], this.get(['option','types',type], true));
+		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
+		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 1));
+		this.set(['option','buckets',worker.name,'priority'], this.get(['option','buckets',worker.name,'priority'], 5));
+	} else {
+	}
+};
+
+/***** Resources.add() *****
+type = name of Resources
+amount = amount to add
+abs = is an absolute amount, not relative
+1. Set the amount we have to the new value
+2. If we've gained, then share some out
+*/
+Resources.add = function(type, amount, abs) {
+	var change, old = this.get(['runtime','types',type], 0);
+	if (abs) {
+		change = amount - old;
+		this.set(['runtime','types',type], amount);
+	} else {
+		change = amount;
+		this.set(['runtime','types',type], amount + old);
+	}
+//	if (change > 0) {// We've gotten higher, lets share some out...
+//	}
+};
+
+Resources.get = function(what,def) {
+//	log('Resources.get('+what+', '+(def?def:'null')+')');
+	return this._get(what,def);
+};
+
+Resources.set = function(what,value) {
+//	log('Resources.set('+what+', '+(value?value:'null')+')');
+	return this._set(what,value);
 };
 
 /********** Worker.Settings **********
@@ -2892,29 +3137,31 @@ Update.settings = {
 
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
-	force:false,// Have we clicked a button, or is it an automatic check
-	last:0,
-	revision:0,
-	beta:0,
-	found:false// Have we found a new version
+	force:false// Have we clicked a button, or is it an automatic check
 };
 
+Update.found = false;
+Update.looking = false;
+
 /***** Update.init() *****
-1. Add a "Update Now" button to the button bar at the top of Config
-1a. On clicking the button check if we've already found an update
-1b. If an update was found then get GM to install it
-1c. If no update was found then set the lastcheck to 0 to force the next check to come in 5 seconds
-2. Add an (Advanced) "WIP" button to the button bar at the top of Config
-2a. On clicking the button offer to install the latest WIP version
+1a. Add a "Update Now" button to the button bar at the top of Config
+1b. If running a beta version then add a "beta" button - which makes us pretend to be a beta version before running the update check.
+2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Script Update" id="golem_update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C7%C7%C7UUU%7B%7B%7B%BF%BF%BF%A6%A6%A6%FF%FF%FF%40%40%40%FF%FF%FFk5%D0%FB%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00UIDATx%DAt%8F%5B%12%800%08%03%23%8Fx%FF%1B%5B%C0%96%EA%E8~%95%9D%C0%A48_%E0S%A8p%20%3A%85%F1%C6Jh%3C%DD%FD%205E%E4%3D%18%5B)*%9E%82-%24W6Q%F3Cp%09%E1%A2%8E%A2%13%E8b)lVGU%C7%FF%E7v.%01%06%005%D6%06%07%F9%3B(%D0%00%00%00%00IEND%AEB%60%82">').click(function(){if (Update.get('runtime.found')){window.location.href = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';} else {Update.set('runtime.force', true);Update.set('runtime.lastcheck', 0);}});
-	$('#golem_buttons').append($btn);
-	$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Beta Update" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%06PLTE%FF%FF%FFiii%92%95*%C3%00%00%00%01tRNS%00%40%E6%D8f%00%00%00%2FIDATx%DAb%60%C0%00%8CP%8CO%80%91%90%00%08%80H%14%25h%C60%10%2B%80l%0E%98%C3%88%AE%0ES%80%91%91T%8B%C0%00%20%C0%00%17G%00(%A6%C6G%AA%00%00%00%00IEND%AEB%60%82">').click(function(){
-		$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>This will update to the latest Work-In-Progress version of Castle Age Golem.<br><br>Are you sure you wish to run a potentially buggy update?<br><br>You must reload the page after installing to use the new version.</div>');
-		$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close").remove();window.location.href='http://game-golem.googlecode.com/svn/trunk/_normal.user.js';}, "Skip":function(){$(this).dialog("close").remove();}} });
+	var $btn = $('<img class="golem-button" name="Check for Updates" id="golem_update" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
+		$(this).addClass('red');
+		Update.runtime.force = true;
 	});
 	$('#golem_buttons').append($btn);
+	if (isRelease) {
+		$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
+			$(this).addClass('red');
+			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+			Update.runtime.force = true;
+		});
+		$('#golem_buttons').append($btn);
+	}
 };
 
 /***** Update.work() *****
@@ -2922,57 +3169,48 @@ Update.init = function() {
 1b. Check that it's been more than 6 hours since the last update
 2a. Use AJAX to get the google trunk source webpage (list of files and revisions)
 2b. Parse out the revision string for both release and beta
-
-5. Compare with our own version
-6. Remember it if we have an update
-7. Notify the user -
-7a. Change the update button image
-7b. Show a requester to the user asking if they'd like to update
+3. Display a notification if there's a new version - 
 */
 Update.work = function(state) {
-	if (!this.runtime.found && Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+	if (!this.found && !this.looking && (this.runtime.force || Date.now() - this.runtime.lastcheck > 21600000)) {// 6+ hours since last check (60x60x6x1000ms)
+		this.looking = true;
 		this.runtime.lastcheck = Date.now();
-		/*
 		debug('Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
 			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
-					var release = evt.responseText.regex(/"_release.user.js":\["[^"]*","([0-9]+)"/i), beta = evt.responseText.regex(/"_normal.user.js":\["[^"]*","([0-9]+)"/i);
-					debug('Version: '+release+', Beta: '+beta);
-				}
-			}
-		});
-		*/
-		GM_xmlhttpRequest({
-			method: "GET",
-			url: 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js',
-			onload: function(evt) {
-				if (evt.readyState === 4 && evt.status === 200) {
-					var remoteVersion = evt.responseText.regex(/@version[^0-9.]+([0-9.]+)/i);
-					if (Update.get('runtime.force')) {
-						$('#golem_request').remove();
+					var file, $btn;
+					file = evt.responseText.regex(/"trunk":{".*"_release.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+					if (file[0] > revision) {
+						$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
+						Update.found = true;
+						log('New version available: '+file[0]+', currently on r'+revision);
 					}
-					if (remoteVersion>VERSION) {
-						Update.set('runtime.found', true);
-						$('#golem_update').attr('src', 'data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%18PLTE%C8%C8%C8%C1%C1%C1%BA%BA%BA%F1%F1%F1ggg%FF%FF%FF%40%40%40%FF%FF%FF%7D%5C%EC%14%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00OIDATx%DA%8C%8FA%0A%C0%20%0C%04W%8D%EB%FF%7F%AC1%5BQi%A1s%0A%C3%24%10%B4%0B%7C%89%9COa%A4%ED%22q%906a%2CE%09%14%D4%AA%04%BA0%8AH%5C%80%02%12%3E%FB%0A%19b%06%BE2%13D%F0%F0.~%3E%B7%E8%02%0C%00Z%03%06Q9dE%25%00%00%00%00IEND%AEB%60%82').toggleClass('golem-button golem-button-active');
-						if (Update.get('runtime.force')) {
-							$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There is a new version of Castle Age Golem available.</p><p>Current&nbsp;version:&nbsp;'+VERSION+', New&nbsp;version:&nbsp;'+remoteVersion+'</p></div>');
-							$('#golem_request').dialog({ modal:true, buttons:{"Install":function(){$(this).dialog("close");window.location.href='http://game-golem.googlecode.com/svn/trunk/_release.user.js';}, "Skip":function(){$(this).dialog("close");}} });
+					if (!isRelease) {
+						file = evt.responseText.regex(/"trunk":{".*"_normal.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
+						if (file[0] > revision) {
+							$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
+							Update.found = true;
+							log('New revision available: '+file[0]+', currently on r'+revision);
 						}
-						log('New version available: '+remoteVersion);
-					} else if (Update.get('runtime.force')) {
-						$('#golem_config').after('<div id="golem_request" title="Castle Age Golem"><p>There are no new versions available.</p></div>');
-						$('#golem_request').dialog({ modal:true, buttons:{"Ok":function(){$(this).dialog("close");}} });
 					}
-					Update.set('runtime.force', false);
+					if (Update.runtime.force && !Update.found) {
+						$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {
+							duration:5000,
+							complete:function(){$(this).remove();}
+						});
+						$('#golem_buttons').after($btn);
+						log('No new releaases');
+					}
+					Update.runtime.force = Update.looking = false;
+					$('#golem_update').removeClass('red');
 				}
 			}
 		});
 	}
 };
-
 /********** Worker.Window **********
 * Deals with multiple Windows being open at the same time...
 *
@@ -3035,7 +3273,7 @@ Window.init = function() {
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
 	} else {
-		$('.golem-title').after('<div id="golem_window" class="golem-button red"><b>Disabled</b></div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button red"><b>Disabled</b></div>');
 		$('#golem_window').nextAll().hide();
 	}
 	$('#golem_window').click(function(event){
@@ -3189,10 +3427,6 @@ Alchemy.runtime = {
 
 Alchemy.display = [
 	{
-		id:'perform',
-		label:'Automatically Perform',
-		checkbox:true
-	},{
 		id:'hearts',
 		label:'Use Battle Hearts',
 		checkbox:true
@@ -3255,7 +3489,7 @@ Alchemy.update = function() {
 };
 
 Alchemy.work = function(state) {
-	if (!this.option.perform || !this.runtime.best) {
+	if (!this.runtime.best) {
 		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_alchemy')) {
@@ -3304,7 +3538,7 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (iscaap() && this.option.above === '') {
+	if (('Caap' in Workers) && this.option.above === '') {
 		return QUEUE_FINISH;
 	}
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
@@ -3328,7 +3562,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	!iscaap() && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
+	!('Caap' in Workers) && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -3488,6 +3722,7 @@ Battle.init = function() {
 //	this._watch(Arena);
 	this._watch(Monster);
 	this.option.arena = false;// ARENA!!!!!!
+	Resources.useType('Stamina');
 };
 
 /***** Battle.parse() *****
@@ -3745,7 +3980,7 @@ Battle.dashboard = function(sort, rev) {
 		this.order.sort(function(a,b) {
 			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});
@@ -3885,7 +4120,7 @@ Elite.defaults['castle_age'] = {
 };
 
 Elite.option = {
-	elite:true,
+//	elite:true,
 	every:12,
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
@@ -3908,6 +4143,10 @@ Elite.display = [
 		select:[1, 2, 3, 6, 12, 24],
 		after:'hours',
 		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
+	},{
+		id:'fill',
+		label:'Fill Now',
+		button:true
 	}
 ];
 
@@ -3929,18 +4168,21 @@ Elite.init = function() { // Convert old elite guard list
 		'label':function(data,uid){
 			return ('Elite' in data[uid]
 				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? '<img src="' + Army.star_on + '">'
-					: '<img src="' + Army.star_off + '">')
+					? '<img src="' + Images.star_on + '">'
+					: '<img src="' + Images.star_off + '">')
 				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
-					? ' <img src="' + Army.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					? ' <img src="' + Images.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					: '')
+				 + ('full' in data[uid]['Elite'] && data[uid]['Elite']['full']
+					? ' <img src="' + Images.timer_red + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
 					: '')
 				: ('Army' in data[uid] && data[uid]['Army']
-					? '<img src="' + Army.star_off + '">'
+					? '<img src="' + Images.star_off + '">'
 					: '')
 				);
 		},
 		'sort':function(data,uid){
-			if (!'Elite' in data[uid] && !'Army' in data[uid] && !data[uid]['Army']) {
+			if (!('Elite' in data[uid]) && !('Army' in data[uid]) && !data[uid]['Army']) {
 				return 0;
 			}
 			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
@@ -3948,6 +4190,9 @@ Elite.init = function() { // Convert old elite guard list
 					: 0)
 				+ ('elite' in data[uid]['Elite']
 					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					: 0)
+				+ ('full' in data[uid]['Elite']
+					? Date.now() - parseInt(data[uid]['Elite']['full'])
 					: 0));
 		},
 		'click':function(data,uid){
@@ -3958,6 +4203,11 @@ Elite.init = function() { // Convert old elite guard list
 			}
 			return true;
 		}
+	});
+	
+	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
+		Elite.set('runtime.waitelite', 0);
+		Elite._save('runtime');
 	});
 };
 
@@ -3979,10 +4229,10 @@ Elite.parse = function(change) {
 		}
 */
 		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 43200000); // 12 hours
+			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 1800000); // half hour
+			Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
 			Elite.runtime.nextelite = null;
 		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 			Elite.runtime.waitelite = Date.now();
@@ -4006,34 +4256,35 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function() {
-	var a, i, j, list, tmp = [], now = Date.now(), check;
-	this.runtime.nextelite = this.runtime.nextarena = 0;
-	if (this.option.elite) {
-		list = Army.get('Elite');// Must be in the Elite list to have prefer set
+Elite.update = function(type,worker) {
+	var i, list, tmp = [], now = Date.now(), check, prefer = false;
+	this.runtime.nextelite = 0;
+	if (Queue.enabled(this)) {
+		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			if (Army.get([list[i],'prefer'], false)) {
-				a = Army.get([list[i],'elite'], null);
-				if (!a || a < now) {
+			check = Army.get([list[i],'elite'], 0);
+			if (check < now && Army.get([list[i],'full'], now) < now) {
+				Army.set([list[i],check ? 'elite' : 'full']);// Delete the old timers if they exist...
+				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					this.runtime.nextelite = list[i];
 					break;
 				}
+				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army rather than later
 			}
 		}
-		list = Army.get('Army');// Otherwise lets just get everyone in the army
 		if (!this.runtime.nextelite) {
+			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				a = Army.get([list[i], 'elite'], null);
-				if (!a || a < now) {
+				if (!Army.get([list[i]], false)) {// Only try to add a non-member who's not already added
 					this.runtime.nextelite = list[i];
 					break;
 				}
 			}
 		}
 		check = (this.runtime.waitelite + (this.option.every * 3600000));
-		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>'));
+		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
 	}
-	Dashboard.status(this, tmp.join(', '));
+	Dashboard.status(this, tmp.join('<br>'));
 };
 
 Elite.work = function(state) {
@@ -4046,13 +4297,13 @@ Elite.work = function(state) {
 		}
 		return true;
 	}
-	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) && (!this.option.arena || !this.runtime.nextarena || (this.runtime.waitarena + (this.option.every * 3600000)) > Date.now())) {
+	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now())) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !this.runtime.nextarena && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
+	if (!this.runtime.nextelite && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
@@ -4149,8 +4400,9 @@ Generals.update = function(type, worker) {
 		for (i in Generals.data) {
 			list.push(i);
 		}
+		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','best','under level 4'].concat(list));
+		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -4232,7 +4484,7 @@ Generals.to = function(name) {
 	if (name && !this.data[name]) {
 		name = this.best(name);
 	}
-	if (!name || Player.get('general') === name || name === 'any') {
+	if (!name || Player.get('general') === name || /any/i.test(name)) {
 		return true;
 	}
 	if (!name || !this.data[name]) {
@@ -4251,7 +4503,7 @@ Generals.to = function(name) {
 Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
-	if (iscaap()) {
+	if ('Caap' in Workers) {
 		var caapGenerals = {
 			'BuyGeneral':			'cost',
 			'LevelUpGeneral':		'stamina',
@@ -4407,7 +4659,7 @@ Generals.dashboard = function(sort, rev) {
 				bb = (Generals.data[b][type][x] || 0);
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
-				return (rev ? bb > aa : bb < aa);
+				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? aa - bb : bb - aa);
 		});
@@ -5024,7 +5276,7 @@ Income.display = [
 ];
 
 Income.work = function(state) {
-	if (!Income.option.margin) {
+	if (!Income.option.margin || !this.option.general) {
 		return QUEUE_FINISH;
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);
@@ -5034,7 +5286,7 @@ Income.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-	if (!state || (this.option.general && !Generals.to('income'))) {
+	if (!state || !Generals.to('income')) {
 		return QUEUE_CONTINUE;
 	}
 	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
@@ -5055,7 +5307,8 @@ Land.option = {
 //	wait:48,
 	onlyten:false,
 	sell:false,
-	land_exp:false
+	land_exp:false,
+	style:0
 };
 
 Land.runtime = {
@@ -5082,23 +5335,32 @@ Land.display = [
 		label:'Sell Extra Land 10 at a time',
 		checkbox:true,
 		help:'If you have extra lands, this will sell 10x.  The extra sold lands will be repurchased at a lower cost.'
-//	},{
-/*		id:'wait',
+	},{
+		id:'style',
+		label:'ROI Style',
+		select:{0:'Percent', 1:'Daily'},
+		help:'This changes the display when visiting the LanD page.'
+	}
+/*
+	},{
+		id:'wait',
 		label:'Maximum Wait Time',
 		select:[0, 24, 36, 48],
 		suffix:'hours',
 		help:'There has been a lot of testing in this code, it is the fastest way to increase your income despite appearances!'
-	},{*/
-/*		advanced:true,
+	},{
+		advanced:true,
 		id:'onlyten',
 		label:'Only buy 10x<br>NOTE: This is slower!!!',
 		checkbox:true,
 		help:'The standard method is guaranteed to be the most efficient.  Choosing this option will slow down your income.'
-*/	}
+	}
+*/
 ];
 
 Land.init = function(){
     this._watch(Bank);
+	Resources.useType('Gold');
 };
 
 Land.parse = function(change) {
@@ -5118,8 +5380,7 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			iscaap() &&	$('.land_buy_info strong:first', el).after('<strong title="Daily Return On Investment - higher is better"> | ROI ' + ((Land.data[name].own < Land.data[name].max) ? (Land.data[name].income * 2400) / Land.data[name].cost : 0).round(3) + '%</strong>');
-			!iscaap() && $('.land_buy_info strong:first', el).after(' - (<strong title="Return On Investment - higher is better">ROI</strong>: ' + ((Land.data[name].income * 100) / Land.data[name].cost).round(3) + '%)');
+			$('.land_buy_info strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
 	});
 	return true;
@@ -5525,7 +5786,7 @@ Monster.option = {
 	//	dispel: 50,
 	fortify_active:false,
 	choice: 'Any',
-	ignore_stats:true,
+	hide:false,
 	stop: 'Never',
 	own: true,
 	armyratio: 'Any',
@@ -5558,7 +5819,7 @@ Monster.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Player.option.trusted':false},
+		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		title:'Fortification'
@@ -5570,7 +5831,7 @@ Monster.display = [
 	},{
 		advanced:true,
 		id:'general_fortify',
-		require:'Player.option.trusted',
+		require:{'Caap.runtime.enabled':true,'fortify_active':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -5611,14 +5872,14 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'general':[[true]], 'Player.option.trusted':true},
+		require:'Caap.runtime.enabled',
 		select:'bestgenerals'
 	},{
 		advanced:true,
-		id:'ignore_stats',
-		label:'Ignore Player Stats',
+		id:'hide',
+		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		help:'Do not use the current health or stamina as criteria for choosing monsters.'
+		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -6029,6 +6290,8 @@ Monster.class_off = ['', '', 'img[src$="nm_s_off_cripple.gif"]', 'img[src$="nm_s
 
 Monster.init = function() {
 	var i, j;
+	this._watch(Player);
+	this._watch(Queue);
 	this.runtime.count = 0;
 	for (i in this.data) {
 		for (j in this.data[i]) {
@@ -6044,12 +6307,13 @@ Monster.init = function() {
 			}
 		}
 	}
-	this._watch(Player);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
+	Resources.useType('Energy');
+	Resources.useType('Stamina');
 }
 
 Monster.parse = function(change) {
@@ -6359,7 +6623,7 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy;
+	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy, label = null, amount = 0, fullname;
 	if (worker === Player) {
 		this.runtime.count = 0;
 		for (i in this.data) { // Flush unknown monsters
@@ -6396,11 +6660,36 @@ Monster.update = function(what,worker) {
 				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
 				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
 				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
-				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore) && this.data[i][j].state === 'engage' && this.data[i][j].finish > Date.now() && (this.option.ignore_stats || Player.get('health') >= req_health) && ((Queue.burn.energy >= req_energy) || ((this.option.ignore_stats || Queue.burn.stamina >= req_stamina) && (typeof this.data[i][j].attackbonus === 'undefined' || this.data[i][j].attackbonus >= this.option.min_to_attack || (this.data[i][j].attackbonus <= this.option.fortify && this.option.fortify_active && Queue.burn.energy >= req_energy))))) {
+				
+				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
+					&& this.data[i][j].state === 'engage'
+					&& this.data[i][j].finish > Date.now()
+					&& (!this.option.hide || Player.get('health') >= req_health)
+					&& (Queue.burn.energy >= req_energy
+						|| ((!this.option.hide || Queue.burn.stamina >= req_stamina)
+							&& (typeof this.data[i][j].attackbonus === 'undefined'
+								|| this.data[i][j].attackbonus >= this.option.min_to_attack
+								|| (this.data[i][j].attackbonus <= this.option.fortify
+									&& this.option.fortify_active
+									&& Queue.burn.energy >= req_energy
+									)
+								)
+							)
+						)
+					){
+				
+/*				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
+						&& this.data[i][j].state === 'engage'
+						&& this.data[i][j].finish > Date.now() 
+						&& (typeof this.data[i][j].attackbonus === 'undefined' 
+							|| this.data[i][j].attackbonus >= this.option.min_to_attack
+							|| (this.data[i][j].attackbonus <= this.option.fortify 
+								&& this.option.fortify_active))) {*/
+				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
 					}
-					if (this.data[i][j].name === 'You' && this.option.own){
+					if (i === userID && this.option.own){
 						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
 						break;
 					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
@@ -6522,14 +6811,38 @@ Monster.update = function(what,worker) {
 			this.runtime.fortify = false;
 		}
 		this.runtime.attack = true;
-		if ((Player.get('health') > this.runtime.health) && ((this.runtime.attack && (Queue.burn.stamina > this.runtime.stamina)) || (this.runtime.fortify && Queue.burn.energy > this.runtime.energy ))){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
-		} else if ((this.runtime.fortify && Queue.burn.energy < this.runtime.energy) || !this.runtime.attack){
-			Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.energy - Queue.burn.energy) : Math.max((this.runtime.energy - Queue.burn.energy),(this.runtime.energy + Queue.option.energy - Player.get('energy')),(Queue.option.start_energy - Player.get('energy')))) + ' energy to ' + (this.runtime.fortify || !this.runtime.attack ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+		fullname = (uid === userID ? 'your ': (this.data[uid][type].name + '\'s '))
+				+ this.types[type].name;
+		if ((Player.get('health') > this.runtime.health
+					&& Queue.burn.stamina >= this.runtime.stamina)
+				|| (this.runtime.fortify
+					&& Queue.burn.energy >= this.runtime.energy )){
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
+					+ ' ' + fullname
+					+ ' (' + makeImage('stamina') + ' ' + this.runtime.stamina + '+, ' + makeImage('energy') + ' ' + this.runtime.energy + '+)');
+		} else if (this.runtime.fortify 
+				&& Queue.burn.energy < this.runtime.energy){
+			label = 'energy';
+			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
+					? (this.runtime.energy - Queue.burn.energy)
+					: Math.max((this.runtime.energy - Queue.burn.energy)
+						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
+						,(Queue.option.start_energy - Player.get('energy')));
 		} else if (Queue.burn.stamina < this.runtime.stamina){
-			Dashboard.status(this,'Waiting for ' + ((LevelUp.runtime.running && LevelUp.option.enabled) ? (this.runtime.stamina - Queue.burn.stamina) : Math.max((this.runtime.stamina - Queue.burn.stamina),(this.runtime.stamina + Queue.option.stamina - Player.get('stamina')),(Queue.option.start_stamina - Player.get('stamina')))) + ' stamina to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+			label = 'stamina';
+			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
+					? (this.runtime.stamina - Queue.burn.stamina)
+					: Math.max((this.runtime.stamina - Queue.burn.stamina)
+						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
+						,(Queue.option.start_stamina - Player.get('stamina')));
 		} else if (Player.get('health') < this.runtime.health){
-			Dashboard.status(this,'Waiting for ' + (this.runtime.health - Player.get('health')) + ' health to ' + (this.runtime.fortify ? 'Fortify' : 'Attack') + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name + ' (Min Stamina = ' + this.runtime.stamina + ' & Min Energy = ' + this.runtime.energy + ')');
+			label = 'health';
+			amount = this.runtime.health - Player.get('health');
+		}
+		if (label) {
+			Dashboard.status(this,'Waiting for ' + makeImage(label) + amount + ' to '
+					+ (this.runtime.fortify ? 'fortify ' : 'attack ') + fullname
+					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		}
 	} else {
 		this.runtime.attack = false;
@@ -6585,8 +6898,14 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if (!Generals.to(this.option.general ? j : Player.get('option.trusted') ? this.option['general_'+j] : 'any')) {
-				return QUEUE_CONTINUE;
+			if ('Caap' in Workers) {
+				if (!Generals.to((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j])) {
+					return QUEUE_CONTINUE;
+				}
+			} else {
+				if (this.option.general && !Generals.to(j)) {
+					return QUEUE_CONTINUE;
+				}
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 			switch(j){
@@ -6738,7 +7057,7 @@ Monster.dashboard = function(sort, rev) {
 			return -1;
 		}
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
@@ -6910,10 +7229,6 @@ News.parse = function(change) {
 */
 var Player = new Worker('Player');
 
-Player.options = {
-	trusted:false
-};
-
 Player.settings = {
 	keep:true
 };
@@ -6941,6 +7256,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
+	Resources.addType('Energy');
+	Resources.addType('Stamina');
+	Resources.addType('Gold');
 };
 
 Player.parse = function(change) {
@@ -7104,14 +7422,16 @@ Potions.parse = function(change) {
 };
 
 Potions.update = function(type) {
-	var txt = [], levelup = LevelUp.get('runtime.running');
+	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	for(var i in this.data) {
-		if (this.data[i]) {
-			txt.push(i + ': ' + this.data[i] + '/' + this.option[i.toLowerCase()]);
-		}
-		if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
-			this.runtime.drink = true;
+	if (Queue.enabled(this)) {
+		for(i in this.data) {
+			if (this.data[i]) {
+				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()]);
+			}
+			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+				this.runtime.drink = true;
+			}
 		}
 	}
 	Dashboard.status(this, txt.join(', '));
@@ -7199,6 +7519,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
+	Resources.useType('Energy');
 };
 
 Quest.parse = function(change) {
@@ -7294,6 +7615,8 @@ Quest.update = function(type,worker) {
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
+	this._watch(Player);
+	this._watch(Queue);
 	if (!type || type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && !quests[i].unique) {
@@ -7373,7 +7696,7 @@ Quest.update = function(type,worker) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + ' ' + quests[best].energy + ' = ' + makeImage('exp') + ' ' + quests[best].exp + ' + ' + makeImage('gold') + ' $' + addCommas(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + ' ' + quests[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + quests[best].energy + ' = ' + makeImage('exp') + quests[best].exp + ' + ' + makeImage('gold') + '$' + addCommas(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + quests[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -7403,14 +7726,14 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || Player.option.trusted) {
+	if (this.option.general || ('Caap' in Workers)) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
 			if (!Generals.to(this.data[best].general)) 
 			{
 				return QUEUE_CONTINUE;
 			}
 		} else {
-			if (Player.get('option.trusted') && !this.option.general) {
+			if (('Caap' in Workers) && this.option.general_choice !== 'Best') {
 				general = this.option.general_choice;
 			} else {
 				switch(this.option.what) {
@@ -7513,7 +7836,7 @@ Quest.dashboard = function(sort, rev) {
 	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
@@ -7612,6 +7935,7 @@ Town.blacksmith = { // Shield must come after armor (currently)
 
 Town.init = function(){
     this._watch(Bank);
+	Resources.useType('Gold');
 };
 
 Town.parse = function(change) {
@@ -7760,7 +8084,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {Weapon:1, Shield:2, Helmet:3, Armor:4, Amulet:5, Gloves:6, Magic:7};
 	if (name) {
-		output.push('<div class="golem-panel"><h3 class="golem-panel-header">'+name+'</h3><div class="golem-panel-content">');
+		output.push('<div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">'+name+'</h3><div class="golem-panel-content">');
 	}
 	for (i in list) {
 		unitfunc(units, i, list);
@@ -7794,25 +8118,25 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 Town.dashboard = function() {
 	var left, right, generals = Generals.get(), duel = {}, best;
 	best = Generals.best('duel');
-	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'att', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'att', 'invade', 'Weapons')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'invade', 'Magic')
-			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'att', 'duel')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'duel')
 			+'</div></div></div>';
 	best = Generals.best('defend');
-	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	makeTownDash(generals, function(list,i){list.push(i);}, 'def', 'invade', 'Heroes')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'def', 'invade', 'Soldiers')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'def', 'invade', 'Weapons')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'invade', 'Magic')
-			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
+			+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
 			+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'def', 'duel')
 			+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'duel')
@@ -7904,7 +8228,7 @@ var Caap = new Worker('Caap');
 Caap.data = null;
 
 Caap.runtime = {
-	enabled:false
+	enabled:true
 };
 
 Caap.init = function() {

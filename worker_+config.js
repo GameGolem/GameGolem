@@ -55,35 +55,50 @@ Config.init = function() {
 	});
 //	$golem_config = $('#golem_config');
 	$('#golem_config')
-		.sortable({axis:"y"}) /*, items:'div', handle:'h3' - broken inside GM */
+//		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
 		.children('.golem-panel-sortable')
-			.draggable({ connectToSortable:'#golem_config', axis:'y', distance:5, scroll:false, handle:'h3', helper:'clone', opacity:0.75, zIndex:100,
-refreshPositions:true, stop:function(){Config.updateOptions();} })
-			.droppable({ tolerance:'pointer', over:function(e,ui) {
-				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-				if (arrayIndexOf(order, 'Idle') >= newplace) {
-					if (me.settings.before) {
-						for(i=0; i<me.settings.before.length; i++) {
-							if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-								return;
+			.draggable({
+				axis:'y',
+				distance:5,
+				scroll:false,
+				handle:'h3',
+				helper:'clone',
+				opacity:0.75,
+				zIndex:100,
+				refreshPositions:true,
+				containment:'parent',
+				stop:function(event,ui) {
+					Queue.clearCurrent();// Make sure we deal with changed circumstances
+					Config.updateOptions();
+				}
+			})
+			.droppable({
+				tolerance:'pointer',
+				over:function(e,ui) {
+					var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+					if (arrayIndexOf(order, 'Idle') >= newplace) {
+						if (me.settings.before) {
+							for(i=0; i<me.settings.before.length; i++) {
+								if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+									return;
+								}
+							}
+						}
+						if (me.settings.after) {
+							for(i=0; i<me.settings.after.length; i++) {
+								if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+									return;
+								}
 							}
 						}
 					}
-					if (me.settings.after) {
-						for(i=0; i<me.settings.after.length; i++) {
-							if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-								return;
-							}
-						}
+					if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+						$(this).before(ui.draggable);
+					} else {
+						$(this).after(ui.draggable);
 					}
 				}
-				if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
-					$(this).before(ui.draggable);
-				} else {
-					$(this).after(ui.draggable);
-				}
-				Queue.clearCurrent();// Make sure we deal with changed circumstances
-			} });
+			});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {

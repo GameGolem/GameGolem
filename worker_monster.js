@@ -1289,7 +1289,7 @@ Monster.dashboard = function(sort, rev) {
 			return -1;
 		}
 		if (typeof aa === 'string' || typeof bb === 'string') {
-			return (rev ? (bb || '') > (aa || '') : (bb || '') < (aa || ''));
+			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
