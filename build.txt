@@ -39,7 +39,7 @@ rem ----------------------------------------------------------------------
 rem .\chrome_caap\golem.user.js - Caap/Golem Google Chrome copy (unpacked extension)
 echo Copying to .\chrome_caap\golem.user.js
 copy /Y .\chrome\manifest.json .\chrome_caap\manifest.json >nul 2>nul
-copy /Y _normal_caap.user.js .\chrome\golem.user.js >nul 2>nul
+copy /Y _normal_caap.user.js .\chrome_caap\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox

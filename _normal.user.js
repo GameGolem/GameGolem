@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (593+1);
+var revision = (595+1);
 // User changeable
 var show_debug = true;
 
@@ -1328,7 +1328,7 @@ Config.init = function() {
 		return false;
 	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $golem_config, $newPanel, i, j, k, $display;
+	var $btn, $newPanel, i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+VERSION : 'r'+revision) + '<img id="golem_fixed"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
@@ -1361,52 +1361,49 @@ Config.init = function() {
 			Config._save('option');
 		}
 	});
-//	$golem_config = $('#golem_config');
-	$('#golem_config')
-//		.sortable({axis:"y"}) //, items:'div', handle:'h3' - broken inside GM
-		.children('.golem-panel-sortable')
-			.draggable({
-				axis:'y',
-				distance:5,
-				scroll:false,
-				handle:'h3',
-				helper:'clone',
-				opacity:0.75,
-				zIndex:100,
-				refreshPositions:true,
-				containment:'parent',
-				stop:function(event,ui) {
-					Queue.clearCurrent();// Make sure we deal with changed circumstances
-					Config.updateOptions();
-				}
-			})
-			.droppable({
-				tolerance:'pointer',
-				over:function(e,ui) {
-					var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-					if (arrayIndexOf(order, 'Idle') >= newplace) {
-						if (me.settings.before) {
-							for(i=0; i<me.settings.before.length; i++) {
-								if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
-									return;
-								}
-							}
-						}
-						if (me.settings.after) {
-							for(i=0; i<me.settings.after.length; i++) {
-								if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
-									return;
-								}
+	$('#golem_config .golem-panel-sortable')
+		.draggable({
+			axis:'y',
+			distance:5,
+			scroll:false,
+			handle:'h3',
+			helper:'clone',
+			opacity:0.75,
+			zIndex:100,
+			refreshPositions:true,
+			containment:'parent',
+			stop:function(event,ui) {
+				Queue.clearCurrent();// Make sure we deal with changed circumstances
+				Config.updateOptions();
+			}
+		})
+		.droppable({
+			tolerance:'pointer',
+			over:function(e,ui) {
+				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
+				if (arrayIndexOf(order, 'Idle') >= newplace) {
+					if (me.settings.before) {
+						for(i=0; i<me.settings.before.length; i++) {
+							if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+								return;
 							}
 						}
 					}
-					if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
-						$(this).before(ui.draggable);
-					} else {
-						$(this).after(ui.draggable);
+					if (me.settings.after) {
+						for(i=0; i<me.settings.after.length; i++) {
+							if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+								return;
+							}
+						}
 					}
 				}
-			});
+				if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+					$(this).before(ui.draggable);
+				} else {
+					$(this).after(ui.draggable);
+				}
+			}
+		});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
