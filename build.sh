@@ -46,6 +46,7 @@ else
 fi
 rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2}'`
 sed "s/\\\$WCREV\\\$/$rev/" _head_tortoise.tmpl > _head_tortoise.js
+sed "s/\\\$WCREV\\\$/$rev/" _chrome_manifest.tmpl > chrome/manifest.json
 
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
@@ -58,17 +59,20 @@ cat _head*.js \
     $(ls -1 worker_*.js | grep -v "\+") \
     > _normal.user.js
 
-### generate _normal.user.js ###
-echo "Joining files into _normal_chrome.user.js"
-cat _head*.js \
-    _jquery*.min.js \
-    _main.js \
-    css.js \
-    utility.js \
-    worker.js \
-    $(ls -1 worker_+*.js) \
-    $(ls -1 worker_*.js | grep -v "\+") \
-    > _normal_chrome.user.js
+### Google Chrome copy (unpacked extension) ###
+echo "Copying to chrome/golem.user.js"
+cp _normal.user.js chrome/golem.user.js
+
+### generate _normal_caap.user.js ###
+echo "Joining files into _normal_caap.user.js"
+cat _normal.user.js \
+    worker++caap.js \
+    > _normal_caap.user.js
+
+### Caap/Golem Google Chrome copy (unpacked extension) ###
+echo "Copying to chrome_caap/golem.user.js"
+cp chrome/manifest.json chrome_caap/manifest.json
+cp _normal_caap.user.js chrome_caap/golem.user.js
 
 ### INSTALLED VERSION ###
 if [ "$update_firefox" = "Yes" ]; then
