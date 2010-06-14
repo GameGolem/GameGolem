@@ -544,8 +544,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
-//	Resources.useType('Energy');
-//	Resources.useType('Stamina');
+	Resources.useType('Energy');
+	Resources.useType('Stamina');
 }
 
 Monster.parse = function(change) {

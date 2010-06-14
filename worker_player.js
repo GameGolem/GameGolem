@@ -30,9 +30,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-//	Resources.addType('Energy');
-//	Resources.addType('Stamina');
-//	Resources.addType('Gold');
+	Resources.addType('Energy');
+	Resources.addType('Stamina');
+	Resources.addType('Gold');
 };
 
 Player.parse = function(change) {
