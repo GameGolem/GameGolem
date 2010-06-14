@@ -111,9 +111,11 @@ Queue.init = function() {
 			$('#golem_config').append($('#'+worker.id));
 		}
 	}
-	$(document).click(function(){Queue.lastclick=Date.now();});
-        $(document).keypress(function(){Queue.lastclick=Date.now();});
-        
+	$(document).bind('click keypress', function(event){
+		if (!event.target || !$(event.target).parents().is('#golem_config_frame,#golem-dashboard')) {
+			Queue.lastclick=Date.now();
+		}
+	});
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
 		var paused = Queue.set('option.pause', !Queue.get('option.pause', false));
