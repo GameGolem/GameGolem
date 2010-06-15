@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (599+1);
+var revision = (600+1);
 // User changeable
 var show_debug = true;
 
@@ -943,7 +943,6 @@ Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
 	!this._loaded && this._init();
 	!this.settings.keep && !this.data && this._load('data');
-	('Caap' in Workers) && (typeof this.caap_load == 'function') && this.caap_load();
 	WorkerStack.pop();
 };
 
@@ -1326,9 +1325,6 @@ Config.option = {
 };
 
 Config.init = function() {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $newPanel, i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+VERSION : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
@@ -1691,9 +1687,6 @@ Config.makeOption = function(worker, args) {
 };
 
 Config.set = function(key, value) {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	this._unflush();
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
@@ -2569,10 +2562,6 @@ Queue.option = {
 	pause: false
 };
 
-Queue.caap_load = function() {
-	this.option.pause = false;
-};
-
 Queue.display = [
 	{
 		label:'Drag the unlocked panels into the order you wish them run.'
@@ -2622,9 +2611,6 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	var i, worker;
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
@@ -2675,9 +2661,6 @@ Queue.clearCurrent = function() {
 }
 
 Queue.update = function(type) {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	var i, $worker;
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);
@@ -4502,34 +4485,6 @@ Generals.to = function(name) {
 Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
-	if ('Caap' in Workers) {
-		var caapGenerals = {
-			'BuyGeneral':			'cost',
-			'LevelUpGeneral':		'stamina',
-			'IncomeGeneral':		'income',
-			'SubQuestGeneral':		'influence',
-			'MonsterGeneral':		'cash',
-			'BankingGeneral':		'bank',
-			'BattleGeneral':		'invade',
-			'MonsterGeneral':		'monster',
-			'FortifyGeneral':		'dispel',
-			'IdleGeneral':			'defense'
-		};
-		//gm.log('which ' + type + ' lookup ' + caapGenerals[type]);
-		if (caapGenerals[type]) {
-			var caapGeneral = gm.getValue(type,'best');
-			if (/under level 4/i.test(caapGeneral)) {
-				type = 'under level 4';
-			} else if (/use current/i.test(caapGeneral)) {
-				return 'any';
-			} else if (!/^best$/i.test(caapGeneral)) {
-				return caapGeneral;
-			} else {
-				type = caapGenerals[type];
-			}
-		}
-		// Need to add reverse lookup for when golem code calls something set in caap
-	}
 	switch(type.toLowerCase()) {
 		case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
 		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
@@ -4899,34 +4854,34 @@ Gift.parse = function(change) {
 Gift.work = function(state) {
 	if (length(todo) && (this.runtime.gift_delay < Date.now())) {
 		this.runtime.work = true;
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
-			return true;
+			return QUEUE_CONTINUE;
 		}
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!this.runtime.gift_waiting && !this.runtime.work) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	if(this.runtime.gift.id && !this.runtime.gift.sender_id) {	// We have a gift id, but no sender id.
 		if (!Page.to('army_invite')) {	// Get the sender id from the army_invite page.
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	if (this.runtime.gift.sender_id) { // We have the sender id so we can receive the gift.
 		if (!Page.to('army_invite')) {
-			return true;
+			return QUEUE_CONTINUE;
 		}
 //		debug('Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + this.runtime.gift.sender_id) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	
@@ -4935,7 +4890,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return false;
+		return QUEUE_FINISH;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -5000,13 +4955,13 @@ Gift.work = function(state) {
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[name="ok"]');
 		}
-		return true;
+		return QUEUE_CONTINUE;
 	} else if (this.runtime.gift_sent) {
 		this.runtime.gift_sent = null;
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	
 	// Give some gifts back
@@ -5028,7 +4983,7 @@ Gift.work = function(state) {
 				continue;
 			}
 			if (!Page.to('army_gifts', '?app_friends=c&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];
@@ -5044,7 +4999,7 @@ Gift.work = function(state) {
 					todo[gift_ids[random_gift_id]].push(todo[i][j]);
 				}
 				delete todo[i];
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
 				if ($('img[src*="gift_invite_castle_on"]').length){
@@ -5063,31 +5018,31 @@ Gift.work = function(state) {
 						}
 						if (k == 0) {
 							delete todo[i];
-							return true;
+							return QUEUE_CONTINUE;
 						}
 						this.runtime.sent_id = i;
 						this.runtime.gift_sent = Date.now() + (60000);	// wait max 60 seconds for the popup.
 						Page.click('input[name="send"]');
-						return true;
+						return QUEUE_CONTINUE;
 					} else {
-						return true;
+						return QUEUE_CONTINUE;
 					}
 				} else if ($('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]').length) {
 					Page.click('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]');
-					return true;
+					return QUEUE_CONTINUE;
 				} else {
-					return true;
+					return QUEUE_CONTINUE;
 				}
 			} else if ($('div[style*="giftpage_select"]').length) {
 				Page.click('a[href*="giftSelection='+this.data.gifts[i].slot+'"]:parent');
-				return true;
+				return QUEUE_CONTINUE;
 			} else {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 		}
 	}
 	
-	return false;
+	return QUEUE_FINISH;
 };
 
 /********** Worker.Heal **********
@@ -6661,29 +6616,16 @@ Monster.update = function(what,worker) {
 				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
 				
 				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
-					&& this.data[i][j].state === 'engage'
-					&& this.data[i][j].finish > Date.now()
-					&& (!this.option.hide || Player.get('health') >= req_health)
-					&& (Queue.burn.energy >= req_energy
-						|| ((!this.option.hide || Queue.burn.stamina >= req_stamina)
-							&& (typeof this.data[i][j].attackbonus === 'undefined'
-								|| this.data[i][j].attackbonus >= this.option.min_to_attack
-								|| (this.data[i][j].attackbonus <= this.option.fortify
-									&& this.option.fortify_active
-									&& Queue.burn.energy >= req_energy
-									)
-								)
-							)
-						)
-					){
-				
-/*				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
 						&& this.data[i][j].state === 'engage'
 						&& this.data[i][j].finish > Date.now() 
+						&& (!this.option.hide
+							|| Queue.burn.energy >= req_energy
+							|| (Player.get('health') >= req_health
+								&& Queue.burn.stamina >= req_stamina))
 						&& (typeof this.data[i][j].attackbonus === 'undefined' 
 							|| this.data[i][j].attackbonus >= this.option.min_to_attack
 							|| (this.data[i][j].attackbonus <= this.option.fortify 
-								&& this.option.fortify_active))) {*/
+								&& this.option.fortify_active))) {
 				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
@@ -6816,26 +6758,26 @@ Monster.update = function(what,worker) {
 					&& Queue.burn.stamina >= this.runtime.stamina)
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
-					+ ' ' + fullname
-					+ ' (' + makeImage('stamina') + ' ' + this.runtime.stamina + '+, ' + makeImage('energy') + ' ' + this.runtime.energy + '+)');
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ')
+					+ fullname + ' (Min Stamina = ' + this.runtime.stamina 
+					+ ' & Min Energy = ' + this.runtime.energy + ')');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
-			label = 'energy';
+			label = ' energy';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.energy - Queue.burn.energy)
 					: Math.max((this.runtime.energy - Queue.burn.energy)
 						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
 						,(Queue.option.start_energy - Player.get('energy')));
 		} else if (Queue.burn.stamina < this.runtime.stamina){
-			label = 'stamina';
+			label = ' stamina';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.stamina - Queue.burn.stamina)
 					: Math.max((this.runtime.stamina - Queue.burn.stamina)
 						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
 						,(Queue.option.start_stamina - Player.get('stamina')));
 		} else if (Player.get('health') < this.runtime.health){
-			label = 'health';
+			label = ' health';
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {

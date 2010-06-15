@@ -894,29 +894,16 @@ Monster.update = function(what,worker) {
 				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
 				
 				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
-					&& this.data[i][j].state === 'engage'
-					&& this.data[i][j].finish > Date.now()
-					&& (!this.option.hide || Player.get('health') >= req_health)
-					&& (Queue.burn.energy >= req_energy
-						|| ((!this.option.hide || Queue.burn.stamina >= req_stamina)
-							&& (typeof this.data[i][j].attackbonus === 'undefined'
-								|| this.data[i][j].attackbonus >= this.option.min_to_attack
-								|| (this.data[i][j].attackbonus <= this.option.fortify
-									&& this.option.fortify_active
-									&& Queue.burn.energy >= req_energy
-									)
-								)
-							)
-						)
-					){
-				
-/*				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
 						&& this.data[i][j].state === 'engage'
 						&& this.data[i][j].finish > Date.now() 
+						&& (!this.option.hide
+							|| Queue.burn.energy >= req_energy
+							|| (Player.get('health') >= req_health
+								&& Queue.burn.stamina >= req_stamina))
 						&& (typeof this.data[i][j].attackbonus === 'undefined' 
 							|| this.data[i][j].attackbonus >= this.option.min_to_attack
 							|| (this.data[i][j].attackbonus <= this.option.fortify 
-								&& this.option.fortify_active))) {*/
+								&& this.option.fortify_active))) {
 				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
@@ -1049,26 +1036,26 @@ Monster.update = function(what,worker) {
 					&& Queue.burn.stamina >= this.runtime.stamina)
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify' : 'Attack')
-					+ ' ' + fullname
-					+ ' (' + makeImage('stamina') + ' ' + this.runtime.stamina + '+, ' + makeImage('energy') + ' ' + this.runtime.energy + '+)');
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ')
+					+ fullname + ' (Min Stamina = ' + this.runtime.stamina 
+					+ ' & Min Energy = ' + this.runtime.energy + ')');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
-			label = 'energy';
+			label = ' energy';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.energy - Queue.burn.energy)
 					: Math.max((this.runtime.energy - Queue.burn.energy)
 						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
 						,(Queue.option.start_energy - Player.get('energy')));
 		} else if (Queue.burn.stamina < this.runtime.stamina){
-			label = 'stamina';
+			label = ' stamina';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.stamina - Queue.burn.stamina)
 					: Math.max((this.runtime.stamina - Queue.burn.stamina)
 						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
 						,(Queue.option.start_stamina - Player.get('stamina')));
 		} else if (Player.get('health') < this.runtime.health){
-			label = 'health';
+			label = ' health';
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {

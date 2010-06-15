@@ -164,34 +164,34 @@ Gift.parse = function(change) {
 Gift.work = function(state) {
 	if (length(todo) && (this.runtime.gift_delay < Date.now())) {
 		this.runtime.work = true;
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
-			return true;
+			return QUEUE_CONTINUE;
 		}
-		return false;
+		return QUEUE_FINISH;
 	}
 	if (!this.runtime.gift_waiting && !this.runtime.work) {
-		return false;
+		return QUEUE_FINISH;
 	}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	if(this.runtime.gift.id && !this.runtime.gift.sender_id) {	// We have a gift id, but no sender id.
 		if (!Page.to('army_invite')) {	// Get the sender id from the army_invite page.
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	if (this.runtime.gift.sender_id) { // We have the sender id so we can receive the gift.
 		if (!Page.to('army_invite')) {
-			return true;
+			return QUEUE_CONTINUE;
 		}
 //		debug('Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + this.runtime.gift.sender_id) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
-			return true;
+			return QUEUE_CONTINUE;
 		}
 	}
 	
@@ -200,7 +200,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return false;
+		return QUEUE_FINISH;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -265,13 +265,13 @@ Gift.work = function(state) {
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[name="ok"]');
 		}
-		return true;
+		return QUEUE_CONTINUE;
 	} else if (this.runtime.gift_sent) {
 		this.runtime.gift_sent = null;
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return true;
+		return QUEUE_CONTINUE;
 	}
 	
 	// Give some gifts back
@@ -293,7 +293,7 @@ Gift.work = function(state) {
 				continue;
 			}
 			if (!Page.to('army_gifts', '?app_friends=c&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];
@@ -309,7 +309,7 @@ Gift.work = function(state) {
 					todo[gift_ids[random_gift_id]].push(todo[i][j]);
 				}
 				delete todo[i];
-				return true;
+				return QUEUE_CONTINUE;
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
 				if ($('img[src*="gift_invite_castle_on"]').length){
@@ -328,30 +328,30 @@ Gift.work = function(state) {
 						}
 						if (k == 0) {
 							delete todo[i];
-							return true;
+							return QUEUE_CONTINUE;
 						}
 						this.runtime.sent_id = i;
 						this.runtime.gift_sent = Date.now() + (60000);	// wait max 60 seconds for the popup.
 						Page.click('input[name="send"]');
-						return true;
+						return QUEUE_CONTINUE;
 					} else {
-						return true;
+						return QUEUE_CONTINUE;
 					}
 				} else if ($('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]').length) {
 					Page.click('div.tabBtn img.imgButton[src*="gift_invite_castle_off"]');
-					return true;
+					return QUEUE_CONTINUE;
 				} else {
-					return true;
+					return QUEUE_CONTINUE;
 				}
 			} else if ($('div[style*="giftpage_select"]').length) {
 				Page.click('a[href*="giftSelection='+this.data.gifts[i].slot+'"]:parent');
-				return true;
+				return QUEUE_CONTINUE;
 			} else {
-				return true;
+				return QUEUE_CONTINUE;
 			}
 		}
 	}
 	
-	return false;
+	return QUEUE_FINISH;
 };
 

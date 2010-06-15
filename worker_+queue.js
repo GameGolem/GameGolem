@@ -32,10 +32,6 @@ Queue.option = {
 	pause: false
 };
 
-Queue.caap_load = function() {
-	this.option.pause = false;
-};
-
 Queue.display = [
 	{
 		label:'Drag the unlocked panels into the order you wish them run.'
@@ -85,9 +81,6 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	var i, worker;
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
@@ -138,9 +131,6 @@ Queue.clearCurrent = function() {
 }
 
 Queue.update = function(type) {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	var i, $worker;
 	if (!this.option.pause && this.option.delay !== this.lasttimer) {
 		window.clearInterval(this.timer);

@@ -16,9 +16,6 @@ Config.option = {
 };
 
 Config.init = function() {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var $btn, $newPanel, i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+VERSION : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
@@ -381,9 +378,6 @@ Config.makeOption = function(worker, args) {
 };
 
 Config.set = function(key, value) {
-	if ('Caap' in Workers) {
-		return false;
-	}
 	this._unflush();
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
