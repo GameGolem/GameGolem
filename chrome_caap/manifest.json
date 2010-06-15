@@ -12,5 +12,5 @@
    "description": "Autoplayer for Castle Age game on Facebook.",
    "name": "Castle Age Autoplayer - Golem",
    "permissions": [ "tabs", "unlimited_storage", "http://apps.facebook.com/castle_age/*" ],
-   "version": "31.3.597"
+   "version": "31.3.598"
 }

@@ -48,19 +48,18 @@ Resources.display = function() {
 			title:type
 		},{
 			id:'types.'+type,
-			label:'Bucket Type',
+			label:'Resource Use',
 			select:{0:'None',1:'Shared',2:'Exclusive'}
 		});
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				require = {};
-//				require['buckets.'+worker+'.'+type] = 2;
 				require['types.'+type] = 2;
 				display.push({
 					id:'buckets.'+worker+'.priority',
 					require:require,
 					label:'...<b>'+worker+'</b> priority',
-					select:{0:'-5',1:'-4',2:'-3',3:'-2',4:'-1',5:'0',6:'+1',7:'+2',8:'+3',9:'+4',10:'+5'}
+					select:{9:'+4',8:'+3',7:'+2',6:'+1',5:'0',4:'-1',3:'-2',2:'-3',1:'-4'}
 				});
 			}
 		}

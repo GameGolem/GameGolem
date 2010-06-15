@@ -58,6 +58,11 @@ Page.defaults = {
 			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
 //			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
 			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
+			monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
+			monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
+			keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
+			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
+			monster_class:			{url:'view_class_progress.php', selector:'#app'+APPID+'_choose_class_header'},
 			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -73,9 +78,6 @@ Page.defaults = {
 			keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
 			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
 			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-			keep_monster:			{url:'battle_monster.php', image:'tab_monster_on.jpg'},
-			keep_monster_active2:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
-			keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 			army_invite:			{url:'army.php', image:'invite_on.gif'},
 			army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
 			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
@@ -179,7 +181,7 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-	//debug('this.identify("'+Page.page+'")');
+//	debug('this.identify("'+Page.page+'")');
 	return this.page;
 };
 

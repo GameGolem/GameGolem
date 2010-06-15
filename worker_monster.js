@@ -5,7 +5,7 @@ var Monster = new Worker('Monster');
 Monster.data = {};
 
 Monster.defaults['castle_age'] = {
-	pages:'keep_monster keep_monster_active keep_monster_active2 battle_raid'
+	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid'
 };
 
 Monster.option = {
@@ -541,7 +541,7 @@ Monster.init = function() {
 	}
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'keep_monster'), url.substr(url.indexOf('?')));
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')));
 		return false;
 	});
 	Resources.useType('Energy');
@@ -551,7 +551,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer, atk_dmg, dfd_amount;
 	var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
-	if (Page.page === 'keep_monster_active' || Page.page === 'keep_monster_active2') { // In a monster or raid
+	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		this.runtime.checkuid = this.runtime.checktype = null;
 		debug('Parsing for Monster type');
@@ -779,7 +779,7 @@ Monster.parse = function(change) {
 			}
 			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
 		}
-	} else if (Page.page === 'keep_monster' || Page.page === 'battle_raid') { // Check monster / raid list
+	} else if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
 		if ($('div[style*="no_monster_back.jpg"]').attr('style')){
 			debug('Found a timed out monster.');
 			if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
@@ -804,7 +804,7 @@ Monster.parse = function(change) {
 		}
 		for (uid in data) {
 			for (type in data[uid]) {
-				if (((Page.page === 'battle_raid' && this.types[type].raid) || (Page.page === 'keep_monster' && !this.types[type].raid)) && (data[uid][type].state === 'complete' || (data[uid][type].state === 'assist' && data[uid][type].finish < Date.now()))) {
+				if (((Page.page === 'battle_raid' && this.types[type].raid) || (Page.page === 'monster_monster_list' && !this.types[type].raid)) && (data[uid][type].state === 'complete' || (data[uid][type].state === 'assist' && data[uid][type].finish < Date.now()))) {
 					data[uid][type].state = null;
 				}
 			}
@@ -1099,7 +1099,7 @@ Monster.work = function(state) {
 					debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
 					this.runtime.checkuid = i;
 					this.runtime.checktype = j;
-					Page.to(this.types[j].raid ? 'battle_raid' : 'keep_monster', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
+					Page.to(this.types[j].raid ? 'battle_raid' : 'monster_monster_list', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
 					return QUEUE_CONTINUE;
 				}
 			}
@@ -1185,18 +1185,18 @@ Monster.work = function(state) {
 			this.data[uid][type].button_fail = 0
 		}
 	}
-	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'keep_monster_active2') || ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid && $('div[style*="nm_top"] img[linked]').attr('uid') != uid)) {
+	if (!btn || !btn.length || (Page.page !== 'keep_monster_active' && Page.page !== 'monster_battle_monster') || ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') != uid && $('div[style*="nm_top"] img[linked]').attr('uid') != uid)) {
 		//debug('Reloading page. Button = ' + btn.attr('name'));
 		//debug('Reloading page. Page.page = '+ Page.page);
 		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
-		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
+		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
 	if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
 		debug('Current Siege Phase is: '+ this.data[uid][type].phase);
 		this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
 		debug('Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
-		Page.to(this.types[type].raid ? 'battle_raid' : 'keep_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
+		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
 		return QUEUE_RELEASE;
 	}
 	if (this.types[type].raid) {
@@ -1350,8 +1350,8 @@ Monster.dashboard = function(sort, rev) {
 		Monster._unflush();
 		Monster.data[x[0]][x[1]].ignore = !Monster.data[x[0]][x[1]].ignore;
 		Monster.dashboard();
-		if (Page.page !== 'keep_monster'){
-			Page.to('keep_monster');
+		if (Page.page !== 'monster_monster_list'){
+			Page.to('monster_monster_list');
 		} else {
 			Page.to('index');
 		}
