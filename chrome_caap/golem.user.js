@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (600+1);
+var revision = (603+1);
 // User changeable
 var show_debug = true;
 
@@ -4244,8 +4244,8 @@ Elite.update = function(type,worker) {
 	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			check = Army.get([list[i],'elite'], 0);
-			if (check < now && Army.get([list[i],'full'], now) < now) {
+			check = Army.get([list[i],'elite'], 0) || Army.get([list[i],'full'], 0);
+			if (check < now) {
 				Army.set([list[i],check ? 'elite' : 'full']);// Delete the old timers if they exist...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
 					this.runtime.nextelite = list[i];
