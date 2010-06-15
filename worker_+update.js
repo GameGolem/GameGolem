@@ -53,7 +53,7 @@ Update.work = function(state) {
 		debug('Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
-			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
+			url: 'http://code.google.com/p/game-golem/source/browse/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
 					var file, $btn;

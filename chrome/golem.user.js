@@ -15,7 +15,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (598+1);
+var revision = (599+1);
 // User changeable
 var show_debug = true;
 
@@ -3177,7 +3177,7 @@ Update.work = function(state) {
 		debug('Checking trunk revisions');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
-			url: 'http://code.google.com/p/game-golem/source/browse/#svn/trunk',
+			url: 'http://code.google.com/p/game-golem/source/browse/trunk',
 			onload: function(evt) {
 				if (evt.readyState === 4 && evt.status === 200) {
 					var file, $btn;
