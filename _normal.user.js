@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (611+1);
+var revision = (612+1);
 // User changeable
 var show_debug = true;
 
@@ -3522,9 +3522,6 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (('Caap' in Workers) && this.option.above === '') {
-		return QUEUE_FINISH;
-	}
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return QUEUE_FINISH;
 	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
@@ -3546,7 +3543,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	!('Caap' in Workers) && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
+	WorkerByName(Queue.get('runtime.current')).settings.bank = true;
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
@@ -4387,7 +4384,7 @@ Generals.update = function(type, worker) {
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','Best','Under Level 4'].concat(list));
+		Config.set('bestgenerals', ['any','under level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -5780,7 +5777,6 @@ Monster.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		title:'Fortification'
@@ -5792,7 +5788,7 @@ Monster.display = [
 	},{
 		advanced:true,
 		id:'general_fortify',
-		require:{'Caap.runtime.enabled':true,'fortify_active':true},
+		require:{'general':false,'fortify_active':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -5833,7 +5829,7 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:'Caap.runtime.enabled',
+		require:{'general':false},
 		select:'bestgenerals'
 	},{
 		advanced:true,
@@ -6845,14 +6841,8 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if ('Caap' in Workers) {
-				if (!Generals.to((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j])) {
-					return QUEUE_CONTINUE;
-				}
-			} else {
-				if (this.option.general && !Generals.to(j)) {
-					return QUEUE_CONTINUE;
-				}
+			if (!Generals.to(this.option.general ? j : this.option['general_'+j])) {
+				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 			switch(j){
@@ -7432,13 +7422,12 @@ Quest.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		advanced:true,
 		id:'general_choice',
-		label:'Subquest General',
-		require:'Caap.runtime.enabled',
+		label:'Use General',
+		require:{'general':false},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -7650,7 +7639,7 @@ Quest.update = function(type,worker) {
 };
 
 Quest.work = function(state) {
-	var i, j, general = null, best = this.runtime.best;
+	var i, j, general = 'any', best = this.runtime.best;
 	if (!best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
@@ -7673,37 +7662,32 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || ('Caap' in Workers)) {
+	if (this.option.general) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
-			if (!Generals.to(this.data[best].general)) 
-			{
-				return QUEUE_CONTINUE;
-			}
+			general = this.data[best].general;
 		} else {
-			if (('Caap' in Workers) && this.option.general_choice !== 'Best') {
-				general = this.option.general_choice;
-			} else {
-				switch(this.option.what) {
-					case 'Influence':
-					case 'Advancement':
-					case 'Experience':
-						general = Generals.best('under level 4');
-						if (general === 'any' && this.data[best].influence < 100) {
-							general = Generals.best('influence');
-						}
-						break;
-					case 'Cash':
-						general = Generals.best('cash');
-						break;
-					default:
-						general = Generals.best('item');
-						break;
-				}
-			}
-			if (!Generals.to(general)) {
-				return QUEUE_CONTINUE;
+			switch(this.option.what) {
+				case 'Influence':
+				case 'Advancement':
+				case 'Experience':
+					general = Generals.best('under level 4');
+					if (general === 'any' && this.data[best].influence < 100) {
+						general = Generals.best('influence');
+					}
+					break;
+				case 'Cash':
+					general = Generals.best('cash');
+					break;
+				default:
+					general = Generals.best('item');
+					break;
 			}
 		}
+	} else {
+		general = this.option.general_choice;
+	}
+	if (!Generals.to(general)) {
+		return QUEUE_CONTINUE;
 	}
 	switch(this.data[best].area) {
 		case 'quest':

@@ -34,9 +34,6 @@ Bank.display = [
 ];
 
 Bank.work = function(state) {
-	if (('Caap' in Workers) && this.option.above === '') {
-		return QUEUE_FINISH;
-	}
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return QUEUE_FINISH;
 	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
@@ -58,7 +55,7 @@ Bank.stash = function(amount) {
 };
 
 Bank.retrieve = function(amount) {
-	!('Caap' in Workers) && (WorkerByName(Queue.get('runtime.current')).settings.bank = true);
+	WorkerByName(Queue.get('runtime.current')).settings.bank = true;
 	amount -= Player.get('cash');
 	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...

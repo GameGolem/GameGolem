@@ -12,7 +12,8 @@ rem Must have TortoiseSVN installed for this to work!
 
 rem echo Creating revision file from TortoiseSVN...
 rem SubWCRev.exe . _head_tortoise.tmpl _head_revision.js >nul
-SubWCRev.exe . _chrome_manifest.tmpl .\chrome\GameGolem\manifest.json >nul
+rem SubWCRev.exe . .\chrome\manifest.tmpl .\chrome\GameGolem\manifest.json >nul
+rem SubWCRev.exe . .\chrome\update.tmpl .\chrome\update.xml >nul
 
 rem ----------------------------------------------------------------------
 rem _normal.user.js - Normal version
@@ -25,8 +26,8 @@ type worker.js >>_normal.user.js 2>nul
 type worker_*.js >>_normal.user.js 2>nul
 
 rem ----------------------------------------------------------------------
-rem .\chrome\golem.user.js - Google Chrome copy (unpacked extension)
-echo Copying to .\chrome\golem.user.js
+rem .\chrome\golem.user.js - Google Chrome extension (unpacked)
+echo Copying to .\chrome\GameGolem\golem.user.js
 copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
@@ -36,25 +37,6 @@ rem *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issue
 rem To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
 rem C:\Users\???\AppData\Local\Google\Chrome\Application\chrome.exe --no-message-box --pack-extension=Z:\Sites\GameGolem\trunk\chrome\GameGolem --pack-extension-key=Z:\Sites\GameGolem\trunk\chrome\GameGolem.pem
 
-rem ----------------------------------------------------------------------
-rem _normal_caap.user.js - Caap/Golem hybrid
-echo Joining files into _normal_caap.user.js
-copy _normal.user.js _normal_caap.user.js >nul
-type worker++caap.js >>_normal_caap.user.js 2>nul
-
-rem ----------------------------------------------------------------------
-rem .\chrome_caap\golem.user.js - Caap/Golem Google Chrome copy (unpacked extension)
-echo Copying to .\chrome_caap\golem.user.js
-copy /Y .\chrome\GameGolem\manifest.json .\chrome_caap\manifest.json >nul 2>nul
-copy /Y _normal_caap.user.js .\chrome_caap\golem.user.js >nul 2>nul
-
-rem ----------------------------------------------------------------------
-rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
-rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
-
-rem echo Installing new version to Firefox
-rem copy _normal.user.js "C:\Documents and Settings\Owner\Application Data\Mozilla\Firefox\Profiles\of4omik4.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js" >nul
-
 rem --------------------------------------------------------------------------------------
 rem MINIMISED VERSION - This will fail on errors so use is advised - required for release!
 rem Change path to compiler and source - obtain it from here:
@@ -63,6 +45,13 @@ rem http://code.google.com/closure/compiler/
 rem echo Creating minimised version (will also show errors)
 rem copy _head.js _min.user.js >nul
 rem "C:\Program Files\Java\jre6\bin\java.exe" -jar "C:\Program Files\Compiler\compiler.jar" --js "_normal.user.js" >> "_min.user.js"
+
+rem ----------------------------------------------------------------------
+rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
+rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
+
+rem echo Installing new version to Firefox
+rem copy _normal.user.js "C:\Documents and Settings\Owner\Application Data\Mozilla\Firefox\Profiles\of4omik4.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js" >nul
 
 echo Press any key to quit.
 pause>nul

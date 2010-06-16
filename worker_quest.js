@@ -29,13 +29,12 @@ Quest.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		advanced:true,
 		id:'general_choice',
-		label:'Subquest General',
-		require:'Caap.runtime.enabled',
+		label:'Use General',
+		require:{'general':false},
 		select:'bestgenerals'
 	},{
 		id:'what',
@@ -247,7 +246,7 @@ Quest.update = function(type,worker) {
 };
 
 Quest.work = function(state) {
-	var i, j, general = null, best = this.runtime.best;
+	var i, j, general = 'any', best = this.runtime.best;
 	if (!best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
@@ -270,37 +269,32 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.option.general || ('Caap' in Workers)) {
+	if (this.option.general) {
 		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
-			if (!Generals.to(this.data[best].general)) 
-			{
-				return QUEUE_CONTINUE;
-			}
+			general = this.data[best].general;
 		} else {
-			if (('Caap' in Workers) && this.option.general_choice !== 'Best') {
-				general = this.option.general_choice;
-			} else {
-				switch(this.option.what) {
-					case 'Influence':
-					case 'Advancement':
-					case 'Experience':
-						general = Generals.best('under level 4');
-						if (general === 'any' && this.data[best].influence < 100) {
-							general = Generals.best('influence');
-						}
-						break;
-					case 'Cash':
-						general = Generals.best('cash');
-						break;
-					default:
-						general = Generals.best('item');
-						break;
-				}
-			}
-			if (!Generals.to(general)) {
-				return QUEUE_CONTINUE;
+			switch(this.option.what) {
+				case 'Influence':
+				case 'Advancement':
+				case 'Experience':
+					general = Generals.best('under level 4');
+					if (general === 'any' && this.data[best].influence < 100) {
+						general = Generals.best('influence');
+					}
+					break;
+				case 'Cash':
+					general = Generals.best('cash');
+					break;
+				default:
+					general = Generals.best('item');
+					break;
 			}
 		}
+	} else {
+		general = this.option.general_choice;
+	}
+	if (!Generals.to(general)) {
+		return QUEUE_CONTINUE;
 	}
 	switch(this.data[best].area) {
 		case 'quest':

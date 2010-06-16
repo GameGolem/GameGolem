@@ -51,7 +51,6 @@ Monster.display = [
 	{
 		id:'general',
 		label:'Use Best General',
-		require:{'Caap.runtime.enabled':false},
 		checkbox:true
 	},{
 		title:'Fortification'
@@ -63,7 +62,7 @@ Monster.display = [
 	},{
 		advanced:true,
 		id:'general_fortify',
-		require:{'Caap.runtime.enabled':true,'fortify_active':true},
+		require:{'general':false,'fortify_active':true},
 		label:'Fortify General',
 		select:'bestgenerals'
 	},{
@@ -104,7 +103,7 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:'Caap.runtime.enabled',
+		require:{'general':false},
 		select:'bestgenerals'
 	},{
 		advanced:true,
@@ -1116,14 +1115,8 @@ Monster.work = function(state) {
 		if (this.data[uid][type].button_fail <= 10 || !this.data[uid][type].button_fail){
 			//Primary method of finding button.
 			j = (this.runtime.fortify && Queue.burn.energy >= this.runtime.energy) ? 'fortify' : 'attack';
-			if ('Caap' in Workers) {
-				if (!Generals.to((this.option['general_'+j] === 'Best') ? j : this.option['general_'+j])) {
-					return QUEUE_CONTINUE;
-				}
-			} else {
-				if (this.option.general && !Generals.to(j)) {
-					return QUEUE_CONTINUE;
-				}
+			if (!Generals.to(this.option.general ? j : this.option['general_'+j])) {
+				return QUEUE_CONTINUE;
 			}
 			debug('Try to ' + j + ' [UID=' + uid + ']' + this.data[uid][type].name + '\'s ' + this.types[type].name);
 			switch(j){
