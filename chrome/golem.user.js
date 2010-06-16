@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (607+1);
+var revision = (608+1);
 // User changeable
 var show_debug = true;
 
@@ -4783,6 +4783,10 @@ Gift.parse = function(change) {
 			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
 			return true
+		} else {
+//			debug('No more waiting gifts. Did we miss the gift accepted page?');
+			this.runtime.gift_waiting = false;
+			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first

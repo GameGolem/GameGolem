@@ -90,6 +90,10 @@ Gift.parse = function(change) {
 			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
 			return true
+		} else {
+//			debug('No more waiting gifts. Did we miss the gift accepted page?');
+			this.runtime.gift_waiting = false;
+			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first
