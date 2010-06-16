@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (606+1);
+var revision = (607+1);
 // User changeable
 var show_debug = true;
 
@@ -6761,26 +6761,25 @@ Monster.update = function(what,worker) {
 					&& Queue.burn.stamina >= this.runtime.stamina)
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ')
-					+ fullname + ' (Min Stamina = ' + this.runtime.stamina 
-					+ ' & Min Energy = ' + this.runtime.energy + ')');
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ') + fullname
+					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
-			label = ' energy';
+			label = 'energy';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.energy - Queue.burn.energy)
 					: Math.max((this.runtime.energy - Queue.burn.energy)
 						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
 						,(Queue.option.start_energy - Player.get('energy')));
 		} else if (Queue.burn.stamina < this.runtime.stamina){
-			label = ' stamina';
+			label = 'stamina';
 			amount = (LevelUp.runtime.running && LevelUp.option.enabled) 
 					? (this.runtime.stamina - Queue.burn.stamina)
 					: Math.max((this.runtime.stamina - Queue.burn.stamina)
 						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
 						,(Queue.option.start_stamina - Player.get('stamina')));
 		} else if (Player.get('health') < this.runtime.health){
-			label = ' health';
+			label = 'health';
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {
