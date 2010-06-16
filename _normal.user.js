@@ -5,17 +5,19 @@
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		31.4
 // @include		http://apps.facebook.com/castle_age/*
-// @include		http://apps.facebook.com/reqs.php
+// @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
 // ==/UserScript==
+// @disabled-include		http://apps.facebook.com/reqs.php
+// @disabled-include		https://apps.facebook.com/reqs.php
 // 
 // For the source code please check the sourse repository
 // - http://code.google.com/p/game-golem/
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (603+1);
+var revision = (604+1);
 // User changeable
 var show_debug = true;
 
@@ -27,7 +29,7 @@ var script_started = Date.now();
 // Automatically filled
 var userID = 0;
 var imagepath = '';
-var isGreasemonkey = (navigator.userAgent.toLowerCase().indexOf('chrome') === -1); // Need better checking, but chrome's extension code fakes GM functions
+var isGreasemonkey = (typeof GM_log === 'function');
 
 // Decide which facebook app we're in...
 if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {

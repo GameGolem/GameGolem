@@ -9,7 +9,7 @@ var script_started = Date.now();
 // Automatically filled
 var userID = 0;
 var imagepath = '';
-var isGreasemonkey = (navigator.userAgent.toLowerCase().indexOf('chrome') === -1); // Need better checking, but chrome's extension code fakes GM functions
+var isGreasemonkey = (typeof GM_log === 'function');
 
 // Decide which facebook app we're in...
 if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
