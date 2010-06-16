@@ -49,24 +49,6 @@
                      excludes="worker_+*.js"/>
         </concat>
         <replace file="./_normal.user.js" token="@@@" value="${RevNum}"/>
-        <delete file="./_normal_chrome.user.js"/>
-        <concat destfile="./_normal_chrome.user.js">
-            <filelist dir="./" files="_head.js"/>
-            <fileset dir="./"
-                     includes="_head_net*"/>
-            <filelist dir="./" files="_jquery-latest.min.js"/>
-            <filelist dir="./" files="_jquery-ui-latest.min.js"/>
-            <filelist dir="./" files="_main.js"/>
-            <filelist dir="./" files="css.js"/>
-            <filelist dir="./" files="utility.js"/>
-            <filelist dir="./" files="worker.js"/>
-            <fileset dir="./"
-                     includes="worker_+*.js"/>
-            <fileset dir="./"
-                     includes="worker_*.js"
-                     excludes="worker_+*.js"/>
-        </concat>
-        <replace file="./_normal_chrome.user.js" token="@@@" value="${RevNum}"/>
     </target>
     <!-- Create the build directory structure used by compile
     and install to FireFox profile as indicated  -->
