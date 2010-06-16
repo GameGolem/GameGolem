@@ -12,7 +12,7 @@ rem Must have TortoiseSVN installed for this to work!
 
 rem echo Creating revision file from TortoiseSVN...
 rem SubWCRev.exe . _head_tortoise.tmpl _head_revision.js >nul
-rem SubWCRev.exe . _chrome_manifest.tmpl .\chrome\manifest.json >nul
+SubWCRev.exe . _chrome_manifest.tmpl .\chrome\GameGolem\manifest.json >nul
 
 rem ----------------------------------------------------------------------
 rem _normal.user.js - Normal version
@@ -27,7 +27,14 @@ type worker_*.js >>_normal.user.js 2>nul
 rem ----------------------------------------------------------------------
 rem .\chrome\golem.user.js - Google Chrome copy (unpacked extension)
 echo Copying to .\chrome\golem.user.js
-copy /Y _normal.user.js .\chrome\golem.user.js >nul 2>nul
+copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
+
+rem ----------------------------------------------------------------------
+rem .\chrome\GameGolem.crx - Google Chrome extension
+rem To build the "proper" chrome extension you need Chrome installed
+rem *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issues/detail?id=22901
+rem To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
+rem C:\Users\???\AppData\Local\Google\Chrome\Application\chrome.exe --no-message-box --pack-extension=Z:\Sites\GameGolem\trunk\chrome\GameGolem --pack-extension-key=Z:\Sites\GameGolem\trunk\chrome\GameGolem.pem
 
 rem ----------------------------------------------------------------------
 rem _normal_caap.user.js - Caap/Golem hybrid
@@ -38,7 +45,7 @@ type worker++caap.js >>_normal_caap.user.js 2>nul
 rem ----------------------------------------------------------------------
 rem .\chrome_caap\golem.user.js - Caap/Golem Google Chrome copy (unpacked extension)
 echo Copying to .\chrome_caap\golem.user.js
-copy /Y .\chrome\manifest.json .\chrome_caap\manifest.json >nul 2>nul
+copy /Y .\chrome\GameGolem\manifest.json .\chrome_caap\manifest.json >nul 2>nul
 copy /Y _normal_caap.user.js .\chrome_caap\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
