@@ -15,7 +15,7 @@ Battle.data = {
 
 Battle.option = {
 	general:true,
-	points:true,
+	points:'Invade',
 	monster:true,
 	arena:false,
 	losses:5,
@@ -30,7 +30,8 @@ Battle.option = {
 };
 
 Battle.runtime = {
-	attacking:null
+	attacking:null,
+	points:false
 };
 
 Battle.symbol = { // Demi-Power symbols
@@ -57,16 +58,17 @@ Battle.display = [
 		id:'type',
 		label:'Battle Type',
 		select:['Invade', 'Duel', 'War'],
-		help:'War needs level 150+, and is similar to Duel - though also uses 10 stamina'
+		help:'War needs level 100+, and is similar to Duel - though also uses 10 stamina'
+	},{
+		id:'points',
+		label:'Get Demi-Points Type',
+		select:['Never', 'Invade', 'Duel'],
+		help:'This will make you attack specifically to get Demi-Points every day. War (above) will not earn Demi-Points, but otherwise you will gain them through normal battle - just not necessarily all ten a day'
 	},{
 		id:'losses',
 		label:'Attack Until',
 		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
-	},{
-		id:'points',
-		label:'Always Get Demi-Points',
-		checkbox:true
 	},{
 //		advanced:true,
 //		id:'arena',
@@ -143,6 +145,10 @@ Battle.display = [
 Battle.init = function() {
 //	this._watch(Arena);
 	this._watch(Monster);
+	if (typeof this.option.points === 'boolean') {
+		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
+		$(':golem(Battle,points)').val(this.option.points);
+	}
 	this.option.arena = false;// ARENA!!!!!!
 	Resources.useType('Stamina');
 };
@@ -230,7 +236,7 @@ Battle.update = function(type) {
 	var i, j, weight, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
-	if (this.option.points) {
+	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
 		+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
@@ -273,7 +279,7 @@ Battle.update = function(type) {
 		}
 	}
 	// Check if we need Demi-points
-	points = (this.option.points && this.data.points && sum(this.data.points) < 50);
+	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
@@ -350,19 +356,19 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || Queue.burn.stamina < (this.option.type === 'War' ? 10 : 1)) {
+	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || Queue.burn.stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || (this.option.general && !Generals.to(Generals.best(this.option.type))) || !Page.to('battle_battle')) {
+	if (!state || (this.option.general && !Generals.to(Generals.best(this.runtime.points ? this.option.points : this.option.type))) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
-	var $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');
+	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]').first().parents('form');
 	if (!$form.length) {
-		debug('Unable to find attack buttons, forcing reload');
+		debug('Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');
 	} else {
-		log('Attacking ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		log((this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
