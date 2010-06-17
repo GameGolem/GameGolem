@@ -34,7 +34,8 @@ Monster.option = {
 	check_interval:3600000,
 	avoid_behind:false,
 	avoid_hours:5,
-	behind_override:false
+	behind_override:false,
+	risk:false
 };
 
 Monster.runtime = {
@@ -161,6 +162,12 @@ Monster.display = [
 		id:'raid',
 		label:'Raid',
 		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+	},{
+		advanced:true,
+		id:'risk',
+		label:'Risk Death',
+		checkbox:true,
+		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
 	},{
 		id:'armyratio',
 		require:{'raid':[['Duel', 'Duel x5']]},
@@ -890,7 +897,7 @@ Monster.update = function(what,worker) {
 				}
 				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
 				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
-				req_health = this.types[j].raid ? 13 : 10; // Don't want to die when attacking a raid
+				req_health = this.types[j].raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 				
 				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
 						&& this.data[i][j].state === 'engage'

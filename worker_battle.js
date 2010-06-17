@@ -25,7 +25,8 @@ Battle.option = {
 	level:1.1,
 	preferonly:'Sometimes',
 	prefer:[],
-	between:0
+	between:0,
+	risk:false
 };
 
 Battle.runtime = {
@@ -102,6 +103,12 @@ Battle.display = [
 			86400000:'24 hours'
 		},
 		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
+	},{
+		advanced:true,
+		id:'risk',
+		label:'Risk Death',
+		checkbox:true,
+		help:'The lowest health you can attack with is 10, but you can lose up to 12 health in an attack, so are you going to risk it???'
 	},{
 		id:'army',
 		require:{'type':'Invade'},
@@ -343,7 +350,7 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < 13 || Queue.burn.stamina < (this.option.type === 'War' ? 10 : 1)) {
+	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || Queue.burn.stamina < (this.option.type === 'War' ? 10 : 1)) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
