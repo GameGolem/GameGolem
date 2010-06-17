@@ -38,19 +38,20 @@ firefox=""
 wait=1
 :ENDINI
 
+rem Default options
+set golem=.\
+set tortoise=0
+set chrome=1
+set chrome_pack=0
+set java=""
+set compiler=""
+set firefox=""
+set wait=1
+
 if EXIST "build.ini" (
 	for /F "eol=; tokens=1,2 delims==" %%a in (build.ini) do (
 		if NOT "%%b"=="" set %%a=%%~b
 	)
-) ELSE (
-	set golem=.\
-	set tortoise=0
-	set chrome=1
-	set chrome_pack=0
-	set java=""
-	set compiler=""
-	set firefox=""
-	set wait=1
 )
 
 rem ----------------------------------------------------------------------

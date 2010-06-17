@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (617+1);
+var revision = (618+1);
 // User changeable
 var show_debug = true;
 
@@ -4290,8 +4290,8 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function(type,worker) {
-	var i, list, tmp = [], now = Date.now(), check, prefer = false;
-	this.runtime.nextelite = 0;
+	var i, list, tmp = [], now = Date.now(), check;
+	this.runtime.nextelite = null;
 	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {

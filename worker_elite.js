@@ -146,8 +146,8 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function(type,worker) {
-	var i, list, tmp = [], now = Date.now(), check, prefer = false;
-	this.runtime.nextelite = 0;
+	var i, list, tmp = [], now = Date.now(), check;
+	this.runtime.nextelite = null;
 	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
