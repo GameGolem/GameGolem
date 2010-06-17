@@ -61,43 +61,45 @@ Monster.display = [
 		checkbox:true,
 		help:'Must be checked to fortify.'
 	},{
-		advanced:true,
-		id:'general_fortify',
-		require:{'general':false,'fortify_active':true},
-		label:'Fortify General',
-		select:'bestgenerals'
-	},{
-		id:'fortify',
+//		id:'fortify_group',
 		require:'fortify_active',
-		label:'Fortify Below (AB)',
-		text:30,
-		help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
-		after:'%'
-	},{
-		/*	id:'quest_over',
-		require:'fortify_active',
-		label:'Quest if Over',
-		text:90,
-		after:'%'
-	},{*/
-		id:'min_to_attack',
-		require:'fortify_active',
-		label:'Attack Over (AB)',
-		text:1,
-		help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
-		after:'%'
-	},{
-		id:'minenergy',
-		require:'fortify_active',
-		label:'Min Energy Cost',
-		select:[10,20,40,100],
-		help:'Select the minimum energy for a single energy action'
-	},{
-		id:'maxenergy',
-		require:'fortify_active',
-		label:'Max Energy Cost',
-		select:[10,20,40,100],
-		help:'Select the maximum energy for a single energy action'
+		group:[
+			{
+				advanced:true,
+				id:'general_fortify',
+				require:{'general':false},
+				label:'Fortify General',
+				select:'bestgenerals'
+			},{
+				id:'fortify',
+				label:'Fortify Below (AB)',
+				text:30,
+				help:'Fortify if ATT BONUS is under this value. Range of -50% to +50%.',
+				after:'%'
+			},{
+				/*	id:'quest_over',
+				require:'fortify_active',
+				label:'Quest if Over',
+				text:90,
+				after:'%'
+			},{*/
+				id:'min_to_attack',
+				label:'Attack Over (AB)',
+				text:1,
+				help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+				after:'%'
+			},{
+				id:'minenergy',
+				label:'Min Energy Cost',
+				select:[10,20,40,100],
+				help:'Select the minimum energy for a single energy action'
+			},{
+				id:'maxenergy',
+				label:'Max Energy Cost',
+				select:[10,20,40,100],
+				help:'Select the maximum energy for a single energy action'
+			}
+		]
 	},{
 		title:'Who To Fight'
 	},{

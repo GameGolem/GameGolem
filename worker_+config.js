@@ -32,7 +32,7 @@ Config.init = function() {
 		Config._save('option');
 	});
 	for (i in Workers) {
-		Config.makePanel(Workers[i], Workers[i].display);
+		Config.makePanel(Workers[i]);
 	}
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -154,7 +154,7 @@ Config.init = function() {
 };
 
 Config.makePanel = function(worker, args) {
-	var i, $panel;
+	var i;
 	if (!isWorker(worker)) {
 		if (!WorkerStack.length) {
 			return;
@@ -171,23 +171,10 @@ Config.makePanel = function(worker, args) {
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
 		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+	} else {
+		$('#'+worker.id+' > div').empty();
 	}
-	$panel = $('#'+worker.id+' > div').empty();
-	if (isArray(args)) {
-		for (var i=0; i<args.length; i++) {
-			$panel.append(this.makeOption(worker, args[i]));
-		}
-	} else if (isObject(args)) {
-		$panel.append(this.makeOption(worker, args));
-	} else if (isString(args)) {
-		$panel.append(this.makeOption(worker, {title:args}));
-	} else if (isFunction(args)) {
-		try {
-			this.makePanel(worker, args.call(worker));
-		} catch(e) {
-			debug(e.name + ' in Config.makePanel(' + worker.name + '.display()): ' + e.message);
-		}
-	}
+	this.addOption(worker, args);
 	this.checkRequire(worker.id);
 };
 
@@ -195,39 +182,76 @@ Config.makeID = function(worker, id) {
 	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
 };
 
-Config.clearPanel = function(worker) {
+Config.clearPanel = function(selector) {
 	this._init(); // Make sure we're properly loaded first!
-	if (!isWorker(worker)) {
+	if (isWorker(selector)) {
+		selector = '#'+selector.id+' > div';
+	} else if (typeof selector === 'undefined' || !selector) {
 		if (!WorkerStack.length) {
 			return;
 		}
-		worker = WorkerStack[WorkerStack.length-1];
+		selector = '#'+WorkerStack[WorkerStack.length-1].id+' > div';
 	}
-	$('#'+worker.id+' > div').empty();
+	$(selector).empty();
 };
 
-Config.addOption = function(worker, args) {
+Config.addOption = function(selector, args) {
 	this._init(); // Make sure we're properly loaded first!
-	if (!isWorker(worker)) {
-		if (!worker || !WorkerStack.length) {
+	var worker = WorkerStack[WorkerStack.length-1];
+	if (isWorker(selector)) {
+		worker = selector;
+		selector = '#'+selector.id+' > div';
+	} else if (typeof args === 'undefined' || !args) {
+		if (!WorkerStack.length) {
 			return;
 		}
-		args = worker;
-		worker = WorkerStack[WorkerStack.length-1];
+		args = selector;
+		selector = '#'+worker.id+' > div';
 	}
+	$(selector).append(this.makeOptions(worker, args));
+/*
 	if (isArray(args)) {
 		for (var i=0; i<args.length; i++) {
-			$('#'+worker.id+' > div').append(this.makeOption(worker, args[i]));
+			$(selector).append(this.makeOption(worker, args[i]));
 		}
 	} else if (isObject(args)) {
-		$('#'+worker.id+' > div').append(this.makeOption(worker, args));
+		$(selector).append(this.makeOption(worker, args));
 	} else if (isString(args)) {
-		$('#'+worker.id+' > div').append(this.makeOption(worker, {title:args}));
+		$(selector).append(this.makeOption(worker, {title:args}));
 	} else if (isFunction(args)) {
-		this.addOption(worker, args());
+		try {
+			this.addOption(selector, args.call(worker));
+		} catch(e) {
+			debug(e.name + ' in Config.addOption(' + worker.name + '.display()): ' + e.message);
+		}
 	} else {
-		debug(worker.name+' is trying to add an unknown type of panel');
+		debug(WorkerStack[WorkerStack.length-1].name+' is trying to add an unknown type of option');
 	}
+*/
+};
+
+Config.makeOptions = function(worker, args) {
+	this._init(); // Make sure we're properly loaded first!
+	if (isArray(args)) {
+		var i, $output = $([]);
+		for (i=0; i<args.length; i++) {
+			$output = $output.add(this.makeOptions(worker, args[i]));
+		}
+		return $output;
+	} else if (isObject(args)) {
+		return this.makeOption(worker, args);
+	} else if (isString(args)) {
+		return this.makeOption(worker, {title:args});
+	} else if (isFunction(args)) {
+		try {
+			return this.makeOptions(worker, args.call(worker));
+		} catch(e) {
+			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
+		}
+	} else {
+		debug(WorkerStack[WorkerStack.length-1].name+' is trying to add an unknown type of option');
+	}
+	return $([]);
 };
 
 Config.makeOption = function(worker, args) {
@@ -242,7 +266,7 @@ Config.makeOption = function(worker, args) {
 		min: 0,
 		max: 100
 	}, args);
-	o.real_id = this.makeID(worker, o.id);
+	o.real_id = o.id ? ' id="' + this.makeID(worker, o.id) + '"' : '';
 	o.value = worker.get('option.'+o.id, null);
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
@@ -265,18 +289,18 @@ Config.makeOption = function(worker, args) {
 	// our different types of input elements
 	if (o.info) { // only useful for externally changed
 		if (o.id) {
-			txt.push('<span style="float:right" id="' + o.real_id + '">' + (o.value || o.info) + '</span>');
+			txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info) + '</span>');
 		} else {
 			txt.push(o.info);
 		}
 	} else if (o.text) {
-		txt.push('<input type="text" id="' + o.real_id + '" size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+		txt.push('<input type="text"' + o.real_id + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 	} else if (o.textarea) {
-		txt.push('<textarea id="' + o.real_id + '" name="' + o.real_id + '" cols="23" rows="5">' + (o.value || '') + '</textarea>');
+		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
-		txt.push('<input type="checkbox" id="' + o.real_id + '"' + (o.value ? ' checked' : '') + '>');
+		txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
 	} else if (o.button) {
-		txt.push('<input type="button" id="' + o.real_id + '" value="' + o.label + '">');
+		txt.push('<input type="button"' + o.real_id + ' value="' + o.label + '">');
 	} else if (o.select) {
 		switch (typeof o.select) {
 			case 'number':
@@ -305,14 +329,14 @@ Config.makeOption = function(worker, args) {
 				}
 				break;
 		}
-		txt.push('<select id="' + o.real_id + '"' + o.className + o.alt + '>' + list.join('') + '</select>');
+		txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
 	} else if (o.multiple) {
 		if (typeof o.value === 'array' || typeof o.value === 'object') {
 			for (i in o.value) {
 				list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
 			}
 		}
-		txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple id="' + o.real_id + '">' + list.join('') + '</select><br>');
+		txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
 		if (typeof o.multiple === 'string') {
 			txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
 		} else {
@@ -347,7 +371,7 @@ Config.makeOption = function(worker, args) {
 	if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 		txt.push('</span>');
 	}
-	$option = $('<div>' + txt.join('') + '<br></div>');
+	$option = $('<div>' + txt.join('') + '</div>');
 	if (o.require) {
 		if (typeof o.require === 'string') {
 			i = o.require;
@@ -367,6 +391,11 @@ Config.makeOption = function(worker, args) {
 			}
 		}
 		$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
+	}
+	if (o.group) {
+		$option.append(this.makeOptions(worker,o.group));
+	} else {
+		$option.append('<br>');
 	}
 	o.advanced && $option.addClass('golem-advanced');
 	o.help && $option.attr('title', o.help);
@@ -434,9 +463,16 @@ Config.updateOptions = function() {
 	this.checkRequire();
 };
 
-Config.checkRequire = function(id) {
+Config.checkRequire = function(selector) {
 //	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
-	$((typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require').each(function(i,el){
+	if (isWorker(selector)) {
+		selector = '#'+selector.id+' .golem-require';
+	} else if (typeof selector !== 'undefined' && $(selector).length) {
+		selector = $('.golem-require', selector);
+	} else {
+		selector = '.golem-require';
+	}
+	$(selector).each(function(i,el){
 		var i, j, k, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
 		if ($(el).hasClass('golem-advanced')) {
 			show = Config.option.advanced;

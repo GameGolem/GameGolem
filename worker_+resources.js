@@ -44,25 +44,28 @@ Resources.display = function() {
 	}
 	display.push({label:'Not doing anything yet...'});
 	for (type in this.option.types) {
+		group = [];
+		require = {};
+		require['types.'+type] = 2;
+		for (worker in this.runtime.buckets) {
+			if (type in this.runtime.buckets[worker]) {
+				group.push({
+					id:'buckets.'+worker+'.priority',
+					label:'...<b>'+worker+'</b> priority',
+					select:{9:'+4',8:'+3',7:'+2',6:'+1',5:'0',4:'-1',3:'-2',2:'-3',1:'-4',0:'Disabled'}
+				});
+			}
+		}
 		display.push({
 			title:type
 		},{
 			id:'types.'+type,
 			label:'Resource Use',
 			select:{0:'None',1:'Shared',2:'Exclusive'}
+		},{
+			group:group,
+			require:require
 		});
-		for (worker in this.runtime.buckets) {
-			if (type in this.runtime.buckets[worker]) {
-				require = {};
-				require['types.'+type] = 2;
-				display.push({
-					id:'buckets.'+worker+'.priority',
-					require:require,
-					label:'...<b>'+worker+'</b> priority',
-					select:{9:'+4',8:'+3',7:'+2',6:'+1',5:'0',4:'-1',3:'-2',2:'-3',1:'-4'}
-				});
-			}
-		}
 	}
 	return display;
 };
