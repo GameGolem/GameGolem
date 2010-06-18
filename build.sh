@@ -18,6 +18,14 @@ workdir="$(dirname $0)"
 #
 js_compiler="../compiler.jar"
 
+# Path of chrome/chromium
+# 
+# Required to build the packed Google Chrome extension.
+# Will be detected automatically if you have chromium-browser
+# in your PATH
+#
+chrome_browser="$(which chromium-browser)"
+
 # Update installed script directly in Firefox data directory
 #
 # Set it to "Yes" to enable the following lines and you'll only need
@@ -26,14 +34,12 @@ js_compiler="../compiler.jar"
 #
 update_firefox="No"
 
-
 # Generate Google Chrome extension
 #
 # Set it to "Yes" to generate the packed Google Chrmoe extension.
 # You must obtain the GameGolem.pem file from Rycochet for this.
 #
 build_chrome="No"
-
 
 # Generate _release.user.js
 #
@@ -46,14 +52,17 @@ build_release="No"
 # Workdir
 cd $(dirname $0)
 
+# Remove old stuff
+rm -f _normal.user.js _min.user.js chrome\GameGolem\golem.user.js _head_revision.js _head_tortoise.js
+
 # Compute revision number
 if [ -d .svn ]; then
     vcs="svn"
 else
     vcs="git svn"
 fi
-rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2}'`
-sed "s/\\\$WCREV\\\$/$rev/" _head_tortoise.tmpl > _head_revision.js
+rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2 + 1}'`
+sed "s/\\\$WCREV\\\$/$rev/" _head_revision.tmpl > _head_revision.js
 sed "s/\\\$WCREV\\\$/$rev/" chrome/manifest.tmpl > chrome/GameGolem/manifest.json
 sed "s/\\\$WCREV\\\$/$rev/" chrome/update.tmpl > chrome/update.xml
 
@@ -73,13 +82,16 @@ echo "Copying to chrome/GameGolem/golem.user.js"
 cp _normal.user.js chrome/GameGolem/golem.user.js
 
 ### GOOGLE CHROME EXTENSION ###
-if [ "$build_chrome" = "Yes" ]; then
-    echo "Would create Google Chrome extension, but it's not been written yet"
 # To build the "proper" chrome extension you need Chrome installed
 # *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issues/detail?id=22901
 # To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
-# Needs to be written properly -  basic syntax (might need absolute paths)
-### chrome.exe --no-message-box --pack-extension=chrome\GameGolem --pack-extension-key=chrome\GameGolem.pem
+if [ "$build_chrome" = "Yes" ]; then
+    if [ -f chrome/GameGolem.pem ]; then
+        echo "Creating Google Chrome extension"
+        $chrome_browser --no-message-box --pack-extension=chrome/GameGolem --pack-extension-key=chrome/GameGolem.pem
+    else 
+        echo "Would create Google Chrome extension, but you miss chrome/GameGolem.pem file"
+    fi
 fi
 
 ### MINIMISED VERSION ###
