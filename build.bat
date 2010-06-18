@@ -62,26 +62,23 @@ if EXIST "build.ini" (
 rem ----------------------------------------------------------------------
 rem Delete old files...
 echo.Deleting old user.js files
-del /F /Q _normal.user.js _min.user.js .\chrome\GameGolem\golem.user.js
+del /F /Q _normal.user.js _min.user.js .\chrome\GameGolem\golem.user.js 2>nul
 
 rem ----------------------------------------------------------------------
-rem Latest revision known (once committed it will be out of date)
-rem Must have TortoiseSVN installed for this to work!
-set crev= 0
-echo.$WCREV$ >cr.tmpl
+rem Current revision (assuming this copy is committed, so Update / Build / Commit)
+set /A revision=0
+rem TortoiseSVN version:
 if "%tortoise%"=="1" (
-	echo.Creating revision files from TortoiseSVN...
-	SubWCRev.exe . cr.tmpl cr.txt >nul
+	for /F "delims=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:'\ " %%a in ('SubWCRev.exe .') do (
+		set /A revision=1+%%a
+	)
 )
-set /p crev=< cr.txt
-set /a nrev= %crev%+1
-if "%tortoise%"=="1" (
-	call:Replace "$WCREV$" "%crev%" "_head_tortoise.tmpl" >"_head_revision.js"
-	call:Replace "$WCREV$" "%nrev%" ".\chrome\manifest.tmpl" >".\chrome\GameGolem\manifest.json"
-	call:Replace "$WCREV$" "%nrev%" ".\chrome\update.tmpl" >".\chrome\update.xml"
+rem If we can get the revision any other ways, place before here...
+if NOT "%revision%"=="0" (
+	call:Replace "$WCREV$" "%revision%" "_head_revision.tmpl" >"_head_revision.js"
+	call:Replace "$WCREV$" "%revision%" ".\chrome\manifest.tmpl" >".\chrome\GameGolem\manifest.json"
+	call:Replace "$WCREV$" "%revision%" ".\chrome\update.tmpl" >".\chrome\update.xml"
 )
-del "cr.tmpl"
-del "cr.txt"
 
 rem ----------------------------------------------------------------------
 rem _normal.user.js - Normal version
@@ -95,7 +92,7 @@ type worker_*.js >>_normal.user.js 2>nul
 
 rem ----------------------------------------------------------------------
 rem .\chrome\GameGolem\golem.user.js - Google Chrome extension (unpacked)
-echo.Copying to .\chrome\GameGolem\golem.user.js
+echo.Creating unpacked Chrome extension...
 copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------

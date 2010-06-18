@@ -302,6 +302,9 @@ Config.makeOption = function(worker, args) {
 	} else if (o.button) {
 		txt.push('<input type="button"' + o.real_id + ' value="' + o.label + '">');
 	} else if (o.select) {
+		if (typeof o.select === 'function') {
+			o.select = o.select.call(worker, o.id);
+		}
 		switch (typeof o.select) {
 			case 'number':
 				step = Divisor(o.select);
