@@ -79,6 +79,10 @@ cat _head*.js \
 
 ### Google Chrome extension (unpacked) ###
 echo "Copying to chrome/GameGolem/golem.user.js"
+if [ ! -f chrome/GameGolem ]; then
+    mkdir -p chrome/GameGolem
+fi
+cp -f -u chrome/GameGolem.tmpl/* chrome/GameGolem/
 cp _normal.user.js chrome/GameGolem/golem.user.js
 
 ### GOOGLE CHROME EXTENSION ###
@@ -86,7 +90,7 @@ cp _normal.user.js chrome/GameGolem/golem.user.js
 # *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issues/detail?id=22901
 # To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
 if [ "$build_chrome" = "Yes" ]; then
-    if [ -f chrome/GameGolem.pem ]; then
+    if [ -d chrome/GameGolem.pem ]; then
         echo "Creating Google Chrome extension"
         $chrome_browser --no-message-box --pack-extension=chrome/GameGolem --pack-extension-key=chrome/GameGolem.pem
     else 
