@@ -47,27 +47,27 @@ Title.init = function() {
 Title.update = function(type) {
 	if (this.option.enabled && this.option.title) {
 		var i, tmp, what, worker, value, output = '', parts = this.option.title.match(/([^}]+\}?)/g);// split into "text {option}"
-		for (i in parts) {
-			tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
-			output += tmp[0];
-			if (tmp[1]) {
-				worker = Player;
-				what = tmp[1].split(':');// if option is "worker:value" then deal with it here
-				if (what[1]) {
-					worker = WorkerByName(what.shift());
-				}
-				if (worker) {
-					value = worker.get(what[0]);
-					output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
-					this._watch(worker); // Doesn't matter how often we add, it's only there once...
-				} else {
-					debug('Bad worker specified = "' + tmp[1] + '"');
+		if (parts) {
+			for (i=0; i<parts.length; i++) {
+				tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
+				output += tmp[0];
+				if (tmp[1]) {
+					worker = Player;
+					what = tmp[1].split(':');// if option is "worker:value" then deal with it here
+					if (what[1]) {
+						worker = WorkerByName(what.shift());
+					}
+					if (worker) {
+						value = worker.get(what[0]);
+						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
+						this._watch(worker); // Doesn't matter how often we add, it's only there once...
+					} else {
+						debug('Bad worker specified = "' + tmp[1] + '"');
+					}
 				}
 			}
 		}
-		if (!this.old) {
-			this.old = document.title;
-		}
+		!this.old && (this.old = document.title);
 		document.title = output;
 	} else if (this.old) {
 		document.title = this.old;

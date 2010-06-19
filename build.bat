@@ -91,8 +91,12 @@ type worker.js >>_normal.user.js 2>nul
 type worker_*.js >>_normal.user.js 2>nul
 
 rem ----------------------------------------------------------------------
-rem .\chrome\GameGolem\golem.user.js - Google Chrome extension (unpacked)
+rem .\chrome\GameGolem - Google Chrome extension (unpacked)
 echo.Creating unpacked Chrome extension...
+if NOT EXIST "chrome\GameGolem" (
+	mkdir chrome\GameGolem
+)
+copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
 copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
@@ -104,7 +108,7 @@ if "%chrome_pack%"=="1" (
 	if EXIST "%chrome%" (
 		if EXIST "%golem%chrome\GameGolem.pem" (
 			echo.Creating packed Chrome extension...
-			"%chrome%" --no-message-box --pack-extension=%golem%chrome\GameGolem --pack-extension-key=%golem%chrome\GameGolem.pem
+			"%chrome%" --no-message-box --pack-extension="%golem%chrome\GameGolem" --pack-extension-key="%golem%chrome\GameGolem.pem"
 		) ELSE (
 			echo.You need to obtain chrome\GameGolem.pem from Rycochet to build the Chrome extension.
 		)
@@ -117,7 +121,7 @@ rem Change path to compiler and source - obtain it from here:
 rem http://code.google.com/closure/compiler/
 if EXIST "%java%" (
 	if EXIST "%compiler%" (
-		echo.Creating minimised version - will also show errors
+		echo.Creating minimised version - will display any syntax errors
 		copy _head.js _min.user.js >nul
 		"%java%" -jar "%compiler%" --js "_normal.user.js" >> _min.user.js"
 	)

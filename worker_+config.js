@@ -209,25 +209,6 @@ Config.addOption = function(selector, args) {
 		selector = '#'+worker.id+' > div';
 	}
 	$(selector).append(this.makeOptions(worker, args));
-/*
-	if (isArray(args)) {
-		for (var i=0; i<args.length; i++) {
-			$(selector).append(this.makeOption(worker, args[i]));
-		}
-	} else if (isObject(args)) {
-		$(selector).append(this.makeOption(worker, args));
-	} else if (isString(args)) {
-		$(selector).append(this.makeOption(worker, {title:args}));
-	} else if (isFunction(args)) {
-		try {
-			this.addOption(selector, args.call(worker));
-		} catch(e) {
-			debug(e.name + ' in Config.addOption(' + worker.name + '.display()): ' + e.message);
-		}
-	} else {
-		debug(WorkerStack[WorkerStack.length-1].name+' is trying to add an unknown type of option');
-	}
-*/
 };
 
 Config.makeOptions = function(worker, args) {

@@ -17,7 +17,11 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+<<<<<<< .mine
+var revision = 622;
+=======
 var revision = 624;
+>>>>>>> .r625
 // User changeable
 var show_debug = true;
 
@@ -32,7 +36,7 @@ var imagepath = '';
 var isGreasemonkey = (typeof GM_log === 'function');
 
 // Decide which facebook app we're in...
-if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
+if (window.location.hostname.match(/\.facebook\.com$/i)) {
 	var applications = {
 		'reqs.php':['','Gifts'], // For gifts etc
 		'castle_age':['46755028429', 'Castle Age']
@@ -47,7 +51,9 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 			break;
 		}
 	}
-	if (typeof APP !== 'undefined') {
+	if (typeof APP === 'undefined') {
+		console.log('GameGolem; Unknown facebook application...');
+	} else {
 		var log = function(txt){
 			console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 		}
@@ -66,7 +72,7 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 		var document_ready = function() {
 			var i;
-			userID = $('head').html().regex(/user:([0-9]+),/i);
+			userID = $('script').text().regex(/user:([0-9]+),/i);
 			if (!userID || typeof userID !== 'number' || userID === 0) {
 				log('ERROR: No Facebook UserID!!!');
 				window.location.href = window.location.href; // Force reload without retrying
@@ -1520,25 +1526,6 @@ Config.addOption = function(selector, args) {
 		selector = '#'+worker.id+' > div';
 	}
 	$(selector).append(this.makeOptions(worker, args));
-/*
-	if (isArray(args)) {
-		for (var i=0; i<args.length; i++) {
-			$(selector).append(this.makeOption(worker, args[i]));
-		}
-	} else if (isObject(args)) {
-		$(selector).append(this.makeOption(worker, args));
-	} else if (isString(args)) {
-		$(selector).append(this.makeOption(worker, {title:args}));
-	} else if (isFunction(args)) {
-		try {
-			this.addOption(selector, args.call(worker));
-		} catch(e) {
-			debug(e.name + ' in Config.addOption(' + worker.name + '.display()): ' + e.message);
-		}
-	} else {
-		debug(WorkerStack[WorkerStack.length-1].name+' is trying to add an unknown type of option');
-	}
-*/
 };
 
 Config.makeOptions = function(worker, args) {
@@ -3121,27 +3108,27 @@ Title.init = function() {
 Title.update = function(type) {
 	if (this.option.enabled && this.option.title) {
 		var i, tmp, what, worker, value, output = '', parts = this.option.title.match(/([^}]+\}?)/g);// split into "text {option}"
-		for (i in parts) {
-			tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
-			output += tmp[0];
-			if (tmp[1]) {
-				worker = Player;
-				what = tmp[1].split(':');// if option is "worker:value" then deal with it here
-				if (what[1]) {
-					worker = WorkerByName(what.shift());
-				}
-				if (worker) {
-					value = worker.get(what[0]);
-					output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
-					this._watch(worker); // Doesn't matter how often we add, it's only there once...
-				} else {
-					debug('Bad worker specified = "' + tmp[1] + '"');
+		if (parts) {
+			for (i=0; i<parts.length; i++) {
+				tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
+				output += tmp[0];
+				if (tmp[1]) {
+					worker = Player;
+					what = tmp[1].split(':');// if option is "worker:value" then deal with it here
+					if (what[1]) {
+						worker = WorkerByName(what.shift());
+					}
+					if (worker) {
+						value = worker.get(what[0]);
+						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
+						this._watch(worker); // Doesn't matter how often we add, it's only there once...
+					} else {
+						debug('Bad worker specified = "' + tmp[1] + '"');
+					}
 				}
 			}
 		}
-		if (!this.old) {
-			this.old = document.title;
-		}
+		!this.old && (this.old = document.title);
 		document.title = output;
 	} else if (this.old) {
 		document.title = this.old;
@@ -7919,10 +7906,10 @@ Town.display = [
 	}
 ];
 
-Town.blacksmith = { // Shield must come after armor (currently)
-	Weapon:	/avenger|axe|blade|bow|cleaver|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
+Town.blacksmith = {
+	Weapon:	/avenger|axe|blade|bow|cleaver|cudgel|dagger|halberd|lance|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil/i,
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm/i,
 	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
 	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
@@ -7941,7 +7928,7 @@ Town.parse = function(change) {
 			!$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
 			!$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
 			!$('div.eq_buy_txt_int', el).length && $('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
-			var i, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
+			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, ''), match, maxlen = 0;
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
@@ -7957,8 +7944,13 @@ Town.parse = function(change) {
 			}
 			if (page === 'blacksmith') {
 				for (i in Town.blacksmith) {
-					if (name.match(Town.blacksmith[i])) {
-						unit[name].type = i;
+					if ((match = name.match(Town.blacksmith[i]))) {
+						for (j=0; j<match.length; j++) {
+							if (match[j].length > maxlen) {
+								unit[name].type = i;
+								maxlen = match[j].length;
+							}
+						}
 					}
 				}
 			}

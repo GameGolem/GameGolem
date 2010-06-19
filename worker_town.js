@@ -52,10 +52,10 @@ Town.display = [
 	}
 ];
 
-Town.blacksmith = { // Shield must come after armor (currently)
-	Weapon:	/avenger|axe|blade|bow|cleaver|cudgel|dagger|halberd|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
+Town.blacksmith = {
+	Weapon:	/avenger|axe|blade|bow|cleaver|cudgel|dagger|halberd|lance|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil/i,
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm/i,
 	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
 	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
@@ -74,7 +74,7 @@ Town.parse = function(change) {
 			!$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
 			!$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
 			!$('div.eq_buy_txt_int', el).length && $('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
-			var i, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, '');
+			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, ''), match, maxlen = 0;
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
@@ -90,8 +90,13 @@ Town.parse = function(change) {
 			}
 			if (page === 'blacksmith') {
 				for (i in Town.blacksmith) {
-					if (name.match(Town.blacksmith[i])) {
-						unit[name].type = i;
+					if ((match = name.match(Town.blacksmith[i]))) {
+						for (j=0; j<match.length; j++) {
+							if (match[j].length > maxlen) {
+								unit[name].type = i;
+								maxlen = match[j].length;
+							}
+						}
 					}
 				}
 			}

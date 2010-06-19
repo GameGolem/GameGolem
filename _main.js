@@ -12,7 +12,7 @@ var imagepath = '';
 var isGreasemonkey = (typeof GM_log === 'function');
 
 // Decide which facebook app we're in...
-if (window.location.hostname === 'apps.facebook.com' || window.location.hostname === 'apps.new.facebook.com') {
+if (window.location.hostname.match(/\.facebook\.com$/i)) {
 	var applications = {
 		'reqs.php':['','Gifts'], // For gifts etc
 		'castle_age':['46755028429', 'Castle Age']
@@ -27,7 +27,9 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 			break;
 		}
 	}
-	if (typeof APP !== 'undefined') {
+	if (typeof APP === 'undefined') {
+		console.log('GameGolem; Unknown facebook application...');
+	} else {
 		var log = function(txt){
 			console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 		}
@@ -46,7 +48,7 @@ if (window.location.hostname === 'apps.facebook.com' || window.location.hostname
 
 		var document_ready = function() {
 			var i;
-			userID = $('head').html().regex(/user:([0-9]+),/i);
+			userID = $('script').text().regex(/user:([0-9]+),/i);
 			if (!userID || typeof userID !== 'number' || userID === 0) {
 				log('ERROR: No Facebook UserID!!!');
 				window.location.href = window.location.href; // Force reload without retrying
