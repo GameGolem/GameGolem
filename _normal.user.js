@@ -17,11 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-<<<<<<< .mine
-var revision = 622;
-=======
-var revision = 624;
->>>>>>> .r625
+var revision = 628;
 // User changeable
 var show_debug = true;
 

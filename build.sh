@@ -1,9 +1,16 @@
 #!/bin/sh 
 #
-# Build script fot _normal.user.js and _release.user.js
-#
-# Please copy this file before changing it unless you want to commit
-# your modifications.
+# Build script for Game-Golem
+
+# Configuration file location
+conf="$(dirname $0)/build.conf" 
+
+# Create default config file if it doesn't exists
+if [ ! -f "$conf" ]; then
+    echo "Writing default build.conf file"
+    cat > "$conf" << 'END_OF_CONF'
+# Configuration of Game-Golem unix build system
+# This is a standard shell script that will be sourced by build.sh
 
 # Working directory
 #
@@ -48,12 +55,29 @@ build_chrome="No"
 #
 build_release="No"
 
+END_OF_CONF
+fi
 
-# Workdir
-cd $(dirname $0)
+# Default configuration
+workdir="$(dirname $0)"
+js_compiler="../compiler.jar"
+chrome_browser="$(which chromium-browser)"
+update_firefox="No"
+build_chrome="No"
+build_release="No"
+
+# Read configuration file (if exists)
+[ -f "$conf" ] && . "$conf"
+
+# Enter workdir
+cd "$workdir"
 
 # Remove old stuff
 rm -f _normal.user.js _min.user.js chrome\GameGolem\golem.user.js _head_revision.js _head_tortoise.js
+
+# Create chrome build dir if doesn't exists
+mkdir -p chrome/GameGolem
+cp -r chrome/GameGolem.tmpl/* chrome/GameGolem
 
 # Compute revision number
 if [ -d .svn ]; then
@@ -78,7 +102,7 @@ cat _head*.js \
     > _normal.user.js
 
 ### Google Chrome extension (unpacked) ###
-echo "Copying to chrome/GameGolem/golem.user.js"
+echo "Creating unpacked Chrome extension"
 if [ ! -f chrome/GameGolem ]; then
     mkdir -p chrome/GameGolem
 fi
@@ -91,16 +115,16 @@ cp _normal.user.js chrome/GameGolem/golem.user.js
 # To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
 if [ "$build_chrome" = "Yes" ]; then
     if [ -d chrome/GameGolem.pem ]; then
-        echo "Creating Google Chrome extension"
-        $chrome_browser --no-message-box --pack-extension=chrome/GameGolem --pack-extension-key=chrome/GameGolem.pem
+        echo "Creating packed Chrome extension"
+        "$chrome_browser" --no-message-box --pack-extension="$workdir/chrome/GameGolem" --pack-extension-key="$workdir/chrome/GameGolem.pem"
     else 
-        echo "Would create Google Chrome extension, but you miss chrome/GameGolem.pem file"
+        echo "Would create packed Chrome extension, but you miss chrome/GameGolem.pem file"
     fi
 fi
 
 ### MINIMISED VERSION ###
 if [ "$build_release" = "Yes" ]; then
-    echo "Creating minimised version (will also show errors)"
+    echo "Creating minimised version (will display any syntax errors)"
     if [ -r "$js_compiler" ]; then
       cat _head.js > _release.user.js
       java -jar "$js_compiler" --js _normal.user.js >> _release.user.js
@@ -114,7 +138,7 @@ fi
 ### INSTALLED VERSION ###
 if [ "$update_firefox" = "Yes" ]; then
     echo "Installing new version to Firefox"
-    for script in $HOME/.mozilla/firefox/*.default/gm_scripts/rycochets_castle_age_gol/rycochets_castle_age_gol.user.js; do
+    for script in "$HOME"/.mozilla/firefox/*.default/gm_scripts/rycochets_castle_age_gol/rycochets_castle_age_gol.user.js; do
         if [ -f "$script" ]; then
             cat _normal.user.js > "$script"
         fi
