@@ -145,6 +145,7 @@ Monster.display = [
 		advanced:true,
 		id:'avoid_hours',
 		label:'Lost-cause if ETD is',
+		require:'avoid_behind',
 		after:'hours after timer',
 		text:true,
 		help:'# of Hours Monster must be behind before preventing attacks.'
@@ -256,6 +257,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:1,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	gildamesh: {
@@ -267,6 +269,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:1,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	keira: {
@@ -278,6 +281,7 @@ Monster.types = {
 		timer:172800, // 48 hours
 		mpool:1,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	lotus: {
@@ -289,6 +293,7 @@ Monster.types = {
 		timer:172800, // 48 hours
 		mpool:1,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	mephistopheles: {
@@ -300,6 +305,7 @@ Monster.types = {
 		timer:172800, // 48 hours
 		mpool:1,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	skaar: {
@@ -336,6 +342,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	dragon_frost: {
@@ -347,6 +354,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	dragon_gold: {
@@ -358,6 +366,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	dragon_red: {
@@ -369,6 +378,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5]
 	},
 	serpent_amethyst: { // DEAD image Verified and enabled.
@@ -381,6 +391,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5],
 		def_btn:'input[name="Defend against Monster"]',
 		defends:[10]
@@ -395,6 +406,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5],
 		def_btn:'input[name="Defend against Monster"]',
 		defends:[10]
@@ -409,6 +421,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5],
 		def_btn:'input[name="Defend against Monster"]',
 		defends:[10]
@@ -423,6 +436,7 @@ Monster.types = {
 		timer:259200, // 72 hours
 		mpool:2,
 		atk_btn:'input[name="Attack Dragon"]',
+		siege:false,
 		attacks:[1,5],
 		def_btn:'input[name="Defend against Monster"]',
 		defends:[10]
@@ -736,6 +750,11 @@ Monster.parse = function(change) {
 			monster.damage_players = 0;
 			monster.fortify = 0;
 			monster.damage = {};
+			if ($('input[name*="help with"]').length) {
+				//debug('Current Siege Phase is: '+ this.data[uid][type].phase);
+				monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
+				debug('Assisted on '+monster.phase+'.');
+			}
 			$('img[src*="siege_small"]').each(function(i,el){
 				var siege = $(el).parent().next().next().next().children().eq(0).text();
 				var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
@@ -812,7 +831,16 @@ Monster.parse = function(change) {
 		}
 		for (uid in data) {
 			for (type in data[uid]) {
-				if (((Page.page === 'battle_raid' && this.types[type].raid) || (Page.page === 'monster_monster_list' && !this.types[type].raid)) && (data[uid][type].state === 'complete' || (data[uid][type].state === 'assist' && data[uid][type].finish < Date.now()))) {
+				if (
+						((Page.page === 'battle_raid'
+								&& this.types[type].raid)
+							|| (Page.page === 'monster_monster_list'
+								&& !this.types[type].raid))
+						&& (data[uid][type].state === 'complete'
+							|| data[uid][type].state === 'reward'
+							|| (data[uid][type].state === 'assist'
+								&& data[uid][type].finish < Date.now()))
+					) {
 					data[uid][type].state = null;
 				}
 			}
@@ -1093,7 +1121,14 @@ Monster.work = function(state) {
 					debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
 					this.runtime.checkuid = i;
 					this.runtime.checktype = j;
-					Page.to(this.types[j].raid ? 'battle_raid' : 'monster_monster_list', '?user=' + i + (this.types[j].mpool ? '&mpool='+this.types[j].mpool : ''));
+					Page.to(this.types[j].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + i 
+							+ ((this.data[i][j].phase
+									&& this.option.assist)
+								? '&action=doObjective'
+								: '')
+							+ (this.types[j].mpool 
+								? '&mpool=' + this.types[j].mpool
+								: ''));
 					return QUEUE_CONTINUE;
 				}
 			}
@@ -1177,15 +1212,15 @@ Monster.work = function(state) {
 		//debug('Reloading page. Button = ' + btn.attr('name'));
 		//debug('Reloading page. Page.page = '+ Page.page);
 		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
-		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid + (this.types[type].mpool ? '&mpool='+this.types[type].mpool : ''));
+		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid 
+				+ ((this.data[uid][type].phase
+						&& this.option.assist)
+					? '&action=doObjective'
+					: '')
+				+ (this.types[type].mpool 
+					? '&mpool=' + this.types[type].mpool
+					: ''));
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
-	}
-	if (this.option.assist && typeof $('input[name*="help with"]') !== 'undefined' && (typeof this.data[uid][type].phase === 'undefined' || $('input[name*="help with"]').attr('title').regex(/ (.*)/i) !== this.data[uid][type].phase)){
-		debug('Current Siege Phase is: '+ this.data[uid][type].phase);
-		this.data[uid][type].phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
-		debug('Found a new siege phase ('+this.data[uid][type].phase+'), assisting now.');
-		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid + '&action=doObjective' + (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : '') + '&lka=' + i + '&ref=nf');
-		return QUEUE_RELEASE;
 	}
 	if (this.types[type].raid) {
 		battle_list = Battle.get('user')
