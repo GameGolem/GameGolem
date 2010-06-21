@@ -250,7 +250,7 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-	if (this.option.order !== 'Stamina' || !stamina || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)))){
+	if (this.option.order !== 'Stamina' || !stamina || Player.get('health') < 13 || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)) && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle'))))){
 		debug('Running Energy Burn');
 		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 			runtime.old_quest = Quest.runtime.best;

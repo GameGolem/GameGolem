@@ -196,6 +196,7 @@ Generals.best = function(type) {
 		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 		case 'bank':		return 'Aeris';
+                case 'war':             return Idle.option.general;
 		case 'invade':
 			for (i in this.data) {
 				if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {

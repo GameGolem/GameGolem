@@ -69,6 +69,20 @@ var makeTimer = function(sec) {
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
 };
 
+var shortNumber = function(number){
+        if (typeof number === 'number'){
+            if (number / Math.pow(10,9) >= 1){
+                return (number / Math.pow(10,9)).round(1) + ' B';
+            } else if (number / Math.pow(10,6) >= 1){
+                return (number / Math.pow(10,6)).round(1) + ' M';
+            } else if (number / Math.pow(10,3) >= 1){
+                return (number / Math.pow(10,3)).round(1) + ' K';
+            } else {
+                return number;
+            }
+        }
+};
+
 var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
 	if (typeof name === 'string') {
 		name = name.toLowerCase();

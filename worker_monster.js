@@ -1072,8 +1072,8 @@ Monster.update = function(what,worker) {
 					&& Queue.burn.stamina >= this.runtime.stamina)
 				|| (this.runtime.fortify
 					&& Queue.burn.energy >= this.runtime.energy )){
-			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ') + fullname
-					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
+			Dashboard.status(this, (this.runtime.fortify ? 'Fortify ' : 'Attack ')
+					+ fullname + ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		} else if (this.runtime.fortify 
 				&& Queue.burn.energy < this.runtime.energy){
 			label = 'energy';
@@ -1094,7 +1094,7 @@ Monster.update = function(what,worker) {
 			amount = this.runtime.health - Player.get('health');
 		}
 		if (label) {
-			Dashboard.status(this,'Waiting for ' + makeImage(label) + amount + ' to '
+			Dashboard.status(this,'Waiting for ' + amount + makeImage(label) + ' to '
 					+ (this.runtime.fortify ? 'fortify ' : 'attack ') + fullname
 					+ ' (' + makeImage('stamina') + this.runtime.stamina + '+, ' + makeImage('energy') + this.runtime.energy + '+)');
 		}

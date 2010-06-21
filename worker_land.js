@@ -145,7 +145,7 @@ Land.update = function() {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost; // May be negative if we're making money by selling
-		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + addCommas(Math.abs(this.runtime.cost)) + ' (Cash in bank: $' + addCommas(Player.get('bank')) + ')');
+		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -160,10 +160,11 @@ Land.work = function(state) {
 			}
 			this.runtime.lastlevel = Player.get('level');
 		}
+                Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
-		return QUEUE_CONTINUE;
+                return QUEUE_CONTINUE;
 	}
 //	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
@@ -173,7 +174,7 @@ Land.work = function(state) {
 			} else {
 				$('select', $('.land_buy_costs .gold', el).parent().parent().next()).val(Land.runtime.buy <= -10 ? 10 : (Land.runtime.buy <= -5 ? 5 : 1));
 			}
-			debug((Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + addCommas(Math.abs(Land.runtime.cost)));
+			debug((Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + shortNumber(Math.abs(Land.runtime.cost)));
 			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
 	});
