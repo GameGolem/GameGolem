@@ -160,7 +160,11 @@ Land.work = function(state) {
 			}
 			this.runtime.lastlevel = Player.get('level');
 		}
-                Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
+                if (this.runtime.buy){
+                    Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
+                } else{
+                    Dashboard.status(this);
+                }
 		return QUEUE_FINISH;
 	}
 	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
