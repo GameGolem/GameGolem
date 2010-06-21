@@ -75,10 +75,6 @@ cd "$workdir"
 # Remove old stuff
 rm -f _normal.user.js _min.user.js chrome\GameGolem\golem.user.js _head_revision.js _head_tortoise.js
 
-# Create chrome build dir if doesn't exists
-mkdir -p chrome/GameGolem
-cp -r chrome/GameGolem.tmpl/* chrome/GameGolem
-
 # Compute revision number
 if [ -d .svn ]; then
     vcs="svn"
@@ -86,12 +82,10 @@ else
     vcs="git svn"
 fi
 rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2 + 1}'`
-sed "s/\\\$WCREV\\\$/$rev/" _head_revision.tmpl > _head_revision.js
-sed "s/\\\$WCREV\\\$/$rev/" chrome/manifest.tmpl > chrome/GameGolem/manifest.json
-sed "s/\\\$WCREV\\\$/$rev/" chrome/update.tmpl > chrome/update.xml
 
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
+sed "s/\\\$WCREV\\\$/$rev/" _head_revision.tmpl > _head_revision.js
 cat _head*.js \
     _main.js \
     css.js \
@@ -103,6 +97,10 @@ cat _head*.js \
 
 ### Google Chrome extension (unpacked) ###
 echo "Creating unpacked Chrome extension"
+# Create chrome build dir if doesn't exists
+mkdir -p chrome/GameGolem
+cp -r chrome/GameGolem.tmpl/* chrome/GameGolem
+sed "s/\\\$WCREV\\\$/$rev/" chrome/manifest.tmpl > chrome/GameGolem/manifest.json
 cp _normal.user.js chrome/GameGolem/golem.user.js
 
 ### GOOGLE CHROME EXTENSION ###
@@ -113,6 +111,7 @@ if [ "$build_chrome" = "Yes" ]; then
     if [ -f chrome/GameGolem.pem ]; then
         echo "Creating packed Chrome extension"
         "$chrome_browser" --no-message-box --pack-extension="$workdir/chrome/GameGolem" --pack-extension-key="$workdir/chrome/GameGolem.pem"
+        sed "s/\\\$WCREV\\\$/$rev/" chrome/update.tmpl > chrome/update.xml
     else 
         echo "Would create packed Chrome extension, but you miss chrome/GameGolem.pem file"
     fi
