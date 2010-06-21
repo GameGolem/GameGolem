@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (634);
+var revision = (635);
 // User changeable
 var show_debug = true;
 
@@ -8164,7 +8164,7 @@ Town.update = function(type) {
             default:
             case 'Best Offense':
                 rtn = 2;
-                if (this.option.sell){
+                
                     own_soldiers_att = 0;
                     if (soldiers_att.length){
                         soldiers_att.sort(function(a,b){
@@ -8349,70 +8349,13 @@ Town.update = function(type) {
                             }
                         }
                     }
-                } else {
-                    if (soldiers_att.length){
-                        soldiers_att.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!soldiers_att[0][4] || soldiers_att[0][4] > max_cost[Town.option.maxcost]){
-                            soldiers_att.shift();
-                            if (!soldiers_att.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(soldiers_att.length && own_soldiers_att < max_buy) {
-                        list_buy.push([soldiers_att[0][0],soldiers_att[0][1],soldiers_att[0][2],soldiers_att[0][3],soldiers_att[0][4],soldiers_att[0][5],max_buy - own_soldiers_att]);
-                    }
-                    if (weapon_att.length){
-                        weapon_att.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!weapon_att[0][4] || weapon_att[0][4] > max_cost[Town.option.maxcost]){
-                            weapon_att.shift();
-                            if (!weapon_att.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(weapon_att.length && own_weapon_att < max_buy){
-                        list_buy.push([weapon_att[0][0],weapon_att[0][1],weapon_att[0][2],weapon_att[0][3],weapon_att[0][4],weapon_att[0][5],max_buy - own_weapon_att]);
-                    }
-                    if (equipment_att.length){
-                        equipment_att.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!equipment_att[0][4] || equipment_att[0][4] > max_cost[Town.option.maxcost]){
-                            equipment_att.shift();
-                            if (!equipment_att.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(equipment_att.length && own_equipment_att < max_buy){
-                        list_buy.push([equipment_att[0][0],equipment_att[0][1],equipment_att[0][2],equipment_att[0][3],equipment_att[0][4],equipment_att[0][5],max_buy - own_equipment_att]);
-                    }
-                    if (magic_att.length){
-                        magic_att.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!magic_att[0][4] || magic_att[0][4] > max_cost[Town.option.maxcost]){
-                            magic_att.shift();
-                            if (!magic_att.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(magic_att.length && own_magic_att < max_buy){
-                        list_buy.push([magic_att[0][0],magic_att[0][1],magic_att[0][2],magic_att[0][3],magic_att[0][4],magic_att[0][5],max_buy - own_magic_att]);
-                    }
-                }
+                
                 if (this.option.units === 'Best Offense'){
                     break;
                 }
             case 'Best Defense':
                 rtn = 3;
-                if (this.option.sell){
+                
                     own_soldiers_def = 0;
                     if (soldiers_def.length){
                         soldiers_def.sort(function(a,b){
@@ -8598,64 +8541,7 @@ Town.update = function(type) {
                             }
                         }
                     }
-                } else {
-                    if (soldiers_def.length){
-                        soldiers_def.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!soldiers_def[0][4] || soldiers_def[0][4] > max_cost[Town.option.maxcost]){
-                            soldiers_def.shift();
-                            if (!soldiers_def.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(soldiers_def.length && own_soldiers_def < max_buy) {
-                        list_buy.push([soldiers_def[0][0],soldiers_def[0][1],soldiers_def[0][2],soldiers_def[0][3],soldiers_def[0][4],soldiers_def[0][5],max_buy - own_soldiers_def]);
-                    }
-                    if (weapon_def.length){
-                        weapon_def.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!weapon_def[0][4] || weapon_def[0][4] > max_cost[Town.option.maxcost]){
-                            weapon_def.shift();
-                            if (!weapon_def.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(weapon_def.length && own_weapon_def < max_buy){
-                        list_buy.push([weapon_def[0][0],weapon_def[0][1],weapon_def[0][2],weapon_def[0][3],weapon_def[0][4],weapon_def[0][5],max_buy - own_weapon_def]);
-                    }
-                    if (equipment_def.length){
-                        equipment_def.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!equipment_def[0][4] || equipment_def[0][4] > max_cost[Town.option.maxcost]){
-                            equipment_def.shift();
-                            if (!equipment_def.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(equipment_def.length && own_equipment_def < max_buy){
-                        list_buy.push([equipment_def[0][0],equipment_def[0][1],equipment_def[0][2],equipment_def[0][3],equipment_def[0][4],equipment_def[0][5],max_buy - own_equipment_def]);
-                    }
-                    if (magic_def.length){
-                        magic_def.sort(function(a,b){
-                            return b[rtn] - a[rtn];
-                        });
-                        while (!magic_def[0][4] || magic_def[0][4] > max_cost[Town.option.maxcost]){
-                            magic_def.shift();
-                            if (!magic_def.length){
-                                break;
-                            }
-                        }
-                    }
-                    if(magic_def.length && own_magic_def < max_buy) {
-                        list_buy.push([magic_def[0][0],magic_def[0][1],magic_def[0][2],magic_def[0][3],magic_def[0][4],magic_def[0][5],max_buy - own_magic_def]);
-                    }
-                }
+                
                 break;
 
         }
