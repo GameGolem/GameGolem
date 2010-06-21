@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = (633);
+var revision = (634);
 // User changeable
 var show_debug = true;
 
@@ -7915,7 +7915,7 @@ Town.option = {
     number:'None',
     maxcost:'$10k',
     units:'Best for Both',
-    sell:false,
+    sell:'None',
     upkeep:20
 };
 

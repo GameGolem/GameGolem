@@ -14,7 +14,7 @@ Town.option = {
     number:'None',
     maxcost:'$10k',
     units:'Best for Both',
-    sell:false,
+    sell:'None',
     upkeep:20
 };
 
