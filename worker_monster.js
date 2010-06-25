@@ -590,7 +590,7 @@ Monster.parse = function(change) {
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		this.runtime.checkuid = this.runtime.checktype = null;
-		debug('Parsing for Monster type');
+		//debug('Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
 				//debug('Found a dead '+i);
@@ -692,7 +692,7 @@ Monster.parse = function(change) {
 				this.runtime.pre_energy = this.runtime.post_energy = 0;
 				this.runtime.defended = false;
 			}
-			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length)	{ //	img[src$="icon_weapon.gif"],
+			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length || $('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] img[src$="button_monster_attack_again.gif"]').length)	{ //	img[src$="icon_weapon.gif"],
 				monster.battle_count = (monster.battle_count || 0) + 1;
 				//debug('Setting battle count to ' + monster.battle_count);
 			}
@@ -957,9 +957,9 @@ Monster.update = function(what,worker) {
 				
 					if (!this.data[i][j].battle_count){
 						this.data[i][j].battle_count = 1;
-					}
-					if (i === userID && this.option.own){
-						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+					}                                        
+					if (i == userID && this.option.own){						
+                                                list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
 						break;
 					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
 						//debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
