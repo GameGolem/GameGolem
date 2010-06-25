@@ -33,6 +33,8 @@ compiler=""
 ; - winxp - C:\Documents and Settings\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js
 ; - win7  - C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js
 firefox=""
+firefox1=""
+firefox2=""
 
 [Wait]
 ; wait: wait for a keypress to quit
@@ -51,6 +53,8 @@ set chrome_pack=0
 set java=""
 set compiler=""
 set firefox=""
+set firefox1=""
+set firefox2=""
 set wait=1
 
 if EXIST "build.ini" (
@@ -130,10 +134,10 @@ if EXIST "%java%" (
 rem ----------------------------------------------------------------------
 rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
 rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
-if EXIST "%firefox%" (
-	echo.Installing new version to Firefox
-	copy _normal.user.js "%firefox%" >nul
-)
+FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO IF EXIST %%F (
+	echo.Installing new version to Firefox to %%F
+	copy _normal.user.js %%F >nul
+    )
 
 if "%wait%"=="1" (
 	echo.&pause&goto:eof

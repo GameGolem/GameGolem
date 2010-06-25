@@ -259,9 +259,7 @@ Town.update = function(type) {
                 own_magic_def = own_magic_att += data[u].own;
             }
         }
-        switch(this.option.units){
-            default:
-            case 'Best Offense':
+        
                 rtn = 2;
                 
                     own_soldiers_att = 0;
@@ -292,7 +290,7 @@ Town.update = function(type) {
                             data[soldiers_att[0][0]].best = Math.max(max -own_soldiers_att,data[soldiers_att[0][0]].best);
                         }
                         own_soldiers_att += soldiers_att[0][1];
-                        if (own_soldiers_att < max_buy){
+                        if (own_soldiers_att < max_buy && this.option.units !== 'Best Defense'){
                             list_buy.push([soldiers_att[0][0],soldiers_att[0][1],soldiers_att[0][2],soldiers_att[0][3],soldiers_att[0][4],soldiers_att[0][5],max_buy - own_soldiers_att]);
                         }
                         for (i=1;own_soldiers_att < max; i++){
@@ -384,7 +382,7 @@ Town.update = function(type) {
                             data[equipment_att[0][0]].best = Math.max(max -own_equipment_att,data[equipment_att[0][0]].best);
                         }
                         own_equipment_att += equipment_att[0][1];
-                        if (own_equipment_att < max_buy){
+                        if (own_equipment_att < max_buy && this.option.units !== 'Best Defense'){
                             list_buy.push([equipment_att[0][0],equipment_att[0][1],equipment_att[0][2],equipment_att[0][3],equipment_att[0][4],equipment_att[0][5],max_buy - own_equipment_att]);
                         }
                         for (i=1;own_equipment_att < max; i++){
@@ -430,7 +428,7 @@ Town.update = function(type) {
                             data[magic_att[0][0]].best = Math.max(max -own_magic_att,data[magic_att[0][0]].best);
                         }
                         own_magic_att += magic_att[0][1];
-                        if (own_magic_att < max_buy){
+                        if (own_magic_att < max_buy && this.option.units !== 'Best Defense'){
                             list_buy.push([magic_att[0][0],magic_att[0][1],magic_att[0][2],magic_att[0][3],magic_att[0][4],magic_att[0][5],max_buy - own_magic_att]);
                         }
                         for (i=1;own_magic_att < max; i++){
@@ -449,10 +447,8 @@ Town.update = function(type) {
                         }
                     }
                 
-                if (this.option.units === 'Best Offense'){
-                    break;
-                }
-            case 'Best Defense':
+                
+            
                 rtn = 3;
                 
                     own_soldiers_def = 0;
@@ -483,7 +479,7 @@ Town.update = function(type) {
                             data[soldiers_def[0][0]].best = Math.max(max -own_soldiers_def,data[soldiers_def[0][0]].best);
                         }
                         own_soldiers_def += soldiers_def[0][1];
-                        if (own_soldiers_def < max_buy){
+                        if (own_soldiers_def < max_buy && this.option.units !== 'Best Offense'){
                             list_buy.push([soldiers_def[0][0],soldiers_def[0][1],soldiers_def[0][2],soldiers_def[0][3],soldiers_def[0][4],soldiers_def[0][5],max_buy - own_soldiers_def]);
                         }
                         for (i=1;own_soldiers_def < max; i++){
@@ -530,7 +526,7 @@ Town.update = function(type) {
                             data[weapon_def[0][0]].best = Math.max(max - own_weapon_def,data[weapon_def[0][0]].best);
                         }
                         own_weapon_def += weapon_def[0][1];
-                        if (own_weapon_def < max_buy){
+                        if (own_weapon_def < max_buy && this.option.units !== 'Best Offense'){
                             list_buy.push([weapon_def[0][0],weapon_def[0][1],weapon_def[0][2],weapon_def[0][3],weapon_def[0][4],weapon_def[0][5],max_buy - own_weapon_def]);
                         }
                         for (i=1;own_weapon_def < max; i++){
@@ -576,7 +572,7 @@ Town.update = function(type) {
                             data[equipment_def[0][0]].best = Math.max(max -own_equipment_def,data[equipment_def[0][0]].best);
                         }
                         own_equipment_def += equipment_def[0][1];
-                        if (own_equipment_def < max_buy){
+                        if (own_equipment_def < max_buy && this.option.units !== 'Best Offense'){
                             list_buy.push([equipment_def[0][0],equipment_def[0][1],equipment_def[0][2],equipment_def[0][3],equipment_def[0][4],equipment_def[0][5],max_buy - own_equipment_def]);
                         }
                         for (i=1;own_equipment_def < max; i++){
@@ -622,7 +618,7 @@ Town.update = function(type) {
                             data[magic_def[0][0]].best = Math.max(max -own_magic_def,data[magic_def[0][0]].best);
                         }
                         own_magic_def += magic_def[0][1];
-                        if (own_magic_def < max_buy){
+                        if (own_magic_def < max_buy && this.option.units !== 'Best Offense'){
                             list_buy.push([magic_def[0][0],magic_def[0][1],magic_def[0][2],magic_def[0][3],magic_def[0][4],magic_def[0][5],max_buy - own_magic_def]);
                         }
                         for (i=1;own_magic_def < max; i++){
@@ -641,9 +637,9 @@ Town.update = function(type) {
                         }
                     }
                 
-                break;
+                
 
-        }
+        
         if(list_buy.length){
             list_buy = unique(list_buy);
             list_buy.sort(function(a,b){
