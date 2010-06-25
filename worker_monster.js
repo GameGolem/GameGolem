@@ -531,6 +531,20 @@ Monster.types = {
 		attacks:[5,10,20,50],
 		def_btn:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
 		defends:[10,20,40,100]
+	},
+	red_plains: {
+		name:'War of the Red Plains',
+		list:'nm_war_list.jpg',
+		image:'nm_war_large.jpg',
+		dead:'nm_war_dead.jpg', //Guesswork
+		achievement:1500, // ~0.5%, 2X = ~1%
+		timer:604800, // 168 hours
+		mpool:3,
+		atk_btn:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attacks:[5,10,20,50],
+		def_btn:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defends:[10,20,40,100],
+		orcs:true
 	}
 };
 
