@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 644;
+var revision = 645;
 // User changeable
 var show_debug = true;
 
@@ -6480,7 +6480,7 @@ Monster.parse = function(change) {
 			}
 			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],img[src$="_attack_again.gif"]').length)	{ //	img[src$="icon_weapon.gif"],
 				monster.battle_count = (monster.battle_count || 0) + 1;
-				debug('Setting battle count to ' + monster.battle_count);
+				//debug('Setting battle count to ' + monster.battle_count);
 			}
 			if ($('img[src$="battle_victory"]').length){
 				History.add('raid+win',1);
