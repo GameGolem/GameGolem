@@ -692,9 +692,9 @@ Monster.parse = function(change) {
 				this.runtime.pre_energy = this.runtime.post_energy = 0;
 				this.runtime.defended = false;
 			}
-			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] a:contains("Attack Again")').length || $('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],span["result_body"] img[src$="button_monster_attack_again.gif"]').length)	{ //	img[src$="icon_weapon.gif"],
+			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],img[src$="_attack_again.gif"]').length)	{ //	img[src$="icon_weapon.gif"],
 				monster.battle_count = (monster.battle_count || 0) + 1;
-				//debug('Setting battle count to ' + monster.battle_count);
+				debug('Setting battle count to ' + monster.battle_count);
 			}
 			if ($('img[src$="battle_victory"]').length){
 				History.add('raid+win',1);
@@ -764,7 +764,7 @@ Monster.parse = function(change) {
 			monster.damage_players = 0;
 			monster.fortify = 0;
 			monster.damage = {};
-			if ($('input[name*="help with"]').length) {
+			if ($('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
 				//debug('Current Siege Phase is: '+ this.data[uid][type].phase);
 				monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
 				debug('Assisted on '+monster.phase+'.');
@@ -786,8 +786,8 @@ Monster.parse = function(change) {
 					tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
 				}
 				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-				monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
 				if (user === userID){
+					monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
 					monster.damage_user = dmg;
 					if (monster.dmg_per_stamina && monster.battle_stamina){
 						while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
