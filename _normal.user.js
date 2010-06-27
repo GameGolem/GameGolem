@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 645;
+var revision = 646;
 // User changeable
 var show_debug = true;
 
@@ -5830,7 +5830,6 @@ Monster.runtime = {
 	type:null,
 	fortify:false, // true if we can fortify / defend / etc
 	attack:false, // true to attack
-	stamina:5, // stamina to burn
 	health:10 // minimum health to attack
 };
 
@@ -5865,9 +5864,18 @@ Monster.display = [
 			},{
 				/*	id:'quest_over',
 				require:'fortify_active',
-				label:'Quest if Over',
+				la	bel:'Quest if Over',
 				text:90,
 				after:'%'
+			},{
+				id:'def_choice',
+				label:'Attack',
+				select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Mim Damage','ETD Maintain']
+			},{
+				id:'def_stop',
+				label:'Stop',
+				select:['Never', 'Achievement', 'Loot'],
+				help:'Select when to stop attacking a target.'
 			},{*/
 				id:'min_to_attack',
 				label:'Attack Over (AB)',
@@ -6346,12 +6354,8 @@ Monster.init = function() {
 	var i, j;
 	this._watch(Player);
 	this._watch(Queue);
-	this.runtime.count = 0;
 	for (i in this.data) {
 		for (j in this.data[i]) {
-			if (this.data[i][j].state === 'engage') {
-				this.runtime.count++;
-			}
 			if (typeof this.data[i][j].ignore === 'unknown'){
 				this.data[i][j].ignore = false;
 			}
@@ -6371,28 +6375,26 @@ Monster.init = function() {
 }
 
 Monster.parse = function(change) {
-	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer, atk_dmg, dfd_amount;
+	var i, j, k, new_id, id_list = [], battle_list = Battle.get('user'), uid, type, tmp, $health, $defense, $dispel, $secondary, dead = false, monster, timer, atk_dmg, dfd_amount, ATTACKHISTORY = 20;
 	var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		this.runtime.checkuid = this.runtime.checktype = null;
 		//debug('Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length  && !types[i].title) {
+			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
 				//debug('Found a dead '+i);
 				type = i;
 				timer = types[i].timer;
 				dead = true;
-			} else if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && types[i].title && $('div[style*="'+types[i].title+'"]').length){
-				//debug('Found a dead '+i);
-				type = i;
-				timer = types[i].timer;
-				dead = true;
-			} else if (types[i].image && ($('img[src$="'+types[i].image+'"]').length || $('div[style*="'+types[i].image+'"]').length)) {
+			} else if (types[i].image 
+					&& $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//debug('Parsing '+i);
 				type = i;
 				timer = types[i].timer;
-			} else if (types[i].image2 && ($('img[src$="'+types[i].image2+'"]').length || $('div[style*="'+types[i].image2+'"]').length)) {
+			} else if (types[i].image2 
+					&& $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
 				//debug('Parsing second stage '+i);
 				type = i;
 				timer = types[i].timer2 || types[i].timer;
@@ -6406,283 +6408,245 @@ Monster.parse = function(change) {
 		data[uid][type] = data[uid][type] || {};
 		monster = data[uid][type];
 		monster.last = Date.now();
-		if ($('input[src*="collect_reward_button.jpg"]').length) {
-			monster.state = 'reward';
-			return false;
+		if (dead) {
+			// Will this catch Raid format rewards?
+			if ($('input[src*="collect_reward_button.jpg"]').length || monster.state === 'engage') {
+				monster.state = 'reward';
+			} else if (monster.state === 'assist') {
+				monster.state = null;
+				return false;
+			}
 		}
-		if (dead && monster.state === 'assist') {
-			monster.state = null;
-		} else if (dead && monster.state === 'engage') {
-			monster.state = 'reward';
-		} else {
-			if (!monster.state && $('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-				if ($('span.result_body').text().match(/for your help in summoning/i)) {
-					monster.assist = Date.now();
-				}
-				monster.state = 'assist';
+		monster.stamina = monster.stamina || {}; 
+		monster.damage = monster.damage || {};
+		monster.damage.user = monster.damage.user || {};
+		monster.defend = monster.defend || {};
+		this.runtime.record = this.runtime.record || {};
+		record = this.runtime.record[type] = this.runtime.record[type] || {};
+		record.damage = record.damage || [];
+		record.stamina = record.stamina || [];
+		record.defend = record.defend || [];
+		record.defend = record.defend || [];
+		if ($('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
+			if ($('span.result_body').text().match(/for your help in summoning/i)) {
+				monster.assist = Date.now();
 			}
-			if (this.runtime.attacked && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
-				//debug('Stamina after to attack' + Player.get('stamina'));
-				this.runtime.post_stamina = Player.get('stamina');
-				//debug('Battle stamina was ' + monster.battle_stamina);
-				if (monster.battle_stamina){
-					monster.battle_stamina += this.runtime.pre_stamina - this.runtime.post_stamina;
-				} else{
-					monster.battle_stamina = this.runtime.pre_stamina - this.runtime.post_stamina;
+			monster.state = monster.state || 'assist';
+		} else if (this.runtime.stamina_used) {
+			if ($('span[class="positive"]').length 
+					&& $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
+				record.damage.unshift(Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')));
+				(record.damage.length > ATTACKHISTORY) && record.damage.pop();
+				record.stamina.unshift(this.runtime.stamina_used);
+				(record.stamina.length > ATTACKHISTORY) && record.stamina.pop();
+				monster.stamina.script = (monster.stamina.script || 0) + record.stamina[0];
+				monster.damage.user.script = (monster.damage.user.script || 0) + record.damage[0];
+				record.dmg_per_stamina = sum(record.damage) / sum(record.stamina);
+				debug('Stamina used by script on this monster = ' + monster.stamina.script);
+				debug('Damage from script on this monster = ' + monster.damage.script);
+				debug('Damage per stamina = ' + record.dmg_per_stamina);
+			}
+			this.runtime.stamina_used = 0;
+		} else if (this.runtime.energy_used) {
+			if ($('span[class="positive"]').length 
+					&& $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
+				record.defend.unshift(Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')));
+				while (record.defend.length > ATTACKHISTORY) {
+					record.defend.pop();
 				}
-				//debug('Setting battle stamina to ' + monster.battle_stamina);
-				atk_dmg = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
-				//debug('Damage done = ' + atk_dmg);
-				//debug('Pre-Stamina = ' + this.runtime.pre_stamina + ' & Post-Stamina = ' + this.runtime.post_stamina);
-				if (atk_dmg){
-					if (monster.dmg_per_stamina){
-						monster.dmg_per_stamina = Math.ceil((monster.dmg_per_stamina + (atk_dmg / (this.runtime.pre_stamina - this.runtime.post_stamina))) / 2);
-					} else {
-							monster.dmg_per_stamina = Math.ceil(atk_dmg / monster.battle_stamina);
+				record.energy.unshift(this.runtime.energy_used);
+				while (record.energy.length > ATTACKHISTORY) {
+					record.energy.pop();
+				}
+				monster.energy.script = (monster.energy.script || 0) + this.runtime.energy_used;
+				monster.defend.script = (monster.defense.script || 0) + record.defend[0];
+				record.dfd_per_energy = sum(record.defend) / sum(record.energy);
+				debug('Energy used by script on this monster = ' + monster.energy.script);
+				debug('Defend from script on this monster = ' + monster.defend.script);
+				debug('Defend per energy = ' + record.dfd_per_energy);
+			}
+			this.runtime.energy_used = 0;
+		}
+		if ($('img[src$="battle_victory"]').length) {
+			History.add('raid+win',1);
+		} else if ($('img[src$="battle_defeat"]').length) {
+			History.add('raid+loss',-1);
+		}
+		if (!monster.name) {
+			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
+		}
+		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
+		for (i in Monster['class_img']){
+			if ($(Monster['class_img'][i]).length){
+				monster.mclass = i;
+				//debug('Monster class : '+Monster['class_name'][i]);
+			}
+		}
+		if (monster.mclass > 1){	// If we are a Rogue or Mage
+			// Attempt to check if we are in the wrong phase
+			if ($(Monster['class_off'][monster.mclass]).length === 0){
+				for(i in Monster['secondary_img']) {
+					$secondary = $(Monster['secondary_img'][i]);
+					if ($secondary.length) {
+						monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
+						//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
+						break;
 					}
-					//debug('Damage per stamina = ' + monster.dmg_per_stamina);
-					if (monster.dmg_avg){
-						monster.dmg_avg = Math.ceil((monster.dmg_avg + atk_dmg) / 2);
-					} else{
-						monster.dmg_avg = atk_dmg;
-					}
-					//debug('Avg Damage = ' + monster.dmg_avg);
 				}
-				this.runtime.pre_stamina = this.runtime.post_stamina = 0;
-				this.runtime.attacked = false;
+			} else {
+				//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
 			}
-			if (this.runtime.defended && $('span[class="positive"]').length && (typeof $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/) === 'number')){
-				this.runtime.post_energy = Player.get('energy');
-				//debug('Pre-energy = ' + this.runtime.pre_energy + ' & Post-energy = ' + this.runtime.post_energy);
-				dfd_amount = $('span[class="positive"]').prevAll('span').text().regex(/([0-9]+)/);
-				//debug('Defend Amount = ' + dfd_amount);
-				if (monster.battle_energy){
-					monster.battle_energy += this.runtime.pre_energy - this.runtime.post_energy;
-				} else{
-					monster.battle_energy = this.runtime.pre_energy - this.runtime.post_energy;
-				}
-				if (dfd_amount){
-					if (monster.dfd_per_energy){
-						monster.dfd_per_energy = Math.ceil((monster.dfd_per_energy + (dfd_amount / (this.runtime.pre_energy - this.runtime.post_energy))) / 2);
-					} else {
-						monster.dfd_per_energy = Math.ceil(dfd_amount / monster.battle_energy);
-					}
-					//debug('Defend Amount per energy = ' + monster.dfd_per_energy);
-					if (monster.dfd_avg){
-						monster.dfd_avg = Math.ceil((monster.dfd_avg + dfd_amount) / 2);
-					} else{
-						monster.dfd_avg = dfd_amount;
-					}
-					//debug('Avg Defend = ' + monster.dfd_avg);
-				}
-				this.runtime.pre_energy = this.runtime.post_energy = 0;
-				this.runtime.defended = false;
+		}
+		for (i in Monster['health_img']){
+			if ($(Monster['health_img'][i]).length){
+				$health = $(Monster['health_img'][i]).parent();
+				monster.health = $health.length ? (100 * $health.width() / $health.parent().width()) : 0;
+				break;
 			}
-			if ($('img[src$="battle_victory.gif"],img[src$="battle_defeat.gif"],img[src$="_attack_again.gif"]').length)	{ //	img[src$="icon_weapon.gif"],
-				monster.battle_count = (monster.battle_count || 0) + 1;
-				//debug('Setting battle count to ' + monster.battle_count);
+		}
+		for (i in Monster['shield_img']){
+			if ($(Monster['shield_img'][i]).length){
+				$dispel = $(Monster['shield_img'][i]).parent();
+				monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
+				monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
+				break;
 			}
-			if ($('img[src$="battle_victory"]').length){
-				History.add('raid+win',1);
-			}
-			if ($('img[src$="battle_defeat"]').length){
-				History.add('raid+loss',-1);
-			}
-			if (!monster.name) {
-				tmp = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ');
-				//monster.name = tmp.substr(0, tmp.length - Monster.types[type].name.length - 3);
-				monster.name = tmp.regex(/(.+)'s /i);
-			}
-			// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
-			for (i in Monster['class_img']){
-				if ($(Monster['class_img'][i]).length){
-					monster.mclass = i;
-					//debug('Monster class : '+Monster['class_name'][i]);
-				}
-			}
-			if (monster.mclass > 1){	// If we are a Rogue or Mage
-				// Attempt to check if we are in the wrong phase
-				if ($(Monster['class_off'][monster.mclass]).length === 0){
-					for(i in Monster['secondary_img']) {
-						$secondary = $(Monster['secondary_img'][i]);
-						if ($secondary.length) {
-							monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
-							//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
-							break;
-						}
-					}
+		}
+		for (i in Monster['defense_img']){
+			if ($(Monster['defense_img'][i]).length){
+				$defense = $(Monster['defense_img'][i]).parent();
+				monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+				if ($defense.parent().width() < $defense.parent().parent().width()){
+					monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
 				} else {
-					//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip fortify.");
+					monster.strength = 100;
 				}
+				monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
+				break;
 			}
-			for (i in Monster['health_img']){
-				if ($(Monster['health_img'][i]).length){
-					$health = $(Monster['health_img'][i]).parent();
-					monster.health = $health.length ? (100 * $health.width() / $health.parent().width()) : 0;
-					break;
-				}
-			}
-			for (i in Monster['shield_img']){
-				if ($(Monster['shield_img'][i]).length){
-					$dispel = $(Monster['shield_img'][i]).parent();
-					monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
-					monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
-					break;
-				}
-			}
-			for (i in Monster['defense_img']){
-				if ($(Monster['defense_img'][i]).length){
-					$defense = $(Monster['defense_img'][i]).parent();
-					monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
-					if ($defense.parent().width() < $defense.parent().parent().width()){
-						monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
-					} else {
-						monster.strength = 100;
-					}
-					monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
-					break;
-				}
-			}
-			monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
-			monster.finish = Date.now() + (monster.timer * 1000);
-			monster.damage_total = 0;
-			monster.damage_siege = 0;
-			monster.damage_players = 0;
-			monster.fortify = 0;
-			monster.damage = {};
-			if ($('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
-				//debug('Current Siege Phase is: '+ this.data[uid][type].phase);
-				monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
-				debug('Assisted on '+monster.phase+'.');
-			}
-			$('img[src*="siege_small"]').each(function(i,el){
-				var siege = $(el).parent().next().next().next().children().eq(0).text();
-				var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
-				var dmg = tmp.regex(/([0-9]+)/);
-				//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
-				monster.damage[siege]  = [dmg];
-				monster.damage_siege += dmg;
-			});
-			$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
-				var user = $(el).attr('href').regex(/user=([0-9]+)/i);
-				var tmp = null;
-				if (types[type].raid){
-					tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
-				} else {
-					tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
-				}
-				var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
-				if (user === userID){
-					monster.damage[user]  = (fort ? [dmg, fort] : [dmg]);
-					monster.damage_user = dmg;
-					if (monster.dmg_per_stamina && monster.battle_stamina){
-						while (monster.dmg_per_stamina * monster.battle_stamina < monster.damage_user * 0.99){
-							//debug('Battle stamina was ' + monster.battle_stamina);
-							monster.battle_stamina++;
-							//debug('Setting battle stamina to ' + monster.battle_stamina);
-						}
-						while (monster.dmg_per_stamina * monster.battle_stamina >= monster.damage_user * 1.01){
-							//debug('Battle stamina was ' + monster.battle_stamina);
-							monster.battle_stamina--;
-							//debug('Setting battle stamina to ' + monster.battle_stamina);
-						}
-					}
-				}
-				monster.damage_players += dmg;
-				if (fort) {
-					monster.fortify += fort;
-				}
-			});
-			if (types[type].orcs) {
-				monster.damage_total = Math.ceil(monster.damage_siege / 1000) + monster.damage_players
+		}
+		monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
+		monster.finish = Date.now() + (monster.timer * 1000);
+		monster.damage.siege = 0;
+		monster.damage.others = 0;
+		if (!dead &&$('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
+			//debug('Current Siege Phase is: '+ this.data[uid][type].phase);
+			monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
+			//debug('Assisted on '+monster.phase+'.');
+		}
+		$('img[src*="siege_small"]').each(function(i,el){
+			var siege = $(el).parent().next().next().next().children().eq(0).text();
+			var tmp = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'');
+			var dmg = tmp.regex(/([0-9]+)/);
+			//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+			monster.damage.siege += dmg / (types[type].orcs ? 1000 : 1);
+		});
+		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
+			var user = $(el).attr('href').regex(/user=([0-9]+)/i);
+			var tmp = null;
+			if (types[type].raid){
+				tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
 			} else {
-				monster.damage_total = monster.damage_siege + monster.damage_players;
+				tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
 			}
-			monster.dps = monster.damage_players / (timer - monster.timer);
-			if (types[type].raid) {
-				monster.total = monster.damage_total + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
+			var dmg = tmp.regex(/([0-9]+)/), fort = tmp.regex(/\/([0-9]+)/);
+			if (user === userID){
+				monster.damage.user.manual = dmg - (monster.damage.user.script || 0);
+				monster.defend.manual = fort - (monster.defend.script || 0);
+				monster.stamina.manual = Math.round(monster.damage.user.manual 
+						/ record.dmg_per_stamina);
 			} else {
-				monster.total = Math.ceil((1 + 100 * monster.damage_total) / (monster.health == 100 ? 0.1 : (100 - monster.health)));
-			}
-			monster.eta = Date.now() + (Math.floor((monster.total - monster.damage_total) / monster.dps) * 1000);
-		}
-	} else if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
-		if ($('div[style*="no_monster_back.jpg"]').attr('style')){
-			debug('Found a timed out monster.');
-			if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
-				debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + "'s " + this.runtime.checktype);
-				delete this.data[this.runtime.checkuid][this.runtime.checktype];
-				if (!length(this.data[this.runtime.checkuid])) {
-					delete this.data[this.runtime.checkuid];
-				}
-			} else {
-				debug('Unknown monster (timed out)');
-			}
-			this.runtime.checkuid = this.runtime.checktype = null;
-			return false;
-		}
-		this.runtime.checkuid = this.runtime.checktype = null;
-
-		if (!$('#app'+APPID+'_app_body div.imgButton').length) {
-			return false;
-		}
-		if (Page.page === 'battle_raid') {
-			raid = true;
-		}
-		for (uid in data) {
-			for (type in data[uid]) {
-				if (
-						((Page.page === 'battle_raid'
-								&& this.types[type].raid)
-							|| (Page.page === 'monster_monster_list'
-								&& !this.types[type].raid))
-						&& (data[uid][type].state === 'complete'
-							|| data[uid][type].state === 'reward'
-							|| (data[uid][type].state === 'assist'
-								&& data[uid][type].finish < Date.now()))
-					) {
-					data[uid][type].state = null;
-				}
-			}
-		}
-		$('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
-			var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
-			for (i in types) {
-				if (tmp == types[i].list) {
-					type = i;
-					break;
-				}
-			}
-			if (!uid || type === 'unknown') {
-				return;
-			}
-			data[uid] = data[uid] || {};
-			data[uid][type] = data[uid][type] || {};
-			if (uid === userID) {
-				data[uid][type].name = 'You';
-			} else {
-				tmp = $(el).parent().parent().children().eq(2).text().trim();
-				data[uid][type].name = tmp.regex(/(.+)'s /i);
-			}
-			switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
-				case 2:
-					data[uid][type].state = 'reward';
-					break;
-				case 3:
-					data[uid][type].state = 'engage';
-					break;
-				case 4:
-					// if (this.types[type].raid && data[uid][type].health) {
-					//	data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
-					// } else {
-					data[uid][type].state = 'complete';
-					// }
-					break;
-				default:
-					data[uid][type].state = 'unknown';
-					break; // Should probably delete, but keep it on the list...
+				monster.damage.others += dmg;
 			}
 		});
+		monster.dps = sum(monster.damage) / (timer - monster.timer);
+		if (types[type].raid) {
+			monster.total = sum(monster.damage) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
+		} else {
+			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health == 100 ? 0.1 : (100 - monster.health)));
+		}
+		monster.eta = Date.now() + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
+	} else {
+		this.runtime.stamina_used = 0;
+		this.runtime.energy_used = 0;
+		if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
+			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
+				debug('Found a timed out monster.');
+				if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
+					debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + "'s " + this.runtime.checktype);
+					delete this.data[this.runtime.checkuid][this.runtime.checktype];
+					if (!length(this.data[this.runtime.checkuid])) {
+						delete this.data[this.runtime.checkuid];
+					}
+				} else {
+					debug('Unknown monster (timed out)');
+				}
+				this.runtime.checkuid = this.runtime.checktype = null;
+				return false;
+			}
+			this.runtime.checkuid = this.runtime.checktype = null;
+
+			if (!$('#app'+APPID+'_app_body div.imgButton').length) {
+				return false;
+			}
+			if (Page.page === 'battle_raid') {
+				raid = true;
+			}
+			for (uid in data) {
+				for (type in data[uid]) {
+					if (
+							((Page.page === 'battle_raid'
+									&& this.types[type].raid)
+								|| (Page.page === 'monster_monster_list'
+									&& !this.types[type].raid))
+							&& (data[uid][type].state === 'complete'
+								|| data[uid][type].state === 'reward'
+								|| (data[uid][type].state === 'assist'
+									&& data[uid][type].finish < Date.now()))
+						) {
+						data[uid][type].state = null;
+					}
+				}
+			}
+			$('#app'+APPID+'_app_body div.imgButton').each(function(i,el){
+				var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
+				for (i in types) {
+					if (tmp == types[i].list) {
+						type = i;
+						break;
+					}
+				}
+				if (!uid || type === 'unknown') {
+					return;
+				}
+				data[uid] = data[uid] || {};
+				data[uid][type] = data[uid][type] || {};
+				if (uid === userID) {
+					data[uid][type].name = 'You';
+				} else {
+					tmp = $(el).parent().parent().children().eq(2).text().trim();
+					data[uid][type].name = tmp.regex(/(.+)'s /i);
+				}
+				switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
+					case 2:
+						data[uid][type].state = 'reward';
+						break;
+					case 3:
+						data[uid][type].state = 'engage';
+						break;
+					case 4:
+						// if (this.types[type].raid && data[uid][type].health) {
+						//	data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+						// } else {
+						data[uid][type].state = 'complete';
+						// }
+						break;
+					default:
+						data[uid][type].state = 'unknown';
+						break; // Should probably delete, but keep it on the list...
+				}
+			});
+		}
 	}
 	return false;
 };
@@ -6691,147 +6655,137 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, j, list = [], uid = this.runtime.uid, type = this.runtime.type, best = null, req_stamina, req_health, req_energy, label = null, amount = 0, fullname;
-	if (worker === Player) {
-		this.runtime.count = 0;
-		for (i in this.data) { // Flush unknown monsters
-			for (j in this.data[i]) {
-				if (!this.data[i][j].state || this.data[i][j].state === null) {
-					log('Found Invalid Monster State=(' + this.data[i][j].state + ')');
-					delete this.data[i][j];
-				} else if (this.data[i][j].state === 'engage') {
-					this.runtime.count++;
-				}
-			}
-			if (!length(this.data[i])) { // Delete uid's without an active monster
-				log('Found Invalid Monster ID=(' + this.data[i] + ')');
-				delete this.data[i];
-			}
+	var i, j, list = [], uid, type, best = null, req_stamina, req_health, req_energy, label = null, amount = 0, fullname;
+	for (i in this.data) {
+		// Flush unknown monsters
+		if (!length(this.data[i])) { // Delete uid's without an active monster
+			log('Deleted monster data for FBID ' + i + ' because it has no monsters');
+			delete this.data[i];
+			continue;
 		}
-		if (!uid || !type || !this.data[uid] || !this.data[uid][type] || (this.data[uid][type].state !== 'engage' && this.data[uid][type].state !== 'assist')) { // If we've not got a valid target...
-			this.runtime.uid = uid = null;
-			this.runtime.type = type = null;
-		}
-		// Testing this out
-		uid = null;
-		type = null;
-		
-		//this.runtime.check = false;
-		for (i in this.data) {
-			// Look for a new target...
-			for (j in this.data[i]) {
-				if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || (this.data[i][j].last < (Date.now() - this.option.check_interval))) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore && this.data[i][j].state !== 'complete') && !this.runtime.check) {
-					// Check monster progress every hour
-					this.runtime.check = true; // Do we need to parse info from a blank monster?
+		for (j in this.data[i]) {
+			if (!this.data[i][j].state) {
+				log('Deleted monster FBID ' + i + ' monster ' + j 
+						+ ' because state is ' + this.data[i][j].state);
+				delete this.data[i][j];
+				continue;
+			}
+		// Look for a new target...
+			if (	((!this.data[i][j].health 
+							&& this.data[i][j].state === 'engage')
+						|| typeof this.data[i][j].last === 'undefined'
+						|| (this.data[i][j].last < (Date.now() - this.option.check_interval)))
+					&& (typeof this.data[i][j].ignore === 'undefined' 
+						|| !this.data[i][j].ignore 
+						&& this.data[i][j].state !== 'complete') 
+					&& !this.runtime.check) {
+				// Check monster progress every hour
+				this.runtime.check = true; // Do we need to parse info from a blank monster?
+				return;
+			}
+			req_stamina = this.types[j].raid ? (this.option.raid.search('x5') == -1 ? 1 : 5)
+					: (this.option.minstamina < Math.min.apply(Math, this.types[j].attacks)
+						|| this.option.maxstamina <= Math.min.apply(Math, this.types[j].attacks)) 
+					? Math.min.apply( Math, this.types[j].attacks)
+					: this.option.minstamina > Math.max.apply(Math, this.types[j].attacks)
+					? Math.max.apply(Math, this.types[j].attacks) 
+					: this.option.minstamina > this.option.maxstamina 
+					? this.option.maxstamina : this.option.minstamina;
+			req_energy = this.types[j].def_btn ? this.option.minenergy : null;
+			req_health = this.types[j].raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
+			
+			if (	!this.data[i][j].ignore
+					&& this.data[i][j].state === 'engage'
+					&& this.data[i][j].finish > Date.now() 
+					&& (!this.option.hide
+						|| Queue.burn.energy >= req_energy
+						|| (Player.get('health') >= req_health
+							&& Queue.burn.stamina >= req_stamina))
+					&& (typeof this.data[i][j].attackbonus === 'undefined' 
+						|| this.data[i][j].attackbonus >= this.option.min_to_attack
+						|| (this.data[i][j].attackbonus <= this.option.fortify 
+							&& this.option.fortify_active))) {
+				if (i == userID && this.option.own) {
+					// Add to list
+				} else if (this.option.behind_override 
+						&& (this.data[i][j].eta 
+								>= this.data[i][j].finish - this.option.check_interval)
+						&& sum(this.data[i][j].damage[userID]) > this.types[j].achievement) {
+					//debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
+				} else if (this.option.stop === 'Achievement' 
+						&& (!isNumber(this.types[j].achievement) 
+							|| sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)
+								> this.types[j].achievement)) {
+					break;
+				} else if (this.option.stop === 'Loot'
+						&& (!isNumber(this.types[j].achievement) 
+							|| sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)
+								> this.types[j].achievement * 2)) {
 					break;
 				}
-				req_stamina = (this.types[j].raid && this.option.raid.search('x5') == -1) ? 1 : (this.types[j].raid) ? 5 : (this.option.minstamina < Math.min.apply( Math, this.types[j].attacks) || this.option.maxstamina < Math.min.apply( Math, this.types[j].attacks)) ? Math.min.apply( Math, this.types[j].attacks): (this.option.minstamina > Math.max.apply( Math, this.types[j].attacks)) ? Math.max.apply( Math, this.types[j].attacks) : (this.option.minstamina > this.option.maxstamina) ? this.option.maxstamina : this.option.minstamina;
-				req_energy = this.types[j].def_btn ? this.option.minenergy : null;
-				req_health = this.types[j].raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
-				
-				if ((typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)
-						&& this.data[i][j].state === 'engage'
-						&& this.data[i][j].finish > Date.now() 
-						&& (!this.option.hide
-							|| Queue.burn.energy >= req_energy
-							|| (Player.get('health') >= req_health
-								&& Queue.burn.stamina >= req_stamina))
-						&& (typeof this.data[i][j].attackbonus === 'undefined' 
-							|| this.data[i][j].attackbonus >= this.option.min_to_attack
-							|| (this.data[i][j].attackbonus <= this.option.fortify 
-								&& this.option.fortify_active))) {
-				
-					if (!this.data[i][j].battle_count){
-						this.data[i][j].battle_count = 1;
-					}                                        
-					if (i == userID && this.option.own){						
-                                                list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-						break;
-					} else if (this.option.behind_override && (this.data[i][j].eta >= this.data[i][j].finish - this.option.check_interval) && sum(this.data[i][j].damage[userID]) > this.types[j].achievement){
-						//debug('Adding behind monster. ' + this.data[i][j].name + '\'s ' + this.types[j].name);
-						list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-						break;
+				list.push([i, j, this.data[i][j].health
+						,this.data[i][j].eta
+						,sum(this.data[i][j].stamina)
+						,(sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend))
+							/ sum(this.data[i][j].damage) * 100
+						,this.data[i][j].finish
+						,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
+			}
+		}
+	}
+	if (list.length){
+		list.sort( function(a,b){
+			switch(Monster.option.choice) {
+				case 'Any':
+					return (Math.random()-0.5);
+					break;
+				case 'Strongest':
+					return b[2] - a[2];
+					break;
+				case 'Weakest':
+					return a[2] - b[2];
+					break;
+				case 'Shortest ETD':
+					return a[3] - b[3];
+					break;
+				case 'Longest ETD':
+					return b[3] - a[3];
+					break;
+				case 'Spread':
+					return a[4] - b[4];
+					break;
+				case 'Max Damage':
+					return b[5] - a[5];
+					break;
+				case 'Min Damage':
+					return a[5] - b[5];
+					break;
+				case 'ETD Maintain':
+					if (a[7] < b[7]){
+						return 1;
+					} else if (a[7] > b[7]){
+						return -1;
 					} else {
-						switch(this.option.stop) {
-							default:
-							case 'Never':
-								list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-								break;
-							case 'Achievement':
-								if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < this.types[j].achievement)) {
-									list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-								}
-								break;
-							case 'Loot':
-								if (isNumber(this.types[j].achievement) && (typeof this.data[i][j].damage[userID] === 'undefined' || sum(this.data[i][j].damage[userID]) < ((i == userID && j === 'keira') ? 200000 : 2 * this.types[j].achievement))) {
-									// Special case for your own Keira to get her soul.
-									list.push([i, j, this.data[i][j].health, this.data[i][j].eta, this.data[i][j].battle_count,((sum(this.data[i][j].damage[userID]) || 0) / this.data[i][j].damage_total * 100).round(4),this.data[i][j].finish,(this.data[i][j].eta - this.data[i][j].finish)/3600000]);
-								}
-								break;
-						}
+						return 0;
 					}
+					break;
+			}
+		});	
+		if (!this.option.avoid_behind){
+			best = list[0];
+		} else {
+			for (i=0; i <= list.length - 1; i++){
+				if (((list[i][3]/3600000) - (list[i][6]/3600000)).round(0) <= this.option.avoid_hours ){
+					best = list[i];
+					break;
 				}
 			}
 		}
-		if (list.length){
-			list.sort( function(a,b){
-				switch(Monster.option.choice) {
-					case 'Any':
-						return (Math.random()-0.5);
-						break;
-					case 'Strongest':
-						return b[2] - a[2];
-						break;
-					case 'Weakest':
-						return a[2] - b[2];
-						break;
-					case 'Shortest ETD':
-						return a[3] - b[3];
-						break;
-					case 'Longest ETD':
-						return b[3] - a[3];
-						break;
-					case 'Spread':
-						return a[4] - b[4];
-						break;
-					case 'Max Damage':
-						return b[5] - a[5];
-						break;
-					case 'Min Damage':
-						return a[5] - b[5];
-						break;
-					case 'ETD Maintain':
-						if (a[7] < b[7]){
-							return 1;
-						} else if (a[7] > b[7]){
-							return -1;
-						} else {
-							return 0;
-						}
-						break;
-				}
-			});	
-			if (!this.option.avoid_behind){
-				best = list[0];
-			} else {
-				for (i=0; i <= list.length - 1; i++){
-					if (((list[i][3]/3600000) - (list[i][6]/3600000)).round(0) <= this.option.avoid_hours ){
-						best = list[i];
-						break;
-					}
-				}
-			}
-		}
-		delete list;
-		if (best) {
-			uid  = best[0];
-			type = best[1];
-		}
-
-		this.runtime.uid = uid;
-		this.runtime.type = type;
-	} // END IF worker===Player
-	if (uid && type) {		
+	}
+	delete list;
+	if (best) {		
+		uid  = this.runtime.uid = best[0];
+		type = this.runtime.type = best[1];
 		this.runtime.stamina = 
 			(this.types[type].raid && this.option.raid.search('x5') == -1)
 			? 1
@@ -6973,6 +6927,7 @@ Monster.work = function(state) {
 							//debug('Burn Energy is ' + Queue.burn.energy);
 							if (this.types[type].defends[i] <= this.option.maxenergy && Queue.burn.energy >= this.types[type].defends[i] ){
 								//debug('Button cost is ' + this.types[type].defends[i]);
+								this.runtime.energy_used = this.types[type].defends[i];
 								btn = $(this.types[type].def_btn).eq(i);
 								break;
 							}
@@ -6989,6 +6944,7 @@ Monster.work = function(state) {
 							//debug('Burn Stamina is ' + Queue.burn.stamina);
 							if (this.types[type].attacks[i] <= this.option.maxstamina && Queue.burn.stamina >= this.types[type].attacks[i]){
 								//debug('Button cost is ' + this.types[type].attacks[i]);
+								this.runtime.stamina_used = this.types[type].attacks[i];
 								btn = $(this.types[type].atk_btn).eq(i);
 								break;
 							}
@@ -7041,17 +6997,15 @@ Monster.work = function(state) {
 	switch (j){
 		case 'fortify':
 			//debug('Energy prior to defense ' + Player.get('energy'));
-			this.runtime.pre_energy = Player.get('energy');
+			this.runtime.energy = Player.get('energy');
 			Page.click(btn);
-			this.runtime.defended = true;
 			this.data[uid][type].button_fail = 0;
 			return QUEUE_RELEASE;
 			break;
 		case 'attack':
 			//debug('Stamina prior to attack ' + Player.get('stamina'));
-			this.runtime.pre_stamina = Player.get('stamina');
+			this.runtime.stamina = Player.get('stamina');
 			Page.click(btn);
-			this.runtime.attacked = true;
 			this.data[uid][type].button_fail = 0;
 			return QUEUE_RELEASE;
 			break;
@@ -7099,11 +7053,11 @@ Monster.dashboard = function(sort, rev) {
 		} else if (sort == 4) { // damage
 			//			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[userID] : 0;
 			//			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[userID] : 0;
-			if (typeof Monster.data[a[0]][a[1]].damage !== 'undefined' && typeof Monster.data[b[0]][b[1]].total !== 'undefined' ){
-				aa = sum((Monster.data[a[0]][a[1]].damage[userID] / Monster.data[a[0]][a[1]].total));
+			if (typeof Monster.data[a[0]][a[1]].damage !== 'undefined' && typeof Monster.data[a[0]][a[1]].damage.user !== 'undefined') {
+				aa = sum(Monster.data[a[0]][a[1]].damage.user) / sum(Monster.data[a[0]][a[1]].damage);
 			}
-			if (typeof Monster.data[b[0]][b[1]].damage !== 'undefined' && typeof Monster.data[b[0]][b[1]].total !== 'undefined' ){
-				bb = sum((Monster.data[b[0]][b[1]].damage[userID] / Monster.data[b[0]][b[1]].total));
+			if (typeof Monster.data[b[0]][b[1]].damage !== 'undefined' && typeof Monster.data[b[0]][b[1]].damage.user !== 'undefined') {
+				bb = sum(Monster.data[b[0]][b[1]].damage.user) / sum(Monster.data[b[0]][b[1]].damage);
 			}
 		}
 		if (typeof aa === 'undefined') {
@@ -7148,9 +7102,12 @@ Monster.dashboard = function(sort, rev) {
 		var image_url = imagepath + Monster.types[j].list;
 		//debug(image_url);
 		th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
-		td(output, blank ? '' : monster.health === 100 ? '100%' : addCommas(monster.total - monster.damage_total) + ' (' + monster.health.round(1) + '%)');
+		td(output, blank ? '' : monster.health === 100 ? '100%'	: monster.health.round(1) + '%'
+				, blank ? '' : 'title="' + addCommas(monster.total - sum(monster.damage)) + '"');
 		td(output, blank ? '' : isNumber(monster.attackbonus) ? (monster.attackbonus.round(1))+'%' : '', (isNumber(monster.strength) ? 'title="Max: '+((monster.strength-50).round(1))+'%"' : ''));
-		td(output, blank ? '' : monster.state !== 'engage' ? '' : (typeof monster.damage[userID] === 'undefined') ? '' : addCommas(monster.damage[userID][0] || 0) + ' (' + ((monster.damage[userID][0] || 0) / monster.total * 100).round(2) + '%)', blank ? '' : 'title="In ' + (monster.battle_count || 'an unknown number of') + ' attacks"');
+		td(output, (blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined')) 				? '' : addCommas(sum(monster.damage.user)) 
+				,blank ? '' : 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2)
+						+ '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
 		td(output, blank ? '' : monster.timer ? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>' : '?');
 		td(output, blank ? '' : '<span class="golem-timer">' + (monster.health === 100 ? makeTimer((monster.finish - Date.now()) / 1000) : makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
 		th(output, '<a class="golem-monster-delete" name="'+i+'+'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
