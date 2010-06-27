@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 646;
+var revision = 647;
 // User changeable
 var show_debug = true;
 
@@ -5864,7 +5864,7 @@ Monster.display = [
 			},{
 				/*	id:'quest_over',
 				require:'fortify_active',
-				la	bel:'Quest if Over',
+				label:'Quest if Over',
 				text:90,
 				after:'%'
 			},{
@@ -6451,13 +6451,9 @@ Monster.parse = function(change) {
 			if ($('span[class="positive"]').length 
 					&& $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
 				record.defend.unshift(Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')));
-				while (record.defend.length > ATTACKHISTORY) {
-					record.defend.pop();
-				}
+				(record.defend.length > ATTACKHISTORY) && record.defend.pop();
 				record.energy.unshift(this.runtime.energy_used);
-				while (record.energy.length > ATTACKHISTORY) {
-					record.energy.pop();
-				}
+				(record.energy.length > ATTACKHISTORY) && record.energy.pop();
 				monster.energy.script = (monster.energy.script || 0) + this.runtime.energy_used;
 				monster.defend.script = (monster.defense.script || 0) + record.defend[0];
 				record.dfd_per_energy = sum(record.defend) / sum(record.energy);
@@ -6997,14 +6993,12 @@ Monster.work = function(state) {
 	switch (j){
 		case 'fortify':
 			//debug('Energy prior to defense ' + Player.get('energy'));
-			this.runtime.energy = Player.get('energy');
 			Page.click(btn);
 			this.data[uid][type].button_fail = 0;
 			return QUEUE_RELEASE;
 			break;
 		case 'attack':
 			//debug('Stamina prior to attack ' + Player.get('stamina'));
-			this.runtime.stamina = Player.get('stamina');
 			Page.click(btn);
 			this.data[uid][type].button_fail = 0;
 			return QUEUE_RELEASE;
