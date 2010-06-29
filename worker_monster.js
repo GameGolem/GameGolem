@@ -14,7 +14,7 @@ Monster.option = {
 	general_attack:'any',
 	fortify: 30,
 	//	quest_over: 90,
-	min_to_attack: 0,
+	min_to_attack: -30,
 	//	dispel: 50,
 	fortify_active:false,
 	choice: 'Any',
@@ -91,12 +91,6 @@ Monster.display = [
 				select:['Never', 'Achievement', 'Loot'],
 				help:'Select when to stop attacking a target.'
 			},{*/
-				id:'min_to_attack',
-				label:'Attack Over (AB)',
-				text:1,
-				help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
-				after:'%'
-			},{
 				id:'minenergy',
 				label:'Min Energy Cost',
 				select:[10,20,40,100],
@@ -122,6 +116,12 @@ Monster.display = [
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
+	},{
+		id:'min_to_attack',
+		label:'Attack Over (AB)',
+		text:1,
+		help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+		after:'%'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -593,7 +593,6 @@ Monster.parse = function(change) {
 	var data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
-		this.runtime.checkuid = this.runtime.checktype = null;
 		//debug('Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length
@@ -656,9 +655,9 @@ Monster.parse = function(change) {
 				monster.stamina.script = (monster.stamina.script || 0) + record.stamina[0];
 				monster.damage.user.script = (monster.damage.user.script || 0) + record.damage[0];
 				record.dmg_per_stamina = sum(record.damage) / sum(record.stamina);
-				debug('Stamina used by script on this monster = ' + monster.stamina.script);
-				debug('Damage from script on this monster = ' + monster.damage.script);
-				debug('Damage per stamina = ' + record.dmg_per_stamina);
+				//debug('Stamina used by script on this monster = ' + monster.stamina.script);
+				//debug('Damage from script on this monster = ' + monster.damage.script);
+				//debug('Damage per stamina = ' + record.dmg_per_stamina);
 			}
 			this.runtime.stamina_used = 0;
 		} else if (this.runtime.energy_used) {
@@ -671,9 +670,9 @@ Monster.parse = function(change) {
 				monster.energy.script = (monster.energy.script || 0) + this.runtime.energy_used;
 				monster.defend.script = (monster.defense.script || 0) + record.defend[0];
 				record.dfd_per_energy = sum(record.defend) / sum(record.energy);
-				debug('Energy used by script on this monster = ' + monster.energy.script);
-				debug('Defend from script on this monster = ' + monster.defend.script);
-				debug('Defend per energy = ' + record.dfd_per_energy);
+				//debug('Energy used by script on this monster = ' + monster.energy.script);
+				//debug('Defend from script on this monster = ' + monster.defend.script);
+				//debug('Defend per energy = ' + record.dfd_per_energy);
 			}
 			this.runtime.energy_used = 0;
 		}
@@ -782,19 +781,16 @@ Monster.parse = function(change) {
 		if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
 			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
 				debug('Found a timed out monster.');
-				if (typeof this.runtime.checkuid !== 'undefined' && typeof this.runtime.checktype !== 'undefined' && this.runtime.checkuid && this.runtime.checktype){
-					debug('Deleting ' + this.data[this.runtime.checkuid][this.runtime.checktype].name + "'s " + this.runtime.checktype);
-					delete this.data[this.runtime.checkuid][this.runtime.checktype];
-					if (!length(this.data[this.runtime.checkuid])) {
-						delete this.data[this.runtime.checkuid];
-					}
+				if (this.runtime.check){
+					debug('Deleting ' + this.data[this.runtime.check[0]][this.runtime.check[1]].name + "'s " + this.runtime.check[1]);
+					delete this.data[this.runtime.check[0]][this.runtime.check[1]];
 				} else {
 					debug('Unknown monster (timed out)');
 				}
-				this.runtime.checkuid = this.runtime.checktype = null;
+				this.runtime.check = false;
 				return false;
 			}
-			this.runtime.checkuid = this.runtime.checktype = null;
+			this.runtime.check = false;
 
 			if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 				return false;
@@ -804,8 +800,7 @@ Monster.parse = function(change) {
 			}
 			for (uid in data) {
 				for (type in data[uid]) {
-					if (
-							((Page.page === 'battle_raid'
+					if (	((Page.page === 'battle_raid'
 									&& this.types[type].raid)
 								|| (Page.page === 'monster_monster_list'
 									&& !this.types[type].raid))
@@ -887,10 +882,9 @@ Monster.update = function(what,worker) {
 						|| (this.data[i][j].last < (Date.now() - this.option.check_interval)))
 					&& (typeof this.data[i][j].ignore === 'undefined' 
 						|| !this.data[i][j].ignore 
-						&& this.data[i][j].state !== 'complete') 
-					&& !this.runtime.check) {
+						&& this.data[i][j].state !== 'complete')) {
 				// Check monster progress every hour
-				this.runtime.check = true; // Do we need to parse info from a blank monster?
+				this.runtime.check = [i,j]; // Do we need to parse info from a blank monster?
 				return;
 			}
 			req_stamina = this.types[j].raid ? (this.option.raid.search('x5') == -1 ? 1 : 5)
@@ -1079,23 +1073,14 @@ Monster.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	if (this.runtime.check) { // Parse pages of monsters we've not got the info for
-		for (i in this.data) {
-			for (j in this.data[i]) {
-				if (((!this.data[i][j].health && this.data[i][j].state === 'engage') || typeof this.data[i][j].last === 'undefined' || this.data[i][j].last < Date.now() - this.option.check_interval) && (typeof this.data[i][j].ignore === 'undefined' || !this.data[i][j].ignore)) {
-					debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
-					this.runtime.checkuid = i;
-					this.runtime.checktype = j;
-					Page.to(this.types[j].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + i 
-							+ ((this.data[i][j].phase
-									&& this.option.assist)
-								? '&action=doObjective'
-								: '')
-							+ (this.types[j].mpool 
-								? '&mpool=' + this.types[j].mpool
-								: ''));
-					return QUEUE_CONTINUE;
-				}
-			}
+		i = this.runtime.check[0];
+		j = this.runtime.check[1];
+		if ((this.data[i][j].last || 0) < Date.now() - this.option.check_interval) {
+			debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name)
+			Page.to(this.types[j].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + i 
+					+ ((this.data[i][j].phase && this.option.assist) ? '&action=doObjective' : '')
+					+ (this.types[j].mpool ? '&mpool=' + this.types[j].mpool : ''));
+			return QUEUE_CONTINUE;
 		}
 		this.runtime.check = false;
 		debug( 'Finished Monster / Raid review')
@@ -1179,13 +1164,8 @@ Monster.work = function(state) {
 		//debug('Reloading page. Page.page = '+ Page.page);
 		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
 		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid 
-				+ ((this.data[uid][type].phase
-						&& this.option.assist)
-					? '&action=doObjective'
-					: '')
-				+ (this.types[type].mpool 
-					? '&mpool=' + this.types[type].mpool
-					: ''));
+				+ ((this.data[uid][type].phase && this.option.assist) ? '&action=doObjective' : '')
+				+ (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : ''));
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
 	if (this.types[type].raid) {
