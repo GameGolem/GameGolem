@@ -17,7 +17,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 648;
+var revision = 649;
 // User changeable
 var show_debug = true;
 
@@ -5380,10 +5380,10 @@ Land.parse = function(change) {
 		if (!change) {
 			// Fix for broken land page!!
 			!$('.land_buy_image_int', el).length && $('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
-			!$('.land_buy_info_int', el).length && $('.land_buy_info', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"]', el));
+			!$('.land_buy_info_int', el).length && $('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
 			Land.data[name] = {};
-			Land.data[name].income = $('.land_buy_info .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			Land.data[name].max = $('.land_buy_info', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
+			Land.data[name].income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			Land.data[name].max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
 			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 			tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
 			if (tmp) {
@@ -5391,7 +5391,7 @@ Land.parse = function(change) {
 			}
 			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 		} else {
-			$('.land_buy_info strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
+			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
 	});
 	return true;
@@ -5406,7 +5406,7 @@ Land.update = function() {
 	}
 	
 	for (i in this.data) {
-		if (this.option.sell && this.data[i].own > this.data[i].max) {
+		if (this.option.sell && this.data[i].max > 0 && this.data[i].own > this.data[i].max) {
 			best = i;
 			buy = this.data[i].max - this.data[i].own;// Negative number means sell
 			if (this.option.land_exp) {
