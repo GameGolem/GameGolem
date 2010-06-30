@@ -2,7 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var isRelease = true;
+var isRelease = false;
 var script_started = Date.now();
 
 // Automatically filled
