@@ -2,8 +2,7 @@
 var show_debug = true;
 
 // Shouldn't touch
-var isRelease = false;
-var VERSION = "31.4";
+var isRelease = true;
 var script_started = Date.now();
 
 // Automatically filled
@@ -36,7 +35,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (typeof revision === 'number' ? 'r'+revision : 'v'+VERSION) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -47,12 +46,19 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		}
 
 		var document_ready = function() {
-			var i;
-			userID = $('script').text().regex(/user:([0-9]+),/i);
+			var i = 0;
+			try {
+				userID = $('script').text().regex(/user:([0-9]+),/i);
+			} catch(e) {
+				if (i++ < 5) {// Try 5 times before we give up...
+					window.setTimeout(document_ready, 1000);
+					return;
+				}
+			}
 			if (!userID || typeof userID !== 'number' || userID === 0) {
 				log('ERROR: No Facebook UserID!!!');
 				window.location.href = window.location.href; // Force reload without retrying
-				return
+				return;
 			}
 			if (APP === 'reqs.php') { // Let's get the next gift we can...
 				return;
