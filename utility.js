@@ -1,4 +1,40 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	Workers, makeImage
+*/
 // Utility functions
+
+// Functions to check type of variable
+
+var isArray = function(obj) {// Not an object
+    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+};
+
+var isObject = function(obj) {// Not an array
+    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+};
+
+var isFunction = function(obj) {
+	return typeof obj === 'function';
+};
+
+var isNumber = function(num) {
+	return typeof num === 'number';
+};
+
+var isString = function(str) {
+	return typeof str === 'string';
+};
+
+// Big shortcut for being inside a try/catch block
+var isWorker = function(obj) {
+	try {return Workers[obj.name] === obj;}
+	catch(e) {return false;}
+};
 
 // Prototypes to ease functionality
 
@@ -54,7 +90,7 @@ String.prototype.parseTimer = function() {
 };
 
 Number.prototype.round = function(dec) {
-	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+	return Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
 };
 
 Math.range = function(min, num, max) {
@@ -152,7 +188,7 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 			list.splice(list.indexOf(value), 1);
 		}
 	}
-}
+};
 			
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
@@ -194,7 +230,7 @@ var findInArray = function(list, value) {
 var findInObject = function(list, value) {
 	if (isObject(list)) {
 		for (var i in list) {
-			if (list[i] == value) {
+			if (list[i] === value) {
 				return i;
 			}
 		}
@@ -236,14 +272,14 @@ var arrayLastIndexOf = function(list, value) {
 };
 
 var sortObject = function(obj, sortfunc, deep) {
-	var list = [], output = {};
+	var i, list = [], output = {};
 	if (typeof deep === 'undefined') {
 		deep = false;
 	}
 	for (i in obj) {
 		list.push(i);
 	}
-	sortfunc ? list.sort(sortfunc) : list.sort();
+	list.sort(sortfunc ? sortfunc : function(a,b){return b-a;});
 	for (i=0; i<list.length; i++) {
 		if (deep && typeof obj[list[i]] === 'object') {
 			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
@@ -305,32 +341,6 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
-var isArray = function(obj) {// Not an object
-    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
-};
-
-var isObject = function(obj) {// Not an array
-    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
-};
-
-var isFunction = function(obj) {
-	return typeof obj === 'function';
-};
-
-var isNumber = function(num) {
-	return typeof num === 'number';
-};
-
-var isString = function(str) {
-	return typeof str === 'string';
-};
-
-// Big shortcut for being inside a try/catch block
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}
-	catch(e) {return false;}
-};
-
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };
@@ -342,10 +352,9 @@ var makeTime = function(time, format) {
 
 // Simulates PHP's date function
 Date.prototype.format = function(format) {
-	var returnStr = '';
-	var replace = Date.replaceChars;
-	for (var i = 0; i < format.length; i++) {
-		var curChar = format.charAt(i);
+	var i, curChar, returnStr = '', replace = Date.replaceChars;
+	for (i = 0; i < format.length; i++) {
+		curChar = format.charAt(i);
 		if (replace[curChar]) {
 			returnStr += replace[curChar].call(this);
 		} else {
@@ -366,7 +375,7 @@ Date.replaceChars = {
 	j: function() { return this.getDate(); },
 	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
 	N: function() { return this.getDay() + 1; },
-	S: function() { return (this.getDate() % 10 == 1 && this.getDate() != 11 ? 'st' : (this.getDate() % 10 == 2 && this.getDate() != 12 ? 'nd' : (this.getDate() % 10 == 3 && this.getDate() != 13 ? 'rd' : 'th'))); },
+	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
 	w: function() { return this.getDay(); },
 	z: function() { return "Not Yet Supported"; },
 	// Week
@@ -378,7 +387,7 @@ Date.replaceChars = {
 	n: function() { return this.getMonth() + 1; },
 	t: function() { return "Not Yet Supported"; },
 	// Year
-	L: function() { return (((this.getFullYear()%4==0)&&(this.getFullYear()%100 != 0)) || (this.getFullYear()%400==0)) ? '1' : '0'; },
+	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
 	o: function() { return "Not Supported"; },
 	Y: function() { return this.getFullYear(); },
 	y: function() { return ('' + this.getFullYear()).substr(2); },
@@ -397,7 +406,7 @@ Date.replaceChars = {
 	I: function() { return "Not Supported"; },
 	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
 	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
-	T: function() { var m = this.getMonth(); this.setMonth(0); var result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
+	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
 	Z: function() { return -this.getTimezoneOffset() * 60; },
 	// Full Date/Time
 	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
@@ -413,4 +422,5 @@ var ucwords = function(str) {
 	return (str + '').replace(/^(.)|\s(.)/g, function($1){
 		return $1.toUpperCase();
 	});
-}
+};
+

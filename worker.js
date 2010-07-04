@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /* Worker Prototype
    ----------------
 new Worker(name, pages, settings)
@@ -94,11 +103,11 @@ if (typeof GM_getValue !== 'undefined') {
 }
 */
 if (isGreasemonkey) {
-	var setItem = function(n,v){GM_setValue(n, v);}// Must make per-APP when we go to multi-app
-	var getItem = function(n){return GM_getValue(n);}// Must make per-APP when we go to multi-app
+	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
+	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
 } else {
-	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
-	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
+	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);};
+	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);};
 }
 
 function Worker(name,pages,settings) {
@@ -132,6 +141,7 @@ function Worker(name,pages,settings) {
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
+	this._disabled = false;
 }
 
 // Private functions - only override if you know exactly what you're doing
@@ -150,7 +160,9 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		!this._loaded && this._init();
+		if (!this._loaded) {
+			this._init();
+		}
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -179,10 +191,12 @@ Worker.prototype._init = function() {
 	}
 	WorkerStack.push(this);
 	this._loaded = true;
-	try {
-		this.init && this.init();
-	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+	if (this.init) {
+		try {
+			this.init();
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+		}
 	}
 	WorkerStack.pop();
 };
@@ -201,7 +215,7 @@ Worker.prototype._load = function(type) {
 			v = JSON.parse(v);
 		} catch(e) {
 			debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
-			v = eval(v); // We used to save our data in non-JSON format...
+//			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
 	}
@@ -253,39 +267,43 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, where;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		!this._loaded && this._init();
+		if (!this._loaded) {
+			this._init();
+		}
 		this._unflush();
 	}
 	data = this[x.shift()];
-	try {
-		x.length && (function(a,b){ // Don't allow setting of root data/object/runtime
-			var c = b.shift();
-			if (b.length) {
-				if (typeof a[c] !== 'object') {
-					a[c] = {};
-				}
-				if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
-					delete a[c];
-					return false
-				}
-			} else {
-				if (typeof value === 'undefined') {
-					delete a[c];
-					return false
+	if (x.length) {
+		try {
+			(function(a,b){ // Don't allow setting of root data/object/runtime
+				var c = b.shift();
+				if (b.length) {
+					if (typeof a[c] !== 'object') {
+						a[c] = {};
+					}
+					if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
+						delete a[c];
+						return false;
+					}
 				} else {
-					a[c] = value;
+					if (typeof value === 'undefined') {
+						delete a[c];
+						return false;
+					} else {
+						a[c] = value;
+					}
 				}
-			}
-			return true;
-		})(data,x);
-//		this._save();
-	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+				return true;
+			})(data,x);
+//			this._save();
+		} catch(e) {
+			debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+		}
 	}
 //	WorkerStack.pop();
 	return value;
@@ -308,8 +326,12 @@ Worker.prototype._setup = function() {
 
 Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
-	!this._loaded && this._init();
-	!this.settings.keep && !this.data && this._load('data');
+	if (!this._loaded) {
+		this._init();
+	}
+	if (!this.settings.keep && !this.data) {
+		this._load('data');
+	}
 	WorkerStack.pop();
 };
 
@@ -317,7 +339,9 @@ Worker.prototype._unwatch = function(worker) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	isWorker(worker) && deleteElement(worker._watching,this);
+	if (isWorker(worker)) {
+		deleteElement(worker._watching,this);
+	}
 };
 
 Worker.prototype._update = function(type, worker) {
@@ -333,7 +357,9 @@ Worker.prototype._update = function(type, worker) {
 			this._unflush();
 		}
 		try {
-			this.update && this.update(type, worker);
+			if (this.update) {
+				this.update(type, worker);
+			}
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
@@ -342,7 +368,9 @@ Worker.prototype._update = function(type, worker) {
 				this._watching[i]._update(type, this);
 			}
 		}
-		flush && this._flush();
+		if (flush) {
+			this._flush();
+		}
 		this._working.update = false;
 		WorkerStack.pop();
 	}
@@ -352,7 +380,9 @@ Worker.prototype._watch = function(worker) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	isWorker(worker) && !findInArray(worker._watching,this) && worker._watching.push(this);
+	if (isWorker(worker) && !findInArray(worker._watching,this)) {
+		worker._watching.push(this);
+	}
 };
 
 Worker.prototype._work = function(state) {

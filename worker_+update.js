@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey, GM_xmlhttpRequest,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
 */

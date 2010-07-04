@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Page() **********
 * All navigation including reloading
 */
@@ -163,7 +172,7 @@ Page.identify = function() {
 	this.clear();
 	var app_body = $('#app'+APPID+'_app_body'), p;
 	$('img', app_body).each(function(i,el){
-		var filename = $(el).attr('src').filepart();
+		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
 			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
 				Page.page = p;
@@ -272,9 +281,13 @@ Page.click = function(el) {
 	} else {
 		this.clear();
 	}
-	var e = document.createEvent("MouseEvents");
+	var element = $(el).get(0), e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
-	isGreasemonkey ? $(el).get(0).wrappedJSObject.dispatchEvent(e) : $(el).get(0).dispatchEvent(e);
+	if (element.wrappedJSObject) {
+		element.wrappedJSObject.dispatchEvent(e);
+	} else {
+		element.dispatchEvent(e);
+	}
 	this.lastclick = el;
 	this.when = Date.now();
 	return true;

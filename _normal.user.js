@@ -19,6 +19,15 @@
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
 var revision = 656;
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	GM_log, GM_setValue, GM_getValue, localStorage, console, window, unsafeWindow:true, revision, version, do_css, jQuery,
+	Workers, WorkerStack, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 // User changeable
 var show_debug = true;
 
@@ -51,12 +60,11 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
-		}
-
+			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+		};
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -117,7 +125,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			head.appendChild(b);
 			log('Loading jQuery & jQueryUI');
 			(function jQwait() {
-				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafewindow.jQuery);
+				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
 				if (typeof window.jQuery === 'undefined') {
 					window.setTimeout(jQwait, 10000);
 				} else {
@@ -129,6 +137,15 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 	}
 }
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	Images:true, makeImage:true
+*/
 /********** CSS code **********
 * Gets pushed into the <head> on loading
 * Also contains all inlined images (for later theming...)
@@ -158,7 +175,7 @@ Images.options = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%
 
 var makeImage = function(type, title) {
 	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
-}
+};
 
 function do_css(){
 $('head').append("<style type=\"text/css\">\
@@ -240,7 +257,43 @@ img.g_potion_stamina { background: url(\""+Images.potion_stamina+"\") no-repeat;
 img.g_potion_energy { background: url(\""+Images.potion_energy+"\") no-repeat; }\
 </style>");
 }
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	Workers, makeImage
+*/
 // Utility functions
+
+// Functions to check type of variable
+
+var isArray = function(obj) {// Not an object
+    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+};
+
+var isObject = function(obj) {// Not an array
+    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+};
+
+var isFunction = function(obj) {
+	return typeof obj === 'function';
+};
+
+var isNumber = function(num) {
+	return typeof num === 'number';
+};
+
+var isString = function(str) {
+	return typeof str === 'string';
+};
+
+// Big shortcut for being inside a try/catch block
+var isWorker = function(obj) {
+	try {return Workers[obj.name] === obj;}
+	catch(e) {return false;}
+};
 
 // Prototypes to ease functionality
 
@@ -296,7 +349,7 @@ String.prototype.parseTimer = function() {
 };
 
 Number.prototype.round = function(dec) {
-	return result = Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+	return Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
 };
 
 Math.range = function(min, num, max) {
@@ -394,7 +447,7 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 			list.splice(list.indexOf(value), 1);
 		}
 	}
-}
+};
 			
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
@@ -436,7 +489,7 @@ var findInArray = function(list, value) {
 var findInObject = function(list, value) {
 	if (isObject(list)) {
 		for (var i in list) {
-			if (list[i] == value) {
+			if (list[i] === value) {
 				return i;
 			}
 		}
@@ -478,14 +531,14 @@ var arrayLastIndexOf = function(list, value) {
 };
 
 var sortObject = function(obj, sortfunc, deep) {
-	var list = [], output = {};
+	var i, list = [], output = {};
 	if (typeof deep === 'undefined') {
 		deep = false;
 	}
 	for (i in obj) {
 		list.push(i);
 	}
-	sortfunc ? list.sort(sortfunc) : list.sort();
+	list.sort(sortfunc ? sortfunc : function(a,b){return b-a;});
 	for (i=0; i<list.length; i++) {
 		if (deep && typeof obj[list[i]] === 'object') {
 			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
@@ -547,32 +600,6 @@ var td = function(list, html, attr) {
 	list.push('<td' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</td>');
 };
 
-var isArray = function(obj) {// Not an object
-    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
-};
-
-var isObject = function(obj) {// Not an array
-    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
-};
-
-var isFunction = function(obj) {
-	return typeof obj === 'function';
-};
-
-var isNumber = function(num) {
-	return typeof num === 'number';
-};
-
-var isString = function(str) {
-	return typeof str === 'string';
-};
-
-// Big shortcut for being inside a try/catch block
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}
-	catch(e) {return false;}
-};
-
 var plural = function(i) {
 	return (i === 1 ? '' : 's');
 };
@@ -584,10 +611,9 @@ var makeTime = function(time, format) {
 
 // Simulates PHP's date function
 Date.prototype.format = function(format) {
-	var returnStr = '';
-	var replace = Date.replaceChars;
-	for (var i = 0; i < format.length; i++) {
-		var curChar = format.charAt(i);
+	var i, curChar, returnStr = '', replace = Date.replaceChars;
+	for (i = 0; i < format.length; i++) {
+		curChar = format.charAt(i);
 		if (replace[curChar]) {
 			returnStr += replace[curChar].call(this);
 		} else {
@@ -608,7 +634,7 @@ Date.replaceChars = {
 	j: function() { return this.getDate(); },
 	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
 	N: function() { return this.getDay() + 1; },
-	S: function() { return (this.getDate() % 10 == 1 && this.getDate() != 11 ? 'st' : (this.getDate() % 10 == 2 && this.getDate() != 12 ? 'nd' : (this.getDate() % 10 == 3 && this.getDate() != 13 ? 'rd' : 'th'))); },
+	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
 	w: function() { return this.getDay(); },
 	z: function() { return "Not Yet Supported"; },
 	// Week
@@ -620,7 +646,7 @@ Date.replaceChars = {
 	n: function() { return this.getMonth() + 1; },
 	t: function() { return "Not Yet Supported"; },
 	// Year
-	L: function() { return (((this.getFullYear()%4==0)&&(this.getFullYear()%100 != 0)) || (this.getFullYear()%400==0)) ? '1' : '0'; },
+	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
 	o: function() { return "Not Supported"; },
 	Y: function() { return this.getFullYear(); },
 	y: function() { return ('' + this.getFullYear()).substr(2); },
@@ -639,7 +665,7 @@ Date.replaceChars = {
 	I: function() { return "Not Supported"; },
 	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
 	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
-	T: function() { var m = this.getMonth(); this.setMonth(0); var result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
+	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
 	Z: function() { return -this.getTimezoneOffset() * 60; },
 	// Full Date/Time
 	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
@@ -655,7 +681,17 @@ var ucwords = function(str) {
 	return (str + '').replace(/^(.)|\s(.)/g, function($1){
 		return $1.toUpperCase();
 	});
-}
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /* Worker Prototype
    ----------------
 new Worker(name, pages, settings)
@@ -752,11 +788,11 @@ if (typeof GM_getValue !== 'undefined') {
 }
 */
 if (isGreasemonkey) {
-	var setItem = function(n,v){GM_setValue(n, v);}// Must make per-APP when we go to multi-app
-	var getItem = function(n){return GM_getValue(n);}// Must make per-APP when we go to multi-app
+	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
+	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
 } else {
-	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);}
-	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);}
+	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);};
+	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);};
 }
 
 function Worker(name,pages,settings) {
@@ -790,6 +826,7 @@ function Worker(name,pages,settings) {
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
+	this._disabled = false;
 }
 
 // Private functions - only override if you know exactly what you're doing
@@ -808,7 +845,9 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		!this._loaded && this._init();
+		if (!this._loaded) {
+			this._init();
+		}
 		this._unflush();
 	}
 	data = this[x.shift()];
@@ -837,10 +876,12 @@ Worker.prototype._init = function() {
 	}
 	WorkerStack.push(this);
 	this._loaded = true;
-	try {
-		this.init && this.init();
-	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+	if (this.init) {
+		try {
+			this.init();
+		}catch(e) {
+			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+		}
 	}
 	WorkerStack.pop();
 };
@@ -859,7 +900,7 @@ Worker.prototype._load = function(type) {
 			v = JSON.parse(v);
 		} catch(e) {
 			debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
-			v = eval(v); // We used to save our data in non-JSON format...
+//			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
 	}
@@ -911,39 +952,43 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	WorkerStack.push(this);
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data, where;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		!this._loaded && this._init();
+		if (!this._loaded) {
+			this._init();
+		}
 		this._unflush();
 	}
 	data = this[x.shift()];
-	try {
-		x.length && (function(a,b){ // Don't allow setting of root data/object/runtime
-			var c = b.shift();
-			if (b.length) {
-				if (typeof a[c] !== 'object') {
-					a[c] = {};
-				}
-				if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
-					delete a[c];
-					return false
-				}
-			} else {
-				if (typeof value === 'undefined') {
-					delete a[c];
-					return false
+	if (x.length) {
+		try {
+			(function(a,b){ // Don't allow setting of root data/object/runtime
+				var c = b.shift();
+				if (b.length) {
+					if (typeof a[c] !== 'object') {
+						a[c] = {};
+					}
+					if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
+						delete a[c];
+						return false;
+					}
 				} else {
-					a[c] = value;
+					if (typeof value === 'undefined') {
+						delete a[c];
+						return false;
+					} else {
+						a[c] = value;
+					}
 				}
-			}
-			return true;
-		})(data,x);
-//		this._save();
-	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+				return true;
+			})(data,x);
+//			this._save();
+		} catch(e) {
+			debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+		}
 	}
 //	WorkerStack.pop();
 	return value;
@@ -966,8 +1011,12 @@ Worker.prototype._setup = function() {
 
 Worker.prototype._unflush = function() {
 	WorkerStack.push(this);
-	!this._loaded && this._init();
-	!this.settings.keep && !this.data && this._load('data');
+	if (!this._loaded) {
+		this._init();
+	}
+	if (!this.settings.keep && !this.data) {
+		this._load('data');
+	}
 	WorkerStack.pop();
 };
 
@@ -975,7 +1024,9 @@ Worker.prototype._unwatch = function(worker) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	isWorker(worker) && deleteElement(worker._watching,this);
+	if (isWorker(worker)) {
+		deleteElement(worker._watching,this);
+	}
 };
 
 Worker.prototype._update = function(type, worker) {
@@ -991,7 +1042,9 @@ Worker.prototype._update = function(type, worker) {
 			this._unflush();
 		}
 		try {
-			this.update && this.update(type, worker);
+			if (this.update) {
+				this.update(type, worker);
+			}
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
@@ -1000,7 +1053,9 @@ Worker.prototype._update = function(type, worker) {
 				this._watching[i]._update(type, this);
 			}
 		}
-		flush && this._flush();
+		if (flush) {
+			this._flush();
+		}
 		this._working.update = false;
 		WorkerStack.pop();
 	}
@@ -1010,7 +1065,9 @@ Worker.prototype._watch = function(worker) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	isWorker(worker) && !findInArray(worker._watching,this) && worker._watching.push(this);
+	if (isWorker(worker) && !findInArray(worker._watching,this)) {
+		worker._watching.push(this);
+	}
 };
 
 Worker.prototype._work = function(state) {
@@ -1025,6 +1082,15 @@ Worker.prototype._work = function(state) {
 	return result;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Army **********
 * Stores data by facebook userid for any worker that wants to use it.
 * Data is stored as -
@@ -1071,7 +1137,7 @@ Army.update = function(type,worker) {
 
 Army.init = function() {
 	$('#content').append('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
-	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
+	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide();});
 	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
@@ -1250,11 +1316,11 @@ Army.dashboard = function(sort, rev) {
 		th(output, this.getSection(i, 'name'));
 		k = this.getSection(i, 'show');
 		if (k && k!== '') {
-			showsection.push('<option value="' + i + '"' + (i == show ? ' selected' : '') + '>' + k + '</option>');
+			showsection.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + k + '</option>');
 		}
 	}
 	for (i in this.infolist) {
-		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] == info ? ' selected' : '') + '>' + i + '</option>');
+		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] === info ? ' selected' : '') + '>' + i + '</option>');
 	}
 	list.push('Limit entries to <select id="golem-army-show">' + showsection.join('') + '</select> ... Info: <select id="golem-army-info">' + showinfo.join('') + '</select>');
 	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
@@ -1264,10 +1330,10 @@ Army.dashboard = function(sort, rev) {
 			var aa = 0, bb = 0;
 			try {
 				aa = Army.getSection(sort, 'sort', a);
-			} catch(e){}
+			} catch(e1){}
 			try {
 				bb = Army.getSection(sort, 'sort', b);
-			} catch(e){}
+			} catch(e2){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
@@ -1290,8 +1356,8 @@ Army.dashboard = function(sort, rev) {
 				} else {
 					td(output, '');
 				}
-			} catch(e) {
-				debug(e.name + ' in Army.dashboard(): ' + i + '("label"): ' + e.message);
+			} catch(e3) {
+				debug(e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
 				td(output, '');
 			}
 		}
@@ -1325,13 +1391,22 @@ Army.dashboard = function(sort, rev) {
 					}).show();
 				}
 			}
-		} catch(e) {
-			debug(e.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e.message);
+		} catch(e4) {
+			debug(e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
 		}
 		return false;
 	});
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Config **********
 * Has everything to do with the config
 */
@@ -1351,7 +1426,7 @@ Config.option = {
 
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $newPanel, i, j, k, $display;
+	var i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
@@ -1469,7 +1544,7 @@ Config.init = function() {
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').live('click', function(){
-		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
+		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();});
 		Config.updateOptions();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
@@ -1488,7 +1563,6 @@ Config.init = function() {
 };
 
 Config.makePanel = function(worker, args) {
-	var i;
 	if (!isWorker(worker)) {
 		if (!WorkerStack.length) {
 			return;
@@ -1632,8 +1706,8 @@ Config.makeOption = function(worker, args) {
 				if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
 					o.select = this.data[o.select];
 				} else {
-					break; // deliberate fallthrough
-				}
+					break;
+				} // deliberate fallthrough
 			case 'array':
 			case 'object':
 				if (isArray(o.select)) {
@@ -1715,12 +1789,24 @@ Config.makeOption = function(worker, args) {
 	} else {
 		$option.append('<br>');
 	}
-	o.advanced && $option.addClass('golem-advanced');
-	o.help && $option.attr('title', o.help);
-	(o.advanced || o.exploit) && $option.css('background','#ffeeee');
-	o.advanced && !this.option.advanced && $option.css('display','none');
-	o.exploit && !this.option.exploit && $option.css('display','none');
-	o.exploit && $option.css('border','1px solid red');
+	if (o.advanced) {
+		$option.addClass('golem-advanced');
+	}
+	if (o.help) {
+		$option.attr('title', o.help);
+	}
+	if (o.advanced || o.exploit) {
+		$option.css('background','#ffeeee');
+	}
+	if (o.advanced && !this.option.advanced) {
+		$option.css('display','none');
+	}
+	if (o.exploit && !this.option.exploit) {
+		$option.css('display','none');
+	}
+	if (o.exploit) {
+		$option.css('border','1px solid red');
+	}
 	return $option;
 };
 
@@ -1728,8 +1814,8 @@ Config.set = function(key, value) {
 	this._unflush();
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
-		$('select.golem_' + key).each(function(i,el){
-			var worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
+		$('select.golem_' + key).each(function(a,el){
+			var i, worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
 			if (isArray(list)) {
 				for (i=0; i<list.length; i++) {
 					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
@@ -1790,8 +1876,8 @@ Config.checkRequire = function(selector) {
 	} else {
 		selector = '.golem-require';
 	}
-	$(selector).each(function(i,el){
-		var i, j, k, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
+	$(selector).each(function(a,el){
+		var i, j, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
 		if ($(el).hasClass('golem-advanced')) {
 			show = Config.option.advanced;
 		}
@@ -1820,9 +1906,13 @@ Config.checkRequire = function(selector) {
 				break;
 			}
 		}
-		show ? $(el).show() : $(el).hide();
+		if (show) {
+			$(el).show();
+		} else {
+			$(el).hide();
+		}
 	});
-	for (i in Workers) {
+	for (var i in Workers) {
 		Workers[i]._save('option');
 	}
 };
@@ -1835,6 +1925,15 @@ Config.getOrder = function() {
 	return unique(order);
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
 */
@@ -1856,7 +1955,7 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var id, $btn, tabs = [], divs = [], active = this.option.active;
+	var i, id, tabs = [], divs = [], active = this.option.active;
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+i;
@@ -1920,7 +2019,7 @@ Dashboard.init = function() {
 			}
 		});
 		$('.golem-time').each(function(i,el){
-			var time = parseInt($(el).attr('name')) - Date.now();
+			var time = parseInt($(el).attr('name'), 10) - Date.now();
 			if (time && time > 0) {
 				$(el).text(makeTimer(time / 1000));
 			} else {
@@ -1971,6 +2070,15 @@ Dashboard.status = function(worker, html) {
 	this._save();
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History:true, Page, Queue, Resources, Land,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.History **********
 * History of anything we want.
 * Dashboard is exp, income and bank.
@@ -1999,7 +2107,7 @@ History.settings = {
 };
 
 History.dashboard = function() {
-	var i, max = 0, list = [], output = [];
+	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
@@ -2007,7 +2115,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
-}
+};
 
 History.update = function(type) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
@@ -2039,7 +2147,7 @@ History.set = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {}
+	this.data[hour] = this.data[hour] || {};
 	this.data[hour][x[0]] = value;
 };
 
@@ -2052,7 +2160,7 @@ History.add = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {}
+	this.data[hour] = this.data[hour] || {};
 	this.data[hour][x[0]] = (this.data[hour][x[0]] || 0) + value;
 };
 
@@ -2081,7 +2189,7 @@ History.math = {
 		var i, num = [];
 		for (i in list) {
 			if (list[i]) {
-				num.push(1/list[i])
+				num.push(1/list[i]);
 			}
 		}
 		return num.length / sum(num);
@@ -2103,12 +2211,12 @@ History.math = {
 	mode: function(list) {
 		var i, j = 0, count = 0, num = {};
 		for (i in list) {
-			num[list[i]] = (num[list[i]] || 0) + 1
+			num[list[i]] = (num[list[i]] || 0) + 1;
 		}
 		num = sortObject(num, function(a,b){return num[b]-num[a];});
 		for (i in num) {
 			if (num[i] === num[0]) {
-				j += parseInt(num[i]);
+				j += parseInt(num[i], 10);
 				count++;
 			}
 		}
@@ -2131,7 +2239,7 @@ History.get = function(what) {
 		hour = x.shift();
 	}
 	if (x.length && (typeof x[x.length-1] === 'number' || !x[x.length-1].regex(/[^0-9]/gi))) {
-		past = Math.range(1, parseInt(x.pop()), 168);
+		past = Math.range(1, parseInt(x.pop(), 10), 168);
 	}
 	if (!x.length) {
 		return data;
@@ -2216,7 +2324,7 @@ History.getTypes = function(what) {
 };
 
 History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), title, numbers;
+	var i, j, count, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers;
 	if (typeof goal === 'number') {
 		goal = [goal];
 	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
@@ -2263,13 +2371,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
 	}
-	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>')
+	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>');
 	for (i=hour-72; i<=hour; i++) {
-		bars = []
+		bars = [];
 		output = [];
 		numbers = [];
-		title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
-		var count = 0;
+		title = (hour - i) + ' hour' + ((hour - i)===1 ? '' : 's') +' ago';
+		count = 0;
 		for (j in value[i]) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
@@ -2284,8 +2392,17 @@ History.makeGraph = function(type, title, iscash, goal) {
 	}
 	th(list, goal_s.join(''));
 	return '<tr>' + list.join('') + '</tr>';
-}
+};
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Page() **********
 * All navigation including reloading
 */
@@ -2451,7 +2568,7 @@ Page.identify = function() {
 	this.clear();
 	var app_body = $('#app'+APPID+'_app_body'), p;
 	$('img', app_body).each(function(i,el){
-		var filename = $(el).attr('src').filepart();
+		var p, filename = $(el).attr('src').filepart();
 		for (p in Page.pageNames) {
 			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
 				Page.page = p;
@@ -2560,9 +2677,13 @@ Page.click = function(el) {
 	} else {
 		this.clear();
 	}
-	var e = document.createEvent("MouseEvents");
+	var element = $(el).get(0), e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
-	isGreasemonkey ? $(el).get(0).wrappedJSObject.dispatchEvent(e) : $(el).get(0).dispatchEvent(e);
+	if (element.wrappedJSObject) {
+		element.wrappedJSObject.dispatchEvent(e);
+	} else {
+		element.dispatchEvent(e);
+	}
 	this.lastclick = el;
 	this.when = Date.now();
 	return true;
@@ -2573,6 +2694,14 @@ Page.clear = function() {
 	this.retry = 0;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
@@ -2656,7 +2785,7 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	var i, worker;
+	var i, $btn, worker;
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
@@ -2698,12 +2827,12 @@ Queue.init = function() {
 };
 
 Queue.clearCurrent = function() {
-	var current = this.get('runtime.current', null)
+	var current = this.get('runtime.current', null);
 	if (current) {
 		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
 	}
-}
+};
 
 Queue.update = function(type) {
 	var i, $worker;
@@ -2788,7 +2917,9 @@ Queue.run = function() {
 				release = true;
 			} else if (!result) {// false or QUEUE_FINISH
 				this.runtime.current = null;
-				worker.id && $('#'+worker.id+' > h3').css('font-weight', 'normal');
+				if (worker.id) {
+					$('#'+worker.id+' > h3').css('font-weight', 'normal');
+				}
 				debug('End '+worker.name);
 			}
 		} else {
@@ -2805,12 +2936,16 @@ Queue.run = function() {
 	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 		if (current) {
 			debug('Interrupt ' + current.name + ' with ' + next.name);
-			current.id && $('#'+current.id+' > h3').css('font-weight', 'normal');
+			if (current.id) {
+				$('#'+current.id+' > h3').css('font-weight', 'normal');
+			}
 		} else {
 			debug('Trigger ' + next.name);
 		}
 		this.runtime.current = next.name;
-		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
+		if (next.id) {
+			$('#'+next.id+' > h3').css('font-weight', 'bold');
+		}
 	}
 //	debug('End Queue');
 	for (i in Workers) {
@@ -2959,6 +3094,15 @@ Resources.set = function(what,value) {
 	return this._set(what,value);
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
@@ -3015,7 +3159,6 @@ Settings.update = function(type) {
 			this.oldwhich = this.option.which;
 		}
 		switch (this.option.action) {
-			default:
 			case 'None':
 				break;
 			case 'Load':
@@ -3034,6 +3177,8 @@ Settings.update = function(type) {
 				this.option.which = '- default -';
 				this.option.name = '- default -';
 				break;
+			default:
+				break;
 		}
 		$('select:golem(settings,action)').val('None');
 		this.option.action = 'None';
@@ -3045,13 +3190,13 @@ Settings.update = function(type) {
 };
 
 Settings.set = function(what, value) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
 		return this._set(what, value);
 	}
 	this._unflush();
 	this.data[what] = {};
-	for (var i in Workers) {
+	for (i in Workers) {
 		if (Workers[i] !== this && Workers[i].option) {
 			this.data[what][i] = $.extend(true, {}, Workers[i].option);
 		}
@@ -3076,6 +3221,15 @@ Settings.get = function(what) {
 	return;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Title **********
 * Changes the window title to user defined data.
 * String may contain {stamina} or {Player:stamina} using the worker name (default Player)
@@ -3145,7 +3299,9 @@ Title.update = function(type) {
 				}
 			}
 		}
-		!this.old && (this.old = document.title);
+		if (!this.old) {
+			this.old = document.title;
+		}
 		document.title = output;
 	} else if (this.old) {
 		document.title = this.old;
@@ -3153,6 +3309,15 @@ Title.update = function(type) {
 	}
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey, GM_xmlhttpRequest,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
 */
@@ -3241,6 +3406,15 @@ Update.work = function(state) {
 		});
 	}
 };
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Window **********
 * Deals with multiple Windows being open at the same time...
 *
@@ -3292,7 +3466,7 @@ Window.init = function() {
 		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
 			this.global = data;
 		}
-	} catch(e){};
+	} catch(e){}
 //	debug('Adding tab "' + this.global['_id'] + '"');
 	(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data['list'] = this.data['list'] || {};
@@ -3313,23 +3487,27 @@ Window.init = function() {
 			Window.data['active'] = null;
 			Window.active = false;
 		} else if (!Window.data['active'] || typeof Window.data['list'][Window.data['active']] === 'undefined' || Window.data['list'][Window.data['active']] < Date.now() - Window.timeout) {
-			$(this).html('Enabled').toggleClass('red green')
+			$(this).html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
-			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			if (Config.get('option.display') === 'block') {
+				$('#golem_config').parent().show();
+			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
-			!Window.warning && (function(){
-				if ($('#golem_window span').length) {
-					if ($('#golem_window span').css('color').indexOf('255') === -1) {
-						$('#golem_window span').animate({'color':'red'},200,arguments.callee);
-					} else {
-						$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+			if (!Window.warning) {
+				(function(){
+					if ($('#golem_window span').length) {
+						if ($('#golem_window span').css('color').indexOf('255') === -1) {
+							$('#golem_window span').animate({'color':'red'},200,arguments.callee);
+						} else {
+							$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+						}
 					}
-				}
-			})();
+				})();
+			}
 			window.clearTimeout(Window.warning);
 			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
@@ -3360,9 +3538,11 @@ Window.update = function(type,worker) {
 	i = length(this.data['list']);
 	if (i === 1) {
 		if (!this.active) {
-			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
+			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
-			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			if (Config.get('option.display') === 'block') {
+				$('#golem_config').parent().show();
+			}
 			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			this.data['active'] = this.global['_id'];
 			this.active = true;
@@ -3610,6 +3790,15 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 	return worth;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle:true, Generals, LevelUp, Monster, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
 */
@@ -3813,8 +4002,8 @@ Battle.parse = function(change) {
 		}
 		myrank = Player.get('rank');
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);;
-			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (!Battle.option.bp === 'Never' && myrank - rank <= 5)) {
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);
+			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
 			data[uid] = data[uid] || {};
@@ -3845,7 +4034,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, weight, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
@@ -3858,7 +4047,7 @@ Battle.update = function(type) {
 	}
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (!this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -3954,7 +4143,7 @@ Battle.update = function(type) {
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));
-}
+};
 
 /***** Battle.work() *****
 1. If we don't have a target, not enough health, or not enough stamina, return false
@@ -7256,6 +7445,15 @@ News.parse = function(change) {
 	return true;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
+	Bank, Battle, Generals, LevelUp, Player:true,
+	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
@@ -7294,7 +7492,7 @@ Player.init = function() {
 };
 
 Player.parse = function(change) {
-	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
+	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.energy		= tmp[0] || 0;
@@ -7372,7 +7570,7 @@ Player.update = function(type) {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
-			step = Divisor(Player.data['max'+types[j]])
+			step = Divisor(Player.data['max'+types[j]]);
 			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
@@ -7385,11 +7583,11 @@ Player.update = function(type) {
 };
 
 Player.get = function(what) {
-	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
+	var data = this.data, when;
 	switch(what) {
 		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
 //		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
-		case 'cash_timer':		var when = new Date();
+		case 'cash_timer':		when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':            return $('#app'+APPID+'_energy_time_value').text().parseTimer();
@@ -7399,7 +7597,7 @@ Player.get = function(what) {
 		case 'stamina_timer':           return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'pause':			return isWorker(Window) && !Window.active ? '(Disabled) ' : isWorker(Queue) && Queue.get('option.pause') ? '(Paused) ' : '';
-                case 'bank':                    return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
+		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		default: return this._get(what);
 	}
 };
@@ -7486,6 +7684,15 @@ Potions.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Quest **********
 * Completes quests with a choice of general
 */
@@ -7602,7 +7809,7 @@ Quest.parse = function(change) {
 		quest[name] = {};
 		quest[name].area = area;
 		quest[name].type = type;
-		quest[name].id = parseInt($('input[name="quest"]', el).val());
+		quest[name].id = parseInt($('input[name="quest"]', el).val(), 10);
 		if (typeof land === 'number') {
 			quest[name].land = land;
 		}
@@ -7672,7 +7879,9 @@ Quest.update = function(type,worker) {
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
 			if (quests[i].units) {
-				own = 0, need = 0, noCanDo = false;
+				own = 0;
+				need = 0;
+				noCanDo = false;
 				for (unit in quests[i].units) {
 					own = Town.get([unit, 'own'], 0);
 					need = quests[i].units[unit];
@@ -7690,11 +7899,11 @@ Quest.update = function(type,worker) {
 					if (quests[i].type !== 2 && typeof quests[i].land === 'number' && quests[i].land >= best_land && (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]))) && (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && (quests[i].unique && !length(Player.data[quests[i].item]))))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
-					}
+					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (typeof quests[i].influence !== 'undefined' && quests[i].influence < 100 && (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
-					}
+					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;
@@ -7811,7 +8020,7 @@ Quest.work = function(state) {
 		Page.reload();
 	}
 	if (this.option.unique && this.data[best].unique && !Alchemy.get(['ingredients', this.data[i].itemimg])) {
-		Alchemy.set(['ingredients', this.data[i].itemimg], 1)
+		Alchemy.set(['ingredients', this.data[i].itemimg], 1);
 	}
 	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
 		if (this.data[best].land < 6) {	// There are still lands to explore
@@ -8740,6 +8949,15 @@ Town.dashboard = function() {
     $('#golem-dashboard-Town').html(left+right);
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Upgrade **********
 * Spends upgrade points
 */

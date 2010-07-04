@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Quest **********
 * Completes quests with a choice of general
 */
@@ -114,7 +123,7 @@ Quest.parse = function(change) {
 		quest[name] = {};
 		quest[name].area = area;
 		quest[name].type = type;
-		quest[name].id = parseInt($('input[name="quest"]', el).val());
+		quest[name].id = parseInt($('input[name="quest"]', el).val(), 10);
 		if (typeof land === 'number') {
 			quest[name].land = land;
 		}
@@ -184,7 +193,9 @@ Quest.update = function(type,worker) {
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
 			if (quests[i].units) {
-				own = 0, need = 0, noCanDo = false;
+				own = 0;
+				need = 0;
+				noCanDo = false;
 				for (unit in quests[i].units) {
 					own = Town.get([unit, 'own'], 0);
 					need = quests[i].units[unit];
@@ -202,11 +213,11 @@ Quest.update = function(type,worker) {
 					if (quests[i].type !== 2 && typeof quests[i].land === 'number' && quests[i].land >= best_land && (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]))) && (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && (quests[i].unique && !length(Player.data[quests[i].item]))))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
-					}
+					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (typeof quests[i].influence !== 'undefined' && quests[i].influence < 100 && (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
-					}
+					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;
@@ -323,7 +334,7 @@ Quest.work = function(state) {
 		Page.reload();
 	}
 	if (this.option.unique && this.data[best].unique && !Alchemy.get(['ingredients', this.data[i].itemimg])) {
-		Alchemy.set(['ingredients', this.data[i].itemimg], 1)
+		Alchemy.set(['ingredients', this.data[i].itemimg], 1);
 	}
 	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
 		if (this.data[best].land < 6) {	// There are still lands to explore

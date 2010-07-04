@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History:true, Page, Queue, Resources, Land,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.History **********
 * History of anything we want.
 * Dashboard is exp, income and bank.
@@ -26,7 +35,7 @@ History.settings = {
 };
 
 History.dashboard = function() {
-	var i, max = 0, list = [], output = [];
+	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
 	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
 	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
@@ -34,7 +43,7 @@ History.dashboard = function() {
 	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
-}
+};
 
 History.update = function(type) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
@@ -66,7 +75,7 @@ History.set = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {}
+	this.data[hour] = this.data[hour] || {};
 	this.data[hour][x[0]] = value;
 };
 
@@ -79,7 +88,7 @@ History.add = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {}
+	this.data[hour] = this.data[hour] || {};
 	this.data[hour][x[0]] = (this.data[hour][x[0]] || 0) + value;
 };
 
@@ -108,7 +117,7 @@ History.math = {
 		var i, num = [];
 		for (i in list) {
 			if (list[i]) {
-				num.push(1/list[i])
+				num.push(1/list[i]);
 			}
 		}
 		return num.length / sum(num);
@@ -130,12 +139,12 @@ History.math = {
 	mode: function(list) {
 		var i, j = 0, count = 0, num = {};
 		for (i in list) {
-			num[list[i]] = (num[list[i]] || 0) + 1
+			num[list[i]] = (num[list[i]] || 0) + 1;
 		}
 		num = sortObject(num, function(a,b){return num[b]-num[a];});
 		for (i in num) {
 			if (num[i] === num[0]) {
-				j += parseInt(num[i]);
+				j += parseInt(num[i], 10);
 				count++;
 			}
 		}
@@ -158,7 +167,7 @@ History.get = function(what) {
 		hour = x.shift();
 	}
 	if (x.length && (typeof x[x.length-1] === 'number' || !x[x.length-1].regex(/[^0-9]/gi))) {
-		past = Math.range(1, parseInt(x.pop()), 168);
+		past = Math.range(1, parseInt(x.pop(), 10), 168);
 	}
 	if (!x.length) {
 		return data;
@@ -243,7 +252,7 @@ History.getTypes = function(what) {
 };
 
 History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), title, numbers;
+	var i, j, count, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers;
 	if (typeof goal === 'number') {
 		goal = [goal];
 	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
@@ -290,13 +299,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
 	}
-	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>')
+	th(list, '<div>' + max_s + '</div><div>' + title + '</div><div>' + min_s + '</div>');
 	for (i=hour-72; i<=hour; i++) {
-		bars = []
+		bars = [];
 		output = [];
 		numbers = [];
-		title = (hour - i) + ' hour' + ((hour - i)==1 ? '' : 's') +' ago';
-		var count = 0;
+		title = (hour - i) + ' hour' + ((hour - i)===1 ? '' : 's') +' ago';
+		count = 0;
 		for (j in value[i]) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
@@ -311,5 +320,5 @@ History.makeGraph = function(type, title, iscash, goal) {
 	}
 	th(list, goal_s.join(''));
 	return '<tr>' + list.join('') + '</tr>';
-}
+};
 

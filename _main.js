@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	GM_log, GM_setValue, GM_getValue, localStorage, console, window, unsafeWindow:true, revision, version, do_css, jQuery,
+	Workers, WorkerStack, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 // User changeable
 var show_debug = true;
 
@@ -30,12 +39,11 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
-		}
-
+			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+		};
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -96,7 +104,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			head.appendChild(b);
 			log('Loading jQuery & jQueryUI');
 			(function jQwait() {
-				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafewindow.jQuery);
+				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
 				if (typeof window.jQuery === 'undefined') {
 					window.setTimeout(jQwait, 10000);
 				} else {

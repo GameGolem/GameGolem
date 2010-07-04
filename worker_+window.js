@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Window **********
 * Deals with multiple Windows being open at the same time...
 *
@@ -49,7 +58,7 @@ Window.init = function() {
 		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
 			this.global = data;
 		}
-	} catch(e){};
+	} catch(e){}
 //	debug('Adding tab "' + this.global['_id'] + '"');
 	(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data['list'] = this.data['list'] || {};
@@ -70,23 +79,27 @@ Window.init = function() {
 			Window.data['active'] = null;
 			Window.active = false;
 		} else if (!Window.data['active'] || typeof Window.data['list'][Window.data['active']] === 'undefined' || Window.data['list'][Window.data['active']] < Date.now() - Window.timeout) {
-			$(this).html('Enabled').toggleClass('red green')
+			$(this).html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
-			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			if (Config.get('option.display') === 'block') {
+				$('#golem_config').parent().show();
+			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Window.data['active'] = Window.global['_id'];
 			Window.active = true;
 		} else {// Not able to go active
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
-			!Window.warning && (function(){
-				if ($('#golem_window span').length) {
-					if ($('#golem_window span').css('color').indexOf('255') === -1) {
-						$('#golem_window span').animate({'color':'red'},200,arguments.callee);
-					} else {
-						$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+			if (!Window.warning) {
+				(function(){
+					if ($('#golem_window span').length) {
+						if ($('#golem_window span').css('color').indexOf('255') === -1) {
+							$('#golem_window span').animate({'color':'red'},200,arguments.callee);
+						} else {
+							$('#golem_window span').animate({'color':'black'},200,arguments.callee);
+						}
 					}
-				}
-			})();
+				})();
+			}
 			window.clearTimeout(Window.warning);
 			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
@@ -117,9 +130,11 @@ Window.update = function(type,worker) {
 	i = length(this.data['list']);
 	if (i === 1) {
 		if (!this.active) {
-			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green')
+			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
-			Config.get('option.display') === 'block' && $('#golem_config').parent().show();
+			if (Config.get('option.display') === 'block') {
+				$('#golem_config').parent().show();
+			}
 			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
 			this.data['active'] = this.global['_id'];
 			this.active = true;

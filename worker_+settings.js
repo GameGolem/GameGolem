@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
 */
@@ -54,7 +63,6 @@ Settings.update = function(type) {
 			this.oldwhich = this.option.which;
 		}
 		switch (this.option.action) {
-			default:
 			case 'None':
 				break;
 			case 'Load':
@@ -73,6 +81,8 @@ Settings.update = function(type) {
 				this.option.which = '- default -';
 				this.option.name = '- default -';
 				break;
+			default:
+				break;
 		}
 		$('select:golem(settings,action)').val('None');
 		this.option.action = 'None';
@@ -84,13 +94,13 @@ Settings.update = function(type) {
 };
 
 Settings.set = function(what, value) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
 	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
 		return this._set(what, value);
 	}
 	this._unflush();
 	this.data[what] = {};
-	for (var i in Workers) {
+	for (i in Workers) {
 		if (Workers[i] !== this && Workers[i].option) {
 			this.data[what][i] = $.extend(true, {}, Workers[i].option);
 		}

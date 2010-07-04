@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Config **********
 * Has everything to do with the config
 */
@@ -17,7 +26,7 @@ Config.option = {
 
 Config.init = function() {
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var $btn, $newPanel, i, j, k, $display;
+	var i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
@@ -135,7 +144,7 @@ Config.init = function() {
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').live('click', function(){
-		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();})
+		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();});
 		Config.updateOptions();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
@@ -154,7 +163,6 @@ Config.init = function() {
 };
 
 Config.makePanel = function(worker, args) {
-	var i;
 	if (!isWorker(worker)) {
 		if (!WorkerStack.length) {
 			return;
@@ -298,8 +306,8 @@ Config.makeOption = function(worker, args) {
 				if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
 					o.select = this.data[o.select];
 				} else {
-					break; // deliberate fallthrough
-				}
+					break;
+				} // deliberate fallthrough
 			case 'array':
 			case 'object':
 				if (isArray(o.select)) {
@@ -381,12 +389,24 @@ Config.makeOption = function(worker, args) {
 	} else {
 		$option.append('<br>');
 	}
-	o.advanced && $option.addClass('golem-advanced');
-	o.help && $option.attr('title', o.help);
-	(o.advanced || o.exploit) && $option.css('background','#ffeeee');
-	o.advanced && !this.option.advanced && $option.css('display','none');
-	o.exploit && !this.option.exploit && $option.css('display','none');
-	o.exploit && $option.css('border','1px solid red');
+	if (o.advanced) {
+		$option.addClass('golem-advanced');
+	}
+	if (o.help) {
+		$option.attr('title', o.help);
+	}
+	if (o.advanced || o.exploit) {
+		$option.css('background','#ffeeee');
+	}
+	if (o.advanced && !this.option.advanced) {
+		$option.css('display','none');
+	}
+	if (o.exploit && !this.option.exploit) {
+		$option.css('display','none');
+	}
+	if (o.exploit) {
+		$option.css('border','1px solid red');
+	}
 	return $option;
 };
 
@@ -394,8 +414,8 @@ Config.set = function(key, value) {
 	this._unflush();
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
-		$('select.golem_' + key).each(function(i,el){
-			var worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
+		$('select.golem_' + key).each(function(a,el){
+			var i, worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
 			if (isArray(list)) {
 				for (i=0; i<list.length; i++) {
 					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
@@ -456,8 +476,8 @@ Config.checkRequire = function(selector) {
 	} else {
 		selector = '.golem-require';
 	}
-	$(selector).each(function(i,el){
-		var i, j, k, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
+	$(selector).each(function(a,el){
+		var i, j, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
 		if ($(el).hasClass('golem-advanced')) {
 			show = Config.option.advanced;
 		}
@@ -486,9 +506,13 @@ Config.checkRequire = function(selector) {
 				break;
 			}
 		}
-		show ? $(el).show() : $(el).hide();
+		if (show) {
+			$(el).show();
+		} else {
+			$(el).hide();
+		}
 	});
-	for (i in Workers) {
+	for (var i in Workers) {
 		Workers[i]._save('option');
 	}
 };

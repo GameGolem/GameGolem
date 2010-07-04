@@ -1,3 +1,11 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
@@ -81,7 +89,7 @@ Queue.lasttimer = 0;
 Queue.lastpause = false;
 
 Queue.init = function() {
-	var i, worker;
+	var i, $btn, worker;
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
@@ -123,12 +131,12 @@ Queue.init = function() {
 };
 
 Queue.clearCurrent = function() {
-	var current = this.get('runtime.current', null)
+	var current = this.get('runtime.current', null);
 	if (current) {
 		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
 	}
-}
+};
 
 Queue.update = function(type) {
 	var i, $worker;
@@ -213,7 +221,9 @@ Queue.run = function() {
 				release = true;
 			} else if (!result) {// false or QUEUE_FINISH
 				this.runtime.current = null;
-				worker.id && $('#'+worker.id+' > h3').css('font-weight', 'normal');
+				if (worker.id) {
+					$('#'+worker.id+' > h3').css('font-weight', 'normal');
+				}
 				debug('End '+worker.name);
 			}
 		} else {
@@ -230,12 +240,16 @@ Queue.run = function() {
 	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 		if (current) {
 			debug('Interrupt ' + current.name + ' with ' + next.name);
-			current.id && $('#'+current.id+' > h3').css('font-weight', 'normal');
+			if (current.id) {
+				$('#'+current.id+' > h3').css('font-weight', 'normal');
+			}
 		} else {
 			debug('Trigger ' + next.name);
 		}
 		this.runtime.current = next.name;
-		next.id && $('#'+next.id+' > h3').css('font-weight', 'bold');
+		if (next.id) {
+			$('#'+next.id+' > h3').css('font-weight', 'bold');
+		}
 	}
 //	debug('End Queue');
 	for (i in Workers) {

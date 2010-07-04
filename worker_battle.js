@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle:true, Generals, LevelUp, Monster, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
 */
@@ -201,8 +210,8 @@ Battle.parse = function(change) {
 		}
 		myrank = Player.get('rank');
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);;
-			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (!Battle.option.bp === 'Never' && myrank - rank <= 5)) {
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);
+			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
 			data[uid] = data[uid] || {};
@@ -233,7 +242,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, weight, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
 
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
@@ -246,7 +255,7 @@ Battle.update = function(type) {
 	}
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (!this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -342,7 +351,7 @@ Battle.update = function(type) {
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));
-}
+};
 
 /***** Battle.work() *****
 1. If we don't have a target, not enough health, or not enough stamina, return false

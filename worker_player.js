@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
+	Bank, Battle, Generals, LevelUp, Player:true,
+	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Player **********
 * Gets all current stats we can see
 */
@@ -36,7 +45,7 @@ Player.init = function() {
 };
 
 Player.parse = function(change) {
-	var data = this.data, keep, stats, tmp, energy_used = 0, stamina_used = 0;
+	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.energy		= tmp[0] || 0;
@@ -114,7 +123,7 @@ Player.update = function(type) {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
-			step = Divisor(Player.data['max'+types[j]])
+			step = Divisor(Player.data['max'+types[j]]);
 			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
@@ -127,11 +136,11 @@ Player.update = function(type) {
 };
 
 Player.get = function(what) {
-	var i, j = 0, low = Number.POSITIVE_INFINITY, high = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, data = this.data, now = Date.now();
+	var data = this.data, when;
 	switch(what) {
 		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
 //		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
-		case 'cash_timer':		var when = new Date();
+		case 'cash_timer':		when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':            return $('#app'+APPID+'_energy_time_value').text().parseTimer();
@@ -141,7 +150,7 @@ Player.get = function(what) {
 		case 'stamina_timer':           return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'pause':			return isWorker(Window) && !Window.active ? '(Disabled) ' : isWorker(Queue) && Queue.get('option.pause') ? '(Paused) ' : '';
-                case 'bank':                    return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
+		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		default: return this._get(what);
 	}
 };

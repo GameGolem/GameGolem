@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
 */
@@ -19,7 +28,7 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var id, $btn, tabs = [], divs = [], active = this.option.active;
+	var i, id, tabs = [], divs = [], active = this.option.active;
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
 			id = 'golem-dashboard-'+i;
@@ -83,7 +92,7 @@ Dashboard.init = function() {
 			}
 		});
 		$('.golem-time').each(function(i,el){
-			var time = parseInt($(el).attr('name')) - Date.now();
+			var time = parseInt($(el).attr('name'), 10) - Date.now();
 			if (time && time > 0) {
 				$(el).text(makeTimer(time / 1000));
 			} else {

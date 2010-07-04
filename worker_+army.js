@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Army **********
 * Stores data by facebook userid for any worker that wants to use it.
 * Data is stored as -
@@ -44,7 +53,7 @@ Army.update = function(type,worker) {
 
 Army.init = function() {
 	$('#content').append('<div id="golem-army-tooltip" class="golem-tooltip"><a>&nbsp;x&nbsp;</a><p></p></div>');
-	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide()});
+	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide();});
 	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
@@ -223,11 +232,11 @@ Army.dashboard = function(sort, rev) {
 		th(output, this.getSection(i, 'name'));
 		k = this.getSection(i, 'show');
 		if (k && k!== '') {
-			showsection.push('<option value="' + i + '"' + (i == show ? ' selected' : '') + '>' + k + '</option>');
+			showsection.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + k + '</option>');
 		}
 	}
 	for (i in this.infolist) {
-		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] == info ? ' selected' : '') + '>' + i + '</option>');
+		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] === info ? ' selected' : '') + '>' + i + '</option>');
 	}
 	list.push('Limit entries to <select id="golem-army-show">' + showsection.join('') + '</select> ... Info: <select id="golem-army-info">' + showinfo.join('') + '</select>');
 	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
@@ -237,10 +246,10 @@ Army.dashboard = function(sort, rev) {
 			var aa = 0, bb = 0;
 			try {
 				aa = Army.getSection(sort, 'sort', a);
-			} catch(e){}
+			} catch(e1){}
 			try {
 				bb = Army.getSection(sort, 'sort', b);
-			} catch(e){}
+			} catch(e2){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
@@ -263,8 +272,8 @@ Army.dashboard = function(sort, rev) {
 				} else {
 					td(output, '');
 				}
-			} catch(e) {
-				debug(e.name + ' in Army.dashboard(): ' + i + '("label"): ' + e.message);
+			} catch(e3) {
+				debug(e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
 				td(output, '');
 			}
 		}
@@ -298,8 +307,8 @@ Army.dashboard = function(sort, rev) {
 					}).show();
 				}
 			}
-		} catch(e) {
-			debug(e.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e.message);
+		} catch(e4) {
+			debug(e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
 		}
 		return false;
 	});
