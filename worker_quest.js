@@ -253,14 +253,14 @@ Quest.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-	if (this.option.monster && Monster.option.fortify_active) {
+	if (this.option.monster && Monster.option.defend_active) {
 		Monster._unflush();
 		for (i in Monster.data) {
 			for (j in Monster.data[i]) {
 				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && (typeof Monster.data[i][j].mclass === 'undefined' || Monster.data[i][j].mclass < 2) && ((typeof Monster.data[i][j].attackbonus !== 'undefined' && Monster.data[i][j].attackbonus < Monster.option.fortify && Monster.data[i][j].defense < 100))) {
 					return QUEUE_FINISH;
 				}
-				if (Monster.option.fortify_active && typeof Monster.data[i][j].mclass !== 'undefined' && Monster.data[i][j].mclass > 1 && typeof Monster.data[i][j].secondary !== 'undefined' && Monster.data[i][j].secondary < 100){
+				if (Monster.option.defend_active && typeof Monster.data[i][j].mclass !== 'undefined' && Monster.data[i][j].mclass > 1 && typeof Monster.data[i][j].secondary !== 'undefined' && Monster.data[i][j].secondary < 100){
 					return QUEUE_FINISH;
 				}
 			}

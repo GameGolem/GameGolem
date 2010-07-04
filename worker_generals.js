@@ -187,81 +187,74 @@ Generals.best = function(type) {
 	this._unflush();
 	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
 	switch(type.toLowerCase()) {
-		case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
-		case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
-		case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
-		case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
-		case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
-		case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
-		case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
-		case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
-		case 'bank':		return 'Aeris';
-                case 'war':             return Idle.option.general;
-		case 'invade':
-			for (i in this.data) {
-				if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
-					best = i;
-				}
+	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
+	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
+	case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
+	case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
+	case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
+	case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
+	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
+	case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
+	case 'bank':		return 'Aeris';
+			case 'war':             return Idle.option.general;
+	case 'invade':
+		for (i in this.data) {
+			if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'duel':
-			for (i in this.data) {
-				if (!best || (this.data[i].duel && this.data[i].duel.att > this.data[best].duel.att) || (this.data[i].duel && this.data[i].duel.att === this.data[best].duel.att && best !== current)) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'duel':
+		for (i in this.data) {
+			if (!best || (this.data[i].duel && this.data[i].duel.att > this.data[best].duel.att) || (this.data[i].duel && this.data[i].duel.att === this.data[best].duel.att && best !== current)) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'raid-invade':
-			for (i in this.data) {
-				if (!best || (this.data[i].invade && (this.data[i].invade.att) > (this.data[best].invade.att))) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'raid-invade':
+		for (i in this.data) {
+			if (!best || (this.data[i].invade && (this.data[i].invade.att) > (this.data[best].invade.att))) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'raid-duel':
-			for (i in this.data) {
-				if (!best || (this.data[i].duel && (this.data[i].duel.att) > (this.data[best].duel.att))) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'raid-duel':
+		for (i in this.data) {
+			if (!best || (this.data[i].duel && (this.data[i].duel.att) > (this.data[best].duel.att))) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'monster':
-			for (i in this.data) {
-				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'monster_attack': 
+		for (i in this.data) {
+			if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'attack':
-			for (i in this.data) {
-				if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'dispel':
+	case 'monster_defend': 
+		for (i in this.data) {
+			if (!best || (this.data[i].monster && this.data[i].monster.def > this.data[best].monster.def)) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'dispel':
-		case 'fortify':
-			for (i in this.data) {
-				if (!best || (this.data[i].monster && this.data[i].monster.def > this.data[best].monster.def)) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'defend':
+		for (i in this.data) {
+			if (!best || (this.data[i].duel && (this.data[i].duel.def > this.data[best].duel.def) || (this.data[i].duel.def === this.data[best].duel.def && best !== current))) {
+				best = i;
 			}
-			return (best || 'any');
-		case 'defend':
-			for (i in this.data) {
-				if (!best || (this.data[i].duel && (this.data[i].duel.def > this.data[best].duel.def) || (this.data[i].duel.def === this.data[best].duel.def && best !== current))) {
-					best = i;
-				}
+		}
+		return (best || 'any');
+	case 'under level 4':
+		for (i in this.data){
+			if (this.data[i].priority == 1){
+				return i;
 			}
-			return (best || 'any');
-		case 'under level 4':
-			for (i in this.data){
-				if (this.data[i].priority == 1){
-					return i;
-				}
-			}
-		default:
-			return 'any';
+		}
+	default:
+		return 'any';
 	}
 	for (i in this.data) {
 		value = this.data[i].skills.regex(rx);
