@@ -34,13 +34,14 @@ Generals.parse = function(change) {
 	if (Page.page === 'heroes_generals') {
 		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '';
 		
-		$('div.generalContainerBox div:contains("Item Bonuses")').nextAll().each(function(i){
-			var temp = $('img', this).attr('title');
+		$('div[style*="model_items.jpg"] img[title]').each(function(i){
+			var temp = $(this).attr('title');
 			if (temp && temp.indexOf("[not owned]") == -1){
 				if (weapon_bonus.length) {
 					weapon_bonus += ', ';
 				}
 				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+				//debug("Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 			}
 		});
 		var current = $('div.general_name_div3').first().text().trim();

@@ -124,8 +124,6 @@ if [ "$build_release" = "Yes" ]; then
     if [ -r "$js_compiler" ]; then
       cat _head.js > _release.user.js
       java -jar "$js_compiler" --js _normal.user.js >> _release.user.js
-      cat _head.js > _release_chrome.user.js
-      java -jar "$js_compiler" --js _normal_chrome.user.js >> _release_chrome.user.js
     else
       echo "Error: missing js compiler."
     fi

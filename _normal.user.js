@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 656;
+var revision = 658;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4581,13 +4581,14 @@ Generals.parse = function(change) {
 	if (Page.page === 'heroes_generals') {
 		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '';
 		
-		$('div.generalContainerBox div:contains("Item Bonuses")').nextAll().each(function(i){
-			var temp = $('img', this).attr('title');
+		$('div[style*="model_items.jpg"] img[title]').each(function(i){
+			var temp = $(this).attr('title');
 			if (temp && temp.indexOf("[not owned]") == -1){
 				if (weapon_bonus.length) {
 					weapon_bonus += ', ';
 				}
 				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+				//debug("Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 			}
 		});
 		var current = $('div.general_name_div3').first().text().trim();
