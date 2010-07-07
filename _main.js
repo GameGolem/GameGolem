@@ -3,7 +3,7 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	GM_log, GM_setValue, GM_getValue, localStorage, console, window, unsafeWindow:true, revision, version, do_css, jQuery,
-	Workers, WorkerStack, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	Workers, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -13,6 +13,7 @@ var show_debug = true;
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
+var first_timer = window.setTimeout(function(){return;},0);
 
 // Automatically filled
 var userID = 0;
@@ -39,11 +40,11 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
 		};
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'r'+revision : 'v'+version) + '] [' + (new Date()).toLocaleTimeString() + '] ' + (WorkerStack && WorkerStack.length ? WorkerStack[WorkerStack.length-1].name + ': ' : '') + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -65,7 +66,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			}
 			if (!userID || typeof userID !== 'number' || userID === 0) {
 				log('ERROR: No Facebook UserID!!!');
-				window.location.href = window.location.href; // Force reload without retrying
+				window.setTimeout(Page.reload, 5000); // Force reload without retrying
 				return;
 			}
 			if (APP === 'reqs.php') { // Let's get the next gift we can...
@@ -75,7 +76,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 			} catch(e) {
 				log('ERROR: Bad Page Load!!!');
-				Page.reload();
+				window.setTimeout(Page.reload, 5000);
 				return;
 			}
 			do_css();

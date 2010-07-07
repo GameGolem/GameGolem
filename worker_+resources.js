@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Resources **********
 * Store and report Resourcess
 
@@ -38,7 +47,7 @@ Resources.runtime = {
 };
 
 Resources.display = function() {
-	var type, worker, require, display = [];
+	var type, group, worker, require, display = [];
 	if (!length(this.runtime.types)) {
 		return 'Discovering Resources...';
 	}
@@ -78,11 +87,11 @@ Resources.init = function() {
 Add a type of Resources
 */
 Resources.addType = function(type) {
-	WorkerStack.push(this);
+	this._push();
 	this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
 	this.set(['option','types',type], this.get(['option','types',type], true));
 	Config.makePanel();
-	WorkerStack.pop();
+	this._pop();
 };
 
 /***** Resources.useType() *****
@@ -90,10 +99,10 @@ Register to use a type of resource
 Actually use a type of resource (must register with no amount first)
 */
 Resources.useType = function(type, amount) {
-	if (!WorkerStack.length) {
+	if (!Worker.stack.length) {
 		return;
 	}
-	var worker = WorkerStack[WorkerStack.length-1];
+	var worker = Worker.stack[Worker.stack.length-1];
 	if (typeof amount === 'undefined') {
 //		this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
 //		this.set(['option','types',type], this.get(['option','types',type], true));

@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -28,7 +28,6 @@ Page.last = null; // Need to have an "auto retry" after a period
 Page.lastclick = null;
 Page.when = null;
 Page.retry = 0; // Number of times we tried
-Page.checking = true;
 Page.node_trigger = null;
 Page.loading = false;
 
@@ -109,8 +108,26 @@ Page.init = function() {
 };
 
 Page.parse_all = function() {
-	WorkerStack.push(this);
+	this._push();
 	Page.identify();
+	/* - Remove all CA click handlers...
+	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
+	.each(function(i,el){
+		$(el).removeAttr('onclick');
+	})
+	.click(function(event){
+		var i, url = $(this).attr('href');
+		url = url.substr(url.lastIndexOf('/')+1);
+		for (i in Page.pageNames) {
+			if (Page.pageNames[i].url.indexOf(url) === 0) {
+				event.preventDefault();
+				event.stopImmediatePropagation()
+				Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : null);
+				return false;
+			}
+		}
+	});
+	*/
 	var i, list = [];
 	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0))) {
@@ -126,16 +143,13 @@ Page.parse_all = function() {
 	for (i in Workers) {
 		Workers[i]._flush();
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Page.work = function(state) {
-	if (!this.checking) {
-		return false;
-	}
 	var i, l, list, found = null;
 	for (i in Workers) {
-		if (Workers[i].pages) {
+		if (isString(Workers[i].pages)) {
 			list = Workers[i].pages.split(' ');
 			for (l=0; l<list.length; l++) {
 				if (list[l] !== '*' && this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
@@ -148,18 +162,17 @@ Page.work = function(state) {
 			break;
 		}
 	}
-	if (!state) {
-		if (found) {
-			return true;
+	if (found) {
+		if (!state) {
+			return QUEUE_CONTINUE;
 		}
-		this.checking = false;
-		return false;
+		if (!this.to(found)) {
+			this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
+			return QUEUE_CONTINUE;
+		}
 	}
-	if (found && !this.to(found)) {
-		this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
-		return true;
-	}
-	return false;
+	this.work = null;// Only check when first loading, once we're running we never work() again :-P
+	return QUEUE_FINISH;
 };
 
 Page.identify = function() {
@@ -195,14 +208,14 @@ Page.identify = function() {
 };
 
 Page.to = function(page, args, force) {
-	if (Queue.option.pause) {
+	if (!force && Queue.option.pause) {
 		debug('Trying to load page when paused...');
 		return true;
 	}
 	if (page === this.page && (force || typeof args === 'undefined')) {
 		return true;
 	}
-//	WorkerStack.push(this);
+//	this._push();
 	if (!args) {
 		args = '';
 	}
@@ -223,7 +236,7 @@ Page.to = function(page, args, force) {
 			this.ajaxload();
 		}               
 	}
-//	WorkerStack.pop();
+//	this._pop();
 	return false;
 };
 
@@ -241,20 +254,19 @@ Page.ajaxload = function() {
 			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 				Page.loading = false;
 				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-				if (data.indexOf(APP) === -1) {// Should be loads of links to the right page within the source
-					arguments.callee('');// save duplicating code, just call us again with no data
-				} else {
+				data = data.replace(/(<script[^>]*>.*<\/script[^>]*>)/gi, '');
+				if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
 					$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
-					$('#app'+APPID+'_globalContainer').replaceWith(data);
+					$('#app'+APPID+'_globalContainer').replaceWith(data.valueOf());
+					return;// Stop here as we're done
 				}
+			}
+			if (++Page.retry < Page.option.retry) {
+				debug('Page not loaded correctly, retry last action.');
+				window.setTimeout(Page.ajaxload, 0);
 			} else {
-				if (++Page.retry < Page.option.retry) {
-					debug('Page not loaded correctly, retry last action.');
-					Page.ajaxload();
-				} else {
-					debug('Page not loaded correctly, reloading.');
-					Page.reload();
-				}
+				debug('Page not loaded correctly, reloading.');
+				window.setTimeout(Page.reload, 0);
 			}
 		}
 	});

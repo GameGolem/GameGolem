@@ -84,24 +84,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._remind(secs)			- Calls this._update('reminder') after a specified delay
 */
 var Workers = {};// 'name':worker
-var WorkerStack = []; // Use "WorkerStack.length && WorkerStack[WorkerStack.length-1].name" for current worker name...
-/*
-if (typeof GM_getValue !== 'undefined') {
-	var setItem = function(n,v){GM_setValue(n, v);}
-	var getItem = function(n){return GM_getValue(n);}
-} else {
-	if (typeof localStorage !== 'undefined') {
-		var setItem = function(n,v){localStorage.setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return localStorage.getItem('golem.' + APP + n);}
-	} else if (typeof window.localStorage !== 'undefined') {
-		var setItem = function(n,v){window.localStorage.setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return window.localStorage.getItem('golem.' + APP + n);}
-	} else if (typeof globalStorage !== 'undefined') {
-		var setItem = function(n,v){globalStorage[location.hostname].setItem('golem.' + APP + n, v);}
-		var getItem = function(n){return globalStorage[location.hostname].getItem('golem.' + APP + n);}
-	}
-}
-*/
+
 if (isGreasemonkey) {
 	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
 	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
@@ -144,14 +127,18 @@ function Worker(name,pages,settings) {
 	this._disabled = false;
 }
 
+// Static data
+Worker.stack = [];// array of active workers, last on the end
+Worker.current = '';
+
 // Private functions - only override if you know exactly what you're doing
 Worker.prototype._flush = function() {
-	WorkerStack.push(this);
+	this._push();
 	this._save();
 	if (!this.settings.keep) {
 		delete this.data;
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
@@ -169,18 +156,17 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	try {
 		return (function(a,b){
 			if (b.length) {
-				var c = b.shift();
-				return arguments.callee(a[c],b);
+				return arguments.callee(a[b.shift()],b);
 			} else {
-				return typeof a !== 'undefined' ? a : def;
+				return typeof a !== 'undefined' ? (a === null ? null : a.valueOf()) : def;
 			}
 		})(data,x);
 	} catch(e) {
-//		WorkerStack.push(this);
+//		this._push();
 		if (typeof def === 'undefined') {
 			debug(e.name + ' in ' + this.name + '.get('+what.toString()+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message);
 		}
-//		WorkerStack.pop();
+//		this._pop();
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -189,7 +175,7 @@ Worker.prototype._init = function() {
 	if (this._loaded) {
 		return;
 	}
-	WorkerStack.push(this);
+	this._push();
 	this._loaded = true;
 	if (this.init) {
 		try {
@@ -198,7 +184,7 @@ Worker.prototype._init = function() {
 			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Worker.prototype._load = function(type) {
@@ -208,7 +194,7 @@ Worker.prototype._load = function(type) {
 		this._load('runtime');
 		return;
 	}
-	WorkerStack.push(this);
+	this._push();
 	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
 	if (v) {
 		try {
@@ -219,19 +205,29 @@ Worker.prototype._load = function(type) {
 		}
 		this[type] = $.extend(true, {}, this[type], v);
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Worker.prototype._parse = function(change) {
-	WorkerStack.push(this);
+	this._push();
 	var result = false;
 	try {
 		result = this.parse && this.parse(change);
 	}catch(e) {
 		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 	}
-	WorkerStack.pop();
+	this._pop();
 	return result;
+};
+
+Worker.prototype._pop = function() {
+	Worker.stack.pop();
+	Worker.current = Worker.stack.length ? Worker.stack[Worker.stack.length - 1].name : '';
+};
+
+Worker.prototype._push = function() {
+	Worker.stack.push(this);
+	Worker.current = this.name;
 };
 
 Worker.prototype._revive = function(seconds) {
@@ -253,20 +249,20 @@ Worker.prototype._save = function(type) {
 	}
 	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
-		WorkerStack.push(this);
+		this._push();
 		this._working[type] = true;
 		this._changed = Date.now();
 		this._update(type, null);
 		setItem(n, v);
 		this._working[type] = false;
-		WorkerStack.pop();
+		this._pop();
 		return true;
 	}
 	return false;
 };
 
 Worker.prototype._set = function(what, value) {
-//	WorkerStack.push(this);
+//	this._push();
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
 	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
 		x.unshift('data');
@@ -305,12 +301,12 @@ Worker.prototype._set = function(what, value) {
 			debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
 		}
 	}
-//	WorkerStack.pop();
+//	this._pop();
 	return value;
 };
 
 Worker.prototype._setup = function() {
-	WorkerStack.push(this);
+	this._push();
 	if ((!this.settings.gm_only || isGreasemonkey) && (this.settings.system || !length(this.defaults) || this.defaults[APP])) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
@@ -321,18 +317,18 @@ Worker.prototype._setup = function() {
 	} else { // Get us out of the list!!!
 		delete Workers[this.name];
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Worker.prototype._unflush = function() {
-	WorkerStack.push(this);
+	this._push();
 	if (!this._loaded) {
 		this._init();
 	}
 	if (!this.settings.keep && !this.data) {
 		this._load('data');
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Worker.prototype._unwatch = function(worker) {
@@ -346,7 +342,7 @@ Worker.prototype._unwatch = function(worker) {
 
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
-		WorkerStack.push(this);
+		this._push();
 		var i, flush = false;
 		this._working.update = true;
 		if (typeof worker === 'undefined') {
@@ -372,7 +368,7 @@ Worker.prototype._update = function(type, worker) {
 			this._flush();
 		}
 		this._working.update = false;
-		WorkerStack.pop();
+		this._pop();
 	}
 };
 
@@ -386,14 +382,14 @@ Worker.prototype._watch = function(worker) {
 };
 
 Worker.prototype._work = function(state) {
-	WorkerStack.push(this);
+	this._push();
 	var result = false;
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
 		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
-	WorkerStack.pop();
+	this._pop();
 	return result;
 };
 

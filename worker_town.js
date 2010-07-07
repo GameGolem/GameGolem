@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Bank, Battle, Generals, LevelUp, Player, Quest,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
@@ -90,9 +99,15 @@ Town.parse = function(change) {
         var unit = Town.data, page = Page.page.substr(5);
         $('.eq_buy_row,.eq_buy_row2').each(function(a,el){
             // Fix for broken magic page!!
-            !$('div.eq_buy_costs_int', el).length && $('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
-            !$('div.eq_buy_stats_int', el).length && $('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
-            !$('div.eq_buy_txt_int', el).length && $('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
+            if (!$('div.eq_buy_costs_int', el).length) {
+				$('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
+			}
+            if (!$('div.eq_buy_stats_int', el).length) {
+				$('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
+			}
+            if (!$('div.eq_buy_txt_int', el).length) {
+				$('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
+			}
             var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/[^0-9]/g, ''), match, maxlen = 0;
             unit[name] = unit[name] || {};
             unit[name].page = page;
@@ -174,10 +189,10 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-    var i, u, best_buy = null,best_sell = null, keep_sets = [], buy = 0, sell = 0, data = this.data, quests, army = 0, max = 0, max_buy = 0, max_sell = 0;
-    var list_buy = [], soldiers_att = [], weapon_att = [], equipment_att = [], magic_att = [],own_soldiers_att, own_weapon_att, own_equipment_att,own_magic_att;
-    var list_sell = [], soldiers_def = [], weapon_def = [], equipment_def = [], magic_def = [],own_soldiers_def,own_weapon_def,own_equipment_def,own_magic_def;
-    var max_cost = {
+    var i, u, best_buy = null,best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = 0, max = 0, max_buy = 0, max_sell = 0, rtn = 0,
+    list_buy = [], soldiers_att = [], weapon_att = [], equipment_att = [], magic_att = [],own_soldiers_att, own_weapon_att, own_equipment_att,own_magic_att,
+    list_sell = [], soldiers_def = [], weapon_def = [], equipment_def = [], magic_def = [],own_soldiers_def,own_weapon_def,own_equipment_def,own_magic_def,
+	max_cost = {
         '$10k':Math.pow(10,4),
         '$100k':Math.pow(10,5),
         '$1m':Math.pow(10,6),
@@ -187,7 +202,6 @@ Town.update = function(type) {
         '$10b':Math.pow(10,10),
         '$100b':Math.pow(10,11)
     };
-    var rtn = 0;
     army = Player.get('army');
     switch (this.option.number){
         case 'Army':
@@ -233,11 +247,9 @@ Town.update = function(type) {
             });
             best_buy = list_buy[0][0];
             buy = list_buy[0][1];
-            delete list_buy;
         }
     }
     if (!best_buy && max_buy){
-        delete list_buy;
         own_soldiers_att = own_weapon_att = own_equipment_att = own_magic_att = own_soldiers_def = own_weapon_def = own_equipment_def = own_magic_def = 0;
         for (u in data){
             data[u].best = 0;
@@ -652,15 +664,11 @@ Town.update = function(type) {
 
     }
     if (this.option.sell !== 'None' && max_sell){
-        delete list_sell;
-
         for(u in data){
             if (data[u].sell && ((data[u].own > data[u].req || !data[u].req) && data[u].own - data[u].best > 0) && data[u].own){
                 list_sell.push([u,(data[u].req)?Math.min(data[u].own - data[u].req,data[u].own - data[u].best):data[u].own - data[u].best,data[u].tot_att + data[u].tot_def]);
             }
         }
-
-
         if (list_sell.length){
             list_sell.sort(function(a,b){
                 return a[2] - b[2];
@@ -703,7 +711,6 @@ Town.update = function(type) {
 };
 
 Town.work = function(state) {
-    var qty;
     if (state && this.runtime.best_sell !== null){
         if (!state || !this.sell(this.runtime.best_sell, this.runtime.sell)) {
             Dashboard.status(this, 'Want to sell ' + this.runtime.sell + ' x ' + this.runtime.best_sell + ' for $' + shortNumber(this.runtime.cost) + '<br> (Available Cash: $' + shortNumber(Bank.worth()) + ' Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)');
@@ -813,7 +820,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-    var left, right, generals = Generals.get(), duel = {}, best;
+    var left, right, generals = Generals.get(), best;
     best = Generals.best('duel');
     left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
     +	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')

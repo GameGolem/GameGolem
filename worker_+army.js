@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -77,7 +77,7 @@ Army.set = function(what, value) {
 	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
 		section = x.shift();
 	} else {
-		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = Worker.current;
 	}
 	// userID next
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
@@ -108,7 +108,7 @@ Army.get = function(what, def) {
 	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
 		section = x.shift();
 	} else {
-		section = WorkerStack.length ? WorkerStack[WorkerStack.length-1].name : null;
+		section = Worker.current;
 	}
 	// No userid, so return a list of userid's used by this section
 	if (section && x.length === 0) {

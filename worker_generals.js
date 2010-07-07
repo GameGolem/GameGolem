@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals:true, Idle, LevelUp, Player, Town,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Generals **********
 * Updates the list of Generals
 * Finds best General for other classes
@@ -32,11 +41,11 @@ Generals.parse = function(change) {
 		this.data[Player.get('general')].level++; // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 	}
 	if (Page.page === 'heroes_generals') {
-		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '';
-		
+		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '', current = $('div.general_name_div3').first().text().trim();
+
 		$('div[style*="model_items.jpg"] img[title]').each(function(i){
 			var temp = $(this).attr('title');
-			if (temp && temp.indexOf("[not owned]") == -1){
+			if (temp && temp.indexOf("[not owned]") === -1){
 				if (weapon_bonus.length) {
 					weapon_bonus += ', ';
 				}
@@ -44,22 +53,22 @@ Generals.parse = function(change) {
 				//debug("Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 			}
 		});
-		var current = $('div.general_name_div3').first().text().trim();
 		if (data[current]){
-                    data[current].weaponbonus = weapon_bonus;
-                }
-		
+			data[current].weaponbonus = weapon_bonus;
+		}
+
 		if ($elements.length < length(data)) {
 			debug('Different number of generals, have '+$elements.length+', want '+length(data));
 	//		Page.to('heroes_generals', ''); // Force reload
 			return false;
 		}
 		$elements.each(function(i,el){
-			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i));
-			var progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i));
+			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i), 10), progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i), 10);
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-				if (!data[name] || data[name].level !== level || data[name].progress !== progress) {
+//				if (!data[name] || data[name].level !== level || data[name].progress !== progress) {
 					data[name] = data[name] || {};
+					data[name].id		= $('input[name=item]', el).val();
+					data[name].type		= $('input[name=itype]', el).val();
 					data[name].img		= $('.imgButton', el).attr('src').filepart();
 					data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/([0-9]+)/);
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
@@ -71,7 +80,7 @@ Generals.parse = function(change) {
 							delete data[name].priority;
 						}
 					}
-				}
+//				}
 			}
 		});
 	}
@@ -79,7 +88,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, iatt = 0, idef = 0, datt = 0, ddef = 0, listpush = function(list,i){list.push(i);};
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo;
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -99,7 +108,7 @@ Generals.update = function(type, worker) {
 		return (a[1] - b[1]);
 	});
 	for (i in priority_list){
-		data[priority_list[i][0]].priority = parseInt(i)+1;
+		data[priority_list[i][0]].priority = parseInt(i, 10)+1;
 	}
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
@@ -109,7 +118,7 @@ Generals.update = function(type, worker) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
-			var skillcombo = data[i].skills + (data[i].weaponbonus || '');
+			skillcombo = data[i].skills + (data[i].weaponbonus || '');
 			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]*\.?[0-9]*) Attack/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
 			attack = Player.get('attack') + attack_bonus;
@@ -125,8 +134,8 @@ Generals.update = function(type, worker) {
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
 			monster_att = (skillcombo.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
 			monster_multiplier = 1+ (skillcombo.regex(/([-+]?[0-9]+)% Critical/i) || 0)/100;
-			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0)) : 0);
+			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0), 10) : 0);
 //			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
@@ -175,18 +184,14 @@ Generals.to = function(name) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
-	if (!Page.to('heroes_generals')) {
-		return false;
-	}
 	debug('Changing to General '+name);
-	Page.click('input[src$="' + this.data[name].img + '"]');
-	this.data[name].used = (this.data[name].used || 0) + 1;
+	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? '?item='+this.data[name].id+'&itype='+this.data[name].type : '')
 	return false;
 };
 
 Generals.best = function(type) {
 	this._unflush();
-	var rx = '', best = null, bestval = 0, i, value, list = [], current = Player.get('general');
+	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general');
 	switch(type.toLowerCase()) {
 	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
 	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
@@ -250,10 +255,11 @@ Generals.best = function(type) {
 		return (best || 'any');
 	case 'under level 4':
 		for (i in this.data){
-			if (this.data[i].priority == 1){
+			if (this.data[i].priority === 1){
 				return i;
 			}
 		}
+		return 'any';
 	default:
 		return 'any';
 	}
@@ -293,13 +299,13 @@ Generals.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		Generals.order.sort(function(a,b) {
 			var aa, bb, type, x;
-			if (sort == 1) {
+			if (sort === 1) {
 				aa = a;
 				bb = b;
-			} else if (sort == 2) {
+			} else if (sort === 2) {
 				aa = (Generals.data[a].level || 0);
 				bb = (Generals.data[b].level || 0);
-			} else if (sort == 3) {
+			} else if (sort === 3) {
 				aa = (Generals.data[a].priority || 999999);
 				bb = (Generals.data[b].priority || 999999);
 			} else {
@@ -329,24 +335,24 @@ Generals.dashboard = function(sort, rev) {
 		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + Generals.data[i].skills + ', Weapon Bonus: ' + (typeof Generals.data[i].weaponbonus !== 'unknown' ? (Generals.data[i].weaponbonus ? Generals.data[i].weaponbonus : 'none') : 'unknown') + '">');
 		output.push(i);
 		output.push('<div'+(isNumber(Generals.data[i].progress) ? ' title="'+Generals.data[i].progress+'%"' : '')+'>'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
-		output.push(Generals.data[i].priority ? ((Generals.data[i].priority != 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority != this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
-		output.push(Generals.data[i].invade ? (iatt == Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt == Generals.data[i].invade.att ? '</strong>' : '') : '?')
-		output.push(Generals.data[i].invade ? (idef == Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef == Generals.data[i].invade.def ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].duel ? (datt == Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt == Generals.data[i].duel.att ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].duel ? (ddef == Generals.data[i].duel.def ? '<strong>' : '') + addCommas(Generals.data[i].duel.def) + (ddef == Generals.data[i].duel.def ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].monster ? (matt == Generals.data[i].monster.att ? '<strong>' : '') + addCommas(Generals.data[i].monster.att) + (matt == Generals.data[i].monster.att ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].monster ? (mdef == Generals.data[i].monster.def ? '<strong>' : '') + addCommas(Generals.data[i].monster.def) + (mdef == Generals.data[i].monster.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].priority ? ((Generals.data[i].priority !== 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
+		output.push(Generals.data[i].invade ? (iatt === Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt === Generals.data[i].invade.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].invade ? (idef === Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef === Generals.data[i].invade.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (datt === Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt === Generals.data[i].duel.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (ddef === Generals.data[i].duel.def ? '<strong>' : '') + addCommas(Generals.data[i].duel.def) + (ddef === Generals.data[i].duel.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (matt === Generals.data[i].monster.att ? '<strong>' : '') + addCommas(Generals.data[i].monster.att) + (matt === Generals.data[i].monster.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (mdef === Generals.data[i].monster.def ? '<strong>' : '') + addCommas(Generals.data[i].monster.def) + (mdef === Generals.data[i].monster.def ? '</strong>' : '') : '?');
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
 	$('a.golem-moveup').live('click', function(event){
-		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		var i, gdown = null, gup = null, x = parseInt($(this).attr('name'), 10);
 		Generals._unflush();
-		for(var i in Generals.data){
-			if (Generals.data[i].priority == x){
+		for(i in Generals.data){
+			if (Generals.data[i].priority === x){
 				gup = i;
 			}
-			if (Generals.data[i].priority == (x-1)){
+			if (Generals.data[i].priority === (x-1)){
 				gdown = i;
 			}
 		}
@@ -359,13 +365,13 @@ Generals.dashboard = function(sort, rev) {
 		return false;
 	});
 	$('a.golem-movedown').live('click', function(event){
-		var gdown = null, gup = null, x = parseInt($(this).attr('name'));
+		var i, gdown = null, gup = null, x = parseInt($(this).attr('name'), 10);
 		Generals._unflush();
-		for(var i in Generals.data){
-			if (Generals.data[i].priority == x){
+		for(i in Generals.data){
+			if (Generals.data[i].priority === x){
 				gdown = i;
 			}
-			if (Generals.data[i].priority == (x+1)){
+			if (Generals.data[i].priority === (x+1)) {
 				gup = i;
 			}
 		}
@@ -382,5 +388,5 @@ Generals.dashboard = function(sort, rev) {
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
-}
+};
 

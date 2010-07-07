@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.News **********
 * Aggregate the news feed
 */
@@ -21,17 +30,17 @@ You lost the war, taking 10 damage and losing $0. You have lost 4 War Points!
 */
 News.parse = function(change) {
 	if (change) {
-		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, order, last_time = this.runtime.last;
+		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.runtime.last;
 		News.runtime.last = Date.now();
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0;
+			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
 			if (txt.regex(/You were killed/i)) {
 				deaths++;
 			} else {
 				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
-				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0}
-				var result = null;
+				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0};
+				result = null;
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
@@ -61,7 +70,7 @@ News.parse = function(change) {
 							History.add([time, 'battle+win'], 1);
 							break;
 						case 'loss':
-							History.add([time, 'battle+loss'], -1)
+							History.add([time, 'battle+loss'], -1);
 							break;
 					}
 				}

@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -210,12 +210,18 @@ Quest.update = function(type,worker) {
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (quests[i].type !== 2 && typeof quests[i].land === 'number' && quests[i].land >= best_land && (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg]))) && (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && (quests[i].unique && !length(Player.data[quests[i].item]))))) {
+					if (quests[i].type !== 2
+					&& typeof quests[i].land === 'number'
+					&& quests[i].land >= best_land
+					&& (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg])))
+					&& (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && quests[i].energy < quests[best_influence].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (typeof quests[i].influence !== 'undefined' && quests[i].influence < 100 && (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+					if (typeof quests[i].influence !== 'undefined'
+					&& quests[i].influence < 100
+					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest

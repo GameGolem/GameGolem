@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Bank, Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Land **********
 * Auto-buys property
 */
@@ -73,8 +82,12 @@ Land.parse = function(change) {
 		var name = $('img', el).attr('alt'), tmp;
 		if (!change) {
 			// Fix for broken land page!!
-			!$('.land_buy_image_int', el).length && $('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
-			!$('.land_buy_info_int', el).length && $('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
+			if (!$('.land_buy_image_int', el).length) {
+				$('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
+			}
+			if (!$('.land_buy_info_int', el).length) {
+				$('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
+			}
 			Land.data[name] = {};
 			Land.data[name].income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 			Land.data[name].max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
@@ -92,7 +105,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function() {
-	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0;
+	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
 	
 	if (this.option.land_exp) {
 		$('input:golem(land,sell)').attr('checked',true);
@@ -129,8 +142,8 @@ Land.update = function() {
 			//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
 			//	It's different for each land because each land has a different "time to payoff the increased cost".
 			
-			var cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
-			var time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
+			cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
+			time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
 			time_limit = time_limit * 1.5;		// fudge factor to take into account that most of the time we won't be buying the same property twice in a row, so we will have a bit more time to recoup the extra costs.
 //			if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
 			if ((this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.
@@ -150,7 +163,7 @@ Land.update = function() {
 		Dashboard.status(this);
 	}
 	this.runtime.best = best;
-}
+};
 
 Land.work = function(state) {
 	if (!this.option.enabled || !this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {

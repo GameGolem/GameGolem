@@ -1,12 +1,17 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Gift() **********
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
 */
 var Gift = new Worker('Gift');
-
-Gift.settings = {
-	keep:true
-};
 
 Gift.defaults['castle_age'] = {
 	pages:'* index army_invite army_gifts gift_accept'
@@ -25,6 +30,7 @@ Gift.option = {
 Gift.runtime = {
 	work:false,
 	gift_waiting:false,
+	gift_delay:0,
 	gift_sent:0,
 	sent_id:null,
 	gift:{
@@ -50,13 +56,13 @@ Gift.init = function() {
 	delete this.data.uid;
 	delete this.data.lastgift;
 	if (length(this.data.gifts)) {
-		var gift_ids = [];
-		for (var j in this.data.gifts) {
-			gift_ids.push(j);
+		var i, gift_ids = [], random_gift_id;
+		for (i in this.data.gifts) {
+			gift_ids.push(i);
 		}
-		for (var i in this.data.todo) {
+		for (i in this.data.todo) {
 			if (!(/[^0-9]/g).test(i)) {	// If we have an old entry
-				var random_gift_id = Math.floor(Math.random() * gift_ids.length);
+				random_gift_id = Math.floor(Math.random() * gift_ids.length);
 				if (!this.data.todo[gift_ids[random_gift_id]]) {
 					this.data.todo[gift_ids[random_gift_id]] = [];
 				}
@@ -71,7 +77,7 @@ Gift.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var gifts = this.data.gifts, todo = this.data.todo, received = this.data.received, sender_id;
+	var j, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// We need to get the image of the gift from the index page.
@@ -82,14 +88,14 @@ Gift.parse = function(change) {
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
 			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
 			this.runtime.gift_waiting = true;
-			return true
+			return true;
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
 			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
-			return true
+			return true;
 		} else {
 //			debug('No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
@@ -139,7 +145,7 @@ Gift.parse = function(change) {
 				delete todo[this.runtime.sent_id];
 			}
 			this.runtime.sent_id = null;
-			if (todo.length == 0) {
+			if (!todo.length) {
 				this.runtime.work = false;
 			}
 		}
@@ -165,18 +171,18 @@ Gift.parse = function(change) {
 	return false;
 };
 
+Gift.update = function(type, worker) {
+	this.runtime.work = length(this.data.todo) > 0;
+};
+
 Gift.work = function(state) {
-	if (length(todo) && (this.runtime.gift_delay < Date.now())) {
-		this.runtime.work = true;
-		return QUEUE_CONTINUE;
+	if (!this.runtime.gift_waiting && (!this.runtime.work || this.runtime.gift_delay > Date.now())) {
+		return QUEUE_FINISH;
 	}
 	if (!state) {
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
 			return QUEUE_CONTINUE;
 		}
-		return QUEUE_FINISH;
-	}
-	if (!this.runtime.gift_waiting && !this.runtime.work) {
 		return QUEUE_FINISH;
 	}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
@@ -199,7 +205,7 @@ Gift.work = function(state) {
 		}
 	}
 	
-	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id;
+	var i, j, k, todo = this.data.todo, received = this.data.received, gift_ids = [], random_gift_id, temptype;
 
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
@@ -212,8 +218,8 @@ Gift.work = function(state) {
 		Page.to('army_gifts');
 		// Fill out our todo list with gifts to send, or not.
 		for (i = received.length - 1; i >= 0; i--){
-			var temptype = this.option.type;
-			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type != 'None') {
+			temptype = this.option.type;
+			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type !== 'None') {
 				debug(received[i].id+' was not found in our sendable gift list.');
 				temptype = 'Random';
 			}
@@ -241,7 +247,7 @@ Gift.work = function(state) {
 					todo[received[i].id].push(received[i].sender_id);
 					this.runtime.work = true;
 					break;
-				case 'None':
+				case 'None':// deliberate fallthrough
 				default:
 					this.runtime.work = false;	// Since we aren't returning gifts, we don't need to do any more work.
 					break;
@@ -284,7 +290,7 @@ Gift.work = function(state) {
 //			if (!Page.to('army_gifts')){
 			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has be removed from the game
 				for (j in this.data.gifts){
-					if (this.data.gifts[j].slot == 1){
+					if (this.data.gifts[j].slot === 1){
 						if (typeof todo[j] === 'undefined'){
 							todo[j] = todo[i];
 						} else {
@@ -330,7 +336,7 @@ Gift.work = function(state) {
 								k++;
 							}
 						}
-						if (k == 0) {
+						if (k === 0) {
 							delete todo[i];
 							return QUEUE_CONTINUE;
 						}

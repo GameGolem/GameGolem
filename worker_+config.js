@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -164,11 +164,11 @@ Config.init = function() {
 
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
-		if (!WorkerStack.length) {
+		if (!Worker.stack.length) {
 			return;
 		}
 		args = worker;
-		worker = WorkerStack[WorkerStack.length-1];
+		worker = Worker.stack[Worker.stack.length-1];
 	}
 	if (!args) {
 		if (!worker.display) {
@@ -195,24 +195,25 @@ Config.clearPanel = function(selector) {
 	if (isWorker(selector)) {
 		selector = '#'+selector.id+' > div';
 	} else if (typeof selector === 'undefined' || !selector) {
-		if (!WorkerStack.length) {
+		if (!Worker.current) {
 			return;
 		}
-		selector = '#'+WorkerStack[WorkerStack.length-1].id+' > div';
+		selector = '#'+Workers[Worker.current].id+' > div';
 	}
 	$(selector).empty();
 };
 
 Config.addOption = function(selector, args) {
 	this._init(); // Make sure we're properly loaded first!
-	var worker = WorkerStack[WorkerStack.length-1];
+	var worker;
 	if (isWorker(selector)) {
 		worker = selector;
 		selector = '#'+selector.id+' > div';
 	} else if (typeof args === 'undefined' || !args) {
-		if (!WorkerStack.length) {
+		if (!Worker.current) {
 			return;
 		}
+		worker = Workers[Worker.current];
 		args = selector;
 		selector = '#'+worker.id+' > div';
 	}
@@ -238,7 +239,7 @@ Config.makeOptions = function(worker, args) {
 			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		debug(WorkerStack[WorkerStack.length-1].name+' is trying to add an unknown type of option');
+		debug(Worker.current+' is trying to add an unknown type of option');
 	}
 	return $([]);
 };

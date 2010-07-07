@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -13,7 +13,7 @@
 var Dashboard = new Worker('Dashboard');
 
 Dashboard.settings = {
-	keep:true
+//	keep:true
 };
 
 Dashboard.defaults = {
@@ -82,11 +82,19 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	window.setInterval(function(){
+	this._revive(1);// update() once every second to update any timers
+};
+
+Dashboard.parse = function(change) {
+	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
+};
+
+Dashboard.update = function(type, worker) {
+	if (type === 'reminder') {
 		$('.golem-timer').each(function(i,el){
 			var time = $(el).text().parseTimer();
 			if (time && time > 0) {
-				$(el).text(makeTimer($(el).text().parseTimer() - 1));
+				$(el).text(makeTimer(time - 1));
 			} else {
 				$(el).removeClass('golem-timer').text('now?');
 			}
@@ -99,14 +107,7 @@ Dashboard.init = function() {
 				$(el).removeClass('golem-time').text('now?');
 			}
 		});
-	},1000);
-};
-
-Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
-};
-
-Dashboard.update = function(type, worker) {
+	}
 	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
@@ -124,6 +125,7 @@ Dashboard.update = function(type, worker) {
 };
 
 Dashboard.dashboard = function() {
+	this._unflush();
 	var i, list = [];
 	for (i in Workers) {
 		if (this.data[i]) {
@@ -135,11 +137,12 @@ Dashboard.dashboard = function() {
 };
 
 Dashboard.status = function(worker, html) {
+	this._unflush();
 	if (html) {
 		this.data[worker.name] = html;
 	} else {
 		delete this.data[worker.name];
 	}
-	this._save();
+	this._flush();
 };
 

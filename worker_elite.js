@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.Elite() **********
 * Build your elite army
 */
@@ -45,7 +54,9 @@ Elite.init = function() { // Convert old elite guard list
 			Army.set(['_info', i, 'name'], this.data[i].name);
 			Army.set(['_info', i, 'level'], this.data[i].level);
 			Army.set(['Army', i], true); // Set for people in our actual army
-			this.data[i].elite && Army.set([i, 'elite'], this.data[i].elite);
+			if (this.data[i].elite) {
+				Army.set([i, 'elite'], this.data[i].elite);
+			}
 		}
 	}
 	this.data = {}; // Will set to null at some later date
@@ -78,17 +89,17 @@ Elite.init = function() { // Convert old elite guard list
 					? Date.now()
 					: 0)
 				+ ('elite' in data[uid]['Elite']
-					? Date.now() - parseInt(data[uid]['Elite']['elite'])
+					? Date.now() - parseInt(data[uid]['Elite']['elite'], 10)
 					: 0)
 				+ ('full' in data[uid]['Elite']
-					? Date.now() - parseInt(data[uid]['Elite']['full'])
+					? Date.now() - parseInt(data[uid]['Elite']['full'], 10)
 					: 0));
 		},
 		'click':function(data,uid){
 			if (Army.get(['Elite',uid,'prefer'], false)) {
-				Army.set(['Elite',uid,'prefer'])
+				Army.set(['Elite',uid,'prefer']);
 			} else {
-				Army.set(['Elite',uid,'prefer'], true)
+				Army.set(['Elite',uid,'prefer'], true);
 			}
 			return true;
 		}
@@ -178,7 +189,6 @@ Elite.update = function(type,worker) {
 };
 
 Elite.work = function(state) {
-	var i, j, found = null;
 	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
 		if (state) {
 			debug('Filling army list');

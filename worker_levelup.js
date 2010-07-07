@@ -1,3 +1,12 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
 * 1. Switches generals to specified general
@@ -107,7 +116,7 @@ LevelUp.parse = function(change) {
 		});
 	}
 	return true;
-}
+};
 
 LevelUp.update = function(type,worker) {
 	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder();
@@ -179,10 +188,10 @@ LevelUp.update = function(type,worker) {
 	if (!this.option.enabled || this.option.general === 'any') {
 		Generals.set('runtime.disabled', false);
 	}
-}
+};
 
 LevelUp.work = function(state) {
-	var i, runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
+	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
 	if (runtime.running && this.option.general !== 'any') {
 		if (this.option.income && Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
@@ -217,14 +226,14 @@ LevelUp.work = function(state) {
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-                        runtime.level = Player.get('level');
-		} else if (runtime.running && runtime.level == Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
+			runtime.level = Player.get('level');
+		} else if (runtime.running && runtime.level === Player.get('level')) { //We've gotten less exp per stamina than we hoped and can't reach the next level.
 			Generals.set('runtime.disabled', false);
 			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
 			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
 			Battle.set('option.monster', runtime.battle_monster);
 			runtime.running = false;
-                        runtime.level = Player.get('level');
+			runtime.level = Player.get('level');
 		}
 		return QUEUE_FINISH;
 	}
@@ -284,11 +293,11 @@ LevelUp.get = function(what,def) {
 		case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
 		case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed') - this.runtime.exp_possible) / (this.get('exp_average') || 10)));
 		case 'exp_average':
-			if (this.option.algorithm == 'Per Hour') {
+			if (this.option.algorithm === 'Per Hour') {
 				return History.get('exp.average.change');
-			} else {
-				return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
 			}
+			return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
 		default: return this._get(what,def);
 	}
-}
+};
+

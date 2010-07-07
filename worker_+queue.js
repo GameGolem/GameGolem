@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, WorkerStack, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -33,6 +33,7 @@ Queue.option = {
 	delay: 5,
 	clickdelay: 5,
 	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	enabled: {},// Automatically filled with everything anyway...
 	start_stamina: 0,
 	stamina: 0,
 	start_energy: 0,
@@ -119,9 +120,9 @@ Queue.init = function() {
 	});
 	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
-		var paused = Queue.set('option.pause', !Queue.get('option.pause', false));
-		debug('State: ' + (paused ? "paused" : "running"));
-		$(this).toggleClass('red green').attr('src', (paused ? Images.play : Images.pause));
+		Queue.option.pause = !Queue.option.pause;
+		debug('State: ' + (Queue.option.pause ? "paused" : "running"));
+		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
 		Page.clear();
 		Queue.clearCurrent();
 		Config.updateOptions();
@@ -189,7 +190,7 @@ Queue.run = function() {
 	if (Page.loading) {
 		return; // We want to wait xx seconds after the page has loaded
 	}
-	WorkerStack.push(this);
+	this._push();
 //	debug('Start Queue');
 	
 	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
@@ -255,10 +256,14 @@ Queue.run = function() {
 	for (i in Workers) {
 		Workers[i]._flush();
 	}
-	WorkerStack.pop();
+	this._pop();
 };
 
 Queue.enabled = function(worker) {
-	return isWorker(worker) && this.get(['option', 'enabled', worker.name], true);
+	try {
+		return !(worker.name in this.option.enabled) || this.option.enabled[worker.name];
+	} catch(e) {
+		return true;
+	}
 };
 
