@@ -172,7 +172,7 @@ Gift.parse = function(change) {
 };
 
 Gift.update = function(type, worker) {
-	this.runtime.work = length(this.data.todo) > 0;
+	this.runtime.work = length(this.data.todo) > 0 || length(this.data.received) > 0;
 };
 
 Gift.work = function(state) {
