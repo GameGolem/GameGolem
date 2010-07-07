@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 664;
+var revision = 665;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4707,7 +4708,7 @@ Generals.update = function(type, worker) {
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','under level 4'].concat(list));
+		Config.set('bestgenerals', ['best','any','under level 4'].concat(list));
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -7097,7 +7098,7 @@ Monster.update = function(what,worker) {
 		}
 	}
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a], monster_b = Monster.data[b];
+		var monster_a = Monster.data[a[0]], monster_b = Monster.data[a[0]];
 		switch(Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);

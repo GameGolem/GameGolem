@@ -981,7 +981,7 @@ Monster.update = function(what,worker) {
 		}
 	}
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a], monster_b = Monster.data[b];
+		var monster_a = Monster.data[a[0]], monster_b = Monster.data[a[0]];
 		switch(Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);
