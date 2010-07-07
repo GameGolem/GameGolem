@@ -562,20 +562,8 @@ Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage'];
 Monster.class_off = ['', '', 'img[src$="nm_s_off_cripple.gif"]', 'img[src$="nm_s_off_deflect.gif"]'];
 
 Monster.init = function() {
-	var i, j;
 	this._watch(Player);
 	this._watch(Queue);
-	for (i in this.data) {
-		for (j in this.data[i]) {
-			if (typeof this.data[i][j].ignore === 'unknown'){
-				this.data[i][j].ignore = false;
-			}
-			if (typeof this.data[i][j].dispel !== 'undefined') {
-				this.data[i][j].defense = 100 - this.data[i][j].dispel;
-				delete this.data[i][j].dispel;
-			}
-		}
-	}
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')));
@@ -586,33 +574,36 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var i, j, uid, type, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, record, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, record, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
 				//debug('Found a dead '+i);
-				type = i;
+				type_label = i;
 				timer = types[i].timer;
 				dead = true;
+				break;
 			} else if (types[i].image && $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//debug('Parsing '+i);
-				type = i;
+				type_label = i;
 				timer = types[i].timer;
+				break;
 			} else if (types[i].image2 && $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
 				//debug('Parsing second stage '+i);
-				type = i;
+				type_label = i;
 				timer = types[i].timer2 || types[i].timer;
+				break;
 			}
 		}
-		if (!uid || !type) {
+		if (!uid || !type_label) {
 			debug('Unknown monster (probably dead)');
 			return false;
 		}
-		data[uid] = data[uid] || {};
-		data[uid][type] = data[uid][type] || {};
-		monster = data[uid][type];
+		mid = uid+'_'+(types[i].mpool || 4);
+		monster = data[mid] = data[mid] || {};
+		monster.type = type_label;
 		monster.last = Date.now();
 		if (dead) {
 			// Will this catch Raid format rewards?
@@ -629,7 +620,7 @@ Monster.parse = function(change) {
 		monster.energy = monster.energy || {};
 		monster.defend = monster.defend || {};
 		this.runtime.record = this.runtime.record || {};
-		record = this.runtime.record[type] = this.runtime.record[type] || {};
+		record = this.runtime.record[type_label] = this.runtime.record[type_label] || {};
 		record.damage = record.damage || [];
 		record.stamina = record.stamina || [];
 		record.energy = record.energy || [];
@@ -739,18 +730,18 @@ Monster.parse = function(change) {
 		monster.damage.siege = 0;
 		monster.damage.others = 0;
 		if (!dead &&$('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
-			//debug('Current Siege Phase is: '+ this.data[uid][type].phase);
+			//debug('Current Siege Phase is: '+ this.data[mid].phase);
 			monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
 			//debug('Assisted on '+monster.phase+'.');
 		}
 		$('img[src*="siege_small"]').each(function(i,el){
 			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
 			//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
-			monster.damage.siege += dmg / (types[type].orcs ? 1000 : 1);
+			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
 			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp, dmg, fort;
-			if (types[type].raid){
+			if (types[type_label].raid){
 				tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
 			} else {
 				tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
@@ -767,7 +758,7 @@ Monster.parse = function(change) {
 			}
 		});
 		monster.dps = sum(monster.damage) / (timer - monster.timer);
-		if (types[type].raid) {
+		if (types[type_label].raid) {
 			monster.total = sum(monster.damage) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
 		} else {
 			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health === 100 ? 0.1 : (100 - monster.health)));
@@ -780,8 +771,8 @@ Monster.parse = function(change) {
 			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
 				debug('Found a timed out monster.');
 				if (this.runtime.check){
-					debug('Deleting ' + this.data[this.runtime.check[0]][this.runtime.check[1]].name + "'s " + this.runtime.check[1]);
-					delete this.data[this.runtime.check[0]][this.runtime.check[1]];
+					debug('Deleting ' + data[this.runtime.check].name + "'s " + data[this.runtime.check].type);
+					delete data[this.runtime.check];
 				} else {
 					debug('Unknown monster (timed out)');
 				}
@@ -793,60 +784,55 @@ Monster.parse = function(change) {
 			if (!$('#app'+APPID+'_app_body div.imgButton').length) {
 				return false;
 			}
-// Useless code?
-//			if (Page.page === 'battle_raid') {
-//				raid = true;
-//			}
-			for (uid in data) {
-				for (j in data[uid]) {
-					if (((Page.page === 'battle_raid'
-									&& this.types[j].raid)
-								|| (Page.page === 'monster_monster_list'
-									&& !this.types[j].raid))
-							&& (data[uid][j].state === 'complete'
-								|| data[uid][j].state === 'reward'
-								|| (data[uid][j].state === 'assist'
-									&& data[uid][j].finish < Date.now()))
-						) {
-						data[uid][j].state = null;
-					}
+			for (mid in data) {
+				if (	(types[data[mid].type].raid 
+							? Page.page === 'battle_raid'
+							: Page.page === 'monster_monster_list')
+						&& (data[mid].state === 'complete'
+							|| data[mid].state === 'reward'
+							|| (data[mid].state === 'assist'
+								&& data[mid].finish < Date.now()))
+					) {
+					data[mid].state = null;
 				}
 			}
 			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
-				var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type = 'unknown';
+				var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
 				for (i in types) {
 					if (tmp === types[i].list) {
-						type = i;
+						type_label = i;
 						break;
 					}
 				}
-				if (!uid || type === 'unknown') {
+				if (!uid || type_label === 'unknown') {
 					return;
 				}
-				data[uid] = data[uid] || {};
-				data[uid][type] = data[uid][type] || {};
+				mid = uid+'_'+(types[i].mpool || 4);
+				data[mid] = data[mid] || {};
+				data[mid].type = type_label;
+				data[mid] = data[mid] || {};
 				if (uid === userID) {
-					data[uid][type].name = 'You';
+					data[mid].name = 'You';
 				} else {
 					tmp = $(el).parent().parent().children().eq(2).text().trim();
-					data[uid][type].name = tmp.regex(/(.+)'s /i);
+					data[mid].name = tmp.regex(/(.+)'s /i);
 				}
 				switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 					case 2:
-						data[uid][type].state = 'reward';
+						data[mid].state = 'reward';
 						break;
 					case 3:
-						data[uid][type].state = 'engage';
+						data[mid].state = 'engage';
 						break;
 					case 4:
-						// if (this.types[type].raid && data[uid][type].health) {
-						//	data[uid][type].state = 'engage'; // Fix for page cache issues in 2-part raids
+						// if (this.types[type].raid && data[mid].health) {
+						//	data[mid].state = 'engage'; // Fix for page cache issues in 2-part raids
 						// } else {
-						data[uid][type].state = 'complete';
+						data[mid].state = 'complete';
 						// }
 						break;
 					default:
-						data[uid][type].state = 'unknown';
+						data[mid].state = 'unknown';
 						break; // Should probably delete, but keep it on the list...
 				}
 			});
@@ -859,32 +845,22 @@ Monster.update = function(what,worker) {
 /*	if (what === 'runtime') {
 		return;
 	}
-*/	var i, j, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc;
+*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc;
 	list.defend = [];
 	list.attack = [];
-	// Flush unknown monsters
-	for (i in this.data) {
-		if (!length(this.data[i])) { // Delete uid's without an active monster
-			log('Deleted monster data for FBID ' + i + ' because it has no monsters');
-			delete this.data[i];
-			continue;
-		}
-		for (j in this.data[i]) {
-			if (!this.data[i][j].state) {
-				log('Deleted monster FBID ' + i + ' monster ' + j
-						+ ' because state is ' + this.data[i][j].state);
-				delete this.data[i][j];
-			}
+	// Flush stateless monsters
+	for (mid in this.data) {
+		if (!this.data[mid].state) {
+			log('Deleted monster MID ' + mid + ' because state is ' + this.data[mid].state);
+			delete this.data[mid];
 		}
 	}
 	// Check monster progress regularly
-	for (i in this.data) {
-		for (j in this.data[i]) {
-			if (	(this.data[i][j].last || 0) < Date.now() - this.option.check_interval
-					&& !this.data[i][j].ignore) {
-				this.runtime.check = [i,j]; // Do we need to parse info from a blank monster?
-				return;
-			}
+	for (mid in this.data) {
+		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
+				&& !this.data[mid].ignore) {
+			this.runtime.check = mid; // Do we need to parse info from a blank monster?
+			return;
 		}
 	}
 
@@ -899,9 +875,9 @@ Monster.update = function(what,worker) {
 		condition = $.trim(order[p].replace(new RegExp("^[^:]+"), '').toString());
 		for (i in this.data) {
 			for (j in this.data[i]) {
-			monster = data[i][j];
+			monster = data[mid];
 				// If we set conditions on this monster already then we do not reprocess
-				//if (this.data[i][j].conditions) {
+				//if (this.data[mid].conditions) {
 				//	continue;
 				//}
 
@@ -921,17 +897,17 @@ Monster.update = function(what,worker) {
 				// these to see if this is the monster we should select/
 				if (!att_underAch && monster.attackbonus <= this.option.min_to_attack) {
 					if (monster.health < monster.ach) {
-						att_underAch = [i,j];
+						att_underAch = mid;
 					} else if (monster.health < monster.max && !att_overAch) {
-						att_overAch = [i,j];
+						att_overAch = mid;
 					}
 				}
 
 				if (!def_underach && this.types[j].defend && monster.attackbonus < monster.defend_max) {
 					if (monster.health < monster.ach) {
-						def_underAch = [i,j];
+						def_underAch = mid;
 					} else if (monster.health < monster.max && !def_overAch) {
-						def_overAch = [i,j];
+						def_overAch = mid;
 					}
 				}
 			}
@@ -945,66 +921,67 @@ Monster.update = function(what,worker) {
 	*/
 
 	// Make lists of the possible attack and defend targets
-	for (i in this.data) {
-		for (j in this.data[i]) {
-			req_stamina = this.types[j].raid ? (this.option.raid.search('x5') === -1 ? 1 : 5)
-					: (this.option.attack_min < Math.min.apply(Math, this.types[j].attack)
-						|| this.option.attack_max <= Math.min.apply(Math, this.types[j].attack))
-					? Math.min.apply( Math, this.types[j].attack)
-					: this.option.attack_min > Math.max.apply(Math, this.types[j].attack)
-					? Math.max.apply(Math, this.types[j].attack)
-					: this.option.attack_min > this.option.attack_max
-					? this.option.attack_max : this.option.attack_min;
-			req_energy = this.types[j].defend_button ? this.option.defend_min : null;
-			req_health = this.types[j].raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
+	for (mid in this.data) {
+		monster = this.data[mid];
+		type = this.types[monster.type];
+		req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1 : 5)
+				: (this.option.attack_min < Math.min.apply(Math, type.attack)
+					|| this.option.attack_max <= Math.min.apply(Math, type.attack))
+				? Math.min.apply( Math, type.attack)
+				: this.option.attack_min > Math.max.apply(Math, type.attack)
+				? Math.max.apply(Math, type.attack)
+				: this.option.attack_min > this.option.attack_max
+				? this.option.attack_max : this.option.attack_min;
+		req_energy = type.defend_button ? this.option.defend_min : null;
+		req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 
-			if (	!this.data[i][j].ignore
-					&& this.data[i][j].state === 'engage'
-					&& this.data[i][j].finish > Date.now()	) {
-				if (i === userID && this.option.own) {
-					// add own monster
-				} else if (this.option.avoid_lost_cause
-						&& (this.data[i][j].eta - this.data[i][j].finish)/3600000
-							> this.option.lost_cause_hours) {
-					continue;  // Avoid lost cause monster
-				} else if (this.option.rescue
-						&& (this.data[i][j].eta
-							>= this.data[i][j].finish - this.option.check_interval)) {
-					// Add monster to rescue
-				} else if (this.option.stop === 'Achievement'
-						&& sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)
-							> (this.types[j].achievement || 0)) {
-					continue; // Don't add monster over achievement
-				} else if (this.option.stop === '2X Achievement'
-						&& sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)
-							> this.types[j].achievement * 2) {
-					continue; // Don't add monster over 2X  achievement
-				}
-				// Possible attack target?
-				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
-					&& ((this.data[i][j].attackbonus || 50) >= this.option.min_to_attack)) {
-					list.attack.push([i, j, (sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)) / sum(this.data[i][j].damage)]);
-				}
-				// Possible defend target?
-				if (	this.option.defend_active
-						&& (!this.option.hide
-							|| Queue.burn.energy >= req_energy)
-						&& (this.data[i][j].attackbonus || 51) <= this.option.defend) {
-					if ((this.data[i][j].mclass || 0) < 2) {
-						if ((this.data[i][j].attackbonus || 101) >= this.option.defend
-								&& this.data[i][j].defense >= 100) {
-							continue;
-						}
-					} else if ((this.data[i][j].secondary || 101) >= 100){
+		if (	!monster.ignore
+				&& monster.state === 'engage'
+				&& monster.finish > Date.now()	) {
+			uid = mid.replace(/_\d+/,'');
+			if (uid === userID && this.option.own) {
+				// add own monster
+			} else if (this.option.avoid_lost_cause
+					&& (monster.eta - monster.finish)/3600000
+						> this.option.lost_cause_hours) {
+				continue;  // Avoid lost cause monster
+			} else if (this.option.rescue
+					&& (monster.eta
+						>= monster.finish - this.option.check_interval)) {
+				// Add monster to rescue
+			} else if (this.option.stop === 'Achievement'
+					&& sum(monster.damage.user) + sum(monster.defend)
+						> (type.achievement || 0)) {
+				continue; // Don't add monster over achievement
+			} else if (this.option.stop === '2X Achievement'
+					&& sum(monster.damage.user) + sum(monster.defend)
+						> type.achievement * 2) {
+				continue; // Don't add monster over 2X  achievement
+			}
+			// Possible attack target?
+			if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
+				&& ((monster.attackbonus || 50) >= this.option.min_to_attack)) {
+				list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
+			}
+			// Possible defend target?
+			if (	this.option.defend_active
+					&& (!this.option.hide
+						|| Queue.burn.energy >= req_energy)
+					&& (monster.attackbonus || 51) <= this.option.defend) {
+				if ((monster.mclass || 0) < 2) {
+					if ((monster.attackbonus || 101) >= this.option.defend
+							&& monster.defense >= 100) {
 						continue;
 					}
-					list.defend.push([i, j, (sum(this.data[i][j].damage.user) + sum(this.data[i][j].defend)) / sum(this.data[i][j].damage)]);
+				} else if ((monster.secondary || 101) >= 100){
+					continue;
 				}
+				list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
 			}
 		}
 	}
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a[0]][a[1]], monster_b = Monster.data[b[0]][b[1]];
+		var monster_a = Monster.data[a], monster_b = Monster.data[b];
 		switch(Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);
@@ -1019,9 +996,9 @@ Monster.update = function(what,worker) {
 		case 'Spread':
 			return sum(monster_a.stamina) - sum(monster_b.stamina);
 		case 'Max Damage':
-			return b[2] - a[2];
+			return b[1] - a[1];
 		case 'Min Damage':
-			return a[2] - b[2];
+			return a[1] - b[1];
 		case 'ETD Maintain':
 			return monster_b.finish - monster_a.finish;
 		}
@@ -1031,22 +1008,23 @@ Monster.update = function(what,worker) {
 		//debug('list ' + i + ' is ' + list[i]);
 		if (list[i].length) {
 			list[i].sort(listSortFunc);
-			uid = list[i][0][0];
-			type = list[i][0][1];
-			this.runtime[i] = [uid,type];
-			fullname[i] = (uid === userID ? 'your ': (this.data[uid][type].name + '\'s ')) + this.types[type].name;
+			this.runtime[i] = mid = list[i][0][0];
+			uid = mid.replace(/_\d+/,'');
+			type = this.types[this.data[mid].type];
+			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + '\'s ')) + type.name;
 		} else {
 			this.runtime[i] = false;
 		}
 	}
 	// Make the * dash messages for current attack and defend targets
 	if (this.runtime.defend) {
-		this.runtime.energy = (!this.types[type].defend) ? 10
-				: (this.option.defend_min < Math.min.apply(Math, this.types[type].defend)
-					|| this.option.defend_max < Math.min.apply(Math, this.types[type].defend))
-				? Math.min.apply(Math, this.types[type].defend)
-				: (this.option.defend_min > Math.max.apply(Math, this.types[type].defend))
-				? Math.max.apply(Math, this.types[type].defend)
+		type = this.types[this.data[this.runtime.defend].type];
+		this.runtime.energy = (!type.defend) ? 10
+				: (this.option.defend_min < Math.min.apply(Math, type.defend)
+					|| this.option.defend_max < Math.min.apply(Math, type.defend))
+				? Math.min.apply(Math, type.defend)
+				: (this.option.defend_min > Math.max.apply(Math, type.defend))
+				? Math.max.apply(Math, type.defend)
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
 		if (Queue.burn.energy < this.runtime.energy) {
@@ -1063,16 +1041,17 @@ Monster.update = function(what,worker) {
 		}
 	}
 	if (this.runtime.attack) {
-		this.runtime.stamina = this.types[type].raid && this.option.raid.search('x5') === -1 ? 1
-				: this.types[type].raid
-				? 5 : (this.option.attack_min < Math.min.apply(Math, this.types[type].attack)
-					|| this.option.attack_max < Math.min.apply(Math, this.types[type].attack))
-				? Math.min.apply(Math, this.types[type].attack)
-				: (this.option.attack_min > Math.max.apply(Math, this.types[type].attack))
-				? Math.max.apply(Math, this.types[type].attack)
+		type = this.types[this.data[this.runtime.attack].type];
+		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1 ? 1
+				: type.raid
+				? 5 : (this.option.attack_min < Math.min.apply(Math, type.attack)
+					|| this.option.attack_max < Math.min.apply(Math, type.attack))
+				? Math.min.apply(Math, type.attack)
+				: (this.option.attack_min > Math.max.apply(Math, type.attack))
+				? Math.max.apply(Math, type.attack)
 				: (this.option.attack_min > this.option.attack_max)
 				? this.option.attack_max : this.option.attack_min;
-		this.runtime.health = this.types[type].raid ? 13 : 10; // Don't want to die when attacking a raid
+		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
 		if (Player.get('health') < this.runtime.health) {
 			amount = this.runtime.health - Player.get('health');
 			messages.push('Waiting for ' + amount + makeImage('health') + ' to attack '
@@ -1094,7 +1073,7 @@ Monster.update = function(what,worker) {
 };
 
 Monster.work = function(state) {
-	var i, j, target_info = [], battle_list, list = [], uid, type, btn = null, b, mode = null, stat;
+	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = null, stat, monster;
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
 		mode = 'defend';
 		stat = 'energy';
@@ -1110,24 +1089,26 @@ Monster.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	if (this.runtime.check) { // Parse pages of monsters we've not got the info for
-		i = this.runtime.check[0];
-		j = this.runtime.check[1];
-		if ((this.data[i][j].last || 0) < Date.now() - this.option.check_interval) {
-			debug( 'Reviewing ' + this.data[i][j].name + '\'s ' + this.types[j].name);
+		monster = this.data[this.runtime.check];
+		uid = this.runtime.check.replace(/_\d+/,'');
+		type = this.types[monster.type];
+		if ((monster.last || 0) < Date.now() - this.option.check_interval) {
+			debug( 'Reviewing ' + monster.name + '\'s ' + type.name);
 			Page.to(
-				this.types[j].raid
+				type.raid
 					? 'battle_raid'
 					: 'monster_battle_monster',
-				'?user=' + i + ((this.data[i][j].phase && this.option.assist) ? '&action=doObjective' : '') + (this.types[j].mpool ? '&mpool=' + this.types[j].mpool : ''));
+				'?user=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : ''));
 			return QUEUE_RELEASE;
 		}
 		this.runtime.check = false;
 		debug( 'Finished Monster / Raid review');
 		return QUEUE_RELEASE;
 	}
-	uid = this.runtime[mode][0];
-	type = this.runtime[mode][1];
-	if (this.types[type].raid) { // Raid has different buttons and generals
+	uid = this.runtime[mode].replace(/_\d+/,'');
+	monster = this.data[this.runtime[mode]];
+	type = this.types[monster.type];
+	if (type.raid) { // Raid has different buttons and generals
 		if (!Generals.to((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')) {
 			return QUEUE_CONTINUE;
 		}
@@ -1151,27 +1132,28 @@ Monster.work = function(state) {
 				: this.option['general_'+mode])) {
 			return QUEUE_CONTINUE;
 		}
-		debug('Try to ' + mode + ' ' + this.data[uid][type].name + '\'s ' + this.types[type].name);
-		if (this.option[mode + '_max'] <= this.types[type][mode][0]) {
-			btn = $(this.types[type][mode + '_button']).eq(0);
+		debug('Try to ' + mode + ' ' + monster.name + '\'s ' + type.name);
+		if (this.option[mode + '_max'] <= type[mode][0]) {
+			btn = $(type[mode + '_button']).eq(0);
 		} else {
-			b = $(this.types[type][mode + '_button']).length - 1;
+			b = $(type[mode + '_button']).length - 1;
 			for (i=b; i >= 0; i--){
 				//debug('Burn ' + stat + ' is ' + Queue.burn[stat]);
-				if (this.types[type][mode][i] <= this.option[mode + '_max'] && Queue.burn[stat] >= this.types[type][mode][i] ){
-					//debug('Button cost is ' + this.types[type].defend[i]);
-					this.runtime[stat + '_used'] = this.types[type][mode][i];
-					btn = $(this.types[type][mode + '_button']).eq(i);
+				if (	type[mode][i] <= this.option[mode + '_max'] 
+						&& Queue.burn[stat] >= type[mode][i] ) {
+					//debug('Button cost is ' + type.defend[i]);
+					this.runtime[stat + '_used'] = type[mode][i];
+					btn = $(type[mode + '_button']).eq(i);
 					break;
 				}
 			}
 		}
 		if (!btn || !btn.length){
-			this.data[uid][type].button_fail = (this.data[uid][type].button_fail || 0) + 1;
-			if (this.data[uid][type].button_fail > 10){
-				log('Ignoring Monster ' + this.data[uid][type].name + '\'s ' + this.types[type].name + this.data[uid][type] + ': Unable to locate ' + mode + ' button ' + this.data[uid][type].button_fail + ' times!');
-				this.data[uid][type].ignore = true;
-				this.data[uid][type].button_fail = 0;
+			monster.button_fail = (monster.button_fail || 0) + 1;
+			if (monster.button_fail > 10){
+				log('Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + mode + ' button ' + monster.button_fail + ' times!');
+				monster.ignore = true;
+				monster.button_fail = 0;
 			}
 		}
 	}
@@ -1183,12 +1165,12 @@ Monster.work = function(state) {
 		//debug('Reloading page. Button = ' + btn.attr('name'));
 		//debug('Reloading page. Page.page = '+ Page.page);
 		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
-		Page.to(this.types[type].raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid
-				+ ((this.data[uid][type].phase && this.option.assist) ? '&action=doObjective' : '')
-				+ (this.types[type].mpool ? '&mpool=' + this.types[type].mpool : ''));
+		Page.to(type.raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid
+				+ ((monster.phase && this.option.assist) ? '&action=doObjective' : '')
+				+ (type.mpool ? '&mpool=' + type.mpool : ''));
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
-	if (this.types[type].raid) {
+	if (type.raid) {
 		battle_list = Battle.get('user');
 		if (this.option.force1) { // Grab a list of valid targets from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
 			for (i in battle_list) {
@@ -1204,13 +1186,13 @@ Monster.work = function(state) {
 		}
 	}
 	Page.click(btn);
-	this.data[uid][type].button_fail = 0;
+	monster.button_fail = 0;
 	return QUEUE_RELEASE;
 };
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
+	var i, j, o, type, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
 		engage:0,
 		assist:1,
 		reward:2,
@@ -1218,10 +1200,8 @@ Monster.dashboard = function(sort, rev) {
 	}, blank, image_url;
 	if (typeof sort === 'undefined') {
 		this.order = [];
-		for (i in this.data) {
-			for (j in this.data[i]) {
-				this.order.push([i, j]);
-			}
+		for (mid in this.data) {
+			this.order.push(mid);
 		}
 	}
 	if (typeof sort === 'undefined') {
@@ -1234,23 +1214,23 @@ Monster.dashboard = function(sort, rev) {
 	this.runtime.rev = rev;
 	this.order.sort(function(a,b) {
 		var aa, bb;
-		if (state[Monster.data[a[0]][a[1]].state] > state[Monster.data[b[0]][b[1]].state]) {
+		if (state[Monster.data[a].state] > state[Monster.data[b].state]) {
 			return 1;
 		}
-		if (state[Monster.data[a[0]][a[1]].state] < state[Monster.data[b[0]][b[1]].state]) {
+		if (state[Monster.data[a].state] < state[Monster.data[b].state]) {
 			return -1;
 		}
 		if (typeof sorttype[sort] === 'string') {
-			aa = Monster.data[a[0]][a[1]][sorttype[sort]];
-			bb = Monster.data[b[0]][b[1]][sorttype[sort]];
+			aa = Monster.data[a][sorttype[sort]];
+			bb = Monster.data[b][sorttype[sort]];
 		} else if (sort === 4) { // damage
-			//			aa = Monster.data[a[0]][a[1]].damage ? Monster.data[a[0]][a[1]].damage[userID] : 0;
-			//			bb = Monster.data[b[0]][b[1]].damage ? Monster.data[b[0]][b[1]].damage[userID] : 0;
-			if (typeof Monster.data[a[0]][a[1]].damage !== 'undefined' && typeof Monster.data[a[0]][a[1]].damage.user !== 'undefined') {
-				aa = sum(Monster.data[a[0]][a[1]].damage.user) / sum(Monster.data[a[0]][a[1]].damage);
+			//			aa = Monster.data[a].damage ? Monster.data[a].damage[userID] : 0;
+			//			bb = Monster.data[b].damage ? Monster.data[b].damage[userID] : 0;
+			if (typeof Monster.data[a].damage !== 'undefined' && typeof Monster.data[a].damage.user !== 'undefined') {
+				aa = sum(Monster.data[a].damage.user) / sum(Monster.data[a].damage);
 			}
-			if (typeof Monster.data[b[0]][b[1]].damage !== 'undefined' && typeof Monster.data[b[0]][b[1]].damage.user !== 'undefined') {
-				bb = sum(Monster.data[b[0]][b[1]].damage.user) / sum(Monster.data[b[0]][b[1]].damage);
+			if (typeof Monster.data[b].damage !== 'undefined' && typeof Monster.data[b].damage.user !== 'undefined') {
+				bb = sum(Monster.data[b].damage.user) / sum(Monster.data[b].damage);
 			}
 		}
 		if (typeof aa === 'undefined') {
@@ -1274,27 +1254,27 @@ Monster.dashboard = function(sort, rev) {
 	th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
-		i = this.order[o][0];
-		j = this.order[o][1];
-		if (!this.types[j]) {
+		uid = this.order[o].replace(/_\d+/,'');
+		monster = this.data[this.order[o]];
+		type = this.types[monster.type];
+		if (!type) {
 			continue;
 		}
 		output = [];
-		monster = this.data[i][j];
 		blank = !((monster.state === 'engage' || monster.state === 'assist') && monster.total);
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
 		if (Monster.option.assist_link && (monster.state === 'engage' || monster.state === 'assist')) {
-			url = '?user=' + i + '&action=doObjective' + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '') + '&lka=' + i + '&ref=nf';
+			url = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '') + '&lka=' + uid + '&ref=nf';
 		} else {
-			url = '?user=' + i + (Monster.types[j].mpool ? '&mpool=' + Monster.types[j].mpool : '');
+			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
-		td(output, '<a href="http://apps.facebook.com/castle_age/' + (Monster.types[j].raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + Monster.types[j].list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + j + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + Monster.types[j].name + ' | Achievement: ' + addCommas(Monster.types[j].achievement) + '"');
-		image_url = imagepath + Monster.types[j].list;
+		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(type.achievement) + '"');
+		image_url = imagepath + type.list;
 		//debug(image_url);
-		th(output, '<a class="golem-monster-ignore" name="'+i+'+'+j+'" title="Toggle Active/Inactive"'+(Monster.data[i][j].ignore ? ' style="text-decoration: line-through;"' : '')+'>'+Monster.data[i][j].name+'</a>');
+		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
 		td(output,
 			blank
 				? ''
@@ -1332,25 +1312,22 @@ Monster.dashboard = function(sort, rev) {
 				: '<span class="golem-timer">' + (monster.health === 100
 					? makeTimer((monster.finish - Date.now()) / 1000)
 					: makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
-		th(output, '<a class="golem-monster-delete" name="'+i+'+'+j+'" title="Delete this Monster from the dashboard">[x]</a>');
+		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
 	$('a.golem-monster-delete').live('click', function(event){
-		var x = $(this).attr('name').split('+');
+		var x = $(this).attr('name');
 		Monster._unflush();
-		delete Monster.data[x[0]][x[1]];
-		if (!length(Monster.data[x[0]])) {
-			delete Monster.data[x[0]];
-		}
+		delete Monster.data[x];
 		Monster.dashboard();
 		return false;
 	});
 	$('a.golem-monster-ignore').live('click', function(event){
-		var x = $(this).attr('name').split('+');
+		var x = $(this).attr('name');
 		Monster._unflush();
-		Monster.data[x[0]][x[1]].ignore = !Monster.data[x[0]][x[1]].ignore;
+		Monster.data[x].ignore = !Monster.data[x].ignore;
 		Monster.dashboard();
 		if (Page.page !== 'monster_monster_list'){
 			Page.to('monster_monster_list');
