@@ -19,7 +19,7 @@
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var revision = 650;
 var version = "31.5";
-var revision = 659;
+var revision = 660;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8086,7 +8086,7 @@ Quest.update = function(type,worker) {
 };
 
 Quest.work = function(state) {
-	var i, j, general = 'any', best = this.runtime.best;
+	var mid, general = 'any', best = this.runtime.best;
 	if (!best || this.runtime.energy > Queue.burn.energy) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
@@ -8095,14 +8095,12 @@ Quest.work = function(state) {
 	}
 	if (this.option.monster && Monster.option.defend_active) {
 		Monster._unflush();
-		for (i in Monster.data) {
-			for (j in Monster.data[i]) {
-				if (Monster.data[i][j].state === 'engage' && typeof Monster.data[i][j].defense === 'number' && (typeof Monster.data[i][j].mclass === 'undefined' || Monster.data[i][j].mclass < 2) && ((typeof Monster.data[i][j].attackbonus !== 'undefined' && Monster.data[i][j].attackbonus < Monster.option.fortify && Monster.data[i][j].defense < 100))) {
-					return QUEUE_FINISH;
-				}
-				if (Monster.option.defend_active && typeof Monster.data[i][j].mclass !== 'undefined' && Monster.data[i][j].mclass > 1 && typeof Monster.data[i][j].secondary !== 'undefined' && Monster.data[i][j].secondary < 100){
-					return QUEUE_FINISH;
-				}
+		for (mid in Monster.data) {
+			if (Monster.data[mid].state === 'engage' && typeof Monster.data[mid].defense === 'number' && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
+				return QUEUE_FINISH;
+			}
+			if (Monster.option.defend_active && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
+				return QUEUE_FINISH;
 			}
 		}
 	}
