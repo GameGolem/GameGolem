@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 660;
+var revision = 662;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5177,7 +5176,7 @@ Gift.parse = function(change) {
 };
 
 Gift.update = function(type, worker) {
-	this.runtime.work = length(this.data.todo) > 0;
+	this.runtime.work = length(this.data.todo) > 0 || length(this.data.received) > 0;
 };
 
 Gift.work = function(state) {
