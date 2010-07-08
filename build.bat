@@ -118,7 +118,7 @@ if NOT EXIST "chrome\GameGolem" (
 	mkdir chrome\GameGolem
 )
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
-copy /Y %script% .\chrome\GameGolem\golem.user.js >nul 2>nul
+copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
 rem GOOGLE CHROME EXTENSION - .\chrome\GameGolem.crx

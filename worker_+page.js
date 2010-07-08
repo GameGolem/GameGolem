@@ -20,7 +20,10 @@ Page.settings = {
 
 Page.option = {
 	timeout:15,
-	reload:5
+	delay:1,
+	reload:5,
+	nochat:false,
+	click:true
 };
 
 Page.page = '';
@@ -38,10 +41,25 @@ Page.display = [
 		select:[10, 15, 30, 60],
 		after:'seconds'
 	},{
+		id:'delay',
+		label:'...Delay',
+		select:[1, 2, 3, 4, 5],
+		after:'seconds'
+	},{
 		id:'reload',
 		label:'Reload after',
 		select:[3, 5, 7, 9, 11, 13, 15],
 		after:'tries'
+	},{
+		id:'nochat',
+		label:'Remove Facebook Chat',
+		checkbox:true,
+		help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in facebook'
+	},{
+		id:'click',
+		label:'Replace Mouse Click',
+		checkbox:true,
+		help:'Uses Golem code for clicking on links rather than facebook code - may help with some memory issues'
 	}
 ];
 
@@ -97,6 +115,44 @@ Page.defaults = {
 	}
 };
 
+Page.removeFacebookChat = function() {
+	$('script').each(function(i,el){
+		$(el).text($(el).text()
+		.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '')
+		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '')
+		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '')
+		.replace(/|chat\\\//,''))
+	});
+	var b = document.getElementsByTagName('body')[0] || document.documentElement, a = document.createElement('script');
+	a.type = 'text/javascript';
+	a.appendChild(document.createTextNode('window.setTimeout(function(){window.presenceNotifications=null;},1000);'));
+	b.appendChild(a);
+	$('#pagelet_presence').remove();
+	$('#pagelet_chat_home').remove();
+};
+
+Page.replaceClickHandlers = function() {
+	// Remove all CA click handlers...
+	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
+	.each(function(i,el){
+		$(el).removeAttr('onclick');
+	})
+	.click(function(event){
+		if (event.which === 1) {// Left click only
+			var i, url = $(this).attr('href');
+			url = url.substr(url.lastIndexOf('/')+1);
+			for (i in Page.pageNames) {
+				if (Page.pageNames[i].url.indexOf(url) === 0) {
+					event.preventDefault();
+					event.stopImmediatePropagation()
+					Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : '', 1);
+					return false;
+				}
+			}
+		}
+	});
+};
+
 Page.init = function() {
 	// Only perform the check on the two id's referenced in get_cached_ajax()
 	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
@@ -105,29 +161,14 @@ Page.init = function() {
 			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all();},100);
 		}
 	});
+	if (this.option.nochat) {
+		this.removeFacebookChat();
+	}
 };
 
 Page.parse_all = function() {
 	this._push();
 	Page.identify();
-	/* - Remove all CA click handlers...
-	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
-	.each(function(i,el){
-		$(el).removeAttr('onclick');
-	})
-	.click(function(event){
-		var i, url = $(this).attr('href');
-		url = url.substr(url.lastIndexOf('/')+1);
-		for (i in Page.pageNames) {
-			if (Page.pageNames[i].url.indexOf(url) === 0) {
-				event.preventDefault();
-				event.stopImmediatePropagation()
-				Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : null);
-				return false;
-			}
-		}
-	});
-	*/
 	var i, list = [];
 	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0))) {
@@ -207,8 +248,28 @@ Page.identify = function() {
 	return this.page;
 };
 
-Page.to = function(page, args, force) {
-	if (!force && Queue.option.pause) {
+Page.to = function() { // Force = true/false (ignore pause and reload page if true)
+	var i, page, args, force = 0;
+	for (i=0; i<arguments.length; i++) {
+		switch (typeof arguments[i]) {
+			case 'string':
+				if (!page) {
+					page = arguments[i];
+				} else {
+					args = arguments[i];
+				}
+				break;
+			case 'boolean':
+				force = arguments[i];
+				break;
+			case 'object':
+				args = '?' + decodeURIComponent($.param(arguments[i]));
+				break;
+			default:
+				break;
+		}
+	}
+	if (force === 0 && Queue.option.pause) {
 		debug('Trying to load page when paused...');
 		return true;
 	}
@@ -241,37 +302,44 @@ Page.to = function(page, args, force) {
 };
 
 Page.ajaxload = function() {
-	$.ajax({
-		cache:false,
-		dataType:'text',
-		timeout:this.option.timeout * 1000,
-		url:'http://apps.facebook.com/castle_age/'+this.last,
-		error:function() {
-			debug('Page not loaded correctly, reloading.');
-			Page.ajaxload();
-		},
-		success:function(data){
-			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
-				Page.loading = false;
-				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-				data = data.replace(/(<script[^>]*>.*<\/script[^>]*>)/gi, '');
-				if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
-					$('#app'+APPID+'_AjaxLoadIcon').css('display', 'none');
-					$('#app'+APPID+'_globalContainer').replaceWith(data.valueOf());
-					return;// Stop here as we're done
-				}
+//	this.request.abort(); - not needed as .open automatically does it
+	if (!this.request) {
+		this.request = new XMLHttpRequest();// Reuse the same request to save memory etc
+		this.request.onreadystatechange = function() {
+			if (Page.request.readyState !== 4) {
+				return;
 			}
+			try {
+				var data = Page.request.responseText;
+				Page.request.responseText = null;
+				if (Page.request.responseText && Page.request.status === 200) {
+					if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
+						Page.loading = false;
+						data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
+						data = data.replace(/(<script>.*<\/script>)/gi, '');// Remove facebook only stuff
+						if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
+							$('#app'+APPID+'_AjaxLoadIcon').hide();
+							$('#app'+APPID+'_globalContainer').replaceWith(data.valueOf());
+							Page.clear();
+							return;// Stop here as we're done
+						}
+					}
+				}
+			} catch(e){}
 			if (++Page.retry < Page.option.retry) {
 				debug('Page not loaded correctly, retry last action.');
-				window.setTimeout(Page.ajaxload, 0);
+				window.setTimeout(Page.ajaxload, Page.option.delay * 1000);
 			} else {
 				debug('Page not loaded correctly, reloading.');
-				window.setTimeout(Page.reload, 0);
+				window.setTimeout(Page.reload, Page.option.delay * 1000);
 			}
-		}
-	});
+		};
+	}
+	this.request.open("GET", window.location.protocol + '//apps.facebook.com/'+APP+'/'+this.last);
+//	this.request.overrideMimeType('text/text');
+	this.request.send();
 	this.loading = true;
-	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').css('display', 'block');} }, 1500);
+	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
 };
 
 Page.reload = function() {
