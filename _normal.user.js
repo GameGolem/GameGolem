@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 666;
+var revision = 668;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2708,8 +2708,7 @@ Page.ajaxload = function() {
 			}
 			try {
 				var data = Page.request.responseText;
-				Page.request.responseText = null;
-				if (Page.request.responseText && Page.request.status === 200) {
+				if (data && Page.request.status === 200) {
 					if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 						Page.loading = false;
 						data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
@@ -2722,7 +2721,7 @@ Page.ajaxload = function() {
 						}
 					}
 				}
-			} catch(e){}
+			} catch(e){ debug('Status:' + Page.request.status +' Exception: ' + e);}
 			if (++Page.retry < Page.option.retry) {
 				debug('Page not loaded correctly, retry last action.');
 				window.setTimeout(Page.ajaxload, Page.option.delay * 1000);
@@ -6750,7 +6749,7 @@ Monster.init = function() {
 	this._watch(Queue);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')));
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
 		return false;
 	});
 	Resources.useType('Energy');
@@ -7684,8 +7683,6 @@ Player.init = function() {
 	Resources.addType('Energy');
 	Resources.addType('Stamina');
 	Resources.addType('Gold');
-
-	//a46755028429_stopTimers=true
 };
 
 Player.parse = function(change) {

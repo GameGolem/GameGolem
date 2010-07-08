@@ -566,7 +566,7 @@ Monster.init = function() {
 	this._watch(Queue);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')));
+		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
 		return false;
 	});
 	Resources.useType('Energy');

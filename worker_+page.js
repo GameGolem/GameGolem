@@ -311,8 +311,7 @@ Page.ajaxload = function() {
 			}
 			try {
 				var data = Page.request.responseText;
-				Page.request.responseText = null;
-				if (Page.request.responseText && Page.request.status === 200) {
+				if (data && Page.request.status === 200) {
 					if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 						Page.loading = false;
 						data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
@@ -325,7 +324,7 @@ Page.ajaxload = function() {
 						}
 					}
 				}
-			} catch(e){}
+			} catch(e){ debug('Status:' + Page.request.status +' Exception: ' + e);}
 			if (++Page.retry < Page.option.retry) {
 				debug('Page not loaded correctly, retry last action.');
 				window.setTimeout(Page.ajaxload, Page.option.delay * 1000);
