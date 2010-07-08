@@ -28,6 +28,7 @@ Page.option = {
 
 Page.page = '';
 Page.last = null; // Need to have an "auto retry" after a period
+Page.lastbody = null; // For POST requests
 Page.lastclick = null;
 Page.when = null;
 Page.retry = 0; // Number of times we tried
@@ -59,13 +60,14 @@ Page.display = [
 		id:'click',
 		label:'Replace Mouse Click',
 		checkbox:true,
-		help:'Uses Golem code for clicking on links rather than facebook code - may help with some memory issues'
+		help:'Uses Golem code for clicking on links rather than facebook code - may help with some white screen issues'
 	}
 ];
 
 Page.defaults = {
 	'castle_age':{
 		pageNames:{
+//			facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
 			index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
 			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
@@ -100,8 +102,8 @@ Page.defaults = {
 			oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
 			oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
 			oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
-			keep_stats:				{url:'keep.php?user='+userID, image:'tab_stats_on.gif'},
-			keep_eliteguard:		{url:'party.php?user='+userID, image:'tab_elite_guard_on.gif'},
+			keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
+			keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
 			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
 			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
 			army_invite:			{url:'army.php', image:'invite_on.gif'},
@@ -138,17 +140,10 @@ Page.replaceClickHandlers = function() {
 		$(el).removeAttr('onclick');
 	})
 	.click(function(event){
-		if (event.which === 1) {// Left click only
-			var i, url = $(this).attr('href');
-			url = url.substr(url.lastIndexOf('/')+1);
-			for (i in Page.pageNames) {
-				if (Page.pageNames[i].url.indexOf(url) === 0) {
-					event.preventDefault();
-					event.stopImmediatePropagation()
-					Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : '', 1);
-					return false;
-				}
-			}
+		if (event.which === 1 && Page.toURL($(this).attr('href'), false)) {// Left click only
+			event.preventDefault();
+			event.stopImmediatePropagation()
+			return false;
 		}
 	});
 };
@@ -158,23 +153,37 @@ Page.init = function() {
 	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
 	$('body').bind('DOMNodeInserted', function(event){
 		if (!Page.node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
-			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all();},100);
+			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(false);},100);// Normal game stuff
+		} else if (!Page.node_trigger && $(event.target).hasClass('generic_dialog_popup')) {
+			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(true);},100);// Facebook popup display
 		}
 	});
 	if (this.option.nochat) {
 		this.removeFacebookChat();
 	}
+	if (this.option.click) {
+		this.replaceClickHandlers();
+	}
 };
 
-Page.parse_all = function() {
+Page.parse_all = function(isFacebook) {
 	this._push();
-	Page.identify();
+	if (!isFacebook) {
+		Page.identify();
+	}
 	var i, list = [];
 	for (i in Workers) {
-		if (Workers[i].parse && Workers[i].pages && (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0))) {
-			Workers[i]._unflush();
-			if (Workers[i]._parse(false)) {
-				list.push(Workers[i]);
+		if (Workers[i].parse && Workers[i].pages) {
+			if (isFacebook) {
+				if (Workers[i].pages.indexOf('facebook')) {
+					Workers[i]._unflush();
+					Workers[i]._parse('facebook');
+				}
+			} else if (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
+				Workers[i]._unflush();
+				if (Workers[i]._parse(isFacebook ? 'facebook' : false)) {
+					list.push(Workers[i]);
+				}
 			}
 		}
 	}
@@ -248,22 +257,73 @@ Page.identify = function() {
 	return this.page;
 };
 
+Page.onreadystatechange = function() {
+	if (Page.request.readyState !== 4) {
+		return;
+	}
+	try {
+		if (Page.request.responseText && Page.request.status === 200) {
+			var data = Page.request.responseText;
+			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
+				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
+				if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
+					if (Page.option.nochat) {
+						data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
+					}
+					$('#app'+APPID+'_AjaxLoadIcon').hide();
+					$('#app'+APPID+'_globalContainer').replaceWith(data);
+					if (Page.option.click) {
+						Page.replaceClickHandlers();
+					}
+					Page.clear();
+					return;// Stop here as we're done
+				}
+			}
+		}
+	} catch(e){}
+	if (++Page.retry < Page.option.retry) {
+		debug('Page not loaded correctly, retry last action.');
+		window.setTimeout(function(){
+			Page.request = new XMLHttpRequest();
+			Page.request.open(method, Page.last);
+			Page.request.onreadystatechange = Page.onreadystatechange;
+			Page.request.send(Page.lastbody);
+		}, Page.option.delay * 1000);
+	} else {
+		debug('Page not loaded correctly, reloading.');
+		window.setTimeout(Page.reload, Page.option.delay * 1000);
+	}
+};
+
+/*
+Page.to(['GET' | 'POST',] 'index', ['args' | {arg1:val, arg2:val},] [true|false]
+*/
 Page.to = function() { // Force = true/false (ignore pause and reload page if true)
-	var i, page, args, force = 0;
+	var i, method = 'GET', page, args, force = 0, request;
 	for (i=0; i<arguments.length; i++) {
 		switch (typeof arguments[i]) {
 			case 'string':
-				if (!page) {
+				if (arguments[i].toUpperCase() === 'GET' || arguments[i].toUpperCase() === 'POST') {
+					method = arguments[i].toUpperCase();
+				} else if (!page) {
 					page = arguments[i];
 				} else {
-					args = arguments[i];
+					if (method === 'GET') {
+						args = (arguments[i].indexOf('?') !== 0 ? '?' : '') + arguments[i];
+					} else {
+						this.lastbody = arguments[i];
+					}
 				}
 				break;
 			case 'boolean':
 				force = arguments[i];
 				break;
 			case 'object':
-				args = '?' + decodeURIComponent($.param(arguments[i]));
+				if (method === 'GET') {
+					args = '?' + decodeURIComponent($.param(arguments[i]));
+				} else {
+					this.lastbody = decodeURIComponent($.param(arguments[i]));
+				}
 				break;
 			default:
 				break;
@@ -273,77 +333,64 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		debug('Trying to load page when paused...');
 		return true;
 	}
-	if (page === this.page && (force || typeof args === 'undefined')) {
+	if (page === this.page && method !== 'POST' && (force || typeof args === 'undefined')) {
 		return true;
 	}
 //	this._push();
-	if (!args) {
-		args = '';
-	}
 	if (page && this.pageNames[page] && this.pageNames[page].url) {
 		this.clear();
-		this.last = this.pageNames[page].url;
+		this.last = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
-		if (args.indexOf('?') === 0 && this.last.indexOf('?') > 0) {
-			this.last = this.last.substr(0, this.last.indexOf('?')) + args;
-		} else {
-			this.last = this.last + args;
+		if (method === 'GET') {
+			if (args && this.last.indexOf('?') > 0) {
+				this.last = this.last.substr(0, this.last.indexOf('?'));
+			}
+			this.last = this.last + (args ? args : '');
 		}
 		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
 		if (force) {
-//			this.loading=true;
 			window.location.href = this.last;
 		} else {
-			this.ajaxload();
-		}               
+			Page.request = new XMLHttpRequest();// Reuse the same request to save memory etc
+			Page.request.open(method, this.last);
+			Page.request.onreadystatechange = Page.onreadystatechange;
+			//Page.request.overrideMimeType('text/plain');
+			Page.request.send(this.lastbody);
+			this.loading = true;
+			setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
+		}
 	}
 //	this._pop();
 	return false;
 };
 
-Page.ajaxload = function() {
-//	this.request.abort(); - not needed as .open automatically does it
-	if (!this.request) {
-		this.request = new XMLHttpRequest();// Reuse the same request to save memory etc
-		this.request.onreadystatechange = function() {
-			if (Page.request.readyState !== 4) {
-				return;
-			}
-			try {
-				var data = Page.request.responseText;
-				if (data && Page.request.status === 200) {
-					if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
-						Page.loading = false;
-						data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-						data = data.replace(/(<script>.*<\/script>)/gi, '');// Remove facebook only stuff
-						if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
-							$('#app'+APPID+'_AjaxLoadIcon').hide();
-							$('#app'+APPID+'_globalContainer').replaceWith(data.valueOf());
-							Page.clear();
-							return;// Stop here as we're done
-						}
-					}
-				}
-			} catch(e){ debug('Status:' + Page.request.status +' Exception: ' + e);}
-			if (++Page.retry < Page.option.retry) {
-				debug('Page not loaded correctly, retry last action.');
-				window.setTimeout(Page.ajaxload, Page.option.delay * 1000);
-			} else {
-				debug('Page not loaded correctly, reloading.');
-				window.setTimeout(Page.reload, Page.option.delay * 1000);
-			}
-		};
+Page.toURL = function(url, force) {
+	url = url.substr(url.lastIndexOf('/')+1);
+	for (var i in Page.pageNames) {
+		if (Page.pageNames[i].url.indexOf(url) === 0) {
+			Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : '', force);
+			return true;
+		}
 	}
-	this.request.open("GET", window.location.protocol + '//apps.facebook.com/'+APP+'/'+this.last);
-//	this.request.overrideMimeType('text/text');
-	this.request.send();
-	this.loading = true;
-	setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
+	return false;
 };
 
 Page.reload = function() {
 	debug('Page.reload()');
 	window.location.href = window.location.href;
+};
+
+Page.clearFBpost = function(obj) {
+	var output = [];
+	for (var i=0; i<obj.length; i++) {
+		if (obj[i].name.indexOf('fb_') !== 0) {
+			output.push(obj[i]);
+		}
+	}
+	if (!output.bqh && $('input[name=bqh]').length) {
+		output.push({name:'bqh', value:$('input[name=bqh]').first().val()});
+	}
+	return output;
 };
 
 Page.click = function(el) {
@@ -360,20 +407,44 @@ Page.click = function(el) {
 	} else {
 		this.clear();
 	}
-	var element = $(el).get(0), e = document.createEvent("MouseEvents");
+	var e, element = $(el).get(0);
+	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
-	if (element.wrappedJSObject) {
-		element.wrappedJSObject.dispatchEvent(e);
-	} else {
-		element.dispatchEvent(e);
-	}
+	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
 	this.lastclick = el;
 	this.when = Date.now();
 	return true;
 };
+/*
+post: http://apps.facebook.com/fbml/fbjs_ajax_proxy.php?__a=1
+body:
+appid=46755028429&fb_dtsg=fpDLt&fb_mockajax_context=O%3A16%3A%22CanvasFBMLFlavor%22%3A1%3A%7Bs%3A9%3A%22_fbml_env%22%3Ba%3A11%3A%7Bs%3A4%3A%22user%22%3Bi%3A1007243850%3Bs%3A6%3A%22app_id%22%3Bi%3A46755028429%3Bs%3A10%3A%22fb_page_id%22%3Bi%3A0%3Bs%3A10%3A%22canvas_url%22%3Bs%3A44%3A%22http%3A%2F%2Fapps.facebook.com%2Fcastle_age%2Fkeep.php%22%3Bs%3A10%3A%22source_url%22%3Bs%3A44%3A%22http%3A%2F%2Fweb.castleagegame.com%2Fcastle%2Fkeep.php%22%3Bs%3A9%3A%22loggedout%22%3Bb%3A0%3Bs%3A7%3A%22non-tos%22%3Bb%3A0%3Bs%3A11%3A%22flavor_code%22%3Bi%3A3%3Bs%3A14%3A%22on_canvas_info%22%3Bb%3A1%3Bs%3A8%3A%22is_tosed%22%3Bb%3A1%3Bs%3A8%3A%22fb_frame%22%3Bs%3A10%3A%22castle_age%22%3B%7D%7D&fb_mockajax_context_hash=9819cf66eab1&post_form_id=54f38dee5adaf1e060a9b776075d9d8f&post_form_id_source=AsyncRequest&query%5Bajax%5D=1&query%5Bconsume%5D=true&query%5Bitem%5D=2&require_login=1&type=2&url=http%3A%2F%2F75.126.76.167%2Fcastle%2Fkeep.php
+
+appid				46755028429
+fb_dtsg				fpDLt
+fb_mockajax_context	O:16:"CanvasFBMLFlavor":1:{s:9:"_fbml_env";a:11:{s:4:"user";i:0000000000;s:6:"app_id";i:46755028429;s:10:"fb_page_id";i:0;s:10:"canvas_url";s:44:"http://apps.facebook.com/castle_age/keep.php";s:10:"source_url";s:44:"http://web.castleagegame.com/castle/keep.php";s:9:"loggedout";b:0;s:7:"non-tos";b:0;s:11:"flavor_code";i:3;s:14:"on_canvas_info";b:1;s:8:"is_tosed";b:1;s:8:"fb_frame";s:10:"castle_age";}}
+fb_mockajax_context_hash	9819cf66eab1
+post_form_id		54f38dee5adaf1e060a9b776075d9d8f
+post_form_id_source	AsyncRequest
+query[ajax]			1
+query[consume]		true
+query[item]			2
+require_login		1
+type				2
+url	http://75.126.76.167/castle/keep.php
+
+form: [{"name":"fb_sig_locale","value":"en_GB"},{"name":"fb_sig_in_new_facebook","value":"1"},{"name":"fb_sig_time","value":"1278556687.3793"},{"name":"fb_sig_added","value":"1"},{"name":"fb_sig_profile_update_time","value":"1271859747"},{"name":"fb_sig_expires","value":"1278561600"},{"name":"fb_sig_user","value":"????"},{"name":"fb_sig_session_key","value":"2.KV3i0YLvQndJ1JS06uBLKw__.3600.1278561600-???"},{"name":"fb_sig_ext_perms","value":"status_update,photo_upload,video_upload,email,create_note,share_item,publish_stream"},{"name":"fb_sig_country","value":"bg"},{"name":"fb_sig_api_key","value":"b455181a07582e4d54eab065dbd4f706"},{"name":"fb_sig_app_id","value":"46755028429"},{"name":"fb_sig","value":"633bfeeeb79d92c2c38dfee81067fd0d"},{"name":"consume","value":"true"},{"name":"item","value":"2"},{"name":"ajax","value":"1"}]
+
+	$form = $(el).parents('form:first');
+	if ($form.length) {
+		debug('Sending in form: '+($form.attr('method') || 'GET')+' '+Page.page+' = '+JSON.stringify($form.serializeArray()));
+		Page.to(Page.page, this.clearFBpost($form.serializeArray()));
+	}
+*/
 
 Page.clear = function() {
-	this.last = this.lastclick = this.when = null;
+	this.last = this.lastbody = this.lastclick = this.when = null;
+	this.loading = false;
 	this.retry = 0;
 };
 

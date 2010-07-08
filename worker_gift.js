@@ -14,7 +14,7 @@
 var Gift = new Worker('Gift');
 
 Gift.defaults['castle_age'] = {
-	pages:'* index army_invite army_gifts gift_accept'
+	pages:'* facebook index army_invite army_gifts gift_accept'
 };
 
 Gift.data = {
@@ -75,6 +75,9 @@ Gift.init = function() {
 
 Gift.parse = function(change) {
 	if (change) {
+		if (change === 'facebook') {
+			debug('Facebook popup parsed...');
+		}
 		return false;
 	}
 	var j, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
@@ -200,7 +203,7 @@ Gift.work = function(state) {
 			return QUEUE_CONTINUE;
 		}
 //		debug('Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
-		if (!Page.to('army_invite', '?act=acpt&rqtp=gift&uid=' + this.runtime.gift.sender_id) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
+		if (!Page.to('army_invite', {act:'acpt', rqtp:'gift', uid:this.runtime.gift.sender_id}) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
 			return QUEUE_CONTINUE;
 		}
 	}
@@ -302,7 +305,9 @@ Gift.work = function(state) {
 				}
 				continue;
 			}
-			if (!Page.to('army_gifts', '?app_friends=c&giftSelection=' + this.data.gifts[i].slot, true)){	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
+			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
+// Need to deal with the fb requests some other way - possibly an extra parse() option...
+//			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
 				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
