@@ -2424,8 +2424,6 @@ Page.option = {
 };
 
 Page.page = '';
-Page.last = null; // Need to have an "auto retry" after a period
-Page.lastbody = null; // For POST requests
 Page.lastclick = null;
 Page.when = null;
 Page.retry = 0; // Number of times we tried
@@ -2655,12 +2653,12 @@ Page.identify = function() {
 };
 
 Page.onreadystatechange = function() {
-	if (Page.request.readyState !== 4) {
+	if (this.readyState !== 4) {
 		return;
 	}
 	try {
-		if (Page.request.responseText && Page.request.status === 200) {
-			var data = Page.request.responseText;
+		if (this.responseText && this.status === 200) {
+			var data = this.responseText;
 			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
 				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
 				if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
@@ -2680,11 +2678,15 @@ Page.onreadystatechange = function() {
 	} catch(e){}
 	if (++Page.retry < Page.option.retry) {
 		debug('Page not loaded correctly, retry last action.');
+		var that = this;
 		window.setTimeout(function(){
-			Page.request = new XMLHttpRequest();
-			Page.request.open(method, Page.last);
-			Page.request.onreadystatechange = Page.onreadystatechange;
-			Page.request.send(Page.lastbody);
+			var request = new XMLHttpRequest();
+			request.open(that._method, that._url);
+			request._method = that._method;
+			request._url = that._url;
+			request._body = that._body;
+			request.onreadystatechange = that.onreadystatechange;
+			request.send(that._body);
 		}, Page.option.delay * 1000);
 	} else {
 		debug('Page not loaded correctly, reloading.');
@@ -2696,7 +2698,7 @@ Page.onreadystatechange = function() {
 Page.to(['GET' | 'POST',] 'index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
 Page.to = function() { // Force = true/false (ignore pause and reload page if true)
-	var i, method = 'GET', page, args, force = 0, request;
+	var i, method = 'GET', page, body, args, force = 0, request;
 	for (i=0; i<arguments.length; i++) {
 		switch (typeof arguments[i]) {
 			case 'string':
@@ -2708,7 +2710,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 					if (method === 'GET') {
 						args = (arguments[i].indexOf('?') !== 0 ? '?' : '') + arguments[i];
 					} else {
-						this.lastbody = arguments[i];
+						body = arguments[i];
 					}
 				}
 				break;
@@ -2719,7 +2721,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				if (method === 'GET') {
 					args = '?' + decodeURIComponent($.param(arguments[i]));
 				} else {
-					this.lastbody = decodeURIComponent($.param(arguments[i]));
+					body = decodeURIComponent($.param(arguments[i]));
 				}
 				break;
 			default:
@@ -2736,23 +2738,25 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 //	this._push();
 	if (page && this.pageNames[page] && this.pageNames[page].url) {
 		this.clear();
-		this.last = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
+		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
 		if (method === 'GET') {
-			if (args && this.last.indexOf('?') > 0) {
-				this.last = this.last.substr(0, this.last.indexOf('?'));
+			if (args && page.indexOf('?') > 0) {
+				page = page.substr(0, page.indexOf('?'));
 			}
-			this.last = this.last + (args ? args : '');
+			page = page + (args ? args : '');
 		}
-		debug('Navigating to ' + page + ' (' + (force ? 'FORCE: ' : '') + this.last + ')');
+		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
 			window.location.href = this.last;
 		} else {
-			Page.request = new XMLHttpRequest();// Reuse the same request to save memory etc
-			Page.request.open(method, this.last);
-			Page.request.onreadystatechange = Page.onreadystatechange;
-			//Page.request.overrideMimeType('text/plain');
-			Page.request.send(this.lastbody);
+			request = new XMLHttpRequest();
+			request.open(method, page);
+			request._method = method;
+			request._url = page;
+			request._body = body;
+			request.onreadystatechange = Page.onreadystatechange;
+			request.send(body);
 			this.loading = true;
 			setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
 		}
@@ -2840,7 +2844,7 @@ form: [{"name":"fb_sig_locale","value":"en_GB"},{"name":"fb_sig_in_new_facebook"
 */
 
 Page.clear = function() {
-	this.last = this.lastbody = this.lastclick = this.when = null;
+	this.lastclick = this.when = null;
 	this.loading = false;
 	this.retry = 0;
 };
