@@ -6763,18 +6763,18 @@ Monster.parse = function(change) {
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
+			if (types[i].dead && $('#app'+APPID+'_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
 				//debug('Found a dead '+i);
 				type_label = i;
 				timer = types[i].timer;
 				dead = true;
 				break;
-			} else if (types[i].image && $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
+			} else if (types[i].image && $('#app'+APPID+'_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//debug('Parsing '+i);
 				type_label = i;
 				timer = types[i].timer;
 				break;
-			} else if (types[i].image2 && $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
+			} else if (types[i].image2 && $('#app'+APPID+'_app_body img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
 				//debug('Parsing second stage '+i);
 				type_label = i;
 				timer = types[i].timer2 || types[i].timer;
