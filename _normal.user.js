@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 675;
+var revision = 676;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8650,7 +8650,7 @@ Town.update = function(type) {
                     if (data[u] && data[u].cost){
                         data[u].req = Math.max(quests[i].units[u],data[u].req);
                         if (data[u].own < data[u].req && this.option.quest_buy){
-                            list_buy.push([u,data[u].req - data[u].own,data[u].cost]);
+                            list_buy.push([u,data[u].req - data[u].own,data[u].cost,data[u].buy]);
                         }
                     }
                 }
@@ -8662,7 +8662,7 @@ Town.update = function(type) {
                 return (a[2]*a[1]) - (b[2]*b[1]);
             });
             best_buy = list_buy[0][0];
-            buy = list_buy[0][1];
+            buy = (list_buy[0][1] > Math.max.apply( Math, list_buy[0][3])) ? Math.max.apply( Math, list_buy[0][3]) : list_buy[0][1];
         }
     }
     if (!best_buy && max_buy){
@@ -9116,21 +9116,29 @@ Town.update = function(type) {
         this.runtime.sell = sell;
         this.runtime.cost = sell * data[best_sell].cost / 2;
         Dashboard.status(this, 'Want to sell ' + sell + ' x ' + best_sell + ' for $' + shortNumber(this.runtime.cost) + '<br> (Available Cash: $' + shortNumber(Bank.worth()) + ' Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)');
+        this.runtime.best_buy = null;
+        this.runtime.buy = null;
     } else if (best_buy && buy){
         this.runtime.buy = buy;
         this.runtime.cost = buy * data[best_buy].cost;
         Dashboard.status(this, 'Want to buy ' + buy + ' x ' + best_buy + ' for $' + shortNumber(this.runtime.cost) + '<br> (Available Cash: $' + shortNumber(Bank.worth()) + ' Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)');
-    } else {
+        this.runtime.best_sell = null;
+        this.runtime.sell = null;
+} else {
+        this.runtime.best_buy = null;
+        this.runtime.buy = null;
+        this.runtime.best_sell = null;
+        this.runtime.sell = null;
         this.runtime.cost = null;
         Dashboard.status(this);
     }
 };
 
 Town.work = function(state) {
-    if (state && this.runtime.best_sell !== null){
+    if (this.runtime.best_sell){
         if (!state || !this.sell(this.runtime.best_sell, this.runtime.sell)) {
             Dashboard.status(this, 'Want to sell ' + this.runtime.sell + ' x ' + this.runtime.best_sell + ' for $' + shortNumber(this.runtime.cost) + '<br> (Available Cash: $' + shortNumber(Bank.worth()) + ' Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)');
-            //debug('Checking Sell');
+            debug('Checking Sell');
             return QUEUE_CONTINUE;
         }
     }
