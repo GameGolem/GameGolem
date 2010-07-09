@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 673;
+var revision = 674;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7266,7 +7267,7 @@ Monster.update = function(what,worker) {
 		}
 	}
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a[0]], monster_b = Monster.data[a[0]];
+		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]];
 		switch(Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);
