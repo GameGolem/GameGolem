@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 671;
+var revision = 672;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6962,6 +6962,7 @@ Monster.parse = function(change) {
 		if (monster.mclass > 1){	// If we are a Rogue or Mage
 			// Attempt to check if we are in the wrong phase
 			if ($(Monster['class_off'][monster.mclass]).length === 0){
+				monster.secondary = 0;
 				for(i in Monster['secondary_img']) {
 					$secondary = $(Monster['secondary_img'][i]);
 					if ($secondary.length) {
