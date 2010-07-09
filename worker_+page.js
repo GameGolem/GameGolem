@@ -343,10 +343,12 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				force = arguments[i];
 				break;
 			case 'object':
-				if (method === 'GET') {
-					args = '?' + decodeURIComponent($.param(arguments[i]));
-				} else {
-					body = decodeURIComponent($.param(arguments[i]));
+				if (arguments[i] !== null) {
+					if (method === 'GET') {
+						args = '?' + decodeURIComponent($.param(arguments[i]));
+					} else {
+						body = decodeURIComponent($.param(arguments[i]));
+					}
 				}
 				break;
 			default:

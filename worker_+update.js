@@ -36,6 +36,7 @@ Update.init = function() {
 	var $btn = $('<img class="golem-button" name="Check for Updates" id="golem_update" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
 		$(this).addClass('red');
 		Update.runtime.force = true;
+		Update.update();
 	});
 	$('#golem_buttons').append($btn);
 	if (isRelease) {
@@ -43,23 +44,26 @@ Update.init = function() {
 			$(this).addClass('red');
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
 			Update.runtime.force = true;
+			Update.update();
 		});
 		$('#golem_buttons').append($btn);
 	}
+	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000));// 6 hours max
 };
 
-/***** Update.work() *****
+/***** Update.update() *****
 1a. Check that we've not already found an update
 1b. Check that it's been more than 6 hours since the last update
 2a. Use AJAX to get the google trunk source webpage (list of files and revisions)
 2b. Parse out the revision string for both release and beta
-3. Display a notification if there's a new version - 
+3. Display a notification if there's a new version
+4. Set a reminder if there isn't
 */
-Update.work = function(state) {
+Update.update = function(type,worker) {
 	if (!this.found && !this.looking && (this.runtime.force || Date.now() - this.runtime.lastcheck > 21600000)) {// 6+ hours since last check (60x60x6x1000ms)
 		this.looking = true;
 		this.runtime.lastcheck = Date.now();
-		debug('Checking trunk revisions');
+		debug('Checking for updates');
 		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
 			method: "GET",
 			url: 'http://code.google.com/p/game-golem/source/browse/trunk',
@@ -86,7 +90,8 @@ Update.work = function(state) {
 							complete:function(){$(this).remove();}
 						});
 						$('#golem_buttons').after($btn);
-						log('No new releaases');
+						Update._remind(21600);// 6 hours
+						log('No new releases');
 					}
 					Update.runtime.force = Update.looking = false;
 					$('#golem_update').removeClass('red');
