@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 674;
+var revision = 675;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3667,7 +3666,7 @@ Window.init = function() {
 		this.active = true;
 		this.data['active'] = this.global['_id'];
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
-		$('.golem-title').after('<div id="golem_window" class="golem-button green" style="display:none;">Enabled</div>');
+		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
 	} else {
 		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button red"><b>Disabled</b></div>');
 		$('#golem_window').nextAll().hide();
