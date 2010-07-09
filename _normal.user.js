@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 669;
+var revision = 671;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2453,7 +2453,7 @@ Page.display = [
 		help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in facebook'
 	},{
 		id:'click',
-		label:'Replace Mouse Click',
+		label:'Replace Links',
 		checkbox:true,
 		help:'Uses Golem code for clicking on links rather than facebook code - may help with some white screen issues'
 	}
@@ -2530,12 +2530,13 @@ Page.removeFacebookChat = function() {
 
 Page.replaceClickHandlers = function() {
 	// Remove all CA click handlers...
+	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
+		$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
+	});
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
-	.each(function(i,el){
-		$(el).removeAttr('onclick');
-	})
 	.click(function(event){
-		if (event.which === 1 && Page.toURL($(this).attr('href'), false)) {// Left click only
+		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
+//			debug('Replacing CA link');
 			event.preventDefault();
 			event.stopImmediatePropagation()
 			return false;
@@ -2547,9 +2548,12 @@ Page.init = function() {
 	// Only perform the check on the two id's referenced in get_cached_ajax()
 	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
 	$('body').bind('DOMNodeInserted', function(event){
-		if (!Page.node_trigger && ($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
+		if (($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
+			window.clearTimeout(Page.node_trigger);
 			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(false);},100);// Normal game stuff
-		} else if (!Page.node_trigger && $(event.target).hasClass('generic_dialog_popup')) {
+		} else if ($(event.target).hasClass('generic_dialog_popup')) {
+//		} else if ($(event.target).attr('id') === 'pop_content') {
+			window.clearTimeout(Page.node_trigger);
 			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(true);},100);// Facebook popup display
 		}
 	});
@@ -2652,41 +2656,50 @@ Page.identify = function() {
 	return this.page;
 };
 
+Page.request = {method:'GET', url:null, body:null}
+
 Page.onreadystatechange = function() {
 	if (this.readyState !== 4) {
 		return;
 	}
 	try {
-		if (this.responseText && this.status === 200) {
-			var data = this.responseText;
-			if (data.indexOf('app'+APPID+'_results_container') !== -1 && data.indexOf('</html>') !== -1 && data.indexOf('single_popup') !== -1 && data.indexOf('app'+APPID+'_index') !== -1) { // Last things in source if loaded correctly...
-				data = data.substring(data.indexOf('<div id="app'+APPID+'_globalContainer"'), data.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-				if (data.indexOf(APP) !== -1) {// Should be loads of links to the right page within the source
-					if (Page.option.nochat) {
-						data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
-					}
-					$('#app'+APPID+'_AjaxLoadIcon').hide();
-					$('#app'+APPID+'_globalContainer').replaceWith(data);
-					if (Page.option.click) {
-						Page.replaceClickHandlers();
-					}
-					Page.clear();
-					return;// Stop here as we're done
-				}
-			}
+		// First check it's there, and an html page
+		if (this.status !== 200 || !this.responseText || this.responseText.indexOf('</html>') === -1) {
+			throw(this.status===200 ? 'Bad response status' : 'Bad data');
 		}
-	} catch(e){}
-	if (++Page.retry < Page.option.retry) {
+		// Reduce it to just the stuff we want...
+		var data = this.responseText.substring(this.responseText.indexOf('<div id="app'+APPID+'_globalContainer"'), this.responseText.indexOf('<div class="UIStandardFrame_SidebarAds"'));
+		// Then check if it's still valid
+		if (!data // || data.indexOf(APP) === -1
+		|| data.indexOf('app'+APPID+'_results_container') === -1
+		|| data.indexOf('app'+APPID+'_app_body') === -1) {
+			throw('Bad data');
+		}
+// Last things in source if loaded correctly...
+		try {// Once we're here we want to complete...
+			if (Page.option.nochat) {
+				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
+			}
+			$('#app'+APPID+'_AjaxLoadIcon').hide();
+			$('#app'+APPID+'_globalContainer').replaceWith(data);
+			Page.clear();
+			if (Page.option.click) {
+				Page.replaceClickHandlers();
+			}
+		} catch(e1){
+			debug(e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
+		}
+		return;// Stop here as we're done
+	} catch(e2){
+		debug('AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
+	}
+	if (++Page.retry < Page.option.retry && Page.request.url) {
 		debug('Page not loaded correctly, retry last action.');
-		var that = this;
 		window.setTimeout(function(){
 			var request = new XMLHttpRequest();
-			request.open(that._method, that._url);
-			request._method = that._method;
-			request._url = that._url;
-			request._body = that._body;
-			request.onreadystatechange = that.onreadystatechange;
-			request.send(that._body);
+			request.open(Page.request.method || 'GET', Page.request.url);
+			request.onreadystatechange = Page.onreadystatechange;
+			request.send(Page.request.body);
 		}, Page.option.delay * 1000);
 	} else {
 		debug('Page not loaded correctly, reloading.');
@@ -2698,14 +2711,23 @@ Page.onreadystatechange = function() {
 Page.to(['GET' | 'POST',] 'index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
 Page.to = function() { // Force = true/false (ignore pause and reload page if true)
-	var i, method = 'GET', page, body, args, force = 0, request;
+	var i, j, method = 'GET', page, body, args, force = 0, request;
 	for (i=0; i<arguments.length; i++) {
 		switch (typeof arguments[i]) {
 			case 'string':
 				if (arguments[i].toUpperCase() === 'GET' || arguments[i].toUpperCase() === 'POST') {
 					method = arguments[i].toUpperCase();
 				} else if (!page) {
-					page = arguments[i];
+					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {
+						for (j in Page.pageNames) {
+							if (arguments[i].indexOf('/'+Page.pageNames[j].url) !== -1) {
+								page = j;
+								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
+							}
+						}
+					} else {
+						page = arguments[i];
+					}
 				} else {
 					if (method === 'GET') {
 						args = (arguments[i].indexOf('?') !== 0 ? '?' : '') + arguments[i];
@@ -2728,6 +2750,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				break;
 		}
 	}
+//	debug('Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
 	if (force === 0 && Queue.option.pause) {
 		debug('Trying to load page when paused...');
 		return true;
@@ -2740,21 +2763,23 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		this.clear();
 		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
-		if (method === 'GET') {
-			if (args && page.indexOf('?') > 0) {
+		if (method === 'GET' && args) {
+			if (page.indexOf('?') > 0) {
 				page = page.substr(0, page.indexOf('?'));
 			}
-			page = page + (args ? args : '');
+			page = page + args;
 		}
 		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
-			window.location.href = this.last;
+			window.location.href = page;
 		} else {
+			Page.request = {
+				method:method,
+				url:page,
+				body:body
+			};
 			request = new XMLHttpRequest();
 			request.open(method, page);
-			request._method = method;
-			request._url = page;
-			request._body = body;
 			request.onreadystatechange = Page.onreadystatechange;
 			request.send(body);
 			this.loading = true;
@@ -2762,17 +2787,6 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		}
 	}
 //	this._pop();
-	return false;
-};
-
-Page.toURL = function(url, force) {
-	url = url.substr(url.lastIndexOf('/')+1);
-	for (var i in Page.pageNames) {
-		if (Page.pageNames[i].url.indexOf(url) === 0) {
-			Page.to(i, url.indexOf('?')>=0 ? url.substr(url.indexOf('?')) : '', force);
-			return true;
-		}
-	}
 	return false;
 };
 
