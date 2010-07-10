@@ -180,10 +180,8 @@ Quest.update = function(type,worker) {
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {// Only checking for unique if the Alchemy data has changed - saves CPU
 		for (i in quests) {
-			if (quests[i].unique) {
-				if (!Alchemy.get(['ingredients', quests[i].itemimg]) && (!best || quests[i].energy < quests[best].energy)) {
-					best = i;
-				}
+			if (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
+				best = i;
 			}
 		}
 		this.lastunique = Date.now();
@@ -213,8 +211,8 @@ Quest.update = function(type,worker) {
 					if (quests[i].type !== 2
 					&& typeof quests[i].land === 'number'
 					&& quests[i].land >= best_land
-					&& (quests[i].influence < 100 || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg])))
-					&& (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && quests[i].energy < quests[best_influence].energy))) {
+					&& ((typeof quests[i].influence !== 'undefined' && quests[i].influence < 100) || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
+					&& (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && quests[i].energy < quests[best_advancement].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
 					}// Deliberate fallthrough
