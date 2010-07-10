@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 678;
+var revision = 680;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2745,11 +2745,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		return true;
 	}
 //	this._push();
-	if (!page || !this.pageNames[page]) {
-//		debug('Trying to access unknown page: ' + (page || 'unknown'));
-		return true;
-	}
-	if (this.pageNames[page].url) {
+	if (page && this.pageNames[page] && this.pageNames[page].url) {
 		this.clear();
 		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
@@ -2858,7 +2854,7 @@ Page.clear = function() {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Queue() **********
@@ -2949,7 +2945,7 @@ Queue.init = function() {
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue.indexOf, i)) {
+		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
 			log('Adding '+i+' to Queue');
 			if (Workers[i].settings.unsortable) {
 				this.option.queue.unshift(i);

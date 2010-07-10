@@ -364,11 +364,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		return true;
 	}
 //	this._push();
-	if (!page || !this.pageNames[page]) {
-//		debug('Trying to access unknown page: ' + (page || 'unknown'));
-		return true;
-	}
-	if (this.pageNames[page].url) {
+	if (page && this.pageNames[page] && this.pageNames[page].url) {
 		this.clear();
 		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
