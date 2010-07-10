@@ -4,7 +4,7 @@
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -124,10 +124,10 @@ Quest.parse = function(change) {
 		quest[name].area = area;
 		quest[name].type = type;
 		quest[name].id = parseInt($('input[name="quest"]', el).val(), 10);
-		if (typeof land === 'number') {
+		if (isNumber(land)) {
 			quest[name].land = land;
 		}
-		if (typeof influence === 'number') {
+		if (isNumber(influence)) {
 			quest[name].level = (level || 0);
 			quest[name].influence = influence;
 		}
@@ -171,7 +171,7 @@ Quest.update = function(type,worker) {
 	this._watch(Queue);
 	if (!type || type === 'data') {
 		for (i in quests) {
-			if (quests[i].item && !quests[i].unique) {
+			if (quests[i].item && quests[i].type !== 3) {
 				list.push(quests[i].item);
 			}
 		}
@@ -180,7 +180,7 @@ Quest.update = function(type,worker) {
 	// Now choose the next quest...
 	if (this.option.unique && Alchemy._changed > this.lastunique) {// Only checking for unique if the Alchemy data has changed - saves CPU
 		for (i in quests) {
-			if (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
+			if (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
 				best = i;
 			}
 		}
@@ -209,15 +209,15 @@ Quest.update = function(type,worker) {
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (quests[i].type !== 2
-					&& typeof quests[i].land === 'number'
+					&& isNumber(quests[i].land)
 					&& quests[i].land >= best_land
-					&& ((typeof quests[i].influence !== 'undefined' && quests[i].influence < 100) || (quests[i].unique && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
-					&& (!best_advancement || quests[i].land > (quests[best_advancement].land || 0) || (quests[i].land === quests[best_advancement].land && quests[i].energy < quests[best_advancement].energy))) {
+					&& ((isNumber(quests[i].influence) && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
+					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (typeof quests[i].influence !== 'undefined'
+					if (isNumber(quests[i].influence)
 					&& quests[i].influence < 100
 					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
@@ -250,11 +250,11 @@ Quest.update = function(type,worker) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = quests[best].energy;
-			debug('Wanting to perform - ' + best + ' in ' + (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', gold: $' + shortNumber(quests[best].reward) + ')');
+			debug('Wanting to perform - ' + best + ' in ' + (isNumber(quests[best].land) ? this.land[quests[best].land] : this.area[quests[best].area]) + ' (energy: ' + quests[best].energy + ', experience: ' + quests[best].exp + ', gold: $' + shortNumber(quests[best].reward) + ')');
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (typeof quests[best].land === 'number' ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + quests[best].energy + ' = ' + makeImage('exp') + quests[best].exp + ' + ' + makeImage('gold') + '$' + shortNumber(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (typeof quests[best].influence !== 'undefined' && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + quests[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (isNumber(quests[best].land) ? this.land[quests[best].land] : this.area[quests[best].area]) + ': ' + best + ' (' + makeImage('energy') + quests[best].energy + ' = ' + makeImage('exp') + quests[best].exp + ' + ' + makeImage('gold') + '$' + shortNumber(quests[best].reward) + (quests[best].item ? Town.get([quests[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([quests[best].item, 'img']) + '" title="' + quests[best].item + '">' : ' + ' + quests[best].item : '') + (isNumber(quests[best].influence) && quests[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + quests[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -271,7 +271,7 @@ Quest.work = function(state) {
 	if (this.option.monster && Monster.option.defend_active) {
 		Monster._unflush();
 		for (mid in Monster.data) {
-			if (Monster.data[mid].state === 'engage' && typeof Monster.data[mid].defense === 'number' && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
+			if (Monster.data[mid].state === 'engage' && isNumber(Monster.data[mid].defense) && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
 				return QUEUE_FINISH;
 			}
 			if (Monster.option.defend_active && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
@@ -283,23 +283,23 @@ Quest.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	if (this.option.general) {
-		if (this.data[best].general && typeof this.data[best].influence === 'number' && this.data[best].influence < 100) {
+		if (this.data[best].general && isNumber(this.data[best].influence) && this.data[best].influence < 100) {
 			general = this.data[best].general;
 		} else {
 			switch(this.option.what) {
 				case 'Influence':
 				case 'Advancement':
 				case 'Experience':
-					general = Generals.best('under level 4');
-					if (general === 'any' && this.data[best].influence < 100) {
-						general = Generals.best('influence');
+					general = 'under level 4';
+					if (general === 'any' && isNumber(this.data[best].influence) && this.data[best].influence < 100) {
+						general = 'influence';
 					}
 					break;
 				case 'Cash':
-					general = Generals.best('cash');
+					general = 'cash';
 					break;
 				default:
-					general = Generals.best('item');
+					general = 'item';
 					break;
 			}
 		}
@@ -335,12 +335,12 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
-	if (this.option.unique && this.data[best].unique && !Alchemy.get(['ingredients', this.data[i].itemimg])) {
-		Alchemy.set(['ingredients', this.data[i].itemimg], 1);
-	}
-	if (this.option.what === 'Advancement' && this.data[best].unique) { // If we just completed a boss quest, check for a new quest land.
-		if (this.data[best].land < 6) {	// There are still lands to explore
-			Page.to('quests_quest' + (this.data[best].land + 2));
+	if (quests[best].type === 3) {// Just completed a boss quest
+		if (!Alchemy.get(['ingredients', this.data[best].itemimg], 0)) {// Add one as we've just gained it...
+			Alchemy.set(['ingredients', this.data[best].itemimg], 1);
+		}
+		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (this.data[best].land + 2)]) {// If we just completed a boss quest, check for a new quest land.
+			Page.to('quests_quest' + (this.data[best].land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
 	return QUEUE_RELEASE;
@@ -370,9 +370,9 @@ Quest.dashboard = function(sort, rev) {
 			case 1: // name
 				return q;
 			case 2: // area
-				return typeof Quest.data[q].land === 'number' && typeof Quest.land[Quest.data[q].land] !== 'undefined' ? Quest.land[Quest.data[q].land] : Quest.area[Quest.data[q].area];
+				return isNumber(Quest.data[q].land) && typeof Quest.land[Quest.data[q].land] !== 'undefined' ? Quest.land[Quest.data[q].land] : Quest.area[Quest.data[q].area];
 			case 3: // level
-				return (typeof Quest.data[q].level !== 'undefined' ? Quest.data[q].level : -1) * 100 + (Quest.data[q].influence || 0);
+				return (isNumber(Quest.data[q].level) ? Quest.data[q].level : -1) * 100 + (Quest.data[q].influence || 0);
 			case 4: // energy
 				return Quest.data[q].energy;
 			case 5: // exp
@@ -386,7 +386,7 @@ Quest.dashboard = function(sort, rev) {
 	}
 	this.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
-		if (typeof aa === 'string' || typeof bb === 'string') {
+		if (isString(aa) || isString(bb)) {
 			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
@@ -405,8 +405,8 @@ Quest.dashboard = function(sort, rev) {
 		output = [];
 		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
 		th(output, i);
-		td(output, typeof this.data[i].land === 'number' ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
-		td(output, typeof this.data[i].level !== 'undefined' ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
+		td(output, isNumber(this.data[i].land) ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
+		td(output, isNumber(this.data[i].level) ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
 		td(output, this.data[i].energy);
 		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
 		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');

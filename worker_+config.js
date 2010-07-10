@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Config **********
@@ -78,24 +78,24 @@ Config.init = function() {
 		.droppable({
 			tolerance:'pointer',
 			over:function(e,ui) {
-				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = arrayIndexOf(order, $(this).attr('name'));
-				if (arrayIndexOf(order, 'Idle') >= newplace) {
+				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
+				if (order.indexOf('Idle') >= newplace) {
 					if (me.settings.before) {
 						for(i=0; i<me.settings.before.length; i++) {
-							if (arrayIndexOf(order, me.settings.before[i]) <= newplace) {
+							if (order.indexOf(me.settings.before[i]) <= newplace) {
 								return;
 							}
 						}
 					}
 					if (me.settings.after) {
 						for(i=0; i<me.settings.after.length; i++) {
-							if (arrayIndexOf(order, me.settings.after[i]) >= newplace) {
+							if (order.indexOf(me.settings.after[i]) >= newplace) {
 								return;
 							}
 						}
 					}
 				}
-				if (newplace < arrayIndexOf(order, $(ui.draggable).attr('name'))) {
+				if (newplace < order.indexOf($(ui.draggable).attr('name'))) {
 					$(this).before(ui.draggable);
 				} else {
 					$(this).after(ui.draggable);

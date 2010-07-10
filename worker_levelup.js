@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.LevelUp **********
@@ -171,7 +171,7 @@ LevelUp.update = function(type,worker) {
 	} else {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
-		if ((arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Monster') && (Monster.runtime.attack)) || (arrayIndexOf(order, 'Idle') >= arrayIndexOf(order, 'Battle'))){
+		if ((order.indexOf('Idle') >= order.indexOf('Monster') && (Monster.runtime.attack)) || (order.indexOf('Idle') >= order.indexOf('Battle'))){
 			runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
 		}
 
@@ -261,7 +261,7 @@ LevelUp.work = function(state) {
 		}
 	}
 	// We don't have focus, but we do want to level up quicker
-	if (this.option.order !== 'Stamina' || !stamina || Player.get('health') < 13 || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle')))) || ((arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Monster') || (!Monster.runtime.attack)) && (!Battle.runtime.attacking || (arrayIndexOf(order, 'Idle') <= arrayIndexOf(order, 'Battle'))))){
+	if (this.option.order !== 'Stamina' || !stamina || Player.get('health') < 13 || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (order.indexOf('Idle') <= order.indexOf('Battle')))) || ((order.indexOf('Idle') <= order.indexOf('Monster') || (!Monster.runtime.attack)) && (!Battle.runtime.attacking || (order.indexOf('Idle') <= order.indexOf('Battle'))))){
 		debug('Running Energy Burn');
 		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 			runtime.old_quest = Quest.runtime.best;

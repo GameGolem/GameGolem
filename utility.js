@@ -8,7 +8,7 @@
 */
 // Utility functions
 
-// Functions to check type of variable
+// Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
 var isArray = function(obj) {// Not an object
     return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
@@ -28,6 +28,10 @@ var isNumber = function(num) {
 
 var isString = function(str) {
 	return typeof str === 'string';
+};
+
+var isUndefined = function(obj) {
+	return typeof obj === 'undefined';
 };
 
 // Big shortcut for being inside a try/catch block
@@ -218,7 +222,9 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 
 var findInArray = function(list, value) {
 	if (isArray(list)) {
-		for (var i=0; i<list.length; i++) {
+		return list.indexOf(value) === -1;
+	} else if (isObject(list)) {
+		for (var i in list) {
 			if (list[i] === value) {
 				return true;
 			}
@@ -247,28 +253,6 @@ var objectIndex = function(list, index) {
 		}
 	}
 	return null;
-};
-
-var arrayIndexOf = function(list, value) {
-	if (isArray(list)) {
-		for (var i=0; i<list.length; i++) {
-			if (list[i] === value) {
-				return i;
-			}
-		}
-	}
-	return -1;
-};
-
-var arrayLastIndexOf = function(list, value) {
-	if (isArray(list)) {
-		for (var i=list.length-1; i>=0; i--) {
-			if (list[i] === value) {
-				return i;
-			}
-		}
-	}
-	return -1;
 };
 
 var sortObject = function(obj, sortfunc, deep) {

@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, arrayIndexOf, arrayLastIndexOf, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Page() **********
@@ -183,7 +183,7 @@ Page.parse_all = function(isFacebook) {
 				}
 			} else if (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
 				Workers[i]._unflush();
-				if (Workers[i]._parse(isFacebook ? 'facebook' : false)) {
+				if (Workers[i]._parse(false)) {
 					list.push(Workers[i]);
 				}
 			}
@@ -364,7 +364,11 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		return true;
 	}
 //	this._push();
-	if (page && this.pageNames[page] && this.pageNames[page].url) {
+	if (!page || !this.pageNames[page]) {
+//		debug('Trying to access unknown page: ' + (page || 'unknown'));
+		return true;
+	}
+	if (this.pageNames[page].url) {
 		this.clear();
 		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
