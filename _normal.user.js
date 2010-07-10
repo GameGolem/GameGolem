@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 677;
+var revision = 678;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -482,7 +482,7 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 
 var findInArray = function(list, value) {
 	if (isArray(list)) {
-		return list.indexOf(value) === -1;
+		return list.indexOf(value) !== -1;
 	} else if (isObject(list)) {
 		for (var i in list) {
 			if (list[i] === value) {
@@ -2858,7 +2858,7 @@ Page.clear = function() {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Queue() **********
@@ -2949,7 +2949,7 @@ Queue.init = function() {
 	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
+		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue.indexOf, i)) {
 			log('Adding '+i+' to Queue');
 			if (Workers[i].settings.unsortable) {
 				this.option.queue.unshift(i);

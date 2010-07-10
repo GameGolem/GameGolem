@@ -222,7 +222,7 @@ var addCommas = function(s) { // Adds commas into a string, ignore any number fo
 
 var findInArray = function(list, value) {
 	if (isArray(list)) {
-		return list.indexOf(value) === -1;
+		return list.indexOf(value) !== -1;
 	} else if (isObject(list)) {
 		for (var i in list) {
 			if (list[i] === value) {
