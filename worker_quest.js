@@ -178,13 +178,12 @@ Quest.update = function(type,worker) {
 		Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
 	}
 	// Now choose the next quest...
-	if (this.option.unique && Alchemy._changed > this.lastunique) {// Only checking for unique if the Alchemy data has changed - saves CPU
+	if (this.option.unique) {
 		for (i in quests) {
 			if (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
 				best = i;
 			}
 		}
-		this.lastunique = Date.now();
 	}
 	if (!best && this.option.what !== 'Nothing') {
 //		debug('option = ' + this.option.what);

@@ -45,46 +45,45 @@ Alchemy.display = [
 ];
 
 Alchemy.parse = function(change) {
-	var ingredients = this.data.ingredients = {}, recipe = this.data.recipe = {};
-	$('div.ingredientUnit').each(function(i,el){
-		var name = $('img', el).attr('src').filepart();
-		ingredients[name] = $(el).text().regex(/x([0-9]+)/);
-	});
+	this.data.ingredients = {};
+	this.data.recipe = {};
+	this.data.summons = {};
 	$('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster').each(function(i,el){
-		var me = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
+		var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
 		if (title.indexOf(' (')>0) {
 			title = title.substr(0, title.indexOf(' ('));
 		}
 		if ($(el).hasClass('alchemyQuestBack')) {
-			me.type = 'Quest';
+			recipe.type = 'Quest';
 		} else if ($(el).hasClass('alchemyRecipeBack')) {
-			me.type = 'Recipe';
+			recipe.type = 'Recipe';
 		} else if ($(el).hasClass('alchemyRecipeBackMonster')) {
-			me.type = 'Summons';
+			recipe.type = 'Summons';
 		}
-		me.ingredients = {};
+		recipe.ingredients = {};
 		$('div.recipeImgContainer', el).parent().each(function(i,el){
 			var name = $('img', el).attr('src').filepart();
-			me.ingredients[name] = ($(el).text().regex(/x([0-9]+)/) || 1);
+			recipe.ingredients[name] = ($(el).text().regex(/x([0-9]+)/) || 1);
+			Alchemy.data.ingredients[name] = 0;// Make sure we know an ingredient exists
+			if (recipe.type === 'Summons') {
+				Alchemy.data.summons[name] = true;// Make sure we know an ingredient exists
+			}
 		});
-		recipe[title] = me;
+		Alchemy.data.recipe[title] = recipe;
+	});
+	$('div.ingredientUnit').each(function(i,el){
+		var name = $('img', el).attr('src').filepart();
+		Alchemy.data.ingredients[name] = $(el).text().regex(/x([0-9]+)/);
 	});
 };
 
 Alchemy.update = function() {
 	var best = null, recipe = this.data.recipe, r, i;
 	for (r in recipe) {
-		if (recipe[r].type === 'Summons') {
-			for (i in recipe[r].ingredients) {
-				this.data.summons[i] = true;
-			}
-		}
-	}
-	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {
 			best = r;
 			for (i in recipe[r].ingredients) {
-				if ((!this.option.hearts && i === 'raid_hearts.gif') || (!this.option.summon && this.data.summons[i]) || recipe[r].ingredients[i] > (this.data.ingredients[i] || 0)) {
+				if ((!this.option.hearts && i === 'raid_hearts.gif') || (!this.option.summon && this.data.summons[i]) || recipe[r].ingredients[i] > this.data.ingredients[i]) {
 					best = null;
 					break;
 				}
