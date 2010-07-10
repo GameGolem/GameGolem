@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 681;
+var revision = 682;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2514,9 +2514,6 @@ Page.removeFacebookChat = function() {
 
 Page.replaceClickHandlers = function() {
 	// Remove all CA click handlers...
-	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
-		$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
-	});
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
 	.click(function(event){
 		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
@@ -2545,6 +2542,9 @@ Page.init = function() {
 		this.removeFacebookChat();
 	}
 	if (this.option.click) {
+		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
+			$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
+		});
 		this.replaceClickHandlers();
 	}
 };
@@ -2558,11 +2558,11 @@ Page.parse_all = function(isFacebook) {
 	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages) {
 			if (isFacebook) {
-				if (Workers[i].pages.indexOf('facebook')) {
+				if (Workers[i].pages.indexOf('facebook') >= 0) {
 					Workers[i]._unflush();
 					Workers[i]._parse('facebook');
 				}
-			} else if (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
+			} else if (Workers[i].pages.indexOf('*') >= 0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
 				Workers[i]._unflush();
 				if (Workers[i]._parse(false)) {
 					list.push(Workers[i]);
@@ -2664,6 +2664,9 @@ Page.onreadystatechange = function() {
 			if (Page.option.nochat) {
 				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
 			}
+			if (Page.option.click) {
+				data = data.replace(/<a onclick="[^"]*"/g, '<a ');
+			}
 			$('#app'+APPID+'_AjaxLoadIcon').hide();
 			$('#app'+APPID+'_globalContainer').replaceWith(data);
 			Page.clear();
@@ -2757,7 +2760,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		}
 		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
-			window.location.href = page;
+			window.location.replace(page);// Load new page without giving a back button
 		} else {
 			Page.request = {
 				method:method,
@@ -2778,7 +2781,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 
 Page.reload = function() {
 	debug('Page.reload()');
-	window.location.href = window.location.href;
+	window.location.replace(window.location.href);
 };
 
 Page.clearFBpost = function(obj) {
@@ -3835,7 +3838,13 @@ Alchemy.parse = function(change) {
 	this.data.ingredients = {};
 	this.data.recipe = {};
 	this.data.summons = {};
-	$('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster').each(function(i,el){
+	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
+	if (!$elements.length) {
+		debug('Can\'t find any alchemy ingredients on '+Page.page+'...');
+//		Page.to('keep_alchemy', false); // Force reload
+		return false;
+	}
+	$elements.each(function(i,el){
 		var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
 		if (title.indexOf(' (')>0) {
 			title = title.substr(0, title.indexOf(' ('));
@@ -4423,7 +4432,7 @@ Battle.dashboard = function(sort, rev) {
 	for (o=0; o<this.order.length; o++) {
 		data = this.data.user[this.order[o]];
 		output = [];
-		td(output, '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">', 'title="' + this.demi[data.align] + '"');
+		td(output, isNumber(data.align) ? '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name, 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
@@ -7296,12 +7305,12 @@ Monster.update = function(what,worker) {
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
 		if (Queue.burn.energy < this.runtime.energy) {
-			amount = (LevelUp.runtime.running && LevelUp.option.enabled)
+			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
 					? (this.runtime.energy - Queue.burn.energy)
 					: Math.max((this.runtime.energy - Queue.burn.energy)
 						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
 						,(Queue.option.start_energy - Player.get('energy')));
-			messages.push('Waiting for ' + amount + makeImage('energy') + ' to defend '
+			messages.push('Waiting for ' + makeImage('energy') + req_energy + ' to defend '
 					+ fullname.defend + ' (' + makeImage('energy') + this.runtime.energy + '+)');
 		} else {
 			messages.push('Defend '	+ fullname.defend + ' (' + makeImage('energy')
@@ -7310,28 +7319,26 @@ Monster.update = function(what,worker) {
 	}
 	if (this.runtime.attack) {
 		type = this.types[this.data[this.runtime.attack].type];
-		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1 ? 1
-				: type.raid
-				? 5 : (this.option.attack_min < Math.min.apply(Math, type.attack)
-					|| this.option.attack_max < Math.min.apply(Math, type.attack))
-				? Math.min.apply(Math, type.attack)
-				: (this.option.attack_min > Math.max.apply(Math, type.attack))
-				? Math.max.apply(Math, type.attack)
-				: (this.option.attack_min > this.option.attack_max)
-				? this.option.attack_max : this.option.attack_min;
+		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1
+			? 1
+			: type.raid
+				? 5
+				: (this.option.attack_min < Math.min.apply(Math, type.attack) || this.option.attack_max < Math.min.apply(Math, type.attack))
+					? Math.min.apply(Math, type.attack)
+					: (this.option.attack_min > Math.max.apply(Math, type.attack))
+						? Math.max.apply(Math, type.attack)
+						: (this.option.attack_min > this.option.attack_max)
+							? this.option.attack_max
+							: this.option.attack_min;
 		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-		if (Player.get('health') < this.runtime.health) {
-			amount = this.runtime.health - Player.get('health');
-			messages.push('Waiting for ' + amount + makeImage('health') + ' to attack '
-					+ fullname.attack + ' (' + makeImage('health') + this.runtime.health + '+)');
-		} else if (Queue.burn.stamina < this.runtime.stamina){
-			amount = (LevelUp.runtime.running && LevelUp.option.enabled)
-					? (this.runtime.stamina - Queue.burn.stamina)
-					: Math.max((this.runtime.stamina - Queue.burn.stamina)
-						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
-						,(Queue.option.start_stamina - Player.get('stamina')));
-			messages.push('Waiting for ' + amount + makeImage('stamina') + ' to attack '
-					+ fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+)');
+		req_health = Math.max(0, this.runtime.health - Player.get('health'));
+		req_stamina = Math.max(0, (LevelUp.runtime.running && LevelUp.option.enabled)
+			? (this.runtime.stamina - Queue.burn.stamina)
+			: Math.max((this.runtime.stamina - Queue.burn.stamina)
+				,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
+				,(Queue.option.start_stamina - Player.get('stamina'))));
+		if (req_stamina || req_health) {
+			messages.push('Waiting for ' + (req_stamina ? makeImage('stamina') + req_stamina : '') + (req_stamina && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '') + ' to attack ' + fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+' + (req_stamina && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
 		} else {
 			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
 					+ this.runtime.stamina + '+)');
@@ -8308,7 +8315,7 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
-	if (quests[best].type === 3) {// Just completed a boss quest
+	if (this.data[best].type === 3) {// Just completed a boss quest
 		if (!Alchemy.get(['ingredients', this.data[best].itemimg], 0)) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', this.data[best].itemimg], 1);
 		}

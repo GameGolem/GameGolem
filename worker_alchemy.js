@@ -48,7 +48,13 @@ Alchemy.parse = function(change) {
 	this.data.ingredients = {};
 	this.data.recipe = {};
 	this.data.summons = {};
-	$('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster').each(function(i,el){
+	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
+	if (!$elements.length) {
+		debug('Can\'t find any alchemy ingredients...');
+//		Page.to('keep_alchemy', false); // Force reload
+		return false;
+	}
+	$elements.each(function(i,el){
 		var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
 		if (title.indexOf(' (')>0) {
 			title = title.substr(0, title.indexOf(' ('));

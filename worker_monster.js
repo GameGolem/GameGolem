@@ -1029,12 +1029,12 @@ Monster.update = function(what,worker) {
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
 		if (Queue.burn.energy < this.runtime.energy) {
-			amount = (LevelUp.runtime.running && LevelUp.option.enabled)
+			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
 					? (this.runtime.energy - Queue.burn.energy)
 					: Math.max((this.runtime.energy - Queue.burn.energy)
 						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
 						,(Queue.option.start_energy - Player.get('energy')));
-			messages.push('Waiting for ' + amount + makeImage('energy') + ' to defend '
+			messages.push('Waiting for ' + makeImage('energy') + req_energy + ' to defend '
 					+ fullname.defend + ' (' + makeImage('energy') + this.runtime.energy + '+)');
 		} else {
 			messages.push('Defend '	+ fullname.defend + ' (' + makeImage('energy')
@@ -1043,28 +1043,26 @@ Monster.update = function(what,worker) {
 	}
 	if (this.runtime.attack) {
 		type = this.types[this.data[this.runtime.attack].type];
-		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1 ? 1
-				: type.raid
-				? 5 : (this.option.attack_min < Math.min.apply(Math, type.attack)
-					|| this.option.attack_max < Math.min.apply(Math, type.attack))
-				? Math.min.apply(Math, type.attack)
-				: (this.option.attack_min > Math.max.apply(Math, type.attack))
-				? Math.max.apply(Math, type.attack)
-				: (this.option.attack_min > this.option.attack_max)
-				? this.option.attack_max : this.option.attack_min;
+		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1
+			? 1
+			: type.raid
+				? 5
+				: (this.option.attack_min < Math.min.apply(Math, type.attack) || this.option.attack_max < Math.min.apply(Math, type.attack))
+					? Math.min.apply(Math, type.attack)
+					: (this.option.attack_min > Math.max.apply(Math, type.attack))
+						? Math.max.apply(Math, type.attack)
+						: (this.option.attack_min > this.option.attack_max)
+							? this.option.attack_max
+							: this.option.attack_min;
 		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-		if (Player.get('health') < this.runtime.health) {
-			amount = this.runtime.health - Player.get('health');
-			messages.push('Waiting for ' + amount + makeImage('health') + ' to attack '
-					+ fullname.attack + ' (' + makeImage('health') + this.runtime.health + '+)');
-		} else if (Queue.burn.stamina < this.runtime.stamina){
-			amount = (LevelUp.runtime.running && LevelUp.option.enabled)
-					? (this.runtime.stamina - Queue.burn.stamina)
-					: Math.max((this.runtime.stamina - Queue.burn.stamina)
-						,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
-						,(Queue.option.start_stamina - Player.get('stamina')));
-			messages.push('Waiting for ' + amount + makeImage('stamina') + ' to attack '
-					+ fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+)');
+		req_health = Math.max(0, this.runtime.health - Player.get('health'));
+		req_stamina = Math.max(0, (LevelUp.runtime.running && LevelUp.option.enabled)
+			? (this.runtime.stamina - Queue.burn.stamina)
+			: Math.max((this.runtime.stamina - Queue.burn.stamina)
+				,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
+				,(Queue.option.start_stamina - Player.get('stamina'))));
+		if (req_stamina || req_health) {
+			messages.push('Waiting for ' + (req_stamina ? makeImage('stamina') + req_stamina : '') + (req_stamina && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '') + ' to attack ' + fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+' + (req_stamina && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
 		} else {
 			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
 					+ this.runtime.stamina + '+)');

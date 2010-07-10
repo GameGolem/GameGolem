@@ -133,9 +133,6 @@ Page.removeFacebookChat = function() {
 
 Page.replaceClickHandlers = function() {
 	// Remove all CA click handlers...
-	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
-		$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
-	});
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
 	.click(function(event){
 		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
@@ -164,6 +161,9 @@ Page.init = function() {
 		this.removeFacebookChat();
 	}
 	if (this.option.click) {
+		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
+			$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
+		});
 		this.replaceClickHandlers();
 	}
 };
@@ -177,11 +177,11 @@ Page.parse_all = function(isFacebook) {
 	for (i in Workers) {
 		if (Workers[i].parse && Workers[i].pages) {
 			if (isFacebook) {
-				if (Workers[i].pages.indexOf('facebook')) {
+				if (Workers[i].pages.indexOf('facebook') >= 0) {
 					Workers[i]._unflush();
 					Workers[i]._parse('facebook');
 				}
-			} else if (Workers[i].pages.indexOf('*')>=0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
+			} else if (Workers[i].pages.indexOf('*') >= 0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
 				Workers[i]._unflush();
 				if (Workers[i]._parse(false)) {
 					list.push(Workers[i]);
@@ -283,6 +283,9 @@ Page.onreadystatechange = function() {
 			if (Page.option.nochat) {
 				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
 			}
+			if (Page.option.click) {
+				data = data.replace(/<a onclick="[^"]*"/g, '<a ');
+			}
 			$('#app'+APPID+'_AjaxLoadIcon').hide();
 			$('#app'+APPID+'_globalContainer').replaceWith(data);
 			Page.clear();
@@ -376,7 +379,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		}
 		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
-			window.location.href = page;
+			window.location.replace(page);// Load new page without giving a back button
 		} else {
 			Page.request = {
 				method:method,
@@ -397,7 +400,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 
 Page.reload = function() {
 	debug('Page.reload()');
-	window.location.href = window.location.href;
+	window.location.replace(window.location.href);
 };
 
 Page.clearFBpost = function(obj) {

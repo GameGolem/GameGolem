@@ -334,7 +334,7 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
-	if (quests[best].type === 3) {// Just completed a boss quest
+	if (this.data[best].type === 3) {// Just completed a boss quest
 		if (!Alchemy.get(['ingredients', this.data[best].itemimg], 0)) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', this.data[best].itemimg], 1);
 		}
