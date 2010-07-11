@@ -107,7 +107,8 @@ if EXIST "%java%" (
 		echo.Creating minimised version - will display any syntax errors
 		copy _head.js _min.user.js >nul
 		"%java%" -jar "%compiler%" --js "_normal.user.js" >> _min.user.js
-		set script=_min.user.js
+rem While is may be smaller to use the minimised version in places, generally that interferes with debugging...
+rem		set script=_min.user.js
 	)
 )
 
@@ -118,7 +119,7 @@ if NOT EXIST "chrome\GameGolem" (
 	mkdir chrome\GameGolem
 )
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
-copy /Y _normal.user.js .\chrome\GameGolem\golem.user.js >nul 2>nul
+copy /Y %script% .\chrome\GameGolem\golem.user.js >nul 2>nul
 
 rem ----------------------------------------------------------------------
 rem GOOGLE CHROME EXTENSION - .\chrome\GameGolem.crx
