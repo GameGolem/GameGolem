@@ -47,9 +47,10 @@ LevelUp.runtime = {
 	exp:0,
 	exp_possible:0,
 	energy_samples:0,
-	exp_per_energy:1,
+	avg_exp_per_energy:1.4,
+	avg_exp_per_stamina:2.4,
 	stamina_samples:0,
-	exp_per_stamina:1,
+	avg_exp_per_stamina:1,
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -95,6 +96,7 @@ LevelUp.init = function() {
 };
 
 LevelUp.parse = function(change) {
+	var exp, runtime = this.runtime;
 	if (change) {
 		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 	} else {
@@ -119,15 +121,17 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder();
+	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder(), stamina_samples;
 	if (worker === Player || !length(runtime.quests)) {
-		if (exp !== runtime.exp) { // Experience has changed...
+		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
+			// Experience has increased...
+			debug(' were in' + $('span.result_body:contains("xperience")') + '|' + $('span.result_body:contains("xperience")').length);
 			if (runtime.stamina > stamina) {
-				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
-				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
+				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
+						'stamina',runtime.stamina - stamina);
 			} else if (runtime.energy > energy) {
-				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
-				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
+				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
+						'energy',runtime.energy - energy);
 			}
 		}
 		runtime.energy = energy;
@@ -172,15 +176,15 @@ LevelUp.update = function(type,worker) {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
 		if ((order.indexOf('Idle') >= order.indexOf('Monster') && (Monster.runtime.attack)) || (order.indexOf('Idle') >= order.indexOf('Battle'))){
-			runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+			runtime.exp_possible += Math.floor(stamina * runtime.avg_exp_per_stamina); // Stamina estimate (when we can spend it)
 		}
 
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">LevelUp Running Now!</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.runtime.avg_exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.avg_exp_per_stamina.round(2) + '">LevelUp Running Now!</span>');
 		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.avg_exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.avg_exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
 		}
 	} else {
 		Dashboard.status(this);
@@ -296,7 +300,7 @@ LevelUp.get = function(what,def) {
 			if (this.option.algorithm === 'Per Hour') {
 				return History.get('exp.average.change');
 			}
-			return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
+			return (12 * (this.runtime.avg_exp_per_stamina + this.runtime.avg_exp_per_energy));
 		default: return this._get(what,def);
 	}
 };

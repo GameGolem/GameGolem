@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 682;
+var revision = 684;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -668,7 +669,23 @@ var ucwords = function(str) {
 	});
 };
 
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
+	var name, label_list, y_label_list, x_label_list;
+	name = y_label + '_per_' + x_label;
+	object.rwa = object.rwa || {};
+	label_list = object.rwa[name] = object.rwa[name] || {};
+	y_label_list = label_list[y_label] = label_list[y_label] || [];
+	x_label_list = label_list[x_label] = label_list[x_label] || [];
+	y_label_list.unshift(y_val);
+	x_label_list.unshift(x_val);
+	while (y_label_list.length > (limit || 30)) {
+		y_label_list.pop();
+	}
+	while (x_label_list.length > (limit || 30)) {
+		x_label_list.pop();
+	}
+	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
+};/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
@@ -3840,7 +3857,7 @@ Alchemy.parse = function(change) {
 	this.data.summons = {};
 	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
 	if (!$elements.length) {
-		debug('Can\'t find any alchemy ingredients on '+Page.page+'...');
+		debug('Can\'t find any alchemy ingredients...');
 //		Page.to('keep_alchemy', false); // Force reload
 		return false;
 	}
@@ -4862,7 +4879,7 @@ Generals.update = function(type, worker) {
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', [/*'best', */'any','under level 4'].concat(list)); // Best should always be a checkbox option, false allowing the choice to be manual
+		Config.set('bestgenerals', ['any','under level 4'].concat(list)); 
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -6020,9 +6037,10 @@ LevelUp.runtime = {
 	exp:0,
 	exp_possible:0,
 	energy_samples:0,
-	exp_per_energy:1,
+	avg_exp_per_energy:1.4,
+	avg_exp_per_stamina:2.4,
 	stamina_samples:0,
-	exp_per_stamina:1,
+	avg_exp_per_stamina:1,
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -6068,6 +6086,7 @@ LevelUp.init = function() {
 };
 
 LevelUp.parse = function(change) {
+	var exp, runtime = this.runtime;
 	if (change) {
 		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"> in <span class="golem-time" style="color:rgb(25,123,48);" name="' + this.get('level_time') + '">' + makeTimer(this.get('level_timer')) + '</span></span>');
 	} else {
@@ -6092,15 +6111,17 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder();
+	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder(), stamina_samples;
 	if (worker === Player || !length(runtime.quests)) {
-		if (exp !== runtime.exp) { // Experience has changed...
+		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
+			// Experience has increased...
+			debug(' were in' + $('span.result_body:contains("xperience")') + '|' + $('span.result_body:contains("xperience")').length);
 			if (runtime.stamina > stamina) {
-				runtime.exp_per_stamina = ((runtime.exp_per_stamina * Math.min(runtime.stamina_samples, 49)) + ((exp - runtime.exp) / (runtime.stamina - stamina))) / Math.min(runtime.stamina_samples + 1, 50); // .round(3)
-				runtime.stamina_samples = Math.min(runtime.stamina_samples + 1, 50); // More samples for the more variable stamina
+				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
+						'stamina',runtime.stamina - stamina);
 			} else if (runtime.energy > energy) {
-				runtime.exp_per_energy = ((runtime.exp_per_energy * Math.min(runtime.energy_samples, 9)) + ((exp - runtime.exp) / (runtime.energy - energy))) / Math.min(runtime.energy_samples + 1, 10); // .round(3)
-				runtime.energy_samples = Math.min(runtime.energy_samples + 1, 10); // fewer samples for the more consistent energy
+				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
+						'energy',runtime.energy - energy);
 			}
 		}
 		runtime.energy = energy;
@@ -6145,15 +6166,15 @@ LevelUp.update = function(type,worker) {
 		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
 	}
 		if ((order.indexOf('Idle') >= order.indexOf('Monster') && (Monster.runtime.attack)) || (order.indexOf('Idle') >= order.indexOf('Battle'))){
-			runtime.exp_possible += Math.floor(stamina * runtime.exp_per_stamina); // Stamina estimate (when we can spend it)
+			runtime.exp_possible += Math.floor(stamina * runtime.avg_exp_per_stamina); // Stamina estimate (when we can spend it)
 		}
 
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">LevelUp Running Now!</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.runtime.avg_exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.avg_exp_per_stamina.round(2) + '">LevelUp Running Now!</span>');
 		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.runtime.exp_possible + ', per Energy: ' + this.runtime.avg_exp_per_energy.round(2) + ', per Stamina: ' + this.runtime.avg_exp_per_stamina.round(2) + '">' + d.format('l g:i a') + ' (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
 		}
 	} else {
 		Dashboard.status(this);
@@ -6269,7 +6290,7 @@ LevelUp.get = function(what,def) {
 			if (this.option.algorithm === 'Per Hour') {
 				return History.get('exp.average.change');
 			}
-			return (12 * (this.runtime.exp_per_stamina + this.runtime.exp_per_energy));
+			return (12 * (this.runtime.avg_exp_per_stamina + this.runtime.avg_exp_per_energy));
 		default: return this._get(what,def);
 	}
 };
@@ -6326,6 +6347,10 @@ Monster.runtime = {
 	check:false, // id of monster to check if needed, otherwise false
 	attack:false, // id of monster if we have an attack target, otherwise false
 	defend:false, // id of monster if we have a defend target, otherwise false
+	avg_damage_per_stamina:1,
+	avg_defend_per_energy:1,
+	stamina_used:0,
+	energy_used:0,
 	health:10 // minimum health to attack
 };
 
@@ -6347,6 +6372,7 @@ Monster.display = [
 		id:'hide',
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
+		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		id:'min_to_attack',
@@ -6373,11 +6399,13 @@ Monster.display = [
 		advanced:true,
 		id:'own',
 		label:'Never stop on Your Monsters',
+		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		checkbox:true,
 		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 	},{
 		advanced:true,
 		id:'rescue',
+		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		label:'Rescue failing monsters',
 		checkbox:true,
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -6385,6 +6413,7 @@ Monster.display = [
 		advanced:true,
 		id:'att_avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
+		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
@@ -6503,7 +6532,6 @@ Monster.types = {
 	//		name:'Kull, the Orc Captain',
 	//		timer:259200 // 72 hours
 	//	},
-	// Raid
 
 	raid_easy: {
 		name:'The Deathrune Siege',
@@ -6847,10 +6875,11 @@ Monster.init = function() {
 	});
 	Resources.useType('Energy');
 	Resources.useType('Stamina');
+	delete this.runtime.record;
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, record, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
@@ -6895,12 +6924,6 @@ Monster.parse = function(change) {
 		monster.damage.user = monster.damage.user || {};
 		monster.energy = monster.energy || {};
 		monster.defend = monster.defend || {};
-		this.runtime.record = this.runtime.record || {};
-		record = this.runtime.record[type_label] = this.runtime.record[type_label] || {};
-		record.damage = record.damage || [];
-		record.stamina = record.stamina || [];
-		record.energy = record.energy || [];
-		record.defend = record.defend || [];
 		if ($('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
 			if ($('span.result_body').text().match(/for your help in summoning/i)) {
 				monster.assist = Date.now();
@@ -6908,38 +6931,18 @@ Monster.parse = function(change) {
 			monster.state = monster.state || 'assist';
 		} else if (this.runtime.stamina_used) {
 			if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
-				record.damage.unshift(Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')));
-				while (record.damage.length > ATTACKHISTORY) {
-					record.damage.pop();
-				}
-				record.stamina.unshift(this.runtime.stamina_used);
-				while (record.stamina.length > ATTACKHISTORY) {
-					record.stamina.pop();
-				}
-				monster.stamina.script = (monster.stamina.script || 0) + record.stamina[0];
-				monster.damage.user.script = (monster.damage.user.script || 0) + record.damage[0];
-				record.dmg_per_stamina = sum(record.damage) / sum(record.stamina);
-				//debug('Stamina used by script on this monster = ' + monster.stamina.script);
-				//debug('Damage from script on this monster = ' + monster.damage.script);
-				//debug('Damage per stamina = ' + record.dmg_per_stamina);
+				calc_rolling_weighted_average(this.runtime
+						,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
+						,'stamina',this.runtime.stamina_used);
+				//debug('Damage per stamina = ' + this.runtime.avg_damage_per_stamina);
 			}
 			this.runtime.stamina_used = 0;
 		} else if (this.runtime.energy_used) {
 			if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
-				record.defend.unshift(Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')));
-				while (record.defend.length > ATTACKHISTORY) {
-					record.defend.pop();
-				}
-				record.energy.unshift(this.runtime.energy_used);
-				while (record.energy.length > ATTACKHISTORY) {
-					record.energy.pop();
-				}
-				monster.energy.script = (monster.energy.script || 0) + this.runtime.energy_used;
-				monster.defend.script = (monster.defense.script || 0) + record.defend[0];
-				record.dfd_per_energy = sum(record.defend) / sum(record.energy);
-				//debug('Energy used by script on this monster = ' + monster.energy.script);
-				//debug('Defend from script on this monster = ' + monster.defend.script);
-				//debug('Defend per energy = ' + record.dfd_per_energy);
+				calc_rolling_weighted_average(this.runtime
+						,'defend',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
+						,'energy',this.runtime.energy_used);
+				//debug('Defend per energy = ' + this.runtime.avg_defend_per_energy);
 			}
 			this.runtime.energy_used = 0;
 		}
@@ -7029,7 +7032,7 @@ Monster.parse = function(change) {
 				monster.damage.user.manual = dmg - (monster.damage.user.script || 0);
 				monster.defend.manual = fort - (monster.defend.script || 0);
 				monster.stamina.manual = Math.round(monster.damage.user.manual
-						/ record.dmg_per_stamina);
+						/ Monster.runtime.avg_damage_per_stamina);
 			} else {
 				monster.damage.others += dmg;
 			}
@@ -7137,123 +7140,139 @@ Monster.update = function(what,worker) {
 		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
 				&& !this.data[mid].ignore) {
 			this.runtime.check = mid; // Do we need to parse info from a blank monster?
+			Dashboard.status(this, 'Reviewing ' +
+					(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
+					+ this.types[this.data[mid].type].name);
 			return;
 		}
 	}
-
-	/*
-	var order = this.option.priority.split(/[\n,]/);
-	for (var p in order) {
-		order[p] = order[p].trim();
-		if (!order[p]) {
-			continue;
-		}
-		searchterm = $.trim(order[p].match(new RegExp("^[^:]+")).toString()).toLowerCase();
-		condition = $.trim(order[p].replace(new RegExp("^[^:]+"), '').toString());
-		for (i in this.data) {
-			for (j in this.data[i]) {
-			monster = data[mid];
-				// If we set conditions on this monster already then we do not reprocess
-				//if (this.data[mid].conditions) {
-				//	continue;
-				//}
-
-				//If this monster does not match, skip to next one
-				// Or if this monster is dead, skip to next one
-				if (	(monster.name + ' ' +j ).toLowerCase().indexOf(searchterm) < 0)
-						|| (monster.state !== 'engage')) {
+	
+	if  (this.option.stop === 'Priority List') {
+		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p;
+		var order = this.option.priority.split(/[\n,]/);
+		
+		order.push('your','\'s'); // Catch all at end in case no other match
+		for (var o in order) {
+			order[o] = order[o].trim();
+			if (!order[o]) {
+				continue;
+			}
+			suborder = order[o].split('|');
+			for (var p in suborder) {
+				suborder[p] = suborder[p].trim();
+				if (!suborder[p]) {
 					continue;
 				}
-
-				//Monster is a match so we set the conditions
-				monster.ach = this.conditions('ach',condition) || this.types[j].achievement;
-				monster.attack_max = this.conditions('max',condition) || 2 * this.types[j].achievement;
-				monster.defend_max = this.conditions('f%',condition) || this.option.defend;
-
-				// checkMonsterDamage would have set our 'color' and 'over' values. We need to check
-				// these to see if this is the monster we should select/
-				if (!att_underAch && monster.attackbonus <= this.option.min_to_attack) {
-					if (monster.health < monster.ach) {
-						att_underAch = mid;
-					} else if (monster.health < monster.max && !att_overAch) {
-						att_overAch = mid;
-					}
-				}
-
-				if (!def_underach && this.types[j].defend && monster.attackbonus < monster.defend_max) {
-					if (monster.health < monster.ach) {
-						def_underAch = mid;
-					} else if (monster.health < monster.max && !def_overAch) {
-						def_overAch = mid;
-					}
-				}
-			}
-		}
-	}
-
-	// Now we use the first under max/under achievement that we found. If we didn't find any under
-	// achievement then we use the first over achievement
-	att_best = att_underAch || att_overAch;
-	def_best = def_underAch || def_overAch;
-	*/
-
-	// Make lists of the possible attack and defend targets
-	for (mid in this.data) {
-		monster = this.data[mid];
-		type = this.types[monster.type];
-		req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1 : 5)
-				: (this.option.attack_min < Math.min.apply(Math, type.attack)
-					|| this.option.attack_max <= Math.min.apply(Math, type.attack))
-				? Math.min.apply( Math, type.attack)
-				: this.option.attack_min > Math.max.apply(Math, type.attack)
-				? Math.max.apply(Math, type.attack)
-				: this.option.attack_min > this.option.attack_max
-				? this.option.attack_max : this.option.attack_min;
-		req_energy = type.defend_button ? this.option.defend_min : null;
-		req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
-
-		if (	!monster.ignore
-				&& monster.state === 'engage'
-				&& monster.finish > Date.now()	) {
-			uid = mid.replace(/_\d+/,'');
-			if (uid === userID && this.option.own) {
-				// add own monster
-			} else if (this.option.avoid_lost_cause
-					&& (monster.eta - monster.finish)/3600000
-						> this.option.lost_cause_hours) {
-				continue;  // Avoid lost cause monster
-			} else if (this.option.rescue
-					&& (monster.eta
-						>= monster.finish - this.option.check_interval)) {
-				// Add monster to rescue
-			} else if (this.option.stop === 'Achievement'
-					&& sum(monster.damage.user) + sum(monster.defend)
-						> (type.achievement || 0)) {
-				continue; // Don't add monster over achievement
-			} else if (this.option.stop === '2X Achievement'
-					&& sum(monster.damage.user) + sum(monster.defend)
-						> type.achievement * 2) {
-				continue; // Don't add monster over 2X  achievement
-			}
-			// Possible attack target?
-			if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
-				&& ((monster.attackbonus || 50) >= this.option.min_to_attack)) {
-				list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
-			}
-			// Possible defend target?
-			if (	this.option.defend_active
-					&& (!this.option.hide
-						|| Queue.burn.energy >= req_energy)
-					&& (monster.attackbonus || 51) <= this.option.defend) {
-				if ((monster.mclass || 0) < 2) {
-					if ((monster.attackbonus || 101) >= this.option.defend
-							&& monster.defense >= 100) {
+				searchterm = $.trim(suborder[p].match(new RegExp("^[^:]+")).toString()).toLowerCase();
+				condition = $.trim(suborder[p].replace(new RegExp("^[^:]+"), '').toString());
+				//debug('Priority order ' + searchterm +' condition ' + condition);
+				for (mid in this.data) {
+					monster = this.data[mid];
+					type = this.types[monster.type];
+					//If this monster does not match, skip to next one
+					// Or if this monster is dead, skip to next one
+					if (	((monster.name === 'You' ? 'Your' : monster.name)
+								+ ' ' + type.name).toLowerCase().indexOf(searchterm) < 0
+							|| (monster.state !== 'engage')
+							|| monster.ignore) {
 						continue;
 					}
-				} else if ((monster.secondary || 101) >= 100){
-					continue;
+					//Monster is a match so we set the conditions
+					monster.ach = this.conditions('ach',condition) || type.achievement;
+					monster.max = this.conditions('max',condition);
+					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
+					damage = sum(monster.damage.user) + sum(monster.defend);
+
+					if ((attack_found || o) === o 
+							&& monster.attackbonus >= this.option.min_to_attack) {
+						if (damage < monster.ach) {
+							//debug('ATTACK monster ' + monster.name + ' ' + type.name);
+							list.attack.push([mid, damage / sum(monster.damage)]);
+							attack_found = o;
+						} else if ((monster.max === false || damage < monster.max) 
+								&& !attack_found && (attack_overach || o) === o) {
+							list.attack.push([mid, damage / sum(monster.damage)]);
+							attack_overach = o;
+						}
+					}
+					if (	this.option.defend_active && type.defend 
+							&& (defend_found || o) === o
+							&& monster.attackbonus < monster.defend_max) {
+						if (damage < monster.ach) {
+							//debug('DEFEND monster ' + monster.name + ' ' + type.name);
+							list.defend.push([mid, damage / sum(monster.damage)]);
+							defend_found = o;
+						} else if ((monster.max === false || damage < monster.max) 
+								&& !defend_found && (defend_overach || o) === o) {
+							list.defend.push([mid, damage / sum(monster.damage)]);
+							defend_overach = o;
+						}
+					}
 				}
-				list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
+			}
+			if (attack_found && (!this.option.defend_active || defend_found)) {
+				break;
+			}
+		}
+	} else {
+		// Make lists of the possible attack and defend targets
+		for (mid in this.data) {
+			monster = this.data[mid];
+			type = this.types[monster.type];
+			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1 : 5)
+					: (this.option.attack_min < Math.min.apply(Math, type.attack)
+						|| this.option.attack_max <= Math.min.apply(Math, type.attack))
+					? Math.min.apply( Math, type.attack)
+					: this.option.attack_min > Math.max.apply(Math, type.attack)
+					? Math.max.apply(Math, type.attack)
+					: this.option.attack_min > this.option.attack_max
+					? this.option.attack_max : this.option.attack_min;
+			req_energy = type.defend_button ? this.option.defend_min : null;
+			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
+
+			if (	!monster.ignore
+					&& monster.state === 'engage'
+					&& monster.finish > Date.now()	) {
+				uid = mid.replace(/_\d+/,'');
+				if (uid === userID && this.option.own) {
+					// add own monster
+				} else if (this.option.avoid_lost_cause
+						&& (monster.eta - monster.finish)/3600000
+							> this.option.lost_cause_hours) {
+					continue;  // Avoid lost cause monster
+				} else if (this.option.rescue
+						&& (monster.eta
+							>= monster.finish - this.option.check_interval)) {
+					// Add monster to rescue
+				} else if (this.option.stop === 'Achievement'
+						&& sum(monster.damage.user) + sum(monster.defend)
+							> (type.achievement || 0)) {
+					continue; // Don't add monster over achievement
+				} else if (this.option.stop === '2X Achievement'
+						&& sum(monster.damage.user) + sum(monster.defend)
+							> type.achievement * 2) {
+					continue; // Don't add monster over 2X  achievement
+				}
+				// Possible attack target?
+				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
+					&& ((monster.attackbonus || 50) >= this.option.min_to_attack)) {
+					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
+				}
+				// Possible defend target?
+				if (	this.option.defend_active
+						&& (!this.option.hide
+							|| Queue.burn.energy >= req_energy)
+						&& (monster.attackbonus || 51) <= this.option.defend) {
+					if ((monster.mclass || 0) < 2) {
+						if ((monster.attackbonus || 101) >= this.option.defend
+								&& monster.defense >= 100) {
+							continue;
+						}
+					} else if ((monster.secondary || 101) >= 100){
+						continue;
+					}
+					list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
+				}
 			}
 		}
 	}
@@ -7282,7 +7301,7 @@ Monster.update = function(what,worker) {
 	};
 	for (i in list) {
 		// Find best target
-		//debug('list ' + i + ' is ' + list[i]);
+		// debug('list ' + i + ' is ' + list[i]);
 		if (list[i].length) {
 			list[i].sort(listSortFunc);
 			this.runtime[i] = mid = list[i][0][0];

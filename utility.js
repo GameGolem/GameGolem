@@ -408,3 +408,20 @@ var ucwords = function(str) {
 	});
 };
 
+var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
+	var name, label_list, y_label_list, x_label_list;
+	name = y_label + '_per_' + x_label;
+	object.rwa = object.rwa || {};
+	label_list = object.rwa[name] = object.rwa[name] || {};
+	y_label_list = label_list[y_label] = label_list[y_label] || [];
+	x_label_list = label_list[x_label] = label_list[x_label] || [];
+	y_label_list.unshift(y_val);
+	x_label_list.unshift(x_val);
+	while (y_label_list.length > (limit || 30)) {
+		y_label_list.pop();
+	}
+	while (x_label_list.length > (limit || 30)) {
+		x_label_list.pop();
+	}
+	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
+};
