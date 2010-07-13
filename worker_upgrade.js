@@ -41,10 +41,13 @@ Upgrade.parse = function(change) {
 		this.runtime.working = false;
 		this.runtime.run++;
 	}
+	return false;
+};
+
+Upgrade.update = function(type, worker) {
 	if (this.runtime.run >= this.option.order.length) {
 		this.runtime.run = 0;
 	}
-	return false;
 };
 
 Upgrade.work = function(state) {
@@ -61,6 +64,7 @@ Upgrade.work = function(state) {
 		default: this.runtime.run++; return QUEUE_RELEASE; // Should never happen
 	}
 	if (state) {
+		this.runtime.working = true;
 		Page.to('keep_stats', {upgrade:args}, false);
 	}
 	return QUEUE_RELEASE;
