@@ -159,7 +159,7 @@ Battle.init = function() {
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 	this.option.arena = false;// ARENA!!!!!!
-	Resources.useType('Stamina');
+	Resources.use('Stamina');
 };
 
 /***** Battle.parse() *****

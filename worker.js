@@ -359,7 +359,7 @@ Worker.prototype._update = function(type, worker) {
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
-		if (!worker) {
+		if (!worker && type) {
 			for (i=0; i<this._watching.length; i++) {
 				this._watching[i]._update(type, this);
 			}

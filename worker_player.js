@@ -39,9 +39,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-	Resources.addType('Energy');
-	Resources.addType('Stamina');
-	Resources.addType('Gold');
+	Resources.add('Energy');
+	Resources.add('Stamina');
+	Resources.add('Gold');
 };
 
 Player.parse = function(change) {
@@ -50,6 +50,7 @@ Player.parse = function(change) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.energy		= tmp[0] || 0;
 //		data.maxenergy	= tmp[1] || 0;
+		Resources.add('Energy', data.energy, true);
 	}
 	if ($('#app'+APPID+'_health_current_value').length) {
 		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -60,6 +61,7 @@ Player.parse = function(change) {
 		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.stamina	= tmp[0] || 0;
 //		data.maxstamina	= tmp[1] || 0;
+		Resources.add('Stamina', data.stamina, true);
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -89,6 +91,7 @@ Player.parse = function(change) {
 			data.maxincome = stats[0];
 			data.upkeep = stats[1];
 			data.income = stats[2];
+			Resources.add('Gold', data.bank + data.cash, true);
 		}
 	}
 	if (Page.page==='town_land') {

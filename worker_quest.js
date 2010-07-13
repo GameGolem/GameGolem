@@ -71,7 +71,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
-	Resources.useType('Energy');
+	Resources.use('Energy');
 };
 
 Quest.parse = function(change) {
@@ -147,6 +147,7 @@ Quest.parse = function(change) {
 			$('.quest_req >div >div >div', el).each(function(i,el){
 				var title = $('img', el).attr('title');
 				units[title] = $(el).text().regex(/([0-9]+)/);
+				Resources.set(['_'+title, 'quest'], Math.max(Resources.get(['_'+title, 'quest'],0), units[title]), true);
 			});
 			if (length(units)) {
 				quest[name].units = units;

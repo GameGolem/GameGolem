@@ -74,7 +74,7 @@ Land.display = [
 
 Land.init = function(){
     this._watch(Bank);
-	Resources.useType('Gold');
+	Resources.use('Gold');
 };
 
 Land.parse = function(change) {

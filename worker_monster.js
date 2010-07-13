@@ -576,8 +576,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
 		return false;
 	});
-	Resources.useType('Energy');
-	Resources.useType('Stamina');
+	Resources.use('Energy');
+	Resources.use('Stamina');
 	delete this.runtime.record;
 };
 

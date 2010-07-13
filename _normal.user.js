@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 684;
+var revision = 685;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1046,7 +1045,7 @@ Worker.prototype._update = function(type, worker) {
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
-		if (!worker) {
+		if (!worker && type) {
 			for (i=0; i<this._watching.length; i++) {
 				this._watching[i]._update(type, this);
 			}
@@ -1562,11 +1561,11 @@ Config.init = function() {
 
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
-		if (!Worker.stack.length) {
+		if (!Worker.current) {
 			return;
 		}
 		args = worker;
-		worker = Worker.stack[Worker.stack.length-1];
+		worker = Worker.current;
 	}
 	if (!args) {
 		if (!worker.display) {
@@ -3148,10 +3147,16 @@ Queue.enabled = function(worker) {
 	makeImage
 */
 /********** Worker.Resources **********
-* Store and report Resourcess
+* Store and report Resources
 
 Workers can add a type of Resources that they supply - Player would supply Energy and Stamina when parsing etc
 Workers request buckets of Resourcess during init() - each bucket gets a display in the normal Resources config panel.
+
+Items can be added as a type - *however* - they should be added with an amount and not as a spendable type by only calling Resources.add(type,amount)
+Convention for unspendable Resourcess is to prefix the name with an underscore, ie. "_someitemimage.jpg" (needs to be unique)
+
+Data can be stored for types by using Resourec.set([type, key], value); etc - this makes it "safer" for workers to discuss needs ;-)
+Data can be stored at multiple levels deep - simply add extra keys - [type, key1, key2]
 
 Resources stores the buckets as well as an overflow bucket - the overflow is used during level up
 
@@ -3163,7 +3168,7 @@ Buckets may be either -
 The Shared bucket has a priority of 0
 
 When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
-Priority is displayed as -5, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
+Priority is displayed as Disabled, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
 
 When a worker is disabled (Queue.option.enabled[worker] === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
 
@@ -3176,8 +3181,12 @@ Resources.settings = {
 	unsortable:true
 };
 
+Resources.data = {// type:{data} - managed by any access...
+};
+
 Resources.option = {
 	types:{},
+	reserve:{},
 	buckets:{}
 };
 
@@ -3186,10 +3195,12 @@ Resources.runtime = {
 	buckets:{}
 };
 
-Resources.display = function() {
+Resources.display = 'Discovering Resources...';
+
+Resources.display2 = function() {
 	var type, group, worker, require, display = [];
 	if (!length(this.runtime.types)) {
-		return 'Discovering Resources...';
+		return 'No Resources to be Used...';
 	}
 	display.push({label:'Not doing anything yet...'});
 	for (type in this.option.types) {
@@ -3199,22 +3210,29 @@ Resources.display = function() {
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				group.push({
-					id:'buckets.'+worker+'.priority',
+					id:'buckets.'+worker+'.'+type,
 					label:'...<b>'+worker+'</b> priority',
-					select:{9:'+4',8:'+3',7:'+2',6:'+1',5:'0',4:'-1',3:'-2',2:'-3',1:'-4',0:'Disabled'}
+					select:{10:'+5',9:'+4',8:'+3',7:'+2',6:'+1',5:'0',4:'-1',3:'-2',2:'-3',1:'-4',0:'Disabled'}
 				});
 			}
 		}
-		display.push({
-			title:type
-		},{
-			id:'types.'+type,
-			label:'Resource Use',
-			select:{0:'None',1:'Shared',2:'Exclusive'}
-		},{
-			group:group,
-			require:require
-		});
+		if (group.length) {
+			display.push({
+				title:type
+			},{
+				advanced:true,
+				id:'reserve.'+type,
+				label:'Reserve',
+				text:true
+			},{
+				id:'types.'+type,
+				label:'Resources Use',
+				select:{0:'None',1:'Shared',2:'Exclusive'}
+			},{
+				group:group,
+				require:require
+			});
+		}
 	}
 	return display;
 };
@@ -3223,54 +3241,111 @@ Resources.init = function() {
 //	Config.addOption({label:'test',checkbox:true});
 };
 
-/***** Resources.addType() *****
-Add a type of Resources
-*/
-Resources.addType = function(type) {
-	this._push();
-	this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
-	this.set(['option','types',type], this.get(['option','types',type], true));
-	Config.makePanel();
-	this._pop();
-};
-
-/***** Resources.useType() *****
-Register to use a type of resource
-Actually use a type of resource (must register with no amount first)
-*/
-Resources.useType = function(type, amount) {
-	if (!Worker.stack.length) {
-		return;
+Resources.update = function(type, worker) {
+	if (!type && !worker) {
+		Config.makePanel(this, this.display2);
 	}
-	var worker = Worker.stack[Worker.stack.length-1];
-	if (typeof amount === 'undefined') {
-//		this.set(['runtime','types',type], this.get(['runtime','types',type], 0));
-//		this.set(['option','types',type], this.get(['option','types',type], true));
-		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
-		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 1));
-		this.set(['option','buckets',worker.name,'priority'], this.get(['option','buckets',worker.name,'priority'], 5));
-	} else {
+	var worker, type, total = 0;
+	debug('Resources.update()');
+	for (type in this.option.types) {
+		for (worker in this.runtime.buckets) {
+			if (type in this.runtime.buckets[worker]) {
+				if (this.option.types[type] === 2) {// Exclusive
+					total += this.runtime.buckets[worker][type];
+				} else {
+					this.runtime.buckets[worker][type] = 0;
+				}
+			}
+		}
+		if (this.option.types[type] === 2 && Math.ceil(total) < Math.floor(this.runtime.types[type])) {// We've got an excess for Exclusive, so share
+			total = this.runtime.types[type] - total;
+			this.runtime.types[type] -= total;
+			this.add(type, total);
+		}
 	}
+	debug(this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
 type = name of Resources
 amount = amount to add
-abs = is an absolute amount, not relative
-1. Set the amount we have to the new value
-2. If we've gained, then share some out
+absolute = is an absolute amount, not relative
+1a. If amount isn't set then add a type of Resources that can be spent
+1b. Update the display with the new type
+1c. Don't do anything else ;-)
+2. Changing the amount:
+2a. If absolute then get the relative amount and work from there
+3. Save the new amount
+NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
-Resources.add = function(type, amount, abs) {
-	var change, old = this.get(['runtime','types',type], 0);
-	if (abs) {
-		change = amount - old;
-		this.set(['runtime','types',type], amount);
-	} else {
-		change = amount;
-		this.set(['runtime','types',type], amount + old);
+Resources.add = function(type, amount, absolute) {
+	debug('Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
+	this._push();
+	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
+	if (isUndefined(amount)) {// Setting up that we use this type
+		this.set(['runtime','types',type], old_amount);
+		this.set(['option','types',type], this.get(['option','types',type], 1));
+		this.set(['option','reserve',type], this.get(['option','reserve',type], 0));
+	} else {// Telling of any changes to the amount
+		if (absolute) {
+			amount -= old_amount;
+		}
+		// Store the new value
+		this.set(['runtime','types',type], old_amount + amount);
+		// Now fill any pots...
+		amount -= Math.max(0, old_amount - parseInt(this.option.reserve[type]));
+		if (amount > 0 && this.option.types[type] === 2) {
+			for (worker in this.option.buckets) {
+				if (type in this.option.buckets[worker]) {
+					total += this.option.buckets[worker][type]
+				}
+			}
+			amount /= total;
+			for (worker in this.option.buckets) {
+				if (type in this.option.buckets[worker]) {
+					this.runtime.buckets[worker][type] += amount * this.option.buckets[worker][type];
+				}
+			}
+		}		
 	}
-//	if (change > 0) {// We've gotten higher, lets share some out...
-//	}
+	this._pop();
+};
+
+/***** Resources.use() *****
+Register to use a type of Resources that can be spent
+Actually use a type of Resources (must register with no amount first)
+type = name of Resources
+amount = amount to use
+use = are we using it, or just checking if we can?
+*/
+Resources.use = function(type, amount, use) {
+	if (!Worker.stack.length) {
+		return;
+	}
+	var worker = Worker.stack[Worker.stack.length-1];
+	if (isUndefined(amount)) {
+		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
+		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 5));
+	} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
+		if (use) {
+			this.runtime.types[type] -= amount;
+		}
+		return true;
+	} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
+		if (use) {
+			this.runtime.buckets[worker][type] -= amount;
+		}
+		return true;
+	}
+	return false;;
+};
+
+/***** Resources.has() *****
+Check if we've got a certain number of a Resources in total - not on a per-worker basis
+Use this to check on "non-spending" resources
+*/
+Resources.has = function(type, amount) {
+	return this.get(['runtime','types',type], 0) >= amount;
 };
 
 Resources.get = function(what,def) {
@@ -4169,7 +4244,7 @@ Battle.init = function() {
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 	this.option.arena = false;// ARENA!!!!!!
-	Resources.useType('Stamina');
+	Resources.use('Stamina');
 };
 
 /***** Battle.parse() *****
@@ -4760,22 +4835,19 @@ Elite.work = function(state) {
 		if (state) {
 			debug('Filling army list');
 			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
-			Page.to('army_viewarmy', '?page=' + this.runtime.armylastpage);
+			Page.to('army_viewarmy', {page:this.runtime.armylastpage});
 		}
 		return true;
 	}
-	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now())) {
+	if (!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
-		return true;
-	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
 		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
-		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.runtime.nextelite)) {
+		if (!Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite})) {
 			return true;
 		}
 	}
@@ -5483,7 +5555,7 @@ Gift.work = function(state) {
 			}
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
-//			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
+//			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, false)) {
 				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
@@ -5864,7 +5936,7 @@ Land.display = [
 
 Land.init = function(){
     this._watch(Bank);
-	Resources.useType('Gold');
+	Resources.use('Gold');
 };
 
 Land.parse = function(change) {
@@ -6873,8 +6945,8 @@ Monster.init = function() {
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
 		return false;
 	});
-	Resources.useType('Energy');
-	Resources.useType('Stamina');
+	Resources.use('Energy');
+	Resources.use('Stamina');
 	delete this.runtime.record;
 };
 
@@ -7791,9 +7863,9 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-	Resources.addType('Energy');
-	Resources.addType('Stamina');
-	Resources.addType('Gold');
+	Resources.add('Energy');
+	Resources.add('Stamina');
+	Resources.add('Gold');
 };
 
 Player.parse = function(change) {
@@ -7802,6 +7874,7 @@ Player.parse = function(change) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.energy		= tmp[0] || 0;
 //		data.maxenergy	= tmp[1] || 0;
+		Resources.add('Energy', data.energy, true);
 	}
 	if ($('#app'+APPID+'_health_current_value').length) {
 		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -7812,6 +7885,7 @@ Player.parse = function(change) {
 		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		data.stamina	= tmp[0] || 0;
 //		data.maxstamina	= tmp[1] || 0;
+		Resources.add('Stamina', data.stamina, true);
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -7841,6 +7915,7 @@ Player.parse = function(change) {
 			data.maxincome = stats[0];
 			data.upkeep = stats[1];
 			data.income = stats[2];
+			Resources.add('Gold', data.bank + data.cash, true);
 		}
 	}
 	if (Page.page==='town_land') {
@@ -8071,7 +8146,7 @@ Quest.init = function() {
 			delete this.data[i];
 		}
 	}
-	Resources.useType('Energy');
+	Resources.use('Energy');
 };
 
 Quest.parse = function(change) {
@@ -8147,6 +8222,7 @@ Quest.parse = function(change) {
 			$('.quest_req >div >div >div', el).each(function(i,el){
 				var title = $('img', el).attr('title');
 				units[title] = $(el).text().regex(/([0-9]+)/);
+				Resources.set(['_'+title, 'quest'], Math.max(Resources.get(['_'+title, 'quest'],0), units[title]), true);
 			});
 			if (length(units)) {
 				quest[name].units = units;
@@ -8459,46 +8535,53 @@ Town.runtime = {
 
 Town.display = [
 {
-    id:'general',
-    label:'Use Best General',
-    checkbox:true
+	title:'Buy',
+	group:[{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'quest_buy',
+		label:'Buy Quest Items',
+		checkbox:true
+	},{
+		id:'number',
+		label:'Buy Number',
+		select:['None', 'Minimum', 'Army', 'Max Army'],
+		help:'Minimum will only buy items need for quests if enabled. Army will buy up to your army size (modified by some generals), Max Army will buy up to 541 regardless of army size.'
+	},{
+		advanced:true,
+		id:'units',
+		require:{'number':[['None']]},
+		label:'Set Type',
+		select:['Best Offense', 'Best Defense', 'Best for Both'],
+		help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
+	},{
+		advanced:true,
+		id:'maxcost',
+		require:{'number':[['None']]},
+		label:'Maximum Item Cost',
+		select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
+		help:'Will buy best item based on Set Type with single item cost below selected value.'
+	},{
+		advanced:true,
+		require:{'number':[['None']]},
+		id:'upkeep',
+		label:'Max Upkeep',
+		text:true,
+		after:'%',
+		help:'Enter maximum Total Upkeep in % of Total Income'
+	}]
 },{
-    id:'quest_buy',
-    label:'Buy Quest Items',
-    checkbox:true
-},{
-    id:'number',
-    label:'Buy Number',
-    select:['None', 'Minimum', 'Army', 'Max Army'],
-    help:'Minimum will only buy items need for quests if enabled. Army will buy equal to army size or 501 (modified by some generals), Max Army will buy up to 501 (modified by some generals) regardless of army size.'
-},{
-    advanced:true,
-    id:'units',
-    require:{'number':[['None']]},
-    label:'Set Type',
-    select:['Best Offense', 'Best Defense', 'Best for Both'],
-    help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
-},{
-    advanced:true,
-    id:'maxcost',
-    require:{'number':[['None']]},
-    label:'Maximum Item Cost',
-    select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
-    help:'Will buy best item based on Set Type with single item cost below selected value.'
-},{
-    advanced:true,
-    require:{'number':[['None']]},
-    id:'upkeep',
-    label:'Max Upkeep',
-    text:true,
-    after:'%',
-    help:'Enter maximum Total Upkeep in % of Total Income'
-},{
-    advanced:true,
-    id:'sell',
-    label:'Auto-Sell',
-    select:['None', 'Above Army', 'Above Max Army'],
-    help:'Only keep the best items for selected sets. Sell off all items not required for quests if total used amount is greater than Auto-Sell option and Buy Number.'
+	advanced:true,
+	title:'Sell',
+	group:[{
+		advanced:true,
+		id:'sell',
+		label:'Auto-Sell',
+		select:['None', 'Above Army', 'Above Max Army'],
+		help:'Only keep the best items for selected sets. Sell off all items not required for quests if total used amount is greater than Auto-Sell option and Buy Number.'
+	}]
 }
 ];
 
@@ -8513,7 +8596,7 @@ Town.blacksmith = {
 
 Town.init = function(){
     this._watch(Bank);
-    Resources.useType('Gold');
+    Resources.use('Gold');
 };
 
 Town.parse = function(change) {
@@ -8535,6 +8618,7 @@ Town.parse = function(change) {
             unit[name].page = page;
             unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
             unit[name].own = $(costs).text().regex(/Owned: ([0-9]+)/i);
+			Resources.add('_'+name, unit[name].own, true);
             unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
             unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
             unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
@@ -8611,7 +8695,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-    var i, u, best_buy = null,best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = 0, max = 0, max_buy = 0, max_sell = 0, rtn = 0,
+    var i, u, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(541, Player.get('armymax')), max = 0, max_buy = 0, max_sell = 0, rtn = 0,
     list_buy = [], soldiers_att = [], weapon_att = [], equipment_att = [], magic_att = [],own_soldiers_att, own_weapon_att, own_equipment_att,own_magic_att,
     list_sell = [], soldiers_def = [], weapon_def = [], equipment_def = [], magic_def = [],own_soldiers_def,own_weapon_def,own_equipment_def,own_magic_def,
 	max_cost = {
@@ -8624,13 +8708,12 @@ Town.update = function(type) {
         '$10b':Math.pow(10,10),
         '$100b':Math.pow(10,11)
     };
-    army = Player.get('army');
     switch (this.option.number){
         case 'Army':
             max_buy = army;
             break;
         case 'Max Army':
-            max_buy = Math.max(501,army);
+            max_buy = 541;
             break;
         default:
             max_buy = 0;
@@ -8640,7 +8723,7 @@ Town.update = function(type) {
             max_sell = army;
             break;
         case 'Above Max Army':
-            max_sell = Math.max(501,army);
+            max_sell = 541;
             break;
         default:
             max_sell = 0;
@@ -8656,7 +8739,7 @@ Town.update = function(type) {
                     if (data[u] && data[u].cost){
                         data[u].req = Math.max(quests[i].units[u],data[u].req);
                         if (data[u].own < data[u].req && this.option.quest_buy){
-                            list_buy.push([u,data[u].req - data[u].own,data[u].cost,data[u].buy]);
+                            list_buy.push([u, data[u].req - data[u].own, data[u].cost, data[u].buy]);
                         }
                     }
                 }

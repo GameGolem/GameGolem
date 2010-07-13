@@ -37,46 +37,53 @@ Town.runtime = {
 
 Town.display = [
 {
-    id:'general',
-    label:'Use Best General',
-    checkbox:true
+	title:'Buy',
+	group:[{
+		id:'general',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'quest_buy',
+		label:'Buy Quest Items',
+		checkbox:true
+	},{
+		id:'number',
+		label:'Buy Number',
+		select:['None', 'Minimum', 'Army', 'Max Army'],
+		help:'Minimum will only buy items need for quests if enabled. Army will buy up to your army size (modified by some generals), Max Army will buy up to 541 regardless of army size.'
+	},{
+		advanced:true,
+		id:'units',
+		require:{'number':[['None']]},
+		label:'Set Type',
+		select:['Best Offense', 'Best Defense', 'Best for Both'],
+		help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
+	},{
+		advanced:true,
+		id:'maxcost',
+		require:{'number':[['None']]},
+		label:'Maximum Item Cost',
+		select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
+		help:'Will buy best item based on Set Type with single item cost below selected value.'
+	},{
+		advanced:true,
+		require:{'number':[['None']]},
+		id:'upkeep',
+		label:'Max Upkeep',
+		text:true,
+		after:'%',
+		help:'Enter maximum Total Upkeep in % of Total Income'
+	}]
 },{
-    id:'quest_buy',
-    label:'Buy Quest Items',
-    checkbox:true
-},{
-    id:'number',
-    label:'Buy Number',
-    select:['None', 'Minimum', 'Army', 'Max Army'],
-    help:'Minimum will only buy items need for quests if enabled. Army will buy equal to army size or 501 (modified by some generals), Max Army will buy up to 501 (modified by some generals) regardless of army size.'
-},{
-    advanced:true,
-    id:'units',
-    require:{'number':[['None']]},
-    label:'Set Type',
-    select:['Best Offense', 'Best Defense', 'Best for Both'],
-    help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
-},{
-    advanced:true,
-    id:'maxcost',
-    require:{'number':[['None']]},
-    label:'Maximum Item Cost',
-    select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
-    help:'Will buy best item based on Set Type with single item cost below selected value.'
-},{
-    advanced:true,
-    require:{'number':[['None']]},
-    id:'upkeep',
-    label:'Max Upkeep',
-    text:true,
-    after:'%',
-    help:'Enter maximum Total Upkeep in % of Total Income'
-},{
-    advanced:true,
-    id:'sell',
-    label:'Auto-Sell',
-    select:['None', 'Above Army', 'Above Max Army'],
-    help:'Only keep the best items for selected sets. Sell off all items not required for quests if total used amount is greater than Auto-Sell option and Buy Number.'
+	advanced:true,
+	title:'Sell',
+	group:[{
+		advanced:true,
+		id:'sell',
+		label:'Auto-Sell',
+		select:['None', 'Above Army', 'Above Max Army'],
+		help:'Only keep the best items for selected sets. Sell off all items not required for quests if total used amount is greater than Auto-Sell option and Buy Number.'
+	}]
 }
 ];
 
@@ -91,7 +98,7 @@ Town.blacksmith = {
 
 Town.init = function(){
     this._watch(Bank);
-    Resources.useType('Gold');
+    Resources.use('Gold');
 };
 
 Town.parse = function(change) {
@@ -113,6 +120,7 @@ Town.parse = function(change) {
             unit[name].page = page;
             unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
             unit[name].own = $(costs).text().regex(/Owned: ([0-9]+)/i);
+			Resources.add('_'+name, unit[name].own, true);
             unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
             unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
             unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
@@ -189,7 +197,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-    var i, u, best_buy = null,best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = 0, max = 0, max_buy = 0, max_sell = 0, rtn = 0,
+    var i, u, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(541, Player.get('armymax')), max = 0, max_buy = 0, max_sell = 0, rtn = 0,
     list_buy = [], soldiers_att = [], weapon_att = [], equipment_att = [], magic_att = [],own_soldiers_att, own_weapon_att, own_equipment_att,own_magic_att,
     list_sell = [], soldiers_def = [], weapon_def = [], equipment_def = [], magic_def = [],own_soldiers_def,own_weapon_def,own_equipment_def,own_magic_def,
 	max_cost = {
@@ -202,13 +210,12 @@ Town.update = function(type) {
         '$10b':Math.pow(10,10),
         '$100b':Math.pow(10,11)
     };
-    army = Player.get('army');
     switch (this.option.number){
         case 'Army':
             max_buy = army;
             break;
         case 'Max Army':
-            max_buy = Math.max(501,army);
+            max_buy = 541;
             break;
         default:
             max_buy = 0;
@@ -218,7 +225,7 @@ Town.update = function(type) {
             max_sell = army;
             break;
         case 'Above Max Army':
-            max_sell = Math.max(501,army);
+            max_sell = 541;
             break;
         default:
             max_sell = 0;
@@ -234,7 +241,7 @@ Town.update = function(type) {
                     if (data[u] && data[u].cost){
                         data[u].req = Math.max(quests[i].units[u],data[u].req);
                         if (data[u].own < data[u].req && this.option.quest_buy){
-                            list_buy.push([u,data[u].req - data[u].own,data[u].cost,data[u].buy]);
+                            list_buy.push([u, data[u].req - data[u].own, data[u].cost, data[u].buy]);
                         }
                     }
                 }

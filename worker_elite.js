@@ -193,22 +193,19 @@ Elite.work = function(state) {
 		if (state) {
 			debug('Filling army list');
 			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
-			Page.to('army_viewarmy', '?page=' + this.runtime.armylastpage);
+			Page.to('army_viewarmy', {page:this.runtime.armylastpage});
 		}
 		return true;
 	}
-	if ((!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now())) {
+	if (!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) {
 		return false;
 	}
 	if (!state) {
 		return true;
 	}
-	if (!this.runtime.nextelite && !length(Army.get('Army')) && !Page.to('army_viewarmy')) {
-		return true;
-	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
 		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
-		if (!Page.to('keep_eliteguard', '?twt=jneg&jneg=true&user=' + this.runtime.nextelite)) {
+		if (!Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite})) {
 			return true;
 		}
 	}

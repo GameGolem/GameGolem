@@ -164,11 +164,11 @@ Config.init = function() {
 
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
-		if (!Worker.stack.length) {
+		if (!Worker.current) {
 			return;
 		}
 		args = worker;
-		worker = Worker.stack[Worker.stack.length-1];
+		worker = Worker.current;
 	}
 	if (!args) {
 		if (!worker.display) {
