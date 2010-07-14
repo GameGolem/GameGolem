@@ -14,7 +14,7 @@
 var Quest = new Worker('Quest');
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
