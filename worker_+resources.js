@@ -107,7 +107,7 @@ Resources.update = function(type, worker) {
 		Config.makePanel(this, this.display2);
 	}
 	var worker, type, total = 0;
-	debug('Resources.update()');
+//	debug('Resources.update()');
 	for (type in this.option.types) {
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
@@ -124,7 +124,7 @@ Resources.update = function(type, worker) {
 			this.add(type, total);
 		}
 	}
-	debug(this.runtime.buckets.toSource());
+//	debug(this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
@@ -140,7 +140,7 @@ absolute = is an absolute amount, not relative
 NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
 Resources.add = function(type, amount, absolute) {
-	debug('Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
+//	debug('Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
 	this._push();
 	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
 	if (isUndefined(amount)) {// Setting up that we use this type
@@ -206,7 +206,7 @@ Check if we've got a certain number of a Resources in total - not on a per-worke
 Use this to check on "non-spending" resources
 */
 Resources.has = function(type, amount) {
-	return this.get(['runtime','types',type], 0) >= amount;
+	return isUndefined(amount) ? this.get(['runtime','types',type], 0) : this.get(['runtime','types',type], 0) >= amount;
 };
 
 Resources.get = function(what,def) {

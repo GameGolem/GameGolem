@@ -16,10 +16,11 @@ Bank.data = null;
 Bank.defaults['castle_age'] = {};
 
 Bank.option = {
-	general: true,
-	above: 10000,
-	hand: 0,
-	keep: 10000
+	general:true,
+	above:10000,
+	hand:0,
+	keep:10000,
+	status:true
 };
 
 Bank.display = [
@@ -39,6 +40,10 @@ Bank.display = [
 		id:'keep',
 		label:'Keep in Bank',
 		text:true
+	},{
+		id:'status',
+		label:'Show in Dashboard',
+		checkbox:true
 	}
 ];
 
@@ -49,6 +54,14 @@ Bank.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
+};
+
+Bank.update = function(type, worker) {
+	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
+		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('cash') + Player.get('bank')) + ' (Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income') + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income')) + ' from land)');
+	} else {
+		Dashboard.status(this);
+	}
 };
 
 Bank.stash = function(amount) {

@@ -296,6 +296,11 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 					list[units[i]].use = {};
 				}
 				list[units[i]].use[(user+'_'+x)] = Math.min(count, own);
+				if (count) {
+					Resources.set(['_'+units[i], user+'_'+x], count);
+				} else {
+					Resources.set(['_'+units[i], user+'_'+x]);
+				}
 			} else if (length(list[units[i]].use)) {
 				delete list[units[i]].use[(user+'_'+x)];
 				if (!length(list[units[i]].use)) {
@@ -425,3 +430,12 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	}
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
+
+var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower than value, return -1 on failure
+	var i, best = -1;
+	for (i=0; i<list.length && list[i] <= value; i++) {
+		best = list[i];
+	}
+	return best;
+};
+
