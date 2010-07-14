@@ -274,7 +274,7 @@ Quest.work = function(state) {
 			if (Monster.data[mid].state === 'engage' && isNumber(Monster.data[mid].defense) && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
 				return QUEUE_FINISH;
 			}
-			if (Monster.option.defend_active && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
+			if (Monster.data[mid].state === 'engage' && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
 				return QUEUE_FINISH;
 			}
 		}

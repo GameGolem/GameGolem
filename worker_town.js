@@ -273,7 +273,7 @@ Town.update = function(type) {
 		if (Bank.worth(this.runtime.cost)) {
 			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		}
 	} else {
 		Dashboard.status(this);

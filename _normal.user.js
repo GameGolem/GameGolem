@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 692;
+var revision = 696;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -690,7 +690,7 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	}
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
-//[1,2,3,4,5,10,25,50,100]
+
 var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower than value, return -1 on failure
 	var i, best = -1;
 	for (i=0; i<list.length && list[i] <= value; i++) {
@@ -8378,7 +8378,7 @@ Quest.work = function(state) {
 			if (Monster.data[mid].state === 'engage' && isNumber(Monster.data[mid].defense) && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
 				return QUEUE_FINISH;
 			}
-			if (Monster.option.defend_active && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
+			if (Monster.data[mid].state === 'engage' && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
 				return QUEUE_FINISH;
 			}
 		}
@@ -8800,7 +8800,7 @@ Town.update = function(type) {
 		if (Bank.worth(this.runtime.cost)) {
 			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		}
 	} else {
 		Dashboard.status(this);
