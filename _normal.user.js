@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 699;
+var revision = 700;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4914,7 +4914,7 @@ Generals.defaults['castle_age'] = {
 
 Generals.runtime = {
 	disabled:false, // Nobody should touch this except LevelUp!!!
-	armymax:501
+	armymax:1 // Don't force someone with a small army to buy a whole load of exrta items...
 };
 
 Generals.init = function() {
@@ -4981,7 +4981,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, armymax = 501;
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo;
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -5059,11 +5059,8 @@ Generals.update = function(type, worker) {
 			data[i].potential.raid_invade = (data[i].potential.defense + data[i].potential.invade);
 			data[i].potential.raid_duel = (data[i].potential.defense + data[i].potential.duel);
 
-			if (army > armymax) {
-				armymax = army;
-			}
+			this.runtime.armymax = Math.max(army, this.runtime.armymax);
 		}
-		this.runtime.armymax = armymax;
 	}
 };
 
@@ -8553,8 +8550,6 @@ Quest.dashboard = function(sort, rev) {
 var Town = new Worker('Town');
 Town.data = {};
 
-Town.MAX_ARMY = 541;
-
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic'
 };
@@ -8735,7 +8730,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax'), Player.get('armymax')), max_buy = 0,
+	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
@@ -8751,7 +8746,7 @@ Town.update = function(type) {
 				max_buy = army;
 				break;
 		case 'Max Army':
-				max_buy = this.MAX_ARMY;
+				max_buy = Generals.get('runtime.armymax', army);
 				break;
 		default:
 				max_buy = 0;

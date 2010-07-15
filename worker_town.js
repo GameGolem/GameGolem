@@ -13,8 +13,6 @@
 var Town = new Worker('Town');
 Town.data = {};
 
-Town.MAX_ARMY = 541;
-
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic'
 };
@@ -195,7 +193,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax'), Player.get('armymax')), max_buy = 0,
+	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
@@ -211,7 +209,7 @@ Town.update = function(type) {
 				max_buy = army;
 				break;
 		case 'Max Army':
-				max_buy = this.MAX_ARMY;
+				max_buy = Generals.get('runtime.armymax', army);
 				break;
 		default:
 				max_buy = 0;
