@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 698;
+var revision = 699;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2550,11 +2550,12 @@ Page.replaceClickHandlers = function() {
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
 	.click(function(event){
 		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
-//			debug('Replacing CA link');
+			debug('Replacing CA link');
 			event.preventDefault();
 			event.stopImmediatePropagation()
 			return false;
 		}
+		return true;
 	});
 };
 
@@ -2576,7 +2577,7 @@ Page.init = function() {
 	}
 	if (this.option.click) {
 		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
-			$(el).parent().html($(el).parent().html().replace(/onclick="[^"]*"/g, ''));
+			$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
 		});
 		this.replaceClickHandlers();
 	}
@@ -2698,7 +2699,8 @@ Page.onreadystatechange = function() {
 				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
 			}
 			if (Page.option.click) {
-				data = data.replace(/<a onclick="[^"]*"/g, '<a ');
+//				debug('replacing click handlers');
+				data = data.replace(/<a onclick="[^"]*" href/g, '<a href');
 			}
 			$('#app'+APPID+'_AjaxLoadIcon').hide();
 			$('#app'+APPID+'_globalContainer').replaceWith(data);
