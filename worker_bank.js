@@ -47,6 +47,10 @@ Bank.display = [
 	}
 ];
 
+Bank.init = function() {
+	this._watch(Player);
+};
+
 Bank.work = function(state) {
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
 		return QUEUE_FINISH;

@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 696;
+var revision = 697;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2022,6 +2022,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
+	Dashboard.update('', WorkerByName(Dashboard.option.active.substr(16)));// Make sure we're called at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -4060,6 +4061,10 @@ Bank.display = [
 		checkbox:true
 	}
 ];
+
+Bank.init = function() {
+	this._watch(Player);
+};
 
 Bank.work = function(state) {
 	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
