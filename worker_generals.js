@@ -21,7 +21,8 @@ Generals.defaults['castle_age'] = {
 };
 
 Generals.runtime = {
-	disabled:false // Nobody should touch this except LevelUp!!!
+	disabled:false, // Nobody should touch this except LevelUp!!!
+	armymax:501
 };
 
 Generals.init = function() {
@@ -88,7 +89,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo;
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, armymax = 501;
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -165,7 +166,12 @@ Generals.update = function(type, worker) {
 			};
 			data[i].potential.raid_invade = (data[i].potential.defense + data[i].potential.invade);
 			data[i].potential.raid_duel = (data[i].potential.defense + data[i].potential.duel);
+
+			if (army > armymax) {
+				armymax = army;
+			}
 		}
+		this.runtime.armymax = armymax;
 	}
 };
 

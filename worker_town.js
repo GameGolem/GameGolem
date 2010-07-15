@@ -195,7 +195,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(this.MAX_ARMY, Player.get('armymax')), max_buy = 0,
+	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax'), Player.get('armymax')), max_buy = 0,
 	max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
