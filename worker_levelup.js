@@ -46,11 +46,8 @@ LevelUp.runtime = {
 	stamina:0,
 	exp:0,
 	exp_possible:0,
-	energy_samples:0,
 	avg_exp_per_energy:1.4,
 	avg_exp_per_stamina:2.4,
-	stamina_samples:0,
-	avg_exp_per_stamina:1,
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -125,7 +122,6 @@ LevelUp.update = function(type,worker) {
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
-			debug(' were in' + $('span.result_body:contains("xperience")') + '|' + $('span.result_body:contains("xperience")').length);
 			if (runtime.stamina > stamina) {
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);

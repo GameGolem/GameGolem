@@ -291,7 +291,7 @@ Quest.work = function(state) {
 				case 'Advancement':
 				case 'Experience':
 					general = 'under level 4';
-					if (general === 'any' && isNumber(this.data[best].influence) && this.data[best].influence < 100) {
+					if (isNumber(this.data[best].influence) && this.data[best].influence < 100) {
 						general = 'influence';
 					}
 					break;

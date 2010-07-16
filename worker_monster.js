@@ -557,6 +557,19 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
 		defend:[10,20,40,100],
 		orcs:true
+	},
+	alpha_meph: {
+		name:'Alpha Mephistopheles',
+		list:'nm_alpha_mephistopheles_list.jpg',
+		image:'nm_mephistopheles2_large.jpg',
+		dead:'nm_mephistopheles2_dead.jpg', 
+		achievement:3200000, // ~0.5%, 2X = ~1%
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend:[10,20,40,100]
 	}
 };
 
@@ -828,7 +841,7 @@ Monster.update = function(what,worker) {
 /*	if (what === 'runtime') {
 		return;
 	}
-*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc;
+*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc, matched_mids = [];
 	list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -852,9 +865,8 @@ Monster.update = function(what,worker) {
 	
 	if  (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p;
-		var order = this.option.priority.split(/[\n,]/);
-		
-		order.push('your','\'s'); // Catch all at end in case no other match
+		var order = this.option.priority.replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
+		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
@@ -874,12 +886,14 @@ Monster.update = function(what,worker) {
 					type = this.types[monster.type];
 					//If this monster does not match, skip to next one
 					// Or if this monster is dead, skip to next one
-					if (	((monster.name === 'You' ? 'Your' : monster.name)
+					if (	matched_mids.indexOf(mid)>=0
+							||((monster.name === 'You' ? 'Your' : monster.name + '\'s')
 								+ ' ' + type.name).toLowerCase().indexOf(searchterm) < 0
 							|| (monster.state !== 'engage')
 							|| monster.ignore) {
 						continue;
 					}
+					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.ach = this.conditions('ach',condition) || type.achievement;
 					monster.max = this.conditions('max',condition);
@@ -898,7 +912,15 @@ Monster.update = function(what,worker) {
 							attack_overach = o;
 						}
 					}
-					if (	this.option.defend_active && type.defend 
+/*					if ((monster.mclass || 0) < 2) {
+						if ((monster.attackbonus || 101) >= this.option.defend
+								&& monster.defense >= 100) {
+							continue;
+						}
+					} else if ((monster.secondary || 101) >= 100){
+						continue;
+					}
+*/					if (	this.option.defend_active && type.defend 
 							&& (defend_found || o) === o
 							&& monster.attackbonus < monster.defend_max) {
 						if (damage < monster.ach) {
@@ -917,6 +939,7 @@ Monster.update = function(what,worker) {
 				break;
 			}
 		}
+		delete matched_mids;
 	} else {
 		// Make lists of the possible attack and defend targets
 		for (mid in this.data) {

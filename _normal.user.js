@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 701;
+var revision = 702;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -682,10 +683,10 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	x_label_list = label_list[x_label] = label_list[x_label] || [];
 	y_label_list.unshift(y_val);
 	x_label_list.unshift(x_val);
-	while (y_label_list.length > (limit || 30)) {
+	while (y_label_list.length > (limit || 100)) {
 		y_label_list.pop();
 	}
-	while (x_label_list.length > (limit || 30)) {
+	while (x_label_list.length > (limit || 100)) {
 		x_label_list.pop();
 	}
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
@@ -6147,11 +6148,8 @@ LevelUp.runtime = {
 	stamina:0,
 	exp:0,
 	exp_possible:0,
-	energy_samples:0,
 	avg_exp_per_energy:1.4,
 	avg_exp_per_stamina:2.4,
-	stamina_samples:0,
-	avg_exp_per_stamina:1,
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -6226,7 +6224,6 @@ LevelUp.update = function(type,worker) {
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
-			debug(' were in' + $('span.result_body:contains("xperience")') + '|' + $('span.result_body:contains("xperience")').length);
 			if (runtime.stamina > stamina) {
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
@@ -6965,6 +6962,19 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
 		defend:[10,20,40,100],
 		orcs:true
+	},
+	alpha_meph: {
+		name:'Alpha Mephistopheles',
+		list:'nm_alpha_mephistopheles_list.jpg',
+		image:'nm_mephistopheles2_large.jpg',
+		dead:'nm_mephistopheles2_dead.jpg', 
+		achievement:3200000, // ~0.5%, 2X = ~1%
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend:[10,20,40,100]
 	}
 };
 
@@ -7236,7 +7246,7 @@ Monster.update = function(what,worker) {
 /*	if (what === 'runtime') {
 		return;
 	}
-*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc;
+*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc, matched_mids = [];
 	list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -7260,9 +7270,8 @@ Monster.update = function(what,worker) {
 	
 	if  (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p;
-		var order = this.option.priority.split(/[\n,]/);
-		
-		order.push('your','\'s'); // Catch all at end in case no other match
+		var order = this.option.priority.replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
+		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
@@ -7282,12 +7291,14 @@ Monster.update = function(what,worker) {
 					type = this.types[monster.type];
 					//If this monster does not match, skip to next one
 					// Or if this monster is dead, skip to next one
-					if (	((monster.name === 'You' ? 'Your' : monster.name)
+					if (	matched_mids.indexOf(mid)>=0
+							||((monster.name === 'You' ? 'Your' : monster.name + '\'s')
 								+ ' ' + type.name).toLowerCase().indexOf(searchterm) < 0
 							|| (monster.state !== 'engage')
 							|| monster.ignore) {
 						continue;
 					}
+					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.ach = this.conditions('ach',condition) || type.achievement;
 					monster.max = this.conditions('max',condition);
@@ -7306,7 +7317,15 @@ Monster.update = function(what,worker) {
 							attack_overach = o;
 						}
 					}
-					if (	this.option.defend_active && type.defend 
+/*					if ((monster.mclass || 0) < 2) {
+						if ((monster.attackbonus || 101) >= this.option.defend
+								&& monster.defense >= 100) {
+							continue;
+						}
+					} else if ((monster.secondary || 101) >= 100){
+						continue;
+					}
+*/					if (	this.option.defend_active && type.defend 
 							&& (defend_found || o) === o
 							&& monster.attackbonus < monster.defend_max) {
 						if (damage < monster.ach) {
@@ -7325,6 +7344,7 @@ Monster.update = function(what,worker) {
 				break;
 			}
 		}
+		delete matched_mids;
 	} else {
 		// Make lists of the possible attack and defend targets
 		for (mid in this.data) {
@@ -8405,7 +8425,7 @@ Quest.work = function(state) {
 				case 'Advancement':
 				case 'Experience':
 					general = 'under level 4';
-					if (general === 'any' && isNumber(this.data[best].influence) && this.data[best].influence < 100) {
+					if (isNumber(this.data[best].influence) && this.data[best].influence < 100) {
 						general = 'influence';
 					}
 					break;
