@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 702;
+var revision = 703;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8424,8 +8423,8 @@ Quest.work = function(state) {
 				case 'Influence':
 				case 'Advancement':
 				case 'Experience':
-					general = 'under level 4';
-					if (isNumber(this.data[best].influence) && this.data[best].influence < 100) {
+					general = Generals.best('under level 4');
+					if (general === 'any' && isNumber(this.data[best].influence) && this.data[best].influence < 100) {
 						general = 'influence';
 					}
 					break;
