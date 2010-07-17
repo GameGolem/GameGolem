@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 703;
+var revision = 704;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2031,7 +2031,7 @@ Dashboard.parse = function(change) {
 };
 
 Dashboard.update = function(type, worker) {
-	if (type === 'reminder') {
+	if (!worker && type === 'reminder') {
 		$('.golem-timer').each(function(i,el){
 			var time = $(el).text().parseTimer();
 			if (time && time > 0) {

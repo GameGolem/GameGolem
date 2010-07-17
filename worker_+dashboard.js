@@ -91,7 +91,7 @@ Dashboard.parse = function(change) {
 };
 
 Dashboard.update = function(type, worker) {
-	if (type === 'reminder') {
+	if (!worker && type === 'reminder') {
 		$('.golem-timer').each(function(i,el){
 			var time = $(el).text().parseTimer();
 			if (time && time > 0) {
