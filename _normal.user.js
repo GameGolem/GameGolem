@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 704;
+var revision = 705;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8233,7 +8233,7 @@ Quest.parse = function(change) {
 		var name, level, influence, reward, units, energy, tmp, type = 0;
 		if ($(el).hasClass('quests_background_sub')) { // Subquest
 			name = $('.quest_sub_title', el).text().trim();
-			reward = $('.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			reward = $('.qd_2_sub', el).text().replace(/mil/g, '000000').replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
 			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
 			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);

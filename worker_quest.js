@@ -100,7 +100,7 @@ Quest.parse = function(change) {
 		var name, level, influence, reward, units, energy, tmp, type = 0;
 		if ($(el).hasClass('quests_background_sub')) { // Subquest
 			name = $('.quest_sub_title', el).text().trim();
-			reward = $('.qd_2_sub', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
+			reward = $('.qd_2_sub', el).text().replace(/mil/g, '000000').replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
 			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
 			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
