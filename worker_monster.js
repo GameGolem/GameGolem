@@ -793,7 +793,7 @@ Monster.parse = function(change) {
 				}
 			}
 			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
-				var i, uid = $('a', el).attr('href').regex(/causer=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
+				var i, uid = $('a', el).attr('href').regex(/casuser=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
 				for (i in types) {
 					if (tmp === types[i].list) {
 						type_label = i;
@@ -1118,7 +1118,7 @@ Monster.work = function(state) {
 				type.raid
 					? 'battle_raid'
 					: 'monster_battle_monster',
-				'?user=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : ''));
+				'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : ''));
 			return QUEUE_RELEASE;
 		}
 		this.runtime.check = false;
