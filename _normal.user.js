@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 710;
+var revision = 711;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6518,14 +6518,14 @@ Monster.display = [
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
 	},{
 		advanced:true,
-		id:'att_avoid_lost_cause',
+		id:'avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
 		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
 		advanced:true,
-		id:'att_lost_cause_hours',
+		id:'lost_cause_hours',
 		label:'Lost-cause if ETD is',
 		require:'avoid_lost_cause',
 		after:'hours after timer',
@@ -7359,7 +7359,8 @@ Monster.update = function(what,worker) {
 					? this.option.attack_max : this.option.attack_min;
 			req_energy = type.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
-
+                        monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
+			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			if (	!monster.ignore
 					&& monster.state === 'engage'
 					&& monster.finish > Date.now()	) {
@@ -7720,7 +7721,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''
-				: addCommas(sum(monster.damage.user)),
+				: ((sum(monster.damage.user) > Math.min(monster.ach,monster.max) && Math.max(monster.ach,monster.max) > 0) ? '<span style="color: green;">' : '<span style="color: red;">') + addCommas(sum(monster.damage.user)) + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
