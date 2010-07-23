@@ -735,7 +735,7 @@ Monster.parse = function(change) {
 			//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
 			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
-		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?user="]').each(function(i,el){
+		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
 			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp, dmg, fort;
 			if (types[type_label].raid){
 				tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
@@ -793,7 +793,7 @@ Monster.parse = function(change) {
 				}
 			}
 			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
-				var i, uid = $('a', el).attr('href').regex(/user=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
+				var i, uid = $('a', el).attr('href').regex(/causer=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
 				for (i in types) {
 					if (tmp === types[i].list) {
 						type_label = i;
