@@ -21,6 +21,7 @@ Monster.option = {
 	general:true,
 	general_defend:'any',
 	general_attack:'any',
+	general_raid:'any',
 	defend: 30,
 	//	quest_over: 90,
 	min_to_attack: -30,
@@ -50,6 +51,7 @@ Monster.runtime = {
 	check:false, // id of monster to check if needed, otherwise false
 	attack:false, // id of monster if we have an attack target, otherwise false
 	defend:false, // id of monster if we have a defend target, otherwise false
+	secondary: false, // Is there a target for mage or rogue that is full or not in cycle?  Used to tell quest to wait if don't quest when fortifying is on.
 	avg_damage_per_stamina:1,
 	avg_defend_per_energy:1,
 	stamina_used:0,
@@ -59,16 +61,16 @@ Monster.runtime = {
 
 Monster.display = [
 	{
-		id:'general',
+		title:'Attack'
+	},{
+		id:'best_attack',
 		label:'Use Best General',
 		checkbox:true
-	},{
-		title:'Attack'
 	},{
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'general':false},
+		require:{'best_attack':false},
 		select:'bestgenerals'
 	},{
 		advanced:true,
@@ -79,9 +81,9 @@ Monster.display = [
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		id:'min_to_attack',
-		label:'Attack Over (AB)',
+		label:'Attack Over',
 		text:1,
-		help:'Attack if ATT BONUS is over this value. Range of -50% to +50%.',
+		help:'Attack if defense is over this value. Range of 0% to 100%.',
 		after:'%'
 	},{
 		id:'choice',
@@ -138,7 +140,56 @@ Monster.display = [
 		select:[1,5,10,20,50],
 		help:'Select the maximum stamina for a single attack'
 	},{
+		title:'Defend'
+	},{
+		id:'defend_active',
+		label:'Defend Active',
+		checkbox:true,
+		help:'Must be checked to defend.'
+	},{
+//		id:'defend_group',
+		require:'defend_active',
+		group:[
+			{
+				id:'best_defend',
+				label:'Use Best General',
+				checkbox:true
+			},{
+				advanced:true,
+				id:'general_defend',
+				require:{'best_defend':false},
+				label:'Defend General',
+				select:'bestgenerals'
+			},{
+				id:'defend',
+				label:'Defend Below (AB)',
+				text:30,
+				help:'Defend if defense is under this value. Range of 0% to 100%.',
+				after:'%'
+			},{
+				id:'defend_min',
+				label:'Min Energy Cost',
+				select:[10,20,40,100],
+				help:'Select the minimum energy for a single energy action'
+			},{
+				id:'defend_max',
+				label:'Max Energy Cost',
+				select:[10,20,40,100],
+				help:'Select the maximum energy for a single energy action'
+			}
+		]
+	},{
 		title:'Raids'
+	},{
+		id:'best_raid',
+		label:'Use Best General',
+		checkbox:true
+	},{
+		advanced:true,
+		id:'general_raid',
+		label:'Raid General',
+		require:{'best_raid':false},
+		select:'bestgenerals'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -166,41 +217,6 @@ Monster.display = [
 		label:'Force +1',
 		checkbox:true,
 		help:'Force the first player in the list to aid.'
-	},{
-		title:'Defend'
-	},{
-		id:'defend_active',
-		label:'Defend Active',
-		checkbox:true,
-		help:'Must be checked to defend.'
-	},{
-//		id:'defend_group',
-		require:'defend_active',
-		group:[
-			{
-				advanced:true,
-				id:'general_defend',
-				require:{'general':false},
-				label:'Defend General',
-				select:'bestgenerals'
-			},{
-				id:'defend',
-				label:'Defend Below (AB)',
-				text:30,
-				help:'Defend if ATT BONUS is under this value. Range of -50% to +50%.',
-				after:'%'
-			},{
-				id:'defend_min',
-				label:'Min Energy Cost',
-				select:[10,20,40,100],
-				help:'Select the minimum energy for a single energy action'
-			},{
-				id:'defend_max',
-				label:'Max Energy Cost',
-				select:[10,20,40,100],
-				help:'Select the maximum energy for a single energy action'
-			}
-		]
 	},{
 		title:'Siege Assist Options'
 	},{
@@ -515,7 +531,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
 	alpha_bahamut: {
@@ -528,7 +544,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
 	azriel: {
@@ -541,7 +557,7 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
 	red_plains: {
@@ -554,7 +570,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		orcs:true
 	},
@@ -568,7 +584,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"],input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="strengthen"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	}
 };
@@ -576,10 +592,17 @@ Monster.types = {
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
-Monster.secondary_img = ['img[src$="nm_stun_bar.gif"]'];
-Monster.class_img = ['div[style*="nm_bottom"] img[src$="nm_class_warrior.jpg"]', 'div[style*="nm_bottom"] img[src$="nm_class_cleric.jpg"]', 'div[style*="nm_bottom"] img[src$="nm_class_rogue.jpg"]', 'div[style*="nm_bottom"] img[src$="nm_class_mage.jpg"]'];
-Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage'];
-Monster.class_off = ['', '', 'img[src$="nm_s_off_cripple.gif"]', 'img[src$="nm_s_off_deflect.gif"]'];
+Monster.secondary_img = 'img[src$="nm_stun_bar.gif"]';
+Monster.class_img = ['div[style*="nm_bottom"] img[src$="nm_class_warrior.jpg"]',
+				'div[style*="nm_bottom"] img[src$="nm_class_cleric.jpg"]',
+				'div[style*="nm_bottom"] img[src$="nm_class_rogue.jpg"]',
+				'div[style*="nm_bottom"] img[src$="nm_class_mage.jpg"]',
+				'div[style*="nm_bottom"] img[src$="nm_class_ranger.jpg"]',
+				'div[style*="nm_bottom"] img[src$="nm_class_warlock.jpg"]'];
+Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage', 'Ranger', 'Warlock'];
+Monster.secondary_off = 'img[src$="nm_s_off_cripple.gif"],img[src$="nm_s_off_deflect.gif"]';
+Monster.secondary_on = 'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]';
+Monster.warrior = 'input[name="Attack Dragon"][src*="strengthen"]';
 
 Monster.init = function() {
 	this._watch(Player);
@@ -625,6 +648,7 @@ Monster.parse = function(change) {
 		mid = uid+'_'+(types[i].mpool || 4);
 		monster = data[mid] = data[mid] || {};
 		monster.type = type_label;
+		type = types[type_label];
 		monster.last = Date.now();
 		if (dead) {
 			// Will this catch Raid format rewards?
@@ -674,24 +698,26 @@ Monster.parse = function(change) {
 		for (i in Monster['class_img']){
 			if ($(Monster['class_img'][i]).length){
 				monster.mclass = i;
+				break;
 				//debug('Monster class : '+Monster['class_name'][i]);
 			}
 		}
-		if (monster.mclass > 1){	// If we are a Rogue or Mage
-			// Attempt to check if we are in the wrong phase
-			if ($(Monster['class_off'][monster.mclass]).length === 0){
-				monster.secondary = 0;
-				for(i in Monster['secondary_img']) {
-					$secondary = $(Monster['secondary_img'][i]);
-					if ($secondary.length) {
-						monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
-						//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
-						break;
-					}
-				}
-			} else {
-				//debug("We aren't in "+Monster['class_name'][monster.mclass]+" phase. Skip defend.");
+		if ($(Monster.warrior).length) {
+			monster.warrior = true;
+		}
+		if ($(Monster.secondary_off).length) {
+			monster.secondary = 100;
+		} else if ($(Monster.secondary_on).length) {
+			monster.secondary = 0.01; // Prevent from defaulting to false
+			$secondary = $(Monster['secondary_img']);
+			if ($secondary.length) {
+				monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
+				//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
+		}
+		// If we have some other class but no cleric button, then we can't heal.  
+		if ((monster.secondary || monster.warrior) && !$(type.defend_button).length) {
+			monster.no_heal = true;
 		}
 		for (i in Monster['health_img']){
 			if ($(Monster['health_img'][i]).length){
@@ -704,7 +730,6 @@ Monster.parse = function(change) {
 			if ($(Monster['shield_img'][i]).length){
 				$dispel = $(Monster['shield_img'][i]).parent();
 				monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
-				monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
 				break;
 			}
 		}
@@ -717,7 +742,7 @@ Monster.parse = function(change) {
 				} else {
 					monster.strength = 100;
 				}
-				monster.attackbonus = (monster.defense * (isNumber(monster.strength) ? (monster.strength/100) : 1)) - 50;
+				monster.defense = monster.defense * (monster.strength || 100) / 100;
 				break;
 			}
 		}
@@ -863,14 +888,23 @@ Monster.update = function(what,worker) {
 		}
 	}
 	
+	this.runtime.secondary = false;
 	if  (this.option.stop === 'Priority List') {
-		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p;
-		var order = this.option.priority.replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
+		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind;
+		var order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
 				continue;
+			}
+			if (order[o] === 'levelup') {
+				if (LevelUp.get('runtime.running')) {
+					match_mids = [];
+					continue;
+				} else {
+					break;
+				}
 			}
 			suborder = order[o].split('|');
 			for (var p in suborder) {
@@ -878,7 +912,7 @@ Monster.update = function(what,worker) {
 				if (!suborder[p]) {
 					continue;
 				}
-				searchterm = $.trim(suborder[p].match(new RegExp("^[^:]+")).toString()).toLowerCase();
+				searchterm = $.trim(suborder[p].match(new RegExp("^[^:]+")).toString());
 				condition = $.trim(suborder[p].replace(new RegExp("^[^:]+"), '').toString());
 				//debug('Priority order ' + searchterm +' condition ' + condition);
 				for (mid in this.data) {
@@ -889,54 +923,81 @@ Monster.update = function(what,worker) {
 					if (	matched_mids.indexOf(mid)>=0
 							||((monster.name === 'You' ? 'Your' : monster.name + '\'s')
 								+ ' ' + type.name).toLowerCase().indexOf(searchterm) < 0
-							|| (monster.state !== 'engage')
 							|| monster.ignore) {
+						continue;
+					}
+					if (/:ac\b/.test(condition)) {
+						monster.ac = true;
+					}
+					if (monster.state !== 'engage') {
 						continue;
 					}
 					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
-					monster.ach = this.conditions('ach',condition) || type.achievement;
 					monster.max = this.conditions('max',condition);
+					monster.ach = Math.min(this.conditions('ach',condition) || type.achievement,monster.max);
 					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
 					if ((attack_found || o) === o 
-							&& monster.attackbonus >= this.option.min_to_attack) {
+							&& monster.defense >= this.option.min_to_attack) {
 						if (damage < monster.ach) {
-							//debug('ATTACK monster ' + monster.name + ' ' + type.name);
-							list.attack.push([mid, damage / sum(monster.damage)]);
 							attack_found = o;
+							if (attack_found && attack_overach) {
+								list.attack = [[mid, damage / sum(monster.damage), type.attack_button]];
+								attack_overach = false;
+							} else {
+								list.attack.push([mid, damage / sum(monster.damage), type.attack_button]);
+							}
+							//debug('ATTACK monster ' + monster.name + ' ' + type.name);
 						} else if ((monster.max === false || damage < monster.max) 
 								&& !attack_found && (attack_overach || o) === o) {
-							list.attack.push([mid, damage / sum(monster.damage)]);
+							list.attack.push([mid, damage / sum(monster.damage), type.attack_button]);
 							attack_overach = o;
 						}
 					}
-/*					if ((monster.mclass || 0) < 2) {
-						if ((monster.attackbonus || 101) >= this.option.defend
-								&& monster.defense >= 100) {
-							continue;
+
+					// Possible defend target?
+					if (this.option.defend_active 
+							&& (defend_found || o) === o) {
+						defense_kind = false;
+						if ((monster.secondary || 100) < 100) {
+							debug('secondary ok' + /:sec\b/.test(condition));
+							defense_kind = Monster.secondary_on;
+						} else if (monster.warrior && (monster.strength || 100) < 100) {
+							defense_kind = Monster.warrior;
+						} else if ((monster.defense || 100) 
+									< Math.min(monster.defend_max, monster.strength -1)
+								&& !monster.no_heal) {
+							defense_kind = type.defend_button;
 						}
-					} else if ((monster.secondary || 101) >= 100){
-						continue;
-					}
-*/					if (	this.option.defend_active && type.defend 
-							&& (defend_found || o) === o
-							&& monster.attackbonus < monster.defend_max) {
-						if (damage < monster.ach) {
-							//debug('DEFEND monster ' + monster.name + ' ' + type.name);
-							list.defend.push([mid, damage / sum(monster.damage)]);
-							defend_found = o;
-						} else if ((monster.max === false || damage < monster.max) 
-								&& !defend_found && (defend_overach || o) === o) {
-							list.defend.push([mid, damage / sum(monster.damage)]);
-							defend_overach = o;
+						if (monster.secondary === 100  
+								&& (monster.max === false 
+									|| damage < monster.max
+									|| /:sec\b/.test(condition))) {
+							this.runtime.secondary = true;
+						}
+						if (defense_kind && (defend_found || o) === o) {
+							if (damage < monster.ach
+									|| (/:sec\b/.test(condition)
+										&& defense_kind === Monster.secondary_on)) {
+								//debug('DEFEND monster ' + monster.name + ' ' + type.name);
+								defend_found = o;
+							} else if ((monster.max === false || damage < monster.max) 
+									&& !defend_found && (defend_overach || o) === o) {
+								defend_overach = o;
+							} else {
+								continue;
+							}
+							if (defend_found && defend_overach) {
+								list.defend = [[mid, damage / sum(monster.damage), defense_kind]];
+								defend_overach = false;
+							} else {
+								list.defend.push([mid, damage / sum(monster.damage), defense_kind]);
+							}
 						}
 					}
 				}
-			}
-			if (attack_found && (!this.option.defend_active || defend_found)) {
-				break;
 			}
 		}
 		delete matched_mids;
@@ -953,7 +1014,7 @@ Monster.update = function(what,worker) {
 					? Math.max.apply(Math, type.attack)
 					: this.option.attack_min > this.option.attack_max
 					? this.option.attack_max : this.option.attack_min;
-			req_energy = type.defend_button ? this.option.defend_min : null;
+			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
                         monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -982,23 +1043,20 @@ Monster.update = function(what,worker) {
 				}
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
-					&& ((monster.attackbonus || 50) >= this.option.min_to_attack)) {
-					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
+					&& ((monster.defense || 100) >= this.option.min_to_attack)) {
+					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
 				}
 				// Possible defend target?
-				if (	this.option.defend_active
-						&& (!this.option.hide
-							|| Queue.burn.energy >= req_energy)
-						&& (monster.attackbonus || 51) <= this.option.defend) {
-					if ((monster.mclass || 0) < 2) {
-						if ((monster.attackbonus || 101) >= this.option.defend
-								&& monster.defense >= 100) {
-							continue;
-						}
-					} else if ((monster.secondary || 101) >= 100){
-						continue;
+				if (this.option.defend_active) {
+					if ((monster.secondary || 100) < 100) {
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on]);
+					} else if (monster.warrior && (monster.strength || 100) < 100){
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)], Monster.warrior);
+					} else if ((monster.defense || 100) 
+								< Math.min(this.option.defend, monster.strength -1)
+							&& !monster.no_heal) {
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button]);
 					}
-					list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)]);
 				}
 			}
 		}
@@ -1030,8 +1088,11 @@ Monster.update = function(what,worker) {
 		// Find best target
 		// debug('list ' + i + ' is ' + list[i]);
 		if (list[i].length) {
-			list[i].sort(listSortFunc);
+			if (list[i].length > 1) {
+				list[i].sort(listSortFunc);
+			}
 			this.runtime[i] = mid = list[i][0][0];
+			this.runtime[i + '_button'] = list[i][0][2];
 			uid = mid.replace(/_\d+/,'');
 			type = this.types[this.data[mid].type];
 			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + '\'s ')) + type.name;
@@ -1094,7 +1155,7 @@ Monster.update = function(what,worker) {
 };
 
 Monster.work = function(state) {
-	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = null, stat, monster;
+	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = null, stat, monster, title;
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
 		mode = 'defend';
 		stat = 'energy';
@@ -1119,7 +1180,7 @@ Monster.work = function(state) {
 				type.raid
 					? 'battle_raid'
 					: 'monster_battle_monster',
-				'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : ''));
+				'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
 			return QUEUE_RELEASE;
 		}
 		this.runtime.check = false;
@@ -1129,10 +1190,14 @@ Monster.work = function(state) {
 	uid = this.runtime[mode].replace(/_\d+/,'');
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];
-	if (type.raid) { // Raid has different buttons and generals
-		if (!Generals.to((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')) {
-			return QUEUE_CONTINUE;
-		}
+	if (!Generals.to(this.option['best_'+mode] 
+			? (type.raid
+				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
+				: 'monster_' + mode)
+			: this.option['general_'+mode])) {
+		return QUEUE_CONTINUE;
+	}
+	if (type.raid) { // Raid has different buttons
 		switch(this.option.raid) {
 		case 'Invade':
 			btn = $('input[src$="raid_attack_button.gif"]:first');
@@ -1149,22 +1214,18 @@ Monster.work = function(state) {
 		}
 	} else {
 		//Primary method of finding button.
-		if (!Generals.to(this.option.general ? 'monster_' + mode
-				: this.option['general_'+mode])) {
-			return QUEUE_CONTINUE;
-		}
 		debug('Try to ' + mode + ' ' + monster.name + '\'s ' + type.name);
 		if (this.option[mode + '_max'] <= type[mode][0]) {
-			btn = $(type[mode + '_button']).eq(0);
+			btn = $(this.runtime[mode + '_button']).eq(0);
 		} else {
-			b = $(type[mode + '_button']).length - 1;
+			b = $(this.runtime[mode + '_button']).length - 1;
 			for (i=b; i >= 0; i--){
 				//debug('Burn ' + stat + ' is ' + Queue.burn[stat]);
 				if (	type[mode][i] <= this.option[mode + '_max'] 
 						&& Queue.burn[stat] >= type[mode][i] ) {
 					//debug('Button cost is ' + type.defend[i]);
 					this.runtime[stat + '_used'] = type[mode][i];
-					btn = $(type[mode + '_button']).eq(i);
+					btn = $(this.runtime[mode + '_button']).eq(i);
 					break;
 				}
 			}
@@ -1186,7 +1247,7 @@ Monster.work = function(state) {
 		//debug('Reloading page. Button = ' + btn.attr('name'));
 		//debug('Reloading page. Page.page = '+ Page.page);
 		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
-		Page.to(type.raid ? 'battle_raid' : 'monster_battle_monster', '?user=' + uid
+		Page.to(type.raid ? 'battle_raid' : 'monster_battle_monster', '?casuser=' + uid
 				+ ((monster.phase && this.option.assist) ? '&action=doObjective' : '')
 				+ (type.mpool ? '&mpool=' + type.mpool : ''));
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
@@ -1267,7 +1328,7 @@ Monster.dashboard = function(sort, rev) {
 	th(output, '');
 	th(output, 'User');
 	th(output, 'Health', 'title="(estimated)"');
-	th(output, 'Att Bonus', 'title="Composite of Fortification or Dispel into an approximate attack bonus (+50%...-50%)."');
+	th(output, 'Defense', 'title="Composite of Fortification or Dispel (0%...100%)."');
 	//	th(output, 'Shield');
 	th(output, 'Damage');
 	th(output, 'Time Left');
@@ -1305,15 +1366,22 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: 'title="' + addCommas(monster.total - sum(monster.damage)) + '"');
+		title = (isNumber(monster.strength)
+					? 'Max: '+((monster.strength).round(1))+'% '
+					: '')
+				+ (isNumber(monster.defense)
+						? 'Attack Bonus: ' + (monster.defense.round(1) - 50)+'%'
+						: '');
 		td(output,
 			blank
 				? ''
-				: isNumber(monster.attackbonus)
-					? (monster.attackbonus.round(1))+'%'
+				: isNumber(monster.defense)
+					? (monster.defense.round(1))+'%'
 					: '',
-			(isNumber(monster.strength)
-				? 'title="Max: '+((monster.strength-50).round(1))+'%"'
-				: ''));
+			(title 
+				? 'title="' + title + '"'
+				: '')
+				);
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''

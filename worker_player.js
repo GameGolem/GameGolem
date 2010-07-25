@@ -45,28 +45,31 @@ Player.init = function() {
 };
 
 Player.parse = function(change) {
+	if (change) {
+		return false;
+	}
 	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.energy		= tmp[0] || 0;
+		data.energy		= (tmp ? tmp[0] : 0);
 //		data.maxenergy	= tmp[1] || 0;
 		Resources.add('Energy', data.energy, true);
 	}
 	if ($('#app'+APPID+'_health_current_value').length) {
 		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.health		= tmp[0] || 0;
+		data.health		= (tmp ? tmp[0] : 0);
 //		data.maxhealth	= tmp[1] || 0;
 	}
 	if ($('#app'+APPID+'_stamina_current_value').length) {
 		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.stamina	= tmp[0] || 0;
+		data.stamina	= (tmp ? tmp[0] : 0);
 //		data.maxstamina	= tmp[1] || 0;
 		Resources.add('Stamina', data.stamina, true);
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.exp		= tmp[0] || 0;
-		data.maxexp		= tmp[1] || 0;
+		data.exp		= (tmp ? tmp[0] : 0);
+		data.maxexp		= (tmp ? tmp[1] : 0);
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);

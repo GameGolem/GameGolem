@@ -210,6 +210,7 @@ Quest.update = function(type,worker) {
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
+					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
 					&& ((isNumber(quests[i].influence) && quests[i].level == 0 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
 					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
@@ -219,7 +220,7 @@ Quest.update = function(type,worker) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (isNumber(quests[i].influence)
 					&& quests[i].influence < 100
-					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+					&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
 						best_influence = i;
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
@@ -268,16 +269,12 @@ Quest.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-	if (this.option.monster && Monster.option.defend_active) {
-		Monster._unflush();
-		for (mid in Monster.data) {
-			if (Monster.data[mid].state === 'engage' && isNumber(Monster.data[mid].defense) && (typeof Monster.data[mid].mclass === 'undefined' || Monster.data[mid].mclass < 2) && ((typeof Monster.data[mid].attackbonus !== 'undefined' && Monster.data[mid].attackbonus < Monster.option.fortify && Monster.data[mid].defense < 100))) {
-				return QUEUE_FINISH;
-			}
-			if (Monster.data[mid].state === 'engage' && typeof Monster.data[mid].mclass !== 'undefined' && Monster.data[mid].mclass > 1 && typeof Monster.data[mid].secondary !== 'undefined' && Monster.data[mid].secondary < 100){
-				return QUEUE_FINISH;
-			}
-		}
+	if (this.option.monster 
+			&& (Monster.get('runtime.defend')
+				|| (Monster.get('runtime.secondary')
+					&& !LevelUp.get('runtime.running')
+					&& Player.get('energy') < Player.get('maxenergy')))) {
+		return QUEUE_FINISH;
 	}
 	if (!state) {
 		return QUEUE_CONTINUE;
