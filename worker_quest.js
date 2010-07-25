@@ -75,6 +75,9 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
+	if (change) {
+		return false;
+	}
 	var quest = this.data, area = null, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...

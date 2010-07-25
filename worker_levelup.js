@@ -133,7 +133,7 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quest_data,order = Config.getOrder(), stamina_samples;
+	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quests,order = Config.getOrder(), stamina_samples;
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -156,11 +156,11 @@ LevelUp.update = function(type,worker) {
 /* Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
 
 	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
-		quest_data = Quest.get();
+		quests = Quest.get();
 		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
-		for (i in quest_data) { // Fill out with the best exp for every energy cost
-			if (!quests[quest_data[i].energy] || quest_data[i].exp > quests[quest_data[i].energy][0]) {
-				quests[quest_data[i].energy] = [quest_data[i].exp, [i]];
+		for (i in quests) { // Fill out with the best exp for every energy cost
+			if (!quests[quests[i].energy] || quests[i].exp > quests[quests[i].energy][0]) {
+				quests[quests[i].energy] = [quests[i].exp, [i]];
 			}
 		}
 		j = 1;
@@ -178,9 +178,9 @@ LevelUp.update = function(type,worker) {
 		}
 // No need to merge quests as we're only interested in the first one...
 //		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
-//			if (quest_data[quests[i][1][0]].energy < i) {
-//				quests[i][0] += quests[i - quest_data[quests[i][1][0]].energy][0];
-//				quests[i][1] = quests[i][1].concat(quests[i - quest_data[quests[i][1][0]].energy][1])
+//			if (quests[quests[i][1][0]].energy < i) {
+//				quests[i][0] += quests[i - quests[quests[i][1][0]].energy][0];
+//				quests[i][1] = quests[i][1].concat(quests[i - quests[quests[i][1][0]].energy][1])
 //			}
 //		}
 //		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
@@ -201,7 +201,7 @@ LevelUp.update = function(type,worker) {
 		if (runtime.running) {
 			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' + this.get('timer')+ ' (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
 		}
 	} else {
 		Dashboard.status(this);
@@ -231,7 +231,7 @@ LevelUp.work = function(state) {
 		runtime.old_quest = null;
 		runtime.old_quest_energy = 0;
 	}
-	if (!this.option.enabled || runtime.exp_possible < Player.get('exp_needed')) {
+	if (!this.option.enabled || this.get('exp_possible') < Player.get('exp_needed')) {
 		if (runtime.running) { // Shut down the level up burn
 			if (runtime.level < Player.get('level')) { // We've just levelled up
 				if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' && energy >= Player.get('maxenergy')) {
@@ -271,14 +271,82 @@ LevelUp.work = function(state) {
 	if (this.option.general !== 'any' && Player.get('exp_needed') < 100) {
 		Generals.set('runtime.disabled', false);
 		if (Generals.to(this.option.general)) { 
-//			debug('Disabling Generals because we are within 100 XP from leveling.');
+			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
 		}
 	}
+	
+/*	
+	big_quest = 
+	
+	quests = Quest.get();
+	var big_quest = normal_quest = little_quest = null, big_quest_energy = 0;
+	// Find the biggest quest to throw exp into the next level
+	for (i in quests) { 
+		if (quests[i].energy > quests[Quest.runtime.best].energy
+				&& quests[i].energy <= energy
+				&& (!big_quest || quests[i].exp > quests[big_quest].exp ) {
+			big_quest = i;
+			big_quest_energy = quests[big_quest].energy;
+		}
+	}
+	monsters = Monster.get();
+	var stamina_options = [], big_monster_stamina = 0;
+	// Find the biggest monster to throw exp into the next level
+	for (i in monsters) { 
+		stamina_options = unique(stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack));
+	}
+	
+	// See if we can do some of our normal quests before the big one
+	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
+			&& exp > quests[Quest.runtime.best].exp) {
+		debug('Doing normal quest to burn energy');
+		normal_quest = Quest.runtime.best;
+	}
+	// Find out if we have room to do some small quests before we get to the big one
+	for (i in quests) { 
+		if (energy - big_quest_energy >= quests[i].energy
+				&& exp > quests[i].exp
+				&& (!little_quest 
+					|| (quests[i].energy / quests[i].exp)
+				Lol		< (quests[little_quest].energy / quests[little_quest].exp)) {
+			little_quest = i;
+		}
+	}
+	next_quest = normal_quest || little_quest || big_quest;
+	if (next_quest) {
+		debug('Doing a small quest to burn energy');
+		Queue.burn.energy = energy;
+		Queue.burn.stamina = 0;
+		runtime.old_quest_energy = Quest.runtime.energy;
+		runtime.old_quest = Quest.runtime.best;
+		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
+		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+		return QUEUE_FINISH;
+	}
+*/	
+		
+/*	max quest xp = quests < energy max exp * number possible
+	max fortification 
+	max stamina
+	
+	Find biggest chunk
+	Do normal action until can't fit any more
+	Do tiny chunks to fill up space
+	Do biggest chunk
+*/	
 	// We don't have focus, but we do want to level up quicker
-	if (this.option.order !== 'Stamina' || !stamina || Player.get('health') < 13 || (stamina < Monster.runtime.stamina && (!Battle.runtime.attacking || (order.indexOf('Idle') <= order.indexOf('Battle')))) || ((order.indexOf('Idle') <= order.indexOf('Monster') || (!Monster.runtime.attack)) && (!Battle.runtime.attacking || (order.indexOf('Idle') <= order.indexOf('Battle'))))){
+	if (this.option.order !== 'Stamina' 
+			|| !stamina || Player.get('health') < 13 
+			|| (stamina < Monster.runtime.stamina 
+				&& (!Battle.runtime.attacking 
+					|| (order.indexOf('Idle') <= order.indexOf('Battle'))))
+			|| ((order.indexOf('Idle') <= order.indexOf('Monster')
+					|| (!Monster.runtime.attack))
+			&& (!Battle.runtime.attacking 
+				|| (order.indexOf('Idle') <= order.indexOf('Battle'))))){
 		debug('Running Energy Burn');
 		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
 			runtime.old_quest = Quest.runtime.best;
@@ -318,9 +386,10 @@ LevelUp.get = function(what,def) {
 		return (Player.get('stamina')*this.get('exp_per_stamina') 
 				+ Player.get('energy') * this.get('exp_per_energy')).round(0);
 	case 'exp_per_stamina':	
-		return (this.option.algorithm === 'Manual' 
-				? (this.option.manual_exp_per_stamina || this.runtime.avg_exp_per_stamina)
-				: this.runtime.avg_exp_per_stamina);
+		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_stamina) {
+			return this.option.manual_exp_per_stamina;
+		}
+		return this.runtime.avg_exp_per_stamina;
 	case 'exp_per_energy':	
 		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_energy) {
 			return this.option.manual_exp_per_energy;

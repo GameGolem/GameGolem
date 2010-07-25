@@ -162,7 +162,7 @@ Monster.display = [
 				select:'bestgenerals'
 			},{
 				id:'defend',
-				label:'Defend Below (AB)',
+				label:'Defend Below',
 				text:30,
 				help:'Defend if defense is under this value. Range of 0% to 100%.',
 				after:'%'
@@ -607,6 +607,7 @@ Monster.warrior = 'input[name="Attack Dragon"][src*="strengthen"]';
 Monster.init = function() {
 	this._watch(Player);
 	this._watch(Queue);
+	this._revive(60);
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
@@ -618,6 +619,9 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
+	if (change) {
+		return false;
+	}
 	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
@@ -653,6 +657,9 @@ Monster.parse = function(change) {
 		if (dead) {
 			// Will this catch Raid format rewards?
 			if ($('input[src*="collect_reward_button.jpg"]').length || monster.state === 'engage') {
+				if (monster.ac) { // Collect reward immediately
+					monster.last = 0;
+				}
 				monster.state = 'reward';
 			} else if (monster.state === 'assist') {
 				monster.state = null;
@@ -863,10 +870,10 @@ Monster.parse = function(change) {
 };
 
 Monster.update = function(what,worker) {
-/*	if (what === 'runtime') {
+	if (what === 'runtime') {
 		return;
 	}
-*/	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc, matched_mids = [];
+	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc, matched_mids = [];
 	list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -880,14 +887,13 @@ Monster.update = function(what,worker) {
 	for (mid in this.data) {
 		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
 				&& !this.data[mid].ignore) {
-			this.runtime.check = mid; // Do we need to parse info from a blank monster?
+			this.runtime.check = mid;
 			Dashboard.status(this, 'Reviewing ' +
 					(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
 					+ this.types[this.data[mid].type].name);
 			return;
 		}
 	}
-	
 	this.runtime.secondary = false;
 	if  (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind;
@@ -961,8 +967,7 @@ Monster.update = function(what,worker) {
 					if (this.option.defend_active 
 							&& (defend_found || o) === o) {
 						defense_kind = false;
-						if ((monster.secondary || 100) < 100) {
-							debug('secondary ok' + /:sec\b/.test(condition));
+						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100) {
 							defense_kind = Monster.warrior;
@@ -1170,24 +1175,20 @@ Monster.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
-	if (this.runtime.check) { // Parse pages of monsters we've not got the info for
+	if (this.runtime.check) {
 		monster = this.data[this.runtime.check];
 		uid = this.runtime.check.replace(/_\d+/,'');
 		type = this.types[monster.type];
-		if ((monster.last || 0) < Date.now() - this.option.check_interval) {
-			debug( 'Reviewing ' + monster.name + '\'s ' + type.name);
-			Page.to(
-				type.raid
-					? 'battle_raid'
-					: 'monster_battle_monster',
-				'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
-			return QUEUE_RELEASE;
-		}
+		debug( 'Reviewing ' + monster.name + '\'s ' + type.name);
+		Page.to(
+			type.raid
+				? 'battle_raid'
+				: 'monster_battle_monster',
+			'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
 		this.runtime.check = false;
-		debug( 'Finished Monster / Raid review');
 		return QUEUE_RELEASE;
 	}
-	uid = this.runtime[mode].replace(/_\d+/,'');
+ 	uid = this.runtime[mode].replace(/_\d+/,'');
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];
 	if (!Generals.to(this.option['best_'+mode] 
@@ -1308,10 +1309,10 @@ Monster.dashboard = function(sort, rev) {
 		} else if (sort === 4) { // damage
 			//			aa = Monster.data[a].damage ? Monster.data[a].damage[userID] : 0;
 			//			bb = Monster.data[b].damage ? Monster.data[b].damage[userID] : 0;
-			if (typeof Monster.data[a].damage !== 'undefined' && typeof Monster.data[a].damage.user !== 'undefined') {
+			if (Monster.data[a].damage && Monster.data[a].damage.user) {
 				aa = sum(Monster.data[a].damage.user) / sum(Monster.data[a].damage);
 			}
-			if (typeof Monster.data[b].damage !== 'undefined' && typeof Monster.data[b].damage.user !== 'undefined') {
+			if (Monster.data[b].damage && Monster.data[b].damage.user) {
 				bb = sum(Monster.data[b].damage.user) / sum(Monster.data[b].damage);
 			}
 		}
@@ -1330,7 +1331,7 @@ Monster.dashboard = function(sort, rev) {
 	th(output, 'Health', 'title="(estimated)"');
 	th(output, 'Defense', 'title="Composite of Fortification or Dispel (0%...100%)."');
 	//	th(output, 'Shield');
-	th(output, 'Damage');
+	th(output, 'Activity');
 	th(output, 'Time Left');
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
 	th(output, '');
@@ -1385,7 +1386,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''
-				: ((sum(monster.damage.user) > Math.min(monster.ach,monster.max) && Math.max(monster.ach,monster.max) > 0) ? '<span style="color: green;">' : '<span style="color: red;">') + addCommas(sum(monster.damage.user)) + '</span>',
+				: ((sum(monster.damage.user)  + sum(monster.defend) > Math.min(monster.ach,monster.max) && Math.max(monster.ach,monster.max) > 0) ? '<span style="color: green;">' : '<span style="color: red;">') + addCommas(sum(monster.damage.user) + sum(monster.defend)) + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
