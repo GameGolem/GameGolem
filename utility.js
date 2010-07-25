@@ -439,3 +439,15 @@ var bestValue = function(list, value) {// pass a list of numbers, return the hig
 	return best;
 };
 
+var bestObjValue = function(obj, callback) {// pass an object and a function to create a value from obj[key] - return the best key
+	var i, best = null, bestval, val;
+	for (i in obj) {
+		val = callback(obj[i]);
+		if (isNumber(val) && (!best || val > bestval)) {
+			bestval = val;
+			best = i;
+		}
+	}
+	return best;
+};
+

@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 716;
+var revision = 717;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -699,6 +699,18 @@ var bestValue = function(list, value) {// pass a list of numbers, return the hig
 	return best;
 };
 
+var bestObjValue = function(obj, callback) {// pass an object and a function to create a value from obj[key] - return the best key
+	var i, best = null, bestval, val;
+	for (i in obj) {
+		val = callback(obj[i]);
+		if (isNumber(val) && (!best || val > bestval)) {
+			bestval = val;
+			best = i;
+		}
+	}
+	return best;
+};
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -731,7 +743,7 @@ new Worker(name, pages, settings)
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
-*** User functions ***
+*** User functions - should be in worker if needed ***
 .init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
@@ -741,13 +753,15 @@ new Worker(name, pages, settings)
 				return true - We need to run again with status=1
 				return QUEUE_RELEASE - We want to run again with status=1, but feel free to interrupt (makes us stateful)
 				return false - We're finished
-.work(state)    - Do anything we need to do when it's our turn - this includes page changes.
-				state = false - It's not our turn, don't start anything if we can't finish in this one call
-				state = true - It's our turn, do everything - Only true if not interrupted
-				return true if we need to keep working (after a delay etc)
-				return false when someone else can work
-.update(type)   - Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
-				type = "data" or "option"
+.work(state)    - Do anything we need to do when it's our turn - this includes page changes. This is part the of Queue worker.
+				state = false - It's not our turn, don't start anything if we can't finish in this one call, this.data is null
+				state = true - It's our turn, do everything - Only true if not interrupted, this.data is useable
+				return true or QUEUE_RELEASE if we *want* to continue working, but can be interrupted
+				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
+				return false or QUEUE_FINISH when someone else can work
+.update(type,worker)	- Called when the data, options or runtime have been changed
+				type = "data", "option", "runtime", "reminder" or null (only for first call after init())
+				worker = null (for worker = this), otherwise another worker (due to _watch())
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
@@ -762,10 +776,11 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._working		- Prevent recursive calling of various private functions
 ._changed		- Timestamp of the last time this.data changed
 ._watching		- List of other workers that want to have .update() after this.update()
+._reminders		- List of reminders in 'i...':interval or 't...':timeout format
 
-*** Private functions ***
+*** Private functions - only overload if you're sure exactly what you're doing ***
 ._get(what,def)			- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
-._set(what,val)			- Sets this.data[what] to value, auto-loading if needed
+._set(what,val)			- Sets this.data[what] to value, auto-loading if needed. Deletes "empty" data sets (if you don't pass a value)
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)			- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
@@ -780,9 +795,16 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._work(state)			- Calls this.work(state) inside a try / catch block
 
 ._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
+
 ._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
-._remind(secs)			- Calls this._update('reminder') after a specified delay
+
+._remind(secs,id)		- Calls this._update('reminder',null) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
+._revive(secs,id)		- Calls this._update('reminder',null) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
+._forget(id)			- Forgets all _remind() and _revive() with the same id
+
+._push()				- Pushes us onto the "active worker" list for debug messages etc
+._pop()					- Pops us off the "active worker" list
 */
 var Workers = {};// 'name':worker
 
@@ -841,6 +863,23 @@ Worker.prototype._flush = function() {
 		delete this.data;
 	}
 	this._pop();
+};
+
+Worker.prototype._forget = function(id) {
+	var forgot = false;
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearInterval(this._reminders['i' + id]);
+			delete this._reminders['i' + id];
+			forgot = true;
+		}
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+			delete this._reminders['t' + id];
+			forgot = true;
+		}
+	}
+	return forgot;
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
@@ -932,24 +971,11 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._forget = function(id) {
-	if (id) {
-		if (this._reminders['i' + id]) {
-			window.clearinterval(this._reminders['i' + id]);
-			delete this._reminders['i' + id];
-		}
-		if (this._reminders['t' + id]) {
-			window.clearTimeout(this._reminders['t' + id]);
-			delete this._reminders['t' + id];
-		}
-	}
-};
-
 Worker.prototype._revive = function(seconds, id) {
 	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
-			window.clearinterval(this._reminders['i' + id]);
+			window.clearInterval(this._reminders['i' + id]);
 		}
 		this._reminders['i' + id] = timer;
 	}
@@ -2940,7 +2966,6 @@ Queue.settings = {
 };
 
 Queue.runtime = {
-	reminder:{},
 	current:null
 };
 
@@ -3002,7 +3027,6 @@ Queue.burn = {stamina:false, energy:false};
 Queue.timer = null;
 
 Queue.lasttimer = 0;
-Queue.lastpause = false;
 
 Queue.init = function() {
 	var i, $btn, worker;
@@ -3033,7 +3057,6 @@ Queue.init = function() {
 			Queue.lastclick=Date.now();
 		}
 	});
-	Queue.lastpause = this.option.pause;
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
 		Queue.option.pause = !Queue.option.pause;
 		debug('State: ' + (Queue.option.pause ? "paused" : "running"));
@@ -3054,124 +3077,119 @@ Queue.clearCurrent = function() {
 	}
 };
 
-Queue.update = function(type) {
-	var i, $worker;
-	if (!this.option.pause && this.option.delay !== this.lasttimer) {
-		window.clearInterval(this.timer);
-		this.timer = window.setInterval(function(){Queue.run();}, this.option.delay * 1000);
-		this.lasttimer = this.option.delay;
-	} else if (this.option.pause && this.option.pause !== this.lastpause) {
-		window.clearInterval(this.timer);
-		this.lasttimer = -1;
-	}
-	this.lastpause = this.option.pause;
-	for (i in Workers) {
-		$worker = $('#'+Workers[i].id+' .golem-panel-header');
-		if (Queue.enabled(Workers[i])) {
-			if ($worker.hasClass('red')) {
-				$worker.removeClass('red');
-				Workers[i]._update('option', null);
-			}
-		} else {
-			if (!$worker.hasClass('red')) {
-				$worker.addClass('red');
-				Workers[i]._update('option', null);
-			}
+Queue.update = function(type,worker) {
+	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false;
+	if (!type || type === 'option') { // options have changed
+		if (this.option.pause) {
+			this._forget('run');
+		} else if (this.option.delay !== this.lasttimer) {
+			this._revive(this.option.delay, 'run');
+			this.lasttimer = this.option.delay;
 		}
-	}
-	if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
-		this.clearCurrent();
-	}
-	this.burn.stamina = this.burn.energy = 0;
-	if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-		this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-		this.option.burn_stamina = this.burn.stamina > 0;
-	}
-	if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-		this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-		this.option.burn_energy = this.burn.energy > 0;
-	}
-	//debug('Burnable stamina ' + this.burn.stamina +" burnable energy " + this.burn.energy );
-};
-
-Queue.run = function() {
-	if (isWorker(Window) && !Window.active) {// Disabled tabs don't get to do anything!!!
-		return;
-	}
-	var i, worker, current, result, now = Date.now(), next = null, release = false;
-	if (this.option.pause || now - this.lastclick < this.option.clickdelay * 1000) {
-		return;
-	}
-	if (Page.loading) {
-		return; // We want to wait xx seconds after the page has loaded
-	}
-	this._push();
-//	debug('Start Queue');
-	
-	// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
-/*	if (Player.get('energy') >= Player.get('maxenergy')){
-		this.burn.stamina = 0;	// Focus on burning energy
-		debug('At max energy, burning energy first.');
-	} else if (Player.get('stamina') >= Player.get('maxstamina')){
-		this.burn.energy = 0;	// Focus on burning stamina
-		debug('At max stamina, burning stamina first.');
-	}
-*/	
-	for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-		if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
-//			debug(Workers[i].name + '.work(false);');
-			Workers[i]._unflush();
-			Workers[i]._work(false);
-		}
-	}
-	for (i=0; i<this.option.queue.length; i++) {
-		worker = Workers[this.option.queue[i]];
-		if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
-			continue;
-		}
-//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
-		if (this.runtime.current === worker.name) {
-			worker._unflush();
-			result = worker._work(true);
-			if (result === QUEUE_RELEASE) {
-				release = true;
-			} else if (!result) {// false or QUEUE_FINISH
-				this.runtime.current = null;
-				if (worker.id) {
-					$('#'+worker.id+' > h3').css('font-weight', 'normal');
+		for (i in Workers) {
+			$worker = $('#'+Workers[i].id+' .golem-panel-header');
+			if (Queue.enabled(Workers[i])) {
+				if ($worker.hasClass('red')) {
+					$worker.removeClass('red');
+					Workers[i]._update('option', null);
 				}
-				debug('End '+worker.name);
+			} else {
+				if (!$worker.hasClass('red')) {
+					$worker.addClass('red');
+					Workers[i]._update('option', null);
+				}
 			}
-		} else {
-			result = worker._work(false);
-		}
-		if (!worker.settings.stateful && typeof result !== 'boolean') {// QUEUE_* are all numbers
-			worker.settings.stateful = true;
-		}
-		if (!next && result) {
-			next = worker; // the worker who wants to take over
 		}
 	}
-	current = this.runtime.current ? Workers[this.runtime.current] : null;
-	if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
-		if (current) {
-			debug('Interrupt ' + current.name + ' with ' + next.name);
-			if (current.id) {
-				$('#'+current.id+' > h3').css('font-weight', 'normal');
+	if (!type || type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
+		if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
+			this.clearCurrent();
+		}
+	}
+	if (type === 'reminder') { // This is where we call worker.work() for everyone
+		if ((isWorker(Window) && !Window.active) // Disabled tabs don't get to do anything!!!
+		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
+		|| Page.loading) { // We want to wait xx seconds after the page has loaded
+			return;
+		}
+		this.burn.stamina = this.burn.energy = 0;
+		if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+			this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+			this.option.burn_stamina = this.burn.stamina > 0;
+		}
+		if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+			this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+			this.option.burn_energy = this.burn.energy > 0;
+		}
+		//debug('Burnable stamina ' + this.burn.stamina +" burnable energy " + this.burn.energy );
+		this._push();
+	//	debug('Start Queue');
+		
+		// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
+	/*	if (Player.get('energy') >= Player.get('maxenergy')){
+			this.burn.stamina = 0;	// Focus on burning energy
+			debug('At max energy, burning energy first.');
+		} else if (Player.get('stamina') >= Player.get('maxstamina')){
+			this.burn.energy = 0;	// Focus on burning stamina
+			debug('At max stamina, burning stamina first.');
+		}
+	*/	
+		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
+			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
+	//			debug(Workers[i].name + '.work(false);');
+				Workers[i]._unflush();
+				Workers[i]._work(false);
 			}
-		} else {
-			debug('Trigger ' + next.name);
 		}
-		this.runtime.current = next.name;
-		if (next.id) {
-			$('#'+next.id+' > h3').css('font-weight', 'bold');
+		for (i=0; i<this.option.queue.length; i++) {
+			worker = Workers[this.option.queue[i]];
+			if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
+				continue;
+			}
+	//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+			if (this.runtime.current === worker.name) {
+				worker._unflush();
+				result = worker._work(true);
+				if (result === QUEUE_RELEASE) {
+					release = true;
+				} else if (!result) {// false or QUEUE_FINISH
+					this.runtime.current = null;
+					if (worker.id) {
+						$('#'+worker.id+' > h3').css('font-weight', 'normal');
+					}
+					debug('End '+worker.name);
+				}
+			} else {
+				result = worker._work(false);
+			}
+			if (!worker.settings.stateful && typeof result !== 'boolean') {// QUEUE_* are all numbers
+				worker.settings.stateful = true;
+			}
+			if (!next && result) {
+				next = worker; // the worker who wants to take over
+			}
 		}
+		current = this.runtime.current ? Workers[this.runtime.current] : null;
+		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
+			if (current) {
+				debug('Interrupt ' + current.name + ' with ' + next.name);
+				if (current.id) {
+					$('#'+current.id+' > h3').css('font-weight', 'normal');
+				}
+			} else {
+				debug('Trigger ' + next.name);
+			}
+			this.runtime.current = next.name;
+			if (next.id) {
+				$('#'+next.id+' > h3').css('font-weight', 'bold');
+			}
+		}
+	//	debug('End Queue');
+		for (i in Workers) {
+			Workers[i]._flush();
+		}
+		this._pop();
 	}
-//	debug('End Queue');
-	for (i in Workers) {
-		Workers[i]._flush();
-	}
-	this._pop();
 };
 
 Queue.enabled = function(worker) {

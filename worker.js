@@ -30,7 +30,7 @@ new Worker(name, pages, settings)
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
-*** User functions ***
+*** User functions - should be in worker if needed ***
 .init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
@@ -40,13 +40,15 @@ new Worker(name, pages, settings)
 				return true - We need to run again with status=1
 				return QUEUE_RELEASE - We want to run again with status=1, but feel free to interrupt (makes us stateful)
 				return false - We're finished
-.work(state)    - Do anything we need to do when it's our turn - this includes page changes.
-				state = false - It's not our turn, don't start anything if we can't finish in this one call
-				state = true - It's our turn, do everything - Only true if not interrupted
-				return true if we need to keep working (after a delay etc)
-				return false when someone else can work
-.update(type)   - Called when the data or options have been changed (even on this._load()!). If !settings.data and !settings.option then call on data, otherwise whichever is set.
-				type = "data" or "option"
+.work(state)    - Do anything we need to do when it's our turn - this includes page changes. This is part the of Queue worker.
+				state = false - It's not our turn, don't start anything if we can't finish in this one call, this.data is null
+				state = true - It's our turn, do everything - Only true if not interrupted, this.data is useable
+				return true or QUEUE_RELEASE if we *want* to continue working, but can be interrupted
+				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
+				return false or QUEUE_FINISH when someone else can work
+.update(type,worker)	- Called when the data, options or runtime have been changed
+				type = "data", "option", "runtime", "reminder" or null (only for first call after init())
+				worker = null (for worker = this), otherwise another worker (due to _watch())
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
@@ -61,10 +63,11 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._working		- Prevent recursive calling of various private functions
 ._changed		- Timestamp of the last time this.data changed
 ._watching		- List of other workers that want to have .update() after this.update()
+._reminders		- List of reminders in 'i...':interval or 't...':timeout format
 
-*** Private functions ***
+*** Private functions - only overload if you're sure exactly what you're doing ***
 ._get(what,def)			- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
-._set(what,val)			- Sets this.data[what] to value, auto-loading if needed
+._set(what,val)			- Sets this.data[what] to value, auto-loading if needed. Deletes "empty" data sets (if you don't pass a value)
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)			- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
@@ -79,9 +82,16 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._work(state)			- Calls this.work(state) inside a try / catch block
 
 ._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
+
 ._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
-._remind(secs)			- Calls this._update('reminder') after a specified delay
+
+._remind(secs,id)		- Calls this._update('reminder',null) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
+._revive(secs,id)		- Calls this._update('reminder',null) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
+._forget(id)			- Forgets all _remind() and _revive() with the same id
+
+._push()				- Pushes us onto the "active worker" list for debug messages etc
+._pop()					- Pops us off the "active worker" list
 */
 var Workers = {};// 'name':worker
 
@@ -140,6 +150,23 @@ Worker.prototype._flush = function() {
 		delete this.data;
 	}
 	this._pop();
+};
+
+Worker.prototype._forget = function(id) {
+	var forgot = false;
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearInterval(this._reminders['i' + id]);
+			delete this._reminders['i' + id];
+			forgot = true;
+		}
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+			delete this._reminders['t' + id];
+			forgot = true;
+		}
+	}
+	return forgot;
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
@@ -231,24 +258,11 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._forget = function(id) {
-	if (id) {
-		if (this._reminders['i' + id]) {
-			window.clearinterval(this._reminders['i' + id]);
-			delete this._reminders['i' + id];
-		}
-		if (this._reminders['t' + id]) {
-			window.clearTimeout(this._reminders['t' + id]);
-			delete this._reminders['t' + id];
-		}
-	}
-};
-
 Worker.prototype._revive = function(seconds, id) {
 	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
-			window.clearinterval(this._reminders['i' + id]);
+			window.clearInterval(this._reminders['i' + id]);
 		}
 		this._reminders['i' + id] = timer;
 	}
