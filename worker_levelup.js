@@ -279,7 +279,7 @@ LevelUp.work = function(state) {
 	}
 	
 /*	
-	big_quest = 
+	big_quest = bestObjValue(Quest.data, function(q){return (q.energy < limit ? q.exp / q.energy : null);});
 	
 	quests = Quest.get();
 	var big_quest = normal_quest = little_quest = null, big_quest_energy = 0;

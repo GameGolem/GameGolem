@@ -19,7 +19,7 @@
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var revision = 650;
 var version = "31.5";
-var revision = 718;
+var revision = 719;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6359,7 +6359,7 @@ LevelUp.update = function(type,worker) {
 
 LevelUp.work = function(state) {
 	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
-	debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
+	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
 	if (runtime.running && this.option.general !== 'any') {
 		if (this.option.income && Queue.get('runtime.current') === Income) {
 			Generals.set('runtime.disabled', false);
@@ -6410,20 +6410,24 @@ LevelUp.work = function(state) {
 		runtime.level = Player.get('level');
 		runtime.battle_monster = Battle.get('option.monster');
 		runtime.running = true;
-		debug('Running '+runtime.running);
+		//debug('Running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
 	// Get our level up general if we're less than 100 exp from level up
 	if (this.option.general !== 'any' && Player.get('exp_needed') < 100) {
 		Generals.set('runtime.disabled', false);
 		if (Generals.to(this.option.general)) { 
-			debug('Disabling Generals because we are within 100 XP from leveling.');
+			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
 		}
 	}
-/*	quests = Quest.get();
+	
+/*	
+	big_quest = bestObjValue(Quest.data, function(q){return (q.energy < limit ? q.exp / q.energy : null);});
+	
+	quests = Quest.get();
 	var big_quest = normal_quest = little_quest = null, big_quest_energy = 0;
 	// Find the biggest quest to throw exp into the next level
 	for (i in quests) { 
@@ -7434,7 +7438,6 @@ Monster.update = function(what,worker) {
 		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
 				&& !this.data[mid].ignore) {
 			this.runtime.check = mid;
-			//debug('Found new monster to review from work');
 			Dashboard.status(this, 'Reviewing ' +
 					(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
 					+ this.types[this.data[mid].type].name);
@@ -7603,7 +7606,7 @@ Monster.update = function(what,worker) {
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage)], Monster.warrior);
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior]);
 					} else if ((monster.defense || 100) 
 								< Math.min(this.option.defend, monster.strength -1)
 							&& !monster.no_heal) {
