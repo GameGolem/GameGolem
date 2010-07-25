@@ -124,6 +124,7 @@ function Worker(name,pages,settings) {
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
+	this._reminders = {};
 	this._disabled = false;
 }
 
@@ -230,14 +231,39 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._revive = function(seconds) {
-	var me = this;
-	return window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._forget = function(id) {
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearinterval(this._reminders['i' + id]);
+			delete this._reminders['i' + id];
+		}
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+			delete this._reminders['t' + id];
+		}
+	}
 };
 
-Worker.prototype._remind = function(seconds) {
-	var me = this;
-	window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._revive = function(seconds, id) {
+	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearinterval(this._reminders['i' + id]);
+		}
+		this._reminders['i' + id] = timer;
+	}
+	return timer;
+};
+
+Worker.prototype._remind = function(seconds, id) {
+	var me = this, timer = window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+	if (id) {
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+		}
+		this._reminders['t' + id] = timer;
+	}
+	return timer;
 };
 
 Worker.prototype._save = function(type) {

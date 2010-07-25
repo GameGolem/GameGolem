@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 712;
+var revision = 716;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -826,6 +825,7 @@ function Worker(name,pages,settings) {
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
 	this._watching = [];
+	this._reminders = {};
 	this._disabled = false;
 }
 
@@ -932,14 +932,39 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._revive = function(seconds) {
-	var me = this;
-	return window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._forget = function(id) {
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearinterval(this._reminders['i' + id]);
+			delete this._reminders['i' + id];
+		}
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+			delete this._reminders['t' + id];
+		}
+	}
 };
 
-Worker.prototype._remind = function(seconds) {
-	var me = this;
-	window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._revive = function(seconds, id) {
+	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+	if (id) {
+		if (this._reminders['i' + id]) {
+			window.clearinterval(this._reminders['i' + id]);
+		}
+		this._reminders['i' + id] = timer;
+	}
+	return timer;
+};
+
+Worker.prototype._remind = function(seconds, id) {
+	var me = this, timer = window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+	if (id) {
+		if (this._reminders['t' + id]) {
+			window.clearTimeout(this._reminders['t' + id]);
+		}
+		this._reminders['t' + id] = timer;
+	}
+	return timer;
 };
 
 Worker.prototype._save = function(type) {
@@ -8743,7 +8768,7 @@ Town.blacksmith = {
 	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought/i,
 	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm/i,
 	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
-	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings/i,
+	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings|Swordsmans Plate/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
 };
 
