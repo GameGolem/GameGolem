@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 719;
+var revision = 720;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3027,7 +3026,7 @@ Queue.lastrun = Date.now();		// Last time we ran
 Queue.burn = {stamina:false, energy:false};
 Queue.timer = null;
 
-Queue.lasttimer = 0;
+Queue.lasttimer = -1;
 
 Queue.init = function() {
 	var i, $btn, worker;
@@ -3083,6 +3082,7 @@ Queue.update = function(type,worker) {
 	if (!type || type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
+			this.lasttimer = -1;
 		} else if (this.option.delay !== this.lasttimer) {
 			this._revive(this.option.delay, 'run');
 			this.lasttimer = this.option.delay;
@@ -3122,9 +3122,8 @@ Queue.update = function(type,worker) {
 			this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
 			this.option.burn_energy = this.burn.energy > 0;
 		}
-		//debug('Burnable stamina ' + this.burn.stamina +" burnable energy " + this.burn.energy );
 		this._push();
-	//	debug('Start Queue');
+//		debug('Start Queue, Stamina: ' + this.burn.stamina +', Energy: ' + this.burn.energy);
 		
 		// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
 	/*	if (Player.get('energy') >= Player.get('maxenergy')){
@@ -3137,7 +3136,7 @@ Queue.update = function(type,worker) {
 	*/	
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
-	//			debug(Workers[i].name + '.work(false);');
+				debug(Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
 			}
@@ -3147,7 +3146,7 @@ Queue.update = function(type,worker) {
 			if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
 				continue;
 			}
-	//		debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+//			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 			if (this.runtime.current === worker.name) {
 				worker._unflush();
 				result = worker._work(true);
@@ -3158,7 +3157,7 @@ Queue.update = function(type,worker) {
 					if (worker.id) {
 						$('#'+worker.id+' > h3').css('font-weight', 'normal');
 					}
-					debug('End '+worker.name);
+//					debug('End '+worker.name);
 				}
 			} else {
 				result = worker._work(false);
@@ -3185,7 +3184,7 @@ Queue.update = function(type,worker) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
 		}
-	//	debug('End Queue');
+//		debug('End Queue');
 		for (i in Workers) {
 			Workers[i]._flush();
 		}
