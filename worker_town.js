@@ -193,7 +193,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(type) {
-	var i, u, need, want, best_buy = null, best_sell = null, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
+	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
@@ -227,6 +227,7 @@ Town.update = function(type) {
 		for (u in data) {
 			want = Resources.get(['_'+u, 'quest'], 0);
 			need = this.option.quest_buy ? want : 0;
+			have = data[u].own;
 			// Sorry about the nested max/min/max -
 			// Max - 'need' can't get smaller
 			// Min - 'max_buy' is the most we want to buy
@@ -238,16 +239,19 @@ Town.update = function(type) {
 				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_def'], 0), Resources.get(['_'+u, 'duel_def'], 0))));
 			}
 //			debug('Item: '+u+', need: '+need+', want: '+want);
-			if (need > data[u].own) {// Want to buy more
-				if (data[u].buy && data[u].buy.length) {
-					if (data[u].cost <= max_cost && this.option.upkeep >= ((Player.get('upkeep') + (data[u].cost * bestValue(data[u].buy, buy - data[u].own))) / Player.get('maxincome') * 100) && (!best_buy || need > buy)) {
+			if (need > have) {// Want to buy more
+				if (!best_quest && data[u].buy && data[u].buy.length) {
+					if (data[u].cost <= max_cost && this.option.upkeep >= ((Player.get('upkeep') + (data[u].cost * bestValue(data[u].buy, buy - have))) / Player.get('maxincome') * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);
 						best_buy = u;
 						buy = need;
+						if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+							best_quest = true;
+						}
 					}
 				}
-			} else if (max_buy && this.option.sell && Math.max(need,want) < data[u].own && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-				need = bestValue(data[u].sell, data[u].own - Math.max(need,want));
+			} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
+				need = bestValue(data[u].sell, have - Math.max(need,want));
 				if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
 //					debug('Sell: '+need);
 					best_sell = u;
