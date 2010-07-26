@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 720;
+var revision = 721;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4508,7 +4508,7 @@ Battle.update = function(type) {
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
-			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.data.rank[data[i].rank].name + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found');
@@ -5250,8 +5250,8 @@ Generals.dashboard = function(sort, rev) {
 			} else {
 				type = (sort<6 ? 'invade' : (sort<8 ? 'duel' : 'monster'));
 				x = (sort%2 ? 'def' : 'att');
-				aa = (Generals.data[a][type][x] || 0);
-				bb = (Generals.data[b][type][x] || 0);
+				aa = (Generals.data[a][type] ? (Generals.data[a][type][x] || 0) : 0);
+				bb = (Generals.data[b][type] ? (Generals.data[b][type][x] || 0) : 0);
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));

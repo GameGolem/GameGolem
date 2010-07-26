@@ -314,8 +314,8 @@ Generals.dashboard = function(sort, rev) {
 			} else {
 				type = (sort<6 ? 'invade' : (sort<8 ? 'duel' : 'monster'));
 				x = (sort%2 ? 'def' : 'att');
-				aa = (Generals.data[a][type][x] || 0);
-				bb = (Generals.data[b][type][x] || 0);
+				aa = (Generals.data[a][type] ? (Generals.data[a][type][x] || 0) : 0);
+				bb = (Generals.data[b][type] ? (Generals.data[b][type][x] || 0) : 0);
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
