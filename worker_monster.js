@@ -622,7 +622,7 @@ Monster.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = Monster.data, types = Monster.types;	//Is there a better way?  "this." doesn't seem to work.
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now();
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
@@ -653,7 +653,7 @@ Monster.parse = function(change) {
 		monster = data[mid] = data[mid] || {};
 		monster.type = type_label;
 		type = types[type_label];
-		monster.last = Date.now();
+		monster.last = now;
 		if (dead) {
 			// Will this catch Raid format rewards?
 			if ($('input[src*="collect_reward_button.jpg"]').length || monster.state === 'engage') {
@@ -673,7 +673,7 @@ Monster.parse = function(change) {
 		monster.defend = monster.defend || {};
 		if ($('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
 			if ($('span.result_body').text().match(/for your help in summoning/i)) {
-				monster.assist = Date.now();
+				monster.assist = now;
 			}
 			monster.state = monster.state || 'assist';
 		} else if (this.runtime.stamina_used) {
@@ -754,7 +754,7 @@ Monster.parse = function(change) {
 			}
 		}
 		monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
-		monster.finish = Date.now() + (monster.timer * 1000);
+		monster.finish = now + (monster.timer * 1000);
 		monster.damage.siege = 0;
 		monster.damage.others = 0;
 		if (!dead &&$('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
@@ -791,7 +791,7 @@ Monster.parse = function(change) {
 		} else {
 			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health === 100 ? 0.1 : (100 - monster.health)));
 		}
-		monster.eta = Date.now() + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
+		monster.eta = now + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
 	} else {
 		this.runtime.stamina_used = 0;
 		this.runtime.energy_used = 0;
@@ -819,7 +819,7 @@ Monster.parse = function(change) {
 						&& (data[mid].state === 'complete'
 							|| data[mid].state === 'reward'
 							|| (data[mid].state === 'assist'
-								&& data[mid].finish < Date.now()))
+								&& data[mid].finish < now))
 					) {
 					data[mid].state = null;
 				}
@@ -838,7 +838,6 @@ Monster.parse = function(change) {
 				mid = uid+'_'+(types[i].mpool || 4);
 				data[mid] = data[mid] || {};
 				data[mid].type = type_label;
-				data[mid] = data[mid] || {};
 				if (uid === userID) {
 					data[mid].name = 'You';
 				} else {
@@ -853,11 +852,11 @@ Monster.parse = function(change) {
 						data[mid].state = 'engage';
 						break;
 					case 4:
-						// if (this.types[type].raid && data[mid].health) {
-						//	data[mid].state = 'engage'; // Fix for page cache issues in 2-part raids
-						// } else {
-						data[mid].state = 'complete';
-						// }
+						if (this.types[type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
+							data[mid].state = 'engage';
+						} else {
+							data[mid].state = 'complete';
+						}
 						break;
 					default:
 						data[mid].state = 'unknown';
@@ -894,7 +893,7 @@ Monster.update = function(what,worker) {
 		}
 	}
 	this.runtime.secondary = false;
-	if  (this.option.stop === 'Priority List') {
+	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind;
 		var order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		order.push('your ','\'s'); // Catch all at end in case no other match
@@ -1018,6 +1017,14 @@ Monster.update = function(what,worker) {
 					? Math.max.apply(Math, type.attack)
 					: this.option.attack_min > this.option.attack_max
 					? this.option.attack_max : this.option.attack_min;
+
+			if (!type.raid) {// Some generals use more stamina, but only in certain circumstances...
+				i = Generals.get([Generals.best(this.option['best_attack'] ? 'monster_attack' : this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i);
+				if (isNumber(i)) {
+					req_stamina *= i;
+				}
+			}
+
 			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
                         monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -1141,6 +1148,12 @@ Monster.update = function(what,worker) {
 						: (this.option.attack_min > this.option.attack_max)
 							? this.option.attack_max
 							: this.option.attack_min;
+		if (!type.raid) {// Some generals use more stamina, but only in certain circumstances...
+			i = Generals.get([Generals.best(this.option['best_attack'] ? 'monster_attack' : this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i);
+			if (isNumber(i)) {
+				this.runtime.stamina *= i;
+			}
+		}
 		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
 		req_health = Math.max(0, this.runtime.health - Player.get('health'));
 		req_stamina = Math.max(0, (LevelUp.runtime.running && LevelUp.option.enabled)
