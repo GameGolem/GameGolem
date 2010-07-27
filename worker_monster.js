@@ -1026,8 +1026,8 @@ Monster.update = function(what,worker) {
 			if (	!monster.ignore
 					&& monster.state === 'engage'
 					&& monster.finish > Date.now()	) {
-				uid = mid.replace(/_\d+/,'');
-				if (uid === userID && this.option.own) {
+				uid = mid.replace(/_\d+/,'');                                
+				if (uid == userID && this.option.own) {                                 
 					// add own monster
 				} else if (this.option.avoid_lost_cause
 						&& (monster.eta - monster.finish)/3600000

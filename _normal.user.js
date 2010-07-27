@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 722;
+var revision = 723;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7575,8 +7575,8 @@ Monster.update = function(what,worker) {
 			if (	!monster.ignore
 					&& monster.state === 'engage'
 					&& monster.finish > Date.now()	) {
-				uid = mid.replace(/_\d+/,'');
-				if (uid === userID && this.option.own) {
+				uid = mid.replace(/_\d+/,'');                                
+				if (uid == userID && this.option.own) {                                 
 					// add own monster
 				} else if (this.option.avoid_lost_cause
 						&& (monster.eta - monster.finish)/3600000
