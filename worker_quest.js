@@ -274,6 +274,7 @@ Quest.work = function(state) {
 	}
 	if (this.option.monster 
 			&& (Monster.get('runtime.defend')
+				|| Monster.get('runtime.check')
 				|| (Monster.get('runtime.secondary')
 					&& !LevelUp.get('runtime.running')
 					&& Player.get('energy') < Player.get('maxenergy')))) {

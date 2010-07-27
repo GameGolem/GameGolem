@@ -279,25 +279,21 @@ LevelUp.work = function(state) {
 	}
 	
 /*	
-	big_quest = bestObjValue(Quest.data, function(q){return (q.energy < limit ? q.exp / q.energy : null);});
-	
 	quests = Quest.get();
-	var big_quest = normal_quest = little_quest = null, big_quest_energy = 0;
-	// Find the biggest quest to throw exp into the next level
-	for (i in quests) { 
-		if (quests[i].energy > quests[Quest.runtime.best].energy
-				&& quests[i].energy <= energy
-				&& (!big_quest || quests[i].exp > quests[big_quest].exp ) {
-			big_quest = i;
-			big_quest_energy = quests[big_quest].energy;
-		}
-	}
-	monsters = Monster.get();
-	var stamina_options = [], big_monster_stamina = 0;
+	big_quest = bestObjValue(quests, function(q){
+		return ((q.energy =< energy && q.energy > quests[Quest.runtime.best].energy) 
+				? q.exp : null);
+	});
+
 	// Find the biggest monster to throw exp into the next level
+	monsters = Monster.get();
 	for (i in monsters) { 
-		stamina_options = unique(stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack));
+		stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
 	}
+	
+	big_attack = bestObjValue(stamina_options, function(s){
+		return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
+	}); 
 	
 	// See if we can do some of our normal quests before the big one
 	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
@@ -326,7 +322,7 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		return QUEUE_FINISH;
 	}
-*/	
+*/
 		
 /*	max quest xp = quests < energy max exp * number possible
 	max fortification 

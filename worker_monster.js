@@ -883,10 +883,9 @@ Monster.update = function(what,worker) {
 			delete this.data[mid];
 		}
 	}
-	// Check monster progress regularly
+	// Check for unviewed monsters
 	for (mid in this.data) {
-		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
-				&& !this.data[mid].ignore) {
+		if (!this.data[mid].last && !this.data[mid].ignore) {
 			this.runtime.check = mid;
 			Dashboard.status(this, 'Reviewing ' +
 					(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
@@ -946,7 +945,7 @@ Monster.update = function(what,worker) {
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
 					if ((attack_found || o) === o 
-							&& monster.defense >= this.option.min_to_attack) {
+							&& monster.defense >= Math.max(this.option.min_to_attack,0.1)) {
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {
@@ -1048,7 +1047,7 @@ Monster.update = function(what,worker) {
 				}
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
-					&& ((monster.defense || 100) >= this.option.min_to_attack)) {
+					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
 					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
 				}
 				// Possible defend target?
@@ -1154,6 +1153,20 @@ Monster.update = function(what,worker) {
 		} else {
 			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
 					+ this.runtime.stamina + '+)');
+		}
+	}
+	// Nothing to attack, so look for monsters we haven't reviewed for a while.
+	if ((!this.runtime.defend || Queue.burn.energy < this.runtime.energy)
+			&& (!this.runtime.attack || req_stamina || req_health)) {
+		for (mid in this.data) {
+			if (	this.data[mid].last < Date.now() - this.option.check_interval
+					&& !this.data[mid].ignore) {
+				this.runtime.check = mid;
+				Dashboard.status(this, 'Reviewing ' +
+						(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
+						+ this.types[this.data[mid].type].name);
+				return;
+			}
 		}
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');

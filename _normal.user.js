@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 723;
+var revision = 724;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6424,25 +6425,21 @@ LevelUp.work = function(state) {
 	}
 	
 /*	
-	big_quest = bestObjValue(Quest.data, function(q){return (q.energy < limit ? q.exp / q.energy : null);});
-	
 	quests = Quest.get();
-	var big_quest = normal_quest = little_quest = null, big_quest_energy = 0;
-	// Find the biggest quest to throw exp into the next level
-	for (i in quests) { 
-		if (quests[i].energy > quests[Quest.runtime.best].energy
-				&& quests[i].energy <= energy
-				&& (!big_quest || quests[i].exp > quests[big_quest].exp ) {
-			big_quest = i;
-			big_quest_energy = quests[big_quest].energy;
-		}
-	}
-	monsters = Monster.get();
-	var stamina_options = [], big_monster_stamina = 0;
+	big_quest = bestObjValue(quests, function(q){
+		return ((q.energy =< energy && q.energy > quests[Quest.runtime.best].energy) 
+				? q.exp : null);
+	});
+
 	// Find the biggest monster to throw exp into the next level
+	monsters = Monster.get();
 	for (i in monsters) { 
-		stamina_options = unique(stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack));
+		stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
 	}
+	
+	big_attack = bestObjValue(stamina_options, function(s){
+		return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
+	}); 
 	
 	// See if we can do some of our normal quests before the big one
 	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
@@ -6471,7 +6468,7 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		return QUEUE_FINISH;
 	}
-*/	
+*/
 		
 /*	max quest xp = quests < energy max exp * number possible
 	max fortification 
@@ -7432,10 +7429,9 @@ Monster.update = function(what,worker) {
 			delete this.data[mid];
 		}
 	}
-	// Check monster progress regularly
+	// Check for unviewed monsters
 	for (mid in this.data) {
-		if (	(this.data[mid].last || 0) < Date.now() - this.option.check_interval
-				&& !this.data[mid].ignore) {
+		if (!this.data[mid].last && !this.data[mid].ignore) {
 			this.runtime.check = mid;
 			Dashboard.status(this, 'Reviewing ' +
 					(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
@@ -7495,7 +7491,7 @@ Monster.update = function(what,worker) {
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
 					if ((attack_found || o) === o 
-							&& monster.defense >= this.option.min_to_attack) {
+							&& monster.defense >= Math.max(this.option.min_to_attack,0.1)) {
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {
@@ -7597,7 +7593,7 @@ Monster.update = function(what,worker) {
 				}
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
-					&& ((monster.defense || 100) >= this.option.min_to_attack)) {
+					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
 					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
 				}
 				// Possible defend target?
@@ -7703,6 +7699,20 @@ Monster.update = function(what,worker) {
 		} else {
 			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
 					+ this.runtime.stamina + '+)');
+		}
+	}
+	// Nothing to attack, so look for monsters we haven't reviewed for a while.
+	if ((!this.runtime.defend || Queue.burn.energy < this.runtime.energy)
+			&& (!this.runtime.attack || req_stamina || req_health)) {
+		for (mid in this.data) {
+			if (	this.data[mid].last < Date.now() - this.option.check_interval
+					&& !this.data[mid].ignore) {
+				this.runtime.check = mid;
+				Dashboard.status(this, 'Reviewing ' +
+						(this.data[mid].name === 'You' ? 'Your' : this.data[mid].name) + ' ' 
+						+ this.types[this.data[mid].type].name);
+				return;
+			}
 		}
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
@@ -8625,6 +8635,7 @@ Quest.work = function(state) {
 	}
 	if (this.option.monster 
 			&& (Monster.get('runtime.defend')
+				|| Monster.get('runtime.check')
 				|| (Monster.get('runtime.secondary')
 					&& !LevelUp.get('runtime.running')
 					&& Player.get('energy') < Player.get('maxenergy')))) {
