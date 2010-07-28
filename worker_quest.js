@@ -219,7 +219,7 @@ Quest.update = function(type,worker) {
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
-					&& ((isNumber(quests[i].influence) && quests[i].level == 0 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
+					&& ((isNumber(quests[i].influence) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
 					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
