@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 726;
+var revision = 727;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5000,12 +5000,12 @@ Generals.parse = function(change) {
 		if (data[current]){
 			data[current].weaponbonus = weapon_bonus;
 		}
-
-		if ($elements.length < length(data)) {
-			debug('Different number of generals, have '+$elements.length+', want '+length(data));
-	//		Page.to('heroes_generals', ''); // Force reload
-			return false;
-		}
+// Hopefully our Page.to() logic now catches most bad page loads and removes the need for this...
+//		if ($elements.length < length(data)) {
+//			debug('Different number of generals, have '+$elements.length+', want '+length(data));
+//			Page.to('heroes_generals', ''); // Force reload
+//			return false;
+//		}
 		$elements.each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i), 10), progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i), 10);
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
