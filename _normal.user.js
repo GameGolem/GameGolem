@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 731;
+var revision = 732;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7410,7 +7411,7 @@ Monster.parse = function(change) {
 						data[mid].state = 'engage';
 						break;
 					case 4:
-						if (Monster.types[type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
+						if (Monster.types[data[mid].type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
 							data[mid].state = 'engage';
 						} else {
 							data[mid].state = 'complete';

@@ -858,7 +858,7 @@ Monster.parse = function(change) {
 						data[mid].state = 'engage';
 						break;
 					case 4:
-						if (Monster.types[type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
+						if (Monster.types[data[mid].type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
 							data[mid].state = 'engage';
 						} else {
 							data[mid].state = 'complete';
