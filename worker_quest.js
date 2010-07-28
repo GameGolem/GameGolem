@@ -49,7 +49,7 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward',
-		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience'
+		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -170,7 +170,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, list = [], quests = this.data;
+	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], quests = this.data;
 	this._watch(Player);
 	this._watch(Queue);
 	if (!type || type === 'data') {
@@ -179,7 +179,7 @@ Quest.update = function(type,worker) {
 				list.push(quests[i].item);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Influence', 'Advancement', 'Experience', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 	}
 	// Now choose the next quest...
 	if (this.option.unique) {
@@ -190,6 +190,12 @@ Quest.update = function(type,worker) {
 		}
 	}
 	if (!best && this.option.what !== 'Nothing') {
+		if (this.option.what === 'Cartigan' && (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) >= 3))) {
+			// Sword of the Faithless x3
+			// Crystal of Lament x3
+			// Soul Eater x3
+			has_cartigan = true; // Stop trying once we've got the general or the ingredients
+		}
 //		debug('option = ' + this.option.what);
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
@@ -210,6 +216,12 @@ Quest.update = function(type,worker) {
 				}
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
+				case 'Cartigan': // Random Encounters in the Underworld Quests
+					if (!has_cartigan && isNumber(quests[i].land)
+					&& quests[i].land === 6
+					&& (!best || quests[i].energy < quests[best].energy)) {
+						best = i;
+					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
@@ -248,6 +260,7 @@ Quest.update = function(type,worker) {
 			}
 		}
 		switch(this.option.what) { // Automatically fallback on type - but without changing option
+			case 'Cartigan':	best = best || best_advancement || best_influence || best_experience;break;
 			case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
 			case 'Influence':	best = best_influence || best_experience;break;
 			case 'Experience':	best = best_experience;break;
