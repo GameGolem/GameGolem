@@ -779,12 +779,14 @@ Monster.parse = function(change) {
 			if (user === userID){
 				monster.damage.user.manual = dmg - (monster.damage.user.script || 0);
 				monster.defend.manual = fort - (monster.defend.script || 0);
-				monster.stamina.manual = Math.round(monster.damage.user.manual
-						/ Monster.runtime.avg_damage_per_stamina);
+				monster.stamina.manual = Math.round(monster.damage.user.manual / Monster.runtime.avg_damage_per_stamina);
 			} else {
 				monster.damage.others += dmg;
 			}
 		});
+		if (monster.state === 'assist' && monster.damage.user && sum(monster.damage.user)) {// If we're doing our first attack then add them without having to visit list
+			monster.state = 'engage';
+		}
 		monster.dps = sum(monster.damage) / (timer - monster.timer);
 		if (types[type_label].raid) {
 			monster.total = sum(monster.damage) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
@@ -825,14 +827,18 @@ Monster.parse = function(change) {
 				}
 			}
 			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
-				var i, uid = $('a', el).attr('href').regex(/casuser=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = 'unknown';
+				var i, uid = $('a', el).attr('href').regex(/casuser=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = null;
+				if (!uid) {
+					return;
+				}
 				for (i in types) {
 					if (tmp === types[i].list) {
 						type_label = i;
 						break;
 					}
 				}
-				if (!uid || type_label === 'unknown') {
+				if (!type_label) {
+					debug('Unable to add monster - uid: '+uid+', image: "'+tmp+'"');
 					return;
 				}
 				mid = uid+'_'+(types[i].mpool || 4);
@@ -852,7 +858,7 @@ Monster.parse = function(change) {
 						data[mid].state = 'engage';
 						break;
 					case 4:
-						if (this.types[type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
+						if (Monster.types[type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
 							data[mid].state = 'engage';
 						} else {
 							data[mid].state = 'complete';
@@ -1210,7 +1216,7 @@ Monster.work = function(state) {
 			type.raid
 				? 'battle_raid'
 				: 'monster_battle_monster',
-			'?casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
+			'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
 		this.runtime.check = false;
 		return QUEUE_RELEASE;
 	}

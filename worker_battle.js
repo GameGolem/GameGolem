@@ -24,6 +24,7 @@ Battle.data = {
 
 Battle.option = {
 	general:true,
+	general_choice:'any',
 	points:'Invade',
 	monster:true,
 	arena:false,
@@ -63,6 +64,12 @@ Battle.display = [
 		id:'general',
 		label:'Use Best General',
 		checkbox:true
+	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:{'general':false},
+		select:'generals'
 	},{
 		id:'type',
 		label:'Battle Type',
@@ -369,7 +376,7 @@ Battle.work = function(state) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || (this.option.general && !Generals.to(Generals.best(this.runtime.points ? this.option.points : this.option.type))) || !Page.to('battle_battle')) {
+	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
 	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]').first().parents('form');

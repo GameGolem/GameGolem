@@ -200,13 +200,13 @@ var sum = function(a) { // Adds the values of all array entries together
 		for(i=0; i<a.length; i++) {
 			t += sum(a[i] || 0);
 		}
-	} else if (typeof a === 'object') {
+	} else if (isObject(a)) {
 		for(i in a) {
 			t += sum(a[i]);
 		}
-	} else if (typeof a === 'number') {
+	} else if (isNumber(a)) {
 		t = a;
-	} else if (typeof a === 'string' && a.search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 		t = parseFloat(a);
 	}
 	return t;
