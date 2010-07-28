@@ -78,7 +78,7 @@ Quest.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var quest = this.data, area = null, land = null, i;
+	var quest = this.data, last_quest = null, area = null, land = null, i;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -107,12 +107,14 @@ Quest.parse = function(change) {
 			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
 			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			last_quest = null;
 			type = 2;
 		} else {
 			name = $('.qd_1 b', el).text().trim();
 			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
 			energy = $('.quest_req b', el).text().regex(/([0-9]+)/);
 			if ($(el).hasClass('quests_background')) { // Main quest
+				last_quest = name;
 				level = $('.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 				influence = $('.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
 				type = 1;
@@ -127,6 +129,9 @@ Quest.parse = function(change) {
 		quest[name].area = area;
 		quest[name].type = type;
 		quest[name].id = parseInt($('input[name="quest"]', el).val(), 10);
+		if (last_quest) {
+			quest[name].main = last_quest;
+		}
 		if (isNumber(land)) {
 			quest[name].land = land;
 		}
@@ -191,9 +196,9 @@ Quest.update = function(type,worker) {
 	}
 	if (!best && this.option.what !== 'Nothing') {
 		if (this.option.what === 'Cartigan' && (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) >= 3))) {
-			// Sword of the Faithless x3
-			// Crystal of Lament x3
-			// Soul Eater x3
+			// Sword of the Faithless x3 - The Long Path, Burning Gates
+			// Crystal of Lament x3 - Fiery Awakening
+			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
 			has_cartigan = true; // Stop trying once we've got the general or the ingredients
 		}
 //		debug('option = ' + this.option.what);
@@ -216,9 +221,12 @@ Quest.update = function(type,worker) {
 				}
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
-				case 'Cartigan': // Random Encounters in the Underworld Quests
+				case 'Cartigan': // Random Encounters in various Underworld Quests
 					if (!has_cartigan && isNumber(quests[i].land)
 					&& quests[i].land === 6
+					&& (((i === 'The Long Path' || quests[i].main === 'The Long Path' || i === 'Burning Gates' || quests[i].main === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3)
+						|| ((i === 'Fiery Awakening' || quests[i].main === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
+						|| ((i === 'Fire and Brimstone' || quests[i].main === 'Fire and Brimstone' || i === 'Deathrune Castle' || quests[i].main === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
 					&& (!best || quests[i].energy < quests[best].energy)) {
 						best = i;
 					}// Deliberate fallthrough
