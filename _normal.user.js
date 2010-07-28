@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 728;
+var revision = 729;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8598,6 +8598,7 @@ Quest.update = function(type,worker) {
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
+						best_land = quests[i].land;
 						best_advancement = null;
 					}
 					if (quests[i].type !== 2
