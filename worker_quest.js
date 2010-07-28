@@ -211,6 +211,9 @@ Quest.update = function(type,worker) {
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
+					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
+						best_advancement = null;
+					}
 					if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
