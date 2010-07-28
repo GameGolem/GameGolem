@@ -83,7 +83,7 @@ Page.defaults = {
 			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-//			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
 			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 			monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
 			monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
