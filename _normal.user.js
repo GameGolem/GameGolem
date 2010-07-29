@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 735;
+var revision = 736;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4073,6 +4073,7 @@ Arena.data = {
 
 Arena.option = {
 	enabled:false,
+	general:true,
 	losses:5,
 	cache:50,
 	type:'Invade',
@@ -4116,6 +4117,10 @@ Arena.display = [
 	},{
 		id:'enabled',
 		label:'Enabled',
+		checkbox:true
+	},{
+		id:'general',
+ 		label:'Use Best General',
 		checkbox:true
 	},{
 		id:'bp',
@@ -4270,7 +4275,7 @@ Arena.work = function(state) {
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
 		return true;
 	}
-	if (!state || this.runtime.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
+	if (!state || this.runtime.recheck || (this.option.general && !Generals.to('war')) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
@@ -5420,7 +5425,7 @@ Generals.best = function(type) {
 	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 	case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 	case 'bank':		return 'Aeris';
-			case 'war':             return Idle.option.general;
+	case 'war':             rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/i; break;
 	case 'invade':
 		for (i in this.data) {
 			if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {

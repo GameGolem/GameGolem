@@ -11,6 +11,7 @@ Arena.data = {
 
 Arena.option = {
 	enabled:false,
+	general:true,
 	losses:5,
 	cache:50,
 	type:'Invade',
@@ -54,6 +55,10 @@ Arena.display = [
 	},{
 		id:'enabled',
 		label:'Enabled',
+		checkbox:true
+	},{
+		id:'general',
+ 		label:'Use Best General',
 		checkbox:true
 	},{
 		id:'bp',
@@ -208,7 +213,7 @@ Arena.work = function(state) {
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
 		return true;
 	}
-	if (!state || this.runtime.recheck || (this.option.general && !Generals.to(this.option.type)) || !Page.to('battle_arena')) {
+	if (!state || this.runtime.recheck || (this.option.general && !Generals.to('war')) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
