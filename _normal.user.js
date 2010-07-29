@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 734;
+var revision = 735;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4146,7 +4146,7 @@ Arena.display = [
 ];
 
 Arena.init = function() {
-	this._revive(600, 'tokens');// Gain more points every 10 minutes
+	this._revive(360, 'tokens');// Gain more points every 10 minutes
 };
 
 Arena.parse = function(change) {
@@ -4176,7 +4176,7 @@ Arena.parse = function(change) {
 		}
 	}
 	this.runtime.tokens = $('#app'+APPID+'_arena_token_current_value').text().regex(/([0-9]+)/i);
-	this._revive(600, 'tokens');// Gain more points every 10 minutes, restart from now
+	this._revive(360, 'tokens');// Gain more points every 10 minutes, restart from now
 	newrank = $('#app'+APPID+'_arena_body img[src*="arena2_rank"]').attr('src').regex(/arena2_rank([0-9]+).gif/i);
 	this.data.points = $('#app'+APPID+'_arena_body > div:first').text().replace(/,/g,'').regex(/Points: ([0-9]+)/i);
 	if (this.data.rank !== newrank) {
@@ -4202,7 +4202,7 @@ Arena.parse = function(change) {
 
 Arena.update = function(type, worker) {
 	if (type === 'reminder' && !worker) {
-		this.runtime.tokens = Math.min(100, this.runtime.tokens + 1);
+		this.runtime.tokens = Math.min(150, this.runtime.tokens + 1);
 		return;
 	}
 	var i, list = [], data = this.data.user, level = Player.get('level');
