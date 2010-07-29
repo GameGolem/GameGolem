@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 736;
+var revision = 737;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4074,13 +4074,13 @@ Arena.data = {
 Arena.option = {
 	enabled:false,
 	general:true,
-	losses:5,
+	general_choice:'any',
+	losses:2,
 	cache:50,
-	type:'Invade',
 	rank:'None',
 	bp:'Don\'t Care',
-	army:1,
-	level:'Any'
+	level:'Any',
+	tokens:'All'
 };
 
 Arena.runtime = {
@@ -4123,9 +4123,21 @@ Arena.display = [
  		label:'Use Best General',
 		checkbox:true
 	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:{'general':false},
+		select:'generals'
+	},{
 		id:'bp',
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		advanced:true,
+		id:'tokens',
+		label:'Use Tokens',
+		select:['All', 'Minimum', 'None'],
+		help:'How should arena tokens be used - all of them, none of them, or only to prevent wasting them...'
 	},{
 		id:'rank',
 		label:'Stop at Rank',
@@ -4183,7 +4195,7 @@ Arena.parse = function(change) {
 	this.runtime.tokens = $('#app'+APPID+'_arena_token_current_value').text().regex(/([0-9]+)/i);
 	this._revive(360, 'tokens');// Gain more points every 10 minutes, restart from now
 	newrank = $('#app'+APPID+'_arena_body img[src*="arena2_rank"]').attr('src').regex(/arena2_rank([0-9]+).gif/i);
-	this.data.points = $('#app'+APPID+'_arena_body > div:first').text().replace(/,/g,'').regex(/Points: ([0-9]+)/i);
+	this.data.points = $('#app'+APPID+'_arena_body img[src*="arena2_rank"]').parent().next().next().text().replace(/,/g,'').regex(/Points: ([0-9]+)/i);
 	if (this.data.rank !== newrank) {
 		this.data.rank = newrank;
 		this.data.rankat = this.data.points;
@@ -4210,7 +4222,7 @@ Arena.update = function(type, worker) {
 		this.runtime.tokens = Math.min(150, this.runtime.tokens + 1);
 		return;
 	}
-	var i, list = [], data = this.data.user, level = Player.get('level');
+	var i, list = [], data = this.data.user, level = Player.get('level'), status = [];
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && this.data.rank - data[i].rank > 0) || (!this.option.bp === 'Never' && this.data.rank - data[i].rank < 0)) {
@@ -4236,13 +4248,13 @@ Arena.update = function(type, worker) {
 			delete data[list.pop()];
 		}
 	}
-	// Second choose our next target
+	// Choose our next target
+	status.push('Rank ' + this.data.rank + ' ' + this.knar[this.data.rank] + ' with ' + addCommas(this.data.points || 0) + ' Points, Targets: ' + length(data) + ' / ' + this.option.cache + ' (' + makeImage('arena') + this.runtime.tokens + ')');
 	if (!this.option.enabled) {
 		this.runtime.attacking = null;
-		Dashboard.status(this);
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
 		this.runtime.attacking = null;
-		Dashboard.status(this, 'Stopped at ' + this.option.rank + ' (' + makeImage('arena') + this.runtime.tokens + ')');
+		status.push('Stopped at ' + this.option.rank);
 		this.runtime.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
@@ -4257,25 +4269,35 @@ Arena.update = function(type, worker) {
 				list.push(i);
 			}
 			if (list.length) {
-				i = this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
-				Dashboard.status(this, 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + '), ' + list.length + ' / ' + length(data) + ' targets (' + makeImage('arena') + this.runtime.tokens + ')');
+				this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
 			} else {
 				this.runtime.attacking = null;
-				Dashboard.status(this, 'No valid targets found (' + length(data) + ' total) (' + makeImage('arena') + this.runtime.tokens + ')');
 			}
 		}
+	}
+	if (this.option.enabled) {
+		if (this.runtime.attacking) {
+			i = this.runtime.attacking;
+			status.push( 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+		} else {
+			this.runtime.attacking = null;
+			status.push('No valid targets found!');
+		}
+		Dashboard.status(this, status.join('<br>'));
+	} else {
+		Dashboard.status(this);
 	}
 }
 
 Arena.work = function(state) {
 	// Needs 1 stamina, even though it doesn't use any...
-	if (!this.option.enabled || (!this.runtime.recheck && (!this.runtime.attacking || this.runtime.tokens < 10 || Player.get('health',0) < 10 || Player.get('stamina',0) < 1))) {
+	if (!this.option.enabled || this.option.tokens === 'None' || (!this.runtime.recheck && (!this.runtime.attacking || this.runtime.tokens < 10 || (this.option.tokens === 'Minimum' && this.runtime.tokens < 150) || Player.get('health',0) < 10 || Player.get('stamina',0) < 1))) {
 		return false;
 	}
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
 		return true;
 	}
-	if (!state || this.runtime.recheck || (this.option.general && !Generals.to('war')) || !Page.to('battle_arena')) {
+	if (!state || this.runtime.recheck || !Generals.to(this.option.general ? 'war' : this.option.general_choice) || !Page.to('battle_arena')) {
 		return true;
 	}
 	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
