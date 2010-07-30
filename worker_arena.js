@@ -238,7 +238,7 @@ Arena.work = function(state) {
 	if (!state || this.runtime.recheck || !Generals.to(this.option.general ? 'war' : this.option.general_choice) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
+	var uid = this.runtime.attacking, $form = $('form input[alt="Invade"]').first().parents('form');;
 	debug(this.name,'Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log(this.name,'Arena: Unable to find attack buttons, forcing reload');

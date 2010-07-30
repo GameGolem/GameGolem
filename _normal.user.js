@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 737;
+var revision = 738;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4300,7 +4300,7 @@ Arena.work = function(state) {
 	if (!state || this.runtime.recheck || !Generals.to(this.option.general ? 'war' : this.option.general_choice) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.runtime.attacking, $form = $('form input[alt="'+this.option.type+'"]').first().parents('form');;
+	var uid = this.runtime.attacking, $form = $('form input[alt="Invade"]').first().parents('form');;
 	debug(this.name,'Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log(this.name,'Arena: Unable to find attack buttons, forcing reload');
