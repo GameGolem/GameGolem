@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 739;
+var revision = 740;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5418,13 +5419,13 @@ Generals.to = function(name) {
 		return true;
 	}
 	this._unflush();
-	if (name && !this.data[name]) {
+	if (name) {
 		name = this.best(name);
 	}
-	if (!name || Player.get('general') === name || /any/i.test(name)) {
+	if (!name || Player.get('general') === name || name.toLowerCase() === 'any') {
 		return true;
 	}
-	if (!name || !this.data[name]) {
+	if (!this.data[name]) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
@@ -5435,6 +5436,9 @@ Generals.to = function(name) {
 
 Generals.best = function(type) {
 	this._unflush();
+	if (this.data[type]) {
+		return type;
+	}
 	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general');
 	switch(type.toLowerCase()) {
 	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
@@ -7506,6 +7510,9 @@ Monster.parse = function(change) {
 			return false;
 		}
 		mid = uid+'_'+(types[i].mpool || 4);
+		if (this.runtime.check === mid) {
+			this.runtime.check = false;
+		}
 		monster = data[mid] = data[mid] || {};
 		monster.type = type_label;
 		type = types[type_label];
@@ -7754,6 +7761,10 @@ Monster.update = function(what,worker) {
 			return;
 		}
 	}
+	// Some generals use more stamina, but only in certain circumstances...
+	this.runtime.multiplier = (Generals.get([Generals.best(this.option['best_attack'] 
+			? 'monster_attack' 
+			: this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
 	this.runtime.secondary = false;
 	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind;
@@ -7879,15 +7890,8 @@ Monster.update = function(what,worker) {
 					? Math.max.apply(Math, type.attack)
 					: this.option.attack_min > this.option.attack_max
 					? this.option.attack_max : this.option.attack_min;
-
-			if (!type.raid) {// Some generals use more stamina, but only in certain circumstances...
-				i = Generals.get([Generals.best(this.option['best_attack'] ? 'monster_attack' : this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i);
-				if (isNumber(i)) {
-					req_stamina *= i;
-				}
-			}
-
-			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
+			req_stamina = type.raid ? req_stamina : req_stamina * this.runtime.multiplier;
+			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
                         monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -7984,6 +7988,7 @@ Monster.update = function(what,worker) {
 				? Math.max.apply(Math, type.defend)
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
+		this.runtime.energy *= this.runtime.multiplier;
 		if (Queue.burn.energy < this.runtime.energy) {
 			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
 					? (this.runtime.energy - Queue.burn.energy)
@@ -8010,12 +8015,7 @@ Monster.update = function(what,worker) {
 						: (this.option.attack_min > this.option.attack_max)
 							? this.option.attack_max
 							: this.option.attack_min;
-		if (!type.raid) {// Some generals use more stamina, but only in certain circumstances...
-			i = Generals.get([Generals.best(this.option['best_attack'] ? 'monster_attack' : this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i);
-			if (isNumber(i)) {
-				this.runtime.stamina *= i;
-			}
-		}
+		this.runtime.stamina = type.raid ? this.runtime.stamina : this.runtime.stamina * this.runtime.multiplier;
 		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
 		req_health = Math.max(0, this.runtime.health - Player.get('health'));
 		req_stamina = Math.max(0, (LevelUp.runtime.running && LevelUp.option.enabled)
@@ -8073,7 +8073,6 @@ Monster.work = function(state) {
 				? 'battle_raid'
 				: 'monster_battle_monster',
 			'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
-		this.runtime.check = false;
 		return QUEUE_RELEASE;
 	}
  	uid = this.runtime[mode].replace(/_\d+/,'');
@@ -8113,7 +8112,7 @@ Monster.work = function(state) {
 				if (	type[mode][i] <= this.option[mode + '_max'] 
 						&& Queue.burn[stat] >= type[mode][i] ) {
 					//debug('Button cost is ' + type.defend[i]);
-					this.runtime[stat + '_used'] = type[mode][i];
+					this.runtime[stat + '_used'] = type[mode][i] * this.runtime.multiplier;
 					btn = $(this.runtime[mode + '_button']).eq(i);
 					break;
 				}

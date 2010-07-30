@@ -177,13 +177,13 @@ Generals.to = function(name) {
 		return true;
 	}
 	this._unflush();
-	if (name && !this.data[name]) {
+	if (name) {
 		name = this.best(name);
 	}
-	if (!name || Player.get('general') === name || /any/i.test(name)) {
+	if (!name || Player.get('general') === name || name.toLowerCase() === 'any') {
 		return true;
 	}
-	if (!name || !this.data[name]) {
+	if (!this.data[name]) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
@@ -194,6 +194,9 @@ Generals.to = function(name) {
 
 Generals.best = function(type) {
 	this._unflush();
+	if (this.data[type]) {
+		return type;
+	}
 	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general');
 	switch(type.toLowerCase()) {
 	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
