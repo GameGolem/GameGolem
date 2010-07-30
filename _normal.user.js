@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 738;
+var revision = 739;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4095,9 +4095,8 @@ Arena.rank = {
 	Warrior:3,
 	Gladiator:4,
 	Hero:5,
-	Legend:6,
-	Vanguard:7,
-	'Alpha Vanguard':8
+	Vanguard:6,
+	'Alpha Vanguard':7
 };
 
 Arena.knar = [

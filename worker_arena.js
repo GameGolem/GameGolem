@@ -33,9 +33,8 @@ Arena.rank = {
 	Warrior:3,
 	Gladiator:4,
 	Hero:5,
-	Legend:6,
-	Vanguard:7,
-	'Alpha Vanguard':8
+	Vanguard:6,
+	'Alpha Vanguard':7
 };
 
 Arena.knar = [
