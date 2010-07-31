@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 740;
+var revision = 741;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2744,6 +2743,7 @@ Page.onreadystatechange = function() {
 		// Then check if it's still valid
 		if (!data // || data.indexOf(APP) === -1
 		|| data.indexOf('app'+APPID+'_results_container') === -1
+		|| data.indexOf('app'+APPID+'_main_bntp') === -1
 		|| data.indexOf('app'+APPID+'_app_body') === -1) {
 			throw('Bad data');
 		}
@@ -5450,7 +5450,7 @@ Generals.best = function(type) {
 	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
 	case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
 	case 'bank':		return 'Aeris';
-	case 'war':             rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/i; break;
+	case 'war':			rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/i; break;
 	case 'invade':
 		for (i in this.data) {
 			if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
@@ -5512,7 +5512,7 @@ Generals.best = function(type) {
 		return 'any';
 	}
 	for (i in this.data) {
-		value = this.data[i].skills.regex(rx);
+		value = sum(this.data[i].skills.regex(rx));
 		if (value) {
 			if (!best || value>bestval) {
 				best = i;

@@ -277,6 +277,7 @@ Page.onreadystatechange = function() {
 		// Then check if it's still valid
 		if (!data // || data.indexOf(APP) === -1
 		|| data.indexOf('app'+APPID+'_results_container') === -1
+		|| data.indexOf('app'+APPID+'_main_bntp') === -1
 		|| data.indexOf('app'+APPID+'_app_body') === -1) {
 			throw('Bad data');
 		}
