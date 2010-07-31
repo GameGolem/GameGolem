@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 741;
+var revision = 742;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4179,8 +4179,8 @@ Arena.parse = function(change) {
 	if (this.runtime.attacking) {
 		uid = this.runtime.attacking;
 		this.runtime.attacking = null;
-		if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
-			delete data[uid];
+		if ($('div.results').text().match(/You have already attacked this player 5 times, move onto the next victim/i)) {
+			data[uid].stop = Date.now();
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 			data[uid].hide = (data[uid].hide || 0) + 1;
 			data[uid].dead = Date.now();
@@ -4262,6 +4262,7 @@ Arena.update = function(type, worker) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+				|| (data[i].stop && data[i].stop + 86400000 >= Date.now()) // If no more attack are available ignore them for one day
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
