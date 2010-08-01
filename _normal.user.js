@@ -17,9 +17,8 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-var revision = 650;
 var version = "31.5";
-var revision = 743;
+var revision = 744;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8848,7 +8847,6 @@ Quest.parse = function(change) {
 			$('.quest_req >div >div >div', el).each(function(i,el){
 				var title = $('img', el).attr('title');
 				units[title] = $(el).text().regex(/([0-9]+)/);
-				Resources.set(['_'+title, 'quest'], Math.max(Resources.get(['_'+title, 'quest'],0), units[title]), true);
 			});
 			if (length(units)) {
 				quest[name].units = units;
@@ -8868,7 +8866,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], quests = this.data;
+	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], items = {}, quests = this.data;
 	this._watch(Player);
 	this._watch(Queue);
 	if (!type || type === 'data') {
@@ -8876,8 +8874,14 @@ Quest.update = function(type,worker) {
 			if (quests[i].item && quests[i].type !== 3) {
 				list.push(quests[i].item);
 			}
+			for (unit in quests[i].units) {
+				items[unit] = Math.max(items[unit] || 0, quests[i].units[unit]);
+			}
 		}
 		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+		for (unit in items) {
+			Resources.set(['_'+unit, 'quest'], items[unit]);
+		}
 	}
 	// Now choose the next quest...
 	if (this.option.unique) {
