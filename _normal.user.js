@@ -17,8 +17,9 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+var revision = 650;
 var version = "31.5";
-var revision = 742;
+var revision = 743;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8504,8 +8505,10 @@ Player.parse = function(change) {
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.exp		= (tmp ? tmp[0] : 0);
-		data.maxexp		= (tmp ? tmp[1] : 0);
+		if (tmp) {
+			data.exp		= tmp[0];
+			data.maxexp		= tmp[1];
+		}
 	}
 	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
 	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
