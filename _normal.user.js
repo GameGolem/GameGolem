@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 744;
+var revision = 745;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9010,6 +9010,12 @@ Quest.work = function(state) {
 			general = this.data[best].general;
 		} else {
 			switch(this.option.what) {
+				case 'Cartigan':
+					general = Generals.best('item');
+					if (general !== 'any') {
+						break;
+					}
+					// Deliberate fallthrough
 				case 'Influence':
 				case 'Advancement':
 				case 'Experience':

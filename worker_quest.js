@@ -318,6 +318,12 @@ Quest.work = function(state) {
 			general = this.data[best].general;
 		} else {
 			switch(this.option.what) {
+				case 'Cartigan':
+					general = Generals.best('item');
+					if (general !== 'any') {
+						break;
+					}
+					// Deliberate fallthrough
 				case 'Influence':
 				case 'Advancement':
 				case 'Experience':
