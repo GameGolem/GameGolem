@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 745;
+var revision = 746;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4184,6 +4184,8 @@ Arena.parse = function(change) {
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 			data[uid].hide = (data[uid].hide || 0) + 1;
 			data[uid].dead = Date.now();
+		} else if ($('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of [0-9]+ fought with|'s Defense)",'i'))) {
+			this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 		} else if ($('img[src*="battle_victory"]').length) {
 			data[uid].win = (data[uid].win || 0) + 1;
 		} else if ($('img[src*="battle_defeat"]').length) {
@@ -4663,6 +4665,8 @@ Battle.parse = function(change) {
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
+			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
+				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
