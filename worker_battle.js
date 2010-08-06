@@ -195,6 +195,8 @@ Battle.parse = function(change) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/This trainee is too weak. Challenge someone closer to your level/i)) {
 				delete data[uid];
+			} else if ($('div.results').text().match(/They are too high level for you to attack right now/i)) {
+				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();

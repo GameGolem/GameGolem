@@ -133,7 +133,7 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quests,order = Config.getOrder(), stamina_samples;
+	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -215,9 +215,10 @@ LevelUp.work = function(state) {
 	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
 	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
 	if (runtime.running && this.option.general !== 'any') {
-		if (this.option.income && Queue.get('runtime.current') === Income) {
+		if (this.option.income && Queue.get('runtime.current') === 'Income') {
 			Generals.set('runtime.disabled', false);
-		} else if (this.option.bank && Queue.get('runtime.current') === Bank) {
+		} else if (this.option.bank && Queue.get('runtime.current') === 'Bank') {
+                        //debug('Currently trying to allow bank general.');
 			Generals.set('runtime.disabled', false);
 		} else {
 			Generals.set('runtime.disabled', true);
@@ -268,9 +269,9 @@ LevelUp.work = function(state) {
 		Battle.set('option.monster', false);
 	}
 	// Get our level up general if we're less than 100 exp from level up
-	if (this.option.general !== 'any' && Player.get('exp_needed') < 100) {
+	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank')) {
 		Generals.set('runtime.disabled', false);
-		if (Generals.to(this.option.general)) { 
+		if (Generals.to(this.option.general)) {
 			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
@@ -349,7 +350,7 @@ LevelUp.work = function(state) {
 			runtime.old_quest_energy = Quest.runtime.energy;
 			Queue.burn.energy = energy;
 			Queue.burn.stamina = 0;
-			Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+			//Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 			Quest.runtime.energy = energy; // Ok, we're lying, but it works...
 			return QUEUE_FINISH;
 		}

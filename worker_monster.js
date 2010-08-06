@@ -1069,9 +1069,8 @@ Monster.update = function(what,worker) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior]);
-					} else if ((monster.defense || 100) 
-								< Math.min(this.option.defend, monster.strength -1)
-							&& !monster.no_heal) {
+					} else if ((monster.defense || 100) < Math.min(this.option.defend, (monster.strength -1 || 100))
+                                                && !monster.no_heal) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button]);
 					}
 				}

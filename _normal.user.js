@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 747;
+var revision = 748;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4662,6 +4662,8 @@ Battle.parse = function(change) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/This trainee is too weak. Challenge someone closer to your level/i)) {
 				delete data[uid];
+			} else if ($('div.results').text().match(/They are too high level for you to attack right now/i)) {
+				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
@@ -6598,7 +6600,7 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(type,worker) {
-	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime, quests,order = Config.getOrder(), stamina_samples;
+	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
 	if (worker === Player || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -6680,9 +6682,10 @@ LevelUp.work = function(state) {
 	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
 	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
 	if (runtime.running && this.option.general !== 'any') {
-		if (this.option.income && Queue.get('runtime.current') === Income) {
+		if (this.option.income && Queue.get('runtime.current') === 'Income') {
 			Generals.set('runtime.disabled', false);
-		} else if (this.option.bank && Queue.get('runtime.current') === Bank) {
+		} else if (this.option.bank && Queue.get('runtime.current') === 'Bank') {
+                        debug('Currently trying to allow bank general.');
 			Generals.set('runtime.disabled', false);
 		} else {
 			Generals.set('runtime.disabled', true);
@@ -6733,9 +6736,9 @@ LevelUp.work = function(state) {
 		Battle.set('option.monster', false);
 	}
 	// Get our level up general if we're less than 100 exp from level up
-	if (this.option.general !== 'any' && Player.get('exp_needed') < 100) {
+	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank')) {
 		Generals.set('runtime.disabled', false);
-		if (Generals.to(this.option.general)) { 
+		if (Generals.to(this.option.general)) {
 			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
@@ -6814,7 +6817,7 @@ LevelUp.work = function(state) {
 			runtime.old_quest_energy = Quest.runtime.energy;
 			Queue.burn.energy = energy;
 			Queue.burn.stamina = 0;
-			Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+			//Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 			Quest.runtime.energy = energy; // Ok, we're lying, but it works...
 			return QUEUE_FINISH;
 		}
@@ -7934,9 +7937,8 @@ Monster.update = function(what,worker) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior]);
-					} else if ((monster.defense || 100) 
-								< Math.min(this.option.defend, monster.strength -1)
-							&& !monster.no_heal) {
+					} else if ((monster.defense || 100) < Math.min(this.option.defend, (monster.strength -1 || 100))
+                                                && !monster.no_heal) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button]);
 					}
 				}
@@ -8667,18 +8669,39 @@ Potions.update = function(type) {
 	if (Queue.enabled(this)) {
 		for(i in this.data) {
 			if (this.data[i]) {
-				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()]);
+				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');
 			}
 			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
 				this.runtime.drink = true;
 			}
 		}
 	}
+        if (this.runtime.type){
+            txt.push('Going to drink ' + this.runtime.amount + ' ' + this.runtime.type + ' potion.');
+        }
 	Dashboard.status(this, txt.join(', '));
+        $('a.golem-potion-drink').live('click', function(event){
+		var x = $(this).attr('name');
+                var act = $(this).text().regex(/(.*)/);
+		debug('Clicked on ' + x);
+                debug('Action = ' + act);
+                switch (act){
+                    case '[Drink]':
+                        debug('Setting Runtime');
+                        Potions.runtime.type = x;
+                        Potions.runtime.amount = 1;
+                        break;
+                    default:
+                        debug('Clearing Runtime');
+                        Potions.runtime.type = Potions.runtime.amount = null;
+                }
+                
+                
+	});
 };
 
 Potions.work = function(state) {
-	if (!this.runtime.drink) {
+	if (!this.runtime.drink && !this.runtime.type) {
 		return QUEUE_FINISH;
 	}
 	if (!state || !Page.to('keep_stats')) {
@@ -8691,6 +8714,11 @@ Potions.work = function(state) {
 			break;
 		}
 	}
+        if (this.runtime.type && this.runtime.amount){
+                debug('Wanting to drink a ' + this.runtime.type + ' potion');
+		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
+                this.runtime.type = this.runtime.amount = null;
+        }
 	return QUEUE_RELEASE;
 };
 
@@ -9223,8 +9251,8 @@ Town.display = [
 	id:'maxcost',
 	require:{'number':[['None']]},
 	label:'Maximum Item Cost',
-	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
-	help:'Will buy best item based on Set Type with single item cost below selected value.'
+	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
+	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
 	require:{'number':[['None']]},
@@ -9350,7 +9378,8 @@ Town.getDuel = function() {
 
 Town.update = function(type) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
-	max_cost = ({
+	incr = (this.runtime.cost_incr || 4);
+        max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
 		'$1m':Math.pow(10,6),
@@ -9358,7 +9387,11 @@ Town.update = function(type) {
 		'$100m':Math.pow(10,8),
 		'$1b':Math.pow(10,9),
 		'$10b':Math.pow(10,10),
-		'$100b':Math.pow(10,11)
+		'$100b':Math.pow(10,11),
+		'$1t':Math.pow(10,12),
+		'$10t':Math.pow(10,13),
+		'$100t':Math.pow(10,14),
+                'INCR':Math.pow(10,incr)
 	})[this.option.maxcost];
 	switch (this.option.number) {
 		case 'Army':
@@ -9397,7 +9430,7 @@ Town.update = function(type) {
 //			debug('Item: '+u+', need: '+need+', want: '+want);
 			if (need > have) {// Want to buy more
 				if (!best_quest && data[u].buy && data[u].buy.length) {
-					if (data[u].cost <= max_cost && this.option.upkeep >= ((Player.get('upkeep') + (data[u].cost * bestValue(data[u].buy, buy - have))) / Player.get('maxincome') * 100) && (!best_buy || need > buy)) {
+					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + (data[u].upkeep * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);
 						best_buy = u;
 						buy = need;
@@ -9434,11 +9467,19 @@ Town.update = function(type) {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		}
 	} else {
+                if (this.option.maxcost === 'INCR'){
+                    this.runtime.cost_incr = (incr === 14)? 4: incr + 1;
+                    this.runtime.check = Date.now() + 3600000;
+                } else {
+                    this.runtime.cost_incr = null;
+                    this.runtime.check = null;
+                }
 		Dashboard.status(this);
 	}
 };
 
 Town.work = function(state) {
+        var incr = (this.runtime.cost_incr || 4);
 	if (this.runtime.best_sell){
 		if (!state || !this.sell(this.runtime.best_sell, this.runtime.sell)) {
 			return QUEUE_CONTINUE;
@@ -9446,7 +9487,11 @@ Town.work = function(state) {
 	}
 	if (this.runtime.best_buy){
 		if (!state && !Bank.worth(this.runtime.cost)) {
-			return QUEUE_FINISH;
+                        if (this.runtime.check < Date.now() && this.option.maxcost === 'INCR'){
+                                this.runtime.cost_incr = 4;
+                                this.runtime.check = Date.now() + 3600000;
+                        }
+                        return QUEUE_FINISH;
 		}
 		if (!state || !this.buy(this.runtime.best_buy, this.runtime.buy)) {
 			return QUEUE_CONTINUE;
@@ -9471,6 +9516,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
 	});
+        this.runtime.cost_incr = 4;
 	return false;
 };
 
@@ -9490,6 +9536,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}
 	});
+        this.runtime.cost_incr = 4;
 	return false;
 };
 

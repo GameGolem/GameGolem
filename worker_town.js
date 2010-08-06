@@ -67,8 +67,8 @@ Town.display = [
 	id:'maxcost',
 	require:{'number':[['None']]},
 	label:'Maximum Item Cost',
-	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b'],
-	help:'Will buy best item based on Set Type with single item cost below selected value.'
+	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
+	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
 	require:{'number':[['None']]},
@@ -194,7 +194,8 @@ Town.getDuel = function() {
 
 Town.update = function(type) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
-	max_cost = ({
+	incr = (this.runtime.cost_incr || 4);
+        max_cost = ({
 		'$10k':Math.pow(10,4),
 		'$100k':Math.pow(10,5),
 		'$1m':Math.pow(10,6),
@@ -202,7 +203,11 @@ Town.update = function(type) {
 		'$100m':Math.pow(10,8),
 		'$1b':Math.pow(10,9),
 		'$10b':Math.pow(10,10),
-		'$100b':Math.pow(10,11)
+		'$100b':Math.pow(10,11),
+		'$1t':Math.pow(10,12),
+		'$10t':Math.pow(10,13),
+		'$100t':Math.pow(10,14),
+                'INCR':Math.pow(10,incr)
 	})[this.option.maxcost];
 	switch (this.option.number) {
 		case 'Army':
@@ -241,7 +246,7 @@ Town.update = function(type) {
 //			debug('Item: '+u+', need: '+need+', want: '+want);
 			if (need > have) {// Want to buy more
 				if (!best_quest && data[u].buy && data[u].buy.length) {
-					if (data[u].cost <= max_cost && this.option.upkeep >= ((Player.get('upkeep') + (data[u].cost * bestValue(data[u].buy, buy - have))) / Player.get('maxincome') * 100) && (!best_buy || need > buy)) {
+					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + (data[u].upkeep * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);
 						best_buy = u;
 						buy = need;
@@ -278,11 +283,19 @@ Town.update = function(type) {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
 		}
 	} else {
+                if (this.option.maxcost === 'INCR'){
+                    this.runtime.cost_incr = (incr === 14)? 4: incr + 1;
+                    this.runtime.check = Date.now() + 3600000;
+                } else {
+                    this.runtime.cost_incr = null;
+                    this.runtime.check = null;
+                }
 		Dashboard.status(this);
 	}
 };
 
 Town.work = function(state) {
+        var incr = (this.runtime.cost_incr || 4);
 	if (this.runtime.best_sell){
 		if (!state || !this.sell(this.runtime.best_sell, this.runtime.sell)) {
 			return QUEUE_CONTINUE;
@@ -290,7 +303,11 @@ Town.work = function(state) {
 	}
 	if (this.runtime.best_buy){
 		if (!state && !Bank.worth(this.runtime.cost)) {
-			return QUEUE_FINISH;
+                        if (this.runtime.check < Date.now() && this.option.maxcost === 'INCR'){
+                                this.runtime.cost_incr = 4;
+                                this.runtime.check = Date.now() + 3600000;
+                        }
+                        return QUEUE_FINISH;
 		}
 		if (!state || !this.buy(this.runtime.best_buy, this.runtime.buy)) {
 			return QUEUE_CONTINUE;
@@ -315,6 +332,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
 	});
+        this.runtime.cost_incr = 4;
 	return false;
 };
 
@@ -334,6 +352,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}
 	});
+        this.runtime.cost_incr = 4;
 	return false;
 };
 
