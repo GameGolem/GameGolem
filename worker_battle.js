@@ -383,7 +383,8 @@ Battle.work = function(state) {
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
-	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]').first().parents('form');
+	var $symbol_rows = $('#app'+APPID+'_app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
+	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	if (!$form.length) {
 		debug('Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');

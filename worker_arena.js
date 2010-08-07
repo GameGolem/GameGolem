@@ -14,6 +14,7 @@ Arena.option = {
 	general:true,
 	general_choice:'any',
 	losses:2,
+	rel_losses:true,
 	cache:50,
 	rank:'None',
 	bp:'Don\'t Care',
@@ -86,6 +87,12 @@ Arena.display = [
 		label:'Attack Until',
 		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
+	},{
+		advanced:true,
+		id:'rel_losses',
+		label:'Relative Losses',
+		checkbox:true,
+		help:'Choose if number of losses to stop is assolute or relative to the number of wins'
 	},{
 		advanced:true,
 		id:'cache',
@@ -202,7 +209,7 @@ Arena.update = function(type, worker) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].stop && data[i].stop + 86400000 >= Date.now()) // If no more attack are available ignore them for one day
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (this.option.rel_losses && data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
 				}

@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 748;
+var revision = 749;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4077,6 +4077,7 @@ Arena.option = {
 	general:true,
 	general_choice:'any',
 	losses:2,
+	rel_losses:true,
 	cache:50,
 	rank:'None',
 	bp:'Don\'t Care',
@@ -4149,6 +4150,12 @@ Arena.display = [
 		label:'Attack Until',
 		select:['Ignore',1,2,3,4,5,6,7,8,9,10],
 		after:'Losses'
+	},{
+		advanced:true,
+		id:'rel_losses',
+		label:'Relative Losses',
+		checkbox:true,
+		help:'Choose if number of losses to stop is assolute or relative to the number of wins'
 	},{
 		advanced:true,
 		id:'cache',
@@ -4265,7 +4272,7 @@ Arena.update = function(type, worker) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].stop && data[i].stop + 86400000 >= Date.now()) // If no more attack are available ignore them for one day
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (this.option.rel_losses && data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
 				}
@@ -4850,7 +4857,8 @@ Battle.work = function(state) {
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
-	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]').first().parents('form');
+	var $symbol_rows = $('#app'+APPID+'_app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
+	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	if (!$form.length) {
 		debug('Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');
@@ -6685,7 +6693,7 @@ LevelUp.work = function(state) {
 		if (this.option.income && Queue.get('runtime.current') === 'Income') {
 			Generals.set('runtime.disabled', false);
 		} else if (this.option.bank && Queue.get('runtime.current') === 'Bank') {
-                        debug('Currently trying to allow bank general.');
+                        //debug('Currently trying to allow bank general.');
 			Generals.set('runtime.disabled', false);
 		} else {
 			Generals.set('runtime.disabled', true);
@@ -8683,16 +8691,16 @@ Potions.update = function(type) {
         $('a.golem-potion-drink').live('click', function(event){
 		var x = $(this).attr('name');
                 var act = $(this).text().regex(/(.*)/);
-		debug('Clicked on ' + x);
-                debug('Action = ' + act);
+		//debug('Clicked on ' + x);
+                //debug('Action = ' + act);
                 switch (act){
                     case '[Drink]':
-                        debug('Setting Runtime');
+                        //debug('Setting Runtime');
                         Potions.runtime.type = x;
                         Potions.runtime.amount = 1;
                         break;
                     default:
-                        debug('Clearing Runtime');
+                        //debug('Clearing Runtime');
                         Potions.runtime.type = Potions.runtime.amount = null;
                 }
                 
