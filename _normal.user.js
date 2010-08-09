@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 749;
+var revision = 750;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4077,7 +4077,7 @@ Arena.option = {
 	general:true,
 	general_choice:'any',
 	losses:2,
-	rel_losses:true,
+
 	cache:50,
 	rank:'None',
 	bp:'Don\'t Care',
@@ -4130,10 +4130,19 @@ Arena.display = [
 		require:{'general':false},
 		select:'generals'
 	},{
+		id:'minRR',
+		label:'Minimum Relative Rank<br>(Clears Cache)',
+		select:[-5,-4,-3,-2,-1,0,1,2,3,4,5]
+	},{
+		id:'maxRR',
+		label:'Maximum Relative Rank<br>(Clears Cache)',
+		select:[-5,-4,-3,-2,-1,0,1,2,3,4,5]
+/*	},{
 		id:'bp',
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
+*/	},{
 		advanced:true,
 		id:'tokens',
 		label:'Use Tokens',
@@ -4152,12 +4161,12 @@ Arena.display = [
 		after:'Losses'
 	},{
 		advanced:true,
-		id:'rel_losses',
-		label:'Relative Losses',
-		checkbox:true,
-		help:'Choose if number of losses to stop is assolute or relative to the number of wins'
-	},{
-		advanced:true,
+
+
+
+
+
+
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[50,100,150,200,250]
@@ -4175,6 +4184,7 @@ Arena.init = function() {
 
 Arena.parse = function(change) {
 	var data = this.data.user, newrank;
+	var data = this.data.user, newrank, Playerlevel = Player.get('level');
 	if ($('#app'+APPID+'_arena_body div div:contains("Arena is over, wait for next season!")').length) {
 		// Arena is over for now, so disable and return!
 		this.option.enabled = false;
@@ -4211,16 +4221,20 @@ Arena.parse = function(change) {
 	}
 	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
 		var uid = $('img[uid]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
+		var uid = $('img[uid]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank, level;
 		if (!uid || !info) {
 			return;
 		}
 		rank = Arena.rank[info[1]];
-		if ((Arena.option.bp === 'Always' && Arena.data.rank - rank > 0) || (!Arena.option.bp === 'Never' && Arena.data.rank - rank < 0)) {
+		level = info[0];
+//		if ((Arena.option.bp === 'Always' && Arena.data.rank - rank > 1) || (!Arena.option.bp === 'Never' && Arena.data.rank - rank < 0)) {
+		if(((rank - Arena.data.rank < Arena.option.minRR) || (rank - Arena.data.rank > Arena.option.maxRR)) || (Arena.option.level !== "Any" && level / Playerlevel > Arena.option.level)){
 			return;
 		}
 		data[uid] = data[uid] || {};
 		data[uid].name = $('a', el).text().trim();
 		data[uid].level = info[0];
+		data[uid].level = level;
 		data[uid].rank = rank;
 	});
 	return false;
@@ -4234,7 +4248,8 @@ Arena.update = function(type, worker) {
 	var i, list = [], data = this.data.user, level = Player.get('level'), status = [];
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && this.data.rank - data[i].rank > 0) || (!this.option.bp === 'Never' && this.data.rank - data[i].rank < 0)) {
+//		if ((this.option.bp === 'Always' && this.data.rank - data[i].rank > 0) || (!this.option.bp === 'Never' && this.data.rank - data[i].rank < 0)) {
+		if((data[i].rank - this.data.rank < Arena.option.minRR) || (data[i].rank - this.data.rank > Arena.option.maxRR) || (Arena.option.level !== "Any" && data[i].level / level > Arena.option.level)){
 			delete data[i];
 		}
 	}
@@ -4247,8 +4262,9 @@ Arena.update = function(type, worker) {
 			var weight = 0;
 				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
 			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-			if (Arena.option.bp === 'Always') { weight += (data[b].rank - data[a].rank); }
-			if (Arena.option.bp === 'Never') { weight += (data[a].rank - data[b].rank); }
+			//if (Arena.option.bp === 'Always') { weight += (data[b].rank - data[a].rank); }
+			//if (Arena.option.bp === 'Never') { weight += (data[a].rank - data[b].rank); }
+			weight += (data[b].rank - data[a].rank);
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
 			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
 			return weight;
@@ -4272,7 +4288,8 @@ Arena.update = function(type, worker) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].stop && data[i].stop + 86400000 >= Date.now()) // If no more attack are available ignore them for one day
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (this.option.rel_losses && data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
 				}
@@ -6628,8 +6645,8 @@ LevelUp.update = function(type,worker) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-/* Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
-
+// Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
+/*
 	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
 		quests = Quest.get();
 		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
@@ -6754,14 +6771,20 @@ LevelUp.work = function(state) {
 		}
 	}
 	
-/*	
+	var big_quest = null, normal_quest = null, little_quest = null;
 	quests = Quest.get();
 	big_quest = bestObjValue(quests, function(q){
-		return ((q.energy =< energy && q.energy > quests[Quest.runtime.best].energy) 
+		return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
 				? q.exp : null);
 	});
+//	debug('big_quest = ' + big_quest);
+	var big_quest_energy = 0;
+	if (big_quest){
+		big_quest_energy = quests[big_quest].energy;
+	}
+//	debug('big_quest_energy = ' + big_quest_energy);
 
-	// Find the biggest monster to throw exp into the next level
+/*	// Find the biggest monster to throw exp into the next level
 	monsters = Monster.get();
 	for (i in monsters) { 
 		stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
@@ -6771,7 +6794,7 @@ LevelUp.work = function(state) {
 		return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
 	}); 
 	
-	// See if we can do some of our normal quests before the big one
+*/	// See if we can do some of our normal quests before the big one
 	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
 			&& exp > quests[Quest.runtime.best].exp) {
 		debug('Doing normal quest to burn energy');
@@ -6781,13 +6804,11 @@ LevelUp.work = function(state) {
 	for (i in quests) { 
 		if (energy - big_quest_energy >= quests[i].energy
 				&& exp > quests[i].exp
-				&& (!little_quest 
-					|| (quests[i].energy / quests[i].exp)
-				Lol		< (quests[little_quest].energy / quests[little_quest].exp)) {
+				&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
 			little_quest = i;
 		}
 	}
-	next_quest = normal_quest || little_quest || big_quest;
+	var next_quest = normal_quest || little_quest || big_quest;
 	if (next_quest) {
 		debug('Doing a small quest to burn energy');
 		Queue.burn.energy = energy;
@@ -6798,7 +6819,7 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		return QUEUE_FINISH;
 	}
-*/
+
 		
 /*	max quest xp = quests < energy max exp * number possible
 	max fortification 
@@ -7907,7 +7928,8 @@ Monster.update = function(what,worker) {
 					: this.option.attack_min > this.option.attack_max
 					? this.option.attack_max : this.option.attack_min;
 			req_stamina = type.raid ? req_stamina : req_stamina * this.runtime.multiplier;
-			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
+//			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
+			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
                         monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -8003,7 +8025,7 @@ Monster.update = function(what,worker) {
 				? Math.max.apply(Math, type.defend)
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
-		this.runtime.energy *= this.runtime.multiplier;
+//		this.runtime.energy *= this.runtime.multiplier;
 		if (Queue.burn.energy < this.runtime.energy) {
 			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
 					? (this.runtime.energy - Queue.burn.energy)

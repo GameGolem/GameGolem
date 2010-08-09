@@ -1031,7 +1031,8 @@ Monster.update = function(what,worker) {
 					: this.option.attack_min > this.option.attack_max
 					? this.option.attack_max : this.option.attack_min;
 			req_stamina = type.raid ? req_stamina : req_stamina * this.runtime.multiplier;
-			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
+//			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
+			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
                         monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -1127,7 +1128,7 @@ Monster.update = function(what,worker) {
 				? Math.max.apply(Math, type.defend)
 				: (this.option.defend_min > this.option.defend_max)
 				? this.option.defend_max : this.option.defend_min;
-		this.runtime.energy *= this.runtime.multiplier;
+//		this.runtime.energy *= this.runtime.multiplier;
 		if (Queue.burn.energy < this.runtime.energy) {
 			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
 					? (this.runtime.energy - Queue.burn.energy)

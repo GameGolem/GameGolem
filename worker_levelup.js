@@ -153,8 +153,8 @@ LevelUp.update = function(type,worker) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-/* Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
-
+// Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
+/*
 	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
 		quests = Quest.get();
 		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
@@ -279,14 +279,20 @@ LevelUp.work = function(state) {
 		}
 	}
 	
-/*	
+	var big_quest = null, normal_quest = null, little_quest = null;
 	quests = Quest.get();
 	big_quest = bestObjValue(quests, function(q){
-		return ((q.energy =< energy && q.energy > quests[Quest.runtime.best].energy) 
+		return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
 				? q.exp : null);
 	});
+//	debug('big_quest = ' + big_quest);
+	var big_quest_energy = 0;
+	if (big_quest){
+		big_quest_energy = quests[big_quest].energy;
+	}
+//	debug('big_quest_energy = ' + big_quest_energy);
 
-	// Find the biggest monster to throw exp into the next level
+/*	// Find the biggest monster to throw exp into the next level
 	monsters = Monster.get();
 	for (i in monsters) { 
 		stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
@@ -296,7 +302,7 @@ LevelUp.work = function(state) {
 		return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
 	}); 
 	
-	// See if we can do some of our normal quests before the big one
+*/	// See if we can do some of our normal quests before the big one
 	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
 			&& exp > quests[Quest.runtime.best].exp) {
 		debug('Doing normal quest to burn energy');
@@ -306,13 +312,11 @@ LevelUp.work = function(state) {
 	for (i in quests) { 
 		if (energy - big_quest_energy >= quests[i].energy
 				&& exp > quests[i].exp
-				&& (!little_quest 
-					|| (quests[i].energy / quests[i].exp)
-				Lol		< (quests[little_quest].energy / quests[little_quest].exp)) {
+				&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
 			little_quest = i;
 		}
 	}
-	next_quest = normal_quest || little_quest || big_quest;
+	var next_quest = normal_quest || little_quest || big_quest;
 	if (next_quest) {
 		debug('Doing a small quest to burn energy');
 		Queue.burn.energy = energy;
@@ -323,7 +327,7 @@ LevelUp.work = function(state) {
 		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
 		return QUEUE_FINISH;
 	}
-*/
+
 		
 /*	max quest xp = quests < energy max exp * number possible
 	max fortification 
