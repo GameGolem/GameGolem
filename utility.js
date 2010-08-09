@@ -65,7 +65,7 @@ String.prototype.pathpart = function() {
 String.prototype.regex = function(r) {
 	var a = this.match(r), i;
 	if (a) {
-		a.shift();
+		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
 			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
 				a[i] = parseFloat(a[i]);
