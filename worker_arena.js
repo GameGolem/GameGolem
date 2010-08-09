@@ -14,9 +14,9 @@ Arena.option = {
 	general:true,
 	general_choice:'any',
 	losses:2,
-
 	cache:50,
-	rank:'None',
+	minRR: 0,
+	maxRR: 5,
 	bp:'Don\'t Care',
 	level:'Any',
 	tokens:'All'
@@ -78,7 +78,6 @@ Arena.display = [
 		id:'bp',
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
-	},{
 */	},{
 		advanced:true,
 		id:'tokens',
@@ -98,12 +97,6 @@ Arena.display = [
 		after:'Losses'
 	},{
 		advanced:true,
-
-
-
-
-
-
 		id:'cache',
 		label:'Limit Cache Length',
 		select:[50,100,150,200,250]
@@ -157,7 +150,6 @@ Arena.parse = function(change) {
 		this.data.rankat = this.data.points;
 	}
 	$('#app'+APPID+'_arena_body table tr:odd').each(function(i,el){
-		var uid = $('img[uid]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank;
 		var uid = $('img[uid]', el).attr('uid'), info = $('td.bluelink', el).text().trim().regex(/Level ([0-9]+) (.*)/i), rank, level;
 		if (!uid || !info) {
 			return;
@@ -165,12 +157,11 @@ Arena.parse = function(change) {
 		rank = Arena.rank[info[1]];
 		level = info[0];
 //		if ((Arena.option.bp === 'Always' && Arena.data.rank - rank > 1) || (!Arena.option.bp === 'Never' && Arena.data.rank - rank < 0)) {
-		if(((rank - Arena.data.rank < Arena.option.minRR) || (rank - Arena.data.rank > Arena.option.maxRR)) || (Arena.option.level !== "Any" && level / Playerlevel > Arena.option.level)){
+		if ((rank - Arena.data.rank < Arena.option.minRR) || (rank - Arena.data.rank > Arena.option.maxRR)) {
 			return;
 		}
 		data[uid] = data[uid] || {};
 		data[uid].name = $('a', el).text().trim();
-		data[uid].level = info[0];
 		data[uid].level = level;
 		data[uid].rank = rank;
 	});
@@ -186,7 +177,7 @@ Arena.update = function(type, worker) {
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
 //		if ((this.option.bp === 'Always' && this.data.rank - data[i].rank > 0) || (!this.option.bp === 'Never' && this.data.rank - data[i].rank < 0)) {
-		if((data[i].rank - this.data.rank < Arena.option.minRR) || (data[i].rank - this.data.rank > Arena.option.maxRR) || (Arena.option.level !== "Any" && data[i].level / level > Arena.option.level)){
+		if((data[i].rank - this.data.rank < Arena.option.minRR) || (data[i].rank - this.data.rank > Arena.option.maxRR)){
 			delete data[i];
 		}
 	}
@@ -225,8 +216,7 @@ Arena.update = function(type, worker) {
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].stop && data[i].stop + 86400000 >= Date.now()) // If no more attack are available ignore them for one day
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) >= this.option.losses) // Don't attack someone who wins more than this.option.losses
 				|| (this.option.level !== 'Any' && (data[i].level / level) > this.option.level)) {
 					continue;
 				}
