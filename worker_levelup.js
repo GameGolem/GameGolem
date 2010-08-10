@@ -214,16 +214,16 @@ LevelUp.update = function(type,worker) {
 LevelUp.work = function(state) {
 	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
 	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
-	if (runtime.running && this.option.general !== 'any') {
-		if (this.option.income && Queue.get('runtime.current') === 'Income') {
-			Generals.set('runtime.disabled', false);
-		} else if (this.option.bank && Queue.get('runtime.current') === 'Bank') {
-                        //debug('Currently trying to allow bank general.');
-			Generals.set('runtime.disabled', false);
+	// Get our level up general if we're less than 100 exp from level up
+	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank') && !(this.option.income && Queue.get('runtime.current') === 'Income')) {
+		Generals.set('runtime.disabled', false);
+		if (Generals.to(this.option.general)) {
+			//debug('Disabling Generals because we are within 100 XP from leveling.');
+			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
-			Generals.set('runtime.disabled', true);
+			return QUEUE_CONTINUE;	// Try to change generals again
 		}
-	} else if (!runtime.running) {
+	} else {
 		Generals.set('runtime.disabled', false);
 	}
 	if (runtime.old_quest) {
@@ -268,65 +268,6 @@ LevelUp.work = function(state) {
 		//debug('Running '+runtime.running);
 		Battle.set('option.monster', false);
 	}
-	// Get our level up general if we're less than 100 exp from level up
-	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank')) {
-		Generals.set('runtime.disabled', false);
-		if (Generals.to(this.option.general)) {
-			//debug('Disabling Generals because we are within 100 XP from leveling.');
-			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
-		} else {
-			return QUEUE_CONTINUE;	// Try to change generals again
-		}
-	}
-	
-	var big_quest = null, normal_quest = null, little_quest = null;
-	quests = Quest.get();
-	big_quest = bestObjValue(quests, function(q){
-		return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
-				? q.exp : null);
-	});
-//	debug('big_quest = ' + big_quest);
-	var big_quest_energy = 0;
-	if (big_quest){
-		big_quest_energy = quests[big_quest].energy;
-	}
-//	debug('big_quest_energy = ' + big_quest_energy);
-
-/*	// Find the biggest monster to throw exp into the next level
-	monsters = Monster.get();
-	for (i in monsters) { 
-		stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
-	}
-	
-	big_attack = bestObjValue(stamina_options, function(s){
-		return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
-	}); 
-	
-*/	// See if we can do some of our normal quests before the big one
-	if (energy - big_quest_energy > quests[Quest.runtime.best].energy
-			&& exp > quests[Quest.runtime.best].exp) {
-		debug('Doing normal quest to burn energy');
-		normal_quest = Quest.runtime.best;
-	}
-	// Find out if we have room to do some small quests before we get to the big one
-	for (i in quests) { 
-		if (energy - big_quest_energy >= quests[i].energy
-				&& exp > quests[i].exp
-				&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
-			little_quest = i;
-		}
-	}
-	var next_quest = normal_quest || little_quest || big_quest;
-	if (next_quest) {
-		debug('Doing a small quest to burn energy');
-		Queue.burn.energy = energy;
-		Queue.burn.stamina = 0;
-		runtime.old_quest_energy = Quest.runtime.energy;
-		runtime.old_quest = Quest.runtime.best;
-		Quest.runtime.energy = energy; // Ok, we're lying, but it works...
-		Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
-		return QUEUE_FINISH;
-	}
 
 		
 /*	max quest xp = quests < energy max exp * number possible
@@ -338,6 +279,11 @@ LevelUp.work = function(state) {
 	Do tiny chunks to fill up space
 	Do biggest chunk
 */	
+	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
+		runtime.heal_me = true;
+		return QUEUE_CONTINUE;
+	}
+
 	// We don't have focus, but we do want to level up quicker
 	if (this.option.order !== 'Stamina' 
 			|| !stamina || Player.get('health') < 13 
@@ -350,23 +296,62 @@ LevelUp.work = function(state) {
 				|| (order.indexOf('Idle') <= order.indexOf('Battle'))))){
 		debug('Running Energy Burn');
 		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
-			runtime.old_quest = Quest.runtime.best;
-			runtime.old_quest_energy = Quest.runtime.energy;
-			Queue.burn.energy = energy;
-			Queue.burn.stamina = 0;
-			//Quest.runtime.best = runtime.quests[Math.min(runtime.energy, runtime.quests.length-1)][1][0]; // Access directly as Quest.set() would force a Quest.update and overwrite this again
-			Quest.runtime.energy = energy; // Ok, we're lying, but it works...
-			return QUEUE_FINISH;
+	
+			var big_quest = null, normal_quest = null, little_quest = null;
+			quests = Quest.get();
+			big_quest = bestObjValue(quests, function(q){
+				return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
+						? q.exp : null);
+			});
+//	debug('big_quest = ' + big_quest);
+			var big_quest_energy = 0;
+			if (big_quest){
+				big_quest_energy = quests[big_quest].energy;
+			}
+//	debug('big_quest_energy = ' + big_quest_energy);
+
+/*	// Find the biggest monster to throw exp into the next level
+			monsters = Monster.get();
+			for (i in monsters) { 
+				stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
+			}
+			
+			big_attack = bestObjValue(stamina_options, function(s){
+				return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
+			}); 
+			
+*/	// See if we can do some of our normal quests before the big one
+			var exp = Player.get('exp_needed');
+			if (energy - big_quest_energy > quests[Quest.runtime.best].energy
+					&& exp > quests[Quest.runtime.best].exp) {
+				debug('Doing normal quest to burn energy');
+				normal_quest = Quest.runtime.best;
+			}
+			// Find out if we have room to do some small quests before we get to the big one
+			for (i in quests) { 
+				if (energy - big_quest_energy >= quests[i].energy
+						&& exp > quests[i].exp
+						&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
+					little_quest = i;
+				}
+			}
+			var next_quest = normal_quest || little_quest || big_quest;
+			if (next_quest) {
+				debug('Doing a small quest to burn energy');
+				Queue.burn.energy = energy;
+				Queue.burn.stamina = 0;
+				runtime.old_quest_energy = Quest.runtime.energy;
+				runtime.old_quest = Quest.runtime.best;
+				Quest.runtime.energy = energy; // Ok, we're lying, but it works...
+				Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
+				return QUEUE_FINISH;
+			}
 		}
 	} else {
 		debug('Running Stamina Burn');
 	}
 	Quest._update('data', null); // Force Quest to decide it's best quest again...
 	// Got to have stamina left to get here, so burn it all
-	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
-		runtime.heal_me = true;
-		return QUEUE_CONTINUE;
-	}
 	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
 	Queue.burn.stamina = stamina; // Make sure we can burn everything, even the stuff we're saving
 	return QUEUE_FINISH;

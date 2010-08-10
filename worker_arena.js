@@ -25,7 +25,8 @@ Arena.option = {
 Arena.runtime = {
 	recheck:false,
 	attacking:null,
-	tokens:0
+	tokens:0,
+	listlength:'tbd'
 };
 
 Arena.rank = {
@@ -227,6 +228,7 @@ Arena.update = function(type, worker) {
 			} else {
 				this.runtime.attacking = null;
 			}
+			this.runtime.listlength = list.length;
 		}
 	}
 	if (this.option.enabled) {
@@ -286,7 +288,7 @@ Arena.dashboard = function(sort, rev) {
 		});
 	}
 
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', ' + makeImage('arena') + this.runtime.tokens + '</div><hr>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.knar[this.data.rank] + ' (' + this.data.rank + ') with ' + addCommas(this.data.points || 0) + ' Points, <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ' (' + this.runtime.listlength + ' valid), ' + makeImage('arena') + this.runtime.tokens + '</div><hr>');
 	th(output, 'Rank');
 	th(output, 'Name');
 	th(output, 'Level');
@@ -297,6 +299,9 @@ Arena.dashboard = function(sort, rev) {
 	for (o=0; o<this.order.length; o++) {
 		data = this.data.user[this.order[o]];
 		output = [];
+		if(this.option.level !== 'Any' && (data.level / level) > this.option.level){
+			continue;
+		}
 		td(output, '<img style="width:22px;height:22px;" src="' + imagepath + 'arena2_rank' + data.rank + '.gif">', 'title="' + this.knar[data.rank] + ' (Rank ' + data.rank + ')"');
 		th(output, data.name, 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
