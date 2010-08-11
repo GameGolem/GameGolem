@@ -197,6 +197,8 @@ Battle.parse = function(change) {
 				delete data[uid];
 			} else if ($('div.results').text().match(/They are too high level for you to attack right now/i)) {
 				delete data[uid];
+			} else if ($('div.results').text().match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
+				delete data[uid];
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
@@ -254,7 +256,7 @@ Battle.parse = function(change) {
 */
 Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
-
+        var enabled = Queue.enabled(this);
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -299,7 +301,8 @@ Battle.update = function(type) {
 		}
 	}
 	// Check if we need Demi-points
-	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50);
+        //debug('Queue Logic = ' + enabled);
+	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;

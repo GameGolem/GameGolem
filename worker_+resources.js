@@ -180,10 +180,10 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-	if (!Worker.stack.length) {
+        if (!Worker.stack.length) {
 		return;
 	}
-	var worker = Worker.stack[Worker.stack.length-1];
+	var worker = Worker.stack[Worker.stack.length-1];        
 	if (isUndefined(amount)) {
 		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
 		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 5));
@@ -198,7 +198,7 @@ Resources.use = function(type, amount, use) {
 		}
 		return true;
 	}
-	return false;;
+	return false;
 };
 
 /***** Resources.has() *****

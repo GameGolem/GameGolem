@@ -306,7 +306,8 @@ Town.work = function(state) {
                         if (this.runtime.check < Date.now() && this.option.maxcost === 'INCR'){
                                 this.runtime.cost_incr = 4;
                                 this.runtime.check = Date.now() + 3600000;
-                        }
+                        }                        
+                        Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + this.runtime.best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
                         return QUEUE_FINISH;
 		}
 		if (!state || !this.buy(this.runtime.best_buy, this.runtime.buy)) {

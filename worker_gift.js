@@ -182,12 +182,15 @@ Gift.work = function(state) {
 	if (!this.runtime.gift_waiting && (!this.runtime.work || this.runtime.gift_delay > Date.now())) {
 		return QUEUE_FINISH;
 	}
-	if (!state) {
+	if (!state) {                
 		if (this.runtime.gift_waiting || this.runtime.work) {	// We need to get our waiting gift or return gifts.
 			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
+        if (!Generals.to(Idle.option.general)){
+                        return QUEUE_CONTINUE;
+                }
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
 			return QUEUE_CONTINUE;

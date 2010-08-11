@@ -44,7 +44,8 @@ Monster.option = {
 	avoid_lost_cause:false,
 	lost_cause_hours:5,
 	rescue:false,
-	risk:false
+	risk:false,
+        points:false
 };
 
 Monster.runtime = {
@@ -80,6 +81,12 @@ Monster.display = [
 		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
+                advanced:true,
+                id:'points',
+                label:'Get Demi Points First',
+                checkbox:true,
+                help:'Use Battle to get Demi Points prior to attacking Monsters.'
+        },{
 		id:'min_to_attack',
 		label:'Attack Over',
 		text:1,
@@ -531,7 +538,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100]
 	},
 	alpha_bahamut: {
@@ -544,7 +551,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100]
 	},
 	azriel: {
@@ -557,7 +564,7 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100]
 	},
 	red_plains: {
@@ -570,7 +577,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100],
 		orcs:true
 	},
@@ -584,7 +591,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100]
 	}
 };
@@ -1163,7 +1170,9 @@ Monster.update = function(what,worker) {
 			: Math.max((this.runtime.stamina - Queue.burn.stamina)
 				,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
 				,(Queue.option.start_stamina - Player.get('stamina'))));
-		if (req_stamina || req_health) {
+		if (Battle.runtime.points && this.option.points){
+                        messages.push('Battling for Demi-Points.');
+                } else if (req_stamina || req_health) {
 			messages.push('Waiting for ' + (req_stamina ? makeImage('stamina') + req_stamina : '') + (req_stamina && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '') + ' to attack ' + fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+' + (req_stamina && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
 		} else {
 			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
@@ -1184,22 +1193,22 @@ Monster.update = function(what,worker) {
 			}
 		}
 	}
-	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
+                Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
 };
 
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = null, stat, monster, title;
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
-		mode = 'defend';
+                mode = 'defend';
 		stat = 'energy';
 	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health
-			&& Queue.burn.stamina >= this.runtime.stamina) {
+			&& Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points)) {
 		mode = 'attack';
 		stat = 'stamina';
 	}
 	if (!this.runtime.check && !mode) {
 		return QUEUE_FINISH;
-	}
+	}        
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
@@ -1249,7 +1258,7 @@ Monster.work = function(state) {
 			b = $(this.runtime[mode + '_button']).length - 1;
 			for (i=b; i >= 0; i--){
 				//debug('Burn ' + stat + ' is ' + Queue.burn[stat]);
-				if (	type[mode][i] <= this.option[mode + '_max'] 
+                                 if (	type[mode][i] <= this.option[mode + '_max']
 						&& Queue.burn[stat] >= type[mode][i] ) {
 					//debug('Button cost is ' + type.defend[i]);
 					this.runtime[stat + '_used'] = type[mode][i] * this.runtime.multiplier;
