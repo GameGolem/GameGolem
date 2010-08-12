@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 758;
+var revision = 761;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -329,7 +329,37 @@ String.prototype.regex = function(r) {
 		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
 			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
-				a[i] = parseFloat(a[i]);
+				a[i] = parseFloat(a[i].replace('+',''));
+			}
+		}
+		if (a.length===1) {
+			return a[0];
+		}
+	}
+	return a;
+};
+
+String.prototype.numregex = function(r) {
+	var a = this.match(r), i, parens = RegExp.lastParen.length;
+	if (a) {
+		!r.global && a.shift();
+		for (i=0; i<a.length; i++) {
+			if (a[i]) {
+				if (parens) {
+					a[i].match(r);
+					if (RegExp.$1) {
+						a[i] = RegExp.$1;
+					} else if (RegExp.$2) {
+						a[i] = RegExp.$2;
+					} else if (RegExp.$3) {
+						a[i] = RegExp.$3;
+					} else if (RegExp.$4) {
+						a[i] = RegExp.$4;
+					}
+				}
+				if (a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
+					a[i] = parseFloat(a[i]);
+				}
 			}
 		}
 		if (a.length===1) {
@@ -692,17 +722,22 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
 
-var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower than value, return -1 on failure
+var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower or equal to value, return -1 on failure
 	var i, best = -1;
-	for (i=0; i<list.length && list[i] <= value; i++) {
-		best = list[i];
+	for (i=0; i<list.length; i++) {
+		if (list[i] <= value && list[i] > best) {
+			best = list[i];
+		}
 	}
 	return best;
 };
 
-var bestObjValue = function(obj, callback) {// pass an object and a function to create a value from obj[key] - return the best key
+var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
 	var i, best = null, bestval, val;
 	for (i in obj) {
+		if (isFunction(filter) && !filter(obj[i])) {
+			continue;
+		}
 		val = callback(obj[i]);
 		if (isNumber(val) && (!best || val > bestval)) {
 			bestval = val;
@@ -4072,21 +4107,20 @@ Arena.data = {
 };
 
 Arena.option = {
-	enabled:false,
 	general:true,
 	general_choice:'any',
-	losses:2,
+	losses:1,
 	cache:50,
 	minRR: 0,
 	maxRR: 5,
 	bp:'Don\'t Care',
 	level:'Any',
-	tokens:'All'
+	tokens:'None'
 };
 
 Arena.runtime = {
 	recheck:false,
-	attacking:null,
+	target:null,
 	tokens:0,
 	listlength:'tbd'
 };
@@ -4116,9 +4150,10 @@ Arena.display = [
 	{
 		label:'NOTE: Make sure this is disabled if you are not fighting!<br>You need Stamina to Battle (though it doesn\'t use any)'
 	},{
-		id:'enabled',
-		label:'Enabled',
-		checkbox:true
+		id:'tokens',
+		label:'Use Tokens',
+		select:['All', 'Minimum', 'None'],
+		help:'How should arena tokens be used - "None" turns off worker, "All" uses when > 10 tokens or when enough to chain 5 times if chaining enabled, "Minimum" uses when > 150 tokens'
 	},{
 		id:'general',
  		label:'Use Best General',
@@ -4142,16 +4177,16 @@ Arena.display = [
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 */	},{
-		advanced:true,
-		id:'tokens',
-		label:'Use Tokens',
-		select:['All', 'Minimum', 'None'],
-		help:'How should arena tokens be used - all of them, none of them, or only to prevent wasting them...'
-	},{
 		id:'rank',
 		label:'Stop at Rank',
 		select:Arena.knar,
 		help:'Once you reach this rank it will gain a further 500 points, then check your rank every hour'
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		checkbox:true,
+		help:'Save up enough energy to chain target 5 times before attacking'
 	},{
 		advanced:true,
 		id:'losses',
@@ -4173,6 +4208,11 @@ Arena.display = [
 
 Arena.init = function() {
 	this._revive(360, 'tokens');// Gain more points every 10 minutes
+	if (this.option.enabled === false) {
+		delete this.option.enabled;
+		delete this.runtime.attacking;
+		this.option.tokens = 'None';
+	}
 };
 
 Arena.parse = function(change) {
@@ -4180,15 +4220,15 @@ Arena.parse = function(change) {
 	var data = this.data.user, newrank, Playerlevel = Player.get('level');
 	if ($('#app'+APPID+'_arena_body div div:contains("Arena is over, wait for next season!")').length) {
 		// Arena is over for now, so disable and return!
-		this.option.enabled = false;
+		this.option.tokens = 'None';
 //		$('#' + PREFIX + this.name + '_enabled').attr('checked', false);
 //		$('#' + PREFIX + Elite.name + '_arena').attr('checked', false);
 //		Elite.set('option.arena', false);
 		return false;
 	}
-	if (this.runtime.attacking) {
-		uid = this.runtime.attacking;
-		this.runtime.attacking = null;
+	if (this.runtime.target) {
+		uid = this.runtime.target;
+		this.runtime.target = null;
 		if ($('div.results').text().match(/You have already attacked this player 5 times, move onto the next victim/i)) {
 			data[uid].stop = Date.now();
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -4197,11 +4237,27 @@ Arena.parse = function(change) {
 		} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of [0-9]+ fought with|'s Defense)",'i'))) {
 			this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 		} else if ($('img[src*="battle_victory"]').length) {
-			data[uid].win = (data[uid].win || 0) + 1;
+			ap = sum($('div.results').text().match(/\+([0-9]+) Arena Points/i));
+			if (ap < 25 && this.option.minRR >= 0) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or higher.  Removing.');
+				delete data[uid];
+			} else if (ap > 25 && this.option.maxRR <= 0) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or lower. Removing.');
+				delete data[uid];
+			} else {
+				debug(data[uid].name + ' gave ' + ap + ' points.');
+				data[uid].win = (data[uid].win || 0) + 1;
+				//debug('chain ' + this.option.chain + ' mod ' + (data[uid].win % 5));
+				if (this.option.chain && (data[uid].win % 5)) {
+					this.runtime.target = uid;
+				}
+				data[uid].last = Date.now();
+			}
 		} else if ($('img[src*="battle_defeat"]').length) {
 			data[uid].loss = (data[uid].loss || 0) + 1;
+			data[uid].last = Date.now();
 		} else {
-			this.runtime.attacking = uid; // Don't remove target as we've not hit them...
+			this.runtime.target = uid; // Don't remove target as we've not hit them...
 		}
 	}
 	this.runtime.tokens = $('#app'+APPID+'_arena_token_current_value').text().regex(/([0-9]+)/i);
@@ -4227,6 +4283,7 @@ Arena.parse = function(change) {
 		data[uid].name = $('a', el).text().trim();
 		data[uid].level = level;
 		data[uid].rank = rank;
+		data[uid].rankTimer = Date.now();
 	});
 	return false;
 };
@@ -4258,6 +4315,10 @@ Arena.update = function(type, worker) {
 			weight += (data[b].rank - data[a].rank);
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
 			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
+			if (Arena.option.level !== 'Any') {
+				weight += (data[a].level / level > Arena.option.level) ? 100 : 0;
+				weight -= (data[b].level / level > Arena.option.level) ? 100 : 0;
+			}
 			return weight;
 		});
 		while (list.length > this.option.cache) {
@@ -4266,15 +4327,15 @@ Arena.update = function(type, worker) {
 	}
 	// Choose our next target
 	status.push('Rank ' + this.data.rank + ' ' + this.knar[this.data.rank] + ' with ' + addCommas(this.data.points || 0) + ' Points, Targets: ' + length(data) + ' / ' + this.option.cache + ' (' + makeImage('arena') + this.runtime.tokens + ')');
-	if (!this.option.enabled) {
-		this.runtime.attacking = null;
+	if (this.option.tokens === 'None') {
+		this.runtime.target = null;
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
-		this.runtime.attacking = null;
+		this.runtime.target = null;
 		status.push('Stopped at ' + this.option.rank);
 		this.runtime.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
-		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
+		if (!this.runtime.target || !data[this.runtime.target]
+		|| (this.option.level !== 'Any' && (data[this.runtime.target].level / level) > this.option.level)) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
@@ -4286,19 +4347,32 @@ Arena.update = function(type, worker) {
 				list.push(i);
 			}
 			if (list.length) {
-				this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
+				this.runtime.target = list[Math.floor(Math.random() * list.length)];
 			} else {
-				this.runtime.attacking = null;
+				this.runtime.target = null;
 			}
 			this.runtime.listlength = list.length;
 		}
 	}
-	if (this.option.enabled) {
-		if (this.runtime.attacking) {
-			i = this.runtime.attacking;
-			status.push( 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+	if (this.option.tokens !== 'None') {
+		if (this.option.tokens === 'Minimum') {
+			this.runtime.tokens_required = 150;
+		} else if (this.option.chain) {
+			this.runtime.tokens_required = 50 - ((data[this.runtime.target].win || 0) % 5) * 10;
+			//debug('tokens required ' + this.runtime.tokens_required);
 		} else {
-			this.runtime.attacking = null;
+			this.runtime.tokens_required = 10;
+		}
+
+		if (this.runtime.target) {
+			i = this.runtime.target;
+			if (this.runtime.tokens >= this.runtime.tokens_required) {
+				status.push( 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+			} else {
+				status.push( 'Saving ' + (this.runtime.tokens_required - this.runtime.tokens) + ' to attack: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+			}
+		} else {
+			this.runtime.target = null;
 			status.push('No valid targets found!');
 		}
 		Dashboard.status(this, status.join('<br>'));
@@ -4309,7 +4383,7 @@ Arena.update = function(type, worker) {
 
 Arena.work = function(state) {
 	// Needs 1 stamina, even though it doesn't use any...
-	if (!this.option.enabled || this.option.tokens === 'None' || (!this.runtime.recheck && (!this.runtime.attacking || this.runtime.tokens < 10 || (this.option.tokens === 'Minimum' && this.runtime.tokens < 150) || Player.get('health',0) < 10 || Player.get('stamina',0) < 1))) {
+	if (this.option.tokens === 'None' || (!this.runtime.recheck && (!this.runtime.target || this.runtime.tokens < this.runtime.tokens_required || Player.get('health') < 10 || Player.get('stamina') < 1))) {
 		return false;
 	}
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
@@ -4318,7 +4392,7 @@ Arena.work = function(state) {
 	if (!state || this.runtime.recheck || !Generals.to(this.option.general ? 'war' : this.option.general_choice) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.runtime.attacking, $form = $('form input[alt="Invade"]').first().parents('form');;
+	var uid = this.runtime.target, $form = $('form input[alt="Invade"]').first().parents('form');;
 	debug(this.name,'Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log(this.name,'Arena: Unable to find attack buttons, forcing reload');
@@ -4516,6 +4590,8 @@ Battle.option = {
 	losses:5,
 	type:'Invade',
 	bp:'Always',
+	limit:0,
+	chain:0,
 	army:1.1,
 	level:1.1,
 	preferonly:'Sometimes',
@@ -4585,6 +4661,20 @@ Battle.display = [
 		id:'bp',
 		label:'Get Battle Points<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		text:true,
+		help:'How many times to chain before stopping'
+	},{
+		advanced:true,
+		id:'limit',
+		label:'Target',
+		require:{'bp':'Always'},
+		text:true,
+		after: 'ranks above',
+		help:'When Get Battle Points is Always, only fights targets when your rank - their rank > limit.'
 	},{
 		advanced:true,
 		id:'cache',
@@ -4663,6 +4753,7 @@ Battle.init = function() {
 */
 Battle.parse = function(change) {
 	var data, uid, tmp, myrank;
+	debug('page: ' + Page.page);
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -4687,17 +4778,25 @@ Battle.parse = function(change) {
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
-			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
-				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
+//			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
+//			} else if (!$('div.results').text().match(data[uid].name)) {
+//				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
+//				debug('wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+win',1);
+				if (this.option.chain && (data[uid].win % this.option.chain)) {
+					this.runtime.attacking = uid;
+				}
+				data[uid].last = Date.now();
+				//debug('win');
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
+				//debug('loss');
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
@@ -4753,7 +4852,7 @@ Battle.update = function(type) {
 	}
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= this.option.limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -4798,7 +4897,7 @@ Battle.update = function(type) {
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
 			this.runtime.attacking = null;
 		}
@@ -4822,7 +4921,7 @@ Battle.update = function(type) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army && this.option.type === 'Invade')
+				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) * (data[i].level || 0) / level > this.option.army && this.option.type === 'Invade')
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level && this.option.type !== 'Invade')
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
@@ -4943,7 +5042,7 @@ Battle.dashboard = function(sort, rev) {
 		th(output, data.name, 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
-		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, data.win || '');
 		td(output, data.loss || '');
 		td(output, data.hide || '');
@@ -5346,7 +5445,7 @@ Generals.parse = function(change) {
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 					data[name].progress	= progress;
 					data[name].level	= level; // Might only be 4 so far, however...
-					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+					data[name].skills	= $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 					if (level >= 4){	// If we just leveled up to level 4, remove the priority
 						if (data[name].priority) {
 							delete data[name].priority;
@@ -5955,14 +6054,13 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_CONTINUE;
+		return QUEUE_RELEASE;
 	}
 	
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
-//			if (!Page.to('army_gifts')){
-			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has be removed from the game
+			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has been removed from the game
 				for (j in this.data.gifts){
 					if (this.data.gifts[j].slot === 1){
 						if (typeof todo[j] === 'undefined'){
@@ -5979,7 +6077,7 @@ Gift.work = function(state) {
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, false)) {
-				return QUEUE_CONTINUE;
+				return QUEUE_RELEASE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];
@@ -8663,12 +8761,12 @@ Potions.display = [
 	{
 		id:'energy',
 		label:'Maximum Energy Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	},{
 		id:'stamina',
 		label:'Maximum Stamina Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	}
 ];
@@ -8698,7 +8796,7 @@ Potions.update = function(type) {
 			if (this.data[i]) {
 				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');
 			}
-			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+			if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
 				this.runtime.drink = true;
 			}
 		}

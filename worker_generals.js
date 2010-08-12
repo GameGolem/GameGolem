@@ -75,7 +75,7 @@ Generals.parse = function(change) {
 					data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/([0-9]+)/);
 					data[name].progress	= progress;
 					data[name].level	= level; // Might only be 4 so far, however...
-					data[name].skills	= $('table div', el).html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
+					data[name].skills	= $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 					if (level >= 4){	// If we just leveled up to level 4, remove the priority
 						if (data[name].priority) {
 							delete data[name].priority;
