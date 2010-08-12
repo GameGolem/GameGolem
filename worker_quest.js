@@ -174,7 +174,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], items = {}, quests = this.data;
+	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
 	this._watch(Player);
 	this._watch(Queue);
 	if (!type || type === 'data') {
@@ -209,6 +209,9 @@ Quest.update = function(type,worker) {
 //		debug('option = ' + this.option.what);
 //		best = (this.runtime.best && quests[this.runtime.best] && (quests[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in quests) {
+			if (quests[i].energy > maxenergy) {// Skip quests we can't afford
+				continue;
+			}
 			if (quests[i].units) {
 				own = 0;
 				need = 0;
