@@ -68,7 +68,37 @@ String.prototype.regex = function(r) {
 		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
 			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
-				a[i] = parseFloat(a[i]);
+				a[i] = parseFloat(a[i].replace('+',''));
+			}
+		}
+		if (a.length===1) {
+			return a[0];
+		}
+	}
+	return a;
+};
+
+String.prototype.numregex = function(r) {
+	var a = this.match(r), i, parens = RegExp.lastParen.length;
+	if (a) {
+		!r.global && a.shift();
+		for (i=0; i<a.length; i++) {
+			if (a[i]) {
+				if (parens) {
+					a[i].match(r);
+					if (RegExp.$1) {
+						a[i] = RegExp.$1;
+					} else if (RegExp.$2) {
+						a[i] = RegExp.$2;
+					} else if (RegExp.$3) {
+						a[i] = RegExp.$3;
+					} else if (RegExp.$4) {
+						a[i] = RegExp.$4;
+					}
+				}
+				if (a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
+					a[i] = parseFloat(a[i]);
+				}
 			}
 		}
 		if (a.length===1) {
@@ -431,17 +461,22 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
 
-var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower than value, return -1 on failure
+var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower or equal to value, return -1 on failure
 	var i, best = -1;
-	for (i=0; i<list.length && list[i] <= value; i++) {
-		best = list[i];
+	for (i=0; i<list.length; i++) {
+		if (list[i] <= value && list[i] > best) {
+			best = list[i];
+		}
 	}
 	return best;
 };
 
-var bestObjValue = function(obj, callback) {// pass an object and a function to create a value from obj[key] - return the best key
+var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
 	var i, best = null, bestval, val;
 	for (i in obj) {
+		if (isFunction(filter) && !filter(obj[i])) {
+			continue;
+		}
 		val = callback(obj[i]);
 		if (isNumber(val) && (!best || val > bestval)) {
 			bestval = val;
