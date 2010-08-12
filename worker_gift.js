@@ -287,14 +287,13 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_CONTINUE;
+		return QUEUE_RELEASE;
 	}
 	
 	// Give some gifts back
 	if (length(todo) && (!this.runtime.gift_delay || (this.runtime.gift_delay < Date.now()))) {
 		for (i in todo) {
-//			if (!Page.to('army_gifts')){
-			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has be removed from the game
+			if (typeof this.data.gifts[i] === 'undefined'){	// The gift we want to send has been removed from the game
 				for (j in this.data.gifts){
 					if (this.data.gifts[j].slot === 1){
 						if (typeof todo[j] === 'undefined'){
@@ -311,7 +310,7 @@ Gift.work = function(state) {
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, false)) {
-				return QUEUE_CONTINUE;
+				return QUEUE_RELEASE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];

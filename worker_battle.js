@@ -31,6 +31,8 @@ Battle.option = {
 	losses:5,
 	type:'Invade',
 	bp:'Always',
+	limit:0,
+	chain:0,
 	army:1.1,
 	level:1.1,
 	preferonly:'Sometimes',
@@ -100,6 +102,20 @@ Battle.display = [
 		id:'bp',
 		label:'Get Battle Points<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		text:true,
+		help:'How many times to chain before stopping'
+	},{
+		advanced:true,
+		id:'limit',
+		label:'Target',
+		require:{'bp':'Always'},
+		text:true,
+		after: 'ranks above',
+		help:'When Get Battle Points is Always, only fights targets when your rank - their rank > limit.'
 	},{
 		advanced:true,
 		id:'cache',
@@ -178,6 +194,7 @@ Battle.init = function() {
 */
 Battle.parse = function(change) {
 	var data, uid, tmp, myrank;
+	debug('page: ' + Page.page);
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -202,17 +219,25 @@ Battle.parse = function(change) {
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
-			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
-				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
+//			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
+//			} else if (!$('div.results').text().match(data[uid].name)) {
+//				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
+//				debug('wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+win',1);
+				if (this.option.chain && (data[uid].win % this.option.chain)) {
+					this.runtime.attacking = uid;
+				}
+				data[uid].last = Date.now();
+				//debug('win');
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
+				//debug('loss');
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
@@ -268,7 +293,7 @@ Battle.update = function(type) {
 	}
 	// First make check our target list doesn't need reducing
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= 4) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= this.option.limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -313,7 +338,7 @@ Battle.update = function(type) {
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) > this.option.army)
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
 			this.runtime.attacking = null;
 		}
@@ -337,7 +362,7 @@ Battle.update = function(type) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) > this.option.army && this.option.type === 'Invade')
+				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) * (data[i].level || 0) / level > this.option.army && this.option.type === 'Invade')
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level && this.option.type !== 'Invade')
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
@@ -458,7 +483,7 @@ Battle.dashboard = function(sort, rev) {
 		th(output, data.name, 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
-		td(output, (this.option.army !== 'Any' && (data.army / army) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, data.win || '');
 		td(output, data.loss || '');
 		td(output, data.hide || '');

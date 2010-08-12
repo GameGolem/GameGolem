@@ -29,12 +29,12 @@ Potions.display = [
 	{
 		id:'energy',
 		label:'Maximum Energy Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	},{
 		id:'stamina',
 		label:'Maximum Stamina Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,40:40,infinite:'&infin;'},
+		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
 		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 	}
 ];
@@ -64,7 +64,7 @@ Potions.update = function(type) {
 			if (this.data[i]) {
 				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');
 			}
-			if (!levelup && typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) < (Player.get('max' + i.toLowerCase()) || 0)) {
+			if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
 				this.runtime.drink = true;
 			}
 		}

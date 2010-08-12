@@ -10,21 +10,20 @@ Arena.data = {
 };
 
 Arena.option = {
-	enabled:false,
 	general:true,
 	general_choice:'any',
-	losses:2,
+	losses:1,
 	cache:50,
 	minRR: 0,
 	maxRR: 5,
 	bp:'Don\'t Care',
 	level:'Any',
-	tokens:'All'
+	tokens:'None'
 };
 
 Arena.runtime = {
 	recheck:false,
-	attacking:null,
+	target:null,
 	tokens:0,
 	listlength:'tbd'
 };
@@ -54,9 +53,10 @@ Arena.display = [
 	{
 		label:'NOTE: Make sure this is disabled if you are not fighting!<br>You need Stamina to Battle (though it doesn\'t use any)'
 	},{
-		id:'enabled',
-		label:'Enabled',
-		checkbox:true
+		id:'tokens',
+		label:'Use Tokens',
+		select:['All', 'Minimum', 'None'],
+		help:'How should arena tokens be used - "None" turns off worker, "All" uses when > 10 tokens or when enough to chain 5 times if chaining enabled, "Minimum" uses when > 150 tokens'
 	},{
 		id:'general',
  		label:'Use Best General',
@@ -80,16 +80,16 @@ Arena.display = [
 		label:'Higher Relative Rank<br>(Clears Cache)',
 		select:['Always', 'Never', 'Don\'t Care']
 */	},{
-		advanced:true,
-		id:'tokens',
-		label:'Use Tokens',
-		select:['All', 'Minimum', 'None'],
-		help:'How should arena tokens be used - all of them, none of them, or only to prevent wasting them...'
-	},{
 		id:'rank',
 		label:'Stop at Rank',
 		select:Arena.knar,
 		help:'Once you reach this rank it will gain a further 500 points, then check your rank every hour'
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		checkbox:true,
+		help:'Save up enough energy to chain target 5 times before attacking'
 	},{
 		advanced:true,
 		id:'losses',
@@ -111,6 +111,11 @@ Arena.display = [
 
 Arena.init = function() {
 	this._revive(360, 'tokens');// Gain more points every 10 minutes
+	if (this.option.enabled === false) {
+		delete this.option.enabled;
+		delete this.runtime.attacking;
+		this.option.tokens = 'None';
+	}
 };
 
 Arena.parse = function(change) {
@@ -118,15 +123,15 @@ Arena.parse = function(change) {
 	var data = this.data.user, newrank, Playerlevel = Player.get('level');
 	if ($('#app'+APPID+'_arena_body div div:contains("Arena is over, wait for next season!")').length) {
 		// Arena is over for now, so disable and return!
-		this.option.enabled = false;
+		this.option.tokens = 'None';
 //		$('#' + PREFIX + this.name + '_enabled').attr('checked', false);
 //		$('#' + PREFIX + Elite.name + '_arena').attr('checked', false);
 //		Elite.set('option.arena', false);
 		return false;
 	}
-	if (this.runtime.attacking) {
-		uid = this.runtime.attacking;
-		this.runtime.attacking = null;
+	if (this.runtime.target) {
+		uid = this.runtime.target;
+		this.runtime.target = null;
 		if ($('div.results').text().match(/You have already attacked this player 5 times, move onto the next victim/i)) {
 			data[uid].stop = Date.now();
 		} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
@@ -135,11 +140,27 @@ Arena.parse = function(change) {
 		} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of [0-9]+ fought with|'s Defense)",'i'))) {
 			this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 		} else if ($('img[src*="battle_victory"]').length) {
-			data[uid].win = (data[uid].win || 0) + 1;
+			ap = sum($('div.results').text().match(/\+([0-9]+) Arena Points/i));
+			if (ap < 25 && this.option.minRR >= 0) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or higher.  Removing.');
+				delete data[uid];
+			} else if (ap > 25 && this.option.maxRR <= 0) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or lower. Removing.');
+				delete data[uid];
+			} else {
+				debug(data[uid].name + ' gave ' + ap + ' points.');
+				data[uid].win = (data[uid].win || 0) + 1;
+				//debug('chain ' + this.option.chain + ' mod ' + (data[uid].win % 5));
+				if (this.option.chain && (data[uid].win % 5)) {
+					this.runtime.target = uid;
+				}
+				data[uid].last = Date.now();
+			}
 		} else if ($('img[src*="battle_defeat"]').length) {
 			data[uid].loss = (data[uid].loss || 0) + 1;
+			data[uid].last = Date.now();
 		} else {
-			this.runtime.attacking = uid; // Don't remove target as we've not hit them...
+			this.runtime.target = uid; // Don't remove target as we've not hit them...
 		}
 	}
 	this.runtime.tokens = $('#app'+APPID+'_arena_token_current_value').text().regex(/([0-9]+)/i);
@@ -165,6 +186,7 @@ Arena.parse = function(change) {
 		data[uid].name = $('a', el).text().trim();
 		data[uid].level = level;
 		data[uid].rank = rank;
+		data[uid].rankTimer = Date.now();
 	});
 	return false;
 };
@@ -196,6 +218,10 @@ Arena.update = function(type, worker) {
 			weight += (data[b].rank - data[a].rank);
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
 			weight += Math.range(-10, ((data[a].level - data[b].level) / 10), 10);
+			if (Arena.option.level !== 'Any') {
+				weight += (data[a].level / level > Arena.option.level) ? 100 : 0;
+				weight -= (data[b].level / level > Arena.option.level) ? 100 : 0;
+			}
 			return weight;
 		});
 		while (list.length > this.option.cache) {
@@ -204,15 +230,15 @@ Arena.update = function(type, worker) {
 	}
 	// Choose our next target
 	status.push('Rank ' + this.data.rank + ' ' + this.knar[this.data.rank] + ' with ' + addCommas(this.data.points || 0) + ' Points, Targets: ' + length(data) + ' / ' + this.option.cache + ' (' + makeImage('arena') + this.runtime.tokens + ')');
-	if (!this.option.enabled) {
-		this.runtime.attacking = null;
+	if (this.option.tokens === 'None') {
+		this.runtime.target = null;
 	} else if (this.option.rank !== 'None' && this.data.rank >= this.rank[this.option.rank] && this.data.points - this.data.rankat >= 500) {
-		this.runtime.attacking = null;
+		this.runtime.target = null;
 		status.push('Stopped at ' + this.option.rank);
 		this.runtime.recheck = (Page.get('battle_arena') + 3600000 < Date.now());
 	} else {
-		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
+		if (!this.runtime.target || !data[this.runtime.target]
+		|| (this.option.level !== 'Any' && (data[this.runtime.target].level / level) > this.option.level)) {
 			list = [];
 			for (i in data) {
 				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
@@ -224,19 +250,32 @@ Arena.update = function(type, worker) {
 				list.push(i);
 			}
 			if (list.length) {
-				this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
+				this.runtime.target = list[Math.floor(Math.random() * list.length)];
 			} else {
-				this.runtime.attacking = null;
+				this.runtime.target = null;
 			}
 			this.runtime.listlength = list.length;
 		}
 	}
-	if (this.option.enabled) {
-		if (this.runtime.attacking) {
-			i = this.runtime.attacking;
-			status.push( 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+	if (this.option.tokens !== 'None') {
+		if (this.option.tokens === 'Minimum') {
+			this.runtime.tokens_required = 150;
+		} else if (this.option.chain) {
+			this.runtime.tokens_required = 50 - ((data[this.runtime.target].win || 0) % 5) * 10;
+			//debug('tokens required ' + this.runtime.tokens_required);
 		} else {
-			this.runtime.attacking = null;
+			this.runtime.tokens_required = 10;
+		}
+
+		if (this.runtime.target) {
+			i = this.runtime.target;
+			if (this.runtime.tokens >= this.runtime.tokens_required) {
+				status.push( 'Next Target: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+			} else {
+				status.push( 'Saving ' + (this.runtime.tokens_required - this.runtime.tokens) + ' to attack: ' + data[i].name + ' (Level ' + data[i].level + ' ' + this.knar[data[i].rank] + ')');
+			}
+		} else {
+			this.runtime.target = null;
 			status.push('No valid targets found!');
 		}
 		Dashboard.status(this, status.join('<br>'));
@@ -247,7 +286,7 @@ Arena.update = function(type, worker) {
 
 Arena.work = function(state) {
 	// Needs 1 stamina, even though it doesn't use any...
-	if (!this.option.enabled || this.option.tokens === 'None' || (!this.runtime.recheck && (!this.runtime.attacking || this.runtime.tokens < 10 || (this.option.tokens === 'Minimum' && this.runtime.tokens < 150) || Player.get('health',0) < 10 || Player.get('stamina',0) < 1))) {
+	if (this.option.tokens === 'None' || (!this.runtime.recheck && (!this.runtime.target || this.runtime.tokens < this.runtime.tokens_required || Player.get('health') < 10 || Player.get('stamina') < 1))) {
 		return false;
 	}
 	if (state && this.runtime.recheck && !Page.to('battle_arena')) {
@@ -256,7 +295,7 @@ Arena.work = function(state) {
 	if (!state || this.runtime.recheck || !Generals.to(this.option.general ? 'war' : this.option.general_choice) || !Page.to('battle_arena')) {
 		return true;
 	}
-	var uid = this.runtime.attacking, $form = $('form input[alt="Invade"]').first().parents('form');;
+	var uid = this.runtime.target, $form = $('form input[alt="Invade"]').first().parents('form');;
 	debug(this.name,'Wanting to attack '+this.data.user[uid].name+' ('+uid+')');
 	if (!$form.length) {
 		log(this.name,'Arena: Unable to find attack buttons, forcing reload');
