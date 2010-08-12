@@ -325,7 +325,11 @@ Quest.work = function(state) {
 		} else {
 			switch(this.option.what) {
 				case 'Cartigan':
-					general = Generals.best('item');
+					if (this.data[best].general) {
+						general = this.data[best].general;
+					} else {
+						general = Generals.best('item');
+					}
 					if (general !== 'any') {
 						break;
 					}

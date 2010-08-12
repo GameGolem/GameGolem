@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 757;
+var revision = 758;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9076,7 +9076,11 @@ Quest.work = function(state) {
 		} else {
 			switch(this.option.what) {
 				case 'Cartigan':
-					general = Generals.best('item');
+					if (this.data[best].general) {
+						general = this.data[best].general;
+					} else {
+						general = Generals.best('item');
+					}
 					if (general !== 'any') {
 						break;
 					}
