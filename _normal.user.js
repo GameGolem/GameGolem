@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 762;
+var revision = 763;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8899,7 +8899,7 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward',
-		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement'
+		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement. Vampire Lord will try to collect 24, then fall back to Advancement'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -9024,7 +9024,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
+	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
 	this._watch(Player);
 	this._watch(Queue);
 	if (!type || type === 'data') {
@@ -9036,7 +9036,7 @@ Quest.update = function(type,worker) {
 				items[unit] = Math.max(items[unit] || 0, quests[i].units[unit]);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
 			Resources.set(['_'+unit, 'quest'], items[unit]);
 		}
@@ -9053,6 +9053,9 @@ Quest.update = function(type,worker) {
 		}
 	}
 	if (!best && this.option.what !== 'Nothing') {
+		if (this.option.what === 'Vampire Lord' && Town.get('Vampire Lord', 0) >= 24) {
+			has_vampire = true; // Stop trying once we've got the required number of Vampire Lords
+		}
 		if (this.option.what === 'Cartigan' && (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) >= 3))) {
 			// Sword of the Faithless x3 - The Long Path, Burning Gates
 			// Crystal of Lament x3 - Fiery Awakening
@@ -9082,21 +9085,27 @@ Quest.update = function(type,worker) {
 				}
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
+				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
+					if (!has_vampire && isNumber(quests[i].land)
+					&& quests[i].land === 5
+					&& quests[i].type === 1
+					&& (!best_vampire || quests[i].energy < quests[best_vampire].energy)) {
+						best_vampire = i;
+					}// Deliberate fallthrough
 				case 'Cartigan': // Random Encounters in various Underworld Quests
 					if (!has_cartigan && isNumber(quests[i].land)
 					&& quests[i].land === 6
 					&& (((i === 'The Long Path' || quests[i].main === 'The Long Path' || i === 'Burning Gates' || quests[i].main === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3)
 						|| ((i === 'Fiery Awakening' || quests[i].main === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
 						|| ((i === 'Fire and Brimstone' || quests[i].main === 'Fire and Brimstone' || i === 'Deathrune Castle' || quests[i].main === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
-					&& (!best || quests[i].energy < quests[best].energy)) {
-						best = i;
+					&& (!best_cartigan || quests[i].energy < quests[best_cartigan].energy)) {
+						best_cartigan = i;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
 						best_advancement = null;
-					}
-					if (quests[i].type !== 2
+					} else if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
@@ -9129,7 +9138,8 @@ Quest.update = function(type,worker) {
 			}
 		}
 		switch(this.option.what) { // Automatically fallback on type - but without changing option
-			case 'Cartigan':	best = best || best_advancement || best_influence || best_experience;break;
+			case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
+			case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
 			case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
 			case 'Influence':	best = best_influence || best_experience;break;
 			case 'Experience':	best = best_experience;break;
@@ -9174,6 +9184,7 @@ Quest.work = function(state) {
 			general = this.data[best].general;
 		} else {
 			switch(this.option.what) {
+				case 'Vampire Lord':
 				case 'Cartigan':
 					if (this.data[best].general) {
 						general = this.data[best].general;
