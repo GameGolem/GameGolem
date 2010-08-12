@@ -194,6 +194,9 @@ Quest.update = function(type,worker) {
 	// Now choose the next quest...
 	if (this.option.unique) {
 		for (i in quests) {
+			if (quests[i].energy > maxenergy) {// Skip quests we can't afford
+				continue;
+			}
 			if (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
 				best = i;
 			}

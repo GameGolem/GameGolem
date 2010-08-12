@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 756;
+var revision = 757;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8945,6 +8945,9 @@ Quest.update = function(type,worker) {
 	// Now choose the next quest...
 	if (this.option.unique) {
 		for (i in quests) {
+			if (quests[i].energy > maxenergy) {// Skip quests we can't afford
+				continue;
+			}
 			if (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0) && (!best || quests[i].energy < quests[best].energy)) {
 				best = i;
 			}
