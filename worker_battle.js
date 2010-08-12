@@ -104,12 +104,6 @@ Battle.display = [
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
 		advanced:true,
-		id:'chain',
-		label:'Chain after wins',
-		text:true,
-		help:'How many times to chain before stopping'
-	},{
-		advanced:true,
 		id:'limit',
 		label:'Target',
 		require:{'bp':'Always'},
@@ -137,6 +131,13 @@ Battle.display = [
 			86400000:'24 hours'
 		},
 		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		require:{'between':0},
+		select:[1,2,3,4,5],
+		help:'How many times to chain before stopping'
 	},{
 		advanced:true,
 		id:'risk',

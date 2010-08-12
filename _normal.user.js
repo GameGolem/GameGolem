@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 761;
+var revision = 762;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4663,12 +4663,6 @@ Battle.display = [
 		select:['Always', 'Never', 'Don\'t Care']
 	},{
 		advanced:true,
-		id:'chain',
-		label:'Chain after wins',
-		text:true,
-		help:'How many times to chain before stopping'
-	},{
-		advanced:true,
 		id:'limit',
 		label:'Target',
 		require:{'bp':'Always'},
@@ -4696,6 +4690,13 @@ Battle.display = [
 			86400000:'24 hours'
 		},
 		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
+	},{
+		advanced:true,
+		id:'chain',
+		label:'Chain after wins',
+		require:{'between':0},
+		select:[1,2,3,4,5],
+		help:'How many times to chain before stopping'
 	},{
 		advanced:true,
 		id:'risk',
