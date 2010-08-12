@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 754;
+var revision = 755;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3384,23 +3384,22 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-        if (!Worker.stack.length) {
-		return;
-	}
-	var worker = Worker.stack[Worker.stack.length-1];        
-	if (isUndefined(amount)) {
-		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
-		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 5));
-	} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
-		if (use) {
-			this.runtime.types[type] -= amount;
+	if (Worker.current) {
+		var worker = Worker.current;
+		if (isUndefined(amount)) {
+			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
+			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));
+		} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
+			if (use) {
+				this.runtime.types[type] -= amount;
+			}
+			return true;
+		} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
+			if (use) {
+				this.runtime.buckets[worker][type] -= amount;
+			}
+			return true;
 		}
-		return true;
-	} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
-		if (use) {
-			this.runtime.buckets[worker][type] -= amount;
-		}
-		return true;
 	}
 	return false;
 };
@@ -5367,8 +5366,7 @@ Generals.update = function(type, worker) {
 			list.push(i);
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','under level 4'].concat(list)); 
+		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.
@@ -6955,7 +6953,7 @@ Monster.display = [
 		id:'general_attack',
 		label:'Attack General',
 		require:{'best_attack':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		advanced:true,
 		id:'hide',
@@ -7049,7 +7047,7 @@ Monster.display = [
 				id:'general_defend',
 				require:{'best_defend':false},
 				label:'Defend General',
-				select:'bestgenerals'
+				select:'generals'
 			},{
 				id:'defend',
 				label:'Defend Below',
@@ -7079,7 +7077,7 @@ Monster.display = [
 		id:'general_raid',
 		label:'Raid General',
 		require:{'best_raid':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		id:'raid',
 		label:'Raid',
@@ -8515,6 +8513,10 @@ Player.parse = function(change) {
 	if (change) {
 		return false;
 	}
+	if (!('#app'+APPID+'_main_bntp').length) {
+		Page.reload();
+		return;
+	}
 	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -8793,7 +8795,7 @@ Quest.display = [
 		id:'general_choice',
 		label:'Use General',
 		require:{'general':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		id:'what',
 		label:'Quest for',

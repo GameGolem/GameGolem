@@ -72,7 +72,7 @@ Monster.display = [
 		id:'general_attack',
 		label:'Attack General',
 		require:{'best_attack':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		advanced:true,
 		id:'hide',
@@ -166,7 +166,7 @@ Monster.display = [
 				id:'general_defend',
 				require:{'best_defend':false},
 				label:'Defend General',
-				select:'bestgenerals'
+				select:'generals'
 			},{
 				id:'defend',
 				label:'Defend Below',
@@ -196,7 +196,7 @@ Monster.display = [
 		id:'general_raid',
 		label:'Raid General',
 		require:{'best_raid':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		id:'raid',
 		label:'Raid',

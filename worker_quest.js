@@ -44,7 +44,7 @@ Quest.display = [
 		id:'general_choice',
 		label:'Use General',
 		require:{'general':false},
-		select:'bestgenerals'
+		select:'generals'
 	},{
 		id:'what',
 		label:'Quest for',

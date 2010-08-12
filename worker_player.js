@@ -48,6 +48,10 @@ Player.parse = function(change) {
 	if (change) {
 		return false;
 	}
+	if (!('#app'+APPID+'_main_bntp').length) {
+		Page.reload();
+		return;
+	}
 	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);

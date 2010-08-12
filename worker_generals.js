@@ -95,8 +95,7 @@ Generals.update = function(type, worker) {
 			list.push(i);
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any'].concat(list.sort()));
-		Config.set('bestgenerals', ['any','under level 4'].concat(list)); 
+		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
 	}
 	
 	// Take all existing priorities and change them to rank starting from 1 and keeping existing order.

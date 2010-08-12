@@ -180,23 +180,22 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-        if (!Worker.stack.length) {
-		return;
-	}
-	var worker = Worker.stack[Worker.stack.length-1];        
-	if (isUndefined(amount)) {
-		this.set(['runtime','buckets',worker.name,type], this.get(['runtime','buckets',worker.name,type], 0));
-		this.set(['option','buckets',worker.name,type], this.get(['option','buckets',worker.name,type], 5));
-	} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
-		if (use) {
-			this.runtime.types[type] -= amount;
+	if (Worker.current) {
+		var worker = Worker.current;
+		if (isUndefined(amount)) {
+			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
+			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));
+		} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
+			if (use) {
+				this.runtime.types[type] -= amount;
+			}
+			return true;
+		} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
+			if (use) {
+				this.runtime.buckets[worker][type] -= amount;
+			}
+			return true;
 		}
-		return true;
-	} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
-		if (use) {
-			this.runtime.buckets[worker][type] -= amount;
-		}
-		return true;
 	}
 	return false;
 };
