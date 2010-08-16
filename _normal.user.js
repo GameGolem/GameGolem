@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 764;
+var revision = 765;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4238,11 +4238,8 @@ Arena.parse = function(change) {
 			this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 		} else if ($('img[src*="battle_victory"]').length) {
 			ap = sum($('div.results').text().match(/\+([0-9]+) Arena Points/i));
-			if (ap < 25 && this.option.minRR >= 0) {
-				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or higher.  Removing.');
-				delete data[uid];
-			} else if (ap > 25 && this.option.maxRR <= 0) {
-				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or lower. Removing.');
+			if ((ap < (25 + this.option.minRR * 5)) || (ap > (25 + this.option.maxRR * 5))) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer within your specified rank range ('+this.option.minRR+' to '+this.option.maxRR+').  Removing.');
 				delete data[uid];
 			} else {
 				debug(data[uid].name + ' gave ' + ap + ' points.');
@@ -8871,6 +8868,7 @@ Quest.option = {
 	general:true,
 	general_choice:'any',
 	what:'Influence',
+	ignorecomplete:true,
 	unique:true,
 	monster:true,
 	bank:true
@@ -8900,6 +8898,13 @@ Quest.display = [
 		label:'Quest for',
 		select:'quest_reward',
 		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement. Vampire Lord will try to collect 24, then fall back to Advancement'
+	},{
+		advanced:true,
+		id:'ignorecomplete',
+		label:'Only do incomplete quests',
+		checkbox:true,
+		help:'Will only do quests that aren\'t at 100% influence',
+		require:{'what':'Cartigan'}
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -8957,7 +8962,7 @@ Quest.parse = function(change) {
 			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
 			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
 			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
-			last_quest = null;
+//			last_quest = null;
 			type = 2;
 		} else {
 			name = $('.qd_1 b', el).text().trim();
@@ -9098,7 +9103,8 @@ Quest.update = function(type,worker) {
 					&& (((i === 'The Long Path' || quests[i].main === 'The Long Path' || i === 'Burning Gates' || quests[i].main === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3)
 						|| ((i === 'Fiery Awakening' || quests[i].main === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
 						|| ((i === 'Fire and Brimstone' || quests[i].main === 'Fire and Brimstone' || i === 'Deathrune Castle' || quests[i].main === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
-					&& (!best_cartigan || quests[i].energy < quests[best_cartigan].energy)) {
+					&& (!best_cartigan || quests[i].energy < quests[best_cartigan].energy)
+					&& (this.option.ignorecomplete === true && isNumber(quests[i].influence) && quests[i].influence < 100)) {
 						best_cartigan = i;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
@@ -9189,7 +9195,8 @@ Quest.work = function(state) {
 					if (this.data[best].general) {
 						general = this.data[best].general;
 					} else {
-						general = Generals.best('item');
+//						general = Generals.best('item');
+						general = Generals.best('under level 4');
 					}
 					if (general !== 'any') {
 						break;

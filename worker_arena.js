@@ -141,11 +141,8 @@ Arena.parse = function(change) {
 			this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 		} else if ($('img[src*="battle_victory"]').length) {
 			ap = sum($('div.results').text().match(/\+([0-9]+) Arena Points/i));
-			if (ap < 25 && this.option.minRR >= 0) {
-				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or higher.  Removing.');
-				delete data[uid];
-			} else if (ap > 25 && this.option.maxRR <= 0) {
-				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer of same rank or lower. Removing.');
+			if ((ap < (25 + this.option.minRR * 5)) || (ap > (25 + this.option.maxRR * 5))) {
+				debug(data[uid].name + ' gave ' + ap + ' points, so they are no longer within your specified rank range ('+this.option.minRR+' to '+this.option.maxRR+').  Removing.');
 				delete data[uid];
 			} else {
 				debug(data[uid].name + ' gave ' + ap + ' points.');
