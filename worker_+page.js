@@ -168,6 +168,11 @@ Page.init = function() {
 		});
 		this.replaceClickHandlers();
 	}
+	$('.golem-link').live('click', function(event){
+		if (!Page.to($(this).attr('href'), false)) {
+			return false;
+		}
+	});
 };
 
 Page.parse_all = function(isFacebook) {

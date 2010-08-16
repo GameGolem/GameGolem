@@ -1193,16 +1193,15 @@ Monster.update = function(what,worker) {
 			}
 		}
 	}
-                Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
+	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
 };
 
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = null, stat, monster, title;
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
-                mode = 'defend';
+		mode = 'defend';
 		stat = 'energy';
-	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health
-			&& Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points)) {
+	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health && Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points)) {
 		mode = 'attack';
 		stat = 'stamina';
 	}
@@ -1213,15 +1212,19 @@ Monster.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	if (this.runtime.check) {
-		monster = this.data[this.runtime.check];
-		uid = this.runtime.check.replace(/_\d+/,'');
-		type = this.types[monster.type];
-		debug( 'Reviewing ' + monster.name + '\'s ' + type.name);
-		Page.to(
-			type.raid
-				? 'battle_raid'
-				: 'monster_battle_monster',
-			'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
+		if (!(this.runtime.check in this.data)) {
+			this.runtime.check = null;
+		} else {
+			monster = this.data[this.runtime.check];
+			uid = this.runtime.check.replace(/_\d+/,'');
+			type = this.types[monster.type];
+			debug( 'Reviewing ' + monster.name + '\'s ' + type.name);
+			Page.to(
+				type.raid
+					? 'battle_raid'
+					: 'monster_battle_monster',
+				'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
+		}
 		return QUEUE_RELEASE;
 	}
  	uid = this.runtime[mode].replace(/_\d+/,'');
