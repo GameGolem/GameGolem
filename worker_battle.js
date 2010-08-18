@@ -27,7 +27,7 @@ Battle.option = {
 	general_choice:'any',
 	points:'Invade',
 	monster:true,
-	arena:false,
+//	arena:false,
 	losses:5,
 	type:'Invade',
 	bp:'Always',
@@ -182,7 +182,7 @@ Battle.init = function() {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
 	}
-	this.option.arena = false;// ARENA!!!!!!
+//	this.option.arena = false;// ARENA!!!!!!
 	Resources.use('Stamina');
 };
 
