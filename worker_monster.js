@@ -959,7 +959,10 @@ Monster.update = function(what,worker) {
 					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
-					monster.ach = Math.min(this.conditions('ach',condition) || type.achievement,monster.max);
+					monster.ach = this.conditions('ach',condition);
+					if (monster.max !== false) {
+						monster.ach=Math.min(monster.ach || type.achievement, monster.max);
+					}
 					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
@@ -1393,7 +1396,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
-		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(type.achievement) + '"');
+		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + '"');
 		image_url = imagepath + type.list;
 		//debug(image_url);
 		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
@@ -1422,10 +1425,25 @@ Monster.dashboard = function(sort, rev) {
 				? 'title="' + title + '"'
 				: '')
 				);
+		var activity=sum(monster.damage.user) + sum(monster.defend), color;
+		if (monster.ach > 0 || monster.max > 0) {
+			if (monster.max > 0 && activity >= monster.max) {
+				color = 'red';
+			}
+			else if (monster.ach > 0 && activity >= monster.ach) {
+				color = 'orange';
+			}
+			else {
+				color = 'green';
+			}
+		}
+		else {
+			color = 'black';
+		}
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''
-				: ((sum(monster.damage.user)  + sum(monster.defend) > Math.min(monster.ach,monster.max) && Math.max(monster.ach,monster.max) > 0) ? '<span style="color: green;">' : '<span style="color: red;">') + addCommas(sum(monster.damage.user) + sum(monster.defend)) + '</span>',
+				: '<span style="color: ' + color + ';">' + addCommas(activity) + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
