@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 770;
+var revision = 771;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7588,9 +7588,9 @@ Monster.update = function(what,worker) {
 					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
-					monster.ach = this.conditions('ach',condition);
+					monster.ach = this.conditions('ach',condition) || type.achievement;
 					if (monster.max !== false) {
-						monster.ach=Math.min(monster.ach || type.achievement, monster.max);
+						monster.ach=Math.min(monster.ach, monster.max);
 					}
 					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					damage = sum(monster.damage.user) + sum(monster.defend);

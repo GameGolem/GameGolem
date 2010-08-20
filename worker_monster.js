@@ -959,9 +959,9 @@ Monster.update = function(what,worker) {
 					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
-					monster.ach = this.conditions('ach',condition);
+					monster.ach = this.conditions('ach',condition) || type.achievement;
 					if (monster.max !== false) {
-						monster.ach=Math.min(monster.ach || type.achievement, monster.max);
+						monster.ach=Math.min(monster.ach, monster.max);
 					}
 					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					damage = sum(monster.damage.user) + sum(monster.defend);
