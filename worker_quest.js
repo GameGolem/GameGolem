@@ -264,7 +264,8 @@ Quest.update = function(type,worker) {
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
 						best_advancement = null;
-					} else if (quests[i].type !== 2
+					}
+					if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
