@@ -163,7 +163,7 @@ Page.init = function() {
 		this.removeFacebookChat();
 	}
 	if (this.option.click) {
-		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onlick]').each(function(i,el){
+		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
 			$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
 		});
 		this.replaceClickHandlers();
