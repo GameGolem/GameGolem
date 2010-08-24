@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 773;
+var revision = 774;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7357,7 +7357,7 @@ Monster.parse = function(change) {
 			monster.secondary = 0.01; // Prevent from defaulting to false
 			$secondary = $(Monster['secondary_img']);
 			if ($secondary.length) {
-				monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
+				monster.secondary = (100 * $secondary.width() / $secondary.parent().width()) + 0.01;
 				//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
 		}
@@ -7596,7 +7596,7 @@ Monster.update = function(what,worker) {
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
 					if ((attack_found || o) === o 
-							&& monster.defense >= Math.max(this.option.min_to_attack,0.1)) {
+							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {

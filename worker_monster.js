@@ -728,7 +728,7 @@ Monster.parse = function(change) {
 			monster.secondary = 0.01; // Prevent from defaulting to false
 			$secondary = $(Monster['secondary_img']);
 			if ($secondary.length) {
-				monster.secondary = (100 * $secondary.width() / $secondary.parent().width());
+				monster.secondary = (100 * $secondary.width() / $secondary.parent().width()) + 0.01;
 				//debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
 		}
@@ -967,7 +967,7 @@ Monster.update = function(what,worker) {
 					damage = sum(monster.damage.user) + sum(monster.defend);
 
 					if ((attack_found || o) === o 
-							&& monster.defense >= Math.max(this.option.min_to_attack,0.1)) {
+							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {
