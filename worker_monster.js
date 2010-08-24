@@ -1044,7 +1044,7 @@ Monster.update = function(what,worker) {
 //			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
 			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
-                        monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
+			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
 			if (	!monster.ignore
 					&& monster.state === 'engage'
@@ -1396,7 +1396,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
-		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + '"');
+		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//debug(image_url);
 		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
@@ -1496,7 +1496,7 @@ Monster.conditions = function (type, conditions) {
 		if (/k$/i.test(value) || /m$/i.test(value)) {
 			first = /\d+k/i.test(value);
 			second = /\d+m/i.test(value);
-			value = parseInt(value, 10) * 1000 * (first + second * 1000);
+			value = parseFloat(value, 10) * 1000 * (first + second * 1000);
 		}
 		return parseInt(value, 10);
 };
