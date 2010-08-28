@@ -81,12 +81,12 @@ Town.display = [
 ];
 
 Town.blacksmith = {
-	Weapon:	/avenger|axe|blade|bow|cleaver|cudgel|dagger|halberd|lance|mace|morningstar|rod|saber|spear|staff|stave|sword|talon|trident|wand|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught/i,
-	Shield:	/buckler|shield|tome|Defender|Dragon Scale|Frost Dagger|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm/i,
-	Gloves:	/gauntlet|glove|hand|bracer|Slayer's Embrace/i,
-	Armor:	/armor|chainmail|cloak|pauldrons|plate|raiments|robe|Blood Vestment|Garlans Battlegear|Faerie Wings|Swordsmans Plate/i,
-	Amulet:	/amulet|bauble|charm|crystal|eye|heart|insignia|jewel|lantern|memento|orb|shard|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star/i
+	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Holy Avenger|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Deliverance|Celestas Devotion/i,
+	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm|Virtue of Fortitude/i,
+	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Virtue of Temperance/i,
+	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Faerie Wings|Epaulets of Might/i,
+	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
 };
 
 Town.init = function(){
