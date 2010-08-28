@@ -22,10 +22,11 @@ Monster.option = {
 	general_defend:'any',
 	general_attack:'any',
 	general_raid:'any',
-	defend: 30,
+	defend: 80,
 	//	quest_over: 90,
-	min_to_attack: -30,
+	min_to_attack: 20,
 	defend_active:false,
+	use_tactics:false,
 	choice: 'Any',
 	stop: 'Never',
 	own: true,
@@ -92,6 +93,11 @@ Monster.display = [
 		text:1,
 		help:'Attack if defense is over this value. Range of 0% to 100%.',
 		after:'%'
+        },{
+		id:'use_tactics',
+		label:'Use tactics',
+		checkbox:true,
+		help:'Use tactics to improve damage when it\'s available and healt bar is over %80 (may lower exp ratio)',
 	},{
 		id:'choice',
 		label:'Attack',
@@ -577,6 +583,8 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
+		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
+		tactics:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend:[10,20,40,100],
 		orcs:true
@@ -914,7 +922,7 @@ Monster.update = function(what,worker) {
 			: this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
 	this.runtime.secondary = false;
 	if (this.option.stop === 'Priority List') {
-		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind;
+		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind, button;
 		var order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
@@ -968,18 +976,22 @@ Monster.update = function(what,worker) {
 
 					if ((attack_found || o) === o 
 							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
+						button = type.attack_button;
+						if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+							button = type.tactics_button;
+						}
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {
-								list.attack = [[mid, damage / sum(monster.damage), type.attack_button]];
+								list.attack = [[mid, damage / sum(monster.damage), button]];
 								attack_overach = false;
 							} else {
-								list.attack.push([mid, damage / sum(monster.damage), type.attack_button]);
+								list.attack.push([mid, damage / sum(monster.damage), button]);
 							}
 							//debug('ATTACK monster ' + monster.name + ' ' + type.name);
 						} else if ((monster.max === false || damage < monster.max) 
 								&& !attack_found && (attack_overach || o) === o) {
-							list.attack.push([mid, damage / sum(monster.damage), type.attack_button]);
+							list.attack.push([mid, damage / sum(monster.damage), button]);
 							attack_overach = o;
 						}
 					}
@@ -1072,7 +1084,12 @@ Monster.update = function(what,worker) {
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
 					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
-					list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
+					if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button]);
+					}
+					else {
+						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
+					}
 				}
 				// Possible defend target?
 				if (this.option.defend_active) {
