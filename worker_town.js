@@ -81,12 +81,12 @@ Town.display = [
 ];
 
 Town.blacksmith = {
-	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Holy Avenger|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Deliverance|Celestas Devotion/i,
+	Weapon: /avenger|axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
 	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm|Virtue of Fortitude/i,
-	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Virtue of Temperance/i,
-	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Faerie Wings|Epaulets of Might/i,
-	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Cowl of the Avenger|Lionheart Helm|Swordsman Helm|Virtue of Fortitude/i,
+	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Soul Crusher|Virtue of Temperance/i,
+	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Avenger Platemail|Faerie Wings|Epaulets of Might|Swordsmans Plate/i,
+	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Avenger Amulet|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
 };
 
 Town.init = function(){

@@ -97,7 +97,7 @@ Monster.display = [
 		id:'use_tactics',
 		label:'Use tactics',
 		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available and healt bar is over %80 (may lower exp ratio)',
+		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)',
 	},{
 		id:'choice',
 		label:'Attack',
@@ -977,7 +977,7 @@ Monster.update = function(what,worker) {
 					if ((attack_found || o) === o 
 							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 						button = type.attack_button;
-						if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+						if (this.option.use_tactics && type.tactics) {
 							button = type.tactics_button;
 						}
 						if (damage < monster.ach) {
@@ -1084,7 +1084,7 @@ Monster.update = function(what,worker) {
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
 					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
-					if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button]);
 					}
 					else {

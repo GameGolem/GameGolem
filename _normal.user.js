@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 777;
+var revision = 778;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6726,7 +6726,7 @@ Monster.display = [
 		id:'use_tactics',
 		label:'Use tactics',
 		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available and healt bar is over %80 (may lower exp ratio)',
+		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)',
 	},{
 		id:'choice',
 		label:'Attack',
@@ -7606,7 +7606,7 @@ Monster.update = function(what,worker) {
 					if ((attack_found || o) === o 
 							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 						button = type.attack_button;
-						if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+						if (this.option.use_tactics && type.tactics) {
 							button = type.tactics_button;
 						}
 						if (damage < monster.ach) {
@@ -7713,7 +7713,7 @@ Monster.update = function(what,worker) {
 				// Possible attack target?
 				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
 					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
-					if (this.option.use_tactics && type.tactics && (monster.defense || 100) >= 80) {
+					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button]);
 					}
 					else {
@@ -9109,12 +9109,12 @@ Town.display = [
 ];
 
 Town.blacksmith = {
-	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Holy Avenger|Crystal Rod|Daedalus|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Deliverance|Celestas Devotion/i,
+	Weapon: /avenger|axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
 	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil|Lionheart Helm|Virtue of Fortitude/i,
-	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Virtue of Temperance/i,
-	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Faerie Wings|Epaulets of Might/i,
-	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Cowl of the Avenger|Lionheart Helm|Swordsman Helm|Virtue of Fortitude/i,
+	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Soul Crusher|Virtue of Temperance/i,
+	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Avenger Platemail|Faerie Wings|Epaulets of Might|Swordsmans Plate/i,
+	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Avenger Amulet|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
 };
 
 Town.init = function(){
