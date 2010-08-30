@@ -62,14 +62,6 @@ LevelUp.display = [
 		label:'Enabled',
 		checkbox:true
 	},{
-		id:'income',
-		label:'Allow Income General',
-		checkbox:true
-	},{
-		id:'bank',
-		label:'Allow Bank General',
-		checkbox:true
-	},{
 		id:'general',
 		label:'Best General',
 		select:['any', 'Energy', 'Stamina', 'Manual'],
@@ -80,7 +72,16 @@ LevelUp.display = [
 		label:'Use General',
 		require:{'general':'Manual'},
 		select:'generals'
-		
+	},{
+		id:'income',
+		require:{'general':[['any']]},
+		label:'Allow Income General',
+		checkbox:true
+	},{
+		id:'bank',
+		require:{'general':[['any']]},
+		label:'Allow Bank General',
+		checkbox:true
 	},{
 		id:'order',
 		label:'Spend first ',

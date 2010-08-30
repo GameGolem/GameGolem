@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 767;
+var revision = 780;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6301,14 +6301,6 @@ LevelUp.display = [
 		label:'Enabled',
 		checkbox:true
 	},{
-		id:'income',
-		label:'Allow Income General',
-		checkbox:true
-	},{
-		id:'bank',
-		label:'Allow Bank General',
-		checkbox:true
-	},{
 		id:'general',
 		label:'Best General',
 		select:['any', 'Energy', 'Stamina', 'Manual'],
@@ -6319,7 +6311,16 @@ LevelUp.display = [
 		label:'Use General',
 		require:{'general':'Manual'},
 		select:'generals'
-		
+	},{
+		id:'income',
+		require:{'general':[['any']]},
+		label:'Allow Income General',
+		checkbox:true
+	},{
+		id:'bank',
+		require:{'general':[['any']]},
+		label:'Allow Bank General',
+		checkbox:true
 	},{
 		id:'order',
 		label:'Spend first ',
