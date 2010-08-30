@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 778;
+var revision = 767;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6270,6 +6270,7 @@ LevelUp.option = {
 	income:true,
 	bank:true,
 	general:'any',
+	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action'
 };
@@ -6310,8 +6311,15 @@ LevelUp.display = [
 	},{
 		id:'general',
 		label:'Best General',
-		select:['any', 'Energy', 'Stamina'],
+		select:['any', 'Energy', 'Stamina', 'Manual'],
 		help:'Select which type of general to use when leveling up.'
+	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:{'general':'Manual'},
+		select:'generals'
+		
 	},{
 		id:'order',
 		label:'Spend first ',
@@ -6456,7 +6464,11 @@ LevelUp.work = function(state) {
 	// Get our level up general if we're less than 100 exp from level up
 	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank') && !(this.option.income && Queue.get('runtime.current') === 'Income')) {
 		Generals.set('runtime.disabled', false);
-		if (Generals.to(this.option.general)) {
+		general = this.option.general;
+		if(general = 'Manual'){
+			general = this.option.general_choice;
+		}
+		if (Generals.to(general)) {
 			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
@@ -6711,22 +6723,22 @@ Monster.display = [
 		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
-                advanced:true,
-                id:'points',
-                label:'Get Demi Points First',
-                checkbox:true,
-                help:'Use Battle to get Demi Points prior to attacking Monsters.'
-        },{
+		advanced:true,
+		id:'points',
+		label:'Get Demi Points First',
+		checkbox:true,
+		help:'Use Battle to get Demi Points prior to attacking Monsters.'
+	},{
 		id:'min_to_attack',
 		label:'Attack Over',
 		text:1,
 		help:'Attack if defense is over this value. Range of 0% to 100%.',
 		after:'%'
-        },{
+	},{
 		id:'use_tactics',
 		label:'Use tactics',
 		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)',
+		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -7168,7 +7180,7 @@ Monster.types = {
 		list:'nm_volcanic_list.jpg',
 		image:'nm_volcanic_large.jpg',
 		dead:'nm_volcanic_dead.jpg',
-		achievement:1000000, // Guesswork
+		achievement:2000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -7181,7 +7193,7 @@ Monster.types = {
 		list:'nm_volcanic_list_2.jpg',
 		image:'nm_volcanic_large_2.jpg',
 		dead:'nm_volcanic_dead_2.jpg', //Guesswork
-		achievement:3000000, // Guesswork
+		achievement:6000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -7194,7 +7206,7 @@ Monster.types = {
 		list:'nm_azriel_list.jpg',
 		image:'nm_azriel_large2.jpg',
 		dead:'nm_azriel_dead.jpg', //Guesswork
-		achievement:3000000, // ~0.5%, 2X = ~1%
+		achievement:6000000, // ~0.5%, 2X = ~1%
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -7207,7 +7219,7 @@ Monster.types = {
 		list:'nm_war_list.jpg',
 		image:'nm_war_large.jpg',
 		dead:'nm_war_dead.jpg', //Guesswork
-		achievement:1500, // ~0.5%, 2X = ~1%
+		achievement:2500,
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -7223,7 +7235,7 @@ Monster.types = {
 		list:'nm_alpha_mephistopheles_list.jpg',
 		image:'nm_mephistopheles2_large.jpg',
 		dead:'nm_mephistopheles2_dead.jpg', 
-		achievement:3200000, // ~0.5%, 2X = ~1%
+		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -7909,10 +7921,7 @@ Monster.work = function(state) {
 		} else {
 			b = $(this.runtime[mode + '_button']).length - 1;
 			for (i=b; i >= 0; i--){
-				//debug('Burn ' + stat + ' is ' + Queue.burn[stat]);
-                                 if (	type[mode][i] <= this.option[mode + '_max']
-						&& Queue.burn[stat] >= type[mode][i] ) {
-					//debug('Button cost is ' + type.defend[i]);
+				if (type[mode][i] <= this.option[mode + '_max'] && Queue.burn[stat] >= (type[mode][i] * this.runtime.multiplier) ) {
 					this.runtime[stat + '_used'] = type[mode][i] * this.runtime.multiplier;
 					btn = $(this.runtime[mode + '_button']).eq(i);
 					break;
@@ -8593,7 +8602,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:{'what':'Cartigan'}
+		require:{'what':['Cartigan', 'Vampire Lord']}
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -8783,7 +8792,8 @@ Quest.update = function(type,worker) {
 					if (!has_vampire && isNumber(quests[i].land)
 					&& quests[i].land === 5
 					&& quests[i].type === 1
-					&& (!best_vampire || quests[i].energy < quests[best_vampire].energy)) {
+					&& (!best_vampire || quests[i].energy < quests[best_vampire].energy)
+					&& (this.option.ignorecomplete === false || (isNumber(quests[i].influence) && quests[i].influence < 100))) {
 						best_vampire = i;
 					}// Deliberate fallthrough
 				case 'Cartigan': // Random Encounters in various Underworld Quests
@@ -8793,7 +8803,7 @@ Quest.update = function(type,worker) {
 						|| ((i === 'Fiery Awakening' || quests[i].main === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
 						|| ((i === 'Fire and Brimstone' || quests[i].main === 'Fire and Brimstone' || i === 'Deathrune Castle' || quests[i].main === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
 					&& (!best_cartigan || quests[i].energy < quests[best_cartigan].energy)
-					&& (this.option.ignorecomplete === true && isNumber(quests[i].influence) && quests[i].influence < 100)) {
+					&& (this.option.ignorecomplete === false || (isNumber(quests[i].influence) && quests[i].influence < 100))) {
 						best_cartigan = i;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
@@ -8813,9 +8823,10 @@ Quest.update = function(type,worker) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (isNumber(quests[i].influence)
 					&& quests[i].influence < 100
-					&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
+					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
-					}// Deliberate fallthrough
+					}
+					break;
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;

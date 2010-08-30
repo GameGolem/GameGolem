@@ -82,22 +82,22 @@ Monster.display = [
 		require:{'stop':['Never', 'Achievement', '2X Achievement']},
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
-                advanced:true,
-                id:'points',
-                label:'Get Demi Points First',
-                checkbox:true,
-                help:'Use Battle to get Demi Points prior to attacking Monsters.'
-        },{
+		advanced:true,
+		id:'points',
+		label:'Get Demi Points First',
+		checkbox:true,
+		help:'Use Battle to get Demi Points prior to attacking Monsters.'
+	},{
 		id:'min_to_attack',
 		label:'Attack Over',
 		text:1,
 		help:'Attack if defense is over this value. Range of 0% to 100%.',
 		after:'%'
-        },{
+	},{
 		id:'use_tactics',
 		label:'Use tactics',
 		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)',
+		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
 	},{
 		id:'choice',
 		label:'Attack',
@@ -539,7 +539,7 @@ Monster.types = {
 		list:'nm_volcanic_list.jpg',
 		image:'nm_volcanic_large.jpg',
 		dead:'nm_volcanic_dead.jpg',
-		achievement:1000000, // Guesswork
+		achievement:2000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -552,7 +552,7 @@ Monster.types = {
 		list:'nm_volcanic_list_2.jpg',
 		image:'nm_volcanic_large_2.jpg',
 		dead:'nm_volcanic_dead_2.jpg', //Guesswork
-		achievement:3000000, // Guesswork
+		achievement:6000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -565,7 +565,7 @@ Monster.types = {
 		list:'nm_azriel_list.jpg',
 		image:'nm_azriel_large2.jpg',
 		dead:'nm_azriel_dead.jpg', //Guesswork
-		achievement:3000000, // ~0.5%, 2X = ~1%
+		achievement:6000000, // ~0.5%, 2X = ~1%
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -578,7 +578,7 @@ Monster.types = {
 		list:'nm_war_list.jpg',
 		image:'nm_war_large.jpg',
 		dead:'nm_war_dead.jpg', //Guesswork
-		achievement:1500, // ~0.5%, 2X = ~1%
+		achievement:2500,
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -594,7 +594,7 @@ Monster.types = {
 		list:'nm_alpha_mephistopheles_list.jpg',
 		image:'nm_mephistopheles2_large.jpg',
 		dead:'nm_mephistopheles2_dead.jpg', 
-		achievement:3200000, // ~0.5%, 2X = ~1%
+		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
@@ -1280,10 +1280,7 @@ Monster.work = function(state) {
 		} else {
 			b = $(this.runtime[mode + '_button']).length - 1;
 			for (i=b; i >= 0; i--){
-				//debug('Burn ' + stat + ' is ' + Queue.burn[stat]);
-                                 if (	type[mode][i] <= this.option[mode + '_max']
-						&& Queue.burn[stat] >= type[mode][i] ) {
-					//debug('Button cost is ' + type.defend[i]);
+				if (type[mode][i] <= this.option[mode + '_max'] && Queue.burn[stat] >= (type[mode][i] * this.runtime.multiplier) ) {
 					this.runtime[stat + '_used'] = type[mode][i] * this.runtime.multiplier;
 					btn = $(this.runtime[mode + '_button']).eq(i);
 					break;

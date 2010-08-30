@@ -57,7 +57,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:{'what':'Cartigan'}
+		require:{'what':['Cartigan', 'Vampire Lord']}
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -247,7 +247,8 @@ Quest.update = function(type,worker) {
 					if (!has_vampire && isNumber(quests[i].land)
 					&& quests[i].land === 5
 					&& quests[i].type === 1
-					&& (!best_vampire || quests[i].energy < quests[best_vampire].energy)) {
+					&& (!best_vampire || quests[i].energy < quests[best_vampire].energy)
+					&& (this.option.ignorecomplete === false || (isNumber(quests[i].influence) && quests[i].influence < 100))) {
 						best_vampire = i;
 					}// Deliberate fallthrough
 				case 'Cartigan': // Random Encounters in various Underworld Quests
@@ -257,7 +258,7 @@ Quest.update = function(type,worker) {
 						|| ((i === 'Fiery Awakening' || quests[i].main === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
 						|| ((i === 'Fire and Brimstone' || quests[i].main === 'Fire and Brimstone' || i === 'Deathrune Castle' || quests[i].main === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
 					&& (!best_cartigan || quests[i].energy < quests[best_cartigan].energy)
-					&& (this.option.ignorecomplete === true && isNumber(quests[i].influence) && quests[i].influence < 100)) {
+					&& (this.option.ignorecomplete === false || (isNumber(quests[i].influence) && quests[i].influence < 100))) {
 						best_cartigan = i;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
@@ -277,9 +278,10 @@ Quest.update = function(type,worker) {
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (isNumber(quests[i].influence)
 					&& quests[i].influence < 100
-					&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
+					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
 						best_influence = i;
-					}// Deliberate fallthrough
+					}
+					break;
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;

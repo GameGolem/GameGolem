@@ -31,6 +31,7 @@ LevelUp.option = {
 	income:true,
 	bank:true,
 	general:'any',
+	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action'
 };
@@ -71,8 +72,15 @@ LevelUp.display = [
 	},{
 		id:'general',
 		label:'Best General',
-		select:['any', 'Energy', 'Stamina'],
+		select:['any', 'Energy', 'Stamina', 'Manual'],
 		help:'Select which type of general to use when leveling up.'
+	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:{'general':'Manual'},
+		select:'generals'
+		
 	},{
 		id:'order',
 		label:'Spend first ',
@@ -217,7 +225,11 @@ LevelUp.work = function(state) {
 	// Get our level up general if we're less than 100 exp from level up
 	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank') && !(this.option.income && Queue.get('runtime.current') === 'Income')) {
 		Generals.set('runtime.disabled', false);
-		if (Generals.to(this.option.general)) {
+		general = this.option.general;
+		if(general = 'Manual'){
+			general = this.option.general_choice;
+		}
+		if (Generals.to(general)) {
 			//debug('Disabling Generals because we are within 100 XP from leveling.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
