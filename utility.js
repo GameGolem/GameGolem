@@ -84,7 +84,7 @@ String.prototype.numregex = function(r) {
 		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
 			if (a[i]) {
-				if (parens) {
+//				if (parens) {
 					a[i].match(r);
 					if (RegExp.$1) {
 						a[i] = RegExp.$1;
@@ -95,10 +95,8 @@ String.prototype.numregex = function(r) {
 					} else if (RegExp.$4) {
 						a[i] = RegExp.$4;
 					}
-				}
-				if (a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
-					a[i] = parseFloat(a[i]);
-				}
+//				}
+				a[i] = (isNumber(parseFloat(a[i])) ? parseFloat(a[i]) : a[i]);
 			}
 		}
 		if (a.length===1) {

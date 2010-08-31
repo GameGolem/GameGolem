@@ -27,7 +27,6 @@ LevelUp.defaults['castle_age'] = {
 };
 
 LevelUp.option = {
-	enabled:false,
 	income:true,
 	bank:true,
 	general:'any',
@@ -37,19 +36,15 @@ LevelUp.option = {
 };
 
 LevelUp.runtime = {
-	level:0,// set when we start, compare to end
 	heal_me:false,// we're active and want healing...
-	battle_monster:false,// remember whether we're doing monsters first or not or not...
-	old_quest:null,// save old quest, if it's not null and we're working then push it back again...
-	old_quest_energy:0,
-	running:false,// set when we change
 	energy:0,
 	stamina:0,
+	last_energy:'quest',
+	last_stamina:'attack',
 	exp:0,
 	exp_possible:0,
 	avg_exp_per_energy:1.4,
 	avg_exp_per_stamina:2.4,
-	defending:false, // True if last exp from energy was from a quest
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -72,16 +67,6 @@ LevelUp.display = [
 		label:'Use General',
 		require:{'general':'Manual'},
 		select:'generals'
-	},{
-		id:'income',
-		require:{'general':[['any']]},
-		label:'Allow Income General',
-		checkbox:true
-	},{
-		id:'bank',
-		require:{'general':[['any']]},
-		label:'Allow Bank General',
-		checkbox:true
 	},{
 		id:'order',
 		label:'Spend first ',
@@ -111,7 +96,6 @@ LevelUp.init = function() {
 	this._watch(Player);
 	this._watch(Quest);
 	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
-	this.runtime.level = this.runtime.level || Player.get('level'); // Make sure we have a default...
 };
 
 LevelUp.parse = function(change) {
@@ -147,12 +131,14 @@ LevelUp.update = function(type,worker) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
+				//debug('page.page ' + Page.page);
+				this.runtime.last_stamina = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle';
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
 			} else if (runtime.energy > energy) {
-				this.runtime.defending = (Page.page === 'monster_battle_monster');
+				this.runtime.last_energy = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'defend' : 'quest';
 				// Only need average for monster defense.  Quest average is known.
-				if (this.runtime.defending) {
+				if (this.runtime.last_energy === 'defend') {
 					calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'energy',runtime.energy - energy);
 				}
@@ -162,49 +148,7 @@ LevelUp.update = function(type,worker) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-// Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
-/*
-	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
-		quests = Quest.get();
-		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
-		for (i in quests) { // Fill out with the best exp for every energy cost
-			if (!quests[quests[i].energy] || quests[i].exp > quests[quests[i].energy][0]) {
-				quests[quests[i].energy] = [quests[i].exp, [i]];
-			}
-		}
-		j = 1;
-		k = [0];
-		for (i=1; i<quests.length; i++) { // Fill in the blanks and replace using the highest exp per energy ratios
-			if (quests[i] && quests[i][0] / i >= k[0] / j) {
-				j = i;
-				k = quests[i];
-			} else {
-				quests[i] = [k[0], [k[1][0]]];
-			}
-		}
-		while (quests.length > 1 && quests[quests.length-1][0] === quests[quests.length-2][0]) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
-			quests.pop();
-		}
-// No need to merge quests as we're only interested in the first one...
-//		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
-//			if (quests[quests[i][1][0]].energy < i) {
-//				quests[i][0] += quests[i - quests[quests[i][1][0]].energy][0];
-//				quests[i][1] = quests[i][1].concat(quests[i - quests[quests[i][1][0]].energy][1])
-//			}
-//		}
-//		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
-	}
-	if (this.runtime.quests.length <= 1) { // No known quests yet...
-		runtime.exp_possible = 1;
-	} else if (energy < this.runtime.quests.length) { // Energy from questing
-		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
-	} else {
-		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
-	}
-		if ((order.indexOf('Idle') >= order.indexOf('Monster') && (Monster.runtime.attack)) || (order.indexOf('Idle') >= order.indexOf('Battle'))){
-			runtime.exp_possible += Math.floor(stamina * runtime.avg_exp_per_stamina); // Stamina estimate (when we can spend it)
-		}
-*/
+	//debug('next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
@@ -215,159 +159,37 @@ LevelUp.update = function(type,worker) {
 	} else {
 		Dashboard.status(this);
 	}
-	if (!this.option.enabled || this.option.general === 'any') {
+/*	if (!this.option.enabled || this.option.general === 'any') {
 		Generals.set('runtime.disabled', false);
 	}
-};
+*/};
 
 LevelUp.work = function(state) {
-	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
-	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
-	// Get our level up general if we're less than 100 exp from level up
-	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank') && !(this.option.income && Queue.get('runtime.current') === 'Income')) {
+	var heal = this.runtime.heal_me, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder(), action = this.runtime.action;
+	Generals.set('runtime.disabled', false);
+/*	if (!action || !action.big) {
 		Generals.set('runtime.disabled', false);
-		general = this.option.general;
-		if(general = 'Manual'){
-			general = this.option.general_choice;
-		}
-		if (Generals.to(general)) {
-			//debug('Disabling Generals because we are within 100 XP from leveling.');
+	}
+*/	if (!Queue.burn.forcestamina || !heal) {
+		return QUEUE_FINISH;
+	}
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+	if (heal && Heal.me()) {
+		return QUEUE_CONTINUE;
+	}
+	this.runtime.heal_me = false;
+/*	if (action && action.big) {
+		Generals.set('runtime.disabled', false);
+		if (Generals.to(this.option.general)) {
+			//debug('Disabling Generals because next action will level.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
 		}
-	} else {
-		Generals.set('runtime.disabled', false);
 	}
-	if (runtime.old_quest) {
-		Quest.runtime.best = runtime.old_quest;
-		Quest.runtime.energy = runtime.old_quest_energy;
-		runtime.old_quest = null;
-		runtime.old_quest_energy = 0;
-	}
-	if (!this.option.enabled || this.get('exp_possible') < Player.get('exp_needed')) {
-		if (runtime.running) { // Shut down the level up burn
-			if (runtime.level < Player.get('level')) { // We've just levelled up
-				if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' && energy >= Player.get('maxenergy')) {
-					Queue.burn.energy = energy;
-					Queue.burn.stamina = 0;
-					return QUEUE_FINISH;
-				}
-				if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' && stamina >= Player.get('maxstamina')) {
-					Queue.burn.energy = 0;
-					Queue.burn.stamina = stamina;
-					return QUEUE_FINISH;
-				}
-			}
-			Generals.set('runtime.disabled', false);
-			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
-			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
-			Battle.set('option.monster', runtime.battle_monster);
-			runtime.running = false;
-			runtime.level = Player.get('level');
-		}
-		return QUEUE_FINISH;
-	}
-	if (state && runtime.heal_me) {
-		if (Heal.me()) {
-			return QUEUE_CONTINUE;
-		}
-		runtime.heal_me = false;
-	}
-	if (state && !runtime.running) { // We're not running yet and we have focus
-		runtime.level = Player.get('level');
-		runtime.battle_monster = Battle.get('option.monster');
-		runtime.running = true;
-		//debug('Running '+runtime.running);
-		Battle.set('option.monster', false);
-	}
-
-		
-/*	max quest xp = quests < energy max exp * number possible
-	max fortification 
-	max stamina
-	
-	Find biggest chunk
-	Do normal action until can't fit any more
-	Do tiny chunks to fill up space
-	Do biggest chunk
-*/	
-	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
-		runtime.heal_me = true;
-		return QUEUE_CONTINUE;
-	}
-
-	// We don't have focus, but we do want to level up quicker
-	if (this.option.order !== 'Stamina' 
-			|| !stamina || Player.get('health') < 13 
-			|| (stamina < Monster.runtime.stamina 
-				&& (!Battle.runtime.attacking 
-					|| (order.indexOf('Idle') <= order.indexOf('Battle'))))
-			|| ((order.indexOf('Idle') <= order.indexOf('Monster')
-					|| (!Monster.runtime.attack))
-			&& (!Battle.runtime.attacking 
-				|| (order.indexOf('Idle') <= order.indexOf('Battle'))))){
-		debug('Running Energy Burn');
-		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
-	
-			var big_quest = null, normal_quest = null, little_quest = null;
-			quests = Quest.get();
-			big_quest = bestObjValue(quests, function(q){
-				return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
-						? q.exp : null);
-			});
-//	debug('big_quest = ' + big_quest);
-			var big_quest_energy = 0;
-			if (big_quest){
-				big_quest_energy = quests[big_quest].energy;
-			}
-//	debug('big_quest_energy = ' + big_quest_energy);
-
-/*	// Find the biggest monster to throw exp into the next level
-			monsters = Monster.get();
-			for (i in monsters) { 
-				stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
-			}
-			
-			big_attack = bestObjValue(stamina_options, function(s){
-				return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
-			}); 
-			
-*/	// See if we can do some of our normal quests before the big one
-			var exp = Player.get('exp_needed');
-			if (energy - big_quest_energy > quests[Quest.runtime.best].energy
-					&& exp > quests[Quest.runtime.best].exp) {
-				debug('Doing normal quest to burn energy');
-				normal_quest = Quest.runtime.best;
-			}
-			// Find out if we have room to do some small quests before we get to the big one
-			for (i in quests) { 
-				if (energy - big_quest_energy >= quests[i].energy
-						&& exp > quests[i].exp
-						&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
-					little_quest = i;
-				}
-			}
-			var next_quest = normal_quest || little_quest || big_quest;
-			if (next_quest) {
-				debug('Doing a small quest to burn energy');
-				Queue.burn.energy = energy;
-				Queue.burn.stamina = 0;
-				runtime.old_quest_energy = Quest.runtime.energy;
-				runtime.old_quest = Quest.runtime.best;
-				Quest.runtime.energy = energy; // Ok, we're lying, but it works...
-				Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
-				return QUEUE_FINISH;
-			}
-		}
-	} else {
-		debug('Running Stamina Burn');
-	}
-	Quest._update('data', null); // Force Quest to decide it's best quest again...
-	// Got to have stamina left to get here, so burn it all
-	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
-	Queue.burn.stamina = stamina; // Make sure we can burn everything, even the stuff we're saving
-	return QUEUE_FINISH;
+*/	return QUEUE_FINISH;
 };
 
 LevelUp.get = function(what,def) {
@@ -401,3 +223,134 @@ LevelUp.get = function(what,def) {
 	}
 };
 
+LevelUp.findAction = function(what, energy, stamina, exp) {
+	var options =[], i, check, energyAction, staminaAction, quests, monsters, big, multiples, general = false, basehit, max, raid = false;
+	switch(what) {
+	case 'best':
+		if (this.option.order === 'Energy') {
+			check = this.findAction(this.runtime.last_energy,energy,0,exp);
+			//debug(' levelup quest ' + energy + ' ' + exp);
+			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
+			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
+				return check;
+			}
+		}
+		// Find the biggest exp quest or stamina return to push unusable exp into next level
+		big = this.findAction('big',energy,stamina,0); 
+		//debug(' check sta ' + stamina + 'big:' + big.stamina);
+		check = this.findAction('attack',0,stamina - big.stamina,exp);
+		if (check) {
+			return check;
+		}
+		check = this.findAction(this.runtime.last_energy,energy - big.energy,0,exp);
+		if (check) {
+			return check;
+		}
+		//debug(' big.general ' + big.general+ big.exp);
+		return (!big.none ? big : false);
+	case 'big':		
+		// Should enable to look for other options than last stamina, energy?
+		energyAction = this.findAction(this.runtime.last_energy,energy,stamina,0);
+		staminaAction = this.findAction('attack',energy,stamina,0);  // Need to update to allow for battle/war
+		if (energyAction && (!staminaAction || energyAction.exp >= staminaAction.exp)) {
+			//debug('big energy ' + energyAction.exp);
+			energyAction.big = true;
+			return energyAction;
+		} else if (staminaAction) {
+			//debug('big stamina ' + staminaAction.exp + staminaAction.general);
+			staminaAction.big = true;
+			return staminaAction;
+		} else {
+			return {	energy : 0,
+						stamina : 0,
+						none : true};  
+		}
+	case 'defend':	
+		// Need to fill in Barbarus.etc ability
+		monsters = Monster.get();
+		for (i in monsters) { 
+			options = options.concat(Monster.types[monsters[i].type].defend);
+		}
+		original = options = unique(options);
+		multiples = Generals.get('runtime.multipliers');
+		for (i in multiples) {
+			options = options.concat(original.map(function(s){ return s*multiples[i]; } ));
+		}
+		// Use 2.8X as a safe exp multiple until actual figures can be coded from each monster
+		i = bestValue(options, Math.min((exp ?  exp / 2.8 : energy), energy));
+		if (i !== -1) {
+			//debug('defend ' + i);
+			return {	energy : i,
+						stamina : 0,
+						exp : i * this.get('exp_per_energy')};  
+		} else {
+			return null;
+		}
+	case 'quest':		
+		quests = Quest.get();
+		if (quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
+			i = Quest.runtime.best;
+		} else {
+			i = bestObjValue(quests, function(q) {
+				return ((q.energy <= energy && (!exp || (q.exp < exp))) 
+						? q.exp / (exp ? q.energy : 1) : null);
+			});
+		}
+		if (i) {
+			//debug('quest ' + i);
+			return {	energy : quests[i].energy,
+						stamina : 0,
+						exp : quests[i].exp,
+						quest : i};
+		} else {
+			return null;
+		}
+	case 'attack':		
+		// Need to fill in Barbarus.etc ability
+		monsters = Monster.get();
+		for (i in monsters) {
+			//debug('i:'+ i + ' monster[i].name'+monsters[i].name+' type:'+monsters[i].type + ' raid:'+Monster.types[monsters[i].type].raid);
+			if (!Monster.types[monsters[i].type].raid) {
+				if (Monster.types[monsters[i].type].defend && Monster.types[monsters[i].type].attack.indexOf(1) > -1) {
+					options = options.concat(Monster.types[monsters[i].type].attack.slice(1,Monster.get('runtime.button.count')));
+				} else {
+					options = options.concat(Monster.types[monsters[i].type].attack.slice(0,Monster.get('runtime.button.count')));
+				}
+			} else {
+				raid = true;
+			}
+		}
+		options = unique(options);
+		// Use 6X as a safe exp variation multiple until actual figures available
+		max = Math.min((exp ? exp / 6 : stamina), stamina);
+		staminaAction = basehit = bestValue(options, max);
+		multiples = Generals.get('runtime.multipliers');
+		for (i in multiples) {
+			check = bestValue(options.map(function(s){ return s * multiples[i]; } ), max);
+			if (check > staminaAction) {
+				staminaAction = check;
+				basehit = check / multiples[i];
+				general = i;
+			}
+		}
+		if (staminaAction < 0) {
+			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
+		}
+		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
+		if (staminaAction > 0 ) {
+			return {	stamina : staminaAction,
+						energy : 0,
+						exp : staminaAction * this.get('exp_per_stamina'),
+						general :  general,
+						basehit : basehit}
+		} else {
+			return null;
+		}
+	case 'battle':		
+		// Need to fill in later
+	}
+};
+			
+		
+			
+	

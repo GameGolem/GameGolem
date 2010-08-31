@@ -117,7 +117,7 @@ Gift.parse = function(change) {
 		}
 		// Check for gifts
 //		debug('Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
-		if ($('div.messages').text().indexOf('gift') >= 0) { // This will trigger if there are gifts waiting
+		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
 			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
 				return false;	// let the work function send us to the index page to get the info.
@@ -128,7 +128,7 @@ Gift.parse = function(change) {
 				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
 //				debug('Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
 			} else {
-				log("Can't find the gift sender's ID.");
+				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
 			}
 		} else {
 //			debug('No more waiting gifts. Did we miss the gift accepted page?');

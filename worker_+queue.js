@@ -37,6 +37,11 @@ Queue.option = {
 	stamina: 0,
 	start_energy: 0,
 	energy: 0,
+	quest: false, // Use for name of quest if over-riding quest
+	general : false, // If necessary to specify a multiple general for attack
+	action: false, // Level up action
+	forceenergy: false, // Used to signal workers to ignore wait conditions to burn energy
+	forcestamina: false, // Used to signal workers to ignore wait conditions and burn stamina
 	pause: false
 };
 
@@ -137,7 +142,7 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(type,worker) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false;
+	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
 	if (!type || type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
@@ -172,27 +177,63 @@ Queue.update = function(type,worker) {
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
 			return;
 		}
+
 		this.burn.stamina = this.burn.energy = 0;
-		if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-			this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-			this.option.burn_stamina = this.burn.stamina > 0;
+		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.burn.forcestamina = this.burn.forceenergy = false;
+		for (i in ensta) {
+			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
+				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
+				// Change later to Queue.stamina.burn and Queue.stamina.force
+				this.burn[ensta[i]] = Player.get(ensta[i]);
+				this.burn['force' + ensta[i]] = true;
+				break;
+			}
 		}
-		if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-			this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-			this.option.burn_energy = this.burn.energy > 0;
+		if (this.enabled(LevelUp) && LevelUp.option.enabled 
+				 && !this.burn.stamina && !this.burn.energy 
+				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
+			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
+			if (action) {
+				this.burn.energy = action.energy;
+				this.burn.stamina = action.stamina;
+				this.runtime.levelup = true;
+				mode = (action.energy ? 'defend' : 'attack');
+				stat = (action.energy ? 'energy' : 'stamina');
+				if (action.quest) {
+					this.runtime.quest = action.quest;
+				}
+				if (action.big) {
+					this.runtime.general = action.general || (LevelUp.option.general === 'any' 
+							? false 
+							: LevelUp.option.general === 'Manual' 
+							? LevelUp.option.general_choice
+							: LevelUp.option.general );
+				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
+					debug('Overriding manual general that multiplies attack/defense');
+					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
+				}
+				this.runtime.basehit = action.basehit;
+				Queue.burn.forcestamina = (action.stamina !== 0);
+				Queue.burn.forceenergy = (action.energy !== 0);
+				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));
+				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
+			}
+		}
+		if (!this.burn.stamina && !this.burn.energy) {
+			if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+				this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+				this.option.burn_stamina = this.burn.stamina > 0;
+			}
+			if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+				this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+				this.option.burn_energy = this.burn.energy > 0;
+			}
+		} else {
+			if (this.burn.forcestamina && Player.get('health') < 13) {
+				LevelUp.runtime.heal_me = true;
+			}
 		}
 		this._push();
-//		debug('Start Queue, Stamina: ' + this.burn.stamina +', Energy: ' + this.burn.energy);
-		
-		// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
-	/*	if (Player.get('energy') >= Player.get('maxenergy')){
-			this.burn.stamina = 0;	// Focus on burning energy
-			debug('At max energy, burning energy first.');
-		} else if (Player.get('stamina') >= Player.get('maxstamina')){
-			this.burn.energy = 0;	// Focus on burning stamina
-			debug('At max stamina, burning stamina first.');
-		}
-	*/	
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
 				debug(Workers[i].name + '.work(false);');

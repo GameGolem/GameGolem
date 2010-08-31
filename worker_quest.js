@@ -270,15 +270,16 @@ Quest.update = function(type,worker) {
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
-					&& ((isNumber(quests[i].influence) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
+					&& ((isNumber(quests[i].influence) && Generals.test(quests[i].general) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
 					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (isNumber(quests[i].influence)
-					&& quests[i].influence < 100
-					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+					if (isNumber(quests[i].influence) 
+							&& (!quests[i].general || Generals.test(quests[i].general))
+							&& quests[i].influence < 100
+							&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
 						best_influence = i;
 					}
 					break;
@@ -323,19 +324,18 @@ Quest.update = function(type,worker) {
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = this.runtime.best;
-	if (!best || this.runtime.energy > Queue.burn.energy) {
+	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
+	if (!best || (!Queue.runtime.quest && this.runtime.energy > Queue.burn.energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
 		return QUEUE_FINISH;
 	}
-	if (this.option.monster 
+	if (this.option.monster && !Queue.runtime.quest
 			&& (Monster.get('runtime.defend')
 				|| Monster.get('runtime.check')
 				|| (Monster.get('runtime.secondary')
-					&& !LevelUp.get('runtime.running')
-					&& Player.get('energy') < Player.get('maxenergy')))) {
+					&& !Queue.burn.forceenergy))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
@@ -377,7 +377,7 @@ Quest.work = function(state) {
 	} else {
 		general = this.option.general_choice;
 	}
-	if (!Generals.to(general)) {
+	if (!Generals.to(Queue.runtime.general || general)) {
 		return QUEUE_CONTINUE;
 	}
 	switch(this.data[best].area) {
@@ -406,6 +406,7 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
+	Queue.runtime.quest = false;
 	if (this.data[best].type === 3) {// Just completed a boss quest
 		if (!Alchemy.get(['ingredients', this.data[best].itemimg], 0)) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', this.data[best].itemimg], 1);

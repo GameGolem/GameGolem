@@ -52,7 +52,7 @@ Bank.init = function() {
 };
 
 Bank.work = function(state) {
-	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
+	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
 		return QUEUE_FINISH;
 	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
 		return QUEUE_CONTINUE;
@@ -69,7 +69,8 @@ Bank.update = function(type, worker) {
 };
 
 Bank.stash = function(amount) {
-	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
+	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10 
+			|| (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {

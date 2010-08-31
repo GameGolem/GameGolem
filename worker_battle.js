@@ -195,7 +195,6 @@ Battle.init = function() {
 */
 Battle.parse = function(change) {
 	var data, uid, tmp, myrank;
-	debug('page: ' + Page.page);
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -334,7 +333,7 @@ Battle.update = function(type) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && (Monster.get('runtime.attack',false) || Monster.get('runtime.fortify',false))) {
+	if (!points && this.option.monster && !Queue.runtime.levelup && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {

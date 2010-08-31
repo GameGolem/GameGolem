@@ -21,8 +21,9 @@ Generals.defaults['castle_age'] = {
 };
 
 Generals.runtime = {
-	disabled:false, // Nobody should touch this except LevelUp!!!
-	armymax:1 // Don't force someone with a small army to buy a whole load of exrta items...
+	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
+	force: false,
+	armymax:1 // Don't force someone with a small army to buy a whole load of extra items...
 };
 
 Generals.init = function() {
@@ -34,6 +35,7 @@ Generals.init = function() {
 	if (!Player.get('attack') || !Player.get('defense')) {
 		this._watch(Player); // Only need them the first time...
 	}
+	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
 	this._watch(Town);
 };
 
@@ -89,7 +91,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo;
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -103,6 +105,10 @@ Generals.update = function(type, worker) {
 		if (data[i].level < 4) {
 			priority_list.push([i, data[i].priority]);
 		}
+		// Force an update if stats not yet calculated
+		if (!data[i].stats) {
+			this.runtime.force = true;
+		}
 	}
 	priority_list.sort(function(a,b) {
 		return (a[1] - b[1]);
@@ -113,35 +119,54 @@ Generals.update = function(type, worker) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if ((type === 'data' || worker === Town || worker === Player) && invade && duel) {
+	if (((type === 'data' || worker === Town || worker === Player) && invade && duel)
+		|| this.runtime.force) {
+		this.runtime.force = false;
 		if (worker === Player && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
 			skillcombo = data[i].skills + (data[i].weaponbonus || '');
-			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]*\.?[0-9]*) Attack/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
-			attack = Player.get('attack') + attack_bonus;
-			defend = Player.get('defense') + defense_bonus;
+			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]+\.?[0-9]*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/gi))	
+				+ sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi)) * Player.get('health') / 3
+				+ (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
+			attack = (Player.get('attack') + attack_bonus
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+			defend = (Player.get('defense') + defense_bonus
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
 			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
-			army = Math.min(Player.get('armymax'),(skillcombo.regex(/Increases? Army Limit to ([0-9]+)/i) || 501));
+			army = Math.min(Player.get('armymax'),(sum(skillcombo.numregex(/Increases? Army Limit to ([0-9]+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = (skillcombo.regex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/i) || 0);
-			def_when_att = (skillcombo.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
+			att_when_att = sum(skillcombo.numregex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/gi));
+			def_when_att = sum(skillcombo.numregex(/([-+]?[0-9]+) Defense when attacked/gi));
 			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
-			monster_att = (skillcombo.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
-			monster_multiplier = 1+ (skillcombo.regex(/([-+]?[0-9]+)% Critical/i) || 0)/100;
-			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0), 10) : 0);
-//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)));
+			monster_att = sum(skillcombo.numregex(/([-+]?[0-9]+) Monster attack/gi));
+			monster_multiplier = 1.1 + sum(skillcombo.numregex(/([-+]?[0-9]+)% Critical/gi))/100;
+			if (sum(skillcombo.numregex(/Increase Power Attacks by ([0-9]+)/gi))) {
+				this.runtime.multipliers[i] = sum(skillcombo.numregex(/Increase Power Attacks by ([0-9]+)/gi));
+			}
+			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?[0-9]+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) defense/gi)), 10) : 0);
+//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			};
-			data[i].duel = {
+			data[i].stats = {
+				stamina: sum(skillcombo.numregex(/Increase Max Stamina by ([0-9]+)|([-+]?[0-9]+) Max Stamina/gi)) 
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
+				energy:	sum(skillcombo.numregex(/Increase Max Energy by ([0-9]+)|([-+]?[0-9]+) Max Energy/gi))
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
+			};
+ 			data[i].duel = {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
 				def: Math.floor(duel.defend + current_def + (current_att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
 			};
@@ -149,19 +174,22 @@ Generals.update = function(type, worker) {
 				att: Math.floor(monster_multiplier * (duel.attack + current_att + attack + monster_att)),
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			};
-			data[i].potential = {
-				bank: (skillcombo.regex(/Bank Fee/i) ? 1 : 0),
+/*			if (i === 'Xira' || i === 'Slayer') {
+				debug(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
+			}
+*/			data[i].potential = {
+				bank: (skillcombo.regex(/Bank Fee/gi) ? 1 : 0),
 				defense: Math.floor(duel.defend + (data[i].def + 4 - data[i].level) + ((data[i].att + 4 - data[i].level) * 0.7) + defense_potential + def_when_att_potential + ((attack_potential + att_when_att_potential) * 0.7)),
-				income: (skillcombo.regex(/Increase Income by ([0-9]+)/i) * 4) / data[i].level,
+				income: (skillcombo.regex(/Increase Income by ([0-9]+)/gi) * 4) / data[i].level,
 				invade: Math.floor(invade.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + ((attack_potential + (defense_potential * 0.7)) * army) + gen_att),
 				duel: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + attack_potential + (defense_potential * 0.7)),
 				monster: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + attack_potential + (monster_att * 4) / data[i].level),
 				raid_invade: 0,
 				raid_duel: 0,
-				influence: (skillcombo.regex(/Influence ([0-9]+)% Faster/i) || 0),
-				drops: (skillcombo.regex(/Chance ([0-9]+)% Drops/i) || 0),
-				demi: (skillcombo.regex(/Extra Demi Points/i) ? 1 : 0),
-				cash: (skillcombo.regex(/Bonus ([0-9]+) Gold/i) || 0)
+				influence: (skillcombo.regex(/Influence ([0-9]+)% Faster/gi) || 0),
+				drops: (skillcombo.regex(/Chance ([0-9]+)% Drops/gi) || 0),
+				demi: (skillcombo.regex(/Extra Demi Points/gi) ? 1 : 0),
+				cash: (skillcombo.regex(/Bonus ([0-9]+) Gold/gi) || 0)
 			};
 			data[i].potential.raid_invade = (data[i].potential.defense + data[i].potential.invade);
 			data[i].potential.raid_duel = (data[i].potential.defense + data[i].potential.duel);
@@ -172,9 +200,6 @@ Generals.update = function(type, worker) {
 };
 
 Generals.to = function(name) {
-	if (this.runtime.disabled) {
-		return true;
-	}
 	this._unflush();
 	if (name) {
 		name = this.best(name);
@@ -186,9 +211,27 @@ Generals.to = function(name) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
-	debug('Changing to General '+name);
+	if (!Generals.test(name)) {
+		//debug('Identified general ' + name + ', but changing would cost stamina or energy.');
+		debug('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
+		//debug('stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
+		return true;
+	}
+//	debug('Changing to General '+name);
+	debug('General change: ' + Player.get('general') + ' to ' + name);
 	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null)
 	return false;
+};
+
+Generals.test = function(name) {
+	var stamina = Player.get('stamina'), maxstamina = Player.get('maxstamina'), energy = Player.get('energy'), maxenergy = Player.get('maxenergy'), next;
+	Generals._unflush(); // Can't use "this" because called out of context
+	next = isObject(name) ? name : Generals.data[name];
+	if (name === 'any') {
+		return true;
+	} else {
+		return (maxstamina + next.stats.stamina >= stamina && maxenergy + next.stats.energy >= energy);
+	}
 };
 
 Generals.best = function(type) {
@@ -196,90 +239,38 @@ Generals.best = function(type) {
 	if (this.data[type]) {
 		return type;
 	}
-	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general');
+	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general'), first, second;
 	switch(type.toLowerCase()) {
-	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
-	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
-	case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
-	case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
-	case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
-	case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
-	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
-	case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
+	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/gi; break;
+	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/gi; break;
+	case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/gi; break;
+	case 'income':		rx = /Increase Income by ([0-9]+)/gi; break;
+	case 'item':		rx = /([0-9]+)% Drops for Quest/gi; break;
+	case 'influence':	rx = /Bonus Influence ([0-9]+)/gi; break;
+	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/gi; break;
+	case 'cash':		rx = /Bonus ([0-9]+) Gold/gi; break;
 	case 'bank':		return 'Aeris';
-	case 'war':			rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/i; break;
-	case 'invade':
-		for (i in this.data) {
-			if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'duel':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && this.data[i].duel.att > this.data[best].duel.att) || (this.data[i].duel && this.data[i].duel.att === this.data[best].duel.att && best !== current)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'raid-invade':
-		for (i in this.data) {
-			if (!best || (this.data[i].invade && (this.data[i].invade.att) > (this.data[best].invade.att))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'raid-duel':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && (this.data[i].duel.att) > (this.data[best].duel.att))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'monster_attack': 
-		for (i in this.data) {
-			if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'dispel':
-	case 'monster_defend': 
-		for (i in this.data) {
-			if (!best || (this.data[i].monster && this.data[i].monster.def > this.data[best].monster.def)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'defend':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && (this.data[i].duel.def > this.data[best].duel.def) || (this.data[i].duel.def === this.data[best].duel.def && best !== current))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'under level 4':
-		for (i in this.data){
-			if (this.data[i].priority === 1){
-				return i;
-			}
-		}
-		return 'any';
-	default:
+	case 'war':			rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/gi; break;
+	case 'raid-invade': 	// Fall through
+	case 'invade':			first = 'invade'; second = 'att'; break;
+	case 'raid-duel':		// Fall through
+	case 'duel':			first = 'duel'; second = 'att'; break;
+	case 'monster_attack': 	first = 'monster'; second = 'att'; break;
+	case 'dispel':			// Fall through
+	case 'monster_defend': 	first = 'monster'; second = 'def'; break;
+	case 'defend':			first = 'duel'; second = 'def'; break;
+	case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+	default:  return 'any';
+	}
+	if (rx) {
+		value = function(g) { return sum(g.skills.numregex(rx)); };
+	} else if (first && second) {
+		value = function(g) { return (g[first] ? g[first][second] : null); };
+	} else if (!value) {
+		debug('No definition for best general for ' + type);
 		return 'any';
 	}
-	for (i in this.data) {
-		value = sum(this.data[i].skills.regex(rx));
-		if (value) {
-			if (!best || value>bestval) {
-				best = i;
-				bestval = value;
-			}
-		}
-	}
-//	if (best) {
-//		debug('Best general found: '+best);
-//	}
+	best = bestObjValue(this.data, value, Generals.test);
 	return (best || 'any');
 };
 
@@ -394,4 +385,5 @@ Generals.dashboard = function(sort, rev) {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
 };
+
 

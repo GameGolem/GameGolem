@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 780;
+var revision = 781;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -347,7 +347,7 @@ String.prototype.numregex = function(r) {
 		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
 			if (a[i]) {
-				if (parens) {
+//				if (parens) {
 					a[i].match(r);
 					if (RegExp.$1) {
 						a[i] = RegExp.$1;
@@ -358,10 +358,8 @@ String.prototype.numregex = function(r) {
 					} else if (RegExp.$4) {
 						a[i] = RegExp.$4;
 					}
-				}
-				if (a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
-					a[i] = parseFloat(a[i]);
-				}
+//				}
+				a[i] = (isNumber(parseFloat(a[i])) ? parseFloat(a[i]) : a[i]);
 			}
 		}
 		if (a.length===1) {
@@ -3022,6 +3020,11 @@ Queue.option = {
 	stamina: 0,
 	start_energy: 0,
 	energy: 0,
+	quest: false, // Use for name of quest if over-riding quest
+	general : false, // If necessary to specify a multiple general for attack
+	action: false, // Level up action
+	forceenergy: false, // Used to signal workers to ignore wait conditions to burn energy
+	forcestamina: false, // Used to signal workers to ignore wait conditions and burn stamina
 	pause: false
 };
 
@@ -3122,7 +3125,7 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(type,worker) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false;
+	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
 	if (!type || type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
@@ -3157,27 +3160,63 @@ Queue.update = function(type,worker) {
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
 			return;
 		}
+
 		this.burn.stamina = this.burn.energy = 0;
-		if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
-			this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-			this.option.burn_stamina = this.burn.stamina > 0;
+		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.burn.forcestamina = this.burn.forceenergy = false;
+		for (i in ensta) {
+			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
+				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
+				// Change later to Queue.stamina.burn and Queue.stamina.force
+				this.burn[ensta[i]] = Player.get(ensta[i]);
+				this.burn['force' + ensta[i]] = true;
+				break;
+			}
 		}
-		if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
-			this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
-			this.option.burn_energy = this.burn.energy > 0;
+		if (this.enabled(LevelUp) && LevelUp.option.enabled 
+				 && !this.burn.stamina && !this.burn.energy 
+				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
+			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
+			if (action) {
+				this.burn.energy = action.energy;
+				this.burn.stamina = action.stamina;
+				this.runtime.levelup = true;
+				mode = (action.energy ? 'defend' : 'attack');
+				stat = (action.energy ? 'energy' : 'stamina');
+				if (action.quest) {
+					this.runtime.quest = action.quest;
+				}
+				if (action.big) {
+					this.runtime.general = action.general || (LevelUp.option.general === 'any' 
+							? false 
+							: LevelUp.option.general === 'Manual' 
+							? LevelUp.option.general_choice
+							: LevelUp.option.general );
+				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
+					debug('Overriding manual general that multiplies attack/defense');
+					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
+				}
+				this.runtime.basehit = action.basehit;
+				Queue.burn.forcestamina = (action.stamina !== 0);
+				Queue.burn.forceenergy = (action.energy !== 0);
+				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));
+				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
+			}
+		}
+		if (!this.burn.stamina && !this.burn.energy) {
+			if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
+				this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
+				this.option.burn_stamina = this.burn.stamina > 0;
+			}
+			if (this.option.burn_energy || Player.get('energy') >= this.option.start_energy) {
+				this.burn.energy = Math.max(0, Player.get('energy') - this.option.energy);
+				this.option.burn_energy = this.burn.energy > 0;
+			}
+		} else {
+			if (this.burn.forcestamina && Player.get('health') < 13) {
+				LevelUp.runtime.heal_me = true;
+			}
 		}
 		this._push();
-//		debug('Start Queue, Stamina: ' + this.burn.stamina +', Energy: ' + this.burn.energy);
-		
-		// We don't want to stay at max any longer than we have to because it is wasteful.  Burn a bit to start the countdown timer.
-	/*	if (Player.get('energy') >= Player.get('maxenergy')){
-			this.burn.stamina = 0;	// Focus on burning energy
-			debug('At max energy, burning energy first.');
-		} else if (Player.get('stamina') >= Player.get('maxstamina')){
-			this.burn.energy = 0;	// Focus on burning stamina
-			debug('At max stamina, burning stamina first.');
-		}
-	*/	
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
 				debug(Workers[i].name + '.work(false);');
@@ -4156,7 +4195,7 @@ Bank.init = function() {
 };
 
 Bank.work = function(state) {
-	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above) {
+	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
 		return QUEUE_FINISH;
 	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
 		return QUEUE_CONTINUE;
@@ -4173,7 +4212,8 @@ Bank.update = function(type, worker) {
 };
 
 Bank.stash = function(amount) {
-	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10) {
+	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10 
+			|| (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
@@ -4403,7 +4443,6 @@ Battle.init = function() {
 */
 Battle.parse = function(change) {
 	var data, uid, tmp, myrank;
-	debug('page: ' + Page.page);
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
@@ -4542,7 +4581,7 @@ Battle.update = function(type) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && (Monster.get('runtime.attack',false) || Monster.get('runtime.fortify',false))) {
+	if (!points && this.option.monster && !Queue.runtime.levelup && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -5041,8 +5080,9 @@ Generals.defaults['castle_age'] = {
 };
 
 Generals.runtime = {
-	disabled:false, // Nobody should touch this except LevelUp!!!
-	armymax:1 // Don't force someone with a small army to buy a whole load of exrta items...
+	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
+	force: false,
+	armymax:1 // Don't force someone with a small army to buy a whole load of extra items...
 };
 
 Generals.init = function() {
@@ -5054,6 +5094,7 @@ Generals.init = function() {
 	if (!Player.get('attack') || !Player.get('defense')) {
 		this._watch(Player); // Only need them the first time...
 	}
+	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
 	this._watch(Town);
 };
 
@@ -5109,7 +5150,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(type, worker) {
-	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo;
+	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 	if (!type || type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
@@ -5123,6 +5164,10 @@ Generals.update = function(type, worker) {
 		if (data[i].level < 4) {
 			priority_list.push([i, data[i].priority]);
 		}
+		// Force an update if stats not yet calculated
+		if (!data[i].stats) {
+			this.runtime.force = true;
+		}
 	}
 	priority_list.sort(function(a,b) {
 		return (a[1] - b[1]);
@@ -5133,35 +5178,54 @@ Generals.update = function(type, worker) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if ((type === 'data' || worker === Town || worker === Player) && invade && duel) {
+	if (((type === 'data' || worker === Town || worker === Player) && invade && duel)
+		|| this.runtime.force) {
+		this.runtime.force = false;
 		if (worker === Player && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
 			skillcombo = data[i].skills + (data[i].weaponbonus || '');
-			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]*\.?[0-9]*) Attack/i)) + ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Attack for every Hero Owned/i) || 0) * (length(data)-1)));
-			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?[0-9]*\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/i))	+ ((data[i].skills.regex(/Increase ([-+]?[0-9]*\.?[0-9]*) Player Defense for every Hero Owned/i) || 0) * (length(data)-1)));
-			attack = Player.get('attack') + attack_bonus;
-			defend = Player.get('defense') + defense_bonus;
+			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]+\.?[0-9]*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/gi))	
+				+ sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi)) * Player.get('health') / 3
+				+ (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
+			attack = (Player.get('attack') + attack_bonus
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+			defend = (Player.get('defense') + defense_bonus
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
 			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
-			army = Math.min(Player.get('armymax'),(skillcombo.regex(/Increases? Army Limit to ([0-9]+)/i) || 501));
+			army = Math.min(Player.get('armymax'),(sum(skillcombo.numregex(/Increases? Army Limit to ([0-9]+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = (skillcombo.regex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/i) || 0);
-			def_when_att = (skillcombo.regex(/([-+]?[0-9]+) Defense when attacked/i) || 0);
+			att_when_att = sum(skillcombo.numregex(/Increase Player Attack when Defending by ([-+]?[0-9]+)/gi));
+			def_when_att = sum(skillcombo.numregex(/([-+]?[0-9]+) Defense when attacked/gi));
 			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
-			monster_att = (skillcombo.regex(/([-+]?[0-9]+) Monster attack/i) || 0);
-			monster_multiplier = 1+ (skillcombo.regex(/([-+]?[0-9]+)% Critical/i) || 0)/100;
-			current_att = data[i].att + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) defense/i) || 0), 10) : 0);
-//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/i) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/i) || 0)));
+			monster_att = sum(skillcombo.numregex(/([-+]?[0-9]+) Monster attack/gi));
+			monster_multiplier = 1.1 + sum(skillcombo.numregex(/([-+]?[0-9]+)% Critical/gi))/100;
+			if (sum(skillcombo.numregex(/Increase Power Attacks by ([0-9]+)/gi))) {
+				this.runtime.multipliers[i] = sum(skillcombo.numregex(/Increase Power Attacks by ([0-9]+)/gi));
+			}
+			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?[0-9]+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) defense/gi)), 10) : 0);
+//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			};
-			data[i].duel = {
+			data[i].stats = {
+				stamina: sum(skillcombo.numregex(/Increase Max Stamina by ([0-9]+)|([-+]?[0-9]+) Max Stamina/gi)) 
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
+				energy:	sum(skillcombo.numregex(/Increase Max Energy by ([0-9]+)|([-+]?[0-9]+) Max Energy/gi))
+						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
+						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
+			};
+ 			data[i].duel = {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
 				def: Math.floor(duel.defend + current_def + (current_att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
 			};
@@ -5169,19 +5233,22 @@ Generals.update = function(type, worker) {
 				att: Math.floor(monster_multiplier * (duel.attack + current_att + attack + monster_att)),
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			};
-			data[i].potential = {
-				bank: (skillcombo.regex(/Bank Fee/i) ? 1 : 0),
+/*			if (i === 'Xira' || i === 'Slayer') {
+				debug(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
+			}
+*/			data[i].potential = {
+				bank: (skillcombo.regex(/Bank Fee/gi) ? 1 : 0),
 				defense: Math.floor(duel.defend + (data[i].def + 4 - data[i].level) + ((data[i].att + 4 - data[i].level) * 0.7) + defense_potential + def_when_att_potential + ((attack_potential + att_when_att_potential) * 0.7)),
-				income: (skillcombo.regex(/Increase Income by ([0-9]+)/i) * 4) / data[i].level,
+				income: (skillcombo.regex(/Increase Income by ([0-9]+)/gi) * 4) / data[i].level,
 				invade: Math.floor(invade.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + ((attack_potential + (defense_potential * 0.7)) * army) + gen_att),
 				duel: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + ((data[i].def + 4 - data[i].level) * 0.7) + attack_potential + (defense_potential * 0.7)),
 				monster: Math.floor(duel.attack + (data[i].att + 4 - data[i].level) + attack_potential + (monster_att * 4) / data[i].level),
 				raid_invade: 0,
 				raid_duel: 0,
-				influence: (skillcombo.regex(/Influence ([0-9]+)% Faster/i) || 0),
-				drops: (skillcombo.regex(/Chance ([0-9]+)% Drops/i) || 0),
-				demi: (skillcombo.regex(/Extra Demi Points/i) ? 1 : 0),
-				cash: (skillcombo.regex(/Bonus ([0-9]+) Gold/i) || 0)
+				influence: (skillcombo.regex(/Influence ([0-9]+)% Faster/gi) || 0),
+				drops: (skillcombo.regex(/Chance ([0-9]+)% Drops/gi) || 0),
+				demi: (skillcombo.regex(/Extra Demi Points/gi) ? 1 : 0),
+				cash: (skillcombo.regex(/Bonus ([0-9]+) Gold/gi) || 0)
 			};
 			data[i].potential.raid_invade = (data[i].potential.defense + data[i].potential.invade);
 			data[i].potential.raid_duel = (data[i].potential.defense + data[i].potential.duel);
@@ -5192,9 +5259,6 @@ Generals.update = function(type, worker) {
 };
 
 Generals.to = function(name) {
-	if (this.runtime.disabled) {
-		return true;
-	}
 	this._unflush();
 	if (name) {
 		name = this.best(name);
@@ -5206,9 +5270,27 @@ Generals.to = function(name) {
 		log('General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
-	debug('Changing to General '+name);
+	if (!Generals.test(name)) {
+		//debug('Identified general ' + name + ', but changing would cost stamina or energy.');
+		debug('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
+		//debug('stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
+		return true;
+	}
+//	debug('Changing to General '+name);
+	debug('General change: ' + Player.get('general') + ' to ' + name);
 	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null)
 	return false;
+};
+
+Generals.test = function(name) {
+	var stamina = Player.get('stamina'), maxstamina = Player.get('maxstamina'), energy = Player.get('energy'), maxenergy = Player.get('maxenergy'), next;
+	Generals._unflush(); // Can't use "this" because called out of context
+	next = isObject(name) ? name : Generals.data[name];
+	if (name === 'any') {
+		return true;
+	} else {
+		return (maxstamina + next.stats.stamina >= stamina && maxenergy + next.stats.energy >= energy);
+	}
 };
 
 Generals.best = function(type) {
@@ -5216,90 +5298,38 @@ Generals.best = function(type) {
 	if (this.data[type]) {
 		return type;
 	}
-	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general');
+	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general'), first, second;
 	switch(type.toLowerCase()) {
-	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/i; break;
-	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/i; break;
-	case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/i; break;
-	case 'income':		rx = /Increase Income by ([0-9]+)/i; break;
-	case 'item':		rx = /([0-9]+)% Drops for Quest/i; break;
-	case 'influence':	rx = /Bonus Influence ([0-9]+)/i; break;
-	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/i; break;
-	case 'cash':		rx = /Bonus ([0-9]+) Gold/i; break;
+	case 'cost':		rx = /Decrease Soldier Cost by ([0-9]+)/gi; break;
+	case 'stamina':		rx = /Increase Max Stamina by ([0-9]+)|\+([0-9]+) Max Stamina/gi; break;
+	case 'energy':		rx = /Increase Max Energy by ([0-9]+)|\+([0-9]+) Max Energy/gi; break;
+	case 'income':		rx = /Increase Income by ([0-9]+)/gi; break;
+	case 'item':		rx = /([0-9]+)% Drops for Quest/gi; break;
+	case 'influence':	rx = /Bonus Influence ([0-9]+)/gi; break;
+	case 'defense':		rx = /([-+]?[0-9]+) Player Defense/gi; break;
+	case 'cash':		rx = /Bonus ([0-9]+) Gold/gi; break;
 	case 'bank':		return 'Aeris';
-	case 'war':			rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/i; break;
-	case 'invade':
-		for (i in this.data) {
-			if (!best || (this.data[i].invade && this.data[i].invade.att > this.data[best].invade.att) || (this.data[i].invade && this.data[i].invade.att === this.data[best].invade.att && best !== current)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'duel':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && this.data[i].duel.att > this.data[best].duel.att) || (this.data[i].duel && this.data[i].duel.att === this.data[best].duel.att && best !== current)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'raid-invade':
-		for (i in this.data) {
-			if (!best || (this.data[i].invade && (this.data[i].invade.att) > (this.data[best].invade.att))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'raid-duel':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && (this.data[i].duel.att) > (this.data[best].duel.att))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'monster_attack': 
-		for (i in this.data) {
-			if (!best || (this.data[i].monster && this.data[i].monster.att > this.data[best].monster.att)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'dispel':
-	case 'monster_defend': 
-		for (i in this.data) {
-			if (!best || (this.data[i].monster && this.data[i].monster.def > this.data[best].monster.def)) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'defend':
-		for (i in this.data) {
-			if (!best || (this.data[i].duel && (this.data[i].duel.def > this.data[best].duel.def) || (this.data[i].duel.def === this.data[best].duel.def && best !== current))) {
-				best = i;
-			}
-		}
-		return (best || 'any');
-	case 'under level 4':
-		for (i in this.data){
-			if (this.data[i].priority === 1){
-				return i;
-			}
-		}
-		return 'any';
-	default:
+	case 'war':			rx = /\+([0-9]+) Attack to your entire War Council|-([0-9]+) Attack to your opponents War Council/gi; break;
+	case 'raid-invade': 	// Fall through
+	case 'invade':			first = 'invade'; second = 'att'; break;
+	case 'raid-duel':		// Fall through
+	case 'duel':			first = 'duel'; second = 'att'; break;
+	case 'monster_attack': 	first = 'monster'; second = 'att'; break;
+	case 'dispel':			// Fall through
+	case 'monster_defend': 	first = 'monster'; second = 'def'; break;
+	case 'defend':			first = 'duel'; second = 'def'; break;
+	case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+	default:  return 'any';
+	}
+	if (rx) {
+		value = function(g) { return sum(g.skills.numregex(rx)); };
+	} else if (first && second) {
+		value = function(g) { return (g[first] ? g[first][second] : null); };
+	} else if (!value) {
+		debug('No definition for best general for ' + type);
 		return 'any';
 	}
-	for (i in this.data) {
-		value = sum(this.data[i].skills.regex(rx));
-		if (value) {
-			if (!best || value>bestval) {
-				best = i;
-				bestval = value;
-			}
-		}
-	}
-//	if (best) {
-//		debug('Best general found: '+best);
-//	}
+	best = bestObjValue(this.data, value, Generals.test);
 	return (best || 'any');
 };
 
@@ -5414,6 +5444,7 @@ Generals.dashboard = function(sort, rev) {
 		$('#golem-dashboard-Generals thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
 };
+
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -5534,7 +5565,7 @@ Gift.parse = function(change) {
 		}
 		// Check for gifts
 //		debug('Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
-		if ($('div.messages').text().indexOf('gift') >= 0) { // This will trigger if there are gifts waiting
+		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
 			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
 				return false;	// let the work function send us to the index page to get the info.
@@ -5545,7 +5576,7 @@ Gift.parse = function(change) {
 				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
 //				debug('Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
 			} else {
-				log("Can't find the gift sender's ID.");
+				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
 			}
 		} else {
 //			debug('No more waiting gifts. Did we miss the gift accepted page?');
@@ -6266,7 +6297,6 @@ LevelUp.defaults['castle_age'] = {
 };
 
 LevelUp.option = {
-	enabled:false,
 	income:true,
 	bank:true,
 	general:'any',
@@ -6276,19 +6306,15 @@ LevelUp.option = {
 };
 
 LevelUp.runtime = {
-	level:0,// set when we start, compare to end
 	heal_me:false,// we're active and want healing...
-	battle_monster:false,// remember whether we're doing monsters first or not or not...
-	old_quest:null,// save old quest, if it's not null and we're working then push it back again...
-	old_quest_energy:0,
-	running:false,// set when we change
 	energy:0,
 	stamina:0,
+	last_energy:'quest',
+	last_stamina:'attack',
 	exp:0,
 	exp_possible:0,
 	avg_exp_per_energy:1.4,
 	avg_exp_per_stamina:2.4,
-	defending:false, // True if last exp from energy was from a quest
 	quests:[] // quests[energy] = [experience, [quest1, quest2, quest3]]
 };
 
@@ -6311,16 +6337,6 @@ LevelUp.display = [
 		label:'Use General',
 		require:{'general':'Manual'},
 		select:'generals'
-	},{
-		id:'income',
-		require:{'general':[['any']]},
-		label:'Allow Income General',
-		checkbox:true
-	},{
-		id:'bank',
-		require:{'general':[['any']]},
-		label:'Allow Bank General',
-		checkbox:true
 	},{
 		id:'order',
 		label:'Spend first ',
@@ -6350,7 +6366,6 @@ LevelUp.init = function() {
 	this._watch(Player);
 	this._watch(Quest);
 	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
-	this.runtime.level = this.runtime.level || Player.get('level'); // Make sure we have a default...
 };
 
 LevelUp.parse = function(change) {
@@ -6386,12 +6401,14 @@ LevelUp.update = function(type,worker) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
+				//debug('page.page ' + Page.page);
+				this.runtime.last_stamina = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle';
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
 			} else if (runtime.energy > energy) {
-				this.runtime.defending = (Page.page === 'monster_battle_monster');
+				this.runtime.last_energy = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'defend' : 'quest';
 				// Only need average for monster defense.  Quest average is known.
-				if (this.runtime.defending) {
+				if (this.runtime.last_energy === 'defend') {
 					calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'energy',runtime.energy - energy);
 				}
@@ -6401,49 +6418,7 @@ LevelUp.update = function(type,worker) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-// Unnecessary to calculate fastest level up time.  Historical is more accurate, and if the user wanted to level up as fast as possible, they would set Quest for Experience.
-/*
-	if (worker === Quest || !length(runtime.quests)) { // Now work out the quickest quests to level up
-		quests = Quest.get();
-		runtime.quests = quests = [[0]];// quests[energy] = [experience, [quest1, quest2, quest3]]
-		for (i in quests) { // Fill out with the best exp for every energy cost
-			if (!quests[quests[i].energy] || quests[i].exp > quests[quests[i].energy][0]) {
-				quests[quests[i].energy] = [quests[i].exp, [i]];
-			}
-		}
-		j = 1;
-		k = [0];
-		for (i=1; i<quests.length; i++) { // Fill in the blanks and replace using the highest exp per energy ratios
-			if (quests[i] && quests[i][0] / i >= k[0] / j) {
-				j = i;
-				k = quests[i];
-			} else {
-				quests[i] = [k[0], [k[1][0]]];
-			}
-		}
-		while (quests.length > 1 && quests[quests.length-1][0] === quests[quests.length-2][0]) { // Delete entries at the end that match (no need to go beyond our best ratio quest)
-			quests.pop();
-		}
-// No need to merge quests as we're only interested in the first one...
-//		for (i=1; i<quests.length; i++) { // Merge lower value quests to use up all the energy
-//			if (quests[quests[i][1][0]].energy < i) {
-//				quests[i][0] += quests[i - quests[quests[i][1][0]].energy][0];
-//				quests[i][1] = quests[i][1].concat(quests[i - quests[quests[i][1][0]].energy][1])
-//			}
-//		}
-//		debug('Quickest '+quests.length+' Quests: '+JSON.stringify(quests));
-	}
-	if (this.runtime.quests.length <= 1) { // No known quests yet...
-		runtime.exp_possible = 1;
-	} else if (energy < this.runtime.quests.length) { // Energy from questing
-		runtime.exp_possible = this.runtime.quests[Math.min(energy, this.runtime.quests.length - 1)][0];
-	} else {
-		runtime.exp_possible = (this.runtime.quests[this.runtime.quests.length-1][0] * Math.floor(energy / (this.runtime.quests.length - 1))) + this.runtime.quests[energy % (this.runtime.quests.length - 1)][0];
-	}
-		if ((order.indexOf('Idle') >= order.indexOf('Monster') && (Monster.runtime.attack)) || (order.indexOf('Idle') >= order.indexOf('Battle'))){
-			runtime.exp_possible += Math.floor(stamina * runtime.avg_exp_per_stamina); // Stamina estimate (when we can spend it)
-		}
-*/
+	//debug('next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
@@ -6454,159 +6429,37 @@ LevelUp.update = function(type,worker) {
 	} else {
 		Dashboard.status(this);
 	}
-	if (!this.option.enabled || this.option.general === 'any') {
+/*	if (!this.option.enabled || this.option.general === 'any') {
 		Generals.set('runtime.disabled', false);
 	}
-};
+*/};
 
 LevelUp.work = function(state) {
-	var runtime = this.runtime, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder();
-	//debug('runtime ' + runtime.level + ' player ' + Player.get('level'));
-	// Get our level up general if we're less than 100 exp from level up
-	if (this.option.general !== 'any' && Player.get('exp_needed') < 100 && !(this.option.bank && Queue.get('runtime.current') === 'Bank') && !(this.option.income && Queue.get('runtime.current') === 'Income')) {
+	var heal = this.runtime.heal_me, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder(), action = this.runtime.action;
+	Generals.set('runtime.disabled', false);
+/*	if (!action || !action.big) {
 		Generals.set('runtime.disabled', false);
-		general = this.option.general;
-		if(general = 'Manual'){
-			general = this.option.general_choice;
-		}
-		if (Generals.to(general)) {
-			//debug('Disabling Generals because we are within 100 XP from leveling.');
+	}
+*/	if (!Queue.burn.forcestamina || !heal) {
+		return QUEUE_FINISH;
+	}
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+	if (heal && Heal.me()) {
+		return QUEUE_CONTINUE;
+	}
+	this.runtime.heal_me = false;
+/*	if (action && action.big) {
+		Generals.set('runtime.disabled', false);
+		if (Generals.to(this.option.general)) {
+			//debug('Disabling Generals because next action will level.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
 		}
-	} else {
-		Generals.set('runtime.disabled', false);
 	}
-	if (runtime.old_quest) {
-		Quest.runtime.best = runtime.old_quest;
-		Quest.runtime.energy = runtime.old_quest_energy;
-		runtime.old_quest = null;
-		runtime.old_quest_energy = 0;
-	}
-	if (!this.option.enabled || this.get('exp_possible') < Player.get('exp_needed')) {
-		if (runtime.running) { // Shut down the level up burn
-			if (runtime.level < Player.get('level')) { // We've just levelled up
-				if ($('#app'+APPID+'_energy_current_value').next().css('color') === 'rgb(25, 123, 48)' && energy >= Player.get('maxenergy')) {
-					Queue.burn.energy = energy;
-					Queue.burn.stamina = 0;
-					return QUEUE_FINISH;
-				}
-				if ($('#app'+APPID+'_stamina_current_value').next().css('color') === 'rgb(25, 123, 48)' && stamina >= Player.get('maxstamina')) {
-					Queue.burn.energy = 0;
-					Queue.burn.stamina = stamina;
-					return QUEUE_FINISH;
-				}
-			}
-			Generals.set('runtime.disabled', false);
-			Queue.burn.stamina = Math.max(0, stamina - Queue.get('option.stamina'));
-			Queue.burn.energy = Math.max(0, energy - Queue.get('option.energy'));
-			Battle.set('option.monster', runtime.battle_monster);
-			runtime.running = false;
-			runtime.level = Player.get('level');
-		}
-		return QUEUE_FINISH;
-	}
-	if (state && runtime.heal_me) {
-		if (Heal.me()) {
-			return QUEUE_CONTINUE;
-		}
-		runtime.heal_me = false;
-	}
-	if (state && !runtime.running) { // We're not running yet and we have focus
-		runtime.level = Player.get('level');
-		runtime.battle_monster = Battle.get('option.monster');
-		runtime.running = true;
-		//debug('Running '+runtime.running);
-		Battle.set('option.monster', false);
-	}
-
-		
-/*	max quest xp = quests < energy max exp * number possible
-	max fortification 
-	max stamina
-	
-	Find biggest chunk
-	Do normal action until can't fit any more
-	Do tiny chunks to fill up space
-	Do biggest chunk
-*/	
-	if (runtime.level === Player.get('level') && Player.get('health') < 13 && stamina) { // If we're still trying to level up and we don't have enough health and we have stamina to burn then heal us up...
-		runtime.heal_me = true;
-		return QUEUE_CONTINUE;
-	}
-
-	// We don't have focus, but we do want to level up quicker
-	if (this.option.order !== 'Stamina' 
-			|| !stamina || Player.get('health') < 13 
-			|| (stamina < Monster.runtime.stamina 
-				&& (!Battle.runtime.attacking 
-					|| (order.indexOf('Idle') <= order.indexOf('Battle'))))
-			|| ((order.indexOf('Idle') <= order.indexOf('Monster')
-					|| (!Monster.runtime.attack))
-			&& (!Battle.runtime.attacking 
-				|| (order.indexOf('Idle') <= order.indexOf('Battle'))))){
-		debug('Running Energy Burn');
-		if (Player.get('energy')) { // Only way to burn energy is to do quests - energy first as it won't cost us anything
-	
-			var big_quest = null, normal_quest = null, little_quest = null;
-			quests = Quest.get();
-			big_quest = bestObjValue(quests, function(q){
-				return ((q.energy <= energy && q.energy > quests[Quest.runtime.best].energy) 
-						? q.exp : null);
-			});
-//	debug('big_quest = ' + big_quest);
-			var big_quest_energy = 0;
-			if (big_quest){
-				big_quest_energy = quests[big_quest].energy;
-			}
-//	debug('big_quest_energy = ' + big_quest_energy);
-
-/*	// Find the biggest monster to throw exp into the next level
-			monsters = Monster.get();
-			for (i in monsters) { 
-				stamina_options.concatenate(Monsters.types[monsters[i].type_label].attack);
-			}
-			
-			big_attack = bestObjValue(stamina_options, function(s){
-				return ((s =< stamina && s > this.runtime.record.exp_per_stamina.stamina[0]) ? s : null);
-			}); 
-			
-*/	// See if we can do some of our normal quests before the big one
-			var exp = Player.get('exp_needed');
-			if (energy - big_quest_energy > quests[Quest.runtime.best].energy
-					&& exp > quests[Quest.runtime.best].exp) {
-				debug('Doing normal quest to burn energy');
-				normal_quest = Quest.runtime.best;
-			}
-			// Find out if we have room to do some small quests before we get to the big one
-			for (i in quests) { 
-				if (energy - big_quest_energy >= quests[i].energy
-						&& exp > quests[i].exp
-						&& (!little_quest || (quests[i].energy / quests[i].exp) < (quests[little_quest].energy / quests[little_quest].exp))) {
-					little_quest = i;
-				}
-			}
-			var next_quest = normal_quest || little_quest || big_quest;
-			if (next_quest) {
-				debug('Doing a small quest to burn energy');
-				Queue.burn.energy = energy;
-				Queue.burn.stamina = 0;
-				runtime.old_quest_energy = Quest.runtime.energy;
-				runtime.old_quest = Quest.runtime.best;
-				Quest.runtime.energy = energy; // Ok, we're lying, but it works...
-				Quest.runtime.best = next_quest; // Access directly as Quest.set() would force a Quest.update and overwrite this again
-				return QUEUE_FINISH;
-			}
-		}
-	} else {
-		debug('Running Stamina Burn');
-	}
-	Quest._update('data', null); // Force Quest to decide it's best quest again...
-	// Got to have stamina left to get here, so burn it all
-	Queue.burn.energy = 0; // Will be 0 anyway, but better safe than sorry
-	Queue.burn.stamina = stamina; // Make sure we can burn everything, even the stuff we're saving
-	return QUEUE_FINISH;
+*/	return QUEUE_FINISH;
 };
 
 LevelUp.get = function(what,def) {
@@ -6640,6 +6493,137 @@ LevelUp.get = function(what,def) {
 	}
 };
 
+LevelUp.findAction = function(what, energy, stamina, exp) {
+	var options =[], i, check, energyAction, staminaAction, quests, monsters, big, multiples, general = false, basehit, max, raid = false;
+	switch(what) {
+	case 'best':
+		if (this.option.order === 'Energy') {
+			check = this.findAction(this.runtime.last_energy,energy,0,exp);
+			//debug(' levelup quest ' + energy + ' ' + exp);
+			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
+			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
+				return check;
+			}
+		}
+		// Find the biggest exp quest or stamina return to push unusable exp into next level
+		big = this.findAction('big',energy,stamina,0); 
+		//debug(' check sta ' + stamina + 'big:' + big.stamina);
+		check = this.findAction('attack',0,stamina - big.stamina,exp);
+		if (check) {
+			return check;
+		}
+		check = this.findAction(this.runtime.last_energy,energy - big.energy,0,exp);
+		if (check) {
+			return check;
+		}
+		//debug(' big.general ' + big.general+ big.exp);
+		return (!big.none ? big : false);
+	case 'big':		
+		// Should enable to look for other options than last stamina, energy?
+		energyAction = this.findAction(this.runtime.last_energy,energy,stamina,0);
+		staminaAction = this.findAction('attack',energy,stamina,0);  // Need to update to allow for battle/war
+		if (energyAction && (!staminaAction || energyAction.exp >= staminaAction.exp)) {
+			//debug('big energy ' + energyAction.exp);
+			energyAction.big = true;
+			return energyAction;
+		} else if (staminaAction) {
+			//debug('big stamina ' + staminaAction.exp + staminaAction.general);
+			staminaAction.big = true;
+			return staminaAction;
+		} else {
+			return {	energy : 0,
+						stamina : 0,
+						none : true};  
+		}
+	case 'defend':	
+		// Need to fill in Barbarus.etc ability
+		monsters = Monster.get();
+		for (i in monsters) { 
+			options = options.concat(Monster.types[monsters[i].type].defend);
+		}
+		original = options = unique(options);
+		multiples = Generals.get('runtime.multipliers');
+		for (i in multiples) {
+			options = options.concat(original.map(function(s){ return s*multiples[i]; } ));
+		}
+		// Use 2.8X as a safe exp multiple until actual figures can be coded from each monster
+		i = bestValue(options, Math.min((exp ?  exp / 2.8 : energy), energy));
+		if (i !== -1) {
+			//debug('defend ' + i);
+			return {	energy : i,
+						stamina : 0,
+						exp : i * this.get('exp_per_energy')};  
+		} else {
+			return null;
+		}
+	case 'quest':		
+		quests = Quest.get();
+		if (quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
+			i = Quest.runtime.best;
+		} else {
+			i = bestObjValue(quests, function(q) {
+				return ((q.energy <= energy && (!exp || (q.exp < exp))) 
+						? q.exp / (exp ? q.energy : 1) : null);
+			});
+		}
+		if (i) {
+			//debug('quest ' + i);
+			return {	energy : quests[i].energy,
+						stamina : 0,
+						exp : quests[i].exp,
+						quest : i};
+		} else {
+			return null;
+		}
+	case 'attack':		
+		// Need to fill in Barbarus.etc ability
+		monsters = Monster.get();
+		for (i in monsters) {
+			//debug('i:'+ i + ' monster[i].name'+monsters[i].name+' type:'+monsters[i].type + ' raid:'+Monster.types[monsters[i].type].raid);
+			if (!Monster.types[monsters[i].type].raid) {
+				if (Monster.types[monsters[i].type].defend && Monster.types[monsters[i].type].attack.indexOf(1) > -1) {
+					options = options.concat(Monster.types[monsters[i].type].attack.slice(1,Monster.get('runtime.button.count')));
+				} else {
+					options = options.concat(Monster.types[monsters[i].type].attack.slice(0,Monster.get('runtime.button.count')));
+				}
+			} else {
+				raid = true;
+			}
+		}
+		options = unique(options);
+		// Use 6X as a safe exp variation multiple until actual figures available
+		max = Math.min((exp ? exp / 6 : stamina), stamina);
+		staminaAction = basehit = bestValue(options, max);
+		multiples = Generals.get('runtime.multipliers');
+		for (i in multiples) {
+			check = bestValue(options.map(function(s){ return s * multiples[i]; } ), max);
+			if (check > staminaAction) {
+				staminaAction = check;
+				basehit = check / multiples[i];
+				general = i;
+			}
+		}
+		if (staminaAction < 0) {
+			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
+		}
+		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
+		if (staminaAction > 0 ) {
+			return {	stamina : staminaAction,
+						energy : 0,
+						exp : staminaAction * this.get('exp_per_stamina'),
+						general :  general,
+						basehit : basehit}
+		} else {
+			return null;
+		}
+	case 'battle':		
+		// Need to fill in later
+	}
+};
+			
+		
+			
+	
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6698,8 +6682,13 @@ Monster.runtime = {
 	secondary: false, // Is there a target for mage or rogue that is full or not in cycle?  Used to tell quest to wait if don't quest when fortifying is on.
 	avg_damage_per_stamina:1,
 	avg_defend_per_energy:1,
-	stamina_used:0,
-	energy_used:0,
+	multiplier : {defend:1,attack:1}, // General multiplier like Orc King or Barbarus
+	energy: 0, // How much can be used for next attack
+	stamina: 0, // How much can be used for next attack
+	used:{stamina:0,energy:0}, // How much was used in last attack
+	button: {attack: {pick:1, query:[]},  // Query - the jquery query for buttons, pick - which button to use
+			defend: {pick:1, query:[]},
+			count:2}, // How many attack/defend buttons can the player access?
 	health:10 // minimum health to attack
 };
 
@@ -7099,7 +7088,7 @@ Monster.types = {
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
 		dead:'seamonster_dead.jpg',
-		title:'seamonster_title_emerald.jpg', //Guesswork. Needs verify.
+		title:'seamonster_title_emerald.jpg', 
 		achievement:250000,
 		timer:259200, // 72 hours
 		mpool:2,
@@ -7109,7 +7098,7 @@ Monster.types = {
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
-	serpent_sapphire: { // DEAD image guesswork based on others and enabled.
+	serpent_sapphire: { 
 		name:'Sapphire Sea Serpent',
 		list:'seamonster_list_blue.jpg',
 		image:'seamonster_blue.jpg',
@@ -7193,7 +7182,7 @@ Monster.types = {
 		name:'Alpha Bahamut, the Volcanic Dragon',
 		list:'nm_volcanic_list_2.jpg',
 		image:'nm_volcanic_large_2.jpg',
-		dead:'nm_volcanic_dead_2.jpg', //Guesswork
+		dead:'nm_volcanic_dead_2.jpg', 
 		achievement:6000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
@@ -7206,7 +7195,7 @@ Monster.types = {
 		name:'Azriel, the Angel of Wrath',
 		list:'nm_azriel_list.jpg',
 		image:'nm_azriel_large2.jpg',
-		dead:'nm_azriel_dead.jpg', //Guesswork
+		dead:'nm_azriel_dead.jpg',
 		achievement:6000000, // ~0.5%, 2X = ~1%
 		timer:604800, // 168 hours
 		mpool:1,
@@ -7219,7 +7208,7 @@ Monster.types = {
 		name:'War of the Red Plains',
 		list:'nm_war_list.jpg',
 		image:'nm_war_large.jpg',
-		dead:'nm_war_dead.jpg', //Guesswork
+		dead:'nm_war_dead.jpg',
 		achievement:2500,
 		timer:604800, // 168 hours
 		mpool:3,
@@ -7260,6 +7249,11 @@ Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage', 'Ranger', 'Warlock']
 Monster.secondary_off = 'img[src$="nm_s_off_cripple.gif"],img[src$="nm_s_off_deflect.gif"]';
 Monster.secondary_on = 'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]';
 Monster.warrior = 'input[name="Attack Dragon"][src*="strengthen"]';
+Monster.raid_buttons = {
+	'Invade':	'input[src$="raid_attack_button.gif"]:first',
+	'Invade x5':'input[src$="raid_attack_button3.gif"]:first',
+	'Duel':		'input[src$="raid_attack_button2.gif"]:first',
+	'Duel x5':	'input[src$="raid_attack_button4.gif"]:first'};
 
 Monster.init = function() {
 	this._watch(Player);
@@ -7272,6 +7266,10 @@ Monster.init = function() {
 	});
 	Resources.use('Energy');
 	Resources.use('Stamina');
+	if (isNumber(this.runtime.multiplier)) {
+		delete this.runtime.multiplier;
+		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
+	}
 	delete this.runtime.record;
 };
 
@@ -7279,7 +7277,7 @@ Monster.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now();
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i;
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
@@ -7324,6 +7322,8 @@ Monster.parse = function(change) {
 			} else if (monster.state === 'assist') {
 				monster.state = null;
 				return false;
+			} else if (monster.state === 'reward') {
+				monster.state = 'complete';
 			}
 		}
 		monster.stamina = monster.stamina || {};
@@ -7336,23 +7336,20 @@ Monster.parse = function(change) {
 				monster.assist = now;
 			}
 			monster.state = monster.state || 'assist';
-		} else if (this.runtime.stamina_used) {
-			if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
-				calc_rolling_weighted_average(this.runtime
-						,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
-						,'stamina',this.runtime.stamina_used);
-				//debug('Damage per stamina = ' + this.runtime.avg_damage_per_stamina);
+		} else {
+			for (i in ensta) {
+				if (this.runtime.used[ensta[i]]) {
+					if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
+						calc_rolling_weighted_average(this.runtime
+								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
+								,ensta[i],this.runtime.used[ensta[i]]);
+						//debug('Damage per ' + ensta[i] + ' = ' + this.runtime['avg_damage_per_' + ensta[i]]);
+					}
+					this.runtime.used[ensta[i]] = 0;
+					break;
+				}
 			}
-			this.runtime.stamina_used = 0;
-		} else if (this.runtime.energy_used) {
-			if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
-				calc_rolling_weighted_average(this.runtime
-						,'defend',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
-						,'energy',this.runtime.energy_used);
-				//debug('Defend per energy = ' + this.runtime.avg_defend_per_energy);
-			}
-			this.runtime.energy_used = 0;
-		}
+		} 
 		if ($('img[src$="battle_victory"]').length) {
 			History.add('raid+win',1);
 		} else if ($('img[src$="battle_defeat"]').length) {
@@ -7361,9 +7358,10 @@ Monster.parse = function(change) {
 		if (!monster.name) {
 			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
 		}
+		this.runtime.button.count = ($(type.attack_button).length > 2 ? $(type.attack_button).length : this.runtime.button.count);
 		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
-		for (i in Monster['class_img']){
-			if ($(Monster['class_img'][i]).length){
+		for (i in Monster.class_img){
+			if ($(Monster.class_img[i]).length){
 				monster.mclass = i;
 				break;
 				//debug('Monster class : '+Monster['class_name'][i]);
@@ -7455,8 +7453,8 @@ Monster.parse = function(change) {
 		}
 		monster.eta = now + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
 	} else {
-		this.runtime.stamina_used = 0;
-		this.runtime.energy_used = 0;
+		this.runtime.used.stamina = 0;
+		this.runtime.used.energy = 0;
 		if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
 			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
 				debug('Found a timed out monster.');
@@ -7538,7 +7536,7 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, amount, listSortFunc, matched_mids = [];
+	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'];
 	list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -7559,10 +7557,12 @@ Monster.update = function(what,worker) {
 		}
 	}
 	// Some generals use more stamina, but only in certain circumstances...
-	this.runtime.multiplier = (Generals.get([Generals.best(this.option['best_attack'] 
-			? 'monster_attack' 
-			: this.option['general_attack']), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
+	for (i in defatt) {
+		this.runtime.multiplier[defatt[i]] = (Generals.get([Queue.runtime.general || (Generals.best(this.option['best_' + defatt[i]] ? ('monster_' + defatt[i]) : this.option['general_' + defatt[i]])), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
+		//debug('mult ' + defatt[i] + ' X ' + this.runtime.multiplier[defatt[i]]);
+	}
 	this.runtime.secondary = false;
+	waiting_ok = !this.option.hide && !Queue.burn.forcestamina;
 	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind, button;
 		var order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
@@ -7573,8 +7573,8 @@ Monster.update = function(what,worker) {
 				continue;
 			}
 			if (order[o] === 'levelup') {
-				if (LevelUp.get('runtime.running')) {
-					match_mids = [];
+				if (Queue.runtime.levelup) {
+					matched_mids = [];
 					continue;
 				} else {
 					break;
@@ -7613,11 +7613,18 @@ Monster.update = function(what,worker) {
 					if (monster.max !== false) {
 						monster.ach=Math.min(monster.ach, monster.max);
 					}
-					monster.defend_max = this.conditions('f%',condition) || this.option.defend;
+					if (type.defend) {
+						monster.defend_max = this.conditions('f%',condition) || this.option.defend;
+					}
 					damage = sum(monster.damage.user) + sum(monster.defend);
+					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
+							: Math.min(type.attack[Math.min(this.runtime.button.count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
+					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 
 					if ((attack_found || o) === o 
-							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
+							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)
+							&& (waiting_ok || (Player.get('health') >= req_health 
+							&& Queue.burn.stamina >= req_stamina))) {
 						button = type.attack_button;
 						if (this.option.use_tactics && type.tactics) {
 							button = type.tactics_button;
@@ -7644,7 +7651,7 @@ Monster.update = function(what,worker) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
 							defense_kind = Monster.secondary_on;
-						} else if (monster.warrior && (monster.strength || 100) < 100) {
+						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
 						} else if ((monster.defense || 100) 
 									< Math.min(monster.defend_max, monster.strength -1)
@@ -7686,17 +7693,8 @@ Monster.update = function(what,worker) {
 		for (mid in this.data) {
 			monster = this.data[mid];
 			type = this.types[monster.type];
-			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1 : 5)
-					: (this.option.attack_min < Math.min.apply(Math, type.attack)
-						|| this.option.attack_max <= Math.min.apply(Math, type.attack))
-					? Math.min.apply( Math, type.attack)
-					: this.option.attack_min > Math.max.apply(Math, type.attack)
-					? Math.max.apply(Math, type.attack)
-					: this.option.attack_min > this.option.attack_max
-					? this.option.attack_max : this.option.attack_min;
-			req_stamina = type.raid ? req_stamina : req_stamina * this.runtime.multiplier;
-//			req_energy = this.runtime.defend_button ? this.option.defend_min * this.runtime.multiplier : null;
-			req_energy = this.runtime.defend_button ? this.option.defend_min : null;
+			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
+					: Math.min(type.attack[Math.min(this.runtime.button.count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -7724,7 +7722,7 @@ Monster.update = function(what,worker) {
 					continue; // Don't add monster over 2X  achievement
 				}
 				// Possible attack target?
-				if ((!this.option.hide || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
+				if ((waiting_ok || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
 					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
 					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button]);
@@ -7778,7 +7776,7 @@ Monster.update = function(what,worker) {
 				list[i].sort(listSortFunc);
 			}
 			this.runtime[i] = mid = list[i][0][0];
-			this.runtime[i + '_button'] = list[i][0][2];
+			this.runtime.button[i].query = list[i][0][2];
 			uid = mid.replace(/_\d+/,'');
 			type = this.types[this.data[mid].type];
 			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + '\'s ')) + type.name;
@@ -7787,63 +7785,41 @@ Monster.update = function(what,worker) {
 		}
 	}
 	// Make the * dash messages for current attack and defend targets
-	if (this.runtime.defend) {
-		type = this.types[this.data[this.runtime.defend].type];
-		this.runtime.energy = (!type.defend) ? 10
-				: (this.option.defend_min < Math.min.apply(Math, type.defend)
-					|| this.option.defend_max < Math.min.apply(Math, type.defend))
-				? Math.min.apply(Math, type.defend)
-				: (this.option.defend_min > Math.max.apply(Math, type.defend))
-				? Math.max.apply(Math, type.defend)
-				: (this.option.defend_min > this.option.defend_max)
-				? this.option.defend_max : this.option.defend_min;
-//		this.runtime.energy *= this.runtime.multiplier;
-		if (Queue.burn.energy < this.runtime.energy) {
-			req_energy = (LevelUp.runtime.running && LevelUp.option.enabled)
-					? (this.runtime.energy - Queue.burn.energy)
-					: Math.max((this.runtime.energy - Queue.burn.energy)
-						,(this.runtime.energy + Queue.option.energy - Player.get('energy'))
-						,(Queue.option.start_energy - Player.get('energy')));
-			messages.push('Waiting for ' + makeImage('energy') + req_energy + ' to defend '
-					+ fullname.defend + ' (' + makeImage('energy') + this.runtime.energy + '+)');
-		} else {
-			messages.push('Defend '	+ fullname.defend + ' (' + makeImage('energy')
-					+ this.runtime.energy + '+)');
-		}
-	}
-	if (this.runtime.attack) {
-		type = this.types[this.data[this.runtime.attack].type];
-		this.runtime.stamina = type.raid && this.option.raid.search('x5') === -1
-			? 1
-			: type.raid
-				? 5
-				: (this.option.attack_min < Math.min.apply(Math, type.attack) || this.option.attack_max < Math.min.apply(Math, type.attack))
-					? Math.min.apply(Math, type.attack)
-					: (this.option.attack_min > Math.max.apply(Math, type.attack))
-						? Math.max.apply(Math, type.attack)
-						: (this.option.attack_min > this.option.attack_max)
-							? this.option.attack_max
-							: this.option.attack_min;
-		this.runtime.stamina = type.raid ? this.runtime.stamina : this.runtime.stamina * this.runtime.multiplier;
-		this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-		req_health = Math.max(0, this.runtime.health - Player.get('health'));
-		req_stamina = Math.max(0, (LevelUp.runtime.running && LevelUp.option.enabled)
-			? (this.runtime.stamina - Queue.burn.stamina)
-			: Math.max((this.runtime.stamina - Queue.burn.stamina)
-				,(this.runtime.stamina + Queue.option.stamina - Player.get('stamina'))
-				,(Queue.option.start_stamina - Player.get('stamina'))));
-		if (Battle.runtime.points && this.option.points){
-                        messages.push('Battling for Demi-Points.');
-                } else if (req_stamina || req_health) {
-			messages.push('Waiting for ' + (req_stamina ? makeImage('stamina') + req_stamina : '') + (req_stamina && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '') + ' to attack ' + fullname.attack + ' (' + makeImage('stamina') + this.runtime.stamina + '+' + (req_stamina && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
-		} else {
-			messages.push('Attack ' + fullname.attack + ' (' + makeImage('stamina')
-					+ this.runtime.stamina + '+)');
+	for (i in ensta) {
+		if (this.runtime[defatt[i]]) {
+			type = this.types[this.data[this.runtime[defatt[i]]].type];
+			// Calculate what button for att/def and how much energy/stamina cost
+			if (ensta[i] === 'stamina' && type.raid) {
+				this.runtime[ensta[i]] = this.option.raid.search('x5') < 0 ? 1 : 5;
+			} else {
+				min = Math.min(type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], Queue.runtime.basehit || this.option[defatt[i] + '_min']));
+				max = Math.min(type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1], Queue.runtime.basehit || this.option[defatt[i] + '_max'], Queue.burn[ensta[i]] / this.runtime.multiplier[defatt[i]]);
+				filter = function(e) { return (e >= min && e <= max); };
+				this.runtime.button[defatt[i]].pick = bestObjValue(type[defatt[i]], function(e) { return e; }, filter) || type[defatt[i]].indexOf(min);
+				//debug(' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.runtime.button[defatt[i]].pick);
+				//debug('min detail '+ defatt[i] + ' # buttons   ' + Math.min(this.runtime.button.count,type[defatt[i]].length) +' button val ' +type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' max of type[0] ' + type[defatt[i]][0] + ' queue or option ' + (Queue.runtime.basehit || this.option[defatt[i] + '_min']));
+				//debug('max detail '+ defatt[i] + ' physical max ' + type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' basehit||option ' + (Queue.runtime.basehit || this.option[defatt[i]]) + ' stamina avail ' + (Queue.burn[ensta[i]] / this.runtime.multiplier[defatt[i]]));
+				this.runtime[ensta[i]] = type[defatt[i]][this.runtime.button[defatt[i]].pick] * this.runtime.multiplier[defatt[i]];
+			}
+			this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
+			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health')) : 0);
+			stat_req = Math.max(0,((this.runtime[ensta[i]] || 0) - Queue.burn[ensta[i]])
+					,((this.runtime[ensta[i]] || 0) + Queue.option[ensta[i]] - Player.get(ensta[i]))
+					,(Queue.option['start_' + ensta[i]] - Player.get(ensta[i])));
+			if (stat_req || req_health) {
+				messages.push('Waiting for ' + (stat_req ? makeImage(ensta[i]) + stat_req : '') 
+				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '')
+				+ ' to ' + defatt[i] + ' ' + fullname[defatt[i]] 
+				+ ' (' + makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
+			} else {
+				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + makeImage(ensta[i])
+						+ (this.runtime[ensta[i]] || 0) + '+)');
+			}
 		}
 	}
 	// Nothing to attack, so look for monsters we haven't reviewed for a while.
 	if ((!this.runtime.defend || Queue.burn.energy < this.runtime.energy)
-			&& (!this.runtime.attack || req_stamina || req_health)) {
+			&& (!this.runtime.attack || stat_req || req_health)) { // stat_req is last calculated in loop above, so ok
 		for (mid in this.data) {
 			if (	this.data[mid].last < Date.now() - this.option.check_interval
 					&& !this.data[mid].ignore) {
@@ -7892,47 +7868,29 @@ Monster.work = function(state) {
  	uid = this.runtime[mode].replace(/_\d+/,'');
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];
-	if (!Generals.to(this.option['best_'+mode] 
+	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
 				: 'monster_' + mode)
-			: this.option['general_'+mode])) {
+			: this.option['general_'+mode]))) {
 		return QUEUE_CONTINUE;
 	}
 	if (type.raid) { // Raid has different buttons
-		switch(this.option.raid) {
-		case 'Invade':
-			btn = $('input[src$="raid_attack_button.gif"]:first');
-			break;
-		case 'Invade x5':
-			btn = $('input[src$="raid_attack_button3.gif"]:first');
-			break;
-		case 'Duel':
-			btn = $('input[src$="raid_attack_button2.gif"]:first');
-			break;
-		case 'Duel x5':
-			btn = $('input[src$="raid_attack_button4.gif"]:first');
-			break;
-		}
+		btn = $(Monster.raid_buttons[this.option.raid]);
 	} else {
 		//Primary method of finding button.
-		debug('Try to ' + mode + ' ' + monster.name + '\'s ' + type.name);
-		if (this.option[mode + '_max'] <= type[mode][0]) {
-			btn = $(this.runtime[mode + '_button']).eq(0);
+		debug('Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
+		if (this.runtime.button[mode].pick > $(this.runtime.button[mode].query).length - 1) {
+			//debug('Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name);
 		} else {
-			b = $(this.runtime[mode + '_button']).length - 1;
-			for (i=b; i >= 0; i--){
-				if (type[mode][i] <= this.option[mode + '_max'] && Queue.burn[stat] >= (type[mode][i] * this.runtime.multiplier) ) {
-					this.runtime[stat + '_used'] = type[mode][i] * this.runtime.multiplier;
-					btn = $(this.runtime[mode + '_button']).eq(i);
-					break;
-				}
-			}
+			//debug(' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
+			btn = $(this.runtime.button[mode].query).eq(this.runtime.button[mode].pick);
+			this.runtime.used[stat] = this.runtime[stat];
 		}
 		if (!btn || !btn.length){
 			monster.button_fail = (monster.button_fail || 0) + 1;
 			if (monster.button_fail > 10){
-				log('Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + mode + ' button ' + monster.button_fail + ' times!');
+				log('Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + (this.runtime.button[mode].pick || 'unknown') + ' ' + mode + ' button ' + monster.button_fail + ' times!');
 				monster.ignore = true;
 				monster.button_fail = 0;
 			}
@@ -7978,7 +7936,7 @@ Monster.dashboard = function(sort, rev) {
 		assist:1,
 		reward:2,
 		complete:3
-	}, blank, image_url;
+	}, blank, image_url, color;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (mid in this.data) {
@@ -8048,7 +8006,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
 		if (Monster.option.assist_links && (monster.state === 'engage' || monster.state === 'assist')) {
-			url = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '') + '&lka=' + uid + '&ref=nf';
+			url = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '');
 		} else {
 			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
@@ -8066,7 +8024,7 @@ Monster.dashboard = function(sort, rev) {
 				? ''
 				: 'title="' + addCommas(monster.total - sum(monster.damage)) + '"');
 		title = (isNumber(monster.strength)
-					? 'Max: '+((monster.strength).round(1))+'% '
+					? 'Max: '+ monster.strength.round(1) +'% '
 					: '')
 				+ (isNumber(monster.defense)
 						? 'Attack Bonus: ' + (monster.defense.round(1) - 50)+'%'
@@ -8081,7 +8039,7 @@ Monster.dashboard = function(sort, rev) {
 				? 'title="' + title + '"'
 				: '')
 				);
-		var activity=sum(monster.damage.user) + sum(monster.defend), color;
+		var activity = (monster.damage ? sum(monster.damage.user) : 0) + sum(monster.defend);
 		if (monster.ach > 0 || monster.max > 0) {
 			if (monster.max > 0 && activity >= monster.max) {
 				color = 'red';
@@ -8132,11 +8090,6 @@ Monster.dashboard = function(sort, rev) {
 		Monster._unflush();
 		Monster.data[x].ignore = !Monster.data[x].ignore;
 		Monster.dashboard();
-		if (Page.page !== 'monster_monster_list'){
-			Page.to('monster_monster_list');
-		} else {
-			Page.to('index');
-		}
 		return false;
 	});
 	if (typeof sort !== 'undefined') {
@@ -8168,13 +8121,9 @@ Monster.conditions = function (type, conditions) {
 /********** Worker.News **********
 * Aggregate the news feed
 */
-var News = new Worker('News');
+var News = new Worker('News', 'index');
 News.data = null;
 News.option = null;
-
-News.defaults['castle_age'] = {
-	pages:'index'
-};
 
 News.runtime = {
 	last:0
@@ -8183,7 +8132,7 @@ News.runtime = {
 News.parse = function(change) {
 	if (change) {
 		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.runtime.last, killed = false;
-		News.runtime.last = Date.now();
+		this.runtime.last = Date.now();
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
 			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
@@ -8816,15 +8765,16 @@ Quest.update = function(type,worker) {
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
-					&& ((isNumber(quests[i].influence) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
+					&& ((isNumber(quests[i].influence) && Generals.test(quests[i].general) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
 					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (isNumber(quests[i].influence)
-					&& quests[i].influence < 100
-					&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+					if (isNumber(quests[i].influence) 
+							&& (!quests[i].general || Generals.test(quests[i].general))
+							&& quests[i].influence < 100
+							&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
 						best_influence = i;
 					}
 					break;
@@ -8869,19 +8819,18 @@ Quest.update = function(type,worker) {
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = this.runtime.best;
-	if (!best || this.runtime.energy > Queue.burn.energy) {
+	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
+	if (!best || (!Queue.runtime.quest && this.runtime.energy > Queue.burn.energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
 		return QUEUE_FINISH;
 	}
-	if (this.option.monster 
+	if (this.option.monster && !Queue.runtime.quest
 			&& (Monster.get('runtime.defend')
 				|| Monster.get('runtime.check')
 				|| (Monster.get('runtime.secondary')
-					&& !LevelUp.get('runtime.running')
-					&& Player.get('energy') < Player.get('maxenergy')))) {
+					&& !Queue.burn.forceenergy))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
@@ -8923,7 +8872,7 @@ Quest.work = function(state) {
 	} else {
 		general = this.option.general_choice;
 	}
-	if (!Generals.to(general)) {
+	if (!Generals.to(Queue.runtime.general || general)) {
 		return QUEUE_CONTINUE;
 	}
 	switch(this.data[best].area) {
@@ -8952,6 +8901,7 @@ Quest.work = function(state) {
 		delete this.data[best];
 		Page.reload();
 	}
+	Queue.runtime.quest = false;
 	if (this.data[best].type === 3) {// Just completed a boss quest
 		if (!Alchemy.get(['ingredients', this.data[best].itemimg], 0)) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', this.data[best].itemimg], 1);
