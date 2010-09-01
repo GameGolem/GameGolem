@@ -24,7 +24,8 @@ Quest.option = {
 	ignorecomplete:true,
 	unique:true,
 	monster:true,
-	bank:true
+	bank:true,
+	energy_reserve:0
 };
 
 Quest.runtime = {
@@ -46,6 +47,11 @@ Quest.display = [
 		label:'Use General',
 		require:{'general':false},
 		select:'generals'
+	},{
+		id:'energy_reserve',
+		label:'Energy Reserve',
+		select:'energy',
+		help:'Keep this much energy in reserve for other workers.'
 	},{
 		id:'what',
 		label:'Quest for',
@@ -325,7 +331,8 @@ Quest.update = function(type,worker) {
 
 Quest.work = function(state) {
 	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
-	if (!best || (!Queue.runtime.quest && this.runtime.energy > Queue.burn.energy)) {
+	var useable_energy = Queue.burn.forceenergy ? Queue.burn.energy : Queue.burn.energy - this.option.energy_reserve;
+	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}

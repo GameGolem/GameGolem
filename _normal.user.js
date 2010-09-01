@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 782;
+var revision = 783;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4286,7 +4286,8 @@ Battle.option = {
 	preferonly:'Sometimes',
 	prefer:[],
 	between:0,
-	risk:false
+	risk:false,
+	stamina_reserve:0
 };
 
 Battle.runtime = {
@@ -4320,6 +4321,11 @@ Battle.display = [
 		label:'Use General',
 		require:{'general':false},
 		select:'generals'
+	},{
+		id:'stamina_reserve',
+		label:'Stamina Reserve',
+		select:'stamina',
+		help:'Keep this much stamina in reserve for other workers.'
 	},{
 		id:'type',
 		label:'Battle Type',
@@ -4652,8 +4658,9 @@ Battle.update = function(type) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || Queue.burn.stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
-//		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + Queue.burn.stamina + ' (must be >=1)');
+	var useable_stamina = Queue.burn.forcestamina ? Queue.burn.stamina : Queue.burn.stamina - this.option.stamina_reserve;
+	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
+//		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
@@ -8519,7 +8526,8 @@ Quest.option = {
 	ignorecomplete:true,
 	unique:true,
 	monster:true,
-	bank:true
+	bank:true,
+	energy_reserve:0
 };
 
 Quest.runtime = {
@@ -8541,6 +8549,11 @@ Quest.display = [
 		label:'Use General',
 		require:{'general':false},
 		select:'generals'
+	},{
+		id:'energy_reserve',
+		label:'Energy Reserve',
+		select:'energy',
+		help:'Keep this much energy in reserve for other workers.'
 	},{
 		id:'what',
 		label:'Quest for',
@@ -8820,7 +8833,8 @@ Quest.update = function(type,worker) {
 
 Quest.work = function(state) {
 	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
-	if (!best || (!Queue.runtime.quest && this.runtime.energy > Queue.burn.energy)) {
+	var useable_energy = Queue.burn.forceenergy ? Queue.burn.energy : Queue.burn.energy - this.option.energy_reserve;
+	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
 		}
