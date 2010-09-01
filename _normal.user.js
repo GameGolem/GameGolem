@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 781;
+var revision = 782;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9071,12 +9071,12 @@ Town.display = [
 ];
 
 Town.blacksmith = {
-	Weapon: /avenger|axe|blade|bow|cleaver|cudgel|dagger|edge|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword|talon|trident|wand|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Dreadnought Greatsword|Excalibur|Incarnation|Ironhart's Might|Lionheart Blade|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
+	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|grinder|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword |sword$|talon|trident|wand|^Avenger$|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Excalibur|Holy Avenger|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
 	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil|Cowl of the Avenger|Lionheart Helm|Swordsman Helm|Virtue of Fortitude/i,
-	Gloves:	/gauntlet|glove|hand|bracer|fist|Soul Eater|Slayer's Embrace|Soul Crusher|Virtue of Temperance/i,
-	Armor:	/armor|belt|chainmail|cloak|gear|garb|pauldrons|plate|raiments|robe|vestment|Avenger Platemail|Faerie Wings|Epaulets of Might|Swordsmans Plate/i,
-	Amulet:	/amulet|bauble|charm|crystal|eye|flask|heart|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Avenger Amulet|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Thawing Star|Mark of the Empire|Transcendence/i
+	Helmet:	/cowl|crown|helm|horns|mask|veil|Virtue of Fortitude/i,
+	Gloves:	/gauntlet|glove|hand|bracer|fist|Slayer's Embrace|Soul Crusher|Soul Eater|Virtue of Temperance/i,
+	Armor:	/armor|belt|chainmail|cloak|epaulets|gear|garb|pauldrons|plate|raiments|robe|tunic|vestment|Faerie Wings/i,
+	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
 };
 
 Town.init = function(){
@@ -9127,6 +9127,7 @@ Town.parse = function(change) {
 				});
 			}
 			if (page === 'blacksmith') {
+				delete unit[name].type;
 				for (i in Town.blacksmith) {
 					if ((match = name.match(Town.blacksmith[i]))) {
 						for (j=0; j<match.length; j++) {
