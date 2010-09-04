@@ -287,8 +287,7 @@ Quest.update = function(type,worker) {
 							&& quests[i].influence < 100
 							&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
 						best_influence = i;
-					}
-					break;
+					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;

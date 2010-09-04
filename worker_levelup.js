@@ -288,7 +288,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		}
 	case 'quest':		
 		quests = Quest.get();
-		if (quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
+		if (Quest.runtime.best && quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
 			i = Quest.runtime.best;
 		} else {
 			i = bestObjValue(quests, function(q) {

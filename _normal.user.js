@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 783;
+var revision = 785;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6565,7 +6565,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		}
 	case 'quest':		
 		quests = Quest.get();
-		if (quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
+		if (Quest.runtime.best && quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
 			i = Quest.runtime.best;
 		} else {
 			i = bestObjValue(quests, function(q) {
@@ -8795,8 +8795,7 @@ Quest.update = function(type,worker) {
 							&& quests[i].influence < 100
 							&& (!best_influence || (quests[i].energy / quests[i].exp) < (quests[best_influence].energy / quests[best_influence].exp))) {
 						best_influence = i;
-					}
-					break;
+					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
 						best_experience = i;
