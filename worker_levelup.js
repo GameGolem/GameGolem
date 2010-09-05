@@ -227,17 +227,17 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 	var options =[], i, check, energyAction, staminaAction, quests, monsters, big, multiples, general = false, basehit, max, raid = false;
 	switch(what) {
 	case 'best':
+		// Find the biggest exp quest or stamina return to push unusable exp into next level
+		big = this.findAction('big',energy,stamina,0); 
+		//debug(' check sta ' + stamina + 'big:' + big.stamina);
 		if (this.option.order === 'Energy') {
-			check = this.findAction(this.runtime.last_energy,energy,0,exp);
+			check = this.findAction(this.runtime.last_energy,energy-big.energy,0,exp);
 			//debug(' levelup quest ' + energy + ' ' + exp);
 			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
 				return check;
 			}
 		}
-		// Find the biggest exp quest or stamina return to push unusable exp into next level
-		big = this.findAction('big',energy,stamina,0); 
-		//debug(' check sta ' + stamina + 'big:' + big.stamina);
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check) {
 			return check;
@@ -251,7 +251,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
 		energyAction = this.findAction(this.runtime.last_energy,energy,stamina,0);
-		staminaAction = this.findAction('attack',energy,stamina,0);  // Need to update to allow for battle/war
+		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction && (!staminaAction || energyAction.exp >= staminaAction.exp)) {
 			//debug('big energy ' + energyAction.exp);
 			energyAction.big = true;

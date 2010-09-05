@@ -62,7 +62,7 @@ Monster.runtime = {
 	used:{stamina:0,energy:0}, // How much was used in last attack
 	button: {attack: {pick:1, query:[]},  // Query - the jquery query for buttons, pick - which button to use
 			defend: {pick:1, query:[]},
-			count:2}, // How many attack/defend buttons can the player access?
+			count:1}, // How many attack/defend buttons can the player access?
 	health:10 // minimum health to attack
 };
 
@@ -737,7 +737,10 @@ Monster.parse = function(change) {
 		if (!monster.name) {
 			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
 		}
-		this.runtime.button.count = ($(type.attack_button).length > 2 ? $(type.attack_button).length : this.runtime.button.count);
+		// Check if variable number of button monster
+		if (monster.statate === 'engage' && type.attack.length > 2) {
+			this.runtime.button.count = $(type.attack_button).length;
+		}
 		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
 		for (i in Monster.class_img){
 			if ($(Monster.class_img[i]).length){
@@ -752,10 +755,10 @@ Monster.parse = function(change) {
 		if ($(Monster.secondary_off).length) {
 			monster.secondary = 100;
 		} else if ($(Monster.secondary_on).length) {
-			monster.secondary = 100; // Prevent from defaulting to false
+			monster.secondary = 0.01; // Prevent from defaulting to false
 			$secondary = $(Monster['secondary_img']);
 			if ($secondary.length) {
-				monster.secondary = Math.max(0.1,(100 * $secondary.width() / $secondary.parent().width()));
+				monster.secondary = 100 * $secondary.width() / $secondary.parent().width();
 				debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
 		}
@@ -915,7 +918,7 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'];
+	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count;
 	list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -996,8 +999,9 @@ Monster.update = function(what,worker) {
 						monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					}
 					damage = sum(monster.damage.user) + sum(monster.defend);
+					button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
 					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-							: Math.min(type.attack[Math.min(this.runtime.button.count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
+							: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 
 					if ((attack_found || o) === o 
@@ -1073,8 +1077,9 @@ Monster.update = function(what,worker) {
 		for (mid in this.data) {
 			monster = this.data[mid];
 			type = this.types[monster.type];
+			button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-					: Math.min(type.attack[Math.min(this.runtime.button.count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
+					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : 0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
@@ -1172,8 +1177,9 @@ Monster.update = function(what,worker) {
 			if (ensta[i] === 'stamina' && type.raid) {
 				this.runtime[ensta[i]] = this.option.raid.search('x5') < 0 ? 1 : 5;
 			} else {
-				min = Math.min(type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], Queue.runtime.basehit || this.option[defatt[i] + '_min']));
-				max = Math.min(type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1], Queue.runtime.basehit || this.option[defatt[i] + '_max'], Queue.burn[ensta[i]] / this.runtime.multiplier[defatt[i]]);
+				button_count = ((type.attack.length > 2) ? this.runtime.button.count : type[defatt[i]].length);
+				min = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], Queue.runtime.basehit || this.option[defatt[i] + '_min']));
+				max = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Queue.runtime.basehit || this.option[defatt[i] + '_max'], Queue.burn[ensta[i]] / this.runtime.multiplier[defatt[i]]);
 				filter = function(e) { return (e >= min && e <= max); };
 				this.runtime.button[defatt[i]].pick = bestObjValue(type[defatt[i]], function(e) { return e; }, filter) || type[defatt[i]].indexOf(min);
 				//debug(' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.runtime.button[defatt[i]].pick);
