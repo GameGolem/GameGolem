@@ -738,7 +738,7 @@ Monster.parse = function(change) {
 			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
 		}
 		// Check if variable number of button monster
-		if (monster.statate === 'engage' && type.attack.length > 2) {
+		if (monster.state === 'engage' && type.attack.length > 2) {
 			this.runtime.button.count = $(type.attack_button).length;
 		}
 		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
