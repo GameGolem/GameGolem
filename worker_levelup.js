@@ -229,9 +229,9 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 	case 'best':
 		// Find the biggest exp quest or stamina return to push unusable exp into next level
 		big = this.findAction('big',energy,stamina,0); 
-		//debug(' check sta ' + stamina + 'big:' + big.stamina);
+		//debug(' check sta: ' + stamina + ', big:' + big.stamina);
 		if (this.option.order === 'Energy') {
-			check = this.findAction(this.runtime.last_energy,energy-big.energy,0,exp);
+			check = this.findAction('quest',energy-big.energy,0,exp);
 			//debug(' levelup quest ' + energy + ' ' + exp);
 			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
@@ -242,7 +242,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		if (check) {
 			return check;
 		}
-		check = this.findAction(this.runtime.last_energy,energy - big.energy,0,exp);
+		check = this.findAction('quest',energy - big.energy,0,exp);
 		if (check) {
 			return check;
 		}
@@ -250,7 +250,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		return (!big.none ? big : false);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
-		energyAction = this.findAction(this.runtime.last_energy,energy,stamina,0);
+		energyAction = this.findAction('quest',energy,stamina,0);
 		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction && (!staminaAction || energyAction.exp >= staminaAction.exp)) {
 			//debug('big energy ' + energyAction.exp);
