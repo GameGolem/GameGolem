@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 789;
+var revision = 790;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5193,10 +5193,10 @@ Generals.update = function(type, worker) {
 		}
 		for (i in data) {
 			skillcombo = data[i].skills + (data[i].weaponbonus || '');
-			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]+\.?[0-9]*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
-			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]+\.?[0-9]*) Player Defense|Increase Player Defense by ([0-9]+)/gi))	
-				+ sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi)) * Player.get('health') / 3
-				+ (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
+			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]*\.?[0-9]+) Player Attack|Increase Player Attack by ([0-9]+)|Convert ([-+]?[0-9]+\.?[0-9]*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]+\.?[0-9]*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?[0-9]*\.?[0-9]+) Player Defense|Increase Player Defense by ([0-9]+)/gi))	
+				+ sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]*\.?[0-9]+) for every 3 Health/gi)) * Player.get('health') / 3
+				+ (sum(data[i].skills.numregex(/Increase ([-+]?[0-9]*\.?[0-9]+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
 			attack = (Player.get('attack') + attack_bonus
 						- (sum(skillcombo.numregex(/Transfer ([0-9]+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
 						+ (sum(skillcombo.numregex(/Transfer ([0-9]+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
