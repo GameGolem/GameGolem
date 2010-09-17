@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 790;
+var revision = 791;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9275,7 +9275,7 @@ Town.update = function(type) {
 //			debug('Item: '+u+', need: '+need+', want: '+want);
 			if (need > have) {// Want to buy more
 				if (!best_quest && data[u].buy && data[u].buy.length) {
-					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + (data[u].upkeep * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
+					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);
 						best_buy = u;
 						buy = need;
