@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 791;
+var revision = 792;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7684,7 +7684,7 @@ Monster.update = function(what,worker) {
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
 						} else if ((monster.defense || 100) 
-									< Math.min(monster.defend_max, monster.strength -1)
+									< Math.min(monster.defend_max, monster.strength -1 || 100 )
 								&& !monster.no_heal) {
 							defense_kind = type.defend_button;
 						}

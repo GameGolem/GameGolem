@@ -1051,7 +1051,7 @@ Monster.update = function(what,worker) {
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
 						} else if ((monster.defense || 100) 
-									< Math.min(monster.defend_max, monster.strength -1)
+									< Math.min(monster.defend_max, monster.strength -1 || 100 )
 								&& !monster.no_heal) {
 							defense_kind = type.defend_button;
 						}
