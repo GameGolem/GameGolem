@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 792;
+var revision = 793;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3172,8 +3172,7 @@ Queue.update = function(type,worker) {
 				break;
 			}
 		}
-		if (this.enabled(LevelUp) && LevelUp.option.enabled 
-				 && !this.burn.stamina && !this.burn.energy 
+		if (this.enabled(LevelUp) && !this.burn.stamina && !this.burn.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action) {
@@ -3279,7 +3278,7 @@ Queue.enabled = function(worker) {
 	try {
 		return !(worker.name in this.option.enabled) || this.option.enabled[worker.name];
 	} catch(e) {
-		return true;
+		return isWorker(worker);
 	}
 };
 
@@ -6610,7 +6609,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (staminaAction < 0) {
+		if (staminaAction < 0 && Queue.enabled(Battle)) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
 		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
@@ -8456,7 +8455,7 @@ Potions.parse = function(change) {
 	});
 	if (Page.page === 'keep_stats') {
 		this.data = {}; // Reset potion count completely at the keep
-		$('.statsT2:eq(2) .statUnit').each(function(i,el){
+		$('.statsT2:eq(3) .statUnit').each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 			if (info && info[0] && info[1]) {
 				Potions.data[info[0]] = info[1];

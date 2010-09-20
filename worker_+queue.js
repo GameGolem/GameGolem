@@ -189,8 +189,7 @@ Queue.update = function(type,worker) {
 				break;
 			}
 		}
-		if (this.enabled(LevelUp) && LevelUp.option.enabled 
-				 && !this.burn.stamina && !this.burn.energy 
+		if (this.enabled(LevelUp) && !this.burn.stamina && !this.burn.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action) {
@@ -296,7 +295,7 @@ Queue.enabled = function(worker) {
 	try {
 		return !(worker.name in this.option.enabled) || this.option.enabled[worker.name];
 	} catch(e) {
-		return true;
+		return isWorker(worker);
 	}
 };
 

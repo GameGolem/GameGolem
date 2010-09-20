@@ -46,7 +46,7 @@ Potions.parse = function(change) {
 	});
 	if (Page.page === 'keep_stats') {
 		this.data = {}; // Reset potion count completely at the keep
-		$('.statsT2:eq(2) .statUnit').each(function(i,el){
+		$('.statsT2:eq(3) .statUnit').each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 			if (info && info[0] && info[1]) {
 				Potions.data[info[0]] = info[1];

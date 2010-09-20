@@ -333,7 +333,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (staminaAction < 0) {
+		if (staminaAction < 0 && Queue.enabled(Battle)) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
 		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
