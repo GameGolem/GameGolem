@@ -92,6 +92,7 @@ Town.blacksmith = {
 Town.init = function(){
 	this._watch(Bank);
 	Resources.use('Gold');
+        this.runtime.cost_incr = 4;
 };
 
 Town.parse = function(change) {

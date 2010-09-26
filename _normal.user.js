@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 793;
+var revision = 794;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6716,7 +6716,7 @@ Monster.display = [
 		id:'hide',
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		require:{'stop':['Never', 'Achievement', '2X Achievement']},
+		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		advanced:true,
@@ -6742,7 +6742,7 @@ Monster.display = [
 	},{
 		id:'stop',
 		label:'Stop',
-		select:['Never', 'Achievement', '2X Achievement', 'Priority List'],
+		select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
 		help:'Select when to stop attacking a target.'
 	},{
 		id:'priority',
@@ -6754,13 +6754,13 @@ Monster.display = [
 		advanced:true,
 		id:'own',
 		label:'Never stop on Your Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement']},
+		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
 		checkbox:true,
 		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 	},{
 		advanced:true,
 		id:'rescue',
-		require:{'stop':['Never', 'Achievement', '2X Achievement']},
+		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
 		label:'Rescue failing monsters',
 		checkbox:true,
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -6768,7 +6768,7 @@ Monster.display = [
 		advanced:true,
 		id:'avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement']},
+		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
@@ -7283,6 +7283,7 @@ Monster.init = function() {
 	this._watch(Player);
 	this._watch(Queue);
 	this._revive(60);
+        this.runtime.limit = 0;
 	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
 		var url = $(this).attr('href');
 		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
@@ -7564,7 +7565,8 @@ Monster.update = function(what,worker) {
 		return;
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count;
-	list.defend = [];
+	var limit = this.runtime.limit;
+        list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
 	for (mid in this.data) {
@@ -7726,8 +7728,8 @@ Monster.update = function(what,worker) {
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
 					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
-			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : 0;
-			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : 0;
+			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : (this.option.stop === 'Continuous') ? type.achievement :0;
+			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.runtime.limit :0;
 			if (	!monster.ignore
 					&& monster.state === 'engage'
 					&& monster.finish > Date.now()	) {
@@ -7749,6 +7751,10 @@ Monster.update = function(what,worker) {
 				} else if (this.option.stop === '2X Achievement'
 						&& sum(monster.damage.user) + sum(monster.defend)
 							> type.achievement * 2) {
+					continue; // Don't add monster over 2X  achievement
+				} else if (this.option.stop === 'Continuous'
+						&& sum(monster.damage.user) + sum(monster.defend)
+							> type.achievement * limit) {
 					continue; // Don't add monster over 2X  achievement
 				}
 				// Possible attack target?
@@ -7863,6 +7869,14 @@ Monster.update = function(what,worker) {
 		}
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
+        if(!LevelUp.runtime.running){
+                if (!this.runtime.attack){
+                this.runtime.limit = (limit > 9)? 1: (limit + 1|0);
+                }
+        } else {
+                this.runtime.limit = 0;
+        }
+        
 };
 
 Monster.work = function(state) {
@@ -7893,7 +7907,8 @@ Monster.work = function(state) {
 					? 'battle_raid'
 					: 'monster_battle_monster',
 				'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
-		}
+                        this.runtime.limit = 0;
+                }
 		return QUEUE_RELEASE;
 	}
  	uid = this.runtime[mode].replace(/_\d+/,'');
@@ -9119,6 +9134,7 @@ Town.blacksmith = {
 Town.init = function(){
 	this._watch(Bank);
 	Resources.use('Gold');
+        this.runtime.cost_incr = 4;
 };
 
 Town.parse = function(change) {
