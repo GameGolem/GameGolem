@@ -752,7 +752,7 @@ Monster.parse = function(change) {
 			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
 		}
 		// Check if variable number of button monster
-		if (monster.state === 'engage' && type.attack.length > 2) {
+		if (!type.raid && monster.state === 'engage' && type.attack.length > 2) {
 			this.runtime.button.count = $(type.attack_button).length;
 		}
 		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
@@ -1014,8 +1014,10 @@ Monster.update = function(what,worker) {
 						monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					}
 					damage = sum(monster.damage.user) + sum(monster.defend);
-					button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
-					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
+					if(!type.raid){
+                                                button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
+                                        }
+                                        req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
 							: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 
@@ -1023,7 +1025,7 @@ Monster.update = function(what,worker) {
 							&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)
 							&& (waiting_ok || (Player.get('health') >= req_health 
 							&& Queue.burn.stamina >= req_stamina))) {
-						button = type.attack_button;
+                                                        button = type.attack_button;
 						if (this.option.use_tactics && type.tactics) {
 							button = type.tactics_button;
 						}
@@ -1092,7 +1094,9 @@ Monster.update = function(what,worker) {
 		for (mid in this.data) {
 			monster = this.data[mid];
 			type = this.types[monster.type];
-			button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
+                        if(!type.raid){
+                                button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
+                        }
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
 					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
@@ -1237,9 +1241,9 @@ Monster.update = function(what,worker) {
 		}
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
-        if(!LevelUp.runtime.running){
+        if(!Queue.option.pause){
                 if (!this.runtime.attack){
-                this.runtime.limit = (limit > 9)? 1: (limit + 1|0);
+                this.runtime.limit = (limit > 30)? 1: (limit + 1|0);
                 }
         } else {
                 this.runtime.limit = 0;
@@ -1275,8 +1279,8 @@ Monster.work = function(state) {
 					? 'battle_raid'
 					: 'monster_battle_monster',
 				'casuser=' + uid + ((monster.phase && this.option.assist) ? '&action=doObjective' : '') + (type.mpool ? '&mpool=' + type.mpool : '') + ((monster.ac && monster.state === 'reward') ? '&action=collectReward' : ''));
-                        this.runtime.limit = 0;
                 }
+                this.runtime.limit = 0;
 		return QUEUE_RELEASE;
 	}
  	uid = this.runtime[mode].replace(/_\d+/,'');
@@ -1396,7 +1400,11 @@ Monster.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
-	th(output, '');
+	if (this.option.stop === 'Continuous'){
+                th(output, 'Continuous = ' + this.runtime.limit, 'title="Stop Multiplier"');
+        } else {
+                th(output, '');
+        }
 	th(output, 'User');
 	th(output, 'Health', 'title="(estimated)"');
 	th(output, 'Defense', 'title="Composite of Fortification or Dispel (0%...100%)."');
