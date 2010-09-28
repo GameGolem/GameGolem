@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 795;
+var revision = 796;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2578,6 +2578,7 @@ Page.defaults = {
 			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
 			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
 			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
+			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
@@ -6507,15 +6508,19 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		big = this.findAction('big',energy,stamina,0); 
 		//debug(' check sta: ' + stamina + ', big:' + big.stamina);
 		if (this.option.order === 'Energy') {
-			check = this.findAction('quest',energy-big.energy,0,exp);
+			check = this.findAction('quest',energy,0,exp);
 			//debug(' levelup quest ' + energy + ' ' + exp);
 			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
-			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
+			if (check && check.quest === Quest.runtime.best) {
 				return check;
 			}
 		}
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check) {
+			return check;
+		}
+		check = this.findAction('quest',energy,0,exp);
+		if (check && check.quest === Quest.runtime.best) {
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
@@ -7243,6 +7248,23 @@ Monster.types = {
 		defend:[10,20,40,100],
 		orcs:true
 	},
+	rebellion: {
+		name:'Aurelius, Lion\'s Rebellion',
+		list:'nm_aurelius_list.jpg',
+		image:'nm_aurelius_large.jpg',
+		dead:'nm_aurelius_dead.jpg',
+		achievement:1000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
+		tactics:[5,10,20,50],
+//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
 	alpha_meph: {
 		name:'Alpha Mephistopheles',
 		list:'nm_alpha_mephistopheles_list.jpg',
@@ -7682,7 +7704,7 @@ Monster.update = function(what,worker) {
 							&& (defend_found || o) === o) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
-							debug('Secondary target found (' + monster.secondary + '%)');
+							//debug('Secondary target found (' + monster.secondary + '%)');
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
@@ -8563,7 +8585,7 @@ Potions.work = function(state) {
 var Quest = new Worker('Quest');
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
@@ -8582,7 +8604,7 @@ Quest.runtime = {
 	energy:0
 };
 
-Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City'];
+Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City','Earth II'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
 Quest.display = [

@@ -77,6 +77,7 @@ Page.defaults = {
 			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
 			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
 			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
+			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif'},

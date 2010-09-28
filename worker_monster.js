@@ -611,6 +611,23 @@ Monster.types = {
 		defend:[10,20,40,100],
 		orcs:true
 	},
+	rebellion: {
+		name:'Aurelius, Lion\'s Rebellion',
+		list:'nm_aurelius_list.jpg',
+		image:'nm_aurelius_large.jpg',
+		dead:'nm_aurelius_dead.jpg',
+		achievement:1000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
+		tactics:[5,10,20,50],
+//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
 	alpha_meph: {
 		name:'Alpha Mephistopheles',
 		list:'nm_alpha_mephistopheles_list.jpg',
@@ -1050,7 +1067,7 @@ Monster.update = function(what,worker) {
 							&& (defend_found || o) === o) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
-							debug('Secondary target found (' + monster.secondary + '%)');
+							//debug('Secondary target found (' + monster.secondary + '%)');
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;

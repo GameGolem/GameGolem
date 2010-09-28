@@ -231,15 +231,19 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		big = this.findAction('big',energy,stamina,0); 
 		//debug(' check sta: ' + stamina + ', big:' + big.stamina);
 		if (this.option.order === 'Energy') {
-			check = this.findAction('quest',energy-big.energy,0,exp);
+			check = this.findAction('quest',energy,0,exp);
 			//debug(' levelup quest ' + energy + ' ' + exp);
 			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
-			if (check && (!check.quest || check.quest === Quest.runtime.best)) {
+			if (check && check.quest === Quest.runtime.best) {
 				return check;
 			}
 		}
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check) {
+			return check;
+		}
+		check = this.findAction('quest',energy,0,exp);
+		if (check && check.quest === Quest.runtime.best) {
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
