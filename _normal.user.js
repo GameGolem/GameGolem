@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 796;
+var revision = 797;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5290,13 +5290,14 @@ Generals.to = function(name) {
 };
 
 Generals.test = function(name) {
-	var stamina = Player.get('stamina'), maxstamina = Player.get('maxstamina'), energy = Player.get('energy'), maxenergy = Player.get('maxenergy'), next;
 	Generals._unflush(); // Can't use "this" because called out of context
-	next = isObject(name) ? name : Generals.data[name];
-	if (name === 'any') {
+	var next = isObject(name) ? name : Generals.data[name];
+	if (!name || !next) {
+		return false;
+	} else if (name === 'any') {
 		return true;
 	} else {
-		return (maxstamina + next.stats.stamina >= stamina && maxenergy + next.stats.energy >= energy);
+		return (Player.get('maxstamina') + next.stats.stamina >= Player.get('stamina') && Player.get('maxenergy') + next.stats.energy >= Player.get('energy'));
 	}
 };
 

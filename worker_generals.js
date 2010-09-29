@@ -224,13 +224,14 @@ Generals.to = function(name) {
 };
 
 Generals.test = function(name) {
-	var stamina = Player.get('stamina'), maxstamina = Player.get('maxstamina'), energy = Player.get('energy'), maxenergy = Player.get('maxenergy'), next;
 	Generals._unflush(); // Can't use "this" because called out of context
-	next = isObject(name) ? name : Generals.data[name];
-	if (name === 'any') {
+	var next = isObject(name) ? name : Generals.data[name];
+	if (!name || !next) {
+		return false;
+	} else if (name === 'any') {
 		return true;
 	} else {
-		return (maxstamina + next.stats.stamina >= stamina && maxenergy + next.stats.energy >= energy);
+		return (Player.get('maxstamina') + next.stats.stamina >= Player.get('stamina') && Player.get('maxenergy') + next.stats.energy >= Player.get('energy'));
 	}
 };
 
