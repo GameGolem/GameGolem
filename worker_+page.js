@@ -377,7 +377,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 		return true;
 	}
 //	this._push();
-	if (page && this.pageNames[page] && this.pageNames[page].url) {
+	if (!this.loading && page && this.pageNames[page] && this.pageNames[page].url) {
 		this.clear();
 		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
 		this.when = Date.now();
@@ -387,9 +387,11 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 			}
 			page = page + args;
 		}
+		this.loading = true;
 		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
 			window.location.replace(page);// Load new page without giving a back button
+			window.setTimeout(function(){Page.loading = false;}, this.option.timeout * 1000);// Don't try to load again for timeout secs...
 		} else {
 			Page.request = {
 				method:method,
@@ -400,7 +402,6 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 			request.open(method, page);
 			request.onreadystatechange = Page.onreadystatechange;
 			request.send(body);
-			this.loading = true;
 			setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
 		}
 	}
