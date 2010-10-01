@@ -85,6 +85,7 @@ rem If we can get the revision any other ways, place before here...
 if NOT "%revision%"=="0" (
 	call:VReplace _head_version.tmpl >_head_version.js
 	call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
+	call:VReplace _version.tmpl >_version.js
 )
 
 rem ----------------------------------------------------------------------
