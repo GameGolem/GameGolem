@@ -15,17 +15,15 @@ Update.data = null;
 Update.option = null;
 
 Update.settings = {
-	gm_only:true,// We need the cross-site ajax for our update checks
 	system:true
 };
 
 Update.runtime = {
 	lastcheck:0,// Date.now() = time since last check
+	version:0,// Last ones we saw in a check
+	revision:0,
 	force:false// Have we clicked a button, or is it an automatic check
 };
-
-Update.found = false;
-Update.looking = false;
 
 /***** Update.init() *****
 1a. Add a "Update Now" button to the button bar at the top of Config
@@ -33,70 +31,80 @@ Update.looking = false;
 2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
-	var $btn = $('<img class="golem-button" name="Check for Updates" id="golem_update" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
+	this.runtime.version = this.runtime.version || version;
+	this.runtime.revision = this.runtime.revision || revision;
+	$('head').append('<meta name="golem-version" content="">');// Blank if we're not looking
+	var $btn = $('<img class="golem-button golem-version" name="Check for Updates" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
 		$(this).addClass('red');
+		Update.runtime.lastcheck = 0;
 		Update.runtime.force = true;
 		Update.update();
 	});
 	$('#golem_buttons').append($btn);
-	if (isRelease) {
-		$btn = $('<img class="golem-button golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
+	if (isRelease) { // Add an advanced "beta" button for official release versions
+		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
 			$(this).addClass('red');
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+			Update.runtime.lastcheck = 0;
 			Update.runtime.force = true;
 			Update.update();
 		});
 		$('#golem_buttons').append($btn);
 	}
-	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000));// 6 hours max
+	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 };
 
 /***** Update.update() *****
-1a. Check that we've not already found an update
-1b. Check that it's been more than 6 hours since the last update
-2a. Use AJAX to get the google trunk source webpage (list of files and revisions)
-2b. Parse out the revision string for both release and beta
-3. Display a notification if there's a new version
+1a. If it's more than 6 hours since our last check, then ask for the latest version file from the server
+1b. In case of bad connection, say it's 6 hours - 1 minutes since we last checked
+2. Check if there's a version response on the page
+3a. If there's a response then parse it and clear it - remember the new numbers
+3b. Display a notification if there's a new version
 4. Set a reminder if there isn't
 */
 Update.update = function(type,worker) {
-	if (!this.found && !this.looking && (this.runtime.force || Date.now() - this.runtime.lastcheck > 21600000)) {// 6+ hours since last check (60x60x6x1000ms)
-		this.looking = true;
+	if (Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+		this.runtime.lastcheck = Date.now() - 21600000 + 60000;// Don't check again for 1 minute - will get reset if we get a reply
+		this._revive(5, 'check');// every 5 seconds
+		window.setTimeout(function(){
+			var script = document.createElement('script');
+			script.setAttribute('type', 'text/javascript');
+			script.src = 'http://game-golem.googlecode.com/svn/trunk/_version.js';
+			document.getElementsByTagName('head')[0].appendChild(script);
+		}, 100);
+	}
+	var result = $('meta[name="golem-version"]').attr('content').regex(/([0-9]+\.[0-9]+)\.([0-9]+)/);
+	if (result) {
+		debug('Version result: ' + result.toSource());
+		$('meta[name="golem-version"]').attr('content', '');
+		this._forget('check');
+		this._remind(21600, 'check');// 6 hours
 		this.runtime.lastcheck = Date.now();
-		debug('Checking for updates');
-		GM_xmlhttpRequest({ // Cross-site ajax, only via GreaseMonkey currently...
-			method: "GET",
-			url: 'http://code.google.com/p/game-golem/source/browse/trunk',
-			onload: function(evt) {
-				if (evt.readyState === 4 && evt.status === 200) {
-					var file, $btn;
-					file = evt.responseText.regex(/"trunk":{".*"_release.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
-					if (file[0] > revision) {
-						$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
-						Update.found = true;
-						log('New version available: '+file[0]+', currently on r'+revision);
-					}
-					if (!isRelease) {
-						file = evt.responseText.regex(/"trunk":{".*"_normal.user.js":\["[^"]*","([0-9]+)","([^"]*)"/i);
-						if (file[0] > revision) {
-							$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + file[0] + ' released ' + file[1] + ', currently on r' + revision +'"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
-							Update.found = true;
-							log('New revision available: '+file[0]+', currently on r'+revision);
-						}
-					}
-					if (Update.runtime.force && !Update.found) {
-						$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {
-							duration:5000,
-							complete:function(){$(this).remove();}
-						});
-						$('#golem_buttons').after($btn);
-						Update._remind(21600);// 6 hours
-						log('No new releases');
-					}
-					Update.runtime.force = Update.looking = false;
-					$('#golem_update').removeClass('red');
-				}
+		this.runtime.version = result[0];
+		this.runtime.revision = result[1];
+		if (this.runtime.version <= version && (isRelease || this.runtime.revision <= revision)) {
+			if (this.runtime.force) {
+				$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {
+					duration:5000,
+					complete:function(){$(this).remove();}
+				});
+				$('#golem_buttons').after($btn);
 			}
-		});
+		} else {
+			log('New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
+			if (isGreasemonkey) { // Firefox
+				if (this.runtime.version > version) {
+					$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + ' released, currently on ' + version + '"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
+				}
+				if (!isRelease && this.runtime.revision > revision) {
+					$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + this.runtime.revision + ' released, currently on r' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
+				}
+			} else { // Chrome
+				$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx">New Version Available</a></div>');
+			}
+		}
+		this.runtime.force = false;
+		$('.golem-version').removeClass('red');
 	}
 };
+
