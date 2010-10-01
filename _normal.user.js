@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 799;
+var revision = 803;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3201,8 +3201,11 @@ Queue.update = function(type,worker) {
 				Queue.burn.forceenergy = (action.energy !== 0);
 				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));
 				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
+                                LevelUp.runtime.running = true;
 			}
-		}
+		} else {
+                        LevelUp.runtime.running = false;
+                }
 		if (!this.burn.stamina && !this.burn.energy) {
 			if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
 				this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
@@ -4368,11 +4371,11 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		label:'Target',
+		before:'<center>Target Ranks</center>',
 		require:{'bp':'Always'},
-		text:true,
-		after: 'ranks above',
-		help:'When Get Battle Points is Always, only fights targets when your rank - their rank > limit.'
+		select:'limit_list',
+		after: '<center>and above</center>',
+		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
 	},{
 		advanced:true,
 		id:'cache',
@@ -4439,6 +4442,7 @@ Battle.display = [
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
+        var i,list =[];
 //	this._watch(Arena);
 	this._watch(Monster);
 	if (typeof this.option.points === 'boolean') {
@@ -4447,6 +4451,10 @@ Battle.init = function() {
 	}
 //	this.option.arena = false;// ARENA!!!!!!
 	Resources.use('Stamina');
+        for (i in this.data.rank){
+                list.push('(' + (i - Player.get('rank')) + ') ' + this.data.rank[i].name);
+        }
+        Config.set('limit_list', list);
 };
 
 /***** Battle.parse() *****
@@ -4544,7 +4552,7 @@ Battle.parse = function(change) {
 */
 Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
-        var enabled = Queue.enabled(this);
+        var enabled = Queue.enabled(this),limit;
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -4555,8 +4563,9 @@ Battle.update = function(type) {
 		+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
+        limit = this.option.limit.regex(/([\-0-9]+)/);
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= this.option.limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && (data[i].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -4648,7 +4657,7 @@ Battle.update = function(type) {
 			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
-			status.push('No valid targets found');
+			status.push('No valid targets found.');
 			this._remind(60); // No targets, so check again in 1 minute...
 		}
 	}
@@ -6624,7 +6633,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (staminaAction < 0 && Queue.enabled(Battle)) {
+		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
 		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
@@ -7598,6 +7607,9 @@ Monster.update = function(what,worker) {
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count;
 	var limit = this.runtime.limit;
+        if(!LevelUp.runtime.running && limit === 100){
+                        limit = 0;
+                }
         list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -7906,7 +7918,9 @@ Monster.update = function(what,worker) {
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
         if(!Queue.option.pause){
-                if (!this.runtime.attack){
+                if(LevelUp.runtime.running){
+                        this.runtime.limit = 100;
+                } else if (!this.runtime.attack){
                 this.runtime.limit = (limit > 30)? 1: (limit + 1|0);
                 }
         } else {
@@ -7920,7 +7934,7 @@ Monster.work = function(state) {
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
 		mode = 'defend';
 		stat = 'energy';
-	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health && Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points)) {
+	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health && Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points && Battle.runtime.attacking)) {
 		mode = 'attack';
 		stat = 'stamina';
 	}
@@ -9287,20 +9301,7 @@ Town.getDuel = function() {
 Town.update = function(type) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	incr = (this.runtime.cost_incr || 4);
-        max_cost = ({
-		'$10k':Math.pow(10,4),
-		'$100k':Math.pow(10,5),
-		'$1m':Math.pow(10,6),
-		'$10m':Math.pow(10,7),
-		'$100m':Math.pow(10,8),
-		'$1b':Math.pow(10,9),
-		'$10b':Math.pow(10,10),
-		'$100b':Math.pow(10,11),
-		'$1t':Math.pow(10,12),
-		'$10t':Math.pow(10,13),
-		'$100t':Math.pow(10,14),
-                'INCR':Math.pow(10,incr)
-	})[this.option.maxcost];
+        
 	switch (this.option.number) {
 		case 'Army':
 				max_buy = army;
@@ -9335,8 +9336,27 @@ Town.update = function(type) {
 			if (this.option.units !== 'Best Offense') {
 				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_def'], 0), Resources.get(['_'+u, 'duel_def'], 0))));
 			}
+                        if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+				max_cost = Math.pow(10,30);
+                                need = want;
+			} else {
+                                max_cost = ({
+                                        '$10k':Math.pow(10,4),
+                                        '$100k':Math.pow(10,5),
+                                        '$1m':Math.pow(10,6),
+                                        '$10m':Math.pow(10,7),
+                                        '$100m':Math.pow(10,8),
+                                        '$1b':Math.pow(10,9),
+                                        '$10b':Math.pow(10,10),
+                                        '$100b':Math.pow(10,11),
+                                        '$1t':Math.pow(10,12),
+                                        '$10t':Math.pow(10,13),
+                                        '$100t':Math.pow(10,14),
+                                        'INCR':Math.pow(10,incr)
+                                })[this.option.maxcost];
+                        }
 //			debug('Item: '+u+', need: '+need+', want: '+want);
-			if (need > have) {// Want to buy more
+			if (need > have) {// Want to buy more                                
 				if (!best_quest && data[u].buy && data[u].buy.length) {
 					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);

@@ -111,11 +111,11 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		label:'Target',
+		before:'<center>Target Ranks</center>',
 		require:{'bp':'Always'},
-		text:true,
-		after: 'ranks above',
-		help:'When Get Battle Points is Always, only fights targets when your rank - their rank > limit.'
+		select:'limit_list',
+		after: '<center>and above</center>',
+		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
 	},{
 		advanced:true,
 		id:'cache',
@@ -182,6 +182,7 @@ Battle.display = [
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
+        var i,list =[];
 //	this._watch(Arena);
 	this._watch(Monster);
 	if (typeof this.option.points === 'boolean') {
@@ -190,6 +191,10 @@ Battle.init = function() {
 	}
 //	this.option.arena = false;// ARENA!!!!!!
 	Resources.use('Stamina');
+        for (i in this.data.rank){
+                list.push('(' + (i - Player.get('rank')) + ') ' + this.data.rank[i].name);
+        }
+        Config.set('limit_list', list);
 };
 
 /***** Battle.parse() *****
@@ -287,7 +292,7 @@ Battle.parse = function(change) {
 */
 Battle.update = function(type) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
-        var enabled = Queue.enabled(this);
+        var enabled = Queue.enabled(this),limit;
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -298,8 +303,9 @@ Battle.update = function(type) {
 		+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
+        limit = this.option.limit.regex(/([\-0-9]+)/);
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && rank - (data[i].rank || 0) >= this.option.limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && (data[i].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -391,7 +397,7 @@ Battle.update = function(type) {
 			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
-			status.push('No valid targets found');
+			status.push('No valid targets found.');
 			this._remind(60); // No targets, so check again in 1 minute...
 		}
 	}

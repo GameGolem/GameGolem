@@ -951,6 +951,9 @@ Monster.update = function(what,worker) {
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count;
 	var limit = this.runtime.limit;
+        if(!LevelUp.runtime.running && limit === 100){
+                        limit = 0;
+                }
         list.defend = [];
 	list.attack = [];
 	// Flush stateless monsters
@@ -1259,7 +1262,9 @@ Monster.update = function(what,worker) {
 	}
 	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
         if(!Queue.option.pause){
-                if (!this.runtime.attack){
+                if(LevelUp.runtime.running){
+                        this.runtime.limit = 100;
+                } else if (!this.runtime.attack){
                 this.runtime.limit = (limit > 30)? 1: (limit + 1|0);
                 }
         } else {
@@ -1273,7 +1278,7 @@ Monster.work = function(state) {
 	if (this.runtime.defend && Queue.burn.energy >= this.runtime.energy) {
 		mode = 'defend';
 		stat = 'energy';
-	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health && Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points)) {
+	} else if (this.runtime.attack && Player.get('health') >= this.runtime.health && Queue.burn.stamina >= this.runtime.stamina && !(Battle.runtime.points && this.option.points && Battle.runtime.attacking)) {
 		mode = 'attack';
 		stat = 'stamina';
 	}

@@ -197,20 +197,7 @@ Town.getDuel = function() {
 Town.update = function(type) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	incr = (this.runtime.cost_incr || 4);
-        max_cost = ({
-		'$10k':Math.pow(10,4),
-		'$100k':Math.pow(10,5),
-		'$1m':Math.pow(10,6),
-		'$10m':Math.pow(10,7),
-		'$100m':Math.pow(10,8),
-		'$1b':Math.pow(10,9),
-		'$10b':Math.pow(10,10),
-		'$100b':Math.pow(10,11),
-		'$1t':Math.pow(10,12),
-		'$10t':Math.pow(10,13),
-		'$100t':Math.pow(10,14),
-                'INCR':Math.pow(10,incr)
-	})[this.option.maxcost];
+        
 	switch (this.option.number) {
 		case 'Army':
 				max_buy = army;
@@ -245,8 +232,27 @@ Town.update = function(type) {
 			if (this.option.units !== 'Best Offense') {
 				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_def'], 0), Resources.get(['_'+u, 'duel_def'], 0))));
 			}
+                        if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+				max_cost = Math.pow(10,30);
+                                need = want;
+			} else {
+                                max_cost = ({
+                                        '$10k':Math.pow(10,4),
+                                        '$100k':Math.pow(10,5),
+                                        '$1m':Math.pow(10,6),
+                                        '$10m':Math.pow(10,7),
+                                        '$100m':Math.pow(10,8),
+                                        '$1b':Math.pow(10,9),
+                                        '$10b':Math.pow(10,10),
+                                        '$100b':Math.pow(10,11),
+                                        '$1t':Math.pow(10,12),
+                                        '$10t':Math.pow(10,13),
+                                        '$100t':Math.pow(10,14),
+                                        'INCR':Math.pow(10,incr)
+                                })[this.option.maxcost];
+                        }
 //			debug('Item: '+u+', need: '+need+', want: '+want);
-			if (need > have) {// Want to buy more
+			if (need > have) {// Want to buy more                                
 				if (!best_quest && data[u].buy && data[u].buy.length) {
 					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						debug('Buy: '+need);
