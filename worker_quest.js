@@ -56,7 +56,7 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward',
-		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement. Vampire Lord will try to collect 24, then fall back to Advancement'
+		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement. Vampire Lord will try to collect 24, then fall back to Advancement. Subquests will only run subquests under 100% then fall back to Advancement (quick general levelling)'
 	},{
 		advanced:true,
 		id:'ignorecomplete',
@@ -188,7 +188,7 @@ Quest.update = function(type,worker) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
+	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
 	this._watch(Player);
 	this._watch(Queue);
 	if (!type || type === 'data') {
@@ -200,7 +200,7 @@ Quest.update = function(type,worker) {
 				items[unit] = Math.max(items[unit] || 0, quests[i].units[unit]);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
 			Resources.set(['_'+unit, 'quest'], items[unit]);
 		}
@@ -267,6 +267,13 @@ Quest.update = function(type,worker) {
 					&& (this.option.ignorecomplete === false || (isNumber(quests[i].influence) && quests[i].influence < 100))) {
 						best_cartigan = i;
 					}// Deliberate fallthrough
+				case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
+					if (quests[i].type === 2
+					&& isNumber(quests[i].influence) 
+					&& quests[i].influence < 100
+					&& (!best_subquest || quests[i].energy < quests[best_subquest].energy)) {
+						best_subquest = i;
+					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
@@ -308,6 +315,7 @@ Quest.update = function(type,worker) {
 		switch(this.option.what) { // Automatically fallback on type - but without changing option
 			case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
 			case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
+			case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
 			case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
 			case 'Influence':	best = best_influence || best_experience;break;
 			case 'Experience':	best = best_experience;break;
