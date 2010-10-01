@@ -98,6 +98,7 @@ Update.update = function(type,worker) {
 				}
 				if (!isRelease && this.runtime.revision > revision) {
 					$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + this.runtime.revision + ' released, currently on r' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
+                                        $('#golem_buttons').after('<div class="golem-button golem-info green" title="change_log"><a href="http://code.google.com/p/game-golem/source/detail?r=' + this.runtime.revision +'"target="_blank">Read Change Log HERE</a></div>');
 				}
 			} else { // Chrome
 				$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx">New Version Available</a></div>');
