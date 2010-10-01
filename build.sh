@@ -84,6 +84,8 @@ fi
 rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2 + 1}'`
 ver=`cat _version.txt`
 
+sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _version.tmpl > _version.js
+
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
 sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _head_version.tmpl > _head_version.js
