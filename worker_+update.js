@@ -60,17 +60,16 @@ Update.init = function() {
 			tmp = $(event.target).attr('content').regex(/([0-9]+\.[0-9]+)\.([0-9]+)/);
 			if (tmp) {
 				Update._remind(21600, 'check');// 6 hours
-				Update.set('runtime.lastcheck', Date.now());
-				Update.set('runtime.version', tmp[0]);
-				Update.set('runtime.revision', tmp[1]);
-				if (Update.get('runtime.force', false) && Update.get('temp.version', version) >= tmp[0] && (isRelease || Update.get('temp.revision', revision) >= tmp[1])) {
+				Update.runtime.lastcheck = Date.now();
+				Update.runtime.version = tmp[0];
+				Update.runtime.revision = tmp[1];
+				if (Update.runtime.force && Update.temp.version >= tmp[0] && (isRelease || Update.temp.revision >= tmp[1])) {
 					$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} });
 					$('#golem_buttons').after($btn);
 				}
-				Update.set('runtime.force', false);
+				Update.runtime.force = false;
 				$('.golem-version').removeClass('red');
 			}
-			debug('Inserted node: '+event.target.nodeName);
 			event.stopImmediatePropagation();
 			event.stopPropagation();
 			$(event.target).remove();
