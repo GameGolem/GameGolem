@@ -981,8 +981,8 @@ Monster.update = function(what,worker) {
 	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.burn.forcestamina;
 	if (this.option.stop === 'Priority List') {
-		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind, button;
-		var order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
+		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind, button, order = [];
+		if (this.option.priority) order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
 			order[o] = order[o].trim();
