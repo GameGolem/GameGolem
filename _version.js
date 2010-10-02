@@ -1,1 +1,1 @@
-try{document.getElementsByName('golem-version')[0].setAttribute('content', '31.5.804')} catch(e){}
+try{var d=document,m=d.createElement('meta');m.name='golem-version';m.content='31.5.805';d.getElementsByTagName('head')[0].appendChild(m);}catch(e){}
