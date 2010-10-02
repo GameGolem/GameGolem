@@ -44,9 +44,9 @@ Potions.parse = function(change) {
 	$('.result_body:contains("You have acquired the Energy Potion!")').each(function(i,el){
 		Potions.data['Energy'] = (Potions.data['Energy'] || 0) + 1;
 	});
-	if (Page.page === 'keep_stats') {
+	if (Page.page === 'keep_stats' && $('div.keep_attribute_section').length) {// Only our own keep
 		this.data = {}; // Reset potion count completely at the keep
-		$('.statsT2:eq(3) .statUnit').each(function(i,el){
+		$('.statUnit', $('.statsTTitle:contains("CONSUMABLES")').next()).each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 			if (info && info[0] && info[1]) {
 				Potions.data[info[0]] = info[1];
