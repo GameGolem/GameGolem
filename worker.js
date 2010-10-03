@@ -133,7 +133,7 @@ function Worker(name,pages,settings) {
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
-	this._watching = [];
+	this._watching = {data:[], option:[], runtime:[]};
 	this._reminders = {};
 	this._disabled = false;
 }
@@ -269,8 +269,8 @@ Worker.prototype._revive = function(seconds, id) {
 	return timer;
 };
 
-Worker.prototype._remind = function(seconds, id) {
-	var me = this, timer = window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._remind = function(seconds, id, callback) {
+	var me = this, timer = window.setTimeout(callback || function(){me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -287,13 +287,16 @@ Worker.prototype._save = function(type) {
 	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 		return false;
 	}
-	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
+	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
 		this._working[type] = true;
 		this._changed = Date.now();
 		this._update(type, null);
 		setItem(n, v);
+		for (i=0; i<this._watching[type].length; i++) {
+			this._watching[type][i]._update(type, this);
+		}
 		this._working[type] = false;
 		this._pop();
 		return true;
@@ -376,14 +379,16 @@ Worker.prototype._unwatch = function(worker) {
 		worker = WorkerByName(worker);
 	}
 	if (isWorker(worker)) {
-		deleteElement(worker._watching,this);
+		deleteElement(worker._watching.data,this);
+		deleteElement(worker._watching.option,this);
+		deleteElement(worker._watching.runtime,this);
 	}
 };
 
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		this._push();
-		var i, flush = false;
+		var i, flush = false, me = this;
 		this._working.update = true;
 		if (typeof worker === 'undefined') {
 			worker = null;
@@ -399,25 +404,26 @@ Worker.prototype._update = function(type, worker) {
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
-		if (!worker && type) {
-			for (i=0; i<this._watching.length; i++) {
-				this._watching[i]._update(type, this);
-			}
-		}
 		if (flush) {
-			this._flush();
+			this._remind(0.1, '_flush', function(){me._flush();});
+//			this._flush();
 		}
 		this._working.update = false;
 		this._pop();
 	}
 };
 
-Worker.prototype._watch = function(worker) {
+Worker.prototype._watch = function(worker, type) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	if (isWorker(worker) && !findInArray(worker._watching,this)) {
-		worker._watching.push(this);
+	if (isWorker(worker)) {
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+			type = 'data';
+		}
+		if (!findInArray(worker._watching[type],this)) {
+			worker._watching[type].push(this);
+		}
 	}
 };
 
