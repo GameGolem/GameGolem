@@ -32,7 +32,8 @@ LevelUp.option = {
 	general:'any',
 	general_choice:'any',
 	order:'stamina',
-	algorithm:'Per Action'
+	algorithm:'Per Action',
+        override:false
 };
 
 LevelUp.runtime = {
@@ -89,7 +90,12 @@ LevelUp.display = [
 		require:{'algorithm':'Manual'},
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
-	}
+	},{
+                id:'override',
+                label:'Override Monster<br>Avoid Lost-cause Option',
+                checkbox:true,
+                help:'Overrides Avoid Lost-cause Monster setting allowing LevelUp to burn stamina on behind monsters.'
+        }
 ];
 
 LevelUp.init = function() {
@@ -337,6 +343,9 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 				general = i;
 			}
 		}
+                if (!Monster.runtime.attack){
+                        staminaAction = 0;
+                }
 		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}

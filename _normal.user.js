@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 808;
+var revision = 810;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -882,7 +882,7 @@ function Worker(name,pages,settings) {
 	this._loaded = false;
 	this._working = {data:false, option:false, runtime:false, update:false};
 	this._changed = Date.now();
-	this._watching = [];
+	this._watching = {data:[], option:[], runtime:[]};
 	this._reminders = {};
 	this._disabled = false;
 }
@@ -1018,8 +1018,8 @@ Worker.prototype._revive = function(seconds, id) {
 	return timer;
 };
 
-Worker.prototype._remind = function(seconds, id) {
-	var me = this, timer = window.setTimeout(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._remind = function(seconds, id, callback) {
+	var me = this, timer = window.setTimeout(callback || function(){me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1036,13 +1036,16 @@ Worker.prototype._save = function(type) {
 	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 		return false;
 	}
-	var n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
+	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
 		this._working[type] = true;
 		this._changed = Date.now();
 		this._update(type, null);
 		setItem(n, v);
+		for (i=0; i<this._watching[type].length; i++) {
+			this._watching[type][i]._update(type, this);
+		}
 		this._working[type] = false;
 		this._pop();
 		return true;
@@ -1125,14 +1128,16 @@ Worker.prototype._unwatch = function(worker) {
 		worker = WorkerByName(worker);
 	}
 	if (isWorker(worker)) {
-		deleteElement(worker._watching,this);
+		deleteElement(worker._watching.data,this);
+		deleteElement(worker._watching.option,this);
+		deleteElement(worker._watching.runtime,this);
 	}
 };
 
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		this._push();
-		var i, flush = false;
+		var i, flush = false, me = this;
 		this._working.update = true;
 		if (typeof worker === 'undefined') {
 			worker = null;
@@ -1148,25 +1153,26 @@ Worker.prototype._update = function(type, worker) {
 		}catch(e) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
-		if (!worker && type) {
-			for (i=0; i<this._watching.length; i++) {
-				this._watching[i]._update(type, this);
-			}
-		}
 		if (flush) {
-			this._flush();
+			this._remind(0.1, '_flush', function(){me._flush();});
+//			this._flush();
 		}
 		this._working.update = false;
 		this._pop();
 	}
 };
 
-Worker.prototype._watch = function(worker) {
+Worker.prototype._watch = function(worker, type) {
 	if (typeof worker === 'string') {
 		worker = WorkerByName(worker);
 	}
-	if (isWorker(worker) && !findInArray(worker._watching,this)) {
-		worker._watching.push(this);
+	if (isWorker(worker)) {
+		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
+			type = 'data';
+		}
+		if (!findInArray(worker._watching[type],this)) {
+			worker._watching[type].push(this);
+		}
 	}
 };
 
@@ -1320,7 +1326,7 @@ Army.get = function(what, def) {
 Army.infolist = {
 	'UserID':'uid',
 	'Level':'level',
-	'Army':'army'
+	'Army Size':'army_size'
 };
 Army.sectionlist = {
 	'Name':{ // First column = Name
@@ -5025,10 +5031,10 @@ Elite.parse = function(change) {
 	if (Page.page === 'army_viewarmy') {
 		var count = 0;
 		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().next();
+			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
 			count++;
-			Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text());
+                        Army.set(['Army', uid], true); // Set for people in our actual army
+			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
 			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
 		});
 		if (count < 25) {
@@ -6340,7 +6346,8 @@ LevelUp.option = {
 	general:'any',
 	general_choice:'any',
 	order:'stamina',
-	algorithm:'Per Action'
+	algorithm:'Per Action',
+        override:false
 };
 
 LevelUp.runtime = {
@@ -6397,7 +6404,12 @@ LevelUp.display = [
 		require:{'algorithm':'Manual'},
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
-	}
+	},{
+                id:'override',
+                label:'Override Monster<br>Avoid Lost-cause Option',
+                checkbox:true,
+                help:'Overrides Avoid Lost-cause Monster setting allowing LevelUp to burn stamina on behind monsters.'
+        }
 ];
 
 LevelUp.init = function() {
@@ -6645,6 +6657,9 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 				general = i;
 			}
 		}
+                if (!Monster.runtime.attack){
+                        staminaAction = 0;
+                }
 		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
@@ -7798,7 +7813,7 @@ Monster.update = function(what,worker) {
 					// add own monster
 				} else if (this.option.avoid_lost_cause
 						&& (monster.eta - monster.finish)/3600000
-							> this.option.lost_cause_hours) {
+							> this.option.lost_cause_hours && (!LevelUp.option.override || !LevelUp.runtime.running) && !monster.override) {
 					continue;  // Avoid lost cause monster
 				} else if (this.option.rescue
 						&& (monster.eta
@@ -8091,7 +8106,7 @@ Monster.dashboard = function(sort, rev) {
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
 	if (this.option.stop === 'Continuous'){
-                th(output, 'Continuous = ' + this.runtime.limit, 'title="Stop Multiplier"');
+                th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
         } else {
                 th(output, '');
         }
@@ -8102,7 +8117,8 @@ Monster.dashboard = function(sort, rev) {
 	th(output, 'Activity');
 	th(output, 'Time Left');
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
-	th(output, '');
+	//th(output, '');
+        //th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		uid = this.order[o].replace(/_\d+/,'');
@@ -8186,7 +8202,8 @@ Monster.dashboard = function(sort, rev) {
 					? makeTimer((monster.finish - Date.now()) / 1000)
 					: makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
 		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
-		tr(list, output.join(''));
+		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
+                tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
@@ -8201,6 +8218,13 @@ Monster.dashboard = function(sort, rev) {
 		var x = $(this).attr('name');
 		Monster._unflush();
 		Monster.data[x].ignore = !Monster.data[x].ignore;
+		Monster.dashboard();
+		return false;
+	});
+        $('a.golem-monster-override').live('click', function(event){
+		var y = $(this).attr('name');
+                Monster._unflush();
+		Monster.data[y].override = !Monster.data[y].override;
 		Monster.dashboard();
 		return false;
 	});

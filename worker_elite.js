@@ -143,10 +143,10 @@ Elite.parse = function(change) {
 	if (Page.page === 'army_viewarmy') {
 		var count = 0;
 		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().next();
+			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
 			count++;
-			Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text());
+                        Army.set(['Army', uid], true); // Set for people in our actual army
+			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
 			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
 		});
 		if (count < 25) {

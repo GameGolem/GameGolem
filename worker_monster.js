@@ -1130,7 +1130,7 @@ Monster.update = function(what,worker) {
 					// add own monster
 				} else if (this.option.avoid_lost_cause
 						&& (monster.eta - monster.finish)/3600000
-							> this.option.lost_cause_hours) {
+							> this.option.lost_cause_hours && (!LevelUp.option.override || !LevelUp.runtime.running) && !monster.override) {
 					continue;  // Avoid lost cause monster
 				} else if (this.option.rescue
 						&& (monster.eta
@@ -1423,7 +1423,7 @@ Monster.dashboard = function(sort, rev) {
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
 	if (this.option.stop === 'Continuous'){
-                th(output, 'Continuous = ' + this.runtime.limit, 'title="Stop Multiplier"');
+                th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
         } else {
                 th(output, '');
         }
@@ -1434,7 +1434,8 @@ Monster.dashboard = function(sort, rev) {
 	th(output, 'Activity');
 	th(output, 'Time Left');
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
-	th(output, '');
+	//th(output, '');
+        //th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		uid = this.order[o].replace(/_\d+/,'');
@@ -1518,7 +1519,8 @@ Monster.dashboard = function(sort, rev) {
 					? makeTimer((monster.finish - Date.now()) / 1000)
 					: makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
 		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
-		tr(list, output.join(''));
+		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
+                tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
@@ -1533,6 +1535,13 @@ Monster.dashboard = function(sort, rev) {
 		var x = $(this).attr('name');
 		Monster._unflush();
 		Monster.data[x].ignore = !Monster.data[x].ignore;
+		Monster.dashboard();
+		return false;
+	});
+        $('a.golem-monster-override').live('click', function(event){
+		var y = $(this).attr('name');
+                Monster._unflush();
+		Monster.data[y].override = !Monster.data[y].override;
 		Monster.dashboard();
 		return false;
 	});

@@ -136,7 +136,7 @@ Army.get = function(what, def) {
 Army.infolist = {
 	'UserID':'uid',
 	'Level':'level',
-	'Army':'army'
+	'Army Size':'army_size'
 };
 Army.sectionlist = {
 	'Name':{ // First column = Name
