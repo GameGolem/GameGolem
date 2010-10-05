@@ -344,12 +344,12 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 			}
 		}
                 if (!Monster.runtime.attack){
-                        staminaAction = 0;
+                        staminaAction = -1;
                 }
 		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
+		debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
 		if (staminaAction > 0 ) {
 			return {	stamina : staminaAction,
 						energy : 0,

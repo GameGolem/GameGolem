@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 811;
+var revision = 812;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6659,12 +6659,12 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 			}
 		}
                 if (!Monster.runtime.attack){
-                        staminaAction = 0;
+                        staminaAction = -1;
                 }
 		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
+		debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
 		if (staminaAction > 0 ) {
 			return {	stamina : staminaAction,
 						energy : 0,
