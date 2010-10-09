@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 812;
+var revision = 813;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4570,7 +4570,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(type) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0;
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip;
         var enabled = Queue.enabled(this),limit;
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
@@ -4633,15 +4633,20 @@ Battle.update = function(type) {
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
 			this.runtime.attacking = null;
 		}
+		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
 			if (!/[^0-9]/g.test(i)) {
+				if (this.option.preferonly === 'Never') {
+					skip[i] = true;
+					continue;
+				}
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
-				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
+				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
 					continue;
 				}
 				list.push(i,i,i,i,i,i,i,i,i,i); // If on the list then they're worth at least 10 ;-)
@@ -4650,7 +4655,8 @@ Battle.update = function(type) {
 		}
 		if (this.option.preferonly === 'Never' || this.option.preferonly === 'Sometimes' || (this.option.preferonly === 'Only' && !this.option.prefer.length) || (this.option.preferonly === 'Until Dead' && !list.length)) {
 			for (i in data) {
-				if ((data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
+				if (skip[i] // If filtered out in preferred list
+				|| (data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
 				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) * (data[i].level || 0) / level > this.option.army && this.option.type === 'Invade')
