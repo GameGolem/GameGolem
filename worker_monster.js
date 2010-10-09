@@ -615,7 +615,7 @@ Monster.types = {
 		name:'Aurelius, Lion\'s Rebellion',
 		list:'nm_aurelius_list.jpg',
 		image:'nm_aurelius_large.jpg',
-		dead:'nm_aurelius_dead.jpg',
+		dead:'nm_aurelius_large_dead.jpg',
 		achievement:1000,
 		timer:604800, // 168 hours
 		mpool:1,

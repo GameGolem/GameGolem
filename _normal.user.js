@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 813;
+var revision = 817;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -7305,7 +7305,7 @@ Monster.types = {
 		name:'Aurelius, Lion\'s Rebellion',
 		list:'nm_aurelius_list.jpg',
 		image:'nm_aurelius_large.jpg',
-		dead:'nm_aurelius_dead.jpg',
+		dead:'nm_aurelius_large_dead.jpg',
 		achievement:1000,
 		timer:604800, // 168 hours
 		mpool:1,
