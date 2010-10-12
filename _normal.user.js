@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 818;
+var revision = 819;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -39,7 +39,21 @@ var first_timer = window.setTimeout(function(){return;},0);
 // Automatically filled
 var userID = 0;
 var imagepath = '';
-var isGreasemonkey = (typeof GM_log === 'function');
+
+// Detect browser - this is rough detection, mainly for updates
+var browser = 'unknown';
+if (navigator.userAgent.indexOf('Chrome') >= 0) {
+	browser = 'chrome';
+} else if (navigator.userAgent.indexOf('Safari') >= 0) {
+	browser = 'safari';
+} else if (navigator.userAgent.indexOf('Opera') >= 0) {
+	browser = 'opera';
+} else if (navigator.userAgent.indexOf('Mozilla') >= 0) {
+	browser = 'firefox';
+	if (typeof GM_log === 'function') {
+		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
+	}
+}
 
 // Decide which facebook app we're in...
 if (window.location.hostname.match(/\.facebook\.com$/i)) {
@@ -174,6 +188,8 @@ Images.update = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%0
 Images.options = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%0FPLTE%E2%E2%E2%8A%8A%8A%AC%AC%AC%FF%FF%FFUUU%1C%CB%CE%D3%00%00%00%04tRNS%FF%FF%FF%00%40*%A9%F4%00%00%00%3DIDATx%DA%A4%8FA%0E%00%40%04%03%A9%FE%FF%CDK%D2%B0%BBW%BD%CD%94%08%8B%2F%B6%10N%BE%A2%18%97%00%09pDr%A5%85%B8W%8A%911%09%A8%EC%2B%8CaM%60%F5%CB%11%60%00%9C%F0%03%07%F6%BC%1D%2C%00%00%00%00IEND%AEB%60%82";
 Images.arena = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%02jPLTE%B5v4%FF%EF%CA%F2%EA%E0%FF%E3%AA%D6%B8%98%B4v5%FA%F4%EF%FC%F7%F4%FD%B5M%FF%EB%D5%FC%CE%8D%EF%A7e%F4%9CJ%F6%9CI%FD%D5%A3%FF%F9%EC%FB%F7%F3%F9%B4c%EC%BD%91%FA%CF%98%B7%80A%FE%CEn%D9%C1%A9%F6%A2R%E6%D5%C3%D0%93R%E9%8D3%D2%A9x%FC%C5%92%FE%D7%A6%FC%D6%A5%E9%C1%8F%FD%D7%A7%D7%BB%9B%D7%A2h%F1%94%3D%ED%91%3E%F8%EF%E2%F7%B4n%D0%95U%FF%F7%D8%F2%B5l%F1%AA%5C%F2%AE%5D%FF%F9%EA%FA%C1~%D8%A1c%DC%BF%9D%FF%F5%D7%CC%90O%F8%F3%EE%FB%E3%C5%F4%EA%DF%CE%9Ee%F7%CA%95%DB%BF%A1%D8%B2%82%FB%C8%86%F6%DA%BF%FE%E6%C8%FF%D4%99%F9%C9%8F%D4%884%C9%9Fn%D2%87%3A%F0%E5%DA%DB%97%40%FF%BAP%F1%B5q%DF%C5%A7%BA%82C%F7%98C%C6%85%3E%FF%D9%A3%C5%836%F9%D0%A1%BBq%20%EC%DF%D0%C0%90%5C%FE%EE%D8%FB%D6%A7%F3%C1%8E%CC%8EC%FE%E2%C1%F5%C2v%E9%B4v%F5%DA%C2%F9%A0I%FA%C7%84%E3%A5_%DC%ACv%F9%D2%AC%D1%A7w%F8%B8i%B5%7CA%F1%AEn%FD%FB%F9%F9%B9_%F8%A5T%EC%9CH%E2%CC%B4%E9%95B%C2%8ER%FF%E4%AA%FA%CB%94%E1%93D%F9%F5%EF%F6%F0%E9%FF%FA%F0%EE%8D5%F8%B7l%FF%ED%C2%E7%D6%C1%FC%D5%A1%D5%B0%83%F5%D8%C0%EC%98C%F3%E9%E2%F3%9AK%E8%B5z%F7%A6S%FB%ED%E2%FF%F3%D9%EE%908%F6%CE%A0%EB%ACu%ED%B9z%EC%BC%8E%ED%B9%87%F3%EA%E4%FF%E7%B8%FA%C7%7F%F8%E1%C8%F1%E7%DD%E9%DA%CA%FF%DE%8F%F2%B5%7D%DC%C0%A1%F9%F2%E9%D2%95E%EE%E2%D5%FE%DD%B6%FE%DC%A8%FA%D5%A2%C1%88J%FE%E7%C4%FF%C5b%C0%84E%EE%A2Z%F4%C6%96%FC%B4M%D5%BB%A0%E1%A7W%D0%AF%8A%F8%B0%5B%FF%CDm%EF%A9e%BE%81%3E%F8%B7i%ED%E0%D1%D6%B1%87%DC%C3%A8%FD%CC%87%C0z%2B%EE%B5%7D%F3%E6%D5%FE%DB%B0%EF%C6%95%ED%C7%9D%FD%DF%B8%BDs%26%FF%E9%B8%C8%85%3A%FA%D8%B0%F3%A6X%BE%82%3D%F3%C7%9C%FF%D4p%FA%E0%C2%E4%D0%BB%FB%C5%8A%F1%E6%D9%D0%A9%7C%FD%D9%91%F4%AD%5D%D7%94A%FB%CB%8B%DC%8A7%FC%F2%E4%FF%E3%B4%F9%D3%B0%EF%DA%BD%F2%EA%E1%E7%9A%40%F0%B5%80%F1%A7Y%DA%C1%A4%FE%FE%FD%FF%D8%7F%FF%F9%F0%CD%827%FF%D5%8D%CC%A5%7C%F1%BB%8C%FF%FF%FF%FF%FF%FF4%D1%F7(%00%00%00%CEtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00U%06%A1l%00%00%01%07IDATx%DAb8%0B%02Fm%E6%9D%9B%B3%C1L%06%20%CE%3A5A%AF%3C4R2%C6%11%22%C0%94%16%C5%98%BF%B7%CF%D3%C6%C5C%02%24%C0%16'%AF%A1s%DC%AA%DE%3A%60Q%DE%9A%AD%40%01%7B%25%83%9C3gN%ABl%0A%CE%10%3Cl%9A%C0p%80%A1%BF%EA%CC%19%F6Ce%81%CB%E4%D4%92%1CZ%19%C4%267%F1%9F9S%BCOf%CAJY%DD%8ALW%06%16%F5%D5%7BJ%1Bk%85%1ArW%2C%D7%14O%5E%C0%A0o%98%EE_%19%D6%B1a*%CF%1C%E1X%DE%D4m%0C%FB%E7%9E%9C%C8%B9%24%BA%C5xKu%C4%3C%F7%DD%0B%19T%D7%870%AF%E5%EE%AD%F1VP%D6%9E%15~b%3E%C3Y%8B%A0%F6%BAx%3E3%DB%C2uRZ%25%D2G%19%CEv%B9%CD8%B6%9Dk%97es%E2%B4%1D%8B%7DAN_*%D2-%BAq%F6%24g%8E%83%3EG%20%9E%13(b%F5%DA%E9d%B7%CA%AF%00%EA%DB%B3gMR%A6%CFT%EC%013%01%02%0C%00%7F%BAz%81%3F%91%3Et%00%00%00%00IEND%AEB%60%82";
 Images.facebook = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%0E%00%00%00%0D%08%03%00%00%00%AE%02%AFM%00%00%00%15PLTE%7B%8F%BA%60x%ACEb%9F%EC%EF%F5m%85%B5%FF%FF%FF%3BY%99~m%E5%17%00%00%00%3AIDATx%DAb%60%60C%02%0C(%3C%20%1F%C6%60dfeE%E2%02y%C8%5C%10%07%17%97%15%0C%E0%5Cf%A0Vff%22%F5%C2%B9L%2C%10%C0%CA%0A%24%98%D0%B8%00%01%06%00%81_%03%CF%E2Ww%C5%00%00%00%00IEND%AEB%60%82";
+Images.log = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%09PLTE%FF%FF%FFiii%FF%FF%FF%83%18%7Ch%00%00%00%01tRNS%00%40%E6%D8f%00%00%005IDATx%DAb%60%C0%00%8C(%00%24%C0%84%04%20%02%40!F%10%09%22p%AB%00J3%C2%05p%99AX%05a%5B%C04%1E3%20%D6%60U%81%06%00%02%0C%00%A6%85%01%40%A1%EC%E8%B5%00%00%00%00IEND%AEB%60%82";
+Images.wiki = "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%01%DAPLTE%E9%E9%E9%D2%D2%D2%F5%F5%F5%E3%E3%E4%E4%E4%E5%E7%E7%E8%DF%DF%E0%C0%C1%C3%D1%D1%D3%E2%E2%E3%EE%EE%EE%B5%B6%B9%EB%EB%EC%D8%D8%D9%DB%DB%DC%C2%C2%C4%B5%B6%B8%DD%DD%DE%C3%C4%C6%EF%EF%F0%FD%FD%FD%CE%CD%CE%A1%A2%A4%ED%ED%EE%E6%E6%E6%E7%E7%E7%88%88%88%EB%EB%EB%C7%C8%C9%DE%DE%DE%CB%CB%CD%B2%B3%B4%C1%C2%C4%C0%C1%C2%D1%D1%D2%DE%DE%DF%E5%E5%E6%C4%C5%C7%A6%A7%AA%C6%C7%C9%ED%ED%EDttt%96%98%9A%FC%FC%FC%CA%C9%CAeee%D6%D6%D6%CA%CA%CC%D3%D3%D3%FA%FA%FA%8F%90%92nnnjjj%B8%B8%BA%EC%ED%ED%E4%E4%E4%88%89%8C%B5%B6%B7%F3%F3%F3%A3%A3%A5%BB%BC%BC%EA%EA%EB~~%81%B7%B6%B7%AD%AD%AF%94%96%98%B3%B3%B3%A0%A1%A4%E6%E6%E7%E8%E8%E9%CD%CD%CE%DD%DE%DF%B6%B6%B8%BC%BB%BC%9D%9C%9E%A2%A3%A3%CE%CE%CF%DC%DC%DD%AA%AB%AE%D8%D7%D8%BD%BE%C0%DA%DA%DB%CD%CE%D0%80%80%82%B4%B5%B5%A2%A3%A5%B6%B6%B7%CE%CE%D0%A6%A5%A6%AC%AD%B0%E2%E2%E2%DA%DA%DA%BF%BF%BF%97%98%9B%A0%A1%A3%BB%BB%BB%A6%A6%A6%BA%BA%BB%A6%A8%AA%C3%C3%C4%DA%D9%DA%C8%C9%CA%EC%EC%ED%BE%BE%BE%CA%CA%CA%AD%AE%B0%E5%E5%E5%AB%AC%AE%D8%D8%D8%D7%D7%D8%8E%8E%90%AC%AC%AD%D4%D4%D6%C5%C5%C6%90%91%93%D5%D5%D6%BC%BC%BD%B5%B6%B6%B6%B5%B7%99%9A%9D%A5%A7%A9%B3%B4%B6%A0%A0%A2%B6%B7%B9%DA%DB%DC%B8%B8%B9%B9%B9%B9%BA%BA%BA%E1%E1%E2%B7%B8%BA%B2%B4%B6%D7%D7%D7%C6%C6%C7%EE%EE%EF%EA%EA%EA%8E%8F%92%A3%A5%A7%C5%C4%C5%CC%CC%CD%9B%9B%9C%C3%C2%C3%D3%D4%D5%99%9A%9C%B5%B5%B5vww%AF%AF%AF%A3%A4%A7%CB%CB%CC%C1%C1%C1%B2%B2%B3%80%81%83%B1%B2%B3%85%85%88%A9%A9%AA%A5%A6%A8%B0%B2%B4%BF%C0%C1%FF%FF%FF%E7u%82a%00%00%00%9EtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%3E%87%E3%F8%00%00%00%FDIDATx%DAb%98%8B%06%18%808%D1%60%EE%5Cm%C3%B9%D1%F2!%10%01%A7%12%A6%B9V%E9%8A%FC%AA%DC%C13A%021%2Cas%E7%8Avy%B6%E8%2B%88E%E6%CFe%90%9D%2C%5B%9F%A1)%15%C8%EA%DE%AB%1E0%BB%5D%99a%0As%A9%AE%89%B1%14%8F%8A%92%8F%0C%BB%DF%0Ck%06F%1E%5E%C6%09%E6L%D2%BE%11%85rs%B8%D5b%19t%18%85%99%F4%18%DA%84%C59%F9%C2%D9%1B%93%2C%18%18%D9Z%A3%9A%7B4%5C%D3X%04S%85%AAC%A71(100%E4prI%B02%97y%B179%1B1%D4%B9%B9p%D92%88%B36%08%9A%3A%08dky3H%24g1%A7%F4%8BJ%B2%F1%06%09Uv%D8I2%CC%ADUf%F1%B7%EFd%2B%E6%90%C9%ABpL%00%BATd%22G%0D_n%81%9C%82%40_y7%D8%2F%22%F1%8A%FC%F2%1E%96%99%93%8A%A6C%7D%3BW%DAfV%5C%95%D8T3%10%1B%20%C0%00%95%98RN%0E%80%B8%0F%00%00%00%00IEND%AEB%60%82";
 
 var makeImage = function(type, title) {
 	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
@@ -265,7 +281,7 @@ img.g_facebook { width: 14px; height: 13px; margin-bottom: -1px; background: url
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	Workers, makeImage
 */
@@ -751,7 +767,7 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -844,7 +860,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 */
 var Workers = {};// 'name':worker
 
-if (isGreasemonkey) {
+if (browser === 'greasemonkey') {
 	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
 	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
 } else {
@@ -1007,8 +1023,8 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._revive = function(seconds, id) {
-	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._revive = function(seconds, id, callback) {
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -1019,7 +1035,7 @@ Worker.prototype._revive = function(seconds, id) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(callback || function(){me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1042,10 +1058,10 @@ Worker.prototype._save = function(type) {
 		this._working[type] = true;
 		this._changed = Date.now();
 		this._update(type, null);
-		setItem(n, v);
 		for (i=0; i<this._watching[type].length; i++) {
 			this._watching[type][i]._update(type, this);
 		}
+		setItem(n, v);
 		this._working[type] = false;
 		this._pop();
 		return true;
@@ -1099,7 +1115,7 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	this._push();
-	if ((!this.settings.gm_only || isGreasemonkey) && (this.settings.system || !length(this.defaults) || this.defaults[APP])) {
+	if (this.settings.system || !length(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
 				this[i] = this.defaults[APP][i];
@@ -1137,7 +1153,7 @@ Worker.prototype._unwatch = function(worker) {
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		this._push();
-		var i, flush = false, me = this;
+		var i, flush = false;
 		this._working.update = true;
 		if (typeof worker === 'undefined') {
 			worker = null;
@@ -1154,7 +1170,7 @@ Worker.prototype._update = function(type, worker) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
 		if (flush) {
-			this._remind(0.1, '_flush', function(){me._flush();});
+			this._remind(0.1, '_flush', this._flush);
 //			this._flush();
 		}
 		this._working.update = false;
@@ -1192,7 +1208,7 @@ Worker.prototype._work = function(state) {
 /*global
 	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -2036,7 +2052,7 @@ Config.getOrder = function() {
 /*global
 	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -2185,7 +2201,7 @@ Dashboard.status = function(worker, html) {
 /*global
 	$, Worker, Army, Dashboard, History:true, Page, Queue, Resources, Land,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -2509,7 +2525,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -2841,14 +2857,21 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				if (arguments[i].toUpperCase() === 'GET' || arguments[i].toUpperCase() === 'POST') {
 					method = arguments[i].toUpperCase();
 				} else if (!page) {
-					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {
+					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {// Absolute url
 						for (j in Page.pageNames) {
 							if (arguments[i].indexOf('/'+Page.pageNames[j].url) !== -1) {
 								page = j;
 								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
 							}
 						}
-					} else {
+					} else if (arguments[i].indexOf('/') === -1 && arguments[i].indexOf('?') !== -1) {// Relative url
+						for (j in Page.pageNames) {
+							if (arguments[i].indexOf(Page.pageNames[j].url) !== -1) {
+								page = j;
+								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
+							}
+						}
+					} else {// Unknown domain - we'll probably not handle it...
 						page = arguments[i];
 					}
 				} else {
@@ -2993,7 +3016,7 @@ Page.clear = function() {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -3126,10 +3149,10 @@ Queue.init = function() {
 
 Queue.clearCurrent = function() {
 	var current = this.get('runtime.current', null);
-	if (current) {
-		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
+//	if (current) {
+		$('#golem_config > div > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
-	}
+//	}
 };
 
 Queue.update = function(type,worker) {
@@ -3207,11 +3230,11 @@ Queue.update = function(type,worker) {
 				Queue.burn.forceenergy = (action.energy !== 0);
 				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));
 				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
-                                LevelUp.runtime.running = true;
+				LevelUp.runtime.running = true;
 			}
 		} else {
-                        LevelUp.runtime.running = false;
-                }
+			LevelUp.runtime.running = false;
+		}
 		if (!this.burn.stamina && !this.burn.energy) {
 			if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
 				this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
@@ -3297,7 +3320,7 @@ Queue.enabled = function(worker) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -3517,7 +3540,7 @@ Resources.set = function(what,value) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -3645,7 +3668,7 @@ Settings.get = function(what) {
 /*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -3733,7 +3756,7 @@ Title.update = function(type) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, Images, window, isGreasemonkey, GM_xmlhttpRequest,
+	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, Images, window, browser, GM_xmlhttpRequest,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -3758,7 +3781,10 @@ Update.runtime = {
 
 Update.temp = {
 	version:0,
-	revision:0
+	revision:0,
+	check:'',// Url to check for new versions
+	url_1:'',// Url to download release
+	url_2:''// Url to download revision
 };
 
 /***** Update.init() *****
@@ -3771,20 +3797,43 @@ Update.init = function() {
 	this.temp.revision = revision;
 	this.runtime.version = this.runtime.version || version;
 	this.runtime.revision = this.runtime.revision || revision;
-//	$('head').append('<meta name="golem-version" content="">');// Blank if we're not looking
-	var $btn = $('<img class="golem-button golem-version" name="Check for Updates" src="' + (isRelease ? Images.update : Images.beta) + '">').click(function(){
+	switch(browser) {
+		case 'chrome':
+		case 'safari':
+			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
+			break;
+		default:
+			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/_version.js';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js';
+			break;
+	}
+	// Add an update button for everyone
+	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + Images.update + '">').click(function(){
 		$(this).addClass('red');
 		Update.checkVersion(true);
 	});
 	$('#golem_buttons').append($btn);
 	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' name="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
+		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
 			$(this).addClass('red');
 			Update.checkVersion(true);
 		});
 		$('#golem_buttons').append($btn);
 	}
+	// Add a changelog advanced button
+	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + Images.log + '">').click(function(){
+		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
+	});
+	$('#golem_buttons').append($btn)
+	// Add a wiki button
+	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + Images.wiki + '">').click(function(){
+		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
+	});
+	$('#golem_buttons').append($btn)
 	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
@@ -3803,6 +3852,7 @@ Update.init = function() {
 			}
 			event.stopImmediatePropagation();
 			event.stopPropagation();
+			$('script.golem-script-version').remove();
 			$(event.target).remove();
 			return false;
 		}
@@ -3816,7 +3866,8 @@ Update.checkVersion = function(force) {
 	window.setTimeout(function(){
 		var s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
-		s.src = 'http://game-golem.googlecode.com/svn/trunk/_version.js';
+		s.className = 'golem-script-version';
+		s.src = Update.temp.check + '?random=' + Date.now();
 		document.getElementsByTagName('head')[0].appendChild(s);
 	}, 100);
 };
@@ -3835,17 +3886,11 @@ Update.update = function(type,worker) {
 	}
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
 		log('New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
-		if (isGreasemonkey) { // Firefox
-			if (this.runtime.version > this.temp.version) {
-				$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + ' released, currently on ' + version + '"><a href="http://game-golem.googlecode.com/svn/trunk/_release.user.js">New Version Available</a></div>');
-			}
-			if (!isRelease && this.runtime.revision > this.temp.revision) {
-				$('#golem_buttons').after('<div class="golem-button golem-info green" title="r' + this.runtime.revision + ' released, currently on r' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/_normal.user.js">New Beta Available</a></div>');
-                                $('#golem_buttons').after('<div class="golem-button golem-info green" title="change_log"><a href="http://code.google.com/p/game-golem/source/detail?r=' + this.runtime.revision +'"target="_blank">Read r' + this.runtime.revision +' Change Log HERE</a></div>');
-                        }
-		} else { // Chrome
-			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx">New Version Available</a></div>');
-			$('#golem_buttons').after('<div class="golem-button golem-info green" title="change_log"><a href="http://code.google.com/p/game-golem/source/detail?r=' + this.runtime.revision +'"target="_blank">Read r' + this.runtime.revision +' Change Log HERE</a></div>');
+		if (this.runtime.version > this.temp.version) {
+			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
+		}
+		if (!isRelease && this.runtime.revision > this.temp.revision) {
+			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
 		}
 		this.temp.version = this.runtime.version;
 		this.temp.revision = this.runtime.revision;
@@ -3856,7 +3901,7 @@ Update.update = function(type,worker) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -3908,13 +3953,13 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 Window.init = function() {
 	var now = Date.now(), data;
 	try {
-		data = JSON.parse((isGreasemonkey ? window.wrappedJSObject : window).name);
+		data = JSON.parse((window.wrappedJSObject ? window.wrappedJSObject : window).name);
 		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
 			this.global = data;
 		}
 	} catch(e){}
 //	debug('Adding tab "' + this.global['_id'] + '"');
-	(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
+	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data['list'] = this.data['list'] || {};
 	this.data['list'][this.global['_id']] = now;
 	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['_id']) {
@@ -4049,7 +4094,7 @@ Window.set = function(what, value) {
 				}
 			}
 		})(data,x);
-		(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
+		(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
 	} catch(e) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}
@@ -4060,7 +4105,7 @@ Window.set = function(what, value) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4176,7 +4221,7 @@ Alchemy.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4281,7 +4326,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle:true, Generals, LevelUp, Monster, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4799,7 +4844,7 @@ Battle.dashboard = function(sort, rev) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4897,7 +4942,135 @@ Blessing.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker Army Extension **********
+* This fills in your army information by overloading Worker.Army()
+* We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
+* This is the CA version
+*/
+Army.pages = 'army_invite army_viewarmy';
+
+// Careful not to hit any *real* army options
+Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
+Army.option.invite = false;
+Army.option.check = 86400000;
+Army.option.recheck = 0;
+
+Army.runtime.count = -1; // How many people have we actively seen
+Army.runtime.next = 0;
+Army.runtime.last = 0;
+Army.runtime.extra = 0;
+
+Army.display = [
+{
+//	id:'invite',
+//	label:'Auto-Join New Armies',
+//	checkbox:true
+//},{
+	title:'Members',
+	group:[
+		{
+			id:'check',
+			label:'Check for New',
+			select:{
+				900000:'Quarterly',
+				3600000:'Hourly',
+				7200000:'2 Hours',
+				21600000:'6 Hours',
+				43200000:'12 Hours',
+				86400000:'Daily',
+				604800000:'Weekly'
+			}
+		},{
+			id:'recheck',
+			label:'Re-check Old',
+			select:{
+				0:'Never',
+				86400000:'Daily',
+				259200000:'3 Days',
+				604800000:'Weekly',
+				1209600000:'2 Weekly',
+				2419200000:'4 Weekly'
+			}
+		}
+	]
+}
+];
+
+Army.oldinit = Army.init;
+Army.init = function() {
+	this._watch(Player);
+	this._remind((Date.now() - this.runtime.last) / 1000, 'members');
+	this.oldinit();
+};
+
+Army.parse = function(change) {
+	if (Page.page === 'army_viewarmy') {
+		$('img[linked="true"][size="square"]').each(function(i,el){
+			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
+			Army.set(['Army', uid], true); // Set for people in our actual army
+			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
+			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
+			Army.set(['_info', uid, 'seen'], Date.now());
+		});
+		if ($('img[src*="bonus_member.jpg"]').length) {
+			Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+			debug('Extra Army Members Found: '+Army.runtime.extra);
+		}
+	} else if (Page.page === 'army_invite') {
+		$('.unselected_list input').each(function(i,el){
+			Army.set(['Army', el.value], true);
+		});
+	}
+	this.runtime.next = 0;
+	this.runtime.count = 0;
+	var i, army = this.get('Army');
+	for (i in army) {
+		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
+			this.runtime.count++;
+		}
+	}
+	return false;
+};
+
+Army.oldupdate = Army.update;
+Army.update = function(type, worker) {
+	if (Date.now() - this.option.check > this.runtime.last) {
+		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
+			var i, seen, now = Date.now(), army = this.get('Army');// All potential army members
+			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
+			for (i=0; i<army.length; i++) {
+				seen = this.get(['_info', army[i], 'seen'], -1);
+				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
+					this.runtime.next = Math.floor((i + 1) / this.option.armyperpage) + 1;
+					break;
+				}
+			}
+		}
+		this._remind((Date.now() - this.runtime.last) / 1000, 'members');
+	}
+	this.oldupdate(type, worker);
+};
+
+Army.work = function(state) {
+	if (this.runtime.next) {
+		if (state) {
+			Page.to('army_viewarmy', {page:this.runtime.next});
+		}
+		return true;
+	}
+	return false;
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4906,7 +5079,7 @@ Blessing.work = function(state) {
 * Build your elite army
 */
 var Elite = new Worker('Elite');
-Elite.data = {};
+Elite.data = null;
 
 Elite.defaults['castle_age'] = {
 	pages:'keep_eliteguard army_viewarmy'
@@ -4944,18 +5117,6 @@ Elite.display = [
 ];
 
 Elite.init = function() { // Convert old elite guard list
-	if (length(this.data)) {
-		for (var i in this.data) {
-			Army.set(['_info', i, 'name'], this.data[i].name);
-			Army.set(['_info', i, 'level'], this.data[i].level);
-			Army.set(['Army', i], true); // Set for people in our actual army
-			if (this.data[i].elite) {
-				Army.set([i, 'elite'], this.data[i].elite);
-			}
-		}
-	}
-	this.data = {}; // Will set to null at some later date
-
 	Army.section(this.name, {
 		'key':'Elite',
 		'name':'Elite',
@@ -5035,19 +5196,6 @@ Elite.parse = function(change) {
 			debug('Elite guard full, wait '+Elite.option.every+' hours');
 		}
 	});
-	if (Page.page === 'army_viewarmy') {
-		var count = 0;
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
-			count++;
-                        Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
-			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
-		});
-		if (count < 25) {
-			this.runtime.armyextra = Player.get('armymax') - length(this.data) - 1;
-		}
-	}
 	return false;
 };
 
@@ -5084,14 +5232,6 @@ Elite.update = function(type,worker) {
 };
 
 Elite.work = function(state) {
-	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
-		if (state) {
-			debug('Filling army list');
-			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
-			Page.to('army_viewarmy', {page:this.runtime.armylastpage});
-		}
-		return true;
-	}
 	if (!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) {
 		return false;
 	}
@@ -5111,7 +5251,7 @@ Elite.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -5438,7 +5578,7 @@ Generals.dashboard = function(sort, rev) {
 	for (o=0; o<Generals.order.length; o++) {
 		i = Generals.order[o];
 		output = [];
-		output.push('<img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + Generals.data[i].skills + ', Weapon Bonus: ' + (typeof Generals.data[i].weaponbonus !== 'unknown' ? (Generals.data[i].weaponbonus ? Generals.data[i].weaponbonus : 'none') : 'unknown') + '">');
+		output.push('<a class="golem-link" href="generals.php?item=' + Generals.data[i].id + '&itype=' + Generals.data[i].type + '"><img src="' + imagepath + Generals.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + Generals.data[i].skills + ', Weapon Bonus: ' + (typeof Generals.data[i].weaponbonus !== 'unknown' ? (Generals.data[i].weaponbonus ? Generals.data[i].weaponbonus : 'none') : 'unknown') + '"></a>');
 		output.push(i);
 		output.push('<div'+(isNumber(Generals.data[i].progress) ? ' title="'+Generals.data[i].progress+'%"' : '')+'>'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
 		output.push(Generals.data[i].priority ? ((Generals.data[i].priority !== 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
@@ -5501,7 +5641,7 @@ Generals.dashboard = function(sort, rev) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -5875,7 +6015,7 @@ Gift.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -5935,7 +6075,7 @@ Heal.me = function() {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -6059,7 +6199,7 @@ Idle.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -6123,7 +6263,7 @@ Income.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -6323,7 +6463,7 @@ Land.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -7358,12 +7498,7 @@ Monster.init = function() {
 	this._watch(Player);
 	this._watch(Queue);
 	this._revive(60);
-        this.runtime.limit = 0;
-	$('#golem-dashboard-Monster tbody td a').live('click', function(event){
-		var url = $(this).attr('href');
-		Page.to((url.indexOf('raid') > 0 ? 'battle_raid' : 'monster_battle_monster'), url.substr(url.indexOf('?')), false);
-		return false;
-	});
+	this.runtime.limit = 0;
 	Resources.use('Energy');
 	Resources.use('Stamina');
 	if (isNumber(this.runtime.multiplier)) {
@@ -8145,7 +8280,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
-		td(output, '<a href="http://apps.facebook.com/castle_age/' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
+		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//debug(image_url);
 		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
@@ -8256,7 +8391,7 @@ Monster.conditions = function (type, conditions) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -8354,7 +8489,7 @@ News.parse = function(change) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
 	Bank, Battle, Generals, LevelUp, Player:true,
-	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -8386,7 +8521,13 @@ Player.init = function() {
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
-	this.data.cash_time = when.getSeconds() + (when.getMinutes() * 60);
+	this.data.cash_time = this.data.cash_time || 0;
+	when = this.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
+	if (when > 0) {
+		this.data.cash_time += Math.min(10, Math.sqrt(when));
+	} else {
+		this.data.cash_time -= Math.min(10, Math.sqrt(Math.abs(when)));
+	}
 	this.runtime.cash_timeout = null;
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
@@ -8523,7 +8664,7 @@ Player.get = function(what) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -8640,7 +8781,7 @@ Potions.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -9149,7 +9290,7 @@ Quest.dashboard = function(sort, rev) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player, Quest,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -9588,7 +9729,7 @@ Town.dashboard = function() {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage

@@ -115,7 +115,8 @@ if [ "$build_chrome" = "Yes" ]; then
         echo "Creating packed Chrome extension"
         "$chrome_browser" --no-message-box --pack-extension="$workdir/chrome/GameGolem" --pack-extension-key="$workdir/chrome/GameGolem.pem"
         sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" chrome/update.tmpl > chrome/update.xml
-    else 
+        cp _version.js chrome/
+   else 
         echo "Would create packed Chrome extension, but you miss chrome/GameGolem.pem file"
     fi
 fi

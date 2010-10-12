@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -11,7 +11,7 @@
 * Build your elite army
 */
 var Elite = new Worker('Elite');
-Elite.data = {};
+Elite.data = null;
 
 Elite.defaults['castle_age'] = {
 	pages:'keep_eliteguard army_viewarmy'
@@ -49,18 +49,6 @@ Elite.display = [
 ];
 
 Elite.init = function() { // Convert old elite guard list
-	if (length(this.data)) {
-		for (var i in this.data) {
-			Army.set(['_info', i, 'name'], this.data[i].name);
-			Army.set(['_info', i, 'level'], this.data[i].level);
-			Army.set(['Army', i], true); // Set for people in our actual army
-			if (this.data[i].elite) {
-				Army.set([i, 'elite'], this.data[i].elite);
-			}
-		}
-	}
-	this.data = {}; // Will set to null at some later date
-
 	Army.section(this.name, {
 		'key':'Elite',
 		'name':'Elite',
@@ -140,19 +128,6 @@ Elite.parse = function(change) {
 			debug('Elite guard full, wait '+Elite.option.every+' hours');
 		}
 	});
-	if (Page.page === 'army_viewarmy') {
-		var count = 0;
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
-			count++;
-                        Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
-			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
-		});
-		if (count < 25) {
-			this.runtime.armyextra = Player.get('armymax') - length(this.data) - 1;
-		}
-	}
 	return false;
 };
 
@@ -189,14 +164,6 @@ Elite.update = function(type,worker) {
 };
 
 Elite.work = function(state) {
-	if (Math.ceil((Player.get('armymax') - this.runtime.armyextra - 1) / this.option.armyperpage) > this.runtime.armylastpage) {
-		if (state) {
-			debug('Filling army list');
-			this.runtime.armylastpage = Math.max(this.runtime.armylastpage + 1, Math.ceil((length(Army.get('Army')) + 1) / this.option.armyperpage));
-			Page.to('army_viewarmy', {page:this.runtime.armylastpage});
-		}
-		return true;
-	}
 	if (!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) {
 		return false;
 	}

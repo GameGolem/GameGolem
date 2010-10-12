@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isGreasemonkey, GM_setValue, GM_getValue, localStorage, window,
+	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -95,7 +95,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 */
 var Workers = {};// 'name':worker
 
-if (isGreasemonkey) {
+if (browser === 'greasemonkey') {
 	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
 	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
 } else {
@@ -258,8 +258,8 @@ Worker.prototype._push = function() {
 	Worker.current = this.name;
 };
 
-Worker.prototype._revive = function(seconds, id) {
-	var me = this, timer = window.setInterval(function(){me._update('reminder', null);}, seconds * 1000);
+Worker.prototype._revive = function(seconds, id, callback) {
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -270,7 +270,7 @@ Worker.prototype._revive = function(seconds, id) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(callback || function(){me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -293,10 +293,10 @@ Worker.prototype._save = function(type) {
 		this._working[type] = true;
 		this._changed = Date.now();
 		this._update(type, null);
-		setItem(n, v);
 		for (i=0; i<this._watching[type].length; i++) {
 			this._watching[type][i]._update(type, this);
 		}
+		setItem(n, v);
 		this._working[type] = false;
 		this._pop();
 		return true;
@@ -350,7 +350,7 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	this._push();
-	if ((!this.settings.gm_only || isGreasemonkey) && (this.settings.system || !length(this.defaults) || this.defaults[APP])) {
+	if (this.settings.system || !length(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
 				this[i] = this.defaults[APP][i];
@@ -388,7 +388,7 @@ Worker.prototype._unwatch = function(worker) {
 Worker.prototype._update = function(type, worker) {
 	if (this._loaded && (this.update || this._watching.length)) {
 		this._push();
-		var i, flush = false, me = this;
+		var i, flush = false;
 		this._working.update = true;
 		if (typeof worker === 'undefined') {
 			worker = null;
@@ -405,7 +405,7 @@ Worker.prototype._update = function(type, worker) {
 			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
 		}
 		if (flush) {
-			this._remind(0.1, '_flush', function(){me._flush();});
+			this._remind(0.1, '_flush', this._flush);
 //			this._flush();
 		}
 		this._working.update = false;

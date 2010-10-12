@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -54,13 +54,13 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 Window.init = function() {
 	var now = Date.now(), data;
 	try {
-		data = JSON.parse((isGreasemonkey ? window.wrappedJSObject : window).name);
+		data = JSON.parse((window.wrappedJSObject ? window.wrappedJSObject : window).name);
 		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
 			this.global = data;
 		}
 	} catch(e){}
 //	debug('Adding tab "' + this.global['_id'] + '"');
-	(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
+	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data['list'] = this.data['list'] || {};
 	this.data['list'][this.global['_id']] = now;
 	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['_id']) {
@@ -195,7 +195,7 @@ Window.set = function(what, value) {
 				}
 			}
 		})(data,x);
-		(isGreasemonkey ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
+		(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
 	} catch(e) {
 		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
 	}

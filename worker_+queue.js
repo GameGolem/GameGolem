@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -135,10 +135,10 @@ Queue.init = function() {
 
 Queue.clearCurrent = function() {
 	var current = this.get('runtime.current', null);
-	if (current) {
-		$('#'+Workers[current].id+' > h3').css('font-weight', 'normal');
+//	if (current) {
+		$('#golem_config > div > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
-	}
+//	}
 };
 
 Queue.update = function(type,worker) {
@@ -216,11 +216,11 @@ Queue.update = function(type,worker) {
 				Queue.burn.forceenergy = (action.energy !== 0);
 				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));
 				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
-                                LevelUp.runtime.running = true;
+				LevelUp.runtime.running = true;
 			}
 		} else {
-                        LevelUp.runtime.running = false;
-                }
+			LevelUp.runtime.running = false;
+		}
 		if (!this.burn.stamina && !this.burn.energy) {
 			if (this.option.burn_stamina || Player.get('stamina') >= this.option.start_stamina) {
 				this.burn.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);

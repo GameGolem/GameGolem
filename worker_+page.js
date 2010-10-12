@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, isGreasemonkey,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -334,14 +334,21 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				if (arguments[i].toUpperCase() === 'GET' || arguments[i].toUpperCase() === 'POST') {
 					method = arguments[i].toUpperCase();
 				} else if (!page) {
-					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {
+					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {// Absolute url
 						for (j in Page.pageNames) {
 							if (arguments[i].indexOf('/'+Page.pageNames[j].url) !== -1) {
 								page = j;
 								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
 							}
 						}
-					} else {
+					} else if (arguments[i].indexOf('/') === -1 && arguments[i].indexOf('?') !== -1) {// Relative url
+						for (j in Page.pageNames) {
+							if (arguments[i].indexOf(Page.pageNames[j].url) !== -1) {
+								page = j;
+								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
+							}
+						}
+					} else {// Unknown domain - we'll probably not handle it...
 						page = arguments[i];
 					}
 				} else {
