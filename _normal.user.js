@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 821;
+var revision = 822;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -883,13 +883,14 @@ function Worker(name,pages,settings) {
 }
 
 // Static Functions
-Worker.find = function(name) { // Get worker object by Worker.name or Worker.id (case insensitive, use Workers[name] for case sensitive (and speed).
-	if (typeof name === 'string') {
-		name = name.toLowerCase();
-		for (var i in Workers) {
-			if (i.toLowerCase() === name || Workers[i].id === name) {
-				return Workers[i];
-			}
+Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
+	if (name in Workers) {
+		return Workers[name];
+	}
+	name = name.toLowerCase();
+	for (var i in Workers) {
+		if (i.toLowerCase() === name || Workers[i].id === name) {
+			return Workers[i];
 		}
 	}
 	return null;
@@ -2097,7 +2098,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update(''(Dashboard.option.active.substr(16)));
+		Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -2124,7 +2125,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update(Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
+	Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -4998,7 +4999,7 @@ Army.display = [
 Army.oldinit = Army.init;
 Army.init = function() {
 	this._watch(Player);
-	this._remind((Date.now() - this.runtime.last) / 1000, 'members');
+	this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	this.oldinit();
 };
 
@@ -5033,7 +5034,7 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(type, worker) {
-	if (Date.now() - this.option.check > this.runtime.last) {
+	if (type === 'reminder') {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
@@ -5045,7 +5046,10 @@ Army.update = function(type, worker) {
 				}
 			}
 		}
-		this._remind((Date.now() - this.runtime.last) / 1000, 'members');
+		if (!this.runtime.next) {
+			this.runtime.last = Date.now();
+		}
+		this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	}
 	this.oldupdate(type, worker);
 };
@@ -8515,12 +8519,15 @@ Player.init = function() {
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
-	this.data.cash_time = this.data.cash_time || 0;
-	when = this.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
-	if (when > 0) {
-		this.data.cash_time += Math.min(10, Math.sqrt(when));
-	} else {
-		this.data.cash_time -= Math.min(10, Math.sqrt(Math.abs(when)));
+	when = when.getSeconds() + (when.getMinutes() * 60);
+	this.data.cash_time = this.data.cash_time || when;
+	if (this.data.cash_time > 3600) {// Fix for bad previous data!!!
+		this.data.cash_time = when;
+	}
+	if (when > this.data.cash_time) {
+		this.data.cash_time += Math.min(10, Math.sqrt(when - this.data.cash_time));
+	} else if (when < this.data.cash_time) {
+		this.data.cash_time -= Math.min(10, Math.sqrt(this.data.cash_time - when));
 	}
 	this.runtime.cash_timeout = null;
 	this.runtime.energy_timeout = null;

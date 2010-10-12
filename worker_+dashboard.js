@@ -55,7 +55,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update(''(Dashboard.option.active.substr(16)));
+		Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -82,7 +82,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update(Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
+	Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
 	this._revive(1);// update() once every second to update any timers
 };
 

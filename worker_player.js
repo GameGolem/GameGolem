@@ -34,12 +34,15 @@ Player.init = function() {
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
-	this.data.cash_time = this.data.cash_time || 0;
-	when = this.data.cash_time - (when.getSeconds() + (when.getMinutes() * 60));
-	if (when > 0) {
-		this.data.cash_time += Math.min(10, Math.sqrt(when));
-	} else {
-		this.data.cash_time -= Math.min(10, Math.sqrt(Math.abs(when)));
+	when = when.getSeconds() + (when.getMinutes() * 60);
+	this.data.cash_time = this.data.cash_time || when;
+	if (this.data.cash_time > 3600) {// Fix for bad previous data!!!
+		this.data.cash_time = when;
+	}
+	if (when > this.data.cash_time) {
+		this.data.cash_time += Math.min(10, Math.sqrt(when - this.data.cash_time));
+	} else if (when < this.data.cash_time) {
+		this.data.cash_time -= Math.min(10, Math.sqrt(this.data.cash_time - when));
 	}
 	this.runtime.cash_timeout = null;
 	this.runtime.energy_timeout = null;

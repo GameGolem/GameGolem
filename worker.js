@@ -139,13 +139,14 @@ function Worker(name,pages,settings) {
 }
 
 // Static Functions
-Worker.find = function(name) { // Get worker object by Worker.name or Worker.id (case insensitive, use Workers[name] for case sensitive (and speed).
-	if (typeof name === 'string') {
-		name = name.toLowerCase();
-		for (var i in Workers) {
-			if (i.toLowerCase() === name || Workers[i].id === name) {
-				return Workers[i];
-			}
+Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
+	if (name in Workers) {
+		return Workers[name];
+	}
+	name = name.toLowerCase();
+	for (var i in Workers) {
+		if (i.toLowerCase() === name || Workers[i].id === name) {
+			return Workers[i];
 		}
 	}
 	return null;
