@@ -79,7 +79,9 @@ Title.update = function(type) {
 		if (!this.old) {
 			this.old = document.title;
 		}
-		document.title = output;
+		if (output !== document.title) {
+			document.title = output;
+		}
 	} else if (this.old) {
 		document.title = this.old;
 		this.old = null;

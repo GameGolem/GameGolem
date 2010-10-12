@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 820;
+var revision = 821;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3737,7 +3737,9 @@ Title.update = function(type) {
 		if (!this.old) {
 			this.old = document.title;
 		}
-		document.title = output;
+		if (output !== document.title) {
+			document.title = output;
+		}
 	} else if (this.old) {
 		document.title = this.old;
 		this.old = null;
