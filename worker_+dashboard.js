@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Dashboard **********
@@ -55,7 +55,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update('', WorkerByName(Dashboard.option.active.substr(16)));
+		Dashboard.update(''(Dashboard.option.active.substr(16)));
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -68,7 +68,7 @@ Dashboard.init = function() {
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
-		var worker = WorkerByName(Dashboard.option.active.substr(16));
+		var worker = Worker.find(Dashboard.option.active.substr(16));
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
@@ -77,12 +77,12 @@ Dashboard.init = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
-			WorkerByName(Dashboard.option.active.substr(16)).dashboard();
+			Worker.find(Dashboard.option.active.substr(16)).dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update('', WorkerByName(Dashboard.option.active.substr(16)));// Make sure we're called at init
+	Dashboard.update(Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
 	this._revive(1);// update() once every second to update any timers
 };
 

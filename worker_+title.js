@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Title **********
@@ -64,7 +64,7 @@ Title.update = function(type) {
 					worker = Player;
 					what = tmp[1].split(':');// if option is "worker:value" then deal with it here
 					if (what[1]) {
-						worker = WorkerByName(what.shift());
+						worker = Worker.find(what.shift());
 					}
 					if (worker) {
 						value = worker.get(what[0]);

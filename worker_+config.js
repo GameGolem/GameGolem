@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Config **********
@@ -78,7 +78,7 @@ Config.init = function() {
 		.droppable({
 			tolerance:'pointer',
 			over:function(e,ui) {
-				var i, order = Config.getOrder(), me = WorkerByName($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
+				var i, order = Config.getOrder(), me = Worker.find($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
 				if (order.indexOf('Idle') >= newplace) {
 					if (me.settings.before) {
 						for(i=0; i<me.settings.before.length; i++) {
@@ -105,7 +105,7 @@ Config.init = function() {
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
-				k = WorkerByName(Workers[i].settings.before[j]);
+				k = Worker.find(Workers[i].settings.before[j]);
 				if (k) {
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
@@ -116,7 +116,7 @@ Config.init = function() {
 		}
 		if (Workers[i].settings.after) {
 			for (j=0; j<Workers[i].settings.after.length; j++) {
-				k = WorkerByName(Workers[i].settings.after[j]);
+				k = Worker.find(Workers[i].settings.after[j]);
 				if (k) {
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
@@ -416,7 +416,7 @@ Config.set = function(key, value) {
 	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
 		this.data[key] = value;
 		$('select.golem_' + key).each(function(a,el){
-			var i, worker = WorkerById($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
+			var i, worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
 			if (isArray(list)) {
 				for (i=0; i<list.length; i++) {
 					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
@@ -459,7 +459,7 @@ Config.updateOptions = function() {
 				}
 			}
 			try {
-				WorkerByName(tmp[0]).set('option.'+tmp[1], val);
+				Worker.find(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
 				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
@@ -484,7 +484,7 @@ Config.checkRequire = function(selector) {
 		}
 		for (i in require) {
 			path = i.split('.');
-			worker = WorkerByName(path.shift());
+			worker = Worker.find(path.shift());
 			if (!isWorker(worker)) {
 				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
 				break;

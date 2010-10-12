@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /* Worker Prototype
@@ -138,7 +138,20 @@ function Worker(name,pages,settings) {
 	this._disabled = false;
 }
 
-// Static data
+// Static Functions
+Worker.find = function(name) { // Get worker object by Worker.name or Worker.id (case insensitive, use Workers[name] for case sensitive (and speed).
+	if (typeof name === 'string') {
+		name = name.toLowerCase();
+		for (var i in Workers) {
+			if (i.toLowerCase() === name || Workers[i].id === name) {
+				return Workers[i];
+			}
+		}
+	}
+	return null;
+};
+
+// Static Data
 Worker.stack = [];// array of active workers, last on the end
 Worker.current = '';
 
@@ -376,7 +389,7 @@ Worker.prototype._unflush = function() {
 
 Worker.prototype._unwatch = function(worker) {
 	if (typeof worker === 'string') {
-		worker = WorkerByName(worker);
+		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
 		deleteElement(worker._watching.data,this);
@@ -415,7 +428,7 @@ Worker.prototype._update = function(type, worker) {
 
 Worker.prototype._watch = function(worker, type) {
 	if (typeof worker === 'string') {
-		worker = WorkerByName(worker);
+		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
 		if (type !== 'data' && type !== 'option' && type !== 'runtime') {

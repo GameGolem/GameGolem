@@ -151,27 +151,6 @@ var shortNumber = function(number){
         }
 };
 
-var WorkerByName = function(name) { // Get worker object by Worker.name (case insensitive, use Workers[name] for case sensitive (and speed).
-	if (typeof name === 'string') {
-		name = name.toLowerCase();
-		for (var i in Workers) {
-			if (i.toLowerCase() === name) {
-				return Workers[i];
-			}
-		}
-	}
-	return null;
-};
-
-var WorkerById = function(id) { // Get worker object by panel id
-	for (var i in Workers) {
-		if (Workers[i].id === id) {
-			return Workers[i];
-		}
-	}
-	return null;
-};
-
 var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times
 	var num = number, step = 1;
 	if (num < 20) {

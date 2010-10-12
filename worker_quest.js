@@ -4,7 +4,7 @@
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -92,7 +92,7 @@ Quest.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var quest = this.data, last_quest = null, area = null, land = null, i;
+	var quest = this.data, last_quest = null, area = null, land = null, i, m_c, m_d, m_i, reps;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -139,6 +139,16 @@ Quest.parse = function(change) {
 		if (!name || name.indexOf('\t') !== -1) { // Hopefully stop it finding broken page load quests
 			return;
 		}
+		m_c = 0; // percentage count metric
+		m_d = 0; // percentage delta metric
+		m_i = 0; // last influence metric
+		reps = 0; // average reps needed per level
+		if (quest[name]) {
+			m_c = quest[name].m_c || 0;
+			m_d = quest[name].m_d || 0;
+			m_i = quest[name].influence || 0;
+			reps = quest[name].reps || 0;
+		}
 		quest[name] = {};
 		quest[name].area = area;
 		quest[name].type = type;
@@ -152,10 +162,27 @@ Quest.parse = function(change) {
 		if (isNumber(influence)) {
 			quest[name].level = (level || 0);
 			quest[name].influence = influence;
+			if (m_i < influence && influence < 100) {
+				m_d += influence - m_i;
+				m_c++;
+			}
 		}
 		quest[name].exp = reward[0];
 		quest[name].reward = (reward[1] + reward[2]) / 2;
 		quest[name].energy = energy;
+		if (m_c) {
+		        quest[name].m_c = m_c;
+		}
+		if (m_d) {
+			quest[name].m_d = m_d;
+		}
+		if (m_c && m_d) {
+			reps = Math.ceil(m_c * 100 / m_d);
+		}
+		if (reps) {
+			quest[name].reps = reps;
+			quest[name].eff = quest[name].energy * reps;
+		}
 		if (type !== 2) { // That's everything for subquests
 			if (type === 3) { // Special / boss quests create unique items
 				quest[name].unique = true;
@@ -434,7 +461,7 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	var i, o, list = [], output = [];
+	var i, o, list = [], output = [], vv, tt, v, eff;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data) {
@@ -461,11 +488,19 @@ Quest.dashboard = function(sort, rev) {
 				return (isNumber(Quest.data[q].level) ? Quest.data[q].level : -1) * 100 + (Quest.data[q].influence || 0);
 			case 4: // energy
 				return Quest.data[q].energy;
-			case 5: // exp
+			case 5: // effort
+				return Quest.data[q].eff ||
+				  (!isNumber(Quest.data[q].level) ?
+				  Quest.data[q].energy :
+				  (Quest.data[q].energy *
+				  (Quest.data[q].reps ||
+				  (Quest.rdata[q] && Quest.rdata[q].reps) ||
+				  16)));
+			case 6: // exp
 				return Quest.data[q].exp / Quest.data[q].energy;
-			case 6: // reward
+			case 7: // reward
 				return Quest.data[q].reward / Quest.data[q].energy;
-			case 7: // item
+			case 8: // item
 				return Quest.data[q].item || 'zzz';
 		}
 		return 0; // unknown
@@ -482,6 +517,7 @@ Quest.dashboard = function(sort, rev) {
 	th(output, 'Area');
 	th(output, 'Level');
 	th(output, 'Energy');
+	th(output, 'Effort');
 	th(output, '@&nbsp;Exp');
 	th(output, '@&nbsp;Reward');
 	th(output, 'Item');
@@ -494,6 +530,68 @@ Quest.dashboard = function(sort, rev) {
 		td(output, isNumber(this.data[i].land) ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
 		td(output, isNumber(this.data[i].level) ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
 		td(output, this.data[i].energy);
+
+		vv = tt = '';
+		if (!isNumber(this.data[i].level)) {
+			vv = '<i>' + this.data[i].energy + '</i>';
+		} else {
+			vv = this.data[i].energy * (this.data[i].reps || (this.rdata[i] && this.rdata[i].reps) || 16);
+			tt = 'effort ' + v;
+			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
+			    v = Math.round(vv * (100 - this.data[i].influence) / 100);
+			    tt += ' (' + v + ')';
+			}
+			if ((v = this.data[i].reps)) {
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'reps ' + v;
+			} else if (this.rdata[i] && this.rdata[i].reps) {
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'wiki reps ' + this.rdata[i].reps;
+			} else {
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'assuming reps 16';
+			}
+			if ((v = this.data[i].eff)) {
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'effort ' + v;
+			} else if ((v = (this.rdata[i] && this.rdata[i].reps))) {
+				v *= this.data[i].energy;
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'wiki effort ' + v;
+			} else {
+				v = this.data[i].energy * 16;
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'assumed effort ' + v;
+			}
+			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
+				v = Math.round(v * (100 - this.data[i].influence) / 100);
+				tt += ' (' + v + ')';
+			}
+			if (this.data[i].m_d || this.data[i].m_c) {
+				vv = '<b>' + vv + '</b>';
+				if (tt !== '') {
+					tt += ', ';
+				}
+				tt += 'effort metrics ' + (this.data[i].m_d || '?') + '/' + (this.data[i].m_c || '?');
+			}
+			if (tt !== '') {
+				tt = 'title="' + tt + '"';
+			}
+		}
+		td(output, vv, tt);
+
 		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
 		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
 		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
@@ -507,3 +605,254 @@ Quest.dashboard = function(sort, rev) {
 	}
 };
 
+Quest.rts = 1285948112;	// Fri Oct  1 15:48:32 2010 UTC
+Quest.rdata =		// #247
+{
+    'A Demonic Transformation':		{ reps: 40 },
+    'A Forest in Peril':		{ reps:  9 },
+    'A Kidnapped Princess':		{ reps: 10 },
+    'Aid Corvintheus':			{ reps:  9 },
+    'Aid the Angels':			{ reps: 17 },
+    'Approach the Prayer Chamber':	{ reps: 12 },
+    'Approach the Tree of Life':	{ reps: 12 },
+    'Attack Undead Guardians':		{ reps: 24 },
+    'Attack from Above':		{ reps: 17 },
+    'Avoid Ensnarements':		{ reps: 34 },
+    'Avoid the Patrols':		{ reps: 17 },
+    'Banish the Horde':			{ reps: 17 },
+    'Battle A Wraith':			{ reps: 16 },
+    'Battle Earth and Fire Demons':	{ reps: 16 },
+    'Battle Gang of Bandits':		{ reps: 10 },
+    'Battle Orc Captain':		{ reps: 15 },
+    'Battle The Black Dragon':		{ reps: 14 },
+    'Battle the End':			{ reps: 12 },
+    'Battling the Demons':		{ reps: 17 },
+    'Being Followed':			{ reps: 15 },
+    'Blood Wing King of the Dragons':	{ reps: 20 },
+    'Breach the Keep Entrance':		{ reps: 12 },
+    'Breaching the Gates':		{ reps: 15 },
+    'Break Evil Seal':			{ reps: 17 },
+    'Break the Lichs Spell':		{ reps: 12 },
+    'Breaking Through the Guard':	{ reps: 17 },
+    'Bridge of Elim':			{ reps: 11 },
+    'Call of Arms':			{ reps: 25 },
+    'Cast Aura of Night':		{ reps: 32 },
+    'Cast Fire Aura':			{ reps: 24 },
+    'Cast Holy Light':			{ reps: 24 },
+    'Cast Holy Light Spell':		{ reps: 24 },
+    'Cast Holy Shield':			{ reps: 12 },
+    'Cast Meteor':			{ reps: 32 },
+    'Castle of the Black Lion':		{ reps: 13 },
+    'Castle of the Damn':		{ reps: 25 },
+    'Charge the Castle':		{ reps: 15 },
+    'City of Clouds':			{ reps: 11 },
+    'Close the Black Portal':		{ reps: 12 },
+    'Confront the Black Lion':		{ reps: 12 },
+    'Consult Aurora':			{ reps: 12 },
+    'Corruption of Nature':		{ reps: 20 },
+    'Cover Tracks':			{ reps: 19 },
+    'Cross Lava River':			{ reps: 20 },
+    'Crossing The Chasm':		{ reps: 13 },
+    'Cure Infested Soldiers':		{ reps: 25 },
+    'Deal Final Blow to Bloodwing':	{ reps: 12 },
+    'Deathrune Castle':			{ reps: 12 },
+    'Decipher the Clues':		{ reps: 17 },
+    'Defeat Bloodwing':			{ reps: 12 },
+    'Defeat Chimerus':			{ reps: 12 },
+    'Defeat Darien Woesteel':		{ reps: 25 },
+    'Defeat Demonic Guards':		{ reps: 17 },
+    'Defeat Frost Minions':		{ reps: 40 },
+    'Defeat Snow Giants':		{ reps: 24 },
+    'Defeat and Heal Feral Animals':	{ reps: 12 },
+    'Defeat the Bandit Leader':		{ reps:  6 },
+    'Defeat the Banshees':		{ reps: 25 },
+    'Defeat the Black Lion Army':	{ reps: 12 },
+    'Defeat the Demonic Guards':	{ reps: 12 },
+    'Defeat the Demons':		{ reps: 17 },
+    'Defeat the Patrols':		{ reps: 17 },
+    'Defend The Village':		{ reps: 12 },
+    'Destroy Fire Dragon':		{ reps: 10 },
+    'Destroy Fire Elemental':		{ reps: 16 },
+    'Destroy Horde of Ghouls & Trolls':	{ reps:  9 },
+    'Destroy Undead Crypt':		{ reps:  5 },
+    'Destroy the Black Gate':		{ reps: 12 },
+    'Destroy the Black Portal':		{ reps: 12 },
+    'Destroy the Bolted Door':		{ reps: 12 },
+    'Destruction Abound':		{ reps: 11 },
+    'Determine Cause of Corruption':	{ reps: 12 },
+    'Dig up Star Metal':		{ reps: 12 },
+    'Discover Cause of Corruption':	{ reps: 12 },
+    'Dismantle Orc Patrol':		{ reps: 32 },
+    'Dispatch More Cultist Guards':	{ reps: 12 },
+    'Distract the Demons':		{ reps: 17 },
+    'Dragon Slayer':			{ reps: 14 },
+    "Duel Cefka's Knight Champion":	{ reps: 10 },
+    'Elekin the Dragon Slayer':		{ reps: 10 },
+    'End of the Road':			{ reps: 17 },
+    'Entrance to Terra':		{ reps:  9 },
+    'Equip Soldiers':			{ reps: 25 },
+    'Escaping the Chaos':		{ reps: 17 },
+    'Falls of Jiraya':			{ reps: 10 },
+    'Family Ties':			{ reps: 11 },
+    'Fend off Demons':			{ reps: 20 },
+    'Fiery Awakening':			{ reps: 12 },
+    "Fight Cefka's Shadow Guard":	{ reps: 10 },
+    'Fight Demonic Worshipers':		{ reps: 24 },
+    'Fight Dragon Welps':		{ reps: 10 },
+    'Fight Ghoul Army':			{ reps:  5 },
+    'Fight Gildamesh':			{ reps: 32 },
+    'Fight Ice Beast':			{ reps: 40 },
+    'Fight Infested Soldiers':		{ reps: 25 },
+    'Fight Off Demons':			{ reps: 32 },
+    'Fight Off Zombie Infestation':	{ reps: 12 },
+    'Fight Snow King':			{ reps: 24 },
+    'Fight Treants':			{ reps: 27 },
+    'Fight Undead Zombies':		{ reps: 16 },
+    'Fight Water Demon Lord':		{ reps: 40 },
+    'Fight Water Demons':		{ reps: 40 },
+    'Fight Water Spirits':		{ reps: 40 },
+    'Fight the Half-Giant Sephor':	{ reps:  9 },
+    'Find Evidence of Dragon Attack':	{ reps:  8 },
+    'Find Hidden Path':			{ reps: 10 },
+    'Find Nezeals Keep':		{ reps: 12 },
+    'Find Rock Worms Weakness':		{ reps: 10 },
+    'Find Source of the Attacks':	{ reps: 12 },
+    'Find Troll Weakness':		{ reps: 10 },
+    'Find Your Way Out':		{ reps: 15 },
+    'Find the Dark Elves':		{ reps: 12 },
+    'Find the Demonic Army':		{ reps: 12 },
+    'Find the Druids':			{ reps: 12 },
+    'Find the Exit':			{ reps: 17 },
+    'Find the Source of Corruption':	{ reps: 12 },
+    'Find the Woman? Father':		{ reps: 12 },
+    'Fire and Brimstone':		{ reps: 12 },
+    'Forest of Ash':			{ reps: 11 },
+    'Furest Hellblade':			{ reps: 17 },
+    'Gates to the Undead':		{ reps: 17 },
+    'Gateway':				{ reps: 11 },
+    'Get Information from the Druid':	{ reps: 12 },
+    'Get Water for the Druid':		{ reps: 12 },
+    'Grim Outlook':			{ reps: 17 },
+    'Guard Against Attack':		{ reps: 12 },
+    'Heal Wounds':			{ reps: 20 },
+    'Heat the Villagers':		{ reps:  5 },
+    'Holy Fire':			{ reps: 11 },
+    'Interrogate the Prisoners':	{ reps: 17 },
+    'Join Up with Artanis':		{ reps: 12 },
+    'Judgement Stronghold':		{ reps: 11 },
+    'Kelp Forest':			{ reps: 20 },
+    'Kill Gildamesh':			{ reps: 34 },
+    'Kill Vampire Bats':		{ reps: 12 },
+    'Learn Counterspell':		{ reps: 12 },
+    'Learn Holy Fire':			{ reps: 12 },
+    'Learn about Death Knights':	{ reps: 12 },
+    'Marauders':			{ reps:  9 },
+    'March Into The Undead Lands':	{ reps: 24 },
+    'March to The Unholy War':		{ reps: 25 },
+    'Mausoleum of Triste':		{ reps: 17 },
+    'Misty Hills of Boralis':		{ reps: 20 },
+    'Mount Aretop':			{ reps: 25 },
+    'Nightmare':			{ reps: 20 },
+    'Path to Heaven':			{ reps: 11 },
+    'Pick up the Orc Trail':		{ reps:  6 },
+    'Plan the Attack':			{ reps: 12 },
+    'Portal of Atlantis':		{ reps: 20 },
+    'Power of Excalibur':		{ reps: 11 },
+    'Prepare for Ambush':		{ reps:  6 },
+    'Prepare for Battle':		{ reps: 12 },
+    'Prepare for the Trials':		{ reps: 17 },
+    'Prevent Dragon? [sic] Escape':	{ reps: 12 },
+    'Protect Temple From Raiders':	{ reps: 40 },
+    'Purge Forest of Evil':		{ reps: 27 },
+    'Pursuing Orcs':			{ reps: 13 },
+    'Put Out the Fires':		{ reps:  8 },
+    'Question Dark Elf Prisoners':	{ reps: 12 },
+    'Question the Druidic Wolf':	{ reps: 12 },
+    'Ready the Horses':			{ reps:  6 },
+    'Recover the Key':			{ reps: 17 },
+    'Recruit Elekin to Join You':	{ reps:  9 },
+    'Recruit Furest to Join You':	{ reps: 12 },
+    'Repel Gargoyle Raid':		{ reps: 14 },
+    'Resist the Lost Souls':		{ reps: 25 },
+    'Retrieve Dragon Slayer':		{ reps: 10 },
+    'Retrieve the Jeweled Heart':	{ reps: 12 },
+    'Ride Towards the Palace':		{ reps: 17 },
+    'Ride to Aretop':			{ reps: 12 },
+    'River of Light':			{ reps: 10 },
+    'Save Lost Souls':			{ reps: 24 },
+    'Seek Out Elekin':			{ reps:  9 },
+    'Seek Out Furest Hellblade':	{ reps: 12 },
+    'Seek out Jeweled Heart':		{ reps: 12 },
+    'Shield of the Stars':		{ reps: 20 },
+    'Slaughter Orcs':			{ reps: 15 },
+    'Slay Cave Bats':			{ reps: 10 },
+    'Slay the Black Dragons':		{ reps: 32 },
+    'Slay the Guardian':		{ reps: 17 },
+    'Slay the Sea Serpent':		{ reps: 12 },
+    'Sneak Attack on Dragon':		{ reps: 12 },
+    'Sneak up on Orcs':			{ reps:  7 },
+    'Soldiers of the Black Lion':	{ reps: 10 },
+    'Spire of Death':			{ reps: 20 },
+    'Spring Surprise Attack':		{ reps: 12 },
+    'Stop the Wolf from Channeling':	{ reps: 12 },
+    'Storm the Castle':			{ reps: 12 },
+    'Storm the Ivory Palace':		{ reps: 17 },
+    'Summon Legendary Defenders':	{ reps: 25 },
+    'Survive Troll Ambush':		{ reps: 10 },
+    'Surviving the Onslaught':		{ reps: 17 },
+    'The Belly of the Demon':		{ reps: 20 },
+    'The Betrayed Lands':		{ reps: 16 },
+    'The Black Portal':			{ reps: 15 },
+    'The Cave of Wonder':		{ reps: 20 },
+    'The Crystal Caverns':		{ reps: 11 },
+    'The Darkening Skies':		{ reps: 17 },
+    'The Deep':				{ reps: 20 },
+    'The Elven Sorceress':		{ reps: 11 },
+    'The Fallen Druids':		{ reps: 12 },
+    'The Final Stretch':		{ reps: 17 },
+    'The Forbidden Forest':		{ reps: 20 },
+    'The Forbidden Ritual':		{ reps: 20 },
+    'The Hidden Lair':			{ reps: 13 },
+    'The Hollowing Moon':		{ reps: 17 },
+    'The Infestation of Winterguard':	{ reps: 10 },
+    'The Invasion':			{ reps: 11 },
+    'The Keep of Corelan':		{ reps: 17 },
+    'The Keep of Isles':		{ reps: 16 },
+    'The Kingdom of Alarean':		{ reps: 15 },
+    'The Last Gateway':			{ reps: 17 },
+    "The Lich Ne'zeal":			{ reps: 13 },
+    "The Lich's keep":			{ reps: 15 },
+    'The Living Gates':			{ reps: 20 },
+    'The Long Path':			{ reps: 12 },
+    'The Peaks of Draneth':		{ reps: 21 },
+    'The Return Home':			{ reps: 11 },
+    'The Return of the Dragon':		{ reps:  9 },
+    'The River of Blood':		{ reps: 20 },
+    'The Sea Temple':			{ reps: 20 },
+    'The Search for Clues':		{ reps: 12 },
+    'The Second Temple of Water':	{ reps: 25 },
+    'The Smouldering Pit':		{ reps: 40 },
+    'The Source of Darkness':		{ reps: 20 },
+    'The Source of Magic':		{ reps: 15 },
+    'The Stairs of Terra':		{ reps: 10 },
+    'The Stone Lake':			{ reps: 12 },
+    'The Sunken City':			{ reps: 17 },
+    'The Tree of Life':			{ reps: 26 },
+    'The Vanguard of Destruction':	{ reps: 21 },
+    'The Water Temple':			{ reps: 17 },
+    'Track Down Soldiers':		{ reps: 12 },
+    'Track Sylvana':			{ reps: 12 },
+    'Train with Ambrosia':		{ reps: 12 },
+    'Train with Aurora':		{ reps: 12 },
+    'Travel to Winterguard':		{ reps: 12 },
+    'Travel to the Tree of Life':	{ reps: 12 },
+    'Triste':				{ reps: 20 },
+    'Undead Crusade':			{ reps: 17 },
+    'Underwater Ruins':			{ reps: 20 },
+    'Unholy War':			{ reps: 20 },
+    'Vengeance':			{ reps: 17 },
+    'Vesuv Lookout':			{ reps: 17 },
+    'Visit the Blacksmith':		{ reps: 24 },
+    'Vulcans Secret':			{ reps: 11 },
+    'Watch the Skies':			{ reps: 12 }
+};

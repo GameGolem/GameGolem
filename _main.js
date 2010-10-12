@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	GM_log, GM_setValue, GM_getValue, localStorage, console, window, unsafeWindow:true, revision, version, do_css, jQuery,
 	Workers, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, shortNumber, WorkerByName, WorkerById, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
 // User changeable
