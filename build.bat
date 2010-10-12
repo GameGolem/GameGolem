@@ -135,7 +135,7 @@ if "%chrome_pack%"=="1" (
 		if EXIST "%golem%chrome\GameGolem.pem" (
 			echo.Creating packed Chrome extension...
 			"%chrome%" --no-message-box --pack-extension="%golem%chrome\GameGolem" --pack-extension-key="%golem%chrome\GameGolem.pem"
-			copy /Y ./_version.js .\chrome >nul 2>nul
+			copy /Y _version.js .\chrome >nul 2>nul
 		) ELSE (
 			echo.You need to obtain chrome\GameGolem.pem from Rycochet to build the Chrome extension.
 		)

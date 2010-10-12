@@ -69,7 +69,8 @@ Title.update = function(type) {
 					if (worker) {
 						value = worker.get(what[0]);
 						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
-						this._watch(worker); // Doesn't matter how often we add, it's only there once...
+						this._watch(worker, 'data'); // Doesn't matter how often we add, it's only there once...
+						this._watch(worker, 'runtime');
 					} else {
 						debug('Bad worker specified = "' + tmp[1] + '"');
 					}
