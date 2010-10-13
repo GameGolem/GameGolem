@@ -174,7 +174,7 @@ Player.get = function(what) {
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
-		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth) / data.level).round(2);
+		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
 		default: return this._get(what);
 	}
 };

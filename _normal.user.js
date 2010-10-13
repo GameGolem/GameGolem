@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 826;
+var revision = 827;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5005,22 +5005,30 @@ Army.init = function() {
 };
 
 Army.parse = function(change) {
-	var i, army;
+	var i, army, now = Date.now();
 	if (Page.page === 'army_viewarmy') {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
 			Army.set(['Army', uid], true); // Set for people in our actual army
 			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
 			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
-			Army.set(['_info', uid, 'seen'], Date.now());
+			Army.set(['_info', uid, 'seen'], now);
 		});
 		if ($('img[src*="bonus_member.jpg"]').length) {
 			Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
 			debug('Extra Army Members Found: '+Army.runtime.extra);
 		}
+		army = this.get('Army');
+		for (i=0; i<army.length; i++) {
+			if (this.get(['_info', uid, 'page'], 0) === this.runtime.next) {
+				if (this.get(['_info', uid, 'seen'], 0) !== now) {
+					this.set(['Army', uid], false);// Forget this one, he aint been found!!!
+				}
+			}
+		}
 	} else if (Page.page === 'army_invite' && $('img[src*="gift_invite_castle_on.gif"]').length) {
 		army = this.get('Army');
-		for (i in army) {
+		for (i=0; i<army.length; i++) {
 			this.set('Army', false);
 		}
 		$('.unselected_list input').each(function(i,el){
@@ -5031,7 +5039,7 @@ Army.parse = function(change) {
 	this.runtime.next = 0;
 	this.runtime.count = 0;
 	var i, army = this.get('Army');
-	for (i in army) {
+	for (i=0; i<army.length; i++) {
 		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
 			this.runtime.count++;
 		}
@@ -5041,15 +5049,19 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(type, worker) {
-	if (type === 'reminder') {
+	if (type === 'reminder' && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
-			var i, seen, now = Date.now(), army = this.get('Army');// All potential army members
+			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
 			for (i=0; i<army.length; i++) {
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
-					this.runtime.next = Math.floor((i + 1) / this.option.armyperpage) + 1;
-					debug('Want to see userid '+army[i]+', and others on page '+this.runtime.next);
+					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
+					if (!this.runtime.next) {
+						this.runtime.next = page;
+						debug('Want to see userid '+army[i]+', and others on page '+page);
+					}
+					this.set(['_info', army[i], 'page'], page);
 					break;
 				}
 			}
@@ -5068,7 +5080,7 @@ Army.work = function(state) {
 			if (this.runtime.next) {
 				Page.to('army_viewarmy', {page:this.runtime.next});
 			} else {
-				Page.to('army_invite', {app_friends:'c'});
+				Page.to('army_gifts', {app_friends:'c'});
 			}
 		}
 		return true;
@@ -8671,7 +8683,7 @@ Player.get = function(what) {
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
-		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth) / data.level).round(2);
+		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
 		default: return this._get(what);
 	}
 };
