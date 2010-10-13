@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 824;
+var revision = 825;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5005,6 +5005,7 @@ Army.init = function() {
 };
 
 Army.parse = function(change) {
+	var i, army;
 	if (Page.page === 'army_viewarmy') {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
@@ -5017,11 +5018,16 @@ Army.parse = function(change) {
 			Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
 			debug('Extra Army Members Found: '+Army.runtime.extra);
 		}
-	} else if (Page.page === 'army_invite') {
+	} else if (Page.page === 'army_invite' && $('img[src*="gift_invite_castle_on.gif"]').length) {
+		army = this.get('Army');
+		for (i in army) {
+			this.set('Army', false);
+		}
 		$('.unselected_list input').each(function(i,el){
 			Army.set(['Army', el.value], true);
 		});
 	}
+	army = this.get('Army');
 	this.runtime.next = 0;
 	this.runtime.count = 0;
 	var i, army = this.get('Army');
@@ -5057,9 +5063,13 @@ Army.update = function(type, worker) {
 };
 
 Army.work = function(state) {
-	if (this.runtime.next) {
+	if (this.runtime.next || Date.now() - this.runtime.last > this.option.check) {
 		if (state) {
-			Page.to('army_viewarmy', {page:this.runtime.next});
+			if (this.runtime.next) {
+				Page.to('army_viewarmy', {page:this.runtime.next});
+			} else {
+				Page.to('army_invite', {app_friends:'c'});
+			}
 		}
 		return true;
 	}
