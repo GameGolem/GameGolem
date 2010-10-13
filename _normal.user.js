@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 825;
+var revision = 826;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3695,7 +3695,7 @@ Title.display = [
 		size:24
 	},{
 		title:'Useful Values',
-		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity'
+		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity<br>{bsi} / {lsi} / {csi}'
 	}
 ];
 
@@ -5049,7 +5049,7 @@ Army.update = function(type, worker) {
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					this.runtime.next = Math.floor((i + 1) / this.option.armyperpage) + 1;
-					debug('Want to see userid '+i+', and others on page '+this.runtime.next);
+					debug('Want to see userid '+army[i]+', and others on page '+this.runtime.next);
 					break;
 				}
 			}
@@ -8669,6 +8669,9 @@ Player.get = function(what) {
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'pause':			return isWorker(Window) && !Window.active ? '(Disabled) ' : isWorker(Queue) && Queue.get('option.pause') ? '(Paused) ' : '';
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
+		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
+		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
+		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth) / data.level).round(2);
 		default: return this._get(what);
 	}
 };
