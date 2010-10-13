@@ -27,10 +27,10 @@ Army.runtime.extra = 0;
 
 Army.display = [
 {
-//	id:'invite',
-//	label:'Auto-Join New Armies',
-//	checkbox:true
-//},{
+	id:'invite',
+	label:'Auto-Join New Armies',
+	checkbox:true
+},{
 	title:'Members',
 	group:[
 		{
@@ -107,6 +107,7 @@ Army.update = function(type, worker) {
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					this.runtime.next = Math.floor((i + 1) / this.option.armyperpage) + 1;
+					debug('Want to see userid '+i+', and others on page '+this.runtime.next);
 					break;
 				}
 			}
