@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 827;
+var revision = 828;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6958,7 +6958,13 @@ Monster.display = [
 	},{
 		id:'choice',
 		label:'Attack',
-		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain']
+		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
+		help:'Any selects a random monster.' +
+			'\nStrongest and Weakest pick by monster health.' +
+			'\nShortest and Longest ETD pick by estimated time the monster will die.' +
+			'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
+			'\nETD Maintain picks based on the longest monster expiry time.' +
+			'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
 	},{
 		id:'stop',
 		label:'Stop',
@@ -7796,7 +7802,7 @@ Monster.update = function(what,worker) {
 	if (what === 'runtime') {
 		return;
 	}
-	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count;
+	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target;
 	var limit = this.runtime.limit;
         if(!LevelUp.runtime.running && limit === 100){
                         limit = 0;
@@ -7828,7 +7834,7 @@ Monster.update = function(what,worker) {
 	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.burn.forcestamina;
 	if (this.option.stop === 'Priority List') {
-		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, damage, o, suborder, p, defense_kind, button, order = [];
+		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, o, suborder, p, defense_kind, button, order = [];
 		if (this.option.priority) order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (var o in order) {
@@ -7880,7 +7886,14 @@ Monster.update = function(what,worker) {
 					if (type.defend) {
 						monster.defend_max = this.conditions('f%',condition) || this.option.defend;
 					}
-					damage = sum(monster.damage.user) + sum(monster.defend);
+					damage = 0;
+					if (monster.damage && monster.damage.user) {
+						damage += sum(monster.damage.user);
+					}
+					if (monster.defend) {
+						damage += sum(monster.defend);
+					}
+					target = monster.max || monster.ach || 0;
 					if(!type.raid){
                                                 button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
                                         }
@@ -7899,15 +7912,15 @@ Monster.update = function(what,worker) {
 						if (damage < monster.ach) {
 							attack_found = o;
 							if (attack_found && attack_overach) {
-								list.attack = [[mid, damage / sum(monster.damage), button]];
+								list.attack = [[mid, damage / sum(monster.damage), button, damage, target]];
 								attack_overach = false;
 							} else {
-								list.attack.push([mid, damage / sum(monster.damage), button]);
+								list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 							}
 							//debug('ATTACK monster ' + monster.name + ' ' + type.name);
 						} else if ((monster.max === false || damage < monster.max) 
 								&& !attack_found && (attack_overach || o) === o) {
-							list.attack.push([mid, damage / sum(monster.damage), button]);
+							list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 							attack_overach = o;
 						}
 					}
@@ -7945,10 +7958,10 @@ Monster.update = function(what,worker) {
 								continue;
 							}
 							if (defend_found && defend_overach) {
-								list.defend = [[mid, damage / sum(monster.damage), defense_kind]];
+								list.defend = [[mid, damage / sum(monster.damage), defense_kind, damage, target]];
 								defend_overach = false;
 							} else {
-								list.defend.push([mid, damage / sum(monster.damage), defense_kind]);
+								list.defend.push([mid, damage / sum(monster.damage), defense_kind, damage, target]);
 							}
 						}
 					}
@@ -7996,25 +8009,43 @@ Monster.update = function(what,worker) {
 							> type.achievement * limit) {
 					continue; // Don't add monster over 2X  achievement
 				}
+				damage = 0;
+				if (monster.damage && monster.damage.user) {
+					damage += sum(monster.damage.user);
+				}
+				if (monster.defend) {
+					damage += sum(monster.defend);
+				}
+				if ((uid == userID && this.option.own) || this.option.stop === 'Never') {
+					target = 1e10;
+				} else if (this.option.stop === 'Achievement') {
+					target = type.achievement || 0;
+				} else if (this.option.stop === '2X Achievement') {
+					target = (type.achievement || 0) * 2;
+				} else if (this.option.stop === 'Continuous') {
+					target = (type.achievement || 0) * limit;
+				} else {
+					target = 0;
+				}
 				// Possible attack target?
 				if ((waiting_ok || (Player.get('health') >= req_health && Queue.burn.stamina >= req_stamina))
 					&& ((monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1))) {
 					if (this.option.use_tactics && type.tactics) {
-						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button]);
+						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
 					}
 					else {
-						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button]);
+						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button, damage, target]);
 					}
 				}
 				// Possible defend target?
 				if (this.option.defend_active) {
 					if ((monster.secondary || 100) < 100) {
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on]);
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior]);
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior, damage, target]);
 					} else if ((monster.defense || 100) < Math.min(this.option.defend, (monster.strength -1 || 100))
                                                 && !monster.no_heal) {
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button]);
+						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button, damage, target]);
 					}
 				}
 			}
@@ -8041,6 +8072,13 @@ Monster.update = function(what,worker) {
 			return a[1] - b[1];
 		case 'ETD Maintain':
 			return monster_b.finish - monster_a.finish;
+		case 'Goal Maintain':
+			var now = Date.now();
+			var time_a = Math.max(1, now - Math.min(monster_a.eta || monster_a.finish, monster_a.finish));
+			var time_b = Math.max(1, now - Math.min(monster_b.eta || monster_b.finish, monster_b.finish));
+			var dmg_goal_a = Math.max(1, a[4] - a[3]);
+			var dmg_goal_b = Math.max(1, b[4] - b[3]);
+			return (dmg_goal_b / time_b) - (dmg_goal_a / time_a);
 		}
 	};
 	for (i in list) {
