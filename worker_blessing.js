@@ -52,7 +52,7 @@ Blessing.parse = function(change) {
 	return false;
 };
 
-Blessing.update = function(){
+Blessing.update = function(event){
     var d, demi;
      if (this.option.display && this.option.which !== 'None'){
          d = new Date(this.runtime.when);

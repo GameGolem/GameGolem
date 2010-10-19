@@ -139,8 +139,8 @@ Player.parse = function(change) {
 	return false;
 };
 
-Player.update = function(type) {
-	if (type !== 'option') {
+Player.update = function(event) {
+	if (event.type !== 'option') {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];

@@ -83,7 +83,7 @@ Alchemy.parse = function(change) {
 	});
 };
 
-Alchemy.update = function() {
+Alchemy.update = function(event) {
 	var best = null, recipe = this.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {

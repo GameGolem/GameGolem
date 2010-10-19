@@ -131,9 +131,9 @@ LevelUp.parse = function(change) {
 	return true;
 };
 
-LevelUp.update = function(type,worker) {
+LevelUp.update = function(event) {
 	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
-	if (worker === Player || !length(runtime.quests)) {
+	if (event.worker.name === 'Player' || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {

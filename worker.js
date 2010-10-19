@@ -81,13 +81,13 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._parse(change)			- Calls this.parse(change) inside a try / catch block
 ._work(state)			- Calls this.work(state) inside a try / catch block
 
-._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
+._update(event)			- Calls this.update(event), loading and flushing .data if needed. event = {worker:this, type:'init|data|option|runtime|reminder', [self:true], [id:'reminder id']}
 
 ._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
 
-._remind(secs,id)		- Calls this._update('reminder',null) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
-._revive(secs,id)		- Calls this._update('reminder',null) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
+._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
+._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
 
 ._push()				- Pushes us onto the "active worker" list for debug messages etc
@@ -273,7 +273,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -284,7 +284,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -306,9 +306,9 @@ Worker.prototype._save = function(type) {
 		this._push();
 		this._working[type] = true;
 		this._changed = Date.now();
-		this._update(type, null);
+		this._update({worker:this, type:type, self:true});
 		for (i=0; i<this._watching[type].length; i++) {
-			this._watching[type][i]._update(type, this);
+			this._watching[type][i]._update({worker:this, type:type});
 		}
 		setItem(n, v);
 		this._working[type] = false;
@@ -399,24 +399,25 @@ Worker.prototype._unwatch = function(worker) {
 	}
 };
 
-Worker.prototype._update = function(type, worker) {
-	if (this._loaded && (this.update || this._watching.length)) {
+Worker.prototype._update = function(event) {
+	if (this._loaded && this.update) {
 		this._push();
 		var i, flush = false;
-		this._working.update = true;
-		if (typeof worker === 'undefined') {
-			worker = null;
+		if (isString(event)) {
+			event = {type:event};
+		} else if (!isObject(event)) {
+			event = {};
 		}
+		event.worker = event.worker || this;
+		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			if (this.update) {
-				this.update(type, worker);
-			}
+			this.update(event);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(event) + '): ' + e.message);
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);

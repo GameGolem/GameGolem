@@ -53,7 +53,7 @@ Title.init = function() {
 * 4. Output worker.get(value)
 * 5. Watch worker for changes
 */
-Title.update = function(type) {
+Title.update = function(event) {
 	if (this.option.enabled && this.option.title) {
 		var i, tmp, what, worker, value, output = '', parts = this.option.title.match(/([^}]+\}?)/g);// split into "text {option}"
 		if (parts) {

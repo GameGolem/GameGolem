@@ -102,8 +102,8 @@ Resources.init = function() {
 //	Config.addOption({label:'test',checkbox:true});
 };
 
-Resources.update = function(type, worker) {
-	if (!type && !worker) {
+Resources.update = function(event) {
+	if (event.type === 'init' && event.self) {
 		Config.makePanel(this, this.display2);
 	}
 	var worker, type, total = 0;

@@ -54,8 +54,8 @@ Settings.init = function() {
 	Settings.oldwhich = this.option.which;
 };
 
-Settings.update = function(type) {
-	if (type === 'option') {
+Settings.update = function(event) {
+	if (event.type === 'option') {
 		var i, list = [];
 		if (this.oldwhich !== this.option.which) {
 			$('input:golem(settings,name)').val(this.option.which);

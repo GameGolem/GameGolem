@@ -42,10 +42,10 @@ Army.display = [
 	}
 ];
 */
-Army.update = function(type,worker) {
-	if (type === 'data' && !worker) {
+Army.update = function(event) {
+	if (event.self && event.type === 'data') {
 		for (var i in this.runtime.update) {
-			Workers[i]._update(type, this);
+			Workers[i]._update({worker:this, type:'data'});
 			delete this.runtime.update[i];
 		}
 	}

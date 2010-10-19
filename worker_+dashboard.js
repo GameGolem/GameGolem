@@ -55,7 +55,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));
+		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -82,7 +82,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
+	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});// Make sure we update the active page at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -90,8 +90,8 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
-Dashboard.update = function(type, worker) {
-	if (!worker && type === 'reminder') {
+Dashboard.update = function(event) {
+	if (event.self && event.type === 'reminder') {
 		$('.golem-timer').each(function(i,el){
 			var time = $(el).text().parseTimer();
 			if (time && time > 0) {
@@ -109,19 +109,19 @@ Dashboard.update = function(type, worker) {
 			}
 		});
 	}
-	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.self || !this._loaded) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	if (this.option.active === 'golem-dashboard-'+worker.name && this.option.display === 'block') {
+	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
 		try {
-//			debug('Calling ' + worker.name + '.dashboard() = ' + type);
-			worker._unflush();
-			worker.dashboard();
+//			debug('Calling ' + event.worker.name + '.dashboard() = ' + event.type);
+			event.worker._unflush();
+			event.worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
+			debug(e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
-		$('#golem-dashboard-'+worker.name).empty();
+		$('#golem-dashboard-'+event.worker.name).empty();
 	}
 };
 

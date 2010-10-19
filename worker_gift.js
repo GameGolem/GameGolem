@@ -174,7 +174,7 @@ Gift.parse = function(change) {
 	return false;
 };
 
-Gift.update = function(type, worker) {
+Gift.update = function(event) {
 	this.runtime.work = length(this.data.todo) > 0 || length(this.data.received) > 0;
 };
 

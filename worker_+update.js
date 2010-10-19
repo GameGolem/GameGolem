@@ -126,7 +126,7 @@ Update.checkVersion = function(force) {
 3b. Display a notification if there's a new version
 4. Set a reminder if there isn't
 */
-Update.update = function(type,worker) {
+Update.update = function(event) {
 	if (Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
 		this.checkVersion(false);
 	}

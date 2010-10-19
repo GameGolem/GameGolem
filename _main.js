@@ -102,7 +102,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				Workers[i]._init();
 			}
 			for (i in Workers) {
-				Workers[i]._update();
+				Workers[i]._update({type:'init', self:true});
 				Workers[i]._flush();
 			}
 			Page.parse_all(); // Call once to get the ball rolling...

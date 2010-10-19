@@ -290,7 +290,7 @@ Battle.parse = function(change) {
 4e. Choose a random entry from our list (targets with more entries have more chance of being picked)
 5. Update the Status line
 */
-Battle.update = function(type) {
+Battle.update = function(event) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip;
         var enabled = Queue.enabled(this),limit;
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);

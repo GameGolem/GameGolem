@@ -112,8 +112,8 @@ Army.parse = function(change) {
 };
 
 Army.oldupdate = Army.update;
-Army.update = function(type, worker) {
-	if (type === 'reminder' && !this.runtime.next) {
+Army.update = function(event) {
+	if (event.type === 'reminder' && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
@@ -135,7 +135,7 @@ Army.update = function(type, worker) {
 		}
 		this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	}
-	this.oldupdate(type, worker);
+	this.oldupdate(event);
 };
 
 Army.work = function(state) {

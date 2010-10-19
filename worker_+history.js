@@ -45,7 +45,7 @@ History.dashboard = function() {
 	$('#golem-dashboard-History').html(list.join(''));
 };
 
-History.update = function(type) {
+History.update = function(event) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
 	for (i in this.data) {
 		if (i < hour) {

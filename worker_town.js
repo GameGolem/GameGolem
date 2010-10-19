@@ -194,7 +194,7 @@ Town.getDuel = function() {
 	return {attack:att, defend:def};
 };
 
-Town.update = function(type) {
+Town.update = function(event) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	incr = (this.runtime.cost_incr || 4);
         

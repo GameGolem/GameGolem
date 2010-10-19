@@ -210,15 +210,15 @@ Quest.parse = function(change) {
 	return false;
 };
 
-Quest.update = function(type,worker) {
-	if (worker === Town && type !== 'data') {
+Quest.update = function(event) {
+	if (event.worker.name === 'Town' && event.type !== 'data') {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
 	this._watch(Player);
 	this._watch(Queue);
-	if (!type || type === 'data') {
+	if (event.type === 'init' || event.type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && quests[i].type !== 3) {
 				list.push(quests[i].item);

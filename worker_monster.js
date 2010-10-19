@@ -946,8 +946,8 @@ Monster.parse = function(change) {
 	return false;
 };
 
-Monster.update = function(what,worker) {
-	if (what === 'runtime') {
+Monster.update = function(event) {
+	if (event.type === 'runtime') {
 		return;
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target;

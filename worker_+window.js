@@ -114,8 +114,8 @@ Window.init = function() {
 3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
-Window.update = function(type,worker) {
-	if (type !== 'reminder') {
+Window.update = function(event) {
+	if (event.type !== 'reminder') {
 		return;
 	}
 	var i, now = Date.now();

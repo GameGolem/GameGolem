@@ -123,7 +123,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				Workers[i]._init();
 			}
 			for (i in Workers) {
-				Workers[i]._update();
+				Workers[i]._update({type:'init', self:true});
 				Workers[i]._flush();
 			}
 			Page.parse_all(); // Call once to get the ball rolling...
@@ -825,13 +825,13 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._parse(change)			- Calls this.parse(change) inside a try / catch block
 ._work(state)			- Calls this.work(state) inside a try / catch block
 
-._update(type,worker)	- Calls this.update(type,worker), loading and flushing .data if needed. worker is "null" unless a watched worker.
+._update(event)			- Calls this.update(event), loading and flushing .data if needed. event = {worker:this, type:'init|data|option|runtime|reminder', [self:true], [id:'reminder id']}
 
 ._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
 ._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
 
-._remind(secs,id)		- Calls this._update('reminder',null) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
-._revive(secs,id)		- Calls this._update('reminder',null) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
+._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
+._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
 
 ._push()				- Pushes us onto the "active worker" list for debug messages etc
@@ -1017,7 +1017,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -1028,7 +1028,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update('reminder', null);}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1050,9 +1050,9 @@ Worker.prototype._save = function(type) {
 		this._push();
 		this._working[type] = true;
 		this._changed = Date.now();
-		this._update(type, null);
+		this._update({worker:this, type:type, self:true});
 		for (i=0; i<this._watching[type].length; i++) {
-			this._watching[type][i]._update(type, this);
+			this._watching[type][i]._update({worker:this, type:type});
 		}
 		setItem(n, v);
 		this._working[type] = false;
@@ -1143,24 +1143,25 @@ Worker.prototype._unwatch = function(worker) {
 	}
 };
 
-Worker.prototype._update = function(type, worker) {
-	if (this._loaded && (this.update || this._watching.length)) {
+Worker.prototype._update = function(event) {
+	if (this._loaded && this.update) {
 		this._push();
 		var i, flush = false;
-		this._working.update = true;
-		if (typeof worker === 'undefined') {
-			worker = null;
+		if (isString(event)) {
+			event = {type:event};
+		} else if (!isObject(event)) {
+			event = {};
 		}
+		event.worker = event.worker || this;
+		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			if (this.update) {
-				this.update(type, worker);
-			}
+			this.update(event);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update(' + (type ? type : 'null') + ', ' + (worker ? worker.name : 'null') + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(event) + '): ' + e.message);
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
@@ -1241,10 +1242,10 @@ Army.display = [
 	}
 ];
 */
-Army.update = function(type,worker) {
-	if (type === 'data' && !worker) {
+Army.update = function(event) {
+	if (event.self && event.type === 'data') {
 		for (var i in this.runtime.update) {
-			Workers[i]._update(type, this);
+			Workers[i]._update({worker:this, type:'data'});
 			delete this.runtime.update[i];
 		}
 	}
@@ -2098,7 +2099,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));
+		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -2125,7 +2126,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update('', Worker.find(Dashboard.option.active.substr(16)));// Make sure we're called at init
+	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});// Make sure we update the active page at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -2133,8 +2134,8 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
 };
 
-Dashboard.update = function(type, worker) {
-	if (!worker && type === 'reminder') {
+Dashboard.update = function(event) {
+	if (event.self && event.type === 'reminder') {
 		$('.golem-timer').each(function(i,el){
 			var time = $(el).text().parseTimer();
 			if (time && time > 0) {
@@ -2152,19 +2153,19 @@ Dashboard.update = function(type, worker) {
 			}
 		});
 	}
-	if (!this._loaded || !worker) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.self || !this._loaded) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	if (this.option.active === 'golem-dashboard-'+worker.name && this.option.display === 'block') {
+	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
 		try {
-//			debug('Calling ' + worker.name + '.dashboard() = ' + type);
-			worker._unflush();
-			worker.dashboard();
+//			debug('Calling ' + event.worker.name + '.dashboard() = ' + event.type);
+			event.worker._unflush();
+			event.worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + worker.name + '.dashboard(): ' + e.message);
+			debug(e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
-		$('#golem-dashboard-'+worker.name).empty();
+		$('#golem-dashboard-'+event.worker.name).empty();
 	}
 };
 
@@ -2237,7 +2238,7 @@ History.dashboard = function() {
 	$('#golem-dashboard-History').html(list.join(''));
 };
 
-History.update = function(type) {
+History.update = function(event) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
 	for (i in this.data) {
 		if (i < hour) {
@@ -3148,9 +3149,9 @@ Queue.clearCurrent = function() {
 //	}
 };
 
-Queue.update = function(type,worker) {
+Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (!type || type === 'option') { // options have changed
+	if (event.type === 'init' || event.type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
 			this.lasttimer = -1;
@@ -3163,22 +3164,22 @@ Queue.update = function(type,worker) {
 			if (Queue.enabled(Workers[i])) {
 				if ($worker.hasClass('red')) {
 					$worker.removeClass('red');
-					Workers[i]._update('option', null);
+					Workers[i]._update({type:'option', self:true});
 				}
 			} else {
 				if (!$worker.hasClass('red')) {
 					$worker.addClass('red');
-					Workers[i]._update('option', null);
+					Workers[i]._update({type:'option', self:true});
 				}
 			}
 		}
 	}
-	if (!type || type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
+	if (event.type === 'init' || event.type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
 		if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
 			this.clearCurrent();
 		}
 	}
-	if (type === 'reminder') { // This is where we call worker.work() for everyone
+	if (event.type === 'reminder') { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
@@ -3413,8 +3414,8 @@ Resources.init = function() {
 //	Config.addOption({label:'test',checkbox:true});
 };
 
-Resources.update = function(type, worker) {
-	if (!type && !worker) {
+Resources.update = function(event) {
+	if (event.type === 'init' && event.self) {
 		Config.makePanel(this, this.display2);
 	}
 	var worker, type, total = 0;
@@ -3585,8 +3586,8 @@ Settings.init = function() {
 	Settings.oldwhich = this.option.which;
 };
 
-Settings.update = function(type) {
-	if (type === 'option') {
+Settings.update = function(event) {
+	if (event.type === 'option') {
 		var i, list = [];
 		if (this.oldwhich !== this.option.which) {
 			$('input:golem(settings,name)').val(this.option.which);
@@ -3712,7 +3713,7 @@ Title.init = function() {
 * 4. Output worker.get(value)
 * 5. Watch worker for changes
 */
-Title.update = function(type) {
+Title.update = function(event) {
 	if (this.option.enabled && this.option.title) {
 		var i, tmp, what, worker, value, output = '', parts = this.option.title.match(/([^}]+\}?)/g);// split into "text {option}"
 		if (parts) {
@@ -3876,7 +3877,7 @@ Update.checkVersion = function(force) {
 3b. Display a notification if there's a new version
 4. Set a reminder if there isn't
 */
-Update.update = function(type,worker) {
+Update.update = function(event) {
 	if (Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
 		this.checkVersion(false);
 	}
@@ -4009,8 +4010,8 @@ Window.init = function() {
 3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
-Window.update = function(type,worker) {
-	if (type !== 'reminder') {
+Window.update = function(event) {
+	if (event.type !== 'reminder') {
 		return;
 	}
 	var i, now = Date.now();
@@ -4182,7 +4183,7 @@ Alchemy.parse = function(change) {
 	});
 };
 
-Alchemy.update = function() {
+Alchemy.update = function(event) {
 	var best = null, recipe = this.data.recipe, r, i;
 	for (r in recipe) {
 		if (recipe[r].type === 'Recipe') {
@@ -4275,7 +4276,7 @@ Bank.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-Bank.update = function(type, worker) {
+Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
 		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('cash') + Player.get('bank')) + ' (Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income') + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income')) + ' from land)');
 	} else {
@@ -4610,7 +4611,7 @@ Battle.parse = function(change) {
 4e. Choose a random entry from our list (targets with more entries have more chance of being picked)
 5. Update the Status line
 */
-Battle.update = function(type) {
+Battle.update = function(event) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip;
         var enabled = Queue.enabled(this),limit;
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
@@ -4890,7 +4891,7 @@ Blessing.parse = function(change) {
 	return false;
 };
 
-Blessing.update = function(){
+Blessing.update = function(event){
     var d, demi;
      if (this.option.display && this.option.which !== 'None'){
          d = new Date(this.runtime.when);
@@ -5048,8 +5049,8 @@ Army.parse = function(change) {
 };
 
 Army.oldupdate = Army.update;
-Army.update = function(type, worker) {
-	if (type === 'reminder' && !this.runtime.next) {
+Army.update = function(event) {
+	if (event.type === 'reminder' && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
@@ -5071,7 +5072,7 @@ Army.update = function(type, worker) {
 		}
 		this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	}
-	this.oldupdate(type, worker);
+	this.oldupdate(event);
 };
 
 Army.work = function(state) {
@@ -5221,7 +5222,7 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function(type,worker) {
+Elite.update = function(event) {
 	var i, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = null;
 	if (Queue.enabled(this)) {
@@ -5361,9 +5362,9 @@ Generals.parse = function(change) {
 	return false;
 };
 
-Generals.update = function(type, worker) {
+Generals.update = function(event) {
 	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
-	if (!type || type === 'data') {
+	if (event.type === 'init' || event.type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
@@ -5390,10 +5391,10 @@ Generals.update = function(type, worker) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if (((type === 'data' || worker === Town || worker === Player) && invade && duel)
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel)
 		|| this.runtime.force) {
 		this.runtime.force = false;
-		if (worker === Player && Player.get('attack') && Player.get('defense')) {
+		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
@@ -5835,7 +5836,7 @@ Gift.parse = function(change) {
 	return false;
 };
 
-Gift.update = function(type, worker) {
+Gift.update = function(event) {
 	this.runtime.work = length(this.data.todo) > 0 || length(this.data.received) > 0;
 };
 
@@ -6387,7 +6388,7 @@ Land.parse = function(change) {
 	return true;
 };
 
-Land.update = function() {
+Land.update = function(event) {
 	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
 	
 	if (this.option.land_exp) {
@@ -6614,9 +6615,9 @@ LevelUp.parse = function(change) {
 	return true;
 };
 
-LevelUp.update = function(type,worker) {
+LevelUp.update = function(event) {
 	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
-	if (worker === Player || !length(runtime.quests)) {
+	if (event.worker.name === 'Player' || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
@@ -7798,8 +7799,8 @@ Monster.parse = function(change) {
 	return false;
 };
 
-Monster.update = function(what,worker) {
-	if (what === 'runtime') {
+Monster.update = function(event) {
+	if (event.type === 'runtime') {
 		return;
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target;
@@ -8686,8 +8687,8 @@ Player.parse = function(change) {
 	return false;
 };
 
-Player.update = function(type) {
-	if (type !== 'option') {
+Player.update = function(event) {
+	if (event.type !== 'option') {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
@@ -8784,7 +8785,7 @@ Potions.parse = function(change) {
 	return false;
 };
 
-Potions.update = function(type) {
+Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
 	if (Queue.enabled(this)) {
@@ -9055,15 +9056,15 @@ Quest.parse = function(change) {
 	return false;
 };
 
-Quest.update = function(type,worker) {
-	if (worker === Town && type !== 'data') {
+Quest.update = function(event) {
+	if (event.worker.name === 'Town' && event.type !== 'data') {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
 	this._watch(Player);
 	this._watch(Queue);
-	if (!type || type === 'data') {
+	if (event.type === 'init' || event.type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && quests[i].type !== 3) {
 				list.push(quests[i].item);
@@ -9897,7 +9898,7 @@ Town.getDuel = function() {
 	return {attack:att, defend:def};
 };
 
-Town.update = function(type) {
+Town.update = function(event) {
 	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
 	incr = (this.runtime.cost_incr || 4);
         
@@ -10186,7 +10187,7 @@ Upgrade.parse = function(change) {
 	return false;
 };
 
-Upgrade.update = function(type, worker) {
+Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
 		this.runtime.run = 0;
 	}

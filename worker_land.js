@@ -104,7 +104,7 @@ Land.parse = function(change) {
 	return true;
 };
 
-Land.update = function() {
+Land.update = function(event) {
 	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
 	
 	if (this.option.land_exp) {

@@ -131,7 +131,7 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function(type,worker) {
+Elite.update = function(event) {
 	var i, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = null;
 	if (Queue.enabled(this)) {

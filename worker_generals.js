@@ -90,9 +90,9 @@ Generals.parse = function(change) {
 	return false;
 };
 
-Generals.update = function(type, worker) {
+Generals.update = function(event) {
 	var data = this.data, i, priority_list = [], list = [], invade = Town.get('runtime.invade'), duel = Town.get('runtime.duel'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
-	if (!type || type === 'data') {
+	if (event.type === 'init' || event.type === 'data') {
 		for (i in Generals.data) {
 			list.push(i);
 		}
@@ -119,10 +119,10 @@ Generals.update = function(type, worker) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if (((type === 'data' || worker === Town || worker === Player) && invade && duel)
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel)
 		|| this.runtime.force) {
 		this.runtime.force = false;
-		if (worker === Player && Player.get('attack') && Player.get('defense')) {
+		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {

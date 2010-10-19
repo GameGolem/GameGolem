@@ -56,7 +56,7 @@ Potions.parse = function(change) {
 	return false;
 };
 
-Potions.update = function(type) {
+Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
 	if (Queue.enabled(this)) {

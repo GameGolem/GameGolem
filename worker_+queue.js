@@ -141,9 +141,9 @@ Queue.clearCurrent = function() {
 //	}
 };
 
-Queue.update = function(type,worker) {
+Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (!type || type === 'option') { // options have changed
+	if (event.type === 'init' || event.type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
 			this.lasttimer = -1;
@@ -156,22 +156,22 @@ Queue.update = function(type,worker) {
 			if (Queue.enabled(Workers[i])) {
 				if ($worker.hasClass('red')) {
 					$worker.removeClass('red');
-					Workers[i]._update('option', null);
+					Workers[i]._update({type:'option', self:true});
 				}
 			} else {
 				if (!$worker.hasClass('red')) {
 					$worker.addClass('red');
-					Workers[i]._update('option', null);
+					Workers[i]._update({type:'option', self:true});
 				}
 			}
 		}
 	}
-	if (!type || type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
+	if (event.type === 'init' || event.type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
 		if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
 			this.clearCurrent();
 		}
 	}
-	if (type === 'reminder') { // This is where we call worker.work() for everyone
+	if (event.type === 'reminder') { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded

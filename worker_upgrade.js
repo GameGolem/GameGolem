@@ -44,7 +44,7 @@ Upgrade.parse = function(change) {
 	return false;
 };
 
-Upgrade.update = function(type, worker) {
+Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
 		this.runtime.run = 0;
 	}
