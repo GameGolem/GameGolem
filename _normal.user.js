@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 828;
+var revision = 829;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5020,13 +5020,13 @@ Army.parse = function(change) {
 		}
 		army = this.get('Army');
 		for (i=0; i<army.length; i++) {
-			if (this.get(['_info', uid, 'page'], 0) === this.runtime.next) {
-				if (this.get(['_info', uid, 'seen'], 0) !== now) {
-					this.set(['Army', uid], false);// Forget this one, he aint been found!!!
+			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
+				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
+					this.set(['Army', army[i]], false);// Forget this one, he aint been found!!!
 				}
 			}
 		}
-	} else if (Page.page === 'army_invite' && $('img[src*="gift_invite_castle_on.gif"]').length) {
+	} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
 		army = this.get('Army');
 		for (i=0; i<army.length; i++) {
 			this.set('Army', false);
@@ -5080,7 +5080,7 @@ Army.work = function(state) {
 			if (this.runtime.next) {
 				Page.to('army_viewarmy', {page:this.runtime.next});
 			} else {
-				Page.to('army_gifts', {app_friends:'c'});
+				Page.to('army_gifts', {app_friends:'c'}, true);
 			}
 		}
 		return true;
