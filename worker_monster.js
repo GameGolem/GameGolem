@@ -950,7 +950,7 @@ Monster.update = function(event) {
 	if (event.type === 'runtime') {
 		return;
 	}
-	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target;
+	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now();
 	var limit = this.runtime.limit;
         if(!LevelUp.runtime.running && limit === 100){
                         limit = 0;
@@ -1200,7 +1200,7 @@ Monster.update = function(event) {
 		}
 	}
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]];
+		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]], late_a, late_b, time_a, time_b, goal_a, goal_b;
 		switch(Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);
@@ -1219,14 +1219,23 @@ Monster.update = function(event) {
 		case 'Min Damage':
 			return a[1] - b[1];
 		case 'ETD Maintain':
-			return monster_b.finish - monster_a.finish;
+			late_a = monster_a.eta - monster_a.finish;
+			late_b = monster_b.eta - monster_b.finish;
+			// this is what used to happen before r655
+			//return late_a < late_b ? 1 : (late_a > late_b ? -1 : 0);
+			// this should capture the same intent,
+			// but continue provide sorting after monsters are caught up
+			return late_b - late_a;
 		case 'Goal Maintain':
-			var now = Date.now();
-			var time_a = Math.max(1, now - Math.min(monster_a.eta || monster_a.finish, monster_a.finish));
-			var time_b = Math.max(1, now - Math.min(monster_b.eta || monster_b.finish, monster_b.finish));
-			var dmg_goal_a = Math.max(1, a[4] - a[3]);
-			var dmg_goal_b = Math.max(1, b[4] - b[3]);
-			return (dmg_goal_b / time_b) - (dmg_goal_a / time_a);
+			time_a = Math.max(1, now - Math.min(monster_a.eta || monster_a.finish, monster_a.finish));
+			time_b = Math.max(1, now - Math.min(monster_b.eta || monster_b.finish, monster_b.finish));
+			// aim a little before the end so we aren't caught short
+			time_a = Math.max((time_a + now) / 2, time_a - 14400000); // 4 hours
+
+			time_b = Math.max((time_b + now) / 2, time_b - 14400000);
+			goal_a = Math.max(1, a[4] - a[3]);
+			goal_b = Math.max(1, b[4] - b[3]);
+			return (goal_b / time_b) - (goal_a / time_a);
 		}
 	};
 	for (i in list) {
