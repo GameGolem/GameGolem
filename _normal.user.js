@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 831;
+var revision = 832;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2682,8 +2682,10 @@ Page.init = function() {
 	}
 	if (this.option.click) {
 		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
-			$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
-		});
+                        if ($(el).parent().html()){
+                                $(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
+                        }
+                });
 		this.replaceClickHandlers();
 	}
 	$('.golem-link').live('click', function(event){
@@ -4949,7 +4951,7 @@ Blessing.work = function(state) {
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_invite army_viewarmy';
+Army.pages = 'army_invite army_viewarmy army_gifts';
 
 // Careful not to hit any *real* army options
 Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
@@ -6833,7 +6835,7 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
 			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
+		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
 		if (staminaAction > 0 ) {
 			return {	stamina : staminaAction,
 						energy : 0,
@@ -7805,7 +7807,7 @@ Monster.update = function(event) {
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now();
 	var limit = this.runtime.limit;
-        if(!LevelUp.runtime.running && limit === 100){
+        if(!LevelUp.runtime.running && limit == 100){
                         limit = 0;
                 }
         list.defend = [];

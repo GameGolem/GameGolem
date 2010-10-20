@@ -165,8 +165,10 @@ Page.init = function() {
 	}
 	if (this.option.click) {
 		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
-			$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
-		});
+                        if ($(el).parent().html()){
+                                $(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
+                        }
+                });
 		this.replaceClickHandlers();
 	}
 	$('.golem-link').live('click', function(event){

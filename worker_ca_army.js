@@ -12,7 +12,7 @@
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_invite army_viewarmy';
+Army.pages = 'army_invite army_viewarmy army_gifts';
 
 // Careful not to hit any *real* army options
 Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...

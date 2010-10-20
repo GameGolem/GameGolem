@@ -952,7 +952,7 @@ Monster.update = function(event) {
 	}
 	var i, mid, uid, type, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now();
 	var limit = this.runtime.limit;
-        if(!LevelUp.runtime.running && limit === 100){
+        if(!LevelUp.runtime.running && limit == 100){
                         limit = 0;
                 }
         list.defend = [];
