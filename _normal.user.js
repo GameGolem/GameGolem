@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 832;
+var revision = 833;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5023,6 +5023,9 @@ Army.parse = function(change) {
 		}
 		army = this.get('Army');
 		for (i=0; i<army.length; i++) {
+			if (army[i] == userID) {
+				continue; // skip self
+			}
 			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
 				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
 					this.set(['Army', army[i]], false);// Forget this one, he aint been found!!!
@@ -5043,6 +5046,9 @@ Army.parse = function(change) {
 	this.runtime.count = 0;
 	var i, army = this.get('Army');
 	for (i=0; i<army.length; i++) {
+		if (army[i] == userID) {
+			continue; // skip self
+		}
 		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
 			this.runtime.count++;
 		}
@@ -5057,6 +5063,9 @@ Army.update = function(event) {
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
 			for (i=0; i<army.length; i++) {
+				if (army[i] == userID) {
+					continue; // skip self
+				}
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					page = Math.floor((i + 1) / this.option.armyperpage) + 1;

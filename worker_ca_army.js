@@ -84,6 +84,9 @@ Army.parse = function(change) {
 		}
 		army = this.get('Army');
 		for (i=0; i<army.length; i++) {
+			if (army[i] == userID) {
+				continue; // skip self
+			}
 			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
 				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
 					this.set(['Army', army[i]], false);// Forget this one, he aint been found!!!
@@ -104,6 +107,9 @@ Army.parse = function(change) {
 	this.runtime.count = 0;
 	var i, army = this.get('Army');
 	for (i=0; i<army.length; i++) {
+		if (army[i] == userID) {
+			continue; // skip self
+		}
 		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
 			this.runtime.count++;
 		}
@@ -118,6 +124,9 @@ Army.update = function(event) {
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
 			for (i=0; i<army.length; i++) {
+				if (army[i] == userID) {
+					continue; // skip self
+				}
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
