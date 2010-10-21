@@ -301,7 +301,14 @@ Worker.prototype._save = function(type) {
 	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 		return false;
 	}
-	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
+	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
+	try {
+		v = JSON.stringify(this[type]);
+	} catch (e) {
+		debug(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
+		// exit so we don't try to save mangled data over good data
+		return false;
+	}
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
 		this._working[type] = true;

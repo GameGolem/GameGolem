@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 834;
+var revision = 835;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1045,7 +1045,14 @@ Worker.prototype._save = function(type) {
 	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
 		return false;
 	}
-	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v = JSON.stringify(this[type]);
+	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
+	try {
+		v = JSON.stringify(this[type]);
+	} catch (e) {
+		debug(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
+		// exit so we don't try to save mangled data over good data
+		return false;
+	}
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
 		this._working[type] = true;
