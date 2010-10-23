@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 835;
+var revision = 836;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1017,7 +1017,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -1028,7 +1028,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1153,22 +1153,24 @@ Worker.prototype._unwatch = function(worker) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false;
+		var i, flush = false, newevent = {worker:this};
 		if (isString(event)) {
-			event = {type:event};
-		} else if (!isObject(event)) {
-			event = {};
+			newevent.type = event;
+		} else if (isObject(event)) {
+			for (i in event) {
+				newevent[i] = event[i];
+			}
 		}
-		event.worker = event.worker || this;
+		newevent.worker = newevent.worker || this;
 		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			this.update(event);
+			this.update(newevent);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(event) + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message);
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);

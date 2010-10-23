@@ -273,7 +273,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -284,7 +284,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:this, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -417,6 +417,7 @@ Worker.prototype._update = function(event) {
 				newevent[i] = event[i];
 			}
 		}
+		newevent.worker = newevent.worker || this;
 		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
@@ -425,7 +426,7 @@ Worker.prototype._update = function(event) {
 		try {
 			this.update(newevent);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(newevent) + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message);
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
