@@ -409,22 +409,23 @@ Worker.prototype._unwatch = function(worker) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false;
+		var i, flush = false, newevent = {worker:this};
 		if (isString(event)) {
-			event = {type:event};
-		} else if (!isObject(event)) {
-			event = {};
+			newevent.type = event;
+		} else if (isObject(event)) {
+			for (i in event) {
+				newevent[i] = event[i];
+			}
 		}
-		event.worker = event.worker || this;
 		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			this.update(event);
+			this.update(newevent);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(event) + '): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.update(' + JSON.stringify(newevent) + '): ' + e.message);
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
