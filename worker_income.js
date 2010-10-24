@@ -45,7 +45,7 @@ Income.display = [
 ];
 
 Income.work = function(state) {
-	if (!Income.option.margin || !this.option.general) {
+	if (!this.option.general || !Generals.test(Generals.best('income'))) {
 		return QUEUE_FINISH;
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);

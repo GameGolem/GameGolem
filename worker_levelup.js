@@ -208,94 +208,84 @@ LevelUp.get = function(what,def) {
 		if (this.option.algorithm === 'Per Hour') {
 			return History.get('exp.average.change');
 		}
-		return (12 * (this.get('exp_per_stamina') + this.get('exp_per_energy')));
+		return (12 * (this.get('exp_per_stamina') + this.get('exp_per_energy'))).round(1);
 	case 'exp_possible':	
 		return (Player.get('stamina')*this.get('exp_per_stamina') 
-				+ Player.get('energy') * this.get('exp_per_energy')).round(0);
+				+ Player.get('energy') * this.get('exp_per_energy')).round(1);
 	case 'exp_per_stamina':	
 		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_stamina) {
-			return this.option.manual_exp_per_stamina;
+			return this.option.manual_exp_per_stamina.round(1);
 		}
-		return this.runtime.avg_exp_per_stamina;
+		return this.runtime.avg_exp_per_stamina.round(1);
 	case 'exp_per_energy':	
 		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_energy) {
-			return this.option.manual_exp_per_energy;
+			return this.option.manual_exp_per_energy.round(1);
 		}
 		return ((this.runtime.defending || !Quest.get('runtime.best',false))
 				? this.runtime.avg_exp_per_energy
 				: Quest.get('data.'+Quest.get('runtime.best') + '.exp') / 
-					Quest.get('data.'+Quest.get('runtime.best') + '.energy'));
+					Quest.get('data.'+Quest.get('runtime.best') + '.energy')).round(1);
 	default: return this._get(what,def);
 	}
 };
 
-LevelUp.findAction = function(what, energy, stamina, exp) {
-	var options =[], i, check, energyAction, staminaAction, quests, monsters, big, multiples, general = false, basehit, max, raid = false;
-	switch(what) {
+LevelUp.findAction = function(mode, energy, stamina, exp) {
+	var options =[], i, check, quests, monsters, big, multiples, general = false, basehit, max, raid = false, defendAction, monsterAction, energyAction, staminaAction, questAction, stat = null, value = null, nothing;
+	nothing = {stamina:0,energy:0,exp:0};
+	defendAction = monsterAction = staminaAction = energyAction = questAction = 0;
+	switch(mode) {
 	case 'best':
 		// Find the biggest exp quest or stamina return to push unusable exp into next level
 		big = this.findAction('big',energy,stamina,0); 
-		//debug(' check sta: ' + stamina + ', big:' + big.stamina);
+		debug('Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
 		if (this.option.order === 'Energy') {
-			check = this.findAction('quest',energy,0,exp);
+			check = this.findAction('energy',energy-big.energy,0,exp);
 			//debug(' levelup quest ' + energy + ' ' + exp);
 			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
-			if (check && check.quest === Quest.runtime.best) {
+			// Do energy first if defending a monster or doing the best quest, but not little 'use energy' quests
+			if (check.exp && (check.quest === Quest.runtime.best || !check.quest)) {
 				return check;
 			}
 		}
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
-		if (check) {
-			return check;
-		}
-		check = this.findAction('quest',energy,0,exp);
-		if (check && check.quest === Quest.runtime.best) {
+		if (check.exp) {
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
-		if (check) {
+		if (check.exp) {
 			return check;
 		}
 		//debug(' big.general ' + big.general+ big.exp);
-		return (!big.none ? big : false);
+		return (big.exp ? big : nothing);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
-		energyAction = this.findAction('quest',energy,stamina,0);
+		energyAction = this.findAction('energy',energy,stamina,0);
 		staminaAction = this.findAction('attack',energy,stamina,0);
-		if (energyAction && (!staminaAction || energyAction.exp >= staminaAction.exp)) {
+		if (energyAction.exp > staminaAction.exp) {
 			//debug('big energy ' + energyAction.exp);
 			energyAction.big = true;
 			return energyAction;
-		} else if (staminaAction) {
+		} else if (staminaAction.exp) {
 			//debug('big stamina ' + staminaAction.exp + staminaAction.general);
 			staminaAction.big = true;
 			return staminaAction;
 		} else {
-			return {	energy : 0,
-						stamina : 0,
-						none : true};  
+			return nothing;  
 		}
-	case 'defend':	
-		// Need to fill in Barbarus.etc ability
-		monsters = Monster.get();
-		for (i in monsters) { 
-			options = options.concat(Monster.types[monsters[i].type].defend);
+	case 'energy':	
+		if (Monster.get('runtime.defend')
+				&& (Quest.option.monster 
+					|| Queue.option.queue.indexOf('Monster')
+						< Queue.option.queue.indexOf('Quest'))) {
+			defendAction = this.findAction('defend',energy,0,exp);
+			if (defendAction.exp) {
+				debug('energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
+				return defendAction;
+			}
 		}
-		original = options = unique(options);
-		multiples = Generals.get('runtime.multipliers');
-		for (i in multiples) {
-			options = options.concat(original.map(function(s){ return s*multiples[i]; } ));
-		}
-		// Use 2.8X as a safe exp multiple until actual figures can be coded from each monster
-		i = bestValue(options, Math.min((exp ?  exp / 2.8 : energy), energy));
-		if (i !== -1) {
-			//debug('defend ' + i);
-			return {	energy : i,
-						stamina : 0,
-						exp : i * this.get('exp_per_energy')};  
-		} else {
-			return null;
-		}
+		questAction = this.findAction('quest',energy,0,exp);
+		debug('energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
+		return questAction;
 	case 'quest':		
 		quests = Quest.get();
 		if (Quest.runtime.best && quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
@@ -313,51 +303,44 @@ LevelUp.findAction = function(what, energy, stamina, exp) {
 						exp : quests[i].exp,
 						quest : i};
 		} else {
-			return null;
+			return nothing;
 		}
-	case 'attack':		
-		// Need to fill in Barbarus.etc ability
-		monsters = Monster.get();
-		for (i in monsters) {
-			//debug('i:'+ i + ' monster[i].name'+monsters[i].name+' type:'+monsters[i].type + ' raid:'+Monster.types[monsters[i].type].raid);
-			if (!Monster.types[monsters[i].type].raid) {
-				if (Monster.types[monsters[i].type].defend && Monster.types[monsters[i].type].attack.indexOf(1) > -1) {
-					options = options.concat(Monster.types[monsters[i].type].attack.slice(1,Monster.get('runtime.button.count')));
-				} else {
-					options = options.concat(Monster.types[monsters[i].type].attack.slice(0,Monster.get('runtime.button.count')));
-				}
-			} else {
-				raid = true;
-			}
+	case 'defend':
+		stat = 'energy';
+		value = energy
+		// Deliberate fall-through
+	case 'attack':	
+		stat = stat || 'stamina';
+		value = value || stamina;
+		if (!Queue.enabled(Monster)){
+				return nothing;
 		}
-		options = unique(options);
-		// Use 6X as a safe exp variation multiple until actual figures available
-		max = Math.min((exp ? exp / 6 : stamina), stamina);
-		staminaAction = basehit = bestValue(options, max);
+		options = Monster.runtime.values[mode];
+		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
+		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
+		monsterAction = basehit = bestValue(options, max);
 		multiples = Generals.get('runtime.multipliers');
 		for (i in multiples) {
 			check = bestValue(options.map(function(s){ return s * multiples[i]; } ), max);
-			if (check > staminaAction) {
-				staminaAction = check;
+			if (check > monsterAction) {
+				monsterAction = check;
 				basehit = check / multiples[i];
 				general = i;
 			}
 		}
-                if (!Monster.runtime.attack){
-                        staminaAction = -1;
-                }
-		if (staminaAction < 0 && Queue.enabled(Battle) && Battle.runtime.attacking) {
-			staminaAction = bestValue([((raid && Monster.option.raid.search('x5') < 0) ? 1 : 5), (Battle.option.type === 'War' ? 10 : 1)],max);
+		if (monsterAction < 0 && mode === 'attack' && Queue.enabled(Battle) 
+				&& Battle.runtime.attacking) {
+			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		//debug('options ' + options + ' staminaAction ' + staminaAction + ' basehit ' + basehit + ' general ' + general);
-		if (staminaAction > 0 ) {
-			return {	stamina : staminaAction,
-						energy : 0,
-						exp : staminaAction * this.get('exp_per_stamina'),
-						general :  general,
-						basehit : basehit}
+		debug('mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + exp);
+		if (monsterAction > 0 ) {
+			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
+						energy : (stat === 'energy') ? monsterAction : 0,
+						exp : monsterAction * this.get('exp_per_' + stat),
+						general : general,
+						basehit : basehit};
 		} else {
-			return null;
+			return nothing;
 		}
 	case 'battle':		
 		// Need to fill in later

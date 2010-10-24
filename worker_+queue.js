@@ -179,7 +179,7 @@ Queue.update = function(event) {
 		}
 
 		this.burn.stamina = this.burn.energy = 0;
-		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.burn.forcestamina = this.burn.forceenergy = false;
+		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.burn.forcestamina = this.burn.forceenergy = this.runtime.big = false;
 		for (i in ensta) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
@@ -192,7 +192,7 @@ Queue.update = function(event) {
 		if (this.enabled(LevelUp) && !this.burn.stamina && !this.burn.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
-			if (action) {
+			if (action.exp) {
 				this.burn.energy = action.energy;
 				this.burn.stamina = action.stamina;
 				this.runtime.levelup = true;
@@ -201,17 +201,20 @@ Queue.update = function(event) {
 				if (action.quest) {
 					this.runtime.quest = action.quest;
 				}
+				this.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
+						? action.basehit : false);
+				this.runtime.big = action.big;
 				if (action.big) {
 					this.runtime.general = action.general || (LevelUp.option.general === 'any' 
 							? false 
 							: LevelUp.option.general === 'Manual' 
 							? LevelUp.option.general_choice
 							: LevelUp.option.general );
+					this.runtime.basehit = action.basehit;
 				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
 					debug('Overriding manual general that multiplies attack/defense');
 					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
 				}
-				this.runtime.basehit = action.basehit;
 				Queue.burn.forcestamina = (action.stamina !== 0);
 				Queue.burn.forceenergy = (action.energy !== 0);
 				debug('Leveling up: force burn ' + (this.burn.stamina ? 'stamina' : 'energy') + ' ' + (this.burn.stamina || this.burn.energy));

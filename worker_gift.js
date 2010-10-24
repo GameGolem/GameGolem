@@ -334,7 +334,7 @@ Gift.work = function(state) {
 						debug('Sending out ' + this.data.gifts[i].name);
 						k = 0;
 						for (j=todo[i].length-1; j>=0; j--) {
-							if (k< 30) {	// Need to limit to 30 at a time
+							if (k< 10) {	// Need to limit to 10 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
 //									debug('User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
