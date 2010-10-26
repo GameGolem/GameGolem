@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 843;
+var revision = 844;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4544,7 +4544,7 @@ Battle.display = [
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-        var i,list =[];
+        var i, list, rank;
 //	this._watch(Arena);
 	this._watch(Monster);
 	if (typeof this.option.points === 'boolean') {
@@ -4553,10 +4553,25 @@ Battle.init = function() {
 	}
 //	this.option.arena = false;// ARENA!!!!!!
 	Resources.use('Stamina');
-        for (i in this.data.rank){
-                list.push('(' + (i - Player.get('rank')) + ') ' + this.data.rank[i].name);
-        }
-        Config.set('limit_list', list);
+
+	// make a custom Config type of for rank, based on number so it carries forward on level ups
+	list = {};
+	rank = Player.get('rank') || 0;
+	if (rank < 4) {
+		for (i = rank - 4; i < 0; i++) {
+			list[i] = '(' + i + ') ' + this.data.rank[0];
+		}
+	}
+	for (i in this.data.rank){
+		list[i - rank] = '(' + (i - rank) + ') ' + this.data.rank[i].name;
+	}
+	Config.set('limit_list', list);
+
+	// map old "(#) rank" string into the number
+	i = this.get('option.limit');
+	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
+		this.set('option.limit', i);
+	}
 };
 
 /***** Battle.parse() *****
@@ -4653,8 +4668,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip;
-        var enabled = Queue.enabled(this),limit;
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = Queue.enabled(this);
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -4665,7 +4679,10 @@ Battle.update = function(event) {
 		+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
-        limit = this.option.limit.regex(/([\-0-9]+)/);
+        limit = this.option.limit;
+	if (!isNumber(limit)) {
+		limit = -4;
+	}
 	for (i in data) { // Forget low or high rank - no points or too many points
 		if ((this.option.bp === 'Always' && (data[i].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
