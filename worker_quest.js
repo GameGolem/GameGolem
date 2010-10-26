@@ -469,7 +469,7 @@ Quest.work = function(state) {
 
 Quest.order = [];
 Quest.dashboard = function(sort, rev) {
-	var i, o, list = [], output = [], vv, tt, v, eff;
+	var i, o, quest, list = [], output = [], vv, tt, cc, span, v, eff;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in this.data) {
@@ -529,24 +529,75 @@ Quest.dashboard = function(sort, rev) {
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
+		quest = this.data[i];
 		output = [];
-		td(output, Generals.get([this.data[i].general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([this.data[i].general, 'img']) + '" alt="' + this.data[i].general + '" title="' + this.data[i].general + '">' : '');
-		th(output, i);
-		td(output, isNumber(this.data[i].land) ? this.land[this.data[i].land].replace(' ','&nbsp;') : this.area[this.data[i].area].replace(' ','&nbsp;'));
-		td(output, isNumber(this.data[i].level) ? this.data[i].level + '&nbsp;(' + this.data[i].influence + '%)' : '');
-		td(output, this.data[i].energy);
 
+		// general
+		td(output, Generals.get([quest.general]) ? '<img style="width:25px;height:25px;" src="' + imagepath + Generals.get([quest.general, 'img']) + '" alt="' + quest.general + '" title="' + quest.general + '">' : '');
+
+		// name
+		vv = i;
+		span = tt = cc = '';
+		if (isNumber(quest.id)) {
+			tt += ' | id: ' + quest.id;
+		}
+		if (isString(quest.main)) {
+			tt += ' | main: ' + quest.main;
+			if (isObject(this.data[quest.main]) && isNumber(this.data[quest.main].id)) {
+				tt += ' (' + this.data[quest.main].id + ')';
+			}
+		}
+		if (this.runtime.best === i) {
+			vv = '<b>' + vv + '</b>';
+			cc = 'green';
+		}
+		if (tt !== '') {
+			tt = 'title="' + tt + '"';
+		}
+		if (cc !== '') {
+			span += ' style="color:' + cc + '"';
+		}
+		if (span !== '') {
+			vv = '<span' + span + '>' + vv + '</span>';
+		}
+		th(output, vv, tt);
+
+		// area
+		td(output, isNumber(quest.land) ? this.land[quest.land].replace(' ','&nbsp;') : this.area[quest.area].replace(' ','&nbsp;'));
+
+		// level
+		span = vv = cc = '';
+		if (isNumber(v = quest.level)) {
+			vv = v + '&nbsp;(' + quest.influence + '%)';
+		}
+		if (v >= 4) {
+			cc = 'red';
+		} else if (isNumber(quest.influence) && quest.influence < 100) {
+			cc = 'green';
+		}
+		if (cc !== '') {
+			span += ' style="color:' + cc + '"';
+		}
+		if (span !== '') {
+			vv = '<span' + span + '>' + vv + '</span>';
+		}
+		td(output, vv);
+
+		// energy
+		td(output, quest.energy);
+
+		// effort
 		vv = tt = '';
-		if (!isNumber(this.data[i].level)) {
-			vv = '<i>' + this.data[i].energy + '</i>';
+		if (!isNumber(quest.level)) {
+			vv = '<i>' + quest.energy + '</i>';
 		} else {
-			vv = this.data[i].eff || (this.data[i].energy * ((this.rdata[i] && this.rdata[i].reps) || 16));
+			vv = quest.eff || (quest.energy * ((this.rdata[i] && this.rdata[i].reps) || 16));
 			tt = 'effort ' + vv;
-			if (0 < this.data[i].influence && this.data[i].influence < 100) {
-				v = Math.round(vv * (100 - this.data[i].influence) / 100);
+			if (0 < quest.influence && quest.influence < 100) {
+				v = Math.round(vv * (100 - quest.influence) / 100);
 				tt += ' (' + v + ')';
 			}
-			if ((v = this.data[i].reps)) {
+			if ((v = quest.reps)) {
 				if (tt !== '') {
 					tt += ', ';
 				}
@@ -562,16 +613,12 @@ Quest.dashboard = function(sort, rev) {
 				}
 				tt += 'assuming reps 16';
 			}
-			if (0 < this.data[i].influence && this.data[i].influence < 100) {
-				v = Math.round(v * (100 - this.data[i].influence) / 100);
-				tt += ' (' + v + ')';
-			}
-			if (this.data[i].m_d || this.data[i].m_c) {
+			if (quest.m_d || quest.m_c) {
 				vv = '<b>' + vv + '</b>';
 				if (tt !== '') {
 					tt += ', ';
 				}
-				tt += 'effort metrics ' + (this.data[i].m_d || '?') + '/' + (this.data[i].m_c || '?');
+				tt += 'effort metrics ' + (quest.m_d || '?') + '/' + (quest.m_c || '?');
 			}
 			if (tt !== '') {
 				tt = 'title="' + tt + '"';
@@ -579,9 +626,15 @@ Quest.dashboard = function(sort, rev) {
 		}
 		td(output, vv, tt);
 
-		td(output, (this.data[i].exp / this.data[i].energy).round(2), 'title="' + this.data[i].exp + ' total, ' + (this.data[i].exp / this.data[i].energy * 12).round(2) + ' per hour"');
-		td(output, '$' + addCommas((this.data[i].reward / this.data[i].energy).round()), 'title="$' + addCommas(this.data[i].reward) + ' total, $' + addCommas((this.data[i].reward / this.data[i].energy * 12).round()) + ' per hour"');
-		td(output, this.data[i].itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + this.data[i].itemimg + '" alt="' + this.data[i].item + '" title="' + this.data[i].item + '">' : '');
+		// exp
+		td(output, (quest.exp / quest.energy).round(2), 'title="' + quest.exp + ' total, ' + (quest.exp / quest.energy * 12).round(2) + ' per hour"');
+
+		// reward
+		td(output, '$' + addCommas((quest.reward / quest.energy).round()), 'title="$' + addCommas(quest.reward) + ' total, $' + addCommas((quest.reward / quest.energy * 12).round()) + ' per hour"');
+
+		// item
+		td(output, quest.itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + quest.itemimg + '" alt="' + quest.item + '" title="' + quest.item + '">' : '');
+
 		tr(list, output.join(''), 'style="height:25px;"');
 	}
 	list.push('</tbody></table>');
