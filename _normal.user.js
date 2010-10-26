@@ -6960,7 +6960,8 @@ Monster.runtime = {
 	stat: null, // Used by update to tell work if using energy or stamina
 	message: null, // Message to display on dash and log when removing or reviewing or collecting monsters
 	page : null, // What page (battle or monster) the check page should go to
-	monsters : {} // Used for storing running weighted averages for monsters
+	monsters : {}, // Used for storing running weighted averages for monsters
+	defending: false // hint for other workers as to whether we are potentially using energy to defend
 };
 
 Monster.display = [
@@ -8149,6 +8150,7 @@ Monster.update = function(event) {
 			}
 		}
 	}
+	this.runtime.defending = list.defend && list.defend.length > 0;
 	listSortFunc = function(a,b){
 		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]], late_a, late_b, time_a, time_b, goal_a, goal_b;
 		switch(Monster.option.choice) {
@@ -9376,8 +9378,7 @@ Quest.work = function(state) {
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
 	if (this.option.monster && !Queue.runtime.quest
-			&& (Monster.get('runtime.check')
-				|| Monster.get('runtime.defend') 
+			&& (Monster.get('runtime.defending')
 				|| !Queue.burn.forceenergy)) {
 		return QUEUE_FINISH;
 	}
