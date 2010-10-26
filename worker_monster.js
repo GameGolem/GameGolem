@@ -567,7 +567,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
@@ -581,7 +581,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
@@ -595,7 +595,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	azriel: {
 		name:'Azriel, the Angel of Wrath',
@@ -609,7 +609,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -625,7 +625,7 @@ Monster.types = {
 		tactics:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100],
+		defend:[10,20,40,100],
 		orcs:true
 	},
 	rebellion: {
@@ -642,7 +642,7 @@ Monster.types = {
 		tactics:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100],
+		defend:[10,20,40,100],
 		orcs:true
 	},
 	alpha_meph: {
@@ -657,7 +657,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	}
 };
 
@@ -680,8 +680,12 @@ Monster.raid_buttons = {
 	'Invade x5':'input[src$="raid_attack_button3.gif"]:first',
 	'Duel':		'input[src$="raid_attack_button2.gif"]:first',
 	'Duel x5':	'input[src$="raid_attack_button4.gif"]:first'};
+Monster.name_re = null;
+Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match regexp
+
 
 Monster.init = function() {
+	var i, str;
 	this._watch(Player);
 	this._watch(Queue);
 	this._revive(60);
@@ -693,13 +697,25 @@ Monster.init = function() {
 		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
 	}
 	delete this.runtime.record;
+
+	// generate a complete primary player/monster name match regexp
+	str = '';
+	for (i in this.types) {
+		if (this.types[i].name) {
+			if (str !== '') {
+				str += '|';
+			}
+			str += this.types[i].name.regexp_escape();
+		}
+	}
+	this.name_re = new RegExp("^\\s*(.*\\S)\\s*'s\\s+(?:" + str + ')\\s*$', 'im');
 };
 
 Monster.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i;
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x;
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
@@ -776,7 +792,13 @@ Monster.parse = function(change) {
 			History.add('raid+loss',-1);
 		}
 		if (!monster.name) {
-			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
+			if ((x = $('#app' + AppID + '_app_body div[style*="/dragon_title_owner."]')).length
+				|| (x = $('#app' + AppID + '_app_body div[style*="/nm_top."]')).length) {
+				i = x.text().trim();
+				if (isString(x = i.regex(this.name_re)) || isString(x = i.regex(this.name2_re))) {
+					monster.name = x.trim();
+				}
+			}
 		}
 		// Check if variable number of button monster
 		if (!type.raid && monster.state === 'engage' && type.attack.length > 2) {
@@ -1457,7 +1479,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_\d+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name + '\'s')
+		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s')
 				+ ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}
@@ -1560,7 +1582,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//debug(image_url);
-		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
+		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name.html_escape()+'</a>');
 		td(output,
 			blank
 				? ''

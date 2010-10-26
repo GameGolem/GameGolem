@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 838;
+var revision = 839;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -697,6 +697,33 @@ var ucwords = function(str) {
 	return (str + '').replace(/^(.)|\s(.)/g, function($1){
 		return $1.toUpperCase();
 	});
+};
+
+String.prototype.html_escape = function() {
+	var str = this;
+	str = str.replace(/&/g, '&amp;');
+	str = str.replace(/</g, '&lt;');
+	str = str.replace(/>/g, '&gt');
+	return str;
+};
+
+String.prototype.regexp_escape = function() {
+	var str = this;
+	str = str.replace(/\\/g, '\\\\');
+	str = str.replace(/\^/g, '\\^');
+	str = str.replace(/\$/g, '\\$');
+	str = str.replace(/\./g, '\\.');
+	str = str.replace(/\+/g, '\\+');
+	str = str.replace(/\*/g, '\\*');
+	str = str.replace(/\?/g, '\\?');
+	str = str.replace(/\{/g, '\\{');
+	str = str.replace(/\}/g, '\\}');
+	str = str.replace(/\(/g, '\\(');
+	str = str.replace(/\)/g, '\\)');
+	str = str.replace(/\[/g, '\\[');
+	str = str.replace(/\]/g, '\\]');
+	str = str.replace(/\|/g, '\\|');
+	return str;
 };
 
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
@@ -4735,7 +4762,7 @@ Battle.update = function(event) {
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
-			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name.html_escape() + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found.');
@@ -4834,7 +4861,7 @@ Battle.dashboard = function(sort, rev) {
 		data = this.data.user[this.order[o]];
 		output = [];
 		td(output, isNumber(data.align) ? '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
-		th(output, data.name, 'title="'+this.order[o]+'"');
+		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
@@ -7432,7 +7459,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
@@ -7446,7 +7473,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
@@ -7460,7 +7487,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	azriel: {
 		name:'Azriel, the Angel of Wrath',
@@ -7474,7 +7501,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -7490,7 +7517,7 @@ Monster.types = {
 		tactics:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100],
+		defend:[10,20,40,100],
 		orcs:true
 	},
 	rebellion: {
@@ -7507,7 +7534,7 @@ Monster.types = {
 		tactics:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100],
+		defend:[10,20,40,100],
 		orcs:true
 	},
 	alpha_meph: {
@@ -7522,7 +7549,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 //		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,10,20,40,100]
+		defend:[10,20,40,100]
 	}
 };
 
@@ -7545,8 +7572,12 @@ Monster.raid_buttons = {
 	'Invade x5':'input[src$="raid_attack_button3.gif"]:first',
 	'Duel':		'input[src$="raid_attack_button2.gif"]:first',
 	'Duel x5':	'input[src$="raid_attack_button4.gif"]:first'};
+Monster.name_re = null;
+Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match regexp
+
 
 Monster.init = function() {
+	var i, str;
 	this._watch(Player);
 	this._watch(Queue);
 	this._revive(60);
@@ -7558,13 +7589,25 @@ Monster.init = function() {
 		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
 	}
 	delete this.runtime.record;
+
+	// generate a complete primary player/monster name match regexp
+	str = '';
+	for (i in this.types) {
+		if (this.types[i].name) {
+			if (str !== '') {
+				str += '|';
+			}
+			str += this.types[i].name.regexp_escape();
+		}
+	}
+	this.name_re = new RegExp("^\\s*(.*\\S)\\s*'s\\s+(?:" + str + ')\\s*$', 'im');
 };
 
 Monster.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i;
+	var mid, uid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x;
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
 		//debug('Parsing for Monster type');
@@ -7641,7 +7684,13 @@ Monster.parse = function(change) {
 			History.add('raid+loss',-1);
 		}
 		if (!monster.name) {
-			monster.name = $('img[linked][size="square"]').parent().parent().next().text().trim().replace(/[\s\n\r]{2,}/g, ' ').regex(/(.+)'s /i);
+			if ((x = $('#app' + AppID + '_app_body div[style*="/dragon_title_owner."]')).length
+				|| (x = $('#app' + AppID + '_app_body div[style*="/nm_top."]')).length) {
+				i = x.text().trim();
+				if (isString(x = i.regex(this.name_re)) || isString(x = i.regex(this.name2_re))) {
+					monster.name = x.trim();
+				}
+			}
 		}
 		// Check if variable number of button monster
 		if (!type.raid && monster.state === 'engage' && type.attack.length > 2) {
@@ -8322,7 +8371,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_\d+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name + '\'s')
+		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s')
 				+ ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}
@@ -8425,7 +8474,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//debug(image_url);
-		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name+'</a>');
+		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>'+monster.name.html_escape()+'</a>');
 		td(output,
 			blank
 				? ''
@@ -9095,7 +9144,7 @@ Quest.parse = function(change) {
 		quest[name].reward = (reward[1] + reward[2]) / 2;
 		quest[name].energy = energy;
 		if (m_c) {
-		        quest[name].m_c = m_c;
+			quest[name].m_c = m_c;
 		}
 		if (m_d) {
 			quest[name].m_d = m_d;
@@ -9139,7 +9188,7 @@ Quest.update = function(event) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
+	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999), eff, best_sub_eff = 1e10, best_adv_eff = 1e10, best_inf_eff = 1e10;
 	this._watch(Player);
 	this._watch(Queue);
 	if (event.type === 'init' || event.type === 'data') {
@@ -9199,6 +9248,10 @@ Quest.update = function(event) {
 					continue;	// Skip to the next quest in the list
 				}
 			}
+			eff = quests[i].eff || (quests[i].energy * (!isNumber(quests[i].level) ? 1 : ((this.rdata[i] && this.rdata[i].reps) || 16)));
+			if (0 < (quests[i].influence || 0) && (quests[i].influence || 0) < 100) {
+				eff = Math.ceil(eff * (100 - quests[i].influence));
+			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
 					if (!has_vampire && isNumber(quests[i].land)
@@ -9222,29 +9275,33 @@ Quest.update = function(event) {
 					if (quests[i].type === 2
 					&& isNumber(quests[i].influence) 
 					&& quests[i].influence < 100
-					&& (!best_subquest || quests[i].energy < quests[best_subquest].energy)) {
+					&& (!best_subquest || eff < best_sub_eff)) {
 						best_subquest = i;
+						best_sub_eff = eff;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
 						best_advancement = null;
+						best_adv_eff = 1e10;
 					}
 					if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
 					&& ((isNumber(quests[i].influence) && Generals.test(quests[i].general) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
-					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
+					&& (!best_advancement || (quests[i].land === best_land && eff < best_adv_eff))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
+						best_adv_eff = eff;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (isNumber(quests[i].influence) 
 							&& (!quests[i].general || Generals.test(quests[i].general))
 							&& quests[i].influence < 100
-							&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+							&& (!best_influence || eff < best_inf_eff)) {
 						best_influence = i;
+						best_inf_eff = eff;
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
@@ -9414,12 +9471,9 @@ Quest.dashboard = function(sort, rev) {
 				return Quest.data[q].energy;
 			case 5: // effort
 				return Quest.data[q].eff ||
-				  (!isNumber(Quest.data[q].level) ?
-				  Quest.data[q].energy :
 				  (Quest.data[q].energy *
-				  (Quest.data[q].reps ||
-				  (Quest.rdata[q] && Quest.rdata[q].reps) ||
-				  16)));
+				  (!isNumber(Quest.data[q].level) ? 1 :
+				  ((Quest.rdata[q] && Quest.rdata[q].reps) || 16)));
 			case 6: // exp
 				return Quest.data[q].exp / Quest.data[q].energy;
 			case 7: // reward
@@ -9441,7 +9495,7 @@ Quest.dashboard = function(sort, rev) {
 	th(output, 'Area');
 	th(output, 'Level');
 	th(output, 'Energy');
-	th(output, 'Effort');
+	th(output, 'Effort', 'title="Energy required per influence level."');
 	th(output, '@&nbsp;Exp');
 	th(output, '@&nbsp;Reward');
 	th(output, 'Item');
@@ -9459,11 +9513,11 @@ Quest.dashboard = function(sort, rev) {
 		if (!isNumber(this.data[i].level)) {
 			vv = '<i>' + this.data[i].energy + '</i>';
 		} else {
-			vv = this.data[i].energy * (this.data[i].reps || (this.rdata[i] && this.rdata[i].reps) || 16);
-			tt = 'effort ' + v;
-			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
-			    v = Math.round(vv * (100 - this.data[i].influence) / 100);
-			    tt += ' (' + v + ')';
+			vv = this.data[i].eff || (this.data[i].energy * ((this.rdata[i] && this.rdata[i].reps) || 16));
+			tt = 'effort ' + vv;
+			if (0 < this.data[i].influence && this.data[i].influence < 100) {
+				v = Math.round(vv * (100 - this.data[i].influence) / 100);
+				tt += ' (' + v + ')';
 			}
 			if ((v = this.data[i].reps)) {
 				if (tt !== '') {
@@ -9481,25 +9535,7 @@ Quest.dashboard = function(sort, rev) {
 				}
 				tt += 'assuming reps 16';
 			}
-			if ((v = this.data[i].eff)) {
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'effort ' + v;
-			} else if ((v = (this.rdata[i] && this.rdata[i].reps))) {
-				v *= this.data[i].energy;
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'wiki effort ' + v;
-			} else {
-				v = this.data[i].energy * 16;
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'assumed effort ' + v;
-			}
-			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
+			if (0 < this.data[i].influence && this.data[i].influence < 100) {
 				v = Math.round(v * (100 - this.data[i].influence) / 100);
 				tt += ' (' + v + ')';
 			}

@@ -420,6 +420,33 @@ var ucwords = function(str) {
 	});
 };
 
+String.prototype.html_escape = function() {
+	var str = this;
+	str = str.replace(/&/g, '&amp;');
+	str = str.replace(/</g, '&lt;');
+	str = str.replace(/>/g, '&gt');
+	return str;
+};
+
+String.prototype.regexp_escape = function() {
+	var str = this;
+	str = str.replace(/\\/g, '\\\\');
+	str = str.replace(/\^/g, '\\^');
+	str = str.replace(/\$/g, '\\$');
+	str = str.replace(/\./g, '\\.');
+	str = str.replace(/\+/g, '\\+');
+	str = str.replace(/\*/g, '\\*');
+	str = str.replace(/\?/g, '\\?');
+	str = str.replace(/\{/g, '\\{');
+	str = str.replace(/\}/g, '\\}');
+	str = str.replace(/\(/g, '\\(');
+	str = str.replace(/\)/g, '\\)');
+	str = str.replace(/\[/g, '\\[');
+	str = str.replace(/\]/g, '\\]');
+	str = str.replace(/\|/g, '\\|');
+	return str;
+};
+
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
 	var name, label_list, y_label_list, x_label_list;
 	name = y_label + '_per_' + x_label;

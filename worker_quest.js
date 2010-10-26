@@ -171,7 +171,7 @@ Quest.parse = function(change) {
 		quest[name].reward = (reward[1] + reward[2]) / 2;
 		quest[name].energy = energy;
 		if (m_c) {
-		        quest[name].m_c = m_c;
+			quest[name].m_c = m_c;
 		}
 		if (m_d) {
 			quest[name].m_d = m_d;
@@ -215,7 +215,7 @@ Quest.update = function(event) {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999);
+	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999), eff, best_sub_eff = 1e10, best_adv_eff = 1e10, best_inf_eff = 1e10;
 	this._watch(Player);
 	this._watch(Queue);
 	if (event.type === 'init' || event.type === 'data') {
@@ -275,6 +275,10 @@ Quest.update = function(event) {
 					continue;	// Skip to the next quest in the list
 				}
 			}
+			eff = quests[i].eff || (quests[i].energy * (!isNumber(quests[i].level) ? 1 : ((this.rdata[i] && this.rdata[i].reps) || 16)));
+			if (0 < (quests[i].influence || 0) && (quests[i].influence || 0) < 100) {
+				eff = Math.ceil(eff * (100 - quests[i].influence));
+			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
 					if (!has_vampire && isNumber(quests[i].land)
@@ -298,29 +302,33 @@ Quest.update = function(event) {
 					if (quests[i].type === 2
 					&& isNumber(quests[i].influence) 
 					&& quests[i].influence < 100
-					&& (!best_subquest || quests[i].energy < quests[best_subquest].energy)) {
+					&& (!best_subquest || eff < best_sub_eff)) {
 						best_subquest = i;
+						best_sub_eff = eff;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 					if (isNumber(quests[i].land) && quests[i].land > best_land) { // No need to revisit old lands - leave them to Influence
 						best_land = quests[i].land;
 						best_advancement = null;
+						best_adv_eff = 1e10;
 					}
 					if (quests[i].type !== 2
 					&& isNumber(quests[i].land)
 					//&& quests[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
 					&& quests[i].land >= best_land
 					&& ((isNumber(quests[i].influence) && Generals.test(quests[i].general) && quests[i].level <= 1 && quests[i].influence < 100) || (quests[i].type === 3 && !Alchemy.get(['ingredients', quests[i].itemimg], 0)))
-					&& (!best_advancement || (quests[i].land === best_land && quests[i].energy < quests[best_advancement].energy))) {
+					&& (!best_advancement || (quests[i].land === best_land && eff < best_adv_eff))) {
 						best_land = Math.max(best_land, quests[i].land);
 						best_advancement = i;
+						best_adv_eff = eff;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					if (isNumber(quests[i].influence) 
 							&& (!quests[i].general || Generals.test(quests[i].general))
 							&& quests[i].influence < 100
-							&& (!best_influence || quests[i].energy < quests[best_influence].energy)) {
+							&& (!best_influence || eff < best_inf_eff)) {
 						best_influence = i;
+						best_inf_eff = eff;
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					if (!best_experience || (quests[i].energy / quests[i].exp) < (quests[best_experience].energy / quests[best_experience].exp)) {
@@ -490,12 +498,9 @@ Quest.dashboard = function(sort, rev) {
 				return Quest.data[q].energy;
 			case 5: // effort
 				return Quest.data[q].eff ||
-				  (!isNumber(Quest.data[q].level) ?
-				  Quest.data[q].energy :
 				  (Quest.data[q].energy *
-				  (Quest.data[q].reps ||
-				  (Quest.rdata[q] && Quest.rdata[q].reps) ||
-				  16)));
+				  (!isNumber(Quest.data[q].level) ? 1 :
+				  ((Quest.rdata[q] && Quest.rdata[q].reps) || 16)));
 			case 6: // exp
 				return Quest.data[q].exp / Quest.data[q].energy;
 			case 7: // reward
@@ -517,7 +522,7 @@ Quest.dashboard = function(sort, rev) {
 	th(output, 'Area');
 	th(output, 'Level');
 	th(output, 'Energy');
-	th(output, 'Effort');
+	th(output, 'Effort', 'title="Energy required per influence level."');
 	th(output, '@&nbsp;Exp');
 	th(output, '@&nbsp;Reward');
 	th(output, 'Item');
@@ -535,11 +540,11 @@ Quest.dashboard = function(sort, rev) {
 		if (!isNumber(this.data[i].level)) {
 			vv = '<i>' + this.data[i].energy + '</i>';
 		} else {
-			vv = this.data[i].energy * (this.data[i].reps || (this.rdata[i] && this.rdata[i].reps) || 16);
-			tt = 'effort ' + v;
-			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
-			    v = Math.round(vv * (100 - this.data[i].influence) / 100);
-			    tt += ' (' + v + ')';
+			vv = this.data[i].eff || (this.data[i].energy * ((this.rdata[i] && this.rdata[i].reps) || 16));
+			tt = 'effort ' + vv;
+			if (0 < this.data[i].influence && this.data[i].influence < 100) {
+				v = Math.round(vv * (100 - this.data[i].influence) / 100);
+				tt += ' (' + v + ')';
 			}
 			if ((v = this.data[i].reps)) {
 				if (tt !== '') {
@@ -557,25 +562,7 @@ Quest.dashboard = function(sort, rev) {
 				}
 				tt += 'assuming reps 16';
 			}
-			if ((v = this.data[i].eff)) {
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'effort ' + v;
-			} else if ((v = (this.rdata[i] && this.rdata[i].reps))) {
-				v *= this.data[i].energy;
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'wiki effort ' + v;
-			} else {
-				v = this.data[i].energy * 16;
-				if (tt !== '') {
-					tt += ', ';
-				}
-				tt += 'assumed effort ' + v;
-			}
-			if (0 <= this.data[i].influence && this.data[i].influence < 100) {
+			if (0 < this.data[i].influence && this.data[i].influence < 100) {
 				v = Math.round(v * (100 - this.data[i].influence) / 100);
 				tt += ' (' + v + ')';
 			}
