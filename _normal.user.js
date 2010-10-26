@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 842;
+var revision = 843;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9379,9 +9379,7 @@ Quest.work = function(state) {
 		return QUEUE_FINISH;
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-	if (this.option.monster && !Queue.runtime.quest
-			&& (Monster.get('runtime.defending')
-				|| !Queue.burn.forceenergy)) {
+	if (this.option.monster && Monster.get('runtime.defending') && !Queue.runtime.quest && !Queue.burn.forceenergy) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
