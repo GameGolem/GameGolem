@@ -1245,7 +1245,9 @@ Monster.update = function(event) {
 				}
 				// Possible defend target?
 				if (this.option.defend_active) {
-					this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+					if(type.defend) {
+						this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+					}
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){

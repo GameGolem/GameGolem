@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 840;
+var revision = 842;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8137,7 +8137,9 @@ Monster.update = function(event) {
 				}
 				// Possible defend target?
 				if (this.option.defend_active) {
-					this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+					if(type.defend) {
+						this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+					}
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
@@ -9273,7 +9275,7 @@ Quest.update = function(event) {
 			}
 			eff = quests[i].eff || (quests[i].energy * (!isNumber(quests[i].level) ? 1 : ((this.rdata[i] && this.rdata[i].reps) || 16)));
 			if (0 < (quests[i].influence || 0) && (quests[i].influence || 0) < 100) {
-				eff = Math.ceil(eff * (100 - quests[i].influence));
+				eff = Math.ceil(eff * (100 - quests[i].influence) / 100);
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm

@@ -277,7 +277,7 @@ Quest.update = function(event) {
 			}
 			eff = quests[i].eff || (quests[i].energy * (!isNumber(quests[i].level) ? 1 : ((this.rdata[i] && this.rdata[i].reps) || 16)));
 			if (0 < (quests[i].influence || 0) && (quests[i].influence || 0) < 100) {
-				eff = Math.ceil(eff * (100 - quests[i].influence));
+				eff = Math.ceil(eff * (100 - quests[i].influence) / 100);
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
