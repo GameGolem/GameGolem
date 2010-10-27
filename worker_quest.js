@@ -80,12 +80,31 @@ Quest.display = [
 ];
 
 Quest.init = function() {
-	for (var i in this.data) {
+	var data = this.get('data'), runtime = this.get('runtime'), i, x;
+	for (i in data) {
 		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
-			delete this.data[i];
+			delete data[i];
 		}
 	}
 	Resources.use('Energy');
+
+	// one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
+	if ((runtime.revision || 0) < 845) {
+		for (i in data) {
+			if (data[i].reps) {
+				x = (this.rdata[i] && this.rdata[i].reps) || 16;
+				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
+					debug('Quest.init: deleting metrics for: ' + i);
+					delete data[i].m_c;
+					delete data[i].m_d;
+					delete data[i].reps;
+					delete data[i].eff;
+				}
+			}
+		}
+	}
+
+	runtime.revision = revision; // started r845 for historic reference
 };
 
 Quest.parse = function(change) {
@@ -141,12 +160,12 @@ Quest.parse = function(change) {
 		}
 		m_c = 0; // percentage count metric
 		m_d = 0; // percentage delta metric
-		m_i = 0; // last influence metric
+		m_i = null; // last influence value
 		reps = 0; // average reps needed per level
 		if (quest[name]) {
 			m_c = quest[name].m_c || 0;
 			m_d = quest[name].m_d || 0;
-			m_i = quest[name].influence || 0;
+			m_i = quest[name].influence;
 			reps = quest[name].reps || 0;
 		}
 		quest[name] = {};
@@ -162,7 +181,7 @@ Quest.parse = function(change) {
 		if (isNumber(influence)) {
 			quest[name].level = (level || 0);
 			quest[name].influence = influence;
-			if (m_i < influence && influence < 100) {
+			if (isNumber(m_i) && m_i < influence && influence < 100) {
 				m_d += influence - m_i;
 				m_c++;
 			}
@@ -170,16 +189,12 @@ Quest.parse = function(change) {
 		quest[name].exp = reward[0];
 		quest[name].reward = (reward[1] + reward[2]) / 2;
 		quest[name].energy = energy;
-		if (m_c) {
+		if (isNumber(m_c) && m_c && isNumber(m_d) && m_d) {
 			quest[name].m_c = m_c;
-		}
-		if (m_d) {
 			quest[name].m_d = m_d;
-		}
-		if (m_c && m_d) {
 			reps = Math.ceil(m_c * 100 / m_d);
 		}
-		if (reps) {
+		if (isNumber(reps) && reps) {
 			quest[name].reps = reps;
 			quest[name].eff = quest[name].energy * reps;
 		}

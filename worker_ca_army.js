@@ -84,7 +84,9 @@ Army.parse = function(change) {
 		}
 		army = this.get('Army');
 		for (i=0; i<army.length; i++) {
+			/*jslint eqeqeq:false*/
 			if (army[i] == userID) {
+			/*jslint eqeqeq:true*/
 				continue; // skip self
 			}
 			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
@@ -105,9 +107,10 @@ Army.parse = function(change) {
 	army = this.get('Army');
 	this.runtime.next = 0;
 	this.runtime.count = 0;
-	var i, army = this.get('Army');
 	for (i=0; i<army.length; i++) {
+		/*jslint eqeqeq:false*/
 		if (army[i] == userID) {
+		/*jslint eqeqeq:true*/
 			continue; // skip self
 		}
 		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
@@ -122,13 +125,15 @@ Army.update = function(event) {
 	if (event.type === 'reminder' && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
-			army.sort(function(a,b){return parseInt(a) > parseInt(b);});
+			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
 			for (i=0; i<army.length; i++) {
+				/*jslint eqeqeq:false*/
 				if (army[i] == userID) {
+				/*jslint eqeqeq:true*/
 					continue; // skip self
 				}
 				seen = this.get(['_info', army[i], 'seen'], -1);
-				if (seen == -1 || (this.option.recheck && now - seen > this.option.recheck)) {
+				if (seen === -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
 					if (!this.runtime.next) {
 						this.runtime.next = page;

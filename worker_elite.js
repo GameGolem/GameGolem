@@ -137,7 +137,9 @@ Elite.update = function(event) {
 	if (Queue.enabled(this)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
+			/*jslint eqeqeq:false*/
 			if (list[i] == userID) {
+			/*jslint eqeqeq:true*/
 				continue; // skip self
 			}
 			check = Army.get([list[i],'elite'], 0) || Army.get([list[i],'full'], 0);
@@ -154,7 +156,9 @@ Elite.update = function(event) {
 		if (!this.runtime.nextelite) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
+				/*jslint eqeqeq:false*/
 				if (list[i] == userID) {
+				/*jslint eqeqeq:true*/
 					continue; // skip self
 				}
 				if (!Army.get([list[i]], false)) {// Only try to add a non-member who's not already added
