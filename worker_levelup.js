@@ -176,7 +176,7 @@ LevelUp.work = function(state) {
 /*	if (!action || !action.big) {
 		Generals.set('runtime.disabled', false);
 	}
-*/	if (!Queue.burn.forcestamina || !heal) {
+*/	if (!Queue.runtime.force.stamina || !heal) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
@@ -273,8 +273,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			return nothing;  
 		}
 	case 'energy':	
-		if (Monster.get('runtime.defend')
-				&& (Quest.option.monster 
+		if (Monster.get('runtime.defending')
+				&& (Quest.option.monster === 'Wait for'
+					|| Quest.option.monster === 'When able'
 					|| Queue.option.queue.indexOf('Monster')
 						< Queue.option.queue.indexOf('Quest'))) {
 			defendAction = this.findAction('defend',energy,0,exp);
@@ -315,7 +316,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		if (!Queue.enabled(Monster)){
 				return nothing;
 		}
-		options = Monster.runtime.values[mode];
+		options = Monster.get('runtime.values.'+mode);
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
 		monsterAction = basehit = bestValue(options, max);
@@ -332,7 +333,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		debug('mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + exp);
+		debug('mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
 		if (monsterAction > 0 ) {
 			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
 						energy : (stat === 'energy') ? monsterAction : 0,

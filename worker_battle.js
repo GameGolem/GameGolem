@@ -439,7 +439,7 @@ Battle.update = function(event) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	var useable_stamina = Queue.burn.forcestamina ? Queue.burn.stamina : Queue.burn.stamina - this.option.stamina_reserve;
+	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
 	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
 //		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;

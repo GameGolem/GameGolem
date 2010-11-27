@@ -23,7 +23,7 @@ Quest.option = {
 	what:'Influence',
 	ignorecomplete:true,
 	unique:true,
-	monster:true,
+	monster:'When able',
 	bank:true,
 	energy_reserve:0
 };
@@ -70,8 +70,8 @@ Quest.display = [
 		checkbox:true
 	},{
 		id:'monster',
-		label:'Fortify Monsters First',
-		checkbox:true
+		label:'Fortify',
+		select: ['Never','When able','Wait for']
 	},{
 		id:'bank',
 		label:'Automatically Bank',
@@ -85,6 +85,11 @@ Quest.init = function() {
 		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
 			delete data[i];
 		}
+	}
+	if (this.option.monster === true) {
+		this.option.monster = 'When able';
+	} else if (this.option.monster === false) {
+		this.option.monster = 'Never';
 	}
 	Resources.use('Energy');
 
@@ -388,7 +393,7 @@ Quest.update = function(event) {
 
 Quest.work = function(state) {
 	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
-	var useable_energy = Queue.burn.forceenergy ? Queue.burn.energy : Queue.burn.energy - this.option.energy_reserve;
+	var useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank) {
 			return Bank.work(true);
@@ -396,7 +401,12 @@ Quest.work = function(state) {
 		return QUEUE_FINISH;
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-	if (this.option.monster && Monster.get('runtime.defending') && !Queue.runtime.quest && !Queue.burn.forceenergy) {
+	if (!Queue.runtime.quest && 
+			(this.option.monster === 'When able' 
+				&& Monster.get('runtime.defending')) 
+			|| (this.option.monster === 'Wait for'
+				&& (Monster.get('runtime.defending')
+					|| !Queue.runtime.force.energy))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {

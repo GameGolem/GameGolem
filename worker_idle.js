@@ -24,6 +24,7 @@ Idle.option = {
 	alchemy:86400000,
 	quests:0,
 	town:0,
+	keep:0,
 //	arena:0,
 	battle:900000,
 	monsters:3600000,
@@ -67,6 +68,10 @@ Idle.display = [
 		id:'town',
 		label:'Town',
 		select:Idle.when
+	},{
+		id:'keep',
+		label:'Keep',
+		select:Idle.when
 /*	},{
 		id:'arena',
 		label:'Arena',
@@ -91,6 +96,7 @@ Idle.pages = {
 	alchemy:['keep_alchemy'],
 	quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_quest7', 'quests_quest8', 'quests_quest9', 'quests_demiquests', 'quests_atlantis'],
 	town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
+	keep:['keep_stats'],
 //	arena:['battle_arena'],
 	battle:['battle_battle'],
 	monsters:['monster_monster_list', 'battle_raid'],

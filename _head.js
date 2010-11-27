@@ -5,6 +5,7 @@
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		31.4
 // @include		http://apps.facebook.com/castle_age/*
+// @include		http://www.castleageforums.com/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js

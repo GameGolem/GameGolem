@@ -14,7 +14,7 @@ var Elite = new Worker('Elite');
 Elite.data = null;
 
 Elite.defaults['castle_age'] = {
-	pages:'keep_eliteguard army_viewarmy'
+	pages:'* keep_eliteguard army_viewarmy'
 };
 
 Elite.option = {
@@ -100,34 +100,40 @@ Elite.init = function() { // Convert old elite guard list
 };
 
 Elite.parse = function(change) {
-	$('span.result_body').each(function(i,el){
-		var txt = $(el).text();
-/*Arena possibly gone for good
-		if (Elite.runtime.nextarena) {
-			if (txt.match(/has not joined in the Arena!/i)) {
-				Army.set([Elite.runtime.nextarena, 'arena'], -1);
-			} else if (txt.match(/Arena Guard, and they have joined/i)) {
-				Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 43200000); // 12 hours
-			} else if (txt.match(/'s Arena Guard is FULL/i)) {
-				Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 1800000); // half hour
-			} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
-				Elite.runtime.waitarena = Date.now();
-				debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
+	if (Page.page === 'keep_eliteguard') {
+		$('span.result_body').each(function(i,el){
+			var txt = $(el).text();
+	/*Arena possibly gone for good
+			if (Elite.runtime.nextarena) {
+				if (txt.match(/has not joined in the Arena!/i)) {
+					Army.set([Elite.runtime.nextarena, 'arena'], -1);
+				} else if (txt.match(/Arena Guard, and they have joined/i)) {
+					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 43200000); // 12 hours
+				} else if (txt.match(/'s Arena Guard is FULL/i)) {
+					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 1800000); // half hour
+				} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
+					Elite.runtime.waitarena = Date.now();
+					debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
+				}
 			}
+	*/
+			if (txt.match(/Elite Guard, and they have joined/i)) {
+				Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
+				Elite.runtime.nextelite = null;
+			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
+				Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
+				Elite.runtime.nextelite = null;
+			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
+				Elite.runtime.waitelite = Date.now();
+				Elite.runtime.nextelite = null;
+				debug('Elite guard full, wait '+Elite.option.every+' hours');
+			}
+		});
+	} else {
+		if ($('input[src*="elite_guard_add"]').length) {
+			this.runtime.waitelite = 0;
 		}
-*/
-		if (txt.match(/Elite Guard, and they have joined/i)) {
-			Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
-			Elite.runtime.nextelite = null;
-		} else if (txt.match(/'s Elite Guard is FULL!/i)) {
-			Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
-			Elite.runtime.nextelite = null;
-		} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
-			Elite.runtime.waitelite = Date.now();
-			Elite.runtime.nextelite = null;
-			debug('Elite guard full, wait '+Elite.option.every+' hours');
-		}
-	});
+	}
 	return false;
 };
 
