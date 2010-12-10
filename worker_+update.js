@@ -12,7 +12,6 @@
 */
 var Update = new Worker('Update');
 Update.data = null;
-Update.option = null;
 
 Update.settings = {
 	system:true

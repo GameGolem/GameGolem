@@ -11,6 +11,7 @@
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
+Player.option = null;
 
 Player.settings = {
 	keep:true

@@ -12,7 +12,6 @@
 */
 var News = new Worker('News', 'index');
 News.data = null;
-News.option = null;
 
 News.runtime = {
 	last:0

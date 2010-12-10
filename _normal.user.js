@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 847;
+var revision = 848;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -125,7 +125,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			}
 			for (i in Workers) {
 				Workers[i]._update({type:'init', self:true});
-				Workers[i]._flush();
+//				Workers[i]._flush();
 			}
 			Page.parse_all(); // Call once to get the ball rolling...
 		};
@@ -995,15 +995,17 @@ function Worker(name,pages,settings) {
 
 // Static Functions
 Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
-	if (name in Workers) {
-		return Workers[name];
-	}
-	name = name.toLowerCase();
-	for (var i in Workers) {
-		if (i.toLowerCase() === name || Workers[i].id === name) {
-			return Workers[i];
+	try {
+		if (name in Workers) {
+			return Workers[name];
 		}
-	}
+		name = name.toLowerCase();
+		for (var i in Workers) {
+			if (i.toLowerCase() === name || Workers[i].id === name) {
+				return Workers[i];
+			}
+		}
+	} catch(e) {}
 	return null;
 };
 
@@ -1220,6 +1222,7 @@ Worker.prototype._set = function(what, value) {
 			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
 				me._notify(path);// Notify the watchers...
 				me._taint[type] = true;
+				me._remind(0, '_update', {type:type, self:true});
 				if (isUndefined(value)) {
 					delete a[c];
 					return false;
@@ -1695,6 +1698,17 @@ Config.option = {
 };
 
 Config.init = function() {
+	// START: Only safe place to put this - temporary for deleting old queue enabled code...
+	if (isObject(Queue.option.enabled)) {
+		for (i in Queue.option.enabled) {
+			worker = Worker.find(i);
+			if (worker && worker.option) {
+				worker.option._enabled = Queue.option.enabled[i];
+			}
+		}
+		delete Queue.option.enabled;
+	}
+	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
@@ -1848,7 +1862,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!Queue.enabled(worker) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(Queue,'enabled.'+worker.name)+'" type="checkbox"' + (Queue.enabled(worker) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
@@ -2135,6 +2149,20 @@ Config.updateOptions = function() {
 			}
 		}
 	});
+	var i, $worker;
+	for (i in Workers) {
+		if (Workers[i].option) {
+			$worker = $('#'+Workers[i].id+' .golem-panel-header');
+			if (Workers[i].get(['option', '_enabled'], true)) {
+				$worker.removeClass('red');
+			} else {
+				$worker.addClass('red');
+				if (Queue.get('runtime.current', null) === i) {
+					Queue.clearCurrent();
+				}
+			}
+		}
+	}
 	this.checkRequire();
 };
 
@@ -3201,7 +3229,6 @@ Queue.runtime = {
 
 Queue.option = {
 	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
-	enabled: {},// Automatically filled with everything anyway...
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -3315,25 +3342,6 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.lasttimer = this.option.delay;
 		}
-		for (i in Workers) {
-			$worker = $('#'+Workers[i].id+' .golem-panel-header');
-			if (Queue.enabled(Workers[i])) {
-				if ($worker.hasClass('red')) {
-					$worker.removeClass('red');
-					Workers[i]._update({type:'option', self:true});
-				}
-			} else {
-				if (!$worker.hasClass('red')) {
-					$worker.addClass('red');
-					Workers[i]._update({type:'option', self:true});
-				}
-			}
-		}
-	}
-	if (event.type === 'init' || event.type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
-		if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
-			this.clearCurrent();
-		}
 	}
 	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
@@ -3352,7 +3360,7 @@ Queue.update = function(event) {
 				break;
 			}
 		}
-		if (this.enabled(LevelUp) && !this.runtime.stamina && !this.runtime.energy 
+		if (LevelUp.get(['option', '_enabled'], true) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action.exp) {
@@ -3403,7 +3411,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
+			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true)) {
 				debug(Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -3411,7 +3419,7 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
+			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true)) {
 				continue;
 			}
 //			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -3451,14 +3459,6 @@ Queue.update = function(event) {
 	}
 };
 
-Queue.enabled = function(worker) {
-	try {
-		return !(worker.name in this.option.enabled) || this.option.enabled[worker.name];
-	} catch(e) {
-		return isWorker(worker);
-	}
-};
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
@@ -3492,7 +3492,7 @@ The Shared bucket has a priority of 0
 When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
 Priority is displayed as Disabled, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
 
-When a worker is disabled (Queue.option.enabled[worker] === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
+When a worker is disabled (worker.get(['option', '_enabled'], true) === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
 
 Buckets are filled in priority order, in cases of same priority, alphabetical order is used
 */
@@ -3831,7 +3831,7 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {pause}{disable}{worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
 };
 
 Title.temp = {
@@ -3919,7 +3919,6 @@ Title.alias = function(name,str) {
 */
 var Update = new Worker('Update');
 Update.data = null;
-Update.option = null;
 
 Update.settings = {
 	system:true
@@ -4067,7 +4066,7 @@ Update.update = function(event) {
 * NOTE: Cannot share "global" information across page reloads any more
 */
 var Window = new Worker('Window');
-Window.runtime = Window.option = null; // Don't save anything except global stuff
+Window.runtime = null; // Don't save anything except global stuff
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {
@@ -4733,7 +4732,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = Queue.enabled(this);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = this.get(['option', '_enabled'], true);
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -5368,7 +5367,7 @@ Elite.parse = function(change) {
 Elite.update = function(event) {
 	var i, list, tmp = [], now = Date.now(), check;
 	this.runtime.nextelite = null;
-	if (Queue.enabled(this)) {
+	if (this.get(['option', '_enabled'], true)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
 			/*jslint eqeqeq:false*/
@@ -5438,7 +5437,6 @@ Elite.work = function(state) {
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals');
-Generals.option = null;
 Generals.data = {};
 
 Generals.defaults['castle_age'] = {
@@ -6959,7 +6957,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'attack':	
 		stat = stat || 'stamina';
 		value = value || stamina;
-		if (!Queue.enabled(Monster)){
+		if (!Monster.get(['option', '_enabled'], true)){
 				return nothing;
 		}
 		options = Monster.get('runtime.values.'+mode);
@@ -6975,7 +6973,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (monsterAction < 0 && mode === 'attack' && Queue.enabled(Battle) 
+		if (monsterAction < 0 && mode === 'attack' && Battle.get(['option', '_enabled'], true) 
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
@@ -8743,7 +8741,6 @@ Monster.conditions = function (type, conditions) {
 */
 var News = new Worker('News', 'index');
 News.data = null;
-News.option = null;
 
 News.runtime = {
 	last:0
@@ -8840,6 +8837,7 @@ News.parse = function(change) {
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
+Player.option = null;
 
 Player.settings = {
 	keep:true
@@ -9082,7 +9080,7 @@ Potions.parse = function(change) {
 Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	if (Queue.enabled(this)) {
+	if (this.get(['option', '_enabled'], true)) {
 		for(i in this.data) {
 			if (this.data[i]) {
 				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');

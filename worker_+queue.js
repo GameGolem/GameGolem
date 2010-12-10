@@ -45,7 +45,6 @@ Queue.runtime = {
 
 Queue.option = {
 	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
-	enabled: {},// Automatically filled with everything anyway...
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -159,25 +158,6 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.lasttimer = this.option.delay;
 		}
-		for (i in Workers) {
-			$worker = $('#'+Workers[i].id+' .golem-panel-header');
-			if (Queue.enabled(Workers[i])) {
-				if ($worker.hasClass('red')) {
-					$worker.removeClass('red');
-					Workers[i]._update({type:'option', self:true});
-				}
-			} else {
-				if (!$worker.hasClass('red')) {
-					$worker.addClass('red');
-					Workers[i]._update({type:'option', self:true});
-				}
-			}
-		}
-	}
-	if (event.type === 'init' || event.type === 'runtime') { // runtime has changed - only care if the current worker isn't enabled any more
-		if (this.runtime.current && !this.get(['option', 'enabled', this.runtime.current], true)) {
-			this.clearCurrent();
-		}
 	}
 	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
@@ -196,7 +176,7 @@ Queue.update = function(event) {
 				break;
 			}
 		}
-		if (this.enabled(LevelUp) && !this.runtime.stamina && !this.runtime.energy 
+		if (LevelUp.get(['option', '_enabled'], true) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action.exp) {
@@ -247,7 +227,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && this.enabled(Workers[i])) {
+			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true)) {
 				debug(Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -255,7 +235,7 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !this.enabled(worker)) {
+			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true)) {
 				continue;
 			}
 //			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -292,14 +272,6 @@ Queue.update = function(event) {
 			Workers[i]._flush();
 		}
 		this._pop();
-	}
-};
-
-Queue.enabled = function(worker) {
-	try {
-		return !(worker.name in this.option.enabled) || this.option.enabled[worker.name];
-	} catch(e) {
-		return isWorker(worker);
 	}
 };
 

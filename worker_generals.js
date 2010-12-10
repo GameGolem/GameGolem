@@ -13,7 +13,6 @@
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals');
-Generals.option = null;
 Generals.data = {};
 
 Generals.defaults['castle_age'] = {

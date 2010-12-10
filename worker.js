@@ -141,15 +141,17 @@ function Worker(name,pages,settings) {
 
 // Static Functions
 Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
-	if (name in Workers) {
-		return Workers[name];
-	}
-	name = name.toLowerCase();
-	for (var i in Workers) {
-		if (i.toLowerCase() === name || Workers[i].id === name) {
-			return Workers[i];
+	try {
+		if (name in Workers) {
+			return Workers[name];
 		}
-	}
+		name = name.toLowerCase();
+		for (var i in Workers) {
+			if (i.toLowerCase() === name || Workers[i].id === name) {
+				return Workers[i];
+			}
+		}
+	} catch(e) {}
 	return null;
 };
 
@@ -366,6 +368,7 @@ Worker.prototype._set = function(what, value) {
 			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
 				me._notify(path);// Notify the watchers...
 				me._taint[type] = true;
+				me._remind(0, '_update', {type:type, self:true});
 				if (isUndefined(value)) {
 					delete a[c];
 					return false;

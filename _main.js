@@ -103,7 +103,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			}
 			for (i in Workers) {
 				Workers[i]._update({type:'init', self:true});
-				Workers[i]._flush();
+//				Workers[i]._flush();
 			}
 			Page.parse_all(); // Call once to get the ball rolling...
 		};

@@ -22,7 +22,7 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {pause}{disable}{worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
 };
 
 Title.temp = {
