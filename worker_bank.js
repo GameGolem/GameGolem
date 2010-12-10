@@ -48,14 +48,11 @@ Bank.display = [
 ];
 
 Bank.init = function() {
-	this._watch(Player, 'data.worth');// We want other things too, but they all change in relation to this
+	this._watch(Player, 'data.cash');// We want other things too, but they all change in relation to this
 };
 
 Bank.work = function(state) {
-	var cash = Player.get('cash', 0);
-	if (cash <= 10 || cash <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
-		return QUEUE_FINISH;
-	} else if (!state || this.stash(cash - this.option.hand)) {
+	if (!state || this.stash(Player.get('cash', 0) - this.option.hand)) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -63,10 +60,13 @@ Bank.work = function(state) {
 
 Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
+		Dashboard.status(this,
+			'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
+			'Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
 	} else {
 		Dashboard.status(this);
 	}
+	this.option._sleep = (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris')));
 };
 
 Bank.stash = function(amount) {

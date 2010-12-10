@@ -227,7 +227,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true)) {
+			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true) && !Workers[i].get(['option', '_sleep'], false)) {
 				debug(Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -235,7 +235,10 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true)) {
+			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true) || worker.get(['option', '_sleep'], false)) {
+				if (this.runtime.current === worker.name) {
+					this.clearCurrent();
+				}
 				continue;
 			}
 //			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');

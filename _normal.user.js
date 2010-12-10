@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 848;
+var revision = 849;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3149,32 +3149,6 @@ Page.click = function(el) {
 	this.when = Date.now();
 	return true;
 };
-/*
-post: http://apps.facebook.com/fbml/fbjs_ajax_proxy.php?__a=1
-body:
-appid=46755028429&fb_dtsg=fpDLt&fb_mockajax_context=O%3A16%3A%22CanvasFBMLFlavor%22%3A1%3A%7Bs%3A9%3A%22_fbml_env%22%3Ba%3A11%3A%7Bs%3A4%3A%22user%22%3Bi%3A1007243850%3Bs%3A6%3A%22app_id%22%3Bi%3A46755028429%3Bs%3A10%3A%22fb_page_id%22%3Bi%3A0%3Bs%3A10%3A%22canvas_url%22%3Bs%3A44%3A%22http%3A%2F%2Fapps.facebook.com%2Fcastle_age%2Fkeep.php%22%3Bs%3A10%3A%22source_url%22%3Bs%3A44%3A%22http%3A%2F%2Fweb.castleagegame.com%2Fcastle%2Fkeep.php%22%3Bs%3A9%3A%22loggedout%22%3Bb%3A0%3Bs%3A7%3A%22non-tos%22%3Bb%3A0%3Bs%3A11%3A%22flavor_code%22%3Bi%3A3%3Bs%3A14%3A%22on_canvas_info%22%3Bb%3A1%3Bs%3A8%3A%22is_tosed%22%3Bb%3A1%3Bs%3A8%3A%22fb_frame%22%3Bs%3A10%3A%22castle_age%22%3B%7D%7D&fb_mockajax_context_hash=9819cf66eab1&post_form_id=54f38dee5adaf1e060a9b776075d9d8f&post_form_id_source=AsyncRequest&query%5Bajax%5D=1&query%5Bconsume%5D=true&query%5Bitem%5D=2&require_login=1&type=2&url=http%3A%2F%2F75.126.76.167%2Fcastle%2Fkeep.php
-
-appid				46755028429
-fb_dtsg				fpDLt
-fb_mockajax_context	O:16:"CanvasFBMLFlavor":1:{s:9:"_fbml_env";a:11:{s:4:"user";i:0000000000;s:6:"app_id";i:46755028429;s:10:"fb_page_id";i:0;s:10:"canvas_url";s:44:"http://apps.facebook.com/castle_age/keep.php";s:10:"source_url";s:44:"http://web.castleagegame.com/castle/keep.php";s:9:"loggedout";b:0;s:7:"non-tos";b:0;s:11:"flavor_code";i:3;s:14:"on_canvas_info";b:1;s:8:"is_tosed";b:1;s:8:"fb_frame";s:10:"castle_age";}}
-fb_mockajax_context_hash	9819cf66eab1
-post_form_id		54f38dee5adaf1e060a9b776075d9d8f
-post_form_id_source	AsyncRequest
-query[ajax]			1
-query[consume]		true
-query[item]			2
-require_login		1
-type				2
-url	http://75.126.76.167/castle/keep.php
-
-form: [{"name":"fb_sig_locale","value":"en_GB"},{"name":"fb_sig_in_new_facebook","value":"1"},{"name":"fb_sig_time","value":"1278556687.3793"},{"name":"fb_sig_added","value":"1"},{"name":"fb_sig_profile_update_time","value":"1271859747"},{"name":"fb_sig_expires","value":"1278561600"},{"name":"fb_sig_user","value":"????"},{"name":"fb_sig_session_key","value":"2.KV3i0YLvQndJ1JS06uBLKw__.3600.1278561600-???"},{"name":"fb_sig_ext_perms","value":"status_update,photo_upload,video_upload,email,create_note,share_item,publish_stream"},{"name":"fb_sig_country","value":"bg"},{"name":"fb_sig_api_key","value":"b455181a07582e4d54eab065dbd4f706"},{"name":"fb_sig_app_id","value":"46755028429"},{"name":"fb_sig","value":"633bfeeeb79d92c2c38dfee81067fd0d"},{"name":"consume","value":"true"},{"name":"item","value":"2"},{"name":"ajax","value":"1"}]
-
-	$form = $(el).parents('form:first');
-	if ($form.length) {
-		debug('Sending in form: '+($form.attr('method') || 'GET')+' '+Page.page+' = '+JSON.stringify($form.serializeArray()));
-		Page.to(Page.page, this.clearFBpost($form.serializeArray()));
-	}
-*/
 
 Page.clear = function() {
 	this.lastclick = this.when = null;
@@ -3411,7 +3385,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true)) {
+			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true) && !Workers[i].get(['option', '_sleep'], false)) {
 				debug(Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -3419,7 +3393,10 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true)) {
+			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true) || worker.get(['option', '_sleep'], false)) {
+				if (this.runtime.current === worker.name) {
+					this.clearCurrent();
+				}
 				continue;
 			}
 //			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
@@ -4368,14 +4345,11 @@ Bank.display = [
 ];
 
 Bank.init = function() {
-	this._watch(Player, 'data.worth');// We want other things too, but they all change in relation to this
+	this._watch(Player, 'data.cash');// We want other things too, but they all change in relation to this
 };
 
 Bank.work = function(state) {
-	var cash = Player.get('cash', 0);
-	if (cash <= 10 || cash <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
-		return QUEUE_FINISH;
-	} else if (!state || this.stash(cash - this.option.hand)) {
+	if (!state || this.stash(Player.get('cash', 0) - this.option.hand)) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -4383,10 +4357,13 @@ Bank.work = function(state) {
 
 Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
+		Dashboard.status(this,
+			'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
+			'Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
 	} else {
 		Dashboard.status(this);
 	}
+	this.option._sleep = (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris')));
 };
 
 Bank.stash = function(amount) {
