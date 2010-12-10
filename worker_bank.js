@@ -48,13 +48,14 @@ Bank.display = [
 ];
 
 Bank.init = function() {
-	this._watch(Player);
+	this._watch(Player, 'data.worth');// We want other things too, but they all change in relation to this
 };
 
 Bank.work = function(state) {
-	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
+	var cash = Player.get('cash', 0);
+	if (cash <= 10 || cash <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
 		return QUEUE_FINISH;
-	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
+	} else if (!state || this.stash(cash - this.option.hand)) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -62,29 +63,29 @@ Bank.work = function(state) {
 
 Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('cash') + Player.get('bank')) + ' (Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income') + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income')) + ' from land)');
+		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
 	} else {
 		Dashboard.status(this);
 	}
 };
 
 Bank.stash = function(amount) {
-	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10 
+	if (!amount || Math.min(Player.get('cash', 0),amount) <= 10 
 			|| (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
+	$('input[name="stash_gold"]').val(Math.min(Player.get('cash', 0), amount));
 	Page.click('input[value="Stash"]');
 	return true;
 };
 
 Bank.retrieve = function(amount) {
 	Worker.find(Queue.get('runtime.current')).settings.bank = true;
-	amount -= Player.get('cash');
-	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
+	amount -= Player.get('cash', 0);
+	if (amount <= 0 || (Player.get('bank', 0) - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
 	}
 	if (!Page.to('keep_stats')) {
@@ -96,7 +97,7 @@ Bank.retrieve = function(amount) {
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
-	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - this.option.keep);
+	var worth = Player.get('worth', 0) - this.option.keep;
 	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}

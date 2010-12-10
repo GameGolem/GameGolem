@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 846;
+var revision = 847;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -462,7 +462,21 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 	return 0;
 };
 
-var unique = function (a) { // Return an array with no duplicates
+var empty = function(x) { // Tests whether an object is empty (also useable for other types)
+	if (typeof x === 'undefined' || !x) {
+		return true;
+	} else if (typeof x === 'object') {
+		for (var i in x) {
+			if (x.hasOwnProperty(i)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+var unique = function(a) { // Return an array with no duplicates
 	var o = {}, i, l = a.length, r = [];
 	for(i = 0; i < l; i++) {
 		o[a[i]] = a[i];
@@ -770,6 +784,74 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 	return best;
 };
 
+var shallowStringify = function(obj, depth) {
+	var str = '', i;
+	depth = isNumber(depth) ? depth : 10;
+	if (obj === null) {
+		str = 'null';
+	} else {
+		switch (typeof obj) {
+		case 'boolean':
+		case 'number':
+			str = obj.toString();
+			break;
+		case 'string':
+			str = '"' + obj.replace(/\\/g, '\\').replace(/"/g, '\\"') + '"';
+			break;
+		case 'object':
+			if (obj === Worker) {
+				str = 'Worker';
+			} else if (obj instanceof Worker) {
+				str = 'Worker.' + obj.name;
+			} else if (isArray(obj)) {
+				try {
+				    for (i = 0; i < obj.length; i++) {
+					    if (str !== '') {
+						    str += ', ';
+						}
+						str += '"' + i + '":';
+						if (depth > 0) {
+						    str += shallowStringify(obj[i], depth - 1);
+					    } else {
+						    str += '(' + (typeof obj[i]) + ')';
+					    }
+				    }
+				} catch (e) {
+					str = '(bad type: ' + e + ')';
+				}
+				str = '[' + str + ']';
+			} else {
+				try {
+					for (i in obj) {
+						if (str !== '') {
+							str += ', ';
+						}
+						str += '"' + i + '":';
+						if (depth > 0) {
+							str += '{' + shallowStringify(obj[i], depth - 1) + '}';
+						} else {
+							str += '(' + (typeof obj[i]) + ')';
+						}
+					}
+				} catch (e) {
+					str += '(bad type: ' + e + ')';
+				}
+				str = '{' + str + '}';
+			}
+			break;
+		default:
+			try {
+				str = obj.toString();
+				str = '(' + str + ')';
+			} catch (e) {
+				str = '(bad type: ' + e + ')';
+			}
+			break;
+		}
+	}
+	return str;
+};
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -789,6 +871,7 @@ new Worker(name, pages, settings)
 .pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
 .data			- Object, for public reading, automatically saved
 .option			- Object, our options, changed from outide ourselves
+.temp			- Object, temporary unsaved data for this instance only
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
@@ -819,7 +902,7 @@ new Worker(name, pages, settings)
 				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
 				return false or QUEUE_FINISH when someone else can work
 .update(type,worker)	- Called when the data, options or runtime have been changed
-				type = "data", "option", "runtime", "reminder" or null (only for first call after init())
+				type = "data", "option", "runtime", "reminder", "watch" or null (only for first call after init())
 				worker = null (for worker = this), otherwise another worker (due to _watch())
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
@@ -832,8 +915,6 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private data ***
 ._loaded		- true once ._init() has run
-._working		- Prevent recursive calling of various private functions
-._changed		- Timestamp of the last time this.data changed
 ._watching		- List of other workers that want to have .update() after this.update()
 ._reminders		- List of reminders in 'i...':interval or 't...':timeout format
 
@@ -855,8 +936,9 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 ._update(event)			- Calls this.update(event), loading and flushing .data if needed. event = {worker:this, type:'init|data|option|runtime|reminder', [self:true], [id:'reminder id']}
 
-._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
-._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
+._watch(worker[,path])	- Add a watcher to worker (safe to call multiple times). If anything under "path" is changed will update the watcher
+._unwatch(worker[,path])- Removes a watcher from worker (safe to call if not watching). Will remove exact matches or all
+._notify(path)			- Updates any workers watching this path or below
 
 ._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
@@ -890,6 +972,7 @@ function Worker(name,pages,settings) {
 	this.data = {};
 	this.option = {};
 	this.runtime = null;// {} - set to default runtime values in your worker!
+	this.temp = {};// Temporary unsaved data for this instance only.
 	this.display = null;
 
 	// User functions
@@ -903,9 +986,9 @@ function Worker(name,pages,settings) {
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
 	this._loaded = false;
-	this._working = {data:false, option:false, runtime:false, update:false};
-	this._changed = Date.now();
-	this._watching = {data:[], option:[], runtime:[]};
+	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
+	this._taint = {}; // Has anything changed that might need saving?
+	this._watching = {};
 	this._reminders = {};
 	this._disabled = false;
 }
@@ -957,23 +1040,22 @@ Worker.prototype._forget = function(id) {
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
-	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
 		this._unflush();
 	}
 	data = this[x.shift()];
 	try {
 		return (function(a,b){
-			if (b.length) {
-				return arguments.callee(a[b.shift()],b);
-			} else {
-				return typeof a !== 'undefined' ? (a === null ? null : a.valueOf()) : def;
+			if (typeof a !== 'undefined') {
+				if (b.length) {
+					return arguments.callee(a[b.shift()],b);
+				}
+				return a === null ? null : a.valueOf();
 			}
+			return def
 		})(data,x);
 	} catch(e) {
 //		this._push();
@@ -1002,10 +1084,12 @@ Worker.prototype._init = function() {
 };
 
 Worker.prototype._load = function(type) {
-	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-		this._load('data');
-		this._load('option');
-		this._load('runtime');
+	if (!this._datatypes[type]) {
+		for (var i in this._datatypes) {
+			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+				this._load(i);
+			}
+		}
 		return;
 	}
 	this._push();
@@ -1018,9 +1102,22 @@ Worker.prototype._load = function(type) {
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
+		this._taint[type] = false;
 	}
 	this._pop();
 };
+
+Worker.prototype._notify = function(path) {// Notify on a _watched path change
+	var i, j, w, id = '_' + this.name + '.';
+	for (i in this._watching) {
+		if (path.indexOf(i) === 0) {// Match the prefix
+			w = this._watching[i];
+			for (j=0; j<w.length; j++) {
+				w[j]._remind(0.1, id + i, {worker:w[j], type:'watch', path:i});
+			}
+		}
+	}
+}
 
 Worker.prototype._parse = function(change) {
 	this._push();
@@ -1056,7 +1153,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];isFunction(callback) ? callback.apply(me) : me._update(isObject(callback) ? callback : {worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1067,10 +1164,15 @@ Worker.prototype._remind = function(seconds, id, callback) {
 };
 
 Worker.prototype._save = function(type) {
-	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-		return this._save('data') + this._save('option') + this._save('runtime');
+	if (!this._datatypes[type]) {
+		for (var i in this._datatypes) {
+			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+				this._save(i);
+			}
+		}
+		return true;
 	}
-	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
+	if (typeof this[type] === 'undefined' || !this[type]) {
 		return false;
 	}
 	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
@@ -1083,14 +1185,9 @@ Worker.prototype._save = function(type) {
 	}
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
-		this._working[type] = true;
-		this._changed = Date.now();
+		this._taint[type] = false;
 		this._update({worker:this, type:type, self:true});
-		for (i=0; i<this._watching[type].length; i++) {
-			this._watching[type][i]._update({worker:this, type:type});
-		}
 		setItem(n, v);
-		this._working[type] = false;
 		this._pop();
 		return true;
 	}
@@ -1099,43 +1196,41 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
-	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type, path;
+	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
+	if (x.length <= 1) { // Return early if we're not setting a subvalue
+		return null;
+	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
 		this._unflush();
 	}
-	data = this[x.shift()];
-	if (x.length) {
-		try {
-			(function(a,b){ // Don't allow setting of root data/object/runtime
-				var c = b.shift();
-				if (b.length) {
-					if (typeof a[c] !== 'object') {
-						a[c] = {};
-					}
-					if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
-						delete a[c];
-						return false;
-					}
+	try {
+		path = x.join('.');
+		type = x.shift();
+		(function(a,b){ // Don't allow setting of root data/object/runtime
+			var c = b.shift(), l = b.length;
+			if (l && !isObject(a[c])) {
+				a[c] = {};
+			}
+			if (l && !arguments.callee(a[c],b) && empty(a[c])) {// Can clear out empty trees completely...
+				delete a[c];
+				return false;
+			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
+				me._notify(path);// Notify the watchers...
+				me._taint[type] = true;
+				if (isUndefined(value)) {
+					delete a[c];
+					return false;
 				} else {
-					if (typeof value === 'undefined') {
-						delete a[c];
-						return false;
-					} else {
-						a[c] = value;
-					}
+					a[c] = value;
 				}
-				return true;
-			})(data,x);
-//			this._save();
-		} catch(e) {
-			debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
-		}
+			}
+			return true;
+		})(this[type],x);
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
 	}
 //	this._pop();
 	return value;
@@ -1143,13 +1238,21 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	this._push();
-	if (this.settings.system || !length(this.defaults) || this.defaults[APP]) {
+	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
 				this[i] = this.defaults[APP][i];
 			}
 		}
+		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
+		if (this.setup) {
+			try {
+				this.setup();
+			}catch(e) {
+				debug(e.name + ' in ' + this.name + '.setup(): ' + e.message);
+			}
+		}
 	} else { // Get us out of the list!!!
 		delete Workers[this.name];
 	}
@@ -1167,14 +1270,21 @@ Worker.prototype._unflush = function() {
 	this._pop();
 };
 
-Worker.prototype._unwatch = function(worker) {
+Worker.prototype._unwatch = function(worker, path) {
 	if (typeof worker === 'string') {
 		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
-		deleteElement(worker._watching.data,this);
-		deleteElement(worker._watching.option,this);
-		deleteElement(worker._watching.runtime,this);
+		if (isString(path)) {
+			if (path in worker._watching) {
+				deleteElement(worker._watching[path],this);
+			}
+		} else {
+			var i;
+			for (i=0; i<worker._watching.length; i++) {
+				deleteElement(worker._watching[i],this);
+			}
+		}
 	}
 };
 
@@ -1190,7 +1300,6 @@ Worker.prototype._update = function(event) {
 			}
 		}
 		newevent.worker = newevent.worker || this;
-		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
@@ -1204,23 +1313,31 @@ Worker.prototype._update = function(event) {
 			this._remind(0.1, '_flush', this._flush);
 //			this._flush();
 		}
-		this._working.update = false;
 		this._pop();
 	}
 };
 
-Worker.prototype._watch = function(worker, type) {
+ Worker.prototype._watch = function(worker, path) {
 	if (typeof worker === 'string') {
 		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
-		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-			type = 'data';
+		if (!isString(path)) {
+			path = 'data';
 		}
-		if (!findInArray(worker._watching[type],this)) {
-			worker._watching[type].push(this);
+		for (var i in this._datatypes) {
+			if (path.indexOf(i) === 0) {
+				worker._watching[path] = worker._watching[path] || [];
+				if (!findInArray(worker._watching[path],this)) {
+//					debug('Watch(' + worker.name + ', "' + path + '")');
+					worker._watching[path].push(this);
+				}
+				return true;
+			}
 		}
+//		debug('Attempting to watch bad value: ' + worker.name + ':' + path);
 	}
+	return false;
 };
 
 Worker.prototype._work = function(state) {
@@ -1335,7 +1452,7 @@ Army.set = function(what, value) {
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list = [];
+	var i, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), section = null, uid = null, list = [];
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
@@ -1351,7 +1468,7 @@ Army.get = function(what, def) {
 	if (section && x.length === 0) {
 		this._unflush();
 		for (i in this.data) {
-			if (section in this.data[i]) {
+			if (isObject(this.data[i]) && section in this.data[i]) {
 				list.push(i);
 			}
 		}
@@ -2122,7 +2239,7 @@ Dashboard.init = function() {
 				tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
 			}
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
-			this._watch(Workers[i]);
+			this._watch(Workers[i], 'data');
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -2136,7 +2253,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});
+		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -2163,7 +2280,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});// Make sure we update the active page at init
+	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});// Make sure we update the active page at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -2190,12 +2307,11 @@ Dashboard.update = function(event) {
 			}
 		});
 	}
-	if (event.self || !this._loaded) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
 	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
 		try {
-//			debug('Calling ' + event.worker.name + '.dashboard() = ' + event.type);
 			event.worker._unflush();
 			event.worker.dashboard();
 		}catch(e) {
@@ -2207,7 +2323,6 @@ Dashboard.update = function(event) {
 };
 
 Dashboard.dashboard = function() {
-	this._unflush();
 	var i, list = [];
 	for (i in Workers) {
 		if (this.data[i]) {
@@ -2218,14 +2333,8 @@ Dashboard.dashboard = function() {
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
-Dashboard.status = function(worker, html) {
-	this._unflush();
-	if (html) {
-		this.data[worker.name] = html;
-	} else {
-		delete this.data[worker.name];
-	}
-	this._flush();
+Dashboard.status = function(worker, value) {
+	this.set(['data', worker.name], value);
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -3073,6 +3182,7 @@ Queue.settings = {
 	keep:true
 };
 
+// NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
 Queue.runtime = {
 	quest: false, // Use for name of quest if over-riding quest
 	general : false, // If necessary to specify a multiple general for attack
@@ -3140,10 +3250,7 @@ Queue.display = [
 	}
 ];
 
-Queue.runfirst = [];
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
-Queue.lastrun = Date.now();		// Last time we ran
-Queue.timer = null;
 
 Queue.lasttimer = -1;
 
@@ -3177,19 +3284,21 @@ Queue.init = function() {
 		}
 	});
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
-		Queue.option.pause = !Queue.option.pause;
-		debug('State: ' + (Queue.option.pause ? "paused" : "running"));
-		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
+		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
+		debug('State: ' + (pause ? "paused" : "running"));
+		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
 		Page.clear();
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
+	Title.alias('pause', 'Queue:option.pause:(Pause) ');
+	Title.alias('worker', 'Queue:runtime.current::None');
 };
 
 Queue.clearCurrent = function() {
-	var current = this.get('runtime.current', null);
+//	var current = this.get('runtime.current', null);
 //	if (current) {
 		$('#golem_config > div > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
@@ -3226,8 +3335,8 @@ Queue.update = function(event) {
 			this.clearCurrent();
 		}
 	}
-	if (event.type === 'reminder') { // This is where we call worker.work() for everyone
-		if ((isWorker(Window) && !Window.active) // Disabled tabs don't get to do anything!!!
+	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
 			return;
@@ -3312,11 +3421,7 @@ Queue.update = function(event) {
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH
-					this.runtime.current = null;
-					if (worker.id) {
-						$('#'+worker.id+' > h3').css('font-weight', 'normal');
-					}
-//					debug('End '+worker.name);
+					this.clearCurrent();
 				}
 			} else {
 				result = worker._work(false);
@@ -3330,18 +3435,13 @@ Queue.update = function(event) {
 		}
 		current = this.runtime.current ? Workers[this.runtime.current] : null;
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
-			if (current) {
-				debug('Interrupt ' + current.name + ' with ' + next.name);
-				if (current.id) {
-					$('#'+current.id+' > h3').css('font-weight', 'normal');
-				}
-			} else {
-				debug('Trigger ' + next.name);
-			}
-			this.runtime.current = next.name;
+			this.clearCurrent();
+			debug('Trigger ' + next.name);
+			this.set('runtime.current', next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
+			this._notify('runtime.current');
 		}
 //		debug('End Queue');
 		for (i in Workers) {
@@ -3731,7 +3831,12 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {Queue:runtime.current} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+};
+
+Title.temp = {
+	old:null, // Old title, in case we ever have to change back
+	alias:{} // name:'worker:path.to.data[:txt if true[:txt if false]]' - fill via Title.alias()
 };
 
 Title.display = [
@@ -3745,15 +3850,9 @@ Title.display = [
 		size:24
 	},{
 		title:'Useful Values',
-		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity<br>{bsi} / {lsi} / {csi}'
+		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
 	}
 ];
-
-Title.old = null; // Old title, in case we ever have to change back
-
-Title.init = function() {
-	this._watch(Player);
-};
 
 /***** Title.update() *****
 * 1. Split option.title into sections containing at most one bit of text and one {value}
@@ -3769,33 +3868,41 @@ Title.update = function(event) {
 			for (i=0; i<parts.length; i++) {
 				tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
 				output += tmp[0];
-				if (tmp[1]) {
-					worker = Player;
-					what = tmp[1].split(':');// if option is "worker:value" then deal with it here
-					if (what[1]) {
-						worker = Worker.find(what.shift());
-					}
+				if (tmp[1]) {// We have an {option}
+					what = (this.temp.alias[tmp[1]] || tmp[1]).split(':');// if option is "worker:value" then deal with it here
+					worker = Worker.find(what.shift());
 					if (worker) {
-						value = worker.get(what[0]);
+						this._watch(worker, what[0]); // Doesn't matter how often we add, it's only there once...
+						value = worker.get(what[0], '');
+						if (what[1] && value === true) {
+							value = what[1];
+						} else if (what[2] && !value) {
+							value = what[2];
+						}
 						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
-						this._watch(worker, 'data'); // Doesn't matter how often we add, it's only there once...
-						this._watch(worker, 'runtime');
 					} else {
 						debug('Bad worker specified = "' + tmp[1] + '"');
 					}
 				}
 			}
 		}
-		if (!this.old) {
-			this.old = document.title;
+		if (!this.temp.old) {
+			this.temp.old = document.title;
 		}
-		if (output !== document.title) {
+		if (!document.title || output !== document.title) {
 			document.title = output;
 		}
-	} else if (this.old) {
-		document.title = this.old;
-		this.old = null;
+	} else if (this.temp.old) {
+		document.title = this.temp.old;
+		this.temp.old = null;
 	}
+};
+
+/***** Title.alias() *****
+* Pass a name and a string in the format "Worker:path.to.data[:txt if true[:txt if false]]"
+*/
+Title.alias = function(name,str) {
+	this.temp.alias[name] = str;
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -3957,19 +4064,23 @@ Update.update = function(event) {
 *
 * http://code.google.com/p/game-golem/issues/detail?id=86
 *
-* Use window.name to store global information - so it's reloaded even if the page changes...
+* NOTE: Cannot share "global" information across page reloads any more
 */
 var Window = new Worker('Window');
-Window.runtime = Window.option = null;
+Window.runtime = Window.option = null; // Don't save anything except global stuff
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {
 	system:true
 };
 
-Window.data = {
-	active:false,
-	list:{}
+Window.data = { // Shared between all windows
+	current:null, // Currently active window
+	list:{} // List of available windows
+};
+
+Window.temp = {
+	active:false // Are we the active tab (able to do anything)?
 };
 
 Window.global = {
@@ -3977,7 +4088,6 @@ Window.global = {
 	'_id':'#' + Date.now()
 };
 
-Window.active = false; // Are we the active tab (able to do anything)?
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
 Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
@@ -3988,12 +4098,12 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 2. Save our global data to window.name (maybe just writing back what we just loaded)
 3. Add ourselves to this.data.list with the current time
 4. If no active worker (in the last 2 seconds) then make ourselves active
-4a. Set this.active, this.data.active, and immediately call this._save()
+4a. Set this.temp.active, this.data.current, and immediately call this._save()
 4b/5. Add the "Enabled/Disabled" button, hidden if necessary (hiding other elements if we're disabled)
 6. Add a click handler for the Enable/Disable button
 6a. Button only works when either active, or no active at all.
-6b. If active, make inactive, update this.active, this.data.active and hide other elements
-6c. If inactive , make active, update this.active, this.data.active and show other elements (if necessary)
+6b. If active, make inactive, update this.temp.active, this.data.current and hide other elements
+6c. If inactive , make active, update this.temp.active, this.data.current and show other elements (if necessary)
 7. Add a repeating reminder for every 1 second
 */
 Window.init = function() {
@@ -4004,13 +4114,13 @@ Window.init = function() {
 			this.global = data;
 		}
 	} catch(e){}
-//	debug('Adding tab "' + this.global['_id'] + '"');
+//	debug('Adding tab "' + this.global._id + '"');
 	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
-	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['_id']] = now;
-	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['_id']) {
-		this.active = true;
-		this.data['active'] = this.global['_id'];
+	this.data.list = this.data.list || {};
+	this.data.list[this.global._id] = now;
+	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.global._id) {
+		this._set('temp.active', true);
+		this.data.current = this.global._id;
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
 	} else {
@@ -4019,20 +4129,21 @@ Window.init = function() {
 	}
 	$('#golem_window').click(function(event){
 		Window._unflush();
-		if (Window.active) {
+		if (Window.temp.active) {
 			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
-			Window.data['active'] = null;
-			Window.active = false;
-		} else if (!Window.data['active'] || typeof Window.data['list'][Window.data['active']] === 'undefined' || Window.data['list'][Window.data['active']] < Date.now() - Window.timeout) {
+			Window.data.current = null;
+			Window.temp.active = false;
+		} else if (!Window.data.current || typeof Window.data.list[Window.data.current] === 'undefined' || Window.data.list[Window.data.current] < Date.now() - Window.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
 			if (Config.get('option.display') === 'block') {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			Window.data['active'] = Window.global['_id'];
-			Window.active = true;
+			Window.data.current = Window.global._id;
+			Window.temp.active = true;
 		} else {// Not able to go active
+			Queue.clearCurrent();
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
 			if (!Window.warning) {
 				(function(){
@@ -4046,11 +4157,12 @@ Window.init = function() {
 				})();
 			}
 			window.clearTimeout(Window.warning);
-			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
+			Window.warning = window.setTimeout(function(){if(!Window.temp.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
 		Window._flush();
 	});
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Window, but good enough for half a dozen or more
+	Title.alias('disable', 'Window:temp.active::(Disabled) ');
 };
 
 /***** Window.update() *****
@@ -4065,24 +4177,25 @@ Window.update = function(event) {
 	}
 	var i, now = Date.now();
 	this.data = this.data || {};
-	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['_id']] = now;
-	for(i in this.data['list']) {
-		if (this.data['list'][i] < (now - this.timeout)) {
-			delete this.data['list'][i];
+	this.data.list = this.data.list || {};
+	this.data.list[this.global._id] = now;
+	for(i in this.data.list) {
+		if (this.data.list[i] < (now - this.timeout)) {
+			delete this.data.list[i];
 		}
 	}
-	i = length(this.data['list']);
+	i = length(this.data.list);
 	if (i === 1) {
-		if (!this.active) {
+		if (!this.temp.active) {
 			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
 			if (Config.get('option.display') === 'block') {
 				$('#golem_config').parent().show();
 			}
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
-			this.data['active'] = this.global['_id'];
-			this.active = true;
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
+			this.data.current = this.global._id;
+			this.temp.active = true;
+			this._notify('temp.active');
 		}
 		$('#golem_window').hide();
 	} else if (i > 1) {
@@ -4090,63 +4203,6 @@ Window.update = function(event) {
 	}
 	this._flush();// We really don't want to store data any longer than we really have to!
 };
-
-/***** Window.get() *****
-1. Load data as Worker._get() but only for global window data
-*/
-Window.get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.global;
-	try {
-		return (function(a,b,d){
-			if (b.length) {
-				var c = b.shift();
-				return arguments.callee(a[c],b,d);
-			} else {
-				return typeof a !== 'undefined' ? a : d;
-			}
-		})(data,x,def);
-	} catch(e) {
-		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
-		}
-	}
-	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
-};
-
-/***** Window.set() *****
-1. Save data as Worker._get() but only for global window data
-*/
-Window.set = function(what, value) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.global;
-	if (!x.length) {
-		return;
-	}
-	try {
-		(function(a,b){
-			var c = b.shift();
-			if (b.length) {
-				if (typeof a[c] !== 'object') {
-					a[c] = {};
-				}
-				arguments.callee(a[c], b);
-				if (!length(a[c])) {// Can clear out empty trees completely...
-					delete a[c];
-				}
-			} else {
-				if (typeof value !== 'undefined') {
-					a[c] = value;
-				} else {
-					delete a[c];
-				}
-			}
-		})(data,x);
-		(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
-	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
-	}
-	return;
-};
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -4313,13 +4369,14 @@ Bank.display = [
 ];
 
 Bank.init = function() {
-	this._watch(Player);
+	this._watch(Player, 'data.worth');// We want other things too, but they all change in relation to this
 };
 
 Bank.work = function(state) {
-	if (Player.get('cash') <= 10 || Player.get('cash') <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
+	var cash = Player.get('cash', 0);
+	if (cash <= 10 || cash <= this.option.above || (this.option.general && !Generals.test('Aeris'))) {
 		return QUEUE_FINISH;
-	} else if (!state || this.stash(Player.get('cash') - this.option.hand)) {
+	} else if (!state || this.stash(cash - this.option.hand)) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -4327,29 +4384,29 @@ Bank.work = function(state) {
 
 Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('cash') + Player.get('bank')) + ' (Upkeep ' + (Player.get('upkeep') / Player.get('maxincome') * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income') + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income')) + ' from land)');
+		Dashboard.status(this, 'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
 	} else {
 		Dashboard.status(this);
 	}
 };
 
 Bank.stash = function(amount) {
-	if (!amount || !Player.get('cash') || Math.min(Player.get('cash'),amount) <= 10 
+	if (!amount || Math.min(Player.get('cash', 0),amount) <= 10 
 			|| (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="stash_gold"]').val(Math.min(Player.get('cash'), amount));
+	$('input[name="stash_gold"]').val(Math.min(Player.get('cash', 0), amount));
 	Page.click('input[value="Stash"]');
 	return true;
 };
 
 Bank.retrieve = function(amount) {
 	Worker.find(Queue.get('runtime.current')).settings.bank = true;
-	amount -= Player.get('cash');
-	if (amount <= 0 || (Player.get('bank') - this.option.keep) < amount) {
+	amount -= Player.get('cash', 0);
+	if (amount <= 0 || (Player.get('bank', 0) - this.option.keep) < amount) {
 		return true; // Got to deal with being poor exactly the same as having it in hand...
 	}
 	if (!Page.to('keep_stats')) {
@@ -4361,7 +4418,7 @@ Bank.retrieve = function(amount) {
 };
 
 Bank.worth = function(amount) { // Anything withdrawing should check this first!
-	var worth = Player.get('cash') + Math.max(0,Player.get('bank') - this.option.keep);
+	var worth = Player.get('worth', 0) - this.option.keep;
 	if (typeof amount === 'number') {
 		return (amount <= worth);
 	}
@@ -4554,7 +4611,7 @@ Battle.display = [
 Battle.init = function() {
         var i, list, rank;
 //	this._watch(Arena);
-	this._watch(Monster);
+	this._watch(Monster, 'runtime.attack');
 	if (typeof this.option.points === 'boolean') {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
@@ -5066,7 +5123,7 @@ Army.display = [
 
 Army.oldinit = Army.init;
 Army.init = function() {
-	this._watch(Player);
+	this._watch(Player, 'data.armymax');
 	this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	this.oldinit();
 };
@@ -5125,7 +5182,7 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(event) {
-	if (event.type === 'reminder' && !this.runtime.next) {
+	if ((event.type === 'reminder' || event.type === 'watch') && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
@@ -5400,8 +5457,9 @@ Generals.init = function() {
 			delete this.data[i];
 		}
 	}
-	if (!Player.get('attack') || !Player.get('defense')) {
-		this._watch(Player); // Only need them the first time...
+	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
+		this._watch(Player, 'data.attack');
+		this._watch(Player, 'data.defense');
 	}
 	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
 	this._watch(Town);
@@ -6459,7 +6517,7 @@ Land.display = [
 ];
 
 Land.init = function(){
-    this._watch(Bank);
+    this._watch(Player, 'data.worth');
 	Resources.use('Gold');
 };
 
@@ -6491,7 +6549,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function(event) {
-	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
+	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
 	
 	if (this.option.land_exp) {
 		$('input:golem(land,sell)').attr('checked',true);
@@ -6685,9 +6743,11 @@ LevelUp.display = [
 ];
 
 LevelUp.init = function() {
-	this._watch(Player);
-	this._watch(Quest);
-	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
+	this._watch(Player, 'data.exp');
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Quest, 'runtime.best');
+	this.runtime.exp = this.runtime.exp || Player.get('exp', 0); // Make sure we have a default...
 };
 
 LevelUp.parse = function(change) {
@@ -6695,7 +6755,7 @@ LevelUp.parse = function(change) {
 	if (change) {
 
 //		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"><span style="color:rgb(25,123,48);" name="' + this.get('level_timer') + '"> ' + this.get('time') + '</span></span>');
-		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour">' + addCommas(Player.get('exp_needed')) + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
+		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp', 0) + '/' + Player.get('maxexp', 1) + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour">' + addCommas(Player.get('exp_needed', 0)) + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
 	} else {
 		$('.result_body').each(function(i,el){
 			if (!$('img[src$="battle_victory.gif"]', el).length) {
@@ -6718,7 +6778,7 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(event) {
-	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
+	var d, i, j, k, record, quests, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), exp = Player.get('exp', 0), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
 	if (event.worker.name === 'Player' || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -6757,7 +6817,7 @@ LevelUp.update = function(event) {
 */};
 
 LevelUp.work = function(state) {
-	var heal = this.runtime.heal_me, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder(), action = this.runtime.action;
+	var heal = this.runtime.heal_me, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), order = Config.getOrder(), action = this.runtime.action;
 	Generals.set('runtime.disabled', false);
 /*	if (!action || !action.big) {
 		Generals.set('runtime.disabled', false);
@@ -6789,15 +6849,15 @@ LevelUp.get = function(what,def) {
 	case 'timer':		return makeTimer(this.get('level_timer'));
 	case 'time':		return (new Date(this.get('level_time'))).format('D g:i a');
 	case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
-	case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed') - this.get('exp_possible')) / (this.get('exp_average') || 10)));
+	case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed', 0) - this.get('exp_possible')) / (this.get('exp_average') || 10)));
 	case 'exp_average':
 		if (this.option.algorithm === 'Per Hour') {
 			return History.get('exp.average.change');
 		}
 		return (12 * (this.get('exp_per_stamina') + this.get('exp_per_energy'))).round(1);
 	case 'exp_possible':	
-		return (Player.get('stamina')*this.get('exp_per_stamina') 
-				+ Player.get('energy') * this.get('exp_per_energy')).round(1);
+		return (Player.get('stamina', 0)*this.get('exp_per_stamina') 
+				+ Player.get('energy', 0) * this.get('exp_per_energy')).round(1);
 	case 'exp_per_stamina':	
 		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_stamina) {
 			return this.option.manual_exp_per_stamina.round(1);
@@ -7628,8 +7688,10 @@ Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match
 
 Monster.init = function() {
 	var i, str;
-	this._watch(Player);
-	this._watch(Queue);
+	this._watch(Player, 'data.health');
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Queue, 'runtime'); // BAD!!! Shouldn't be touching queue!!!
 	this._revive(60);
 	this.runtime.limit = 0;
 	Resources.use('Energy');
@@ -8041,7 +8103,7 @@ Monster.update = function(event) {
 							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
 						}
 						if ((attack_found || o) === o
-								&& (waiting_ok || (Player.get('health') >= req_health
+								&& (waiting_ok || (Player.get('health', 0) >= req_health
 								&& Queue.runtime.stamina >= req_stamina))
 								&& (!Queue.runtime.basehit
 									|| type.attack.indexOf(Queue.runtime.basehit)>= 0 )) {
@@ -8178,7 +8240,7 @@ Monster.update = function(event) {
 					target = 0;
 				}
 				// Possible attack target?
-				if ((waiting_ok || (Player.get('health') >= req_health
+				if ((waiting_ok || (Player.get('health', 0) >= req_health
 							&& Queue.runtime.stamina >= req_stamina))
 						&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
@@ -8295,13 +8357,13 @@ Monster.update = function(event) {
 				this.runtime[ensta[i]] = type[defatt[i]][this.runtime.button[defatt[i]].pick] * this.runtime.multiplier[defatt[i]];
 			}
 			this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health')) : 0);
+			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health', 0)) : 0);
 			if (Queue.runtime.force[ensta[i]]) {
 				stat_req = Math.max(0,((this.runtime[ensta[i]] || 0) - Queue.runtime[ensta[i]]));
 			} else {
 				stat_req = Math.max(0,((this.runtime[ensta[i]] || 0) - Queue.runtime[ensta[i]])
-						,((this.runtime[ensta[i]] || 0) + Queue.option[ensta[i]] - Player.get(ensta[i]))
-						,(Queue.option['start_' + ensta[i]] - Player.get(ensta[i])));
+						,((this.runtime[ensta[i]] || 0) + Queue.option[ensta[i]] - Player.get(ensta[i], 0))
+						,(Queue.option['start_' + ensta[i]] - Player.get(ensta[i], 0)));
 			}
 			if (stat_req || req_health) {
 				messages.push('Waiting for ' + (stat_req ? makeImage(ensta[i]) + stat_req : '')
@@ -8800,17 +8862,18 @@ Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
-	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
+	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000)), tmp;
 	when = when.getSeconds() + (when.getMinutes() * 60);
-	this.data.cash_time = this.data.cash_time || when;
-	if (this.data.cash_time > 3600) {// Fix for bad previous data!!!
-		this.data.cash_time = when;
+	tmp = this.data.cash_time || when;
+	if (tmp > 3600) {// Fix for bad previous data!!!
+		tmp = when;
 	}
-	if (when > this.data.cash_time) {
-		this.data.cash_time += Math.min(10, Math.sqrt(when - this.data.cash_time));
-	} else if (when < this.data.cash_time) {
-		this.data.cash_time -= Math.min(10, Math.sqrt(this.data.cash_time - when));
+	if (when > tmp) {
+		tmp += Math.min(10, Math.sqrt(when - tmp));
+	} else if (when < tmp) {
+		tmp -= Math.min(10, Math.sqrt(tmp - when));
 	}
+	this.set('cash_time', tmp);
 	this.runtime.cash_timeout = null;
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
@@ -8818,6 +8881,18 @@ Player.init = function() {
 	Resources.add('Energy');
 	Resources.add('Stamina');
 	Resources.add('Gold');
+	Title.alias('energy', 'Player:data.energy');
+	Title.alias('maxenergy', 'Player:data.maxenergy');
+	Title.alias('health', 'Player:data.health');
+	Title.alias('maxhealth', 'Player:data.maxhealth');
+	Title.alias('stamina', 'Player:data.stamina');
+	Title.alias('maxstamina', 'Player:data.maxstamina');
+	Title.alias('myname', 'Player:data.myname');
+	Title.alias('level', 'Player:data.level');
+	Title.alias('exp_needed', 'Player:exp_needed');
+	Title.alias('bsi', 'Player:bsi');
+	Title.alias('lsi', 'Player:lsi');
+	Title.alias('csi', 'Player:csi');
 };
 
 Player.parse = function(change) {
@@ -8831,57 +8906,57 @@ Player.parse = function(change) {
 	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.energy		= (tmp ? tmp[0] : 0);
+		this.set('energy', tmp ? tmp[0] : 0);
 //		data.maxenergy	= tmp[1] || 0;
 		Resources.add('Energy', data.energy, true);
 	}
 	if ($('#app'+APPID+'_health_current_value').length) {
 		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.health		= (tmp ? tmp[0] : 0);
+		this.set('health', tmp ? tmp[0] : 0);
 //		data.maxhealth	= tmp[1] || 0;
 	}
 	if ($('#app'+APPID+'_stamina_current_value').length) {
 		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		data.stamina	= (tmp ? tmp[0] : 0);
+		this.set('stamina', tmp ? tmp[0] : 0);
 //		data.maxstamina	= tmp[1] || 0;
 		Resources.add('Stamina', data.stamina, true);
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
 		if (tmp) {
-			data.exp		= tmp[0];
-			data.maxexp		= tmp[1];
+			this.set('exp', tmp[0]);
+			this.set('maxexp', tmp[1]);
 		}
 	}
-	data.cash		= parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10);
-	data.level		= $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i);
-	data.armymax	= $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/);
-	data.army		= Math.min(data.armymax, 501); // XXX Need to check what max army is!
-	data.upgrade	= ($('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/) || 0);
-	data.general	= $('div.general_name_div3').first().text().trim();
-	data.imagepath	= $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
+	this.set('cash,', parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
+	this.set('level', $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i));
+	this.set('armymax', $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/));
+	this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
+	this.set('upgrade', $('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/) || 0);
+	this.set('general', $('div.general_name_div3').first().text().trim());
+	this.set('imagepath', $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart());
 	if (Page.page==='keep_stats') {
 		keep = $('div.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
-			data.myname = $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/);
-			data.rank = $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/([0-9]+)/);
+			this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
+			this.set('rank', $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/([0-9]+)/));
 			stats = $('div.attribute_stat_container', keep);
-			data.maxenergy = $(stats).eq(0).text().regex(/([0-9]+)/);
-			data.maxstamina = $(stats).eq(1).text().regex(/([0-9]+)/);
-			data.attack = $(stats).eq(2).text().regex(/([0-9]+)/);
-			data.defense = $(stats).eq(3).text().regex(/([0-9]+)/);
-			data.maxhealth = $(stats).eq(4).text().regex(/([0-9]+)/);
-			data.bank = parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10);
+			this.set('maxenergy', $(stats).eq(0).text().regex(/([0-9]+)/));
+			this.set('maxstamina', $(stats).eq(1).text().regex(/([0-9]+)/));
+			this.set('attack', $(stats).eq(2).text().regex(/([0-9]+)/));
+			this.set('defense', $(stats).eq(3).text().regex(/([0-9]+)/));
+			this.set('maxhealth', $(stats).eq(4).text().regex(/([0-9]+)/));
+			this.set('bank', parseInt($('td.statsTMainback b.money').text().replace(/[^0-9]/g,''), 10));
 			stats = $('.statsTB table table:contains("Total Income")').text().replace(/[^0-9$]/g,'').regex(/([0-9]+)\$([0-9]+)\$([0-9]+)/);
-			data.maxincome = stats[0];
-			data.upkeep = stats[1];
-			data.income = stats[2];
+			this.set('maxincome', stats[0]);
+			this.set('upkeep', stats[1]);
+			this.set('income', stats[2]);
 			Resources.add('Gold', data.bank + data.cash, true);
 		}
 	}
 	if (Page.page==='town_land') {
 		stats = $('.mContTMainback div:last-child');
-		data.income = stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+		this.set('income', stats.eq(stats.length - 4).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/));
 	}
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
@@ -8892,17 +8967,18 @@ Player.parse = function(change) {
 	});
 	if ($('#app'+APPID+'_energy_time_value').length) {
 		window.clearTimeout(this.runtime.energy_timeout);
-		this.runtime.energy_timeout = window.setTimeout(function(){Player.get('energy');}, $('#app'+APPID+'_energy_time_value').text().parseTimer() * 1000);
+		this.set('runtime.energy_timeout', window.setTimeout(function(){Player.get('energy');}, $('#app'+APPID+'_energy_time_value').text().parseTimer() * 1000));
 	}
 	if ($('#app'+APPID+'_health_time_value').length) {
 		window.clearTimeout(this.runtime.health_timeout);
-		this.runtime.health_timeout = window.setTimeout(function(){Player.get('health');}, $('#app'+APPID+'_health_time_value').text().parseTimer() * 1000);
+		this.set('runtime.health_timeout', window.setTimeout(function(){Player.get('health');}, $('#app'+APPID+'_health_time_value').text().parseTimer() * 1000));
 	}
 	if ($('#app'+APPID+'_stamina_time_value').length) {
 		window.clearTimeout(this.runtime.stamina_timeout);
-		this.runtime.stamina_timeout = window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000);
+		this.set('runtime.stamina_timeout', window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000));
 	}
-	$('strong#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(data.bank));
+	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
+	$('strong#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(this.get('bank', 0)));
 	return false;
 };
 
@@ -8926,18 +9002,17 @@ Player.update = function(event) {
 Player.get = function(what) {
 	var data = this.data, when;
 	switch(what) {
-		case 'cash':			return (this.data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
+		case 'cash':			return (data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
 //		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
 		case 'cash_timer':		when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-		case 'energy':			return (this.data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'energy_timer':            return $('#app'+APPID+'_energy_time_value').text().parseTimer();
-		case 'health':			return (this.data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'health_timer':            return $('#app'+APPID+'_health_time_value').text().parseTimer();
-		case 'stamina':			return (this.data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
-		case 'stamina_timer':           return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'energy':			return (data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
+		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
+		case 'health':			return (data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
+		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
+		case 'stamina':			return (data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
+		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
-		case 'pause':			return isWorker(Window) && !Window.active ? '(Disabled) ' : isWorker(Queue) && Queue.get('option.pause') ? '(Paused) ' : '';
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
@@ -9301,8 +9376,6 @@ Quest.update = function(event) {
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999), eff, best_sub_eff = 1e10, best_adv_eff = 1e10, best_inf_eff = 1e10;
-	this._watch(Player);
-	this._watch(Queue);
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && quests[i].type !== 3) {
@@ -9540,6 +9613,7 @@ Quest.work = function(state) {
 	if (!Page.click($('input[name="quest"][value="' + this.data[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
+		this.runtime.best = null;
 		Page.reload();
 	}
 	Queue.runtime.quest = false;
@@ -10075,9 +10149,9 @@ Town.blacksmith = {
 };
 
 Town.init = function(){
-	this._watch(Bank);
+	this._watch(Player, 'data.worth');
 	Resources.use('Gold');
-        this.runtime.cost_incr = 4;
+	this.runtime.cost_incr = 4;
 };
 
 Town.parse = function(change) {

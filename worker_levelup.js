@@ -99,9 +99,11 @@ LevelUp.display = [
 ];
 
 LevelUp.init = function() {
-	this._watch(Player);
-	this._watch(Quest);
-	this.runtime.exp = this.runtime.exp || Player.get('exp'); // Make sure we have a default...
+	this._watch(Player, 'data.exp');
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Quest, 'runtime.best');
+	this.runtime.exp = this.runtime.exp || Player.get('exp', 0); // Make sure we have a default...
 };
 
 LevelUp.parse = function(change) {
@@ -109,7 +111,7 @@ LevelUp.parse = function(change) {
 	if (change) {
 
 //		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"><span style="color:rgb(25,123,48);" name="' + this.get('level_timer') + '"> ' + this.get('time') + '</span></span>');
-		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour">' + addCommas(Player.get('exp_needed')) + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
+		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp', 0) + '/' + Player.get('maxexp', 1) + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour">' + addCommas(Player.get('exp_needed', 0)) + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
 	} else {
 		$('.result_body').each(function(i,el){
 			if (!$('img[src$="battle_victory.gif"]', el).length) {
@@ -132,7 +134,7 @@ LevelUp.parse = function(change) {
 };
 
 LevelUp.update = function(event) {
-	var d, i, j, k, record, quests, energy = Player.get('energy'), stamina = Player.get('stamina'), exp = Player.get('exp'), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
+	var d, i, j, k, record, quests, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), exp = Player.get('exp', 0), runtime = this.runtime,order = Config.getOrder(), stamina_samples;
 	if (event.worker.name === 'Player' || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -171,7 +173,7 @@ LevelUp.update = function(event) {
 */};
 
 LevelUp.work = function(state) {
-	var heal = this.runtime.heal_me, energy = Player.get('energy'), stamina = Player.get('stamina'), order = Config.getOrder(), action = this.runtime.action;
+	var heal = this.runtime.heal_me, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), order = Config.getOrder(), action = this.runtime.action;
 	Generals.set('runtime.disabled', false);
 /*	if (!action || !action.big) {
 		Generals.set('runtime.disabled', false);
@@ -203,15 +205,15 @@ LevelUp.get = function(what,def) {
 	case 'timer':		return makeTimer(this.get('level_timer'));
 	case 'time':		return (new Date(this.get('level_time'))).format('D g:i a');
 	case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
-	case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed') - this.get('exp_possible')) / (this.get('exp_average') || 10)));
+	case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed', 0) - this.get('exp_possible')) / (this.get('exp_average') || 10)));
 	case 'exp_average':
 		if (this.option.algorithm === 'Per Hour') {
 			return History.get('exp.average.change');
 		}
 		return (12 * (this.get('exp_per_stamina') + this.get('exp_per_energy'))).round(1);
 	case 'exp_possible':	
-		return (Player.get('stamina')*this.get('exp_per_stamina') 
-				+ Player.get('energy') * this.get('exp_per_energy')).round(1);
+		return (Player.get('stamina', 0)*this.get('exp_per_stamina') 
+				+ Player.get('energy', 0) * this.get('exp_per_energy')).round(1);
 	case 'exp_per_stamina':	
 		if (this.option.algorithm === 'Manual' && this.option.manual_exp_per_stamina) {
 			return this.option.manual_exp_per_stamina.round(1);

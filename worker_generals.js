@@ -32,8 +32,9 @@ Generals.init = function() {
 			delete this.data[i];
 		}
 	}
-	if (!Player.get('attack') || !Player.get('defense')) {
-		this._watch(Player); // Only need them the first time...
+	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
+		this._watch(Player, 'data.attack');
+		this._watch(Player, 'data.defense');
 	}
 	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
 	this._watch(Town);

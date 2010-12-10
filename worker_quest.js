@@ -236,8 +236,6 @@ Quest.update = function(event) {
 	}
 	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, quests = this.data, maxenergy = Player.get('maxenergy',999), eff, best_sub_eff = 1e10, best_adv_eff = 1e10, best_inf_eff = 1e10;
-	this._watch(Player);
-	this._watch(Queue);
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in quests) {
 			if (quests[i].item && quests[i].type !== 3) {
@@ -475,6 +473,7 @@ Quest.work = function(state) {
 	if (!Page.click($('input[name="quest"][value="' + this.data[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + best + ', so deleting and re-visiting page...');
 		delete this.data[best];
+		this.runtime.best = null;
 		Page.reload();
 	}
 	Queue.runtime.quest = false;

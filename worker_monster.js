@@ -689,8 +689,10 @@ Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match
 
 Monster.init = function() {
 	var i, str;
-	this._watch(Player);
-	this._watch(Queue);
+	this._watch(Player, 'data.health');
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Queue, 'runtime'); // BAD!!! Shouldn't be touching queue!!!
 	this._revive(60);
 	this.runtime.limit = 0;
 	Resources.use('Energy');
@@ -1102,7 +1104,7 @@ Monster.update = function(event) {
 							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
 						}
 						if ((attack_found || o) === o
-								&& (waiting_ok || (Player.get('health') >= req_health
+								&& (waiting_ok || (Player.get('health', 0) >= req_health
 								&& Queue.runtime.stamina >= req_stamina))
 								&& (!Queue.runtime.basehit
 									|| type.attack.indexOf(Queue.runtime.basehit)>= 0 )) {
@@ -1239,7 +1241,7 @@ Monster.update = function(event) {
 					target = 0;
 				}
 				// Possible attack target?
-				if ((waiting_ok || (Player.get('health') >= req_health
+				if ((waiting_ok || (Player.get('health', 0) >= req_health
 							&& Queue.runtime.stamina >= req_stamina))
 						&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
@@ -1356,13 +1358,13 @@ Monster.update = function(event) {
 				this.runtime[ensta[i]] = type[defatt[i]][this.runtime.button[defatt[i]].pick] * this.runtime.multiplier[defatt[i]];
 			}
 			this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health')) : 0);
+			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health', 0)) : 0);
 			if (Queue.runtime.force[ensta[i]]) {
 				stat_req = Math.max(0,((this.runtime[ensta[i]] || 0) - Queue.runtime[ensta[i]]));
 			} else {
 				stat_req = Math.max(0,((this.runtime[ensta[i]] || 0) - Queue.runtime[ensta[i]])
-						,((this.runtime[ensta[i]] || 0) + Queue.option[ensta[i]] - Player.get(ensta[i]))
-						,(Queue.option['start_' + ensta[i]] - Player.get(ensta[i])));
+						,((this.runtime[ensta[i]] || 0) + Queue.option[ensta[i]] - Player.get(ensta[i], 0))
+						,(Queue.option['start_' + ensta[i]] - Player.get(ensta[i], 0)));
 			}
 			if (stat_req || req_health) {
 				messages.push('Waiting for ' + (stat_req ? makeImage(ensta[i]) + stat_req : '')

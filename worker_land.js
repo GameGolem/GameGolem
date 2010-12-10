@@ -73,7 +73,7 @@ Land.display = [
 ];
 
 Land.init = function(){
-    this._watch(Bank);
+    this._watch(Player, 'data.worth');
 	Resources.use('Gold');
 };
 
@@ -105,7 +105,7 @@ Land.parse = function(change) {
 };
 
 Land.update = function(event) {
-	var i, worth = Bank.worth(), income = Player.get('income') + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
+	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
 	
 	if (this.option.land_exp) {
 		$('input:golem(land,sell)').attr('checked',true);

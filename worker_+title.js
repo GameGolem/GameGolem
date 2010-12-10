@@ -22,7 +22,12 @@ Title.settings = {
 
 Title.option = {
 	enabled:false,
-	title:"CA: {Queue:runtime.current} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+	title:"CA: {worker} | {energy}e | {stamina}s | {exp_needed}xp by {LevelUp:time}"
+};
+
+Title.temp = {
+	old:null, // Old title, in case we ever have to change back
+	alias:{} // name:'worker:path.to.data[:txt if true[:txt if false]]' - fill via Title.alias()
 };
 
 Title.display = [
@@ -36,15 +41,9 @@ Title.display = [
 		size:24
 	},{
 		title:'Useful Values',
-		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{Queue:runtime.current} - Activity<br>{bsi} / {lsi} / {csi}'
+		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
 	}
 ];
-
-Title.old = null; // Old title, in case we ever have to change back
-
-Title.init = function() {
-	this._watch(Player);
-};
 
 /***** Title.update() *****
 * 1. Split option.title into sections containing at most one bit of text and one {value}
@@ -60,32 +59,40 @@ Title.update = function(event) {
 			for (i=0; i<parts.length; i++) {
 				tmp = parts[i].regex(/([^{]*)\{?([^}]*)\}?/);// now split to "text" "option"
 				output += tmp[0];
-				if (tmp[1]) {
-					worker = Player;
-					what = tmp[1].split(':');// if option is "worker:value" then deal with it here
-					if (what[1]) {
-						worker = Worker.find(what.shift());
-					}
+				if (tmp[1]) {// We have an {option}
+					what = (this.temp.alias[tmp[1]] || tmp[1]).split(':');// if option is "worker:value" then deal with it here
+					worker = Worker.find(what.shift());
 					if (worker) {
-						value = worker.get(what[0]);
+						this._watch(worker, what[0]); // Doesn't matter how often we add, it's only there once...
+						value = worker.get(what[0], '');
+						if (what[1] && value === true) {
+							value = what[1];
+						} else if (what[2] && !value) {
+							value = what[2];
+						}
 						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
-						this._watch(worker, 'data'); // Doesn't matter how often we add, it's only there once...
-						this._watch(worker, 'runtime');
 					} else {
 						debug('Bad worker specified = "' + tmp[1] + '"');
 					}
 				}
 			}
 		}
-		if (!this.old) {
-			this.old = document.title;
+		if (!this.temp.old) {
+			this.temp.old = document.title;
 		}
-		if (output !== document.title) {
+		if (!document.title || output !== document.title) {
 			document.title = output;
 		}
-	} else if (this.old) {
-		document.title = this.old;
-		this.old = null;
+	} else if (this.temp.old) {
+		document.title = this.temp.old;
+		this.temp.old = null;
 	}
+};
+
+/***** Title.alias() *****
+* Pass a name and a string in the format "Worker:path.to.data[:txt if true[:txt if false]]"
+*/
+Title.alias = function(name,str) {
+	this.temp.alias[name] = str;
 };
 

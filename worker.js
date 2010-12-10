@@ -17,6 +17,7 @@ new Worker(name, pages, settings)
 .pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
 .data			- Object, for public reading, automatically saved
 .option			- Object, our options, changed from outide ourselves
+.temp			- Object, temporary unsaved data for this instance only
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
@@ -47,7 +48,7 @@ new Worker(name, pages, settings)
 				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
 				return false or QUEUE_FINISH when someone else can work
 .update(type,worker)	- Called when the data, options or runtime have been changed
-				type = "data", "option", "runtime", "reminder" or null (only for first call after init())
+				type = "data", "option", "runtime", "reminder", "watch" or null (only for first call after init())
 				worker = null (for worker = this), otherwise another worker (due to _watch())
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
@@ -60,8 +61,6 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 *** Private data ***
 ._loaded		- true once ._init() has run
-._working		- Prevent recursive calling of various private functions
-._changed		- Timestamp of the last time this.data changed
 ._watching		- List of other workers that want to have .update() after this.update()
 ._reminders		- List of reminders in 'i...':interval or 't...':timeout format
 
@@ -83,8 +82,9 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 ._update(event)			- Calls this.update(event), loading and flushing .data if needed. event = {worker:this, type:'init|data|option|runtime|reminder', [self:true], [id:'reminder id']}
 
-._watch(worker)			- Add a watcher to worker - so this.update() gets called whenever worker.update() does
-._unwatch(worker)		- Removes a watcher from worker (safe to call if not watching).
+._watch(worker[,path])	- Add a watcher to worker (safe to call multiple times). If anything under "path" is changed will update the watcher
+._unwatch(worker[,path])- Removes a watcher from worker (safe to call if not watching). Will remove exact matches or all
+._notify(path)			- Updates any workers watching this path or below
 
 ._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
@@ -118,6 +118,7 @@ function Worker(name,pages,settings) {
 	this.data = {};
 	this.option = {};
 	this.runtime = null;// {} - set to default runtime values in your worker!
+	this.temp = {};// Temporary unsaved data for this instance only.
 	this.display = null;
 
 	// User functions
@@ -131,9 +132,9 @@ function Worker(name,pages,settings) {
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
 	this._loaded = false;
-	this._working = {data:false, option:false, runtime:false, update:false};
-	this._changed = Date.now();
-	this._watching = {data:[], option:[], runtime:[]};
+	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
+	this._taint = {}; // Has anything changed that might need saving?
+	this._watching = {};
 	this._reminders = {};
 	this._disabled = false;
 }
@@ -185,23 +186,22 @@ Worker.prototype._forget = function(id) {
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
-	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
 		this._unflush();
 	}
 	data = this[x.shift()];
 	try {
 		return (function(a,b){
-			if (b.length) {
-				return arguments.callee(a[b.shift()],b);
-			} else {
-				return typeof a !== 'undefined' ? (a === null ? null : a.valueOf()) : def;
+			if (typeof a !== 'undefined') {
+				if (b.length) {
+					return arguments.callee(a[b.shift()],b);
+				}
+				return a === null ? null : a.valueOf();
 			}
+			return def
 		})(data,x);
 	} catch(e) {
 //		this._push();
@@ -230,10 +230,12 @@ Worker.prototype._init = function() {
 };
 
 Worker.prototype._load = function(type) {
-	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-		this._load('data');
-		this._load('option');
-		this._load('runtime');
+	if (!this._datatypes[type]) {
+		for (var i in this._datatypes) {
+			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+				this._load(i);
+			}
+		}
 		return;
 	}
 	this._push();
@@ -246,9 +248,22 @@ Worker.prototype._load = function(type) {
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
+		this._taint[type] = false;
 	}
 	this._pop();
 };
+
+Worker.prototype._notify = function(path) {// Notify on a _watched path change
+	var i, j, w, id = '_' + this.name + '.';
+	for (i in this._watching) {
+		if (path.indexOf(i) === 0) {// Match the prefix
+			w = this._watching[i];
+			for (j=0; j<w.length; j++) {
+				w[j]._remind(0.1, id + i, {worker:w[j], type:'watch', path:i});
+			}
+		}
+	}
+}
 
 Worker.prototype._parse = function(change) {
 	this._push();
@@ -284,7 +299,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];isFunction(callback) ? callback.apply(me) : me._update(isObject(callback) ? callback : {worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -295,10 +310,15 @@ Worker.prototype._remind = function(seconds, id, callback) {
 };
 
 Worker.prototype._save = function(type) {
-	if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-		return this._save('data') + this._save('option') + this._save('runtime');
+	if (!this._datatypes[type]) {
+		for (var i in this._datatypes) {
+			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+				this._save(i);
+			}
+		}
+		return true;
 	}
-	if (typeof this[type] === 'undefined' || !this[type] || this._working[type]) {
+	if (typeof this[type] === 'undefined' || !this[type]) {
 		return false;
 	}
 	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
@@ -311,14 +331,9 @@ Worker.prototype._save = function(type) {
 	}
 	if (getItem(n) === 'undefined' || getItem(n) !== v) {
 		this._push();
-		this._working[type] = true;
-		this._changed = Date.now();
+		this._taint[type] = false;
 		this._update({worker:this, type:type, self:true});
-		for (i=0; i<this._watching[type].length; i++) {
-			this._watching[type][i]._update({worker:this, type:type});
-		}
 		setItem(n, v);
-		this._working[type] = false;
 		this._pop();
 		return true;
 	}
@@ -327,43 +342,41 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
-	if (!x.length || (x[0] !== 'data' && x[0] !== 'option' && x[0] !== 'runtime')) {
+	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type, path;
+	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
+	if (x.length <= 1) { // Return early if we're not setting a subvalue
+		return null;
+	}
 	if (x[0] === 'data') {
-		if (!this._loaded) {
-			this._init();
-		}
 		this._unflush();
 	}
-	data = this[x.shift()];
-	if (x.length) {
-		try {
-			(function(a,b){ // Don't allow setting of root data/object/runtime
-				var c = b.shift();
-				if (b.length) {
-					if (typeof a[c] !== 'object') {
-						a[c] = {};
-					}
-					if (!arguments.callee(a[c],b) && !length(a[c])) {// Can clear out empty trees completely...
-						delete a[c];
-						return false;
-					}
+	try {
+		path = x.join('.');
+		type = x.shift();
+		(function(a,b){ // Don't allow setting of root data/object/runtime
+			var c = b.shift(), l = b.length;
+			if (l && !isObject(a[c])) {
+				a[c] = {};
+			}
+			if (l && !arguments.callee(a[c],b) && empty(a[c])) {// Can clear out empty trees completely...
+				delete a[c];
+				return false;
+			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
+				me._notify(path);// Notify the watchers...
+				me._taint[type] = true;
+				if (isUndefined(value)) {
+					delete a[c];
+					return false;
 				} else {
-					if (typeof value === 'undefined') {
-						delete a[c];
-						return false;
-					} else {
-						a[c] = value;
-					}
+					a[c] = value;
 				}
-				return true;
-			})(data,x);
-//			this._save();
-		} catch(e) {
-			debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
-		}
+			}
+			return true;
+		})(this[type],x);
+	} catch(e) {
+		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
 	}
 //	this._pop();
 	return value;
@@ -371,13 +384,21 @@ Worker.prototype._set = function(what, value) {
 
 Worker.prototype._setup = function() {
 	this._push();
-	if (this.settings.system || !length(this.defaults) || this.defaults[APP]) {
+	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
 				this[i] = this.defaults[APP][i];
 			}
 		}
+		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
+		if (this.setup) {
+			try {
+				this.setup();
+			}catch(e) {
+				debug(e.name + ' in ' + this.name + '.setup(): ' + e.message);
+			}
+		}
 	} else { // Get us out of the list!!!
 		delete Workers[this.name];
 	}
@@ -395,14 +416,21 @@ Worker.prototype._unflush = function() {
 	this._pop();
 };
 
-Worker.prototype._unwatch = function(worker) {
+Worker.prototype._unwatch = function(worker, path) {
 	if (typeof worker === 'string') {
 		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
-		deleteElement(worker._watching.data,this);
-		deleteElement(worker._watching.option,this);
-		deleteElement(worker._watching.runtime,this);
+		if (isString(path)) {
+			if (path in worker._watching) {
+				deleteElement(worker._watching[path],this);
+			}
+		} else {
+			var i;
+			for (i=0; i<worker._watching.length; i++) {
+				deleteElement(worker._watching[i],this);
+			}
+		}
 	}
 };
 
@@ -418,7 +446,6 @@ Worker.prototype._update = function(event) {
 			}
 		}
 		newevent.worker = newevent.worker || this;
-		this._working.update = true;
 		if (typeof this.data === 'undefined') {
 			flush = true;
 			this._unflush();
@@ -432,23 +459,31 @@ Worker.prototype._update = function(event) {
 			this._remind(0.1, '_flush', this._flush);
 //			this._flush();
 		}
-		this._working.update = false;
 		this._pop();
 	}
 };
 
-Worker.prototype._watch = function(worker, type) {
+ Worker.prototype._watch = function(worker, path) {
 	if (typeof worker === 'string') {
 		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
-		if (type !== 'data' && type !== 'option' && type !== 'runtime') {
-			type = 'data';
+		if (!isString(path)) {
+			path = 'data';
 		}
-		if (!findInArray(worker._watching[type],this)) {
-			worker._watching[type].push(this);
+		for (var i in this._datatypes) {
+			if (path.indexOf(i) === 0) {
+				worker._watching[path] = worker._watching[path] || [];
+				if (!findInArray(worker._watching[path],this)) {
+//					debug('Watch(' + worker.name + ', "' + path + '")');
+					worker._watching[path].push(this);
+				}
+				return true;
+			}
 		}
+//		debug('Attempting to watch bad value: ' + worker.name + ':' + path);
 	}
+	return false;
 };
 
 Worker.prototype._work = function(state) {

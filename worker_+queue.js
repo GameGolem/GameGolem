@@ -26,6 +26,7 @@ Queue.settings = {
 	keep:true
 };
 
+// NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
 Queue.runtime = {
 	quest: false, // Use for name of quest if over-riding quest
 	general : false, // If necessary to specify a multiple general for attack
@@ -93,10 +94,7 @@ Queue.display = [
 	}
 ];
 
-Queue.runfirst = [];
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
-Queue.lastrun = Date.now();		// Last time we ran
-Queue.timer = null;
 
 Queue.lasttimer = -1;
 
@@ -130,19 +128,21 @@ Queue.init = function() {
 		}
 	});
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
-		Queue.option.pause = !Queue.option.pause;
-		debug('State: ' + (Queue.option.pause ? "paused" : "running"));
-		$(this).toggleClass('red green').attr('src', (Queue.option.pause ? Images.play : Images.pause));
+		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
+		debug('State: ' + (pause ? "paused" : "running"));
+		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
 		Page.clear();
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
+	Title.alias('pause', 'Queue:option.pause:(Pause) ');
+	Title.alias('worker', 'Queue:runtime.current::None');
 };
 
 Queue.clearCurrent = function() {
-	var current = this.get('runtime.current', null);
+//	var current = this.get('runtime.current', null);
 //	if (current) {
 		$('#golem_config > div > h3').css('font-weight', 'normal');
 		this.set('runtime.current', null);// Make sure we deal with changed circumstances
@@ -179,8 +179,8 @@ Queue.update = function(event) {
 			this.clearCurrent();
 		}
 	}
-	if (event.type === 'reminder') { // This is where we call worker.work() for everyone
-		if ((isWorker(Window) && !Window.active) // Disabled tabs don't get to do anything!!!
+	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
 			return;
@@ -265,11 +265,7 @@ Queue.update = function(event) {
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH
-					this.runtime.current = null;
-					if (worker.id) {
-						$('#'+worker.id+' > h3').css('font-weight', 'normal');
-					}
-//					debug('End '+worker.name);
+					this.clearCurrent();
 				}
 			} else {
 				result = worker._work(false);
@@ -283,18 +279,13 @@ Queue.update = function(event) {
 		}
 		current = this.runtime.current ? Workers[this.runtime.current] : null;
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
-			if (current) {
-				debug('Interrupt ' + current.name + ' with ' + next.name);
-				if (current.id) {
-					$('#'+current.id+' > h3').css('font-weight', 'normal');
-				}
-			} else {
-				debug('Trigger ' + next.name);
-			}
-			this.runtime.current = next.name;
+			this.clearCurrent();
+			debug('Trigger ' + next.name);
+			this.set('runtime.current', next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
+			this._notify('runtime.current');
 		}
 //		debug('End Queue');
 		for (i in Workers) {

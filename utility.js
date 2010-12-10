@@ -182,7 +182,21 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 	return 0;
 };
 
-var unique = function (a) { // Return an array with no duplicates
+var empty = function(x) { // Tests whether an object is empty (also useable for other types)
+	if (typeof x === 'undefined' || !x) {
+		return true;
+	} else if (typeof x === 'object') {
+		for (var i in x) {
+			if (x.hasOwnProperty(i)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+var unique = function(a) { // Return an array with no duplicates
 	var o = {}, i, l = a.length, r = [];
 	for(i = 0; i < l; i++) {
 		o[a[i]] = a[i];
@@ -488,5 +502,73 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 		}
 	}
 	return best;
+};
+
+var shallowStringify = function(obj, depth) {
+	var str = '', i;
+	depth = isNumber(depth) ? depth : 10;
+	if (obj === null) {
+		str = 'null';
+	} else {
+		switch (typeof obj) {
+		case 'boolean':
+		case 'number':
+			str = obj.toString();
+			break;
+		case 'string':
+			str = '"' + obj.replace(/\\/g, '\\').replace(/"/g, '\\"') + '"';
+			break;
+		case 'object':
+			if (obj === Worker) {
+				str = 'Worker';
+			} else if (obj instanceof Worker) {
+				str = 'Worker.' + obj.name;
+			} else if (isArray(obj)) {
+				try {
+				    for (i = 0; i < obj.length; i++) {
+					    if (str !== '') {
+						    str += ', ';
+						}
+						str += '"' + i + '":';
+						if (depth > 0) {
+						    str += shallowStringify(obj[i], depth - 1);
+					    } else {
+						    str += '(' + (typeof obj[i]) + ')';
+					    }
+				    }
+				} catch (e) {
+					str = '(bad type: ' + e + ')';
+				}
+				str = '[' + str + ']';
+			} else {
+				try {
+					for (i in obj) {
+						if (str !== '') {
+							str += ', ';
+						}
+						str += '"' + i + '":';
+						if (depth > 0) {
+							str += '{' + shallowStringify(obj[i], depth - 1) + '}';
+						} else {
+							str += '(' + (typeof obj[i]) + ')';
+						}
+					}
+				} catch (e) {
+					str += '(bad type: ' + e + ')';
+				}
+				str = '{' + str + '}';
+			}
+			break;
+		default:
+			try {
+				str = obj.toString();
+				str = '(' + str + ')';
+			} catch (e) {
+				str = '(bad type: ' + e + ')';
+			}
+			break;
+		}
+	}
+	return str;
 };
 

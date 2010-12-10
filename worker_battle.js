@@ -184,7 +184,7 @@ Battle.display = [
 Battle.init = function() {
         var i, list, rank;
 //	this._watch(Arena);
-	this._watch(Monster);
+	this._watch(Monster, 'runtime.attack');
 	if (typeof this.option.points === 'boolean') {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);

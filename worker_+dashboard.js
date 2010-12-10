@@ -41,7 +41,7 @@ Dashboard.init = function() {
 				tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
 			}
 			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
-			this._watch(Workers[i]);
+			this._watch(Workers[i], 'data');
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -55,7 +55,7 @@ Dashboard.init = function() {
 		}
 		Dashboard.option.active = $(this).attr('name');
 		$(this).addClass('golem-tab-header-active');
-		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});
+		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});
 		$('#'+Dashboard.option.active).show();
 		Dashboard._save('option');
 	});
@@ -82,7 +82,7 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16))});// Make sure we update the active page at init
+	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});// Make sure we update the active page at init
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -109,12 +109,11 @@ Dashboard.update = function(event) {
 			}
 		});
 	}
-	if (event.self || !this._loaded) { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
 	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
 		try {
-//			debug('Calling ' + event.worker.name + '.dashboard() = ' + event.type);
 			event.worker._unflush();
 			event.worker.dashboard();
 		}catch(e) {
@@ -126,7 +125,6 @@ Dashboard.update = function(event) {
 };
 
 Dashboard.dashboard = function() {
-	this._unflush();
 	var i, list = [];
 	for (i in Workers) {
 		if (this.data[i]) {
@@ -137,13 +135,7 @@ Dashboard.dashboard = function() {
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
-Dashboard.status = function(worker, html) {
-	this._unflush();
-	if (html) {
-		this.data[worker.name] = html;
-	} else {
-		delete this.data[worker.name];
-	}
-	this._flush();
+Dashboard.status = function(worker, value) {
+	this.set(['data', worker.name], value);
 };
 

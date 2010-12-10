@@ -63,7 +63,7 @@ Army.display = [
 
 Army.oldinit = Army.init;
 Army.init = function() {
-	this._watch(Player);
+	this._watch(Player, 'data.armymax');
 	this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	this.oldinit();
 };
@@ -122,7 +122,7 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(event) {
-	if (event.type === 'reminder' && !this.runtime.next) {
+	if ((event.type === 'reminder' || event.type === 'watch') && !this.runtime.next) {
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});

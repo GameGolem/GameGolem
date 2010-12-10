@@ -98,7 +98,7 @@ Army.set = function(what, value) {
 
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null, list = [];
+	var i, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), section = null, uid = null, list = [];
 	if (x[0] === 'option' || x[0] === 'runtime') {
 		return this._get(x, def);// Pasthrough
 	}
@@ -114,7 +114,7 @@ Army.get = function(what, def) {
 	if (section && x.length === 0) {
 		this._unflush();
 		for (i in this.data) {
-			if (section in this.data[i]) {
+			if (isObject(this.data[i]) && section in this.data[i]) {
 				list.push(i);
 			}
 		}

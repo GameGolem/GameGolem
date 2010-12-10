@@ -12,19 +12,23 @@
 *
 * http://code.google.com/p/game-golem/issues/detail?id=86
 *
-* Use window.name to store global information - so it's reloaded even if the page changes...
+* NOTE: Cannot share "global" information across page reloads any more
 */
 var Window = new Worker('Window');
-Window.runtime = Window.option = null;
+Window.runtime = Window.option = null; // Don't save anything except global stuff
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {
 	system:true
 };
 
-Window.data = {
-	active:false,
-	list:{}
+Window.data = { // Shared between all windows
+	current:null, // Currently active window
+	list:{} // List of available windows
+};
+
+Window.temp = {
+	active:false // Are we the active tab (able to do anything)?
 };
 
 Window.global = {
@@ -32,7 +36,6 @@ Window.global = {
 	'_id':'#' + Date.now()
 };
 
-Window.active = false; // Are we the active tab (able to do anything)?
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
 Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
@@ -43,12 +46,12 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 2. Save our global data to window.name (maybe just writing back what we just loaded)
 3. Add ourselves to this.data.list with the current time
 4. If no active worker (in the last 2 seconds) then make ourselves active
-4a. Set this.active, this.data.active, and immediately call this._save()
+4a. Set this.temp.active, this.data.current, and immediately call this._save()
 4b/5. Add the "Enabled/Disabled" button, hidden if necessary (hiding other elements if we're disabled)
 6. Add a click handler for the Enable/Disable button
 6a. Button only works when either active, or no active at all.
-6b. If active, make inactive, update this.active, this.data.active and hide other elements
-6c. If inactive , make active, update this.active, this.data.active and show other elements (if necessary)
+6b. If active, make inactive, update this.temp.active, this.data.current and hide other elements
+6c. If inactive , make active, update this.temp.active, this.data.current and show other elements (if necessary)
 7. Add a repeating reminder for every 1 second
 */
 Window.init = function() {
@@ -59,13 +62,13 @@ Window.init = function() {
 			this.global = data;
 		}
 	} catch(e){}
-//	debug('Adding tab "' + this.global['_id'] + '"');
+//	debug('Adding tab "' + this.global._id + '"');
 	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
-	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['_id']] = now;
-	if (!this.data['active'] || typeof this.data['list'][this.data['active']] === 'undefined' || this.data['list'][this.data['active']] < now - this.timeout || this.data['active'] === this.global['_id']) {
-		this.active = true;
-		this.data['active'] = this.global['_id'];
+	this.data.list = this.data.list || {};
+	this.data.list[this.global._id] = now;
+	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.global._id) {
+		this._set('temp.active', true);
+		this.data.current = this.global._id;
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
 	} else {
@@ -74,20 +77,21 @@ Window.init = function() {
 	}
 	$('#golem_window').click(function(event){
 		Window._unflush();
-		if (Window.active) {
+		if (Window.temp.active) {
 			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
-			Window.data['active'] = null;
-			Window.active = false;
-		} else if (!Window.data['active'] || typeof Window.data['list'][Window.data['active']] === 'undefined' || Window.data['list'][Window.data['active']] < Date.now() - Window.timeout) {
+			Window.data.current = null;
+			Window.temp.active = false;
+		} else if (!Window.data.current || typeof Window.data.list[Window.data.current] === 'undefined' || Window.data.list[Window.data.current] < Date.now() - Window.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
 			if (Config.get('option.display') === 'block') {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			Window.data['active'] = Window.global['_id'];
-			Window.active = true;
+			Window.data.current = Window.global._id;
+			Window.temp.active = true;
 		} else {// Not able to go active
+			Queue.clearCurrent();
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
 			if (!Window.warning) {
 				(function(){
@@ -101,11 +105,12 @@ Window.init = function() {
 				})();
 			}
 			window.clearTimeout(Window.warning);
-			Window.warning = window.setTimeout(function(){if(!Window.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
+			Window.warning = window.setTimeout(function(){if(!Window.temp.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
 		Window._flush();
 	});
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Window, but good enough for half a dozen or more
+	Title.alias('disable', 'Window:temp.active::(Disabled) ');
 };
 
 /***** Window.update() *****
@@ -120,24 +125,25 @@ Window.update = function(event) {
 	}
 	var i, now = Date.now();
 	this.data = this.data || {};
-	this.data['list'] = this.data['list'] || {};
-	this.data['list'][this.global['_id']] = now;
-	for(i in this.data['list']) {
-		if (this.data['list'][i] < (now - this.timeout)) {
-			delete this.data['list'][i];
+	this.data.list = this.data.list || {};
+	this.data.list[this.global._id] = now;
+	for(i in this.data.list) {
+		if (this.data.list[i] < (now - this.timeout)) {
+			delete this.data.list[i];
 		}
 	}
-	i = length(this.data['list']);
+	i = length(this.data.list);
 	if (i === 1) {
-		if (!this.active) {
+		if (!this.temp.active) {
 			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green');
 			$('#golem_buttons').show();
 			if (Config.get('option.display') === 'block') {
 				$('#golem_config').parent().show();
 			}
-			Queue.set('runtime.current', null);// Make sure we deal with changed circumstances
-			this.data['active'] = this.global['_id'];
-			this.active = true;
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
+			this.data.current = this.global._id;
+			this.temp.active = true;
+			this._notify('temp.active');
 		}
 		$('#golem_window').hide();
 	} else if (i > 1) {
@@ -145,60 +151,3 @@ Window.update = function(event) {
 	}
 	this._flush();// We really don't want to store data any longer than we really have to!
 };
-
-/***** Window.get() *****
-1. Load data as Worker._get() but only for global window data
-*/
-Window.get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.global;
-	try {
-		return (function(a,b,d){
-			if (b.length) {
-				var c = b.shift();
-				return arguments.callee(a[c],b,d);
-			} else {
-				return typeof a !== 'undefined' ? a : d;
-			}
-		})(data,x,def);
-	} catch(e) {
-		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+'): ' + e.message);
-		}
-	}
-	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
-};
-
-/***** Window.set() *****
-1. Save data as Worker._get() but only for global window data
-*/
-Window.set = function(what, value) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data = this.global;
-	if (!x.length) {
-		return;
-	}
-	try {
-		(function(a,b){
-			var c = b.shift();
-			if (b.length) {
-				if (typeof a[c] !== 'object') {
-					a[c] = {};
-				}
-				arguments.callee(a[c], b);
-				if (!length(a[c])) {// Can clear out empty trees completely...
-					delete a[c];
-				}
-			} else {
-				if (typeof value !== 'undefined') {
-					a[c] = value;
-				} else {
-					delete a[c];
-				}
-			}
-		})(data,x);
-		(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);// Save immediately
-	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+value+'): ' + e.message);
-	}
-	return;
-};
-
