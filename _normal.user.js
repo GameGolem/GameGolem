@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 850;
+var revision = 851;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6844,8 +6844,8 @@ LevelUp.get = function(what,def) {
 		}
 		return ((this.runtime.defending || !Quest.get('runtime.best',false))
 				? this.runtime.avg_exp_per_energy
-				: Quest.get(['id', Quest.get('runtime.best'), 'exp']) / 
-					Quest.get(['id', Quest.get('runtime.best'), 'energy'])).round(1);
+				: (Quest.get(['id', Quest.get('runtime.best'), 'exp']) || 0) / 
+					(Quest.get(['id', Quest.get('runtime.best'), 'energy']) || 1)).round(1);
 	default: return this._get(what,def);
 	}
 };
@@ -9264,6 +9264,13 @@ Quest.init = function() {
 		}
 	}
 
+	// one time pre-r851 fix for Queue triggered quest by name instead of id
+	if ((runtime.revision || 0) < 851) {
+		if (Queue.get('runtime.quest')) {
+			Queue.set('runtime.quest', false);
+		}
+	}
+
 	runtime.revision = revision; // started r845 for historic reference
 };
 
@@ -9627,7 +9634,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	debug('Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
-	if (!Page.click($('input[name="quest"][value="' + this.data.id[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];
 		this.runtime.best = null;

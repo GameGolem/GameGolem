@@ -149,6 +149,13 @@ Quest.init = function() {
 		}
 	}
 
+	// one time pre-r851 fix for Queue triggered quest by name instead of id
+	if ((runtime.revision || 0) < 851) {
+		if (Queue.get('runtime.quest')) {
+			Queue.set('runtime.quest', false);
+		}
+	}
+
 	runtime.revision = revision; // started r845 for historic reference
 };
 
@@ -512,7 +519,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	debug('Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
-	if (!Page.click($('input[name="quest"][value="' + this.data.id[best].id + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		debug('Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];
 		this.runtime.best = null;

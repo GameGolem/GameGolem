@@ -225,8 +225,8 @@ LevelUp.get = function(what,def) {
 		}
 		return ((this.runtime.defending || !Quest.get('runtime.best',false))
 				? this.runtime.avg_exp_per_energy
-				: Quest.get(['id', Quest.get('runtime.best'), 'exp']) / 
-					Quest.get(['id', Quest.get('runtime.best'), 'energy'])).round(1);
+				: (Quest.get(['id', Quest.get('runtime.best'), 'exp']) || 0) / 
+					(Quest.get(['id', Quest.get('runtime.best'), 'energy']) || 1)).round(1);
 	default: return this._get(what,def);
 	}
 };
