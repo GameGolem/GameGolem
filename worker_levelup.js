@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
-	makeImage
+	makeImage, calc_rolling_weighted_average, bestValue, bestObjValue
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -225,8 +225,8 @@ LevelUp.get = function(what,def) {
 		}
 		return ((this.runtime.defending || !Quest.get('runtime.best',false))
 				? this.runtime.avg_exp_per_energy
-				: Quest.get('data.'+Quest.get('runtime.best') + '.exp') / 
-					Quest.get('data.'+Quest.get('runtime.best') + '.energy')).round(1);
+				: Quest.get(['id', Quest.get('runtime.best'), 'exp']) / 
+					Quest.get(['id', Quest.get('runtime.best'), 'energy'])).round(1);
 	default: return this._get(what,def);
 	}
 };
@@ -290,7 +290,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		debug('energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
 		return questAction;
 	case 'quest':		
-		quests = Quest.get();
+		quests = Quest.get('id');
 		if (Quest.runtime.best && quests[Quest.runtime.best].energy <= energy && quests[Quest.runtime.best].exp < exp) {
 			i = Quest.runtime.best;
 		} else {
@@ -310,7 +310,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 	case 'defend':
 		stat = 'energy';
-		value = energy
+		value = energy;
 		// Deliberate fall-through
 	case 'attack':	
 		stat = stat || 'stamina';
