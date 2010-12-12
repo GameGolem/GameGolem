@@ -98,7 +98,7 @@ Player.parse = function(change) {
 			this.set('maxexp', tmp[1]);
 		}
 	}
-	this.set('cash,', parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
+	this.set('cash', $('#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
 	this.set('level', $('#app'+APPID+'_st_5').text().regex(/Level: ([0-9]+)!/i));
 	this.set('armymax', $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/([0-9]+)/));
 	this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
@@ -154,7 +154,7 @@ Player.update = function(event) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	} else if (event.type === 'trigger') {
-		this.set(['data', event.id], $(event.selector).text().regex(/([0-9]+)/));
+		this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
 	}
 	Dashboard.status(this);
 };

@@ -52,10 +52,10 @@ Bank.init = function() {
 };
 
 Bank.work = function(state) {
-	if (!state || !this.stash()) {
-		return QUEUE_CONTINUE;
+	if (state) {
+		this.stash();
 	}
-	return QUEUE_RELEASE;
+	return QUEUE_CONTINUE;
 };
 
 Bank.update = function(event) {
