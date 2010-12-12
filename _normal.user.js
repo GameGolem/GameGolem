@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 852;
+var revision = 853;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1447,9 +1447,9 @@ Army.set = function(what, value) {
 	if (section in Workers && !section in this.runtime.update) {
 		this.runtime.update[section] = true;
 	}
-// Removed for performance reasons...
-//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
 	x.unshift('data', uid, section);
+// Removed for performance reasons...
+//	try{this.data[uid]._last = Date.now();}catch(e){} // Remember when it was last accessed
 	return this._set(x, value);
 };
 
@@ -5059,9 +5059,9 @@ Army.option.check = 86400000;
 Army.option.recheck = 0;
 
 Army.runtime.count = -1; // How many people have we actively seen
-Army.runtime.next = 0;
-Army.runtime.last = 0;
-Army.runtime.extra = 0;
+Army.runtime.next = 0; // Next page we want to look at 
+Army.runtime.last = 0; // Last time we visited the army list page
+Army.runtime.extra = 0; // How many non-real army members are there
 
 Army.display = [
 {
@@ -5102,12 +5102,13 @@ Army.display = [
 Army.oldinit = Army.init;
 Army.init = function() {
 	this._watch(Player, 'data.armymax');
-	this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
+	this._watch(Army, 'runtime.next');
+	this._remind(Math.min(0, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
 	this.oldinit();
 };
 
 Army.parse = function(change) {
-	var i, army, now = Date.now();
+	var i, army, tmp, now = Date.now();
 	if (Page.page === 'army_viewarmy') {
 		$('img[linked="true"][size="square"]').each(function(i,el){
 			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
@@ -5129,63 +5130,63 @@ Army.parse = function(change) {
 			}
 			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
 				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
-					this.set(['Army', army[i]], false);// Forget this one, he aint been found!!!
+					this.set(['Army', army[i]]);// Forget this one, he aint been found!!!
 				}
 			}
 		}
 	} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
 		army = this.get('Army');
+		tmp = {};
 		for (i=0; i<army.length; i++) {
-			this.set('Army', false);
+			tmp[army[i]] = false;
 		}
 		$('.unselected_list input').each(function(i,el){
-			Army.set(['Army', el.value], true);
+			tmp[el.value] = true;
 		});
+		for (i in tmp) {
+			if (tmp[i]) {
+				this.set(['Army', i], tmp[i]);
+			} else {
+				this.set(['Army', i]);
+			}
+		}
+		this.runtime.last = Date.now();
+		this._remind(this.option.check / 1000, 'members');
 	}
+	this.set(['Army', userID]);// Make sure we never try to handle ourselves
+	// Count current Army members
 	army = this.get('Army');
-	this.runtime.next = 0;
 	this.runtime.count = 0;
 	for (i=0; i<army.length; i++) {
-		/*jslint eqeqeq:false*/
-		if (army[i] == userID) {
-		/*jslint eqeqeq:true*/
-			continue; // skip self
-		}
 		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
 			this.runtime.count++;
 		}
 	}
+	this.update({self:true, worker:this, type:'watch'});
 	return false;
 };
 
 Army.oldupdate = Army.update;
 Army.update = function(event) {
-	if ((event.type === 'reminder' || event.type === 'watch') && !this.runtime.next) {
+	if (event.type === 'reminder' || event.type === 'watch') {
+		this.runtime.next = 0;
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
 			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
 			for (i=0; i<army.length; i++) {
-				/*jslint eqeqeq:false*/
-				if (army[i] == userID) {
-				/*jslint eqeqeq:true*/
-					continue; // skip self
-				}
 				seen = this.get(['_info', army[i], 'seen'], -1);
 				if (seen === -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
-					if (!this.runtime.next) {
+					if (!this.runtime.next || this.runtime.next > page) {
 						this.runtime.next = page;
 						debug('Want to see userid '+army[i]+', and others on page '+page);
 					}
 					this.set(['_info', army[i], 'page'], page);
-					break;
+//					break;
 				}
 			}
 		}
-		if (!this.runtime.next) {
-			this.runtime.last = Date.now();
-		}
-		this._remind((Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
+		this.set('option._sleep', !this.runtime.next); // Only sleep if we don't want to see anything
 	}
 	this.oldupdate(event);
 };
@@ -8391,6 +8392,7 @@ Monster.update = function(event) {
 	} else {
 		this.runtime.limit = 0;
 	}
+	this._notify('data');// Temporary fix for Dashboard updating
 };
 
 Monster.work = function(state) {

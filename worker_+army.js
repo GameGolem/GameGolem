@@ -90,9 +90,9 @@ Army.set = function(what, value) {
 	if (section in Workers && !section in this.runtime.update) {
 		this.runtime.update[section] = true;
 	}
-// Removed for performance reasons...
-//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
 	x.unshift('data', uid, section);
+// Removed for performance reasons...
+//	try{this.data[uid]._last = Date.now();}catch(e){} // Remember when it was last accessed
 	return this._set(x, value);
 };
 

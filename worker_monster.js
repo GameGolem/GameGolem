@@ -1415,6 +1415,7 @@ Monster.update = function(event) {
 	} else {
 		this.runtime.limit = 0;
 	}
+	this._notify('data');// Temporary fix for Dashboard updating
 };
 
 Monster.work = function(state) {
