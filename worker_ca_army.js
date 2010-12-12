@@ -24,6 +24,7 @@ Army.runtime.count = -1; // How many people have we actively seen
 Army.runtime.next = 0; // Next page we want to look at 
 Army.runtime.last = 0; // Last time we visited the army list page
 Army.runtime.extra = 0; // How many non-real army members are there
+Army.runtime.recheck = 0; // Timestamp of when we last saw the oldest member
 
 Army.display = [
 {
@@ -65,7 +66,10 @@ Army.oldinit = Army.init;
 Army.init = function() {
 	this._watch(Player, 'data.armymax');
 	this._watch(Army, 'runtime.next');
-	this._remind(Math.min(0, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
+	this._remind(Math.min(1, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
+	if (this.runtime.recheck && this.option.recheck) {
+		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+	}
 	this.oldinit();
 };
 
@@ -132,11 +136,15 @@ Army.oldupdate = Army.update;
 Army.update = function(event) {
 	if (event.type === 'reminder' || event.type === 'watch') {
 		this.runtime.next = 0;
-		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra) {// Watching for the size of our army changing...
+		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
+			this.runtime.recheck = 0;
 			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
 			for (i=0; i<army.length; i++) {
 				seen = this.get(['_info', army[i], 'seen'], -1);
+				if (this.runtime.recheck > 0 && seen > 0) {
+					this.runtime.recheck = Math.min(this.runtime.recheck, seen);
+				}
 				if (seen === -1 || (this.option.recheck && now - seen > this.option.recheck)) {
 					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
 					if (!this.runtime.next || this.runtime.next > page) {
@@ -147,8 +155,13 @@ Army.update = function(event) {
 //					break;
 				}
 			}
+			if (this.runtime.recheck && this.option.recheck) {
+				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+			} else {
+				this._forget('recheck');
+			}
 		}
-		this.set('option._sleep', !this.runtime.next); // Only sleep if we don't want to see anything
+		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
 	}
 	this.oldupdate(event);
 };

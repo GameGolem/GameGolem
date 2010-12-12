@@ -50,6 +50,10 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
+	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
+	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
+	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
+	this._trigger('#app'+APPID+'_health_current_value', 'health');
 	Resources.add('Energy');
 	Resources.add('Stamina');
 	Resources.add('Gold');
@@ -77,21 +81,15 @@ Player.parse = function(change) {
 	}
 	var data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
-		tmp = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		this.set('energy', tmp ? tmp[0] : 0);
-//		data.maxenergy	= tmp[1] || 0;
+		this.set('energy', $('#app'+APPID+'_energy_current_value').text().regex(/([0-9]+)/) || 0);
 		Resources.add('Energy', data.energy, true);
 	}
-	if ($('#app'+APPID+'_health_current_value').length) {
-		tmp = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		this.set('health', tmp ? tmp[0] : 0);
-//		data.maxhealth	= tmp[1] || 0;
-	}
 	if ($('#app'+APPID+'_stamina_current_value').length) {
-		tmp = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
-		this.set('stamina', tmp ? tmp[0] : 0);
-//		data.maxstamina	= tmp[1] || 0;
+		this.set('stamina', $('#app'+APPID+'_stamina_current_value').text().regex(/([0-9]+)/) || 0);
 		Resources.add('Stamina', data.stamina, true);
+	}
+	if ($('#app'+APPID+'_health_current_value').length) {
+		this.set('health', $('#app'+APPID+'_health_current_value').text().regex(/([0-9]+)/) || 0);
 	}
 	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
 		tmp = $('#app'+APPID+'_st_2_5').text().regex(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -137,25 +135,13 @@ Player.parse = function(change) {
 			History.set('land', sum(txt.regex(/incomepaymentof\$([0-9]+)gold|backinthemine:Extra([0-9]+)Gold/i)));
 		}
 	});
-	if ($('#app'+APPID+'_energy_time_value').length) {
-		window.clearTimeout(this.runtime.energy_timeout);
-		this.set('runtime.energy_timeout', window.setTimeout(function(){Player.get('energy');}, $('#app'+APPID+'_energy_time_value').text().parseTimer() * 1000));
-	}
-	if ($('#app'+APPID+'_health_time_value').length) {
-		window.clearTimeout(this.runtime.health_timeout);
-		this.set('runtime.health_timeout', window.setTimeout(function(){Player.get('health');}, $('#app'+APPID+'_health_time_value').text().parseTimer() * 1000));
-	}
-	if ($('#app'+APPID+'_stamina_time_value').length) {
-		window.clearTimeout(this.runtime.stamina_timeout);
-		this.set('runtime.stamina_timeout', window.setTimeout(function(){Player.get('stamina');}, $('#app'+APPID+'_stamina_time_value').text().parseTimer() * 1000));
-	}
 	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
-	$('strong#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(this.get('bank', 0)));
+	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(this.get('bank', 0)));
 	return false;
 };
 
 Player.update = function(event) {
-	if (event.type !== 'option') {
+	if (event.type === 'data' || event.type === 'init') {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
@@ -167,6 +153,8 @@ Player.update = function(event) {
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
+	} else if (event.type === 'trigger') {
+		this.set(['data', event.id], $(event.selector).text().regex(/([0-9]+)/));
 	}
 	Dashboard.status(this);
 };
@@ -174,15 +162,11 @@ Player.update = function(event) {
 Player.get = function(what) {
 	var data = this.data, when;
 	switch(what) {
-		case 'cash':			return (data.cash = parseInt($('strong#app'+APPID+'_gold_current_value').text().replace(/[^0-9]/g, ''), 10));
 //		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
 		case 'cash_timer':		when = new Date();
 								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-		case 'energy':			return (data.energy = $('#app'+APPID+'_energy_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
-		case 'health':			return (data.health = $('#app'+APPID+'_health_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
-		case 'stamina':			return (data.stamina = $('#app'+APPID+'_stamina_current_value').parent().text().regex(/([0-9]+)\s*\/\s*[0-9]+/));
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;

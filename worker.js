@@ -408,6 +408,12 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
+Worker.prototype._trigger = function(selector, id) {
+	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector}, function(event){
+		event.data.worker._remind(0, '_trigger' + event.data.id, event.data);
+	});
+};
+
 Worker.prototype._unflush = function() {
 	this._push();
 	if (!this._loaded) {
