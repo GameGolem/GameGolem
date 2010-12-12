@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 855;
+var revision = 856;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -718,7 +718,7 @@ String.prototype.html_escape = function() {
 	var str = this;
 	str = str.replace(/&/g, '&amp;');
 	str = str.replace(/</g, '&lt;');
-	str = str.replace(/>/g, '&gt');
+	str = str.replace(/>/g, '&gt;');
 	return str;
 };
 
@@ -9285,7 +9285,7 @@ Quest.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps;
+	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -9296,10 +9296,10 @@ Quest.parse = function(change) {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
 	}
+	purge = {};
 	for (i in data.id) {
 		if (data.id[i].area === area && (area !== 'quest' || data.id[i].land === land)) {
-//			debug('Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
-			delete data.id[i];
+			purge[i] = true;
 		}
 	}
 	if ($('div.quests_background,div.quests_background_sub').length !== $('div.quests_background .quest_progress,div.quests_background_sub .quest_sub_progress').length) {
@@ -9343,6 +9343,9 @@ Quest.parse = function(change) {
 			m_d = data.id[id].m_d || 0;
 			m_i = data.id[id].influence;
 			reps = data.id[id].reps || 0;
+		}
+		if (purge[id]) {
+			purge[id] = false;
 		}
 		data.id[id] = {};
 		data.id[id].name = name;
@@ -9397,7 +9400,12 @@ Quest.parse = function(change) {
 			}
 		}
 	});
-	//this.data = sortObject(data, function(a,b){return a > b;});// So they always appear in the same order
+	for (i in purge) {
+		if (purge[i]) {
+			debug('Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
+			delete data.id[i];
+		}
+	}
 	return false;
 };
 
