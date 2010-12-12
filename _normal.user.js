@@ -19,7 +19,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 851;
+var revision = 852;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1041,15 +1041,16 @@ Worker.prototype._forget = function(id) {
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), type;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
-	if (x[0] === 'data') {
-		this._unflush();
-	}
-	data = this[x.shift()];
 	try {
+		if (x[0] === 'data') {
+			this._unflush();
+		}
+		what = x.join('.');
+		type = x.shift();
 		return (function(a,b){
 			if (typeof a !== 'undefined') {
 				if (b.length) {
@@ -1058,13 +1059,11 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 				return a === null ? null : a.valueOf();
 			}
 			return def
-		})(data,x);
+		})(this[type],x);
 	} catch(e) {
-//		this._push();
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message);
 		}
-//		this._pop();
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -1115,7 +1114,8 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		if (path.indexOf(i) === 0) {// Match the prefix
 			w = this._watching[i];
 			for (j=0; j<w.length; j++) {
-				w[j]._remind(0.1, id + i, {worker:w[j], type:'watch', path:i});
+//				debug('Notify ' + w[j].name + ', id = ' + i);
+				w[j]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
 			}
 		}
 	}
@@ -1198,18 +1198,18 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type, path;
+	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
 	if (x.length <= 1) { // Return early if we're not setting a subvalue
 		return null;
 	}
-	if (x[0] === 'data') {
-		this._unflush();
-	}
 	try {
-		path = x.join('.');
+		if (x[0] === 'data') {
+			this._unflush();
+		}
+		what = x.join('.');
 		type = x.shift();
 		(function(a,b){ // Don't allow setting of root data/object/runtime
 			var c = b.shift(), l = b.length;
@@ -1220,7 +1220,7 @@ Worker.prototype._set = function(what, value) {
 				delete a[c];
 				return false;
 			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
-				me._notify(path);// Notify the watchers...
+				me._notify(what);// Notify the watchers...
 				me._taint[type] = true;
 				me._remind(0, '_update', {type:type, self:true});
 				if (isUndefined(value)) {
@@ -1303,7 +1303,7 @@ Worker.prototype._update = function(event) {
 			}
 		}
 		newevent.worker = newevent.worker || this;
-		if (typeof this.data === 'undefined') {
+		if (isUndefined(this.data)) {
 			flush = true;
 			this._unflush();
 		}
@@ -2149,20 +2149,6 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	var i, $worker;
-	for (i in Workers) {
-		if (Workers[i].option) {
-			$worker = $('#'+Workers[i].id+' .golem-panel-header');
-			if (Workers[i].get(['option', '_enabled'], true)) {
-				$worker.removeClass('red');
-			} else {
-				$worker.addClass('red');
-				if (Queue.get('runtime.current', null) === i) {
-					Queue.clearCurrent();
-				}
-			}
-		}
-	}
 	this.checkRequire();
 };
 
@@ -3257,15 +3243,18 @@ Queue.lasttimer = -1;
 
 Queue.init = function() {
 	var i, $btn, worker;
-	this._watch(Player);
+//	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
-	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
-			log('Adding '+i+' to Queue');
-			if (Workers[i].settings.unsortable) {
-				this.option.queue.unshift(i);
-			} else {
-				this.option.queue.push(i);
+	for (i in Workers) {
+		if (Workers[i].work && Workers[i].display) {
+			this._watch(Workers[i], 'option._enabled');// Keep an eye out for them going disabled
+			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
+				log('Adding '+i+' to Queue');
+				if (Workers[i].settings.unsortable) {
+					this.option.queue.unshift(i);
+				} else {
+					this.option.queue.push(i);
+				}
 			}
 		}
 	}
@@ -3308,7 +3297,18 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'init' || event.type === 'option') { // options have changed
+	if (event.type === 'watch') { // A worker getting disabled / enabled
+		if (event.id === 'option._enabled') {
+			if (event.worker.get(['option', '_enabled'], true)) {
+				$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+			} else {
+				$('#'+event.worker.id+' .golem-panel-header').addClass('red');
+				if (this.runtime.current === i) {
+					this.clearCurrent();
+				}
+			}
+		}
+	} else if (event.type === 'init' || event.type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
 			this.lasttimer = -1;
@@ -3316,8 +3316,7 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.lasttimer = this.option.delay;
 		}
-	}
-	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+	} else if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
@@ -3326,7 +3325,7 @@ Queue.update = function(event) {
 
 		this.runtime.stamina = this.runtime.energy = 0;
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
-		for (i in ensta) {
+		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
 				this.runtime[ensta[i]] = Player.get(ensta[i]);
@@ -4349,7 +4348,7 @@ Bank.init = function() {
 };
 
 Bank.work = function(state) {
-	if (!state || this.stash(Player.get('cash', 0) - this.option.hand)) {
+	if (!state || !this.stash()) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -4363,22 +4362,25 @@ Bank.update = function(event) {
 	} else {
 		Dashboard.status(this);
 	}
-	this.option._sleep = (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris')));
+	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
 };
 
+// Return true when finished
 Bank.stash = function(amount) {
-	if (!amount || Math.min(Player.get('cash', 0),amount) <= 10 
-			|| (this.option.general && !Generals.test('Aeris'))) {
+	var cash = Player.get('cash', 0);
+	amount = (isNumber(amount) ? Math.min(cash, amount) : cash) - this.option.hand;
+	if (!amount || amount <= 10 || (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="stash_gold"]').val(Math.min(Player.get('cash', 0), amount));
+	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
 	return true;
 };
 
+// Return true when finished
 Bank.retrieve = function(amount) {
 	Worker.find(Queue.get('runtime.current')).settings.bank = true;
 	amount -= Player.get('cash', 0);
@@ -6405,8 +6407,8 @@ Income.work = function(state) {
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
-		if (state && this.option.bank) {
-			return Bank.work(true);
+		if (state && this.option.bank && !Bank.stash()) {
+			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
@@ -9557,8 +9559,8 @@ Quest.work = function(state) {
 	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
 	var useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
-		if (state && this.option.bank) {
-			return Bank.work(true);
+		if (state && this.option.bank && !Bank.stash()) {
+			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
@@ -10558,10 +10560,14 @@ Upgrade.display = [
 	}
 ];
 
+Upgrade.init = function() {
+	this._watch(Player, 'data.upgrade');
+};
+
 Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
-		this.runtime.working = false;
+		this.set('runtime.working', false);
 		this.runtime.run++;
 	}
 	return false;
@@ -10571,13 +10577,12 @@ Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
 		this.runtime.run = 0;
 	}
+	var points = Player.get('upgrade'), args;
+	this.option._sleep = (!this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {
-	var points = Player.get('upgrade'), args;
-	if (!this.option.order.length || !points || (this.option.order[this.runtime.run]==='Stamina' && points<2)) {
-		return QUEUE_FINISH;
-	}
+	var args;
 	switch (this.option.order[this.runtime.run]) {
 		case 'Energy':	args = 'energy_max';	break;
 		case 'Stamina':	args = 'stamina_max';	break;

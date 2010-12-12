@@ -52,7 +52,7 @@ Bank.init = function() {
 };
 
 Bank.work = function(state) {
-	if (!state || this.stash(Player.get('cash', 0) - this.option.hand)) {
+	if (!state || !this.stash()) {
 		return QUEUE_CONTINUE;
 	}
 	return QUEUE_RELEASE;
@@ -66,22 +66,25 @@ Bank.update = function(event) {
 	} else {
 		Dashboard.status(this);
 	}
-	this.option._sleep = (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris')));
+	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
 };
 
+// Return true when finished
 Bank.stash = function(amount) {
-	if (!amount || Math.min(Player.get('cash', 0),amount) <= 10 
-			|| (this.option.general && !Generals.test('Aeris'))) {
+	var cash = Player.get('cash', 0);
+	amount = (isNumber(amount) ? Math.min(cash, amount) : cash) - this.option.hand;
+	if (!amount || amount <= 10 || (this.option.general && !Generals.test('Aeris'))) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
 		return false;
 	}
-	$('input[name="stash_gold"]').val(Math.min(Player.get('cash', 0), amount));
+	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
 	return true;
 };
 
+// Return true when finished
 Bank.retrieve = function(amount) {
 	Worker.find(Queue.get('runtime.current')).settings.bank = true;
 	amount -= Player.get('cash', 0);

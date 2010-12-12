@@ -187,15 +187,16 @@ Worker.prototype._forget = function(id) {
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), data;
+	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), type;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
-	if (x[0] === 'data') {
-		this._unflush();
-	}
-	data = this[x.shift()];
 	try {
+		if (x[0] === 'data') {
+			this._unflush();
+		}
+		what = x.join('.');
+		type = x.shift();
 		return (function(a,b){
 			if (typeof a !== 'undefined') {
 				if (b.length) {
@@ -204,13 +205,11 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 				return a === null ? null : a.valueOf();
 			}
 			return def
-		})(data,x);
+		})(this[type],x);
 	} catch(e) {
-//		this._push();
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what.toString()+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message);
+			debug(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message);
 		}
-//		this._pop();
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -261,7 +260,8 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		if (path.indexOf(i) === 0) {// Match the prefix
 			w = this._watching[i];
 			for (j=0; j<w.length; j++) {
-				w[j]._remind(0.1, id + i, {worker:w[j], type:'watch', path:i});
+//				debug('Notify ' + w[j].name + ', id = ' + i);
+				w[j]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
 			}
 		}
 	}
@@ -344,18 +344,18 @@ Worker.prototype._save = function(type) {
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type, path;
+	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
 	if (x.length <= 1) { // Return early if we're not setting a subvalue
 		return null;
 	}
-	if (x[0] === 'data') {
-		this._unflush();
-	}
 	try {
-		path = x.join('.');
+		if (x[0] === 'data') {
+			this._unflush();
+		}
+		what = x.join('.');
 		type = x.shift();
 		(function(a,b){ // Don't allow setting of root data/object/runtime
 			var c = b.shift(), l = b.length;
@@ -366,7 +366,7 @@ Worker.prototype._set = function(what, value) {
 				delete a[c];
 				return false;
 			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
-				me._notify(path);// Notify the watchers...
+				me._notify(what);// Notify the watchers...
 				me._taint[type] = true;
 				me._remind(0, '_update', {type:type, self:true});
 				if (isUndefined(value)) {
@@ -449,7 +449,7 @@ Worker.prototype._update = function(event) {
 			}
 		}
 		newevent.worker = newevent.worker || this;
-		if (typeof this.data === 'undefined') {
+		if (isUndefined(this.data)) {
 			flush = true;
 			this._unflush();
 		}

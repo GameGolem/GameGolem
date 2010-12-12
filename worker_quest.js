@@ -442,8 +442,8 @@ Quest.work = function(state) {
 	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
 	var useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
-		if (state && this.option.bank) {
-			return Bank.work(true);
+		if (state && this.option.bank && !Bank.stash()) {
+			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}

@@ -476,20 +476,6 @@ Config.updateOptions = function() {
 			}
 		}
 	});
-	var i, $worker;
-	for (i in Workers) {
-		if (Workers[i].option) {
-			$worker = $('#'+Workers[i].id+' .golem-panel-header');
-			if (Workers[i].get(['option', '_enabled'], true)) {
-				$worker.removeClass('red');
-			} else {
-				$worker.addClass('red');
-				if (Queue.get('runtime.current', null) === i) {
-					Queue.clearCurrent();
-				}
-			}
-		}
-	}
 	this.checkRequire();
 };
 

@@ -99,15 +99,18 @@ Queue.lasttimer = -1;
 
 Queue.init = function() {
 	var i, $btn, worker;
-	this._watch(Player);
+//	this._watch(Player);
 	this.option.queue = unique(this.option.queue);
-	for (i in Workers) {// Add any new workers that have a display (ie, sortable)
-		if (Workers[i].work && Workers[i].display && !findInArray(this.option.queue, i)) {
-			log('Adding '+i+' to Queue');
-			if (Workers[i].settings.unsortable) {
-				this.option.queue.unshift(i);
-			} else {
-				this.option.queue.push(i);
+	for (i in Workers) {
+		if (Workers[i].work && Workers[i].display) {
+			this._watch(Workers[i], 'option._enabled');// Keep an eye out for them going disabled
+			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
+				log('Adding '+i+' to Queue');
+				if (Workers[i].settings.unsortable) {
+					this.option.queue.unshift(i);
+				} else {
+					this.option.queue.push(i);
+				}
 			}
 		}
 	}
@@ -150,7 +153,18 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'init' || event.type === 'option') { // options have changed
+	if (event.type === 'watch') { // A worker getting disabled / enabled
+		if (event.id === 'option._enabled') {
+			if (event.worker.get(['option', '_enabled'], true)) {
+				$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+			} else {
+				$('#'+event.worker.id+' .golem-panel-header').addClass('red');
+				if (this.runtime.current === i) {
+					this.clearCurrent();
+				}
+			}
+		}
+	} else if (event.type === 'init' || event.type === 'option') { // options have changed
 		if (this.option.pause) {
 			this._forget('run');
 			this.lasttimer = -1;
@@ -158,8 +172,7 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.lasttimer = this.option.delay;
 		}
-	}
-	if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+	} else if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
 		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
 		|| Page.loading) { // We want to wait xx seconds after the page has loaded
@@ -168,7 +181,7 @@ Queue.update = function(event) {
 
 		this.runtime.stamina = this.runtime.energy = 0;
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
-		for (i in ensta) {
+		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
 				this.runtime[ensta[i]] = Player.get(ensta[i]);

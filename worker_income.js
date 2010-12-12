@@ -50,8 +50,8 @@ Income.work = function(state) {
 	}
 //	debug(when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
-		if (state && this.option.bank) {
-			return Bank.work(true);
+		if (state && this.option.bank && !Bank.stash()) {
+			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}

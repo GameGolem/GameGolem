@@ -35,10 +35,14 @@ Upgrade.display = [
 	}
 ];
 
+Upgrade.init = function() {
+	this._watch(Player, 'data.upgrade');
+};
+
 Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
-		this.runtime.working = false;
+		this.set('runtime.working', false);
 		this.runtime.run++;
 	}
 	return false;
@@ -48,13 +52,12 @@ Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
 		this.runtime.run = 0;
 	}
+	var points = Player.get('upgrade'), args;
+	this.option._sleep = (!this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {
-	var points = Player.get('upgrade'), args;
-	if (!this.option.order.length || !points || (this.option.order[this.runtime.run]==='Stamina' && points<2)) {
-		return QUEUE_FINISH;
-	}
+	var args;
 	switch (this.option.order[this.runtime.run]) {
 		case 'Energy':	args = 'energy_max';	break;
 		case 'Stamina':	args = 'stamina_max';	break;
