@@ -15,7 +15,8 @@ var Page = new Worker('Page');
 Page.settings = {
 	system:true,
 	unsortable:true,
-	keep:true
+	keep:true,
+	no_disable:true
 };
 
 Page.option = {

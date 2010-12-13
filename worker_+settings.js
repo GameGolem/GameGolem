@@ -16,7 +16,8 @@ Settings._rootpath = false; // Override save path so we don't get limited to per
 Settings.settings = {
 	system:true,
 	unsortable:true,
-	advanced:true
+	advanced:true,
+	no_disable:true
 };
 
 Settings.option = {

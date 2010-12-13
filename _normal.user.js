@@ -874,6 +874,7 @@ new Worker(name, pages, settings)
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
+				no_disable (true/false) - stops a worker getting disabled
 				advanced (true/false) - only visible when "Advanced" is checked
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting
@@ -1869,7 +1870,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.unsortable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.no_disable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
@@ -2699,7 +2700,8 @@ var Page = new Worker('Page');
 Page.settings = {
 	system:true,
 	unsortable:true,
-	keep:true
+	keep:true,
+	no_disable:true
 };
 
 Page.option = {
@@ -3178,7 +3180,7 @@ Profile.runtime = {
 };
 
 Profile.settings = {
-	system:true,
+//	system:true,
 	unsortable:true,
 	advanced:true
 };
@@ -3210,17 +3212,11 @@ Profile.display = [
 	}
 ];
 
-function addMethod(object, name, fn){
-	var old = object[ name ];
-	object[ name ] = function(){
-		if ( fn.length == arguments.length )
-			return fn.apply( this, arguments );
-		else if ( typeof old == 'function' )
-			return old.apply( this, arguments );
-	};
-}
-
 Profile.setup = function() {
+	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
+		delete this.dashboard;
+		return;
+	}
 	// Go through every worker and replace their functions with a stub function
 	var i, j, wkr, fn;
 	for (i in Workers) {
@@ -3279,6 +3275,8 @@ Profile.update = function(event) {
 		this._notify('data');
 	}
 };
+
+Profile.work = function(){};// Stub so we can be disabled
 
 Profile.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp;
@@ -3341,7 +3339,8 @@ var QUEUE_INTERRUPT_OK	= QUEUE_RELEASE;// Not quite finished, but safe to interr
 Queue.settings = {
 	system:true,
 	unsortable:true,
-	keep:true
+	keep:true,
+	no_disable:true
 };
 
 // NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
@@ -3650,7 +3649,8 @@ Buckets are filled in priority order, in cases of same priority, alphabetical or
 var Resources = new Worker('Resources');
 Resources.settings = {
 	system:true,
-	unsortable:true
+	unsortable:true,
+	no_disable:true
 };
 
 Resources.data = {// type:{data} - managed by any access...
@@ -3847,7 +3847,8 @@ Settings._rootpath = false; // Override save path so we don't get limited to per
 Settings.settings = {
 	system:true,
 	unsortable:true,
-	advanced:true
+	advanced:true,
+	no_disable:true
 };
 
 Settings.option = {

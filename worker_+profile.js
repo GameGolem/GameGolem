@@ -27,7 +27,7 @@ Profile.runtime = {
 };
 
 Profile.settings = {
-	system:true,
+//	system:true,
 	unsortable:true,
 	advanced:true
 };
@@ -59,17 +59,11 @@ Profile.display = [
 	}
 ];
 
-function addMethod(object, name, fn){
-	var old = object[ name ];
-	object[ name ] = function(){
-		if ( fn.length == arguments.length )
-			return fn.apply( this, arguments );
-		else if ( typeof old == 'function' )
-			return old.apply( this, arguments );
-	};
-}
-
 Profile.setup = function() {
+	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
+		delete this.dashboard;
+		return;
+	}
 	// Go through every worker and replace their functions with a stub function
 	var i, j, wkr, fn;
 	for (i in Workers) {
@@ -128,6 +122,8 @@ Profile.update = function(event) {
 		this._notify('data');
 	}
 };
+
+Profile.work = function(){};// Stub so we can be disabled
 
 Profile.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp;

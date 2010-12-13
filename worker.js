@@ -21,6 +21,7 @@ new Worker(name, pages, settings)
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
+				no_disable (true/false) - stops a worker getting disabled
 				advanced (true/false) - only visible when "Advanced" is checked
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting

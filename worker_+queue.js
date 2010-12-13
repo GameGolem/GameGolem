@@ -23,7 +23,8 @@ var QUEUE_INTERRUPT_OK	= QUEUE_RELEASE;// Not quite finished, but safe to interr
 Queue.settings = {
 	system:true,
 	unsortable:true,
-	keep:true
+	keep:true,
+	no_disable:true
 };
 
 // NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
