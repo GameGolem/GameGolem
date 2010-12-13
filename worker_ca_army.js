@@ -119,7 +119,6 @@ Army.parse = function(change) {
 		this.runtime.last = Date.now();
 		this._remind(this.option.check / 1000, 'members');
 	}
-	this.set(['Army', userID]);// Make sure we never try to handle ourselves
 	// Count current Army members
 	army = this.get('Army');
 	this.runtime.count = 0;
@@ -134,7 +133,8 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(event) {
-	if (event.type === 'reminder' || event.type === 'watch') {
+	this.oldupdate(event);
+	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
 		this.runtime.next = 0;
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
@@ -163,7 +163,6 @@ Army.update = function(event) {
 		}
 		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
 	}
-	this.oldupdate(event);
 };
 
 Army.work = function(state) {

@@ -5,7 +5,6 @@
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
 // @version		31.4
 // @include		http://apps.facebook.com/castle_age/*
-// @include		http://www.castleageforums.com/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-latest.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
@@ -19,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 856;
+var revision = 857;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1406,6 +1405,7 @@ Army.display = [
 ];
 */
 Army.update = function(event) {
+	delete this.data[userID];
 	if (event.self && event.type === 'data') {
 		for (var i in this.runtime.update) {
 			Workers[i]._update({worker:this, type:'data'});
@@ -1426,6 +1426,7 @@ Army.init = function() {
 			delete this.data[i];
 		}
 	}
+	delete this.data[userID];// Make sure we never try to handle ourselves
 };
 
 // what = ['worker', userID, key ...]
@@ -1446,7 +1447,7 @@ Army.set = function(what, value) {
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!section || !uid) { // Must have both section name and userID to continue
+	if (!section || !uid || uid === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
 		return;
 	}
 //	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
@@ -3150,6 +3151,173 @@ Page.clear = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker.Profile **********
+* Profiling information
+*/
+var Profile = new Worker('Profile');
+Profile.data = Profile.runtime = null;
+
+Profile.option = {
+	timer:0,
+	count:2,
+	show:10,
+	digits:1,
+	total:false
+};
+
+Profile.runtime = {
+	sort:2,
+	rev:false
+};
+
+Profile.settings = {
+	system:true,
+	unsortable:true,
+	advanced:true
+};
+
+Profile.display = [
+	{
+		id:'timer',
+		label:'Refresh',
+		select:{0:'Manual', 5:'5 seconds', 10:'10 seconds', 15:'15 seconds', 30:'30 seconds', 60:'1 minute'}
+	},{
+		id:'count',
+		label:'Minimum Count',
+		select:[1,2,3,4,5,10,15,20,25,50,100]
+	},{
+		id:'show',
+		label:'Display Lines',
+		select:{0:'All',10:10,20:20,30:30,40:40,50:50,60:60,70:70,80:80,90:90,100:100}
+	},{
+		id:'digits',
+		label:'Digits',
+		select:[1,2,3,4,5]
+	},{
+		id:'total',
+		label:'Show Worker Totals',
+		checkbox:true
+	},{
+		title:'IMPORTANT',
+		label:'You must reload Golem to change the Enabled state.'
+	}
+];
+
+function addMethod(object, name, fn){
+	var old = object[ name ];
+	object[ name ] = function(){
+		if ( fn.length == arguments.length )
+			return fn.apply( this, arguments );
+		else if ( typeof old == 'function' )
+			return old.apply( this, arguments );
+	};
+}
+
+Profile.setup = function() {
+	// Go through every worker and replace their functions with a stub function
+	var i, j, wkr, fn;
+	for (i in Workers) {
+		wkr = Workers[i]
+		for (j in wkr) {
+			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+				fn = wkr[j];
+				wkr[j] = function() {
+					var t = Date.now(), i, r, log = [arguments.callee._worker, arguments.callee._worker+'.'+arguments.callee.name];
+					r = arguments.callee._orig.apply(this, arguments);
+					t = Date.now() - t;
+					for (i=0; i<log.length; i++) {
+						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
+						Profile.temp[log[i]][0]++;
+						Profile.temp[log[i]][1] += t;
+						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+					}
+					return r;
+				}
+				wkr[j].name = j;
+				wkr[j]._orig = fn;
+				wkr[j]._worker = i;
+			}
+		}
+	}
+	for (i in Worker.prototype) {
+		if (isFunction(Worker.prototype[i])) {
+			fn = Worker.prototype[i];
+			Worker.prototype[i] = function() {
+				var t = Date.now(), r, log = [this ? this.name : null, this ? this.name+'.'+arguments.callee.name : null, '*.'+arguments.callee.name];
+				r = arguments.callee._orig.apply(this, arguments);
+				t = Date.now() - t;
+				for (i=0; i<log.length; i++) {
+					if (log[i]) {
+						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
+						Profile.temp[log[i]][0]++;
+						Profile.temp[log[i]][1] += t;
+						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+					}
+				}
+				return r;
+			}
+			Worker.prototype[i].name = i;
+			Worker.prototype[i]._orig = fn;
+		}
+	}
+};
+
+Profile.update = function(event) {
+	if (event.type === 'option' || event.type === 'init') {
+		if (this.option.timer) {
+			this._revive(this.option.timer, 'timer', function(){Profile._notify('data');})
+		} else {
+			this._forget('timer');
+		}
+		this._notify('data');
+	}
+};
+
+Profile.dashboard = function(sort, rev) {
+	var i, o, list = [], order = [], output = [], data = this.temp;
+	for (i in data) {
+		if (data[i][0] >= this.option.count && (this.option.total || (i.indexOf('.') !== -1 && i.indexOf('*') === -1))) {
+			order.push(i);
+		}
+	}
+	this.runtime.sort = sort = isUndefined(sort) ? (this.runtime.sort || 0) : sort;
+	this.runtime.rev = rev = isUndefined(rev) ? (this.runtime.rev || false) : rev;
+	order.sort(function(a,b) {
+		switch (sort) {
+			case 0:	return (rev ? (b).localeCompare(a) : (a).localeCompare(b));
+			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
+		}
+	});
+	list.push('<span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	th(output, 'Function', 'style="text-align:left;"');
+	th(output, 'Count');
+	th(output, 'Time', 'style="text-align:right;"');
+	th(output, 'Average', 'style="text-align:right;"');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
+		output = [];
+		th(output, order[o], 'style="text-align:left;"');
+		td(output, addCommas(data[order[o]][0]));
+		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][2].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		tr(list, output.join(''));
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Profile').html(list.join(''));
+	$('#golem-dashboard-Profile thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	$('#golem-profile-update').click(function(){Profile._notify('data');});
+	$('#golem-profile-reset').click(function(){Profile.temp={};Profile._notify('data');});
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
@@ -4061,22 +4229,14 @@ Window.data = { // Shared between all windows
 };
 
 Window.temp = {
-	active:false // Are we the active tab (able to do anything)?
-};
-
-Window.global = {
-	'_magic':'golem-magic-key',
-	'_id':'#' + Date.now()
+	active:false, // Are we the active tab (able to do anything)?
+	_id:'#' + Date.now()
 };
 
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
 Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 /***** Window.init() *****
-1. First try to load window.name information
-1a. Parse JSON data and check #1 it's an object, #2 it's got the right magic key (compare to our global magic)
-1b. Replace our current global data (including id) with the new one if it's real
-2. Save our global data to window.name (maybe just writing back what we just loaded)
 3. Add ourselves to this.data.list with the current time
 4. If no active worker (in the last 2 seconds) then make ourselves active
 4a. Set this.temp.active, this.data.current, and immediately call this._save()
@@ -4089,19 +4249,11 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 */
 Window.init = function() {
 	var now = Date.now(), data;
-	try {
-		data = JSON.parse((window.wrappedJSObject ? window.wrappedJSObject : window).name);
-		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
-			this.global = data;
-		}
-	} catch(e){}
-//	debug('Adding tab "' + this.global._id + '"');
-	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data.list = this.data.list || {};
-	this.data.list[this.global._id] = now;
-	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.global._id) {
+	this.data.list[this.temp._id] = now;
+	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.temp._id) {
 		this._set('temp.active', true);
-		this.data.current = this.global._id;
+		this.data.current = this.temp._id;
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
 	} else {
@@ -4121,7 +4273,7 @@ Window.init = function() {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			Window.data.current = Window.global._id;
+			Window.data.current = Window.temp._id;
 			Window.temp.active = true;
 		} else {// Not able to go active
 			Queue.clearCurrent();
@@ -4159,7 +4311,7 @@ Window.update = function(event) {
 	var i, now = Date.now();
 	this.data = this.data || {};
 	this.data.list = this.data.list || {};
-	this.data.list[this.global._id] = now;
+	this.data.list[this.temp._id] = now;
 	for(i in this.data.list) {
 		if (this.data.list[i] < (now - this.timeout)) {
 			delete this.data.list[i];
@@ -4174,7 +4326,7 @@ Window.update = function(event) {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			this.data.current = this.global._id;
+			this.data.current = this.temp._id;
 			this.temp.active = true;
 			this._notify('temp.active');
 		}
@@ -5163,7 +5315,6 @@ Army.parse = function(change) {
 		this.runtime.last = Date.now();
 		this._remind(this.option.check / 1000, 'members');
 	}
-	this.set(['Army', userID]);// Make sure we never try to handle ourselves
 	// Count current Army members
 	army = this.get('Army');
 	this.runtime.count = 0;
@@ -5178,7 +5329,8 @@ Army.parse = function(change) {
 
 Army.oldupdate = Army.update;
 Army.update = function(event) {
-	if (event.type === 'reminder' || event.type === 'watch') {
+	this.oldupdate(event);
+	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
 		this.runtime.next = 0;
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
 			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
@@ -5207,7 +5359,6 @@ Army.update = function(event) {
 		}
 		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
 	}
-	this.oldupdate(event);
 };
 
 Army.work = function(state) {

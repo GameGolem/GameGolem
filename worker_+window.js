@@ -28,22 +28,14 @@ Window.data = { // Shared between all windows
 };
 
 Window.temp = {
-	active:false // Are we the active tab (able to do anything)?
-};
-
-Window.global = {
-	'_magic':'golem-magic-key',
-	'_id':'#' + Date.now()
+	active:false, // Are we the active tab (able to do anything)?
+	_id:'#' + Date.now()
 };
 
 Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
 Window.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 /***** Window.init() *****
-1. First try to load window.name information
-1a. Parse JSON data and check #1 it's an object, #2 it's got the right magic key (compare to our global magic)
-1b. Replace our current global data (including id) with the new one if it's real
-2. Save our global data to window.name (maybe just writing back what we just loaded)
 3. Add ourselves to this.data.list with the current time
 4. If no active worker (in the last 2 seconds) then make ourselves active
 4a. Set this.temp.active, this.data.current, and immediately call this._save()
@@ -56,19 +48,11 @@ Window.warning = null;// If clicking the Disabled button when not able to go Ena
 */
 Window.init = function() {
 	var now = Date.now(), data;
-	try {
-		data = JSON.parse((window.wrappedJSObject ? window.wrappedJSObject : window).name);
-		if (typeof data === 'object' && typeof data['_magic'] !== 'undefined' && data['_magic'] === this.global['_magic']) {
-			this.global = data;
-		}
-	} catch(e){}
-//	debug('Adding tab "' + this.global._id + '"');
-	(window.wrappedJSObject ? window.wrappedJSObject : window).name = JSON.stringify(this.global);
 	this.data.list = this.data.list || {};
-	this.data.list[this.global._id] = now;
-	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.global._id) {
+	this.data.list[this.temp._id] = now;
+	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.temp._id) {
 		this._set('temp.active', true);
-		this.data.current = this.global._id;
+		this.data.current = this.temp._id;
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
 		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
 	} else {
@@ -88,7 +72,7 @@ Window.init = function() {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			Window.data.current = Window.global._id;
+			Window.data.current = Window.temp._id;
 			Window.temp.active = true;
 		} else {// Not able to go active
 			Queue.clearCurrent();
@@ -126,7 +110,7 @@ Window.update = function(event) {
 	var i, now = Date.now();
 	this.data = this.data || {};
 	this.data.list = this.data.list || {};
-	this.data.list[this.global._id] = now;
+	this.data.list[this.temp._id] = now;
 	for(i in this.data.list) {
 		if (this.data.list[i] < (now - this.timeout)) {
 			delete this.data.list[i];
@@ -141,7 +125,7 @@ Window.update = function(event) {
 				$('#golem_config').parent().show();
 			}
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			this.data.current = this.global._id;
+			this.data.current = this.temp._id;
 			this.temp.active = true;
 			this._notify('temp.active');
 		}

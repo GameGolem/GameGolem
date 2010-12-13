@@ -43,6 +43,7 @@ Army.display = [
 ];
 */
 Army.update = function(event) {
+	delete this.data[userID];
 	if (event.self && event.type === 'data') {
 		for (var i in this.runtime.update) {
 			Workers[i]._update({worker:this, type:'data'});
@@ -63,6 +64,7 @@ Army.init = function() {
 			delete this.data[i];
 		}
 	}
+	delete this.data[userID];// Make sure we never try to handle ourselves
 };
 
 // what = ['worker', userID, key ...]
@@ -83,7 +85,7 @@ Army.set = function(what, value) {
 	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
 		uid = x.shift();
 	}
-	if (!section || !uid) { // Must have both section name and userID to continue
+	if (!section || !uid || uid === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
 		return;
 	}
 //	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
