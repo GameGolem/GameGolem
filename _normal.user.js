@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 857;
+var revision = 859;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -298,7 +298,7 @@ var isObject = function(obj) {// Not an array
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function';
+	return typeof obj === 'function' && typeof obj.length !== 'undefined';
 };
 
 var isNumber = function(num) {
@@ -3225,7 +3225,7 @@ Profile.setup = function() {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					var t = Date.now(), i, r, log = [arguments.callee._worker, arguments.callee._worker+'.'+arguments.callee.name];
+					var t = Date.now(), i, r, log = [arguments.callee._worker, arguments.callee._worker+'.'+arguments.callee._name];
 					r = arguments.callee._orig.apply(this, arguments);
 					t = Date.now() - t;
 					for (i=0; i<log.length; i++) {
@@ -3236,7 +3236,7 @@ Profile.setup = function() {
 					}
 					return r;
 				}
-				wkr[j].name = j;
+				wkr[j]._name = j;
 				wkr[j]._orig = fn;
 				wkr[j]._worker = i;
 			}
@@ -3246,7 +3246,7 @@ Profile.setup = function() {
 		if (isFunction(Worker.prototype[i])) {
 			fn = Worker.prototype[i];
 			Worker.prototype[i] = function() {
-				var t = Date.now(), r, log = [this ? this.name : null, this ? this.name+'.'+arguments.callee.name : null, '*.'+arguments.callee.name];
+				var t = Date.now(), r, log = [this ? this.name : null, this ? this.name+'.'+arguments.callee._name : null, '*.'+arguments.callee._name];
 				r = arguments.callee._orig.apply(this, arguments);
 				t = Date.now() - t;
 				for (i=0; i<log.length; i++) {
@@ -3259,7 +3259,7 @@ Profile.setup = function() {
 				}
 				return r;
 			}
-			Worker.prototype[i].name = i;
+			Worker.prototype[i]._name = i;
 			Worker.prototype[i]._orig = fn;
 		}
 	}

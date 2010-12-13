@@ -19,7 +19,7 @@ var isObject = function(obj) {// Not an array
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function';
+	return typeof obj === 'function' && typeof obj.length !== 'undefined';
 };
 
 var isNumber = function(num) {
