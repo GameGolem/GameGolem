@@ -18,7 +18,8 @@ Profile.option = {
 	count:2,
 	show:10,
 	digits:1,
-	total:false
+	total:false,
+	worker:'All'
 };
 
 Profile.runtime = {
@@ -54,11 +55,42 @@ Profile.display = [
 		label:'Show Worker Totals',
 		checkbox:true
 	},{
+		id:'worker',
+		label:'Worker',
+		select:'worker_list'
+	},{
 		title:'IMPORTANT',
 		label:'You must reload Golem to change the Enabled state.'
 	}
 ];
 
+var overloadFunction = function() {
+	var t = Date.now(), r, log;
+	if (arguments.callee._worker) {
+		log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
+	} else {
+		log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+	}
+	Profile.parents.unshift(0);
+	r = arguments.callee._orig.apply(this, arguments);
+	t = Date.now() - t;
+	for (i=0; i<log.length; i++) {
+		if (log[i]) {
+			Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
+			Profile.temp[log[i]][0]++;
+			Profile.temp[log[i]][1] += t - Profile.parents[0];
+			Profile.temp[log[i]][2] += t;
+			Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+			Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
+			Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
+		}
+	}
+	Profile.parents.shift();
+	Profile.parents[0] += t;
+	return r;
+}
+
+Profile.parents = [0];
 Profile.setup = function() {
 	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
@@ -66,50 +98,52 @@ Profile.setup = function() {
 	}
 	// Go through every worker and replace their functions with a stub function
 	var i, j, wkr, fn;
+	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
 	for (i in Workers) {
-		wkr = Workers[i]
+		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
 		for (j in wkr) {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					var t = Date.now(), i, r, log = [arguments.callee._worker, arguments.callee._worker+'.'+arguments.callee._name];
+					var t = Date.now(), r, log;
+					if (arguments.callee._worker) {
+						log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
+					} else {
+						log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+					}
+					Profile.parents.unshift(0);
 					r = arguments.callee._orig.apply(this, arguments);
 					t = Date.now() - t;
 					for (i=0; i<log.length; i++) {
-						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
+						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
 						Profile.temp[log[i]][0]++;
-						Profile.temp[log[i]][1] += t;
-						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][1] += t - Profile.parents[0];
+						Profile.temp[log[i]][2] += t;
+						Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
 					}
+					Profile.parents.shift();
+					Profile.parents[0] += t;
 					return r;
 				}
 				wkr[j]._name = j;
 				wkr[j]._orig = fn;
-				wkr[j]._worker = i;
-			}
-		}
-	}
-	for (i in Worker.prototype) {
-		if (isFunction(Worker.prototype[i])) {
-			fn = Worker.prototype[i];
-			Worker.prototype[i] = function() {
-				var t = Date.now(), r, log = [this ? this.name : null, this ? this.name+'.'+arguments.callee._name : null, '*.'+arguments.callee._name];
-				r = arguments.callee._orig.apply(this, arguments);
-				t = Date.now() - t;
-				for (i=0; i<log.length; i++) {
-					if (log[i]) {
-						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
-						Profile.temp[log[i]][0]++;
-						Profile.temp[log[i]][1] += t;
-						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
-					}
+				if (i !== '__fake__') {
+					wkr[j]._worker = i;
 				}
-				return r;
 			}
-			Worker.prototype[i]._name = i;
-			Worker.prototype[i]._orig = fn;
 		}
 	}
+	delete Workers['__fake__']; // Remove the fake worker
+};
+
+Profile.init = function() {
+	var i, list = [];
+	for (i in Workers) {
+		list.push(i);
+	}
+	Config.set('worker_list', ['All', '*'].concat(unique(list).sort()));
 };
 
 Profile.update = function(event) {
@@ -119,17 +153,20 @@ Profile.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		this._notify('data');
+		this._notify('data');// Any changes to options should force a dashboard update
 	}
 };
 
 Profile.work = function(){};// Stub so we can be disabled
 
 Profile.dashboard = function(sort, rev) {
-	var i, o, list = [], order = [], output = [], data = this.temp;
+	var i, o, list = [], order = [], output = [], data = this.temp, total = 0;
 	for (i in data) {
-		if (data[i][0] >= this.option.count && (this.option.total || (i.indexOf('.') !== -1 && i.indexOf('*') === -1))) {
+		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || i.indexOf(this.option.worker) === 0)) {
 			order.push(i);
+		}
+		if (i.indexOf('.') === -1) {
+			total += parseInt(data[i][1], 10);
 		}
 	}
 	this.runtime.sort = sort = isUndefined(sort) ? (this.runtime.sort || 0) : sort;
@@ -140,18 +177,24 @@ Profile.dashboard = function(sort, rev) {
 			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
 		}
 	});
-	list.push('<span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated Total Time:</b> ' + addCommas(total) + 'ms <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count');
 	th(output, 'Time', 'style="text-align:right;"');
+	th(output, '&Psi; Time', 'style="text-align:right;"');
 	th(output, 'Average', 'style="text-align:right;"');
+	th(output, '&Psi; Average', 'style="text-align:right;"');
+	th(output, '&Psi; Diff', 'style="text-align:right;"');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
 		output = [];
 		th(output, order[o], 'style="text-align:left;"');
 		td(output, addCommas(data[order[o]][0]));
 		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][2].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][2]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][3].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][4].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][5].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');

@@ -62,86 +62,88 @@ Army.display = [
 }
 ];
 
-Army.oldinit = Army.init;
-Army.init = function() {
+Army._overload('init', function() {
 	this._watch(Player, 'data.armymax');
-	this._watch(Army, 'runtime.next');
+	this._watch(this, 'runtime.next');
 	this._remind(Math.min(1, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
-	if (this.runtime.recheck && this.option.recheck) {
-		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-	}
-	this.oldinit();
-};
+//	if (this.runtime.recheck && this.option.recheck) {
+//		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//	}
+	this._parent();
+});
 
-Army.parse = function(change) {
-	var i, army, tmp, now = Date.now();
-	if (Page.page === 'army_viewarmy') {
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
-			Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
-			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
-			Army.set(['_info', uid, 'seen'], now);
-		});
-		if ($('img[src*="bonus_member.jpg"]').length) {
-			Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-			debug('Extra Army Members Found: '+Army.runtime.extra);
-		}
-		army = this.get('Army');
-		for (i=0; i<army.length; i++) {
-			/*jslint eqeqeq:false*/
-			if (army[i] == userID) {
-			/*jslint eqeqeq:true*/
-				continue; // skip self
+Army._overload('parse', function(change) {
+	if (!change) {
+		var i, army, tmp, now = Date.now();
+		if (Page.page === 'army_viewarmy') {
+			$('img[linked="true"][size="square"]').each(function(i,el){
+				var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next(), army;
+				army = Army.data[uid] = Army.data[uid] || {};
+				army.Army = true;
+				army._info = army._info || {};
+				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
+				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+				army._info.seen = now;
+			});
+			if ($('img[src*="bonus_member.jpg"]').length) {
+				Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+	//			log('Extra Army Members Found: '+Army.runtime.extra);
 			}
-			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
-				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
-					this.set(['Army', army[i]]);// Forget this one, he aint been found!!!
+			army = Army.data;
+			delete army[userID];// Make sure we never try to handle ourselves
+			for (i=0; i<army.length; i++) {
+				if (army[i].Army && army[i]._info.page === this.runtime.next) {
+					if ((army[i]._info.seen || 0) !== now) {
+						delete army[i].Army;// Forget this one, he aint been found!!!
+					}
 				}
 			}
+		} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
+			army = this.data;
+			tmp = {};
+			$('.unselected_list input').each(function(i,el){
+				tmp[el.value] = true;
+			});
+			for (i in army) {
+				if (!tmp[i]) {
+					delete army[i].Army;
+				}
+			}
+			for (i in tmp) {
+				army[i].Army = true;
+			}
+			this.runtime.last = Date.now();
+			this._remind(this.option.check / 1000, 'members');
 		}
-	} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
-		army = this.get('Army');
-		tmp = {};
+		// Count current Army members
+		army = this.data;
+		this.runtime.count = 0;
 		for (i=0; i<army.length; i++) {
-			tmp[army[i]] = false;
-		}
-		$('.unselected_list input').each(function(i,el){
-			tmp[el.value] = true;
-		});
-		for (i in tmp) {
-			if (tmp[i]) {
-				this.set(['Army', i], tmp[i]);
-			} else {
-				this.set(['Army', i]);
+			if (army[i].Army) {
+				this.runtime.count++;
 			}
 		}
-		this.runtime.last = Date.now();
-		this._remind(this.option.check / 1000, 'members');
+		this._notify('runtime.next');
 	}
-	// Count current Army members
-	army = this.get('Army');
-	this.runtime.count = 0;
-	for (i=0; i<army.length; i++) {
-		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
-			this.runtime.count++;
-		}
-	}
-	this.update({self:true, worker:this, type:'watch'});
-	return false;
-};
+	return this._parent();
+});
 
-Army.oldupdate = Army.update;
-Army.update = function(event) {
-	this.oldupdate(event);
+Army._overload('update', function(event) {
+	this._parent();
 	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
 		this.runtime.next = 0;
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
-			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
+			var i, page, seen, now = Date.now(), army = [];// All potential army members
+			for (i=0; i<this.data.length; i++) {
+				if (this.data[i].Army) {
+					army.push(parseInt(i));
+				}
+			}
+			army.sort();
+			debug(army.toSource());
 			this.runtime.recheck = 0;
-			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
 			for (i=0; i<army.length; i++) {
-				seen = this.get(['_info', army[i], 'seen'], -1);
+				seen = this.data[army[i]]._info.seen || -1;
 				if (this.runtime.recheck > 0 && seen > 0) {
 					this.runtime.recheck = Math.min(this.runtime.recheck, seen);
 				}
@@ -151,21 +153,21 @@ Army.update = function(event) {
 						this.runtime.next = page;
 						debug('Want to see userid '+army[i]+', and others on page '+page);
 					}
-					this.set(['_info', army[i], 'page'], page);
+					this.data[army[i]]._info.page = page;
 //					break;
 				}
 			}
-			if (this.runtime.recheck && this.option.recheck) {
-				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-			} else {
-				this._forget('recheck');
-			}
+//			if (this.runtime.recheck && this.option.recheck) {
+//				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//			} else {
+//				this._forget('recheck');
+//			}
 		}
 		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
 	}
-};
+});
 
-Army.work = function(state) {
+Army._overload('work', function(state) {
 	if (this.runtime.next || Date.now() - this.runtime.last > this.option.check) {
 		if (state) {
 			if (this.runtime.next) {
@@ -176,6 +178,6 @@ Army.work = function(state) {
 		}
 		return true;
 	}
-	return false;
-};
+	return this._parent();
+});
 

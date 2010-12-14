@@ -15,7 +15,7 @@
 * NOTE: Cannot share "global" information across page reloads any more
 */
 var Window = new Worker('Window');
-Window.runtime = null; // Don't save anything except global stuff
+Window.runtime = Window.option = null; // Don't save anything except global stuff
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {

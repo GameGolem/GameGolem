@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 859;
+var revision = 860;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -944,6 +944,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
 
+._overload(name,fn)		- Overloads the member function 'name'. this._parent() becomes available for running the original code (it automatically has the same arguments unless passed others)
+
 ._push()				- Pushes us onto the "active worker" list for debug messages etc
 ._pop()					- Pops us off the "active worker" list
 */
@@ -1120,6 +1122,19 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		}
 	}
 }
+
+Worker.prototype._overload = function(name, fn) {
+	var old = this[name] || new Function();
+	this[name] = function() {
+		var a = this, b = arguments, r, x = this._parent;
+		this._parent = function() {
+			return old.apply(a, arguments.length ? arguments : b);
+		};
+		var r = fn.apply(this, b);
+		this._parent = x;
+		return r;
+	};
+};
 
 Worker.prototype._parse = function(change) {
 	this._push();
@@ -1382,7 +1397,8 @@ Army.data = {};
 
 Army.settings = {
 	system:true,
-	advanced:true
+	advanced:true,
+	keep:true
 };
 
 Army.option = {
@@ -3171,7 +3187,8 @@ Profile.option = {
 	count:2,
 	show:10,
 	digits:1,
-	total:false
+	total:false,
+	worker:'All'
 };
 
 Profile.runtime = {
@@ -3207,11 +3224,42 @@ Profile.display = [
 		label:'Show Worker Totals',
 		checkbox:true
 	},{
+		id:'worker',
+		label:'Worker',
+		select:'worker_list'
+	},{
 		title:'IMPORTANT',
 		label:'You must reload Golem to change the Enabled state.'
 	}
 ];
 
+var overloadFunction = function() {
+	var t = Date.now(), r, log;
+	if (arguments.callee._worker) {
+		log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
+	} else {
+		log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+	}
+	Profile.parents.unshift(0);
+	r = arguments.callee._orig.apply(this, arguments);
+	t = Date.now() - t;
+	for (i=0; i<log.length; i++) {
+		if (log[i]) {
+			Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
+			Profile.temp[log[i]][0]++;
+			Profile.temp[log[i]][1] += t - Profile.parents[0];
+			Profile.temp[log[i]][2] += t;
+			Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+			Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
+			Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
+		}
+	}
+	Profile.parents.shift();
+	Profile.parents[0] += t;
+	return r;
+}
+
+Profile.parents = [0];
 Profile.setup = function() {
 	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
@@ -3219,50 +3267,52 @@ Profile.setup = function() {
 	}
 	// Go through every worker and replace their functions with a stub function
 	var i, j, wkr, fn;
+	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
 	for (i in Workers) {
-		wkr = Workers[i]
+		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
 		for (j in wkr) {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					var t = Date.now(), i, r, log = [arguments.callee._worker, arguments.callee._worker+'.'+arguments.callee._name];
+					var t = Date.now(), r, log;
+					if (arguments.callee._worker) {
+						log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
+					} else {
+						log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+					}
+					Profile.parents.unshift(0);
 					r = arguments.callee._orig.apply(this, arguments);
 					t = Date.now() - t;
 					for (i=0; i<log.length; i++) {
-						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
+						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
 						Profile.temp[log[i]][0]++;
-						Profile.temp[log[i]][1] += t;
-						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][1] += t - Profile.parents[0];
+						Profile.temp[log[i]][2] += t;
+						Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
+						Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
 					}
+					Profile.parents.shift();
+					Profile.parents[0] += t;
 					return r;
 				}
 				wkr[j]._name = j;
 				wkr[j]._orig = fn;
-				wkr[j]._worker = i;
-			}
-		}
-	}
-	for (i in Worker.prototype) {
-		if (isFunction(Worker.prototype[i])) {
-			fn = Worker.prototype[i];
-			Worker.prototype[i] = function() {
-				var t = Date.now(), r, log = [this ? this.name : null, this ? this.name+'.'+arguments.callee._name : null, '*.'+arguments.callee._name];
-				r = arguments.callee._orig.apply(this, arguments);
-				t = Date.now() - t;
-				for (i=0; i<log.length; i++) {
-					if (log[i]) {
-						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0];
-						Profile.temp[log[i]][0]++;
-						Profile.temp[log[i]][1] += t;
-						Profile.temp[log[i]][2] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
-					}
+				if (i !== '__fake__') {
+					wkr[j]._worker = i;
 				}
-				return r;
 			}
-			Worker.prototype[i]._name = i;
-			Worker.prototype[i]._orig = fn;
 		}
 	}
+	delete Workers['__fake__']; // Remove the fake worker
+};
+
+Profile.init = function() {
+	var i, list = [];
+	for (i in Workers) {
+		list.push(i);
+	}
+	Config.set('worker_list', ['All', '*'].concat(unique(list).sort()));
 };
 
 Profile.update = function(event) {
@@ -3272,17 +3322,20 @@ Profile.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		this._notify('data');
+		this._notify('data');// Any changes to options should force a dashboard update
 	}
 };
 
 Profile.work = function(){};// Stub so we can be disabled
 
 Profile.dashboard = function(sort, rev) {
-	var i, o, list = [], order = [], output = [], data = this.temp;
+	var i, o, list = [], order = [], output = [], data = this.temp, total = 0;
 	for (i in data) {
-		if (data[i][0] >= this.option.count && (this.option.total || (i.indexOf('.') !== -1 && i.indexOf('*') === -1))) {
+		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || i.indexOf(this.option.worker) === 0)) {
 			order.push(i);
+		}
+		if (i.indexOf('.') === -1) {
+			total += parseInt(data[i][1], 10);
 		}
 	}
 	this.runtime.sort = sort = isUndefined(sort) ? (this.runtime.sort || 0) : sort;
@@ -3293,18 +3346,24 @@ Profile.dashboard = function(sort, rev) {
 			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
 		}
 	});
-	list.push('<span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated Total Time:</b> ' + addCommas(total) + 'ms <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count');
 	th(output, 'Time', 'style="text-align:right;"');
+	th(output, '&Psi; Time', 'style="text-align:right;"');
 	th(output, 'Average', 'style="text-align:right;"');
+	th(output, '&Psi; Average', 'style="text-align:right;"');
+	th(output, '&Psi; Diff', 'style="text-align:right;"');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
 		output = [];
 		th(output, order[o], 'style="text-align:left;"');
 		td(output, addCommas(data[order[o]][0]));
 		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][2].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][2]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][3].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][4].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][5].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
@@ -3361,7 +3420,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Page', 'Resources', 'Queue', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Page', 'Queue', 'Resources', 'Settings', 'Title', 'Profile', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -3566,7 +3625,7 @@ Queue.update = function(event) {
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
 			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true) || worker.get(['option', '_sleep'], false)) {
-				if (this.runtime.current === worker.name) {
+				if (worker && this.runtime.current === worker.name) {
 					this.clearCurrent();
 				}
 				continue;
@@ -3667,9 +3726,9 @@ Resources.runtime = {
 	buckets:{}
 };
 
-Resources.display = 'Discovering Resources...';
+//Resources.display = 'Discovering Resources...';
 
-Resources.display2 = function() {
+Resources.display = function() {
 	var type, group, worker, require, display = [];
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
@@ -3714,9 +3773,9 @@ Resources.init = function() {
 };
 
 Resources.update = function(event) {
-	if (event.type === 'init' && event.self) {
-		Config.makePanel(this, this.display2);
-	}
+//	if (event.type === 'init' && event.self) {
+//		Config.makePanel(this, this.display2);
+//	}
 	var worker, type, total = 0;
 //	debug('Resources.update()');
 	for (type in this.option.types) {
@@ -4217,7 +4276,7 @@ Update.update = function(event) {
 * NOTE: Cannot share "global" information across page reloads any more
 */
 var Window = new Worker('Window');
-Window.runtime = null; // Don't save anything except global stuff
+Window.runtime = Window.option = null; // Don't save anything except global stuff
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {
@@ -5259,86 +5318,88 @@ Army.display = [
 }
 ];
 
-Army.oldinit = Army.init;
-Army.init = function() {
+Army._overload('init', function() {
 	this._watch(Player, 'data.armymax');
-	this._watch(Army, 'runtime.next');
+	this._watch(this, 'runtime.next');
 	this._remind(Math.min(1, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
-	if (this.runtime.recheck && this.option.recheck) {
-		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-	}
-	this.oldinit();
-};
+//	if (this.runtime.recheck && this.option.recheck) {
+//		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//	}
+	this._parent();
+});
 
-Army.parse = function(change) {
-	var i, army, tmp, now = Date.now();
-	if (Page.page === 'army_viewarmy') {
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next();
-			Army.set(['Army', uid], true); // Set for people in our actual army
-			Army.set(['_info', uid, 'name'], $('a', who).text() + ' ' + $('a', who).next().text());
-			Army.set(['_info', uid, 'level'], $(who).text().regex(/([0-9]+) Commander/i));
-			Army.set(['_info', uid, 'seen'], now);
-		});
-		if ($('img[src*="bonus_member.jpg"]').length) {
-			Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-			debug('Extra Army Members Found: '+Army.runtime.extra);
-		}
-		army = this.get('Army');
-		for (i=0; i<army.length; i++) {
-			/*jslint eqeqeq:false*/
-			if (army[i] == userID) {
-			/*jslint eqeqeq:true*/
-				continue; // skip self
+Army._overload('parse', function(change) {
+	if (!change) {
+		var i, army, tmp, now = Date.now();
+		if (Page.page === 'army_viewarmy') {
+			$('img[linked="true"][size="square"]').each(function(i,el){
+				var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next(), army;
+				army = Army.data[uid] = Army.data[uid] || {};
+				army.Army = true;
+				army._info = army._info || {};
+				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
+				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+				army._info.seen = now;
+			});
+			if ($('img[src*="bonus_member.jpg"]').length) {
+				Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+	//			log('Extra Army Members Found: '+Army.runtime.extra);
 			}
-			if (this.get(['_info', army[i], 'page'], 0) === this.runtime.next) {
-				if (this.get(['_info', army[i], 'seen'], 0) !== now) {
-					this.set(['Army', army[i]]);// Forget this one, he aint been found!!!
+			army = Army.data;
+			delete army[userID];// Make sure we never try to handle ourselves
+			for (i=0; i<army.length; i++) {
+				if (army[i].Army && army[i]._info.page === this.runtime.next) {
+					if ((army[i]._info.seen || 0) !== now) {
+						delete army[i].Army;// Forget this one, he aint been found!!!
+					}
 				}
 			}
+		} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
+			army = this.data;
+			tmp = {};
+			$('.unselected_list input').each(function(i,el){
+				tmp[el.value] = true;
+			});
+			for (i in army) {
+				if (!tmp[i]) {
+					delete army[i].Army;
+				}
+			}
+			for (i in tmp) {
+				army[i].Army = true;
+			}
+			this.runtime.last = Date.now();
+			this._remind(this.option.check / 1000, 'members');
 		}
-	} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
-		army = this.get('Army');
-		tmp = {};
+		// Count current Army members
+		army = this.data;
+		this.runtime.count = 0;
 		for (i=0; i<army.length; i++) {
-			tmp[army[i]] = false;
-		}
-		$('.unselected_list input').each(function(i,el){
-			tmp[el.value] = true;
-		});
-		for (i in tmp) {
-			if (tmp[i]) {
-				this.set(['Army', i], tmp[i]);
-			} else {
-				this.set(['Army', i]);
+			if (army[i].Army) {
+				this.runtime.count++;
 			}
 		}
-		this.runtime.last = Date.now();
-		this._remind(this.option.check / 1000, 'members');
+		this._notify('runtime.next');
 	}
-	// Count current Army members
-	army = this.get('Army');
-	this.runtime.count = 0;
-	for (i=0; i<army.length; i++) {
-		if (this.get(['_info', army[i], 'seen'], -1) !== -1) {
-			this.runtime.count++;
-		}
-	}
-	this.update({self:true, worker:this, type:'watch'});
-	return false;
-};
+	return this._parent();
+});
 
-Army.oldupdate = Army.update;
-Army.update = function(event) {
-	this.oldupdate(event);
+Army._overload('update', function(event) {
+	this._parent();
 	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
 		this.runtime.next = 0;
 		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
-			var i, page, seen, now = Date.now(), army = this.get('Army');// All potential army members
+			var i, page, seen, now = Date.now(), army = [];// All potential army members
+			for (i=0; i<this.data.length; i++) {
+				if (this.data[i].Army) {
+					army.push(parseInt(i));
+				}
+			}
+			army.sort();
+			debug(army.toSource());
 			this.runtime.recheck = 0;
-			army.sort(function(a,b){return parseInt(a,10) > parseInt(b,10);});
 			for (i=0; i<army.length; i++) {
-				seen = this.get(['_info', army[i], 'seen'], -1);
+				seen = this.data[army[i]]._info.seen || -1;
 				if (this.runtime.recheck > 0 && seen > 0) {
 					this.runtime.recheck = Math.min(this.runtime.recheck, seen);
 				}
@@ -5348,21 +5409,21 @@ Army.update = function(event) {
 						this.runtime.next = page;
 						debug('Want to see userid '+army[i]+', and others on page '+page);
 					}
-					this.set(['_info', army[i], 'page'], page);
+					this.data[army[i]]._info.page = page;
 //					break;
 				}
 			}
-			if (this.runtime.recheck && this.option.recheck) {
-				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-			} else {
-				this._forget('recheck');
-			}
+//			if (this.runtime.recheck && this.option.recheck) {
+//				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//			} else {
+//				this._forget('recheck');
+//			}
 		}
 		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
 	}
-};
+});
 
-Army.work = function(state) {
+Army._overload('work', function(state) {
 	if (this.runtime.next || Date.now() - this.runtime.last > this.option.check) {
 		if (state) {
 			if (this.runtime.next) {
@@ -5373,8 +5434,8 @@ Army.work = function(state) {
 		}
 		return true;
 	}
-	return false;
-};
+	return this._parent();
+});
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global

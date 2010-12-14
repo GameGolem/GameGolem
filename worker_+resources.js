@@ -57,9 +57,9 @@ Resources.runtime = {
 	buckets:{}
 };
 
-Resources.display = 'Discovering Resources...';
+//Resources.display = 'Discovering Resources...';
 
-Resources.display2 = function() {
+Resources.display = function() {
 	var type, group, worker, require, display = [];
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
@@ -104,9 +104,9 @@ Resources.init = function() {
 };
 
 Resources.update = function(event) {
-	if (event.type === 'init' && event.self) {
-		Config.makePanel(this, this.display2);
-	}
+//	if (event.type === 'init' && event.self) {
+//		Config.makePanel(this, this.display2);
+//	}
 	var worker, type, total = 0;
 //	debug('Resources.update()');
 	for (type in this.option.types) {

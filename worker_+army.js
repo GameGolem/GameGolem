@@ -19,7 +19,8 @@ Army.data = {};
 
 Army.settings = {
 	system:true,
-	advanced:true
+	advanced:true,
+	keep:true
 };
 
 Army.option = {

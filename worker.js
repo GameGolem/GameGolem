@@ -91,6 +91,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
 
+._overload(name,fn)		- Overloads the member function 'name'. this._parent() becomes available for running the original code (it automatically has the same arguments unless passed others)
+
 ._push()				- Pushes us onto the "active worker" list for debug messages etc
 ._pop()					- Pops us off the "active worker" list
 */
@@ -267,6 +269,19 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		}
 	}
 }
+
+Worker.prototype._overload = function(name, fn) {
+	var old = this[name] || new Function();
+	this[name] = function() {
+		var a = this, b = arguments, r, x = this._parent;
+		this._parent = function() {
+			return old.apply(a, arguments.length ? arguments : b);
+		};
+		var r = fn.apply(this, b);
+		this._parent = x;
+		return r;
+	};
+};
 
 Worker.prototype._parse = function(change) {
 	this._push();
