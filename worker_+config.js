@@ -175,11 +175,11 @@ Config.init = function() {
 
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
 		args = worker;
-		worker = Worker.current;
+		worker = Worker.get(Worker.stack[0]);
 	}
 	if (!args) {
 		if (!worker.display) {
@@ -206,10 +206,10 @@ Config.clearPanel = function(selector) {
 	if (isWorker(selector)) {
 		selector = '#'+selector.id+' > div';
 	} else if (typeof selector === 'undefined' || !selector) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
-		selector = '#'+Workers[Worker.current].id+' > div';
+		selector = '#'+Workers[Worker.stack[0]].id+' > div';
 	}
 	$(selector).empty();
 };
@@ -221,10 +221,10 @@ Config.addOption = function(selector, args) {
 		worker = selector;
 		selector = '#'+selector.id+' > div';
 	} else if (typeof args === 'undefined' || !args) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
-		worker = Workers[Worker.current];
+		worker = Workers[Worker.stack[0]];
 		args = selector;
 		selector = '#'+worker.id+' > div';
 	}
@@ -250,7 +250,7 @@ Config.makeOptions = function(worker, args) {
 			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		debug(Worker.current+' is trying to add an unknown type of option');
+		debug(Worker.stack[0]+' is trying to add an unknown type of option');
 	}
 	return $([]);
 };

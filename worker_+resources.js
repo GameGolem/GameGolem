@@ -181,8 +181,8 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-	if (Worker.current) {
-		var worker = Worker.current;
+	if (Worker.stack.length <= 1) {
+		var worker = Worker.stack[0];
 		if (isUndefined(amount)) {
 			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
 			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));

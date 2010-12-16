@@ -12,41 +12,29 @@
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_invite army_viewarmy army_gifts';
+Army.pages = 'army_viewarmy';
 
 // Careful not to hit any *real* army options
 Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
 Army.option.invite = false;
-Army.option.check = 86400000;
 Army.option.recheck = 0;
 
 Army.runtime.count = -1; // How many people have we actively seen
-Army.runtime.next = 0; // Next page we want to look at 
-Army.runtime.last = 0; // Last time we visited the army list page
+Army.runtime.page = 0; // Next page we want to look at 
 Army.runtime.extra = 0; // How many non-real army members are there
-Army.runtime.recheck = 0; // Timestamp of when we last saw the oldest member
+Army.runtime.oldest = 0; // Timestamp of when we last saw the oldest member
 
 Army.display = [
+//Disabled until Army works correctly
+//{
+//	id:'invite',
+//	label:'Auto-Join New Armies',
+//	checkbox:true
+//},
 {
-	id:'invite',
-	label:'Auto-Join New Armies',
-	checkbox:true
-},{
 	title:'Members',
 	group:[
 		{
-			id:'check',
-			label:'Check for New',
-			select:{
-				900000:'Quarterly',
-				3600000:'Hourly',
-				7200000:'2 Hours',
-				21600000:'6 Hours',
-				43200000:'12 Hours',
-				86400000:'Daily',
-				604800000:'Weekly'
-			}
-		},{
 			id:'recheck',
 			label:'Re-check Old',
 			select:{
@@ -64,117 +52,90 @@ Army.display = [
 
 Army._overload('init', function() {
 	this._watch(Player, 'data.armymax');
-	this._watch(this, 'runtime.next');
-	this._remind(Math.min(1, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
-//	if (this.runtime.recheck && this.option.recheck) {
-//		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//	if (this.runtime.oldest && this.option.recheck) {
+//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
 //	}
 	this._parent();
 });
 
 Army._overload('parse', function(change) {
-	if (!change) {
-		var i, army, tmp, now = Date.now();
-		if (Page.page === 'army_viewarmy') {
-			$('img[linked="true"][size="square"]').each(function(i,el){
-				var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next(), army;
-				army = Army.data[uid] = Army.data[uid] || {};
-				army.Army = true;
-				army._info = army._info || {};
-				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
-				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
-				army._info.seen = now;
-			});
-			if ($('img[src*="bonus_member.jpg"]').length) {
-				Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-	//			log('Extra Army Members Found: '+Army.runtime.extra);
+	if (!change && Page.page === 'army_viewarmy') {
+		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0;
+		page = $('table[width=740] div:first > div:eq(1)').html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
+		start = $('table[width=740] div:first > div:eq(2)').text().regex(/Displaying: ([0-9]+) - [0-9]+/);
+		page = Math.ceil(start / this.option.armyperpage);// Would prefer to work it out, but last page will never be full
+		$('img[linked="true"][size="square"]').each(function(i,el){
+			var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
+			if (uid === userID) {// Shouldn't ever happen!
+				return;
 			}
-			army = Army.data;
-			delete army[userID];// Make sure we never try to handle ourselves
-			for (i=0; i<army.length; i++) {
-				if (army[i].Army && army[i]._info.page === this.runtime.next) {
-					if ((army[i]._info.seen || 0) !== now) {
-						delete army[i].Army;// Forget this one, he aint been found!!!
-					}
-				}
-			}
-		} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
-			army = this.data;
-			tmp = {};
-			$('.unselected_list input').each(function(i,el){
-				tmp[el.value] = true;
-			});
-			for (i in army) {
-				if (!tmp[i]) {
-					delete army[i].Army;
-				}
-			}
-			for (i in tmp) {
-				army[i].Army = true;
-			}
-			this.runtime.last = Date.now();
-			this._remind(this.option.check / 1000, 'members');
+			army = Army.data[uid] = Army.data[uid] || {};
+			army.Army = true;
+			army._info = army._info || {};
+			army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
+			army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+			army._info.seen = now;
+			army._info.page = page;
+			army._info.id = start + i;
+			Army._taint.data = true;
+//			debug('Adding: ' + JSON.stringify(army));
+		});
+		if ($('img[src*="bonus_member.jpg"]').length) {
+			this.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+//			log('Extra Army Members Found: '+Army.runtime.extra);
 		}
-		// Count current Army members
-		army = this.data;
-		this.runtime.count = 0;
-		for (i=0; i<army.length; i++) {
+		for (i in army) {
 			if (army[i].Army) {
-				this.runtime.count++;
+				if (!army[i]._info || (army[i]._info.page === page && army[i]._info.seen !== now)) {
+					delete army[i].Army;// Forget this one, not found on the correct page
+				} else {
+					count++;// Lets count this one instead
+				}
 			}
 		}
-		this._notify('runtime.next');
+		this._set(['runtime','count'], count);
+		if (this.runtime.page) {
+			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
+				this._set(['runtime','page'], 0);
+			} else {
+				this._set(['runtime','page'], page + 1);
+			}
+		}
+//		debug('parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent();
 });
 
 Army._overload('update', function(event) {
 	this._parent();
-	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
-		this.runtime.next = 0;
-		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
-			var i, page, seen, now = Date.now(), army = [];// All potential army members
-			for (i=0; i<this.data.length; i++) {
-				if (this.data[i].Army) {
-					army.push(parseInt(i));
-				}
-			}
-			army.sort();
-			debug(army.toSource());
-			this.runtime.recheck = 0;
-			for (i=0; i<army.length; i++) {
-				seen = this.data[army[i]]._info.seen || -1;
-				if (this.runtime.recheck > 0 && seen > 0) {
-					this.runtime.recheck = Math.min(this.runtime.recheck, seen);
-				}
-				if (seen === -1 || (this.option.recheck && now - seen > this.option.recheck)) {
-					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
-					if (!this.runtime.next || this.runtime.next > page) {
-						this.runtime.next = page;
-						debug('Want to see userid '+army[i]+', and others on page '+page);
-					}
-					this.data[army[i]]._info.page = page;
-//					break;
-				}
-			}
-//			if (this.runtime.recheck && this.option.recheck) {
-//				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-//			} else {
-//				this._forget('recheck');
-//			}
+	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
+		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
+		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
+			log('Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			page = 1;
 		}
-		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
+		if (!page && this.option.recheck) {
+			for (i in army) {
+				ai = army[i];
+				if (ai.Army && ai._info && ai._info.page && ai._info.seen) {
+					oldest = Math.min(oldest || Number.MAX_VALUE, ai._info.seen);
+					if (!page && ai._info.seen < then) {
+						page = Math.min(page || Number.MAX_VALUE, ai._info.page);
+					}
+				}
+			}
+			this._set(['runtime','oldest'], oldest);
+		}
+		this._set(['runtime','page'], page);
+//		debug('update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
 	}
+	this._set(['option','_sleep'], !this.runtime.page);
 });
 
 Army._overload('work', function(state) {
-	if (this.runtime.next || Date.now() - this.runtime.last > this.option.check) {
+	if (this.runtime.page) {
 		if (state) {
-			if (this.runtime.next) {
-				Page.to('army_viewarmy', {page:this.runtime.next});
-			} else {
-				Page.to('army_gifts', {app_friends:'c'}, true);
-			}
+			Page.to('army_viewarmy', {page:this.runtime.page});
 		}
 		return true;
 	}

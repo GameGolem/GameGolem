@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 860;
+var revision = 861;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -75,11 +75,11 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
+			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
 		};
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};
@@ -782,7 +782,7 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 	}
 	return best;
 };
-
+/*
 var shallowStringify = function(obj, depth) {
 	var str = '', i;
 	depth = isNumber(depth) ? depth : 10;
@@ -850,6 +850,38 @@ var shallowStringify = function(obj, depth) {
 	}
 	return str;
 };
+*/
+JSON.shallow = function(obj, depth, replacer, space) {
+	return JSON.stringify((function(o,d) {
+		var i, out;
+		if (typeof o === 'object') {
+			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
+				if (d > 0) {
+					out = [];
+					for (i=0; i<o.length; i++) {
+						out[i] = arguments.callee(o[i],d-1);
+					}
+				} else {
+					out = '[object Array]';
+				}
+			} else {
+				if (isWorker(o)) {
+					out = '[worker ' + o.name + ']';
+				} else if (d > 0) {
+					out = {};
+					for (i in o) {
+						out[i] = arguments.callee(o[i],d-1);
+					}
+				} else {
+					out = '[object Object]';
+				}
+			}
+		} else {
+			out = o.toString();
+		}
+		return out;
+	})(obj, depth || 1), replacer, space);
+};
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -881,6 +913,7 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
+				taint (true/false) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
 				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
@@ -993,6 +1026,7 @@ function Worker(name,pages,settings) {
 	this._watching = {};
 	this._reminders = {};
 	this._disabled = false;
+	this._flush_count = 0;
 }
 
 // Static Functions
@@ -1012,15 +1046,19 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 };
 
 // Static Data
-Worker.stack = [];// array of active workers, last on the end
-Worker.current = '';
+Worker.stack = ['unknown'];// array of active workers, last at the start
 
 // Private functions - only override if you know exactly what you're doing
-Worker.prototype._flush = function() {
+Worker.prototype._flush = function(force) {
 	this._push();
 	this._save();
 	if (!this.settings.keep) {
-		delete this.data;
+//		if (force) {
+//			this._flush_count = 0;
+			delete this.data;
+//		} else if (this._flush_count++ > 60) {
+//			this._remind(0.1, '_flush', this._flush);
+//		}
 	}
 	this._pop();
 };
@@ -1149,13 +1187,11 @@ Worker.prototype._parse = function(change) {
 };
 
 Worker.prototype._pop = function() {
-	Worker.stack.pop();
-	Worker.current = Worker.stack.length ? Worker.stack[Worker.stack.length - 1].name : '';
+	Worker.stack.shift();
 };
 
 Worker.prototype._push = function() {
-	Worker.stack.push(this);
-	Worker.current = this.name;
+	Worker.stack.unshift(this.name);
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
@@ -1200,7 +1236,7 @@ Worker.prototype._save = function(type) {
 		// exit so we don't try to save mangled data over good data
 		return false;
 	}
-	if (getItem(n) === 'undefined' || getItem(n) !== v) {
+	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._taint[type] = false;
 		this._update({worker:this, type:type, self:true});
@@ -1398,7 +1434,7 @@ Army.data = {};
 Army.settings = {
 	system:true,
 	advanced:true,
-	keep:true
+	taint:true
 };
 
 Army.option = {
@@ -1422,8 +1458,7 @@ Army.display = [
 ];
 */
 Army.update = function(event) {
-	delete this.data[userID];
-	if (event.self && event.type === 'data') {
+	if (event.self && event.type === 'data' && this.runtime.update) {
 		for (var i in this.runtime.update) {
 			Workers[i]._update({worker:this, type:'data'});
 			delete this.runtime.update[i];
@@ -1438,6 +1473,7 @@ Army.init = function() {
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
 	});
+	this.data = this.data || {};
 	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
 		if (typeof i === 'string' && i.regex(/[^0-9]/g)) {
 			delete this.data[i];
@@ -1449,29 +1485,27 @@ Army.init = function() {
 // what = ['worker', userID, key ...]
 Army.set = function(what, value) {
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
-	if (x[0] === 'option' || x[0] === 'runtime') {
-		return this._set(x, value);// Pasthrough
+	if (!(x[0] in this._datatypes)) {
+		// Section first - either string id, worker.name, or current_worker.name
+		if (isWorker(x[0])) {
+			section = x.shift().name;
+		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
+			section = x.shift();
+		} else {
+			section = Worker.stack[0];
+		}
+		// userID next
+		if (x.length && parseInt(x[0])) {
+			uid = x.shift();
+		}
+		if (!section || !uid || parseInt(uid) === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
+			return;
+		}
+		if (section in Workers) {
+			this.runtime.update[section] = true;
+		}
+		x.unshift('data', uid, section);
 	}
-	// Section first - either string id, worker.name, or current_worker.name
-	if (isWorker(x[0])) {
-		section = x.shift().name;
-	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else {
-		section = Worker.current;
-	}
-	// userID next
-	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
-		uid = x.shift();
-	}
-	if (!section || !uid || uid === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
-		return;
-	}
-//	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
-	if (section in Workers && !section in this.runtime.update) {
-		this.runtime.update[section] = true;
-	}
-	x.unshift('data', uid, section);
 // Removed for performance reasons...
 //	try{this.data[uid]._last = Date.now();}catch(e){} // Remember when it was last accessed
 	return this._set(x, value);
@@ -1480,37 +1514,36 @@ Army.set = function(what, value) {
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
 	var i, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), section = null, uid = null, list = [];
-	if (x[0] === 'option' || x[0] === 'runtime') {
-		return this._get(x, def);// Pasthrough
-	}
-	// Section first - either string id, worker.name, or current_worker.name
-	if (isWorker(x[0])) {
-		section = x.shift().name;
-	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else {
-		section = Worker.current;
-	}
-	// No userid, so return a list of userid's used by this section
-	if (section && x.length === 0) {
-		this._unflush();
-		for (i in this.data) {
-			if (isObject(this.data[i]) && section in this.data[i]) {
-				list.push(i);
-			}
+	if (!(x[0] in this._datatypes)) {
+		// Section first - either string id, worker.name, or current_worker.name
+		if (isWorker(x[0])) {
+			section = x.shift().name;
+		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
+			section = x.shift();
+		} else {
+			section = Worker.stack[0];
 		}
-		return list;
-	}
-	// userID next
-	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
-		uid = x.shift();
-	}
-	if (!section || !uid) { // Must have both section name and userID to continue
-		return;
+		// No userid, so return a list of userid's used by this section
+		if (section && !x.length) {
+			this._unflush();
+			for (i in this.data) {
+				if (isObject(this.data[i]) && section in this.data[i]) {
+					list.push(i);
+				}
+			}
+			return list;
+		}
+		// userID next
+		if (x.length && parseInt(x[0])) {
+			uid = x.shift();
+		}
+		if (!section || !uid) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
+			return;
+		}
+	//	log('this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+		x.unshift('data', uid, section);
 	}
 // Removed for performance reasons...
-//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
-	x.unshift('data', uid, section);
 	return this._get(x, def);
 };
 
@@ -1872,11 +1905,11 @@ Config.init = function() {
 
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
 		args = worker;
-		worker = Worker.current;
+		worker = Worker.get(Worker.stack[0]);
 	}
 	if (!args) {
 		if (!worker.display) {
@@ -1903,10 +1936,10 @@ Config.clearPanel = function(selector) {
 	if (isWorker(selector)) {
 		selector = '#'+selector.id+' > div';
 	} else if (typeof selector === 'undefined' || !selector) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
-		selector = '#'+Workers[Worker.current].id+' > div';
+		selector = '#'+Workers[Worker.stack[0]].id+' > div';
 	}
 	$(selector).empty();
 };
@@ -1918,10 +1951,10 @@ Config.addOption = function(selector, args) {
 		worker = selector;
 		selector = '#'+selector.id+' > div';
 	} else if (typeof args === 'undefined' || !args) {
-		if (!Worker.current) {
+		if (Worker.stack.length <= 1) {
 			return;
 		}
-		worker = Workers[Worker.current];
+		worker = Workers[Worker.stack[0]];
 		args = selector;
 		selector = '#'+worker.id+' > div';
 	}
@@ -1947,7 +1980,7 @@ Config.makeOptions = function(worker, args) {
 			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		debug(Worker.current+' is trying to add an unknown type of option');
+		debug(Worker.stack[0]+' is trying to add an unknown type of option');
 	}
 	return $([]);
 };
@@ -2373,6 +2406,190 @@ Dashboard.dashboard = function() {
 
 Dashboard.status = function(worker, value) {
 	this.set(['data', worker.name], value);
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker.Debug **********
+* Profiling information
+*/
+var Debug = new Worker('Debug');
+Debug.data = Debug.runtime = null;
+
+Debug.option = {
+	timer:0,
+	count:2,
+	show:10,
+	digits:1,
+	total:false,
+	worker:'All'
+};
+
+Debug.runtime = {
+	sort:2,
+	rev:false
+};
+
+Debug.settings = {
+//	system:true,
+	unsortable:true,
+	advanced:true
+};
+
+Debug.display = [
+	{
+		title:'Function Profiling',
+		group:[
+			{
+				id:'timer',
+				label:'Refresh',
+				select:{0:'Manual', 5:'5 seconds', 10:'10 seconds', 15:'15 seconds', 30:'30 seconds', 60:'1 minute'}
+			},{
+				id:'count',
+				label:'Minimum Count',
+				select:[1,2,3,4,5,10,15,20,25,50,100]
+			},{
+				id:'show',
+				label:'Display Lines',
+				select:{0:'All',10:10,20:20,30:30,40:40,50:50,60:60,70:70,80:80,90:90,100:100}
+			},{
+				id:'digits',
+				label:'Digits',
+				select:[1,2,3,4,5]
+			},{
+				id:'total',
+				label:'Show Worker Totals',
+				checkbox:true
+			},{
+				id:'worker',
+				label:'Worker',
+				select:'worker_list'
+			},{
+				label:'<b>NOTE:</b> You must reload Golem to show/hide the dashboard panel.'
+			}
+		]
+	}
+];
+
+Debug.parents = [0];
+Debug.setup = function() {
+	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
+		delete this.dashboard;
+		return;
+	}
+	// Go through every worker and replace their functions with a stub function
+	var i, j, wkr, fn;
+	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
+	for (i in Workers) {
+		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
+		for (j in wkr) {
+			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+				fn = wkr[j];
+				wkr[j] = function() {
+					var t = Date.now(), r, l;
+					if (arguments.callee._worker) {
+						l = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
+					} else {
+						l = ['_worker.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+					}
+					Debug.parents.unshift(0);
+					r = arguments.callee._orig.apply(this, arguments);
+					t = Date.now() - t;
+					for (i=0; i<l.length; i++) {
+						Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+						Debug.temp[l[i]][0]++;
+						Debug.temp[l[i]][1] += t - Debug.parents[0];
+						Debug.temp[l[i]][2] += t;
+						Debug.temp[l[i]][3] = Debug.temp[l[i]][1] / Debug.temp[l[i]][0];
+						Debug.temp[l[i]][4] = Debug.temp[l[i]][2] / Debug.temp[l[i]][0];
+						Debug.temp[l[i]][5] = Debug.temp[l[i]][4] - Debug.temp[l[i]][3];
+					}
+					Debug.parents.shift();
+					Debug.parents[0] += t;
+					return r;
+				}
+				wkr[j]._name = j;
+				wkr[j]._orig = fn;
+				if (i !== '__fake__') {
+					wkr[j]._worker = i;
+				}
+			}
+		}
+	}
+	delete Workers['__fake__']; // Remove the fake worker
+};
+
+Debug.init = function() {
+	var i, list = [];
+	for (i in Workers) {
+		list.push(i);
+	}
+	Config.set('worker_list', ['All', '_worker'].concat(unique(list).sort()));
+};
+
+Debug.update = function(event) {
+	if (event.type === 'option' || event.type === 'init') {
+		if (this.option.timer) {
+			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');})
+		} else {
+			this._forget('timer');
+		}
+		this._notify('data');// Any changes to options should force a dashboard update
+	}
+};
+
+Debug.work = function(){};// Stub so we can be disabled
+
+Debug.dashboard = function(sort, rev) {
+	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
+	for (i in data) {
+		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || rx.test(i))) {
+			order.push(i);
+		}
+		if (i.indexOf('.') === -1) {
+			total += parseInt(data[i][1], 10);
+		}
+	}
+	this.runtime.sort = sort = isUndefined(sort) ? (this.runtime.sort || 0) : sort;
+	this.runtime.rev = rev = isUndefined(rev) ? (this.runtime.rev || false) : rev;
+	order.sort(function(a,b) {
+		switch (sort) {
+			case 0:	return (rev ? (b).localeCompare(a) : (a).localeCompare(b));
+			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
+		}
+	});
+	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Total Run Time:</b> ' + addCommas(Date.now() - script_started) + 'ms, <b>CPU Percent:</b> ' + addCommas((total / (Date.now() - script_started) * 100).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	th(output, 'Function', 'style="text-align:left;"');
+	th(output, 'Count');
+	th(output, 'Time', 'style="text-align:right;"');
+	th(output, '&Psi; Time', 'style="text-align:right;"');
+	th(output, 'Average', 'style="text-align:right;"');
+	th(output, '&Psi; Average', 'style="text-align:right;"');
+	th(output, '&Psi; Diff', 'style="text-align:right;"');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
+		output = [];
+		th(output, order[o], 'style="text-align:left;"');
+		td(output, addCommas(data[order[o]][0]));
+		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][2]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][3].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][4].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(data[order[o]][5].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		tr(list, output.join(''));
+	}
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Debug').html(list.join(''));
+	$('#golem-dashboard-Debug thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	$('#golem-profile-update').click(function(){Debug._notify('data');});
+	$('#golem-profile-reset').click(function(){Debug.temp={};Debug._notify('data');});
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -3169,212 +3386,6 @@ Page.clear = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
-	makeImage
-*/
-/********** Worker.Profile **********
-* Profiling information
-*/
-var Profile = new Worker('Profile');
-Profile.data = Profile.runtime = null;
-
-Profile.option = {
-	timer:0,
-	count:2,
-	show:10,
-	digits:1,
-	total:false,
-	worker:'All'
-};
-
-Profile.runtime = {
-	sort:2,
-	rev:false
-};
-
-Profile.settings = {
-//	system:true,
-	unsortable:true,
-	advanced:true
-};
-
-Profile.display = [
-	{
-		id:'timer',
-		label:'Refresh',
-		select:{0:'Manual', 5:'5 seconds', 10:'10 seconds', 15:'15 seconds', 30:'30 seconds', 60:'1 minute'}
-	},{
-		id:'count',
-		label:'Minimum Count',
-		select:[1,2,3,4,5,10,15,20,25,50,100]
-	},{
-		id:'show',
-		label:'Display Lines',
-		select:{0:'All',10:10,20:20,30:30,40:40,50:50,60:60,70:70,80:80,90:90,100:100}
-	},{
-		id:'digits',
-		label:'Digits',
-		select:[1,2,3,4,5]
-	},{
-		id:'total',
-		label:'Show Worker Totals',
-		checkbox:true
-	},{
-		id:'worker',
-		label:'Worker',
-		select:'worker_list'
-	},{
-		title:'IMPORTANT',
-		label:'You must reload Golem to change the Enabled state.'
-	}
-];
-
-var overloadFunction = function() {
-	var t = Date.now(), r, log;
-	if (arguments.callee._worker) {
-		log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
-	} else {
-		log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
-	}
-	Profile.parents.unshift(0);
-	r = arguments.callee._orig.apply(this, arguments);
-	t = Date.now() - t;
-	for (i=0; i<log.length; i++) {
-		if (log[i]) {
-			Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
-			Profile.temp[log[i]][0]++;
-			Profile.temp[log[i]][1] += t - Profile.parents[0];
-			Profile.temp[log[i]][2] += t;
-			Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
-			Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
-			Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
-		}
-	}
-	Profile.parents.shift();
-	Profile.parents[0] += t;
-	return r;
-}
-
-Profile.parents = [0];
-Profile.setup = function() {
-	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
-		delete this.dashboard;
-		return;
-	}
-	// Go through every worker and replace their functions with a stub function
-	var i, j, wkr, fn;
-	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
-	for (i in Workers) {
-		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
-		for (j in wkr) {
-			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
-				fn = wkr[j];
-				wkr[j] = function() {
-					var t = Date.now(), r, log;
-					if (arguments.callee._worker) {
-						log = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
-					} else {
-						log = ['*.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
-					}
-					Profile.parents.unshift(0);
-					r = arguments.callee._orig.apply(this, arguments);
-					t = Date.now() - t;
-					for (i=0; i<log.length; i++) {
-						Profile.temp[log[i]] = Profile.temp[log[i]] || [0,0,0];
-						Profile.temp[log[i]][0]++;
-						Profile.temp[log[i]][1] += t - Profile.parents[0];
-						Profile.temp[log[i]][2] += t;
-						Profile.temp[log[i]][3] = Profile.temp[log[i]][1] / Profile.temp[log[i]][0];
-						Profile.temp[log[i]][4] = Profile.temp[log[i]][2] / Profile.temp[log[i]][0];
-						Profile.temp[log[i]][5] = Profile.temp[log[i]][4] - Profile.temp[log[i]][3];
-					}
-					Profile.parents.shift();
-					Profile.parents[0] += t;
-					return r;
-				}
-				wkr[j]._name = j;
-				wkr[j]._orig = fn;
-				if (i !== '__fake__') {
-					wkr[j]._worker = i;
-				}
-			}
-		}
-	}
-	delete Workers['__fake__']; // Remove the fake worker
-};
-
-Profile.init = function() {
-	var i, list = [];
-	for (i in Workers) {
-		list.push(i);
-	}
-	Config.set('worker_list', ['All', '*'].concat(unique(list).sort()));
-};
-
-Profile.update = function(event) {
-	if (event.type === 'option' || event.type === 'init') {
-		if (this.option.timer) {
-			this._revive(this.option.timer, 'timer', function(){Profile._notify('data');})
-		} else {
-			this._forget('timer');
-		}
-		this._notify('data');// Any changes to options should force a dashboard update
-	}
-};
-
-Profile.work = function(){};// Stub so we can be disabled
-
-Profile.dashboard = function(sort, rev) {
-	var i, o, list = [], order = [], output = [], data = this.temp, total = 0;
-	for (i in data) {
-		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || i.indexOf(this.option.worker) === 0)) {
-			order.push(i);
-		}
-		if (i.indexOf('.') === -1) {
-			total += parseInt(data[i][1], 10);
-		}
-	}
-	this.runtime.sort = sort = isUndefined(sort) ? (this.runtime.sort || 0) : sort;
-	this.runtime.rev = rev = isUndefined(rev) ? (this.runtime.rev || false) : rev;
-	order.sort(function(a,b) {
-		switch (sort) {
-			case 0:	return (rev ? (b).localeCompare(a) : (a).localeCompare(b));
-			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
-		}
-	});
-	list.push('<b>Estimated Total Time:</b> ' + addCommas(total) + 'ms <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
-	th(output, 'Function', 'style="text-align:left;"');
-	th(output, 'Count');
-	th(output, 'Time', 'style="text-align:right;"');
-	th(output, '&Psi; Time', 'style="text-align:right;"');
-	th(output, 'Average', 'style="text-align:right;"');
-	th(output, '&Psi; Average', 'style="text-align:right;"');
-	th(output, '&Psi; Diff', 'style="text-align:right;"');
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
-	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
-		output = [];
-		th(output, order[o], 'style="text-align:left;"');
-		td(output, addCommas(data[order[o]][0]));
-		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][2]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][3].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][4].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][5].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		tr(list, output.join(''));
-	}
-	list.push('</tbody></table>');
-	$('#golem-dashboard-Profile').html(list.join(''));
-	$('#golem-dashboard-Profile thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-profile-update').click(function(){Profile._notify('data');});
-	$('#golem-profile-reset').click(function(){Profile.temp={};Profile._notify('data');});
-};
-
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
@@ -3420,7 +3431,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Page', 'Queue', 'Resources', 'Settings', 'Title', 'Profile', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Debug', 'Page', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -3850,8 +3861,8 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-	if (Worker.current) {
-		var worker = Worker.current;
+	if (Worker.stack.length <= 1) {
+		var worker = Worker.stack[0];
 		if (isUndefined(amount)) {
 			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
 			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));
@@ -5268,41 +5279,29 @@ Blessing.work = function(state) {
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_invite army_viewarmy army_gifts';
+Army.pages = 'army_viewarmy';
 
 // Careful not to hit any *real* army options
 Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
 Army.option.invite = false;
-Army.option.check = 86400000;
 Army.option.recheck = 0;
 
 Army.runtime.count = -1; // How many people have we actively seen
-Army.runtime.next = 0; // Next page we want to look at 
-Army.runtime.last = 0; // Last time we visited the army list page
+Army.runtime.page = 0; // Next page we want to look at 
 Army.runtime.extra = 0; // How many non-real army members are there
-Army.runtime.recheck = 0; // Timestamp of when we last saw the oldest member
+Army.runtime.oldest = 0; // Timestamp of when we last saw the oldest member
 
 Army.display = [
+//Disabled until Army works correctly
+//{
+//	id:'invite',
+//	label:'Auto-Join New Armies',
+//	checkbox:true
+//},
 {
-	id:'invite',
-	label:'Auto-Join New Armies',
-	checkbox:true
-},{
 	title:'Members',
 	group:[
 		{
-			id:'check',
-			label:'Check for New',
-			select:{
-				900000:'Quarterly',
-				3600000:'Hourly',
-				7200000:'2 Hours',
-				21600000:'6 Hours',
-				43200000:'12 Hours',
-				86400000:'Daily',
-				604800000:'Weekly'
-			}
-		},{
 			id:'recheck',
 			label:'Re-check Old',
 			select:{
@@ -5320,117 +5319,90 @@ Army.display = [
 
 Army._overload('init', function() {
 	this._watch(Player, 'data.armymax');
-	this._watch(this, 'runtime.next');
-	this._remind(Math.min(1, Date.now() - this.runtime.last + this.option.check) / 1000, 'members');
-//	if (this.runtime.recheck && this.option.recheck) {
-//		this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
+//	if (this.runtime.oldest && this.option.recheck) {
+//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
 //	}
 	this._parent();
 });
 
 Army._overload('parse', function(change) {
-	if (!change) {
-		var i, army, tmp, now = Date.now();
-		if (Page.page === 'army_viewarmy') {
-			$('img[linked="true"][size="square"]').each(function(i,el){
-				var uid = $(el).attr('uid'), who = $(el).parent().parent().parent().next(), army;
-				army = Army.data[uid] = Army.data[uid] || {};
-				army.Army = true;
-				army._info = army._info || {};
-				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
-				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
-				army._info.seen = now;
-			});
-			if ($('img[src*="bonus_member.jpg"]').length) {
-				Army.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-	//			log('Extra Army Members Found: '+Army.runtime.extra);
+	if (!change && Page.page === 'army_viewarmy') {
+		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0;
+		page = $('table[width=740] div:first > div:eq(1)').html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
+		start = $('table[width=740] div:first > div:eq(2)').text().regex(/Displaying: ([0-9]+) - [0-9]+/);
+		page = Math.ceil(start / this.option.armyperpage);// Would prefer to work it out, but last page will never be full
+		$('img[linked="true"][size="square"]').each(function(i,el){
+			var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
+			if (uid === userID) {// Shouldn't ever happen!
+				return;
 			}
-			army = Army.data;
-			delete army[userID];// Make sure we never try to handle ourselves
-			for (i=0; i<army.length; i++) {
-				if (army[i].Army && army[i]._info.page === this.runtime.next) {
-					if ((army[i]._info.seen || 0) !== now) {
-						delete army[i].Army;// Forget this one, he aint been found!!!
-					}
-				}
-			}
-		} else if (Page.page === 'army_gifts' && $('img[src*="gift_invite_castle_on.gif"]').length) {
-			army = this.data;
-			tmp = {};
-			$('.unselected_list input').each(function(i,el){
-				tmp[el.value] = true;
-			});
-			for (i in army) {
-				if (!tmp[i]) {
-					delete army[i].Army;
-				}
-			}
-			for (i in tmp) {
-				army[i].Army = true;
-			}
-			this.runtime.last = Date.now();
-			this._remind(this.option.check / 1000, 'members');
+			army = Army.data[uid] = Army.data[uid] || {};
+			army.Army = true;
+			army._info = army._info || {};
+			army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
+			army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+			army._info.seen = now;
+			army._info.page = page;
+			army._info.id = start + i;
+			Army._taint.data = true;
+//			debug('Adding: ' + JSON.stringify(army));
+		});
+		if ($('img[src*="bonus_member.jpg"]').length) {
+			this.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+//			log('Extra Army Members Found: '+Army.runtime.extra);
 		}
-		// Count current Army members
-		army = this.data;
-		this.runtime.count = 0;
-		for (i=0; i<army.length; i++) {
+		for (i in army) {
 			if (army[i].Army) {
-				this.runtime.count++;
+				if (!army[i]._info || (army[i]._info.page === page && army[i]._info.seen !== now)) {
+					delete army[i].Army;// Forget this one, not found on the correct page
+				} else {
+					count++;// Lets count this one instead
+				}
 			}
 		}
-		this._notify('runtime.next');
+		this._set(['runtime','count'], count);
+		if (this.runtime.page) {
+			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
+				this._set(['runtime','page'], 0);
+			} else {
+				this._set(['runtime','page'], page + 1);
+			}
+		}
+//		debug('parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent();
 });
 
 Army._overload('update', function(event) {
 	this._parent();
-	if (this.option._enabled && (event.type === 'reminder' || event.type === 'watch')) {
-		this.runtime.next = 0;
-		if (Player.get('armymax',0) > this.runtime.count + this.runtime.extra || event.type === 'reminder' && event.id === 'recheck') {// Watching for the size of our army changing...
-			var i, page, seen, now = Date.now(), army = [];// All potential army members
-			for (i=0; i<this.data.length; i++) {
-				if (this.data[i].Army) {
-					army.push(parseInt(i));
-				}
-			}
-			army.sort();
-			debug(army.toSource());
-			this.runtime.recheck = 0;
-			for (i=0; i<army.length; i++) {
-				seen = this.data[army[i]]._info.seen || -1;
-				if (this.runtime.recheck > 0 && seen > 0) {
-					this.runtime.recheck = Math.min(this.runtime.recheck, seen);
-				}
-				if (seen === -1 || (this.option.recheck && now - seen > this.option.recheck)) {
-					page = Math.floor((i + 1) / this.option.armyperpage) + 1;
-					if (!this.runtime.next || this.runtime.next > page) {
-						this.runtime.next = page;
-						debug('Want to see userid '+army[i]+', and others on page '+page);
-					}
-					this.data[army[i]]._info.page = page;
-//					break;
-				}
-			}
-//			if (this.runtime.recheck && this.option.recheck) {
-//				this._remind(Math.min(1, Date.now() - this.runtime.recheck + this.option.recheck) / 1000, 'recheck');
-//			} else {
-//				this._forget('recheck');
-//			}
+	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
+		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
+		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
+			log('Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			page = 1;
 		}
-		this.set('option._sleep', (event.type === 'reminder' && event.id === 'members') || !this.runtime.next); // Only sleep if we don't want to see anything
+		if (!page && this.option.recheck) {
+			for (i in army) {
+				ai = army[i];
+				if (ai.Army && ai._info && ai._info.page && ai._info.seen) {
+					oldest = Math.min(oldest || Number.MAX_VALUE, ai._info.seen);
+					if (!page && ai._info.seen < then) {
+						page = Math.min(page || Number.MAX_VALUE, ai._info.page);
+					}
+				}
+			}
+			this._set(['runtime','oldest'], oldest);
+		}
+		this._set(['runtime','page'], page);
+//		debug('update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
 	}
+	this._set(['option','_sleep'], !this.runtime.page);
 });
 
 Army._overload('work', function(state) {
-	if (this.runtime.next || Date.now() - this.runtime.last > this.option.check) {
+	if (this.runtime.page) {
 		if (state) {
-			if (this.runtime.next) {
-				Page.to('army_viewarmy', {page:this.runtime.next});
-			} else {
-				Page.to('army_gifts', {app_friends:'c'}, true);
-			}
+			Page.to('army_viewarmy', {page:this.runtime.page});
 		}
 		return true;
 	}

@@ -503,7 +503,7 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 	}
 	return best;
 };
-
+/*
 var shallowStringify = function(obj, depth) {
 	var str = '', i;
 	depth = isNumber(depth) ? depth : 10;
@@ -570,5 +570,37 @@ var shallowStringify = function(obj, depth) {
 		}
 	}
 	return str;
+};
+*/
+JSON.shallow = function(obj, depth, replacer, space) {
+	return JSON.stringify((function(o,d) {
+		var i, out;
+		if (typeof o === 'object') {
+			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
+				if (d > 0) {
+					out = [];
+					for (i=0; i<o.length; i++) {
+						out[i] = arguments.callee(o[i],d-1);
+					}
+				} else {
+					out = '[object Array]';
+				}
+			} else {
+				if (isWorker(o)) {
+					out = '[worker ' + o.name + ']';
+				} else if (d > 0) {
+					out = {};
+					for (i in o) {
+						out[i] = arguments.callee(o[i],d-1);
+					}
+				} else {
+					out = '[object Object]';
+				}
+			}
+		} else {
+			out = o.toString();
+		}
+		return out;
+	})(obj, depth || 1), replacer, space);
 };
 

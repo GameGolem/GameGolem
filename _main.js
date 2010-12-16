@@ -54,11 +54,11 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
+			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
 		};
 		if (show_debug) {
 			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.current + ': ' + $.makeArray(arguments).join("\n"));
+				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
 			};
 		} else {
 			var debug = function(){};

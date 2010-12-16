@@ -20,7 +20,7 @@ Army.data = {};
 Army.settings = {
 	system:true,
 	advanced:true,
-	keep:true
+	taint:true
 };
 
 Army.option = {
@@ -44,8 +44,7 @@ Army.display = [
 ];
 */
 Army.update = function(event) {
-	delete this.data[userID];
-	if (event.self && event.type === 'data') {
+	if (event.self && event.type === 'data' && this.runtime.update) {
 		for (var i in this.runtime.update) {
 			Workers[i]._update({worker:this, type:'data'});
 			delete this.runtime.update[i];
@@ -60,6 +59,7 @@ Army.init = function() {
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
 	});
+	this.data = this.data || {};
 	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
 		if (typeof i === 'string' && i.regex(/[^0-9]/g)) {
 			delete this.data[i];
@@ -71,29 +71,27 @@ Army.init = function() {
 // what = ['worker', userID, key ...]
 Army.set = function(what, value) {
 	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
-	if (x[0] === 'option' || x[0] === 'runtime') {
-		return this._set(x, value);// Pasthrough
+	if (!(x[0] in this._datatypes)) {
+		// Section first - either string id, worker.name, or current_worker.name
+		if (isWorker(x[0])) {
+			section = x.shift().name;
+		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
+			section = x.shift();
+		} else {
+			section = Worker.stack[0];
+		}
+		// userID next
+		if (x.length && parseInt(x[0])) {
+			uid = x.shift();
+		}
+		if (!section || !uid || parseInt(uid) === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
+			return;
+		}
+		if (section in Workers) {
+			this.runtime.update[section] = true;
+		}
+		x.unshift('data', uid, section);
 	}
-	// Section first - either string id, worker.name, or current_worker.name
-	if (isWorker(x[0])) {
-		section = x.shift().name;
-	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else {
-		section = Worker.current;
-	}
-	// userID next
-	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
-		uid = x.shift();
-	}
-	if (!section || !uid || uid === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
-		return;
-	}
-//	log('this._set(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
-	if (section in Workers && !section in this.runtime.update) {
-		this.runtime.update[section] = true;
-	}
-	x.unshift('data', uid, section);
 // Removed for performance reasons...
 //	try{this.data[uid]._last = Date.now();}catch(e){} // Remember when it was last accessed
 	return this._set(x, value);
@@ -102,37 +100,36 @@ Army.set = function(what, value) {
 // what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
 Army.get = function(what, def) {
 	var i, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), section = null, uid = null, list = [];
-	if (x[0] === 'option' || x[0] === 'runtime') {
-		return this._get(x, def);// Pasthrough
-	}
-	// Section first - either string id, worker.name, or current_worker.name
-	if (isWorker(x[0])) {
-		section = x.shift().name;
-	} else if (typeof x[0] === 'string' && x[0].regex(/[^0-9]/gi)) {
-		section = x.shift();
-	} else {
-		section = Worker.current;
-	}
-	// No userid, so return a list of userid's used by this section
-	if (section && x.length === 0) {
-		this._unflush();
-		for (i in this.data) {
-			if (isObject(this.data[i]) && section in this.data[i]) {
-				list.push(i);
-			}
+	if (!(x[0] in this._datatypes)) {
+		// Section first - either string id, worker.name, or current_worker.name
+		if (isWorker(x[0])) {
+			section = x.shift().name;
+		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
+			section = x.shift();
+		} else {
+			section = Worker.stack[0];
 		}
-		return list;
-	}
-	// userID next
-	if (x.length && typeof x[0] === 'string' && !x[0].regex(/[^0-9]/gi)) {
-		uid = x.shift();
-	}
-	if (!section || !uid) { // Must have both section name and userID to continue
-		return;
+		// No userid, so return a list of userid's used by this section
+		if (section && !x.length) {
+			this._unflush();
+			for (i in this.data) {
+				if (isObject(this.data[i]) && section in this.data[i]) {
+					list.push(i);
+				}
+			}
+			return list;
+		}
+		// userID next
+		if (x.length && parseInt(x[0])) {
+			uid = x.shift();
+		}
+		if (!section || !uid) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
+			return;
+		}
+	//	log('this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+		x.unshift('data', uid, section);
 	}
 // Removed for performance reasons...
-//	this._set(['data', uid, '_last'], Date.now()); // Remember when it was last accessed
-	x.unshift('data', uid, section);
 	return this._get(x, def);
 };
 

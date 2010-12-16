@@ -28,6 +28,7 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
+				taint (true/false) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
 				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
@@ -140,6 +141,7 @@ function Worker(name,pages,settings) {
 	this._watching = {};
 	this._reminders = {};
 	this._disabled = false;
+	this._flush_count = 0;
 }
 
 // Static Functions
@@ -159,15 +161,19 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 };
 
 // Static Data
-Worker.stack = [];// array of active workers, last on the end
-Worker.current = '';
+Worker.stack = ['unknown'];// array of active workers, last at the start
 
 // Private functions - only override if you know exactly what you're doing
-Worker.prototype._flush = function() {
+Worker.prototype._flush = function(force) {
 	this._push();
 	this._save();
 	if (!this.settings.keep) {
-		delete this.data;
+//		if (force) {
+//			this._flush_count = 0;
+			delete this.data;
+//		} else if (this._flush_count++ > 60) {
+//			this._remind(0.1, '_flush', this._flush);
+//		}
 	}
 	this._pop();
 };
@@ -296,13 +302,11 @@ Worker.prototype._parse = function(change) {
 };
 
 Worker.prototype._pop = function() {
-	Worker.stack.pop();
-	Worker.current = Worker.stack.length ? Worker.stack[Worker.stack.length - 1].name : '';
+	Worker.stack.shift();
 };
 
 Worker.prototype._push = function() {
-	Worker.stack.push(this);
-	Worker.current = this.name;
+	Worker.stack.unshift(this.name);
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
@@ -347,7 +351,7 @@ Worker.prototype._save = function(type) {
 		// exit so we don't try to save mangled data over good data
 		return false;
 	}
-	if (getItem(n) === 'undefined' || getItem(n) !== v) {
+	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._taint[type] = false;
 		this._update({worker:this, type:type, self:true});
