@@ -30,7 +30,8 @@ Debug.runtime = {
 Debug.settings = {
 //	system:true,
 	unsortable:true,
-	advanced:true
+	advanced:true,
+	taint:true
 };
 
 Debug.display = [
@@ -68,7 +69,7 @@ Debug.display = [
 	}
 ];
 
-Debug.parents = [0];
+Debug.stack = [];// Stack tracing
 Debug.setup = function() {
 	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
@@ -83,26 +84,29 @@ Debug.setup = function() {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					var t = Date.now(), r, l;
-					if (arguments.callee._worker) {
-						l = [arguments.callee._worker+'.'+arguments.callee._name, arguments.callee._worker];
-					} else {
-						l = ['_worker.'+arguments.callee._name, this ? this.name+'.'+arguments.callee._name : null, this ? this.name : null];
+					if (!Debug.option._enabled) {
+						return arguments.callee._orig.apply(this, arguments);
 					}
-					Debug.parents.unshift(0);
+					var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
+					if (w) {
+						l = [w+'.'+arguments.callee._name, w];
+					}
+					if (!arguments.callee._worker) {
+						l[l.length] = '_worker.'+arguments.callee._name;
+					}
+					Debug.stack.unshift([0, l[0], arguments]);
 					r = arguments.callee._orig.apply(this, arguments);
 					t = Date.now() - t;
 					for (i=0; i<l.length; i++) {
-						Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-						Debug.temp[l[i]][0]++;
-						Debug.temp[l[i]][1] += t - Debug.parents[0];
-						Debug.temp[l[i]][2] += t;
-						Debug.temp[l[i]][3] = Debug.temp[l[i]][1] / Debug.temp[l[i]][0];
-						Debug.temp[l[i]][4] = Debug.temp[l[i]][2] / Debug.temp[l[i]][0];
-						Debug.temp[l[i]][5] = Debug.temp[l[i]][4] - Debug.temp[l[i]][3];
+						w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+						w[0]++;
+						w[1] += t - Debug.stack[0][0];
+						w[2] += t;
 					}
-					Debug.parents.shift();
-					Debug.parents[0] += t;
+					Debug.stack.shift();
+					if (Debug.stack.length) {
+						Debug.stack[0][0] += t;
+					}
 					return r;
 				}
 				wkr[j]._name = j;
@@ -151,28 +155,37 @@ Debug.dashboard = function(sort, rev) {
 	this.runtime.rev = rev = isUndefined(rev) ? (this.runtime.rev || false) : rev;
 	order.sort(function(a,b) {
 		switch (sort) {
-			case 0:	return (rev ? (b).localeCompare(a) : (a).localeCompare(b));
-			default: return (rev ? data[a][sort-1] - data[b][sort-1] : data[b][sort-1] - data[a][sort-1]);
+			case 0:	return (a).localeCompare(b);
+			case 1: return data[b][0] - data[a][0];
+			case 2: return data[b][1] - data[a][1];
+			case 3: return (data[b][1]/data[b][0]) - (data[a][1]/data[a][0]);
+			case 4: return (data[b][2]/data[b][0]) - (data[a][2]/data[a][0]);
+			case 5: return ((data[b][2]/data[b][0])-(data[a][1]/data[a][0])) - ((data[a][2]/data[a][0])-(data[b][1]/data[b][0]));
 		}
 	});
+	if (rev) {
+		order.reverse();
+	}
 	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Total Run Time:</b> ' + addCommas(Date.now() - script_started) + 'ms, <b>CPU Percent:</b> ' + addCommas((total / (Date.now() - script_started) * 100).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
-	th(output, 'Count');
+	th(output, 'Count', 'style="text-align:right;"');
 	th(output, 'Time', 'style="text-align:right;"');
 	th(output, '&Psi; Time', 'style="text-align:right;"');
 	th(output, 'Average', 'style="text-align:right;"');
 	th(output, '&Psi; Average', 'style="text-align:right;"');
 	th(output, '&Psi; Diff', 'style="text-align:right;"');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
-	for (o=0; o<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); o++) {
+	for (i=0; i<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); i++) {
 		output = [];
-		th(output, order[o], 'style="text-align:left;"');
-		td(output, addCommas(data[order[o]][0]));
-		td(output, addCommas(data[order[o]][1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][2]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][3].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][4].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(data[order[o]][5].toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		o = order[i];
+		th(output, o, 'style="text-align:left;"');
+		o = data[o];
+		td(output, addCommas(o[0]), 'style="text-align:right;"');
+		td(output, addCommas(o[1]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(o[2]) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas((o[1]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas((o[2]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, addCommas(((o[2]/o[0])-(o[1]/o[0])).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');

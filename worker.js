@@ -168,11 +168,9 @@ Worker.prototype._flush = function(force) {
 	this._push();
 	this._save();
 	if (!this.settings.keep) {
-//		if (force) {
+//		if (force || this._flush_count++ > 60) {
 //			this._flush_count = 0;
 			delete this.data;
-//		} else if (this._flush_count++ > 60) {
-//			this._remind(0.1, '_flush', this._flush);
 //		}
 	}
 	this._pop();
@@ -335,7 +333,7 @@ Worker.prototype._save = function(type) {
 	if (!this._datatypes[type]) {
 		for (var i in this._datatypes) {
 			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				this._save(i);
+				arguments.callee.call(this,i);
 			}
 		}
 		return true;

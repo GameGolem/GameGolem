@@ -19,7 +19,8 @@ Window.runtime = Window.option = null; // Don't save anything except global stuf
 Window._rootpath = false; // Override save path so we don't get limited to per-user
 
 Window.settings = {
-	system:true
+	system:true,
+	taint:true
 };
 
 Window.data = { // Shared between all windows
@@ -91,8 +92,10 @@ Window.init = function() {
 			window.clearTimeout(Window.warning);
 			Window.warning = window.setTimeout(function(){if(!Window.temp.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
 		}
+		Window._taint.data = true;
 		Window._flush();
 	});
+	this._taint.data = true;
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Window, but good enough for half a dozen or more
 	Title.alias('disable', 'Window:temp.active::(Disabled) ');
 };
@@ -133,5 +136,6 @@ Window.update = function(event) {
 	} else if (i > 1) {
 		$('#golem_window').show();
 	}
+	this._taint.data = true;
 	this._flush();// We really don't want to store data any longer than we really have to!
 };
