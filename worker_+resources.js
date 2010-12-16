@@ -108,7 +108,7 @@ Resources.update = function(event) {
 //		Config.makePanel(this, this.display2);
 //	}
 	var worker, type, total = 0;
-//	debug('Resources.update()');
+//	console.log(warn(), 'Resources.update()');
 	for (type in this.option.types) {
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
@@ -125,7 +125,7 @@ Resources.update = function(event) {
 			this.add(type, total);
 		}
 	}
-//	debug(this.runtime.buckets.toSource());
+//	console.log(warn(), this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
@@ -141,7 +141,7 @@ absolute = is an absolute amount, not relative
 NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
 Resources.add = function(type, amount, absolute) {
-//	debug('Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
+//	console.log(warn(), 'Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
 	this._push();
 	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
 	if (isUndefined(amount)) {// Setting up that we use this type
@@ -210,12 +210,12 @@ Resources.has = function(type, amount) {
 };
 
 Resources.get = function(what,def) {
-//	log('Resources.get('+what+', '+(def?def:'null')+')');
+//	console.log(log(), 'Resources.get('+what+', '+(def?def:'null')+')');
 	return this._get(what,def);
 };
 
 Resources.set = function(what,value) {
-//	log('Resources.set('+what+', '+(value?value:'null')+')');
+//	console.log(log(), 'Resources.set('+what+', '+(value?value:'null')+')');
 	return this._set(what,value);
 };
 

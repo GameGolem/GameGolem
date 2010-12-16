@@ -78,11 +78,11 @@ Army._overload('parse', function(change) {
 			army._info.page = page;
 			army._info.id = start + i;
 			Army._taint.data = true;
-//			debug('Adding: ' + JSON.stringify(army));
+//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
 		});
 		if ($('img[src*="bonus_member.jpg"]').length) {
 			this.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-//			log('Extra Army Members Found: '+Army.runtime.extra);
+//			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in army) {
 			if (army[i].Army) {
@@ -101,7 +101,7 @@ Army._overload('parse', function(change) {
 				this._set(['runtime','page'], page + 1);
 			}
 		}
-//		debug('parse: Army.runtime = '+JSON.stringify(this.runtime));
+//		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent();
 });
@@ -111,7 +111,7 @@ Army._overload('update', function(event) {
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
 		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
-			log('Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}
 		if (!page && this.option.recheck) {
@@ -127,7 +127,7 @@ Army._overload('update', function(event) {
 			this._set(['runtime','oldest'], oldest);
 		}
 		this._set(['runtime','page'], page);
-//		debug('update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
+//		console.log(warn(), 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	this._set(['option','_sleep'], !this.runtime.page);
 });

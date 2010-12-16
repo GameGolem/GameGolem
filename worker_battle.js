@@ -248,7 +248,7 @@ Battle.parse = function(change) {
 //			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
-//				debug('wrong ID');
+//				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
@@ -258,12 +258,12 @@ Battle.parse = function(change) {
 					this.runtime.attacking = uid;
 				}
 				data[uid].last = Date.now();
-				//debug('win');
+				//console.log(warn(), 'win');
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
-				//debug('loss');
+				//console.log(warn(), 'loss');
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
@@ -327,7 +327,7 @@ Battle.update = function(event) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache
-//		debug('Pruning target cache');
+//		console.log(warn(), 'Pruning target cache');
 		list = [];
 		for (i in data) {
 /*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
@@ -355,7 +355,7 @@ Battle.update = function(event) {
 		}
 	}
 	// Check if we need Demi-points
-        //debug('Queue Logic = ' + enabled);
+        //console.log(warn(), 'Queue Logic = ' + enabled);
 	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
@@ -441,7 +441,7 @@ Battle.update = function(event) {
 Battle.work = function(state) {
 	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
 	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
-//		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
+//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
@@ -450,10 +450,10 @@ Battle.work = function(state) {
 	var $symbol_rows = $('#app'+APPID+'_app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
 	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	if (!$form.length) {
-		debug('Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
+		console.log(warn(), 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');
 	} else {
-		log((this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		console.log(log(), (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}

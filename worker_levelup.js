@@ -139,7 +139,7 @@ LevelUp.update = function(event) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
-				//debug('page.page ' + Page.page);
+				//console.log(warn(), 'page.page ' + Page.page);
 				this.runtime.last_stamina = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle';
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
@@ -156,7 +156,7 @@ LevelUp.update = function(event) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-	//debug('next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
+	//console.log(warn(), 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
@@ -191,7 +191,7 @@ LevelUp.work = function(state) {
 /*	if (action && action.big) {
 		Generals.set('runtime.disabled', false);
 		if (Generals.to(this.option.general)) {
-			//debug('Disabling Generals because next action will level.');
+			//console.log(warn(), 'Disabling Generals because next action will level.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
@@ -239,11 +239,11 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'best':
 		// Find the biggest exp quest or stamina return to push unusable exp into next level
 		big = this.findAction('big',energy,stamina,0); 
-		debug('Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
+		console.log(warn(), 'Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
 		if (this.option.order === 'Energy') {
 			check = this.findAction('energy',energy-big.energy,0,exp);
-			//debug(' levelup quest ' + energy + ' ' + exp);
-			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
+			//console.log(warn(), ' levelup quest ' + energy + ' ' + exp);
+			//console.log(warn(), 'this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			// Do energy first if defending a monster or doing the best quest, but not little 'use energy' quests
 			if (check.exp && (check.quest === Quest.runtime.best || !check.quest)) {
 				return check;
@@ -257,18 +257,18 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		if (check.exp) {
 			return check;
 		}
-		//debug(' big.general ' + big.general+ big.exp);
+		//console.log(warn(), ' big.general ' + big.general+ big.exp);
 		return (big.exp ? big : nothing);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
 		energyAction = this.findAction('energy',energy,stamina,0);
 		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction.exp > staminaAction.exp) {
-			//debug('big energy ' + energyAction.exp);
+			//console.log(warn(), 'big energy ' + energyAction.exp);
 			energyAction.big = true;
 			return energyAction;
 		} else if (staminaAction.exp) {
-			//debug('big stamina ' + staminaAction.exp + staminaAction.general);
+			//console.log(warn(), 'big stamina ' + staminaAction.exp + staminaAction.general);
 			staminaAction.big = true;
 			return staminaAction;
 		} else {
@@ -282,12 +282,12 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 						< Queue.option.queue.indexOf('Quest'))) {
 			defendAction = this.findAction('defend',energy,0,exp);
 			if (defendAction.exp) {
-				debug('energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
+				console.log(warn(), 'energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
 				return defendAction;
 			}
 		}
 		questAction = this.findAction('quest',energy,0,exp);
-		debug('energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
+		console.log(warn(), 'energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
 		return questAction;
 	case 'quest':		
 		quests = Quest.get('id');
@@ -300,7 +300,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			});
 		}
 		if (i) {
-			//debug('quest ' + i);
+			//console.log(warn(), 'quest ' + i);
 			return {	energy : quests[i].energy,
 						stamina : 0,
 						exp : quests[i].exp,
@@ -335,7 +335,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		debug('mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
+		console.log(warn(), 'mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
 		if (monsterAction > 0 ) {
 			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
 						energy : (stat === 'energy') ? monsterAction : 0,

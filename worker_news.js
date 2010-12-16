@@ -53,7 +53,7 @@ News.parse = function(change) {
 					killed = false;
 				}
 				if (time > last_time) {
-//					debug('Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', wp = '+my_wp+', income = '+my_cash);
+//					console.log(warn(), 'Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', wp = '+my_wp+', income = '+my_cash);
 					time = Math.floor(time / 3600000);
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);

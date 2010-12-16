@@ -50,7 +50,7 @@ Alchemy.parse = function(change) {
 	this.data.summons = {};
 	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
 	if (!$elements.length) {
-		debug('Can\'t find any alchemy ingredients...');
+		console.log(warn(), 'Can\'t find any alchemy ingredients...');
 //		Page.to('keep_alchemy', false); // Force reload
 		return false;
 	}
@@ -107,7 +107,7 @@ Alchemy.work = function(state) {
 	if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
 	}
-	debug('Perform - ' + this.runtime.best);
+	console.log(warn(), 'Perform - ' + this.runtime.best);
 	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 		Page.reload(); // Can't find the recipe we just parsed when coming here...
 	}

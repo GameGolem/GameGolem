@@ -48,7 +48,7 @@ Income.work = function(state) {
 	if (!this.option.general || !Generals.test(Generals.best('income'))) {
 		return QUEUE_FINISH;
 	}
-//	debug(when + ', Margin: ' + Income.option.margin);
+//	console.log(warn(), when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;
@@ -58,7 +58,7 @@ Income.work = function(state) {
 	if (!state || !Generals.to('income')) {
 		return QUEUE_CONTINUE;
 	}
-	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
+	console.log(warn(), 'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return QUEUE_CONTINUE;
 };
 

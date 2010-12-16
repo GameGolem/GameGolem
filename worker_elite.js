@@ -113,7 +113,7 @@ Elite.parse = function(change) {
 					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 1800000); // half hour
 				} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
 					Elite.runtime.waitarena = Date.now();
-					debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
+					console.log(warn(), this + 'Arena guard full, wait '+Elite.option.every+' hours');
 				}
 			}
 	*/
@@ -126,7 +126,7 @@ Elite.parse = function(change) {
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				Elite.runtime.waitelite = Date.now();
 				Elite.runtime.nextelite = null;
-				debug('Elite guard full, wait '+Elite.option.every+' hours');
+				console.log(warn(), 'Elite guard full, wait '+Elite.option.every+' hours');
 			}
 		});
 	} else {
@@ -187,7 +187,7 @@ Elite.work = function(state) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
+		console.log(warn(), 'Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
 		if (!Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite})) {
 			return true;
 		}

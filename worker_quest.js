@@ -103,7 +103,7 @@ Quest.init = function() {
 			if (data[i].reps) {
 				x = (this.rdata[i] && this.rdata[i].reps) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
-					debug('Quest.init: deleting metrics for: ' + i);
+					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
 					delete data[i].m_c;
 					delete data[i].m_d;
 					delete data[i].reps;
@@ -280,7 +280,7 @@ Quest.parse = function(change) {
 	});
 	for (i in purge) {
 		if (purge[i]) {
-			debug('Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
+			console.log(warn(), 'Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
 			delete data.id[i];
 		}
 	}
@@ -328,7 +328,7 @@ Quest.update = function(event) {
 			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
 			has_cartigan = true; // Stop trying once we've got the general or the ingredients
 		}
-//		debug('option = ' + this.option.what);
+//		console.log(warn(), 'option = ' + this.option.what);
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
 			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
@@ -436,7 +436,7 @@ Quest.update = function(event) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = data.id[best].energy;
-			debug('Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
+			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
 		}
 	}
 	if (best) {
@@ -523,12 +523,12 @@ Quest.work = function(state) {
 			}
 			break;
 		default:
-			log('Can\'t get to quest area!');
+			console.log(log(), 'Can\'t get to quest area!');
 			return QUEUE_FINISH;
 	}
-	debug('Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
+	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
 	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		debug('Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
+		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];
 		this.runtime.best = null;
 		Page.reload();

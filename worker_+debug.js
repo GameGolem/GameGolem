@@ -69,7 +69,7 @@ Debug.display = [
 	}
 ];
 
-Debug.stack = [];// Stack tracing
+Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 Debug.setup = function() {
 	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
@@ -84,29 +84,30 @@ Debug.setup = function() {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					if (!Debug.option._enabled) {
-						return arguments.callee._orig.apply(this, arguments);
-					}
 					var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
-					if (w) {
-						l = [w+'.'+arguments.callee._name, w];
+					Debug.stack.unshift([0, w || '', arguments]);
+					if (Debug.option._enabled) {
+						if (w) {
+							l = [w+'.'+arguments.callee._name, w];
+						}
+						if (!arguments.callee._worker) {
+							l[l.length] = '_worker.'+arguments.callee._name;
+						}
 					}
-					if (!arguments.callee._worker) {
-						l[l.length] = '_worker.'+arguments.callee._name;
-					}
-					Debug.stack.unshift([0, l[0], arguments]);
 					r = arguments.callee._orig.apply(this, arguments);
-					t = Date.now() - t;
-					for (i=0; i<l.length; i++) {
-						w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-						w[0]++;
-						w[1] += t - Debug.stack[0][0];
-						w[2] += t;
+					if (Debug.option._enabled) {
+						t = Date.now() - t;
+						if (Debug.stack.length > 1) {
+							Debug.stack[1][0] += t;
+						}
+						for (i=0; i<l.length; i++) {
+							w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+							w[0]++;
+							w[1] += t - Debug.stack[0][0];
+							w[2] += t;
+						}
 					}
 					Debug.stack.shift();
-					if (Debug.stack.length) {
-						Debug.stack[0][0] += t;
-					}
 					return r;
 				}
 				wkr[j]._name = j;
@@ -118,6 +119,30 @@ Debug.setup = function() {
 		}
 	}
 	delete Workers['__fake__']; // Remove the fake worker
+	// Replace the global functions for better log reporting
+	log = function(txt){
+		return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' ' + txt : '');
+	};
+	warn = function(txt){
+		var i, output = [];
+		for (i=0; i<Debug.stack.length; i++) {
+			if (!output.length || Debug.stack[i][1] !== output[0]) {
+				output.unshift(Debug.stack[i][1]);
+			}
+		}
+		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + output.join('->') + ':' + (txt ? ' ' + txt : '');
+	};
+	error = function(txt) {
+		var i, j, output = [];
+		for (i=0; i<Debug.stack.length; i++) {
+			output.unshift('->' + Debug.stack[i][1] + '.' + Debug.stack[i][2].callee._name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')');
+			for (j=1; j<output.length; j++) {
+				output[j] = '  ' + output[j];
+			}
+		}
+		output.unshift('');
+		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (txt ? ': ' + txt : '') + output.join("\n") + (txt ? "\n:" : '');
+	};
 };
 
 Debug.init = function() {
@@ -158,9 +183,10 @@ Debug.dashboard = function(sort, rev) {
 			case 0:	return (a).localeCompare(b);
 			case 1: return data[b][0] - data[a][0];
 			case 2: return data[b][1] - data[a][1];
-			case 3: return (data[b][1]/data[b][0]) - (data[a][1]/data[a][0]);
-			case 4: return (data[b][2]/data[b][0]) - (data[a][2]/data[a][0]);
-			case 5: return ((data[b][2]/data[b][0])-(data[a][1]/data[a][0])) - ((data[a][2]/data[a][0])-(data[b][1]/data[b][0]));
+			case 3: return data[b][2] - data[a][2];
+			case 4: return (data[b][1]/data[b][0]) - (data[a][1]/data[a][0]);
+			case 5: return (data[b][2]/data[b][0]) - (data[a][2]/data[a][0]);
+			case 6: return ((data[b][2]/data[b][0])-(data[a][1]/data[a][0])) - ((data[a][2]/data[a][0])-(data[b][1]/data[b][0]));
 		}
 	});
 	if (rev) {

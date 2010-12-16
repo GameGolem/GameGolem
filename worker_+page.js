@@ -139,7 +139,7 @@ Page.replaceClickHandlers = function() {
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
 	.click(function(event){
 		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
-			debug('Replacing CA link');
+			console.log(warn(), 'Replacing CA link');
 			event.preventDefault();
 			event.stopImmediatePropagation()
 			return false;
@@ -241,7 +241,7 @@ Page.work = function(state) {
 Page.identify = function() {
 	this.page = '';
 	if (!$('#app_content_'+APPID+' > div > div').length || !$('#app'+APPID+'_globalContainer > div > div').length) {
-		debug('Page apparently not loaded correctly, reloading.');
+		console.log(warn(), 'Page apparently not loaded correctly, reloading.');
 		this.reload();
 		return null;
 	}
@@ -266,7 +266,7 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-//	debug('this.identify("'+Page.page+'")');
+//	console.log(warn(), 'this.identify("'+Page.page+'")');
 	return this.page;
 };
 
@@ -296,7 +296,7 @@ Page.onreadystatechange = function() {
 				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
 			}
 			if (Page.option.click) {
-//				debug('replacing click handlers');
+//				console.log(warn(), 'replacing click handlers');
 				data = data.replace(/<a onclick="[^"]*" href/g, '<a href');
 			}
 			$('#app'+APPID+'_AjaxLoadIcon').hide();
@@ -306,14 +306,14 @@ Page.onreadystatechange = function() {
 				Page.replaceClickHandlers();
 			}
 		} catch(e1){
-			debug(e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
+			console.log(warn(), e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
 		}
 		return;// Stop here as we're done
 	} catch(e2){
-		debug('AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
+		console.log(warn(), 'AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
 	}
 	if (++Page.retry < Page.option.retry && Page.request.url) {
-		debug('Page not loaded correctly, retry last action.');
+		console.log(warn(), 'Page not loaded correctly, retry last action.');
 		window.setTimeout(function(){
 			var request = new XMLHttpRequest();
 			request.open(Page.request.method || 'GET', Page.request.url);
@@ -321,7 +321,7 @@ Page.onreadystatechange = function() {
 			request.send(Page.request.body);
 		}, Page.option.delay * 1000);
 	} else {
-		debug('Page not loaded correctly, reloading.');
+		console.log(warn(), 'Page not loaded correctly, reloading.');
 		window.setTimeout(Page.reload, Page.option.delay * 1000);
 	}
 };
@@ -378,9 +378,9 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				break;
 		}
 	}
-//	debug('Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
+//	console.log(warn(), 'Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
 	if (force === 0 && Queue.option.pause) {
-		debug('Trying to load page when paused...');
+		console.log(warn(), 'Trying to load page when paused...');
 		return true;
 	}
 	if (page === this.page && method !== 'POST' && (force || typeof args === 'undefined')) {
@@ -398,7 +398,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 			page = page + args;
 		}
 		this.loading = true;
-		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
+		console.log(warn(), 'Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
 			window.location.replace(page);// Load new page without giving a back button
 			window.setTimeout(function(){Page.loading = false;}, this.option.timeout * 1000);// Don't try to load again for timeout secs...
@@ -420,7 +420,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 };
 
 Page.reload = function() {
-	debug('Page.reload()');
+	console.log(warn(), 'Page.reload()');
 	window.location.replace(window.location.href);
 };
 
@@ -439,12 +439,12 @@ Page.clearFBpost = function(obj) {
 
 Page.click = function(el) {
 	if (!$(el).length) {
-		log('Page.click: Unable to find element - '+el);
+		console.log(log(), 'Page.click: Unable to find element - '+el);
 		return false;
 	}
 	if (this.lastclick === el) {
 		if (++this.retry >= this.option.retry) {
-			debug('Element not clicked properly, reloading.');
+			console.log(warn(), 'Element not clicked properly, reloading.');
 			Page.reload();
 			return true;
 		}

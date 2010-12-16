@@ -117,7 +117,7 @@ Dashboard.update = function(event) {
 			event.worker._unflush();
 			event.worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
+			console.log(warn(), e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
 		$('#golem-dashboard-'+event.worker.name).empty();

@@ -317,7 +317,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 				Resources.set(['_'+units[i], user+'_'+x]);
 			}
 			if (Math.min(count, own) > 0) {
-//				debug('Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
+//				console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}

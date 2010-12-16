@@ -53,7 +53,7 @@ Generals.parse = function(change) {
 					weapon_bonus += ', ';
 				}
 				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-				//debug("Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+				//console.log(warn(), "Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 			}
 		});
 		if (data[current]){
@@ -61,7 +61,7 @@ Generals.parse = function(change) {
 		}
 // Hopefully our Page.to() logic now catches most bad page loads and removes the need for this...
 //		if ($elements.length < length(data)) {
-//			debug('Different number of generals, have '+$elements.length+', want '+length(data));
+//			console.log(warn(), 'Different number of generals, have '+$elements.length+', want '+length(data));
 //			Page.to('heroes_generals', ''); // Force reload
 //			return false;
 //		}
@@ -153,7 +153,7 @@ Generals.update = function(event) {
 			}
 			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?[0-9]+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
 			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) defense/gi)), 10) : 0);
-//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
+//			console.log(warn(), i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
@@ -175,7 +175,7 @@ Generals.update = function(event) {
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			};
 /*			if (i === 'Xira' || i === 'Slayer') {
-				debug(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
+				console.log(warn(), i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
 			}
 */			data[i].potential = {
 				bank: (skillcombo.regex(/Bank Fee/gi) ? 1 : 0),
@@ -208,17 +208,17 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!this.data[name]) {
-		log('General "'+name+'" requested but not found!');
+		console.log(log(), 'General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!Generals.test(name)) {
-		//debug('Identified general ' + name + ', but changing would cost stamina or energy.');
-		debug('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
-		//debug('stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
+		//console.log(warn(), 'Identified general ' + name + ', but changing would cost stamina or energy.');
+		console.log(warn(), 'General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
+		//console.log(warn(), 'stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
 		return true;
 	}
-//	debug('Changing to General '+name);
-	debug('General change: ' + Player.get('general') + ' to ' + name);
+//	console.log(warn(), 'Changing to General '+name);
+	console.log(warn(), 'General change: ' + Player.get('general') + ' to ' + name);
 	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null)
 	return false;
 };
@@ -268,7 +268,7 @@ Generals.best = function(type) {
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {
-		debug('No definition for best general for ' + type);
+		console.log(warn(), 'No definition for best general for ' + type);
 		return 'any';
 	}
 	best = bestObjValue(this.data, value, Generals.test);
@@ -354,7 +354,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Priority: Swapping '+gup+' with '+gdown);
+			console.log(warn(), 'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}
@@ -373,7 +373,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Priority: Swapping '+gup+' with '+gdown);
+			console.log(warn(), 'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}

@@ -215,7 +215,7 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		})(this[type],x);
 	} catch(e) {
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message));
 		}
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
@@ -231,7 +231,7 @@ Worker.prototype._init = function() {
 		try {
 			this.init();
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
 		}
 	}
 	this._pop();
@@ -252,7 +252,7 @@ Worker.prototype._load = function(type) {
 		try {
 			v = JSON.parse(v);
 		} catch(e) {
-			debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
+			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
@@ -267,7 +267,7 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		if (path.indexOf(i) === 0) {// Match the prefix
 			w = this._watching[i];
 			for (j=0; j<w.length; j++) {
-//				debug('Notify ' + w[j].name + ', id = ' + i);
+//				console.log(log(), 'Notify ' + w[j].name + ', id = ' + i);
 				w[j]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
 			}
 		}
@@ -293,7 +293,7 @@ Worker.prototype._parse = function(change) {
 	try {
 		result = this.parse && this.parse(change);
 	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 	}
 	this._pop();
 	return result;
@@ -345,7 +345,7 @@ Worker.prototype._save = function(type) {
 	try {
 		v = JSON.stringify(this[type]);
 	} catch (e) {
-		debug(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
 		// exit so we don't try to save mangled data over good data
 		return false;
 	}
@@ -397,7 +397,7 @@ Worker.prototype._set = function(what, value) {
 			return true;
 		})(this[type],x);
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;
@@ -417,7 +417,7 @@ Worker.prototype._setup = function() {
 			try {
 				this.setup();
 			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.setup(): ' + e.message);
+				console.log(error(e.name + ' in ' + this.name + '.setup(): ' + e.message));
 			}
 		}
 	} else { // Get us out of the list!!!
@@ -480,7 +480,7 @@ Worker.prototype._update = function(event) {
 		try {
 			this.update(newevent);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message));
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
@@ -502,13 +502,13 @@ Worker.prototype._update = function(event) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
 				if (!findInArray(worker._watching[path],this)) {
-//					debug('Watch(' + worker.name + ', "' + path + '")');
+//					console.log(log(), 'Watch(' + worker.name + ', "' + path + '")');
 					worker._watching[path].push(this);
 				}
 				return true;
 			}
 		}
-//		debug('Attempting to watch bad value: ' + worker.name + ':' + path);
+//		console.log(debug('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
@@ -519,7 +519,7 @@ Worker.prototype._work = function(state) {
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message));
 	}
 	this._pop();
 	return result;

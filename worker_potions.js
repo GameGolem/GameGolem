@@ -76,16 +76,16 @@ Potions.update = function(event) {
         $('a.golem-potion-drink').live('click', function(event){
 		var x = $(this).attr('name');
                 var act = $(this).text().regex(/(.*)/);
-		//debug('Clicked on ' + x);
-                //debug('Action = ' + act);
+		//console.log(warn(), 'Clicked on ' + x);
+                //console.log(warn(), 'Action = ' + act);
                 switch (act){
                     case '[Drink]':
-                        //debug('Setting Runtime');
+                        //console.log(warn(), 'Setting Runtime');
                         Potions.runtime.type = x;
                         Potions.runtime.amount = 1;
                         break;
                     default:
-                        //debug('Clearing Runtime');
+                        //console.log(warn(), 'Clearing Runtime');
                         Potions.runtime.type = Potions.runtime.amount = null;
                 }
                 
@@ -102,13 +102,13 @@ Potions.work = function(state) {
 	}
 	for(var i in this.data) {
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
-			debug('Wanting to drink a ' + i + ' potion');
+			console.log(warn(), 'Wanting to drink a ' + i + ' potion');
 			Page.click('.statUnit:contains("' + i + '") form .imgButton input');
 			break;
 		}
 	}
         if (this.runtime.type && this.runtime.amount){
-                debug('Wanting to drink a ' + this.runtime.type + ' potion');
+                console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
                 this.runtime.type = this.runtime.amount = null;
         }

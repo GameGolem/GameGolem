@@ -251,11 +251,11 @@ Town.update = function(event) {
                                         'INCR':Math.pow(10,incr)
                                 })[this.option.maxcost];
                         }
-//			debug('Item: '+u+', need: '+need+', want: '+want);
+//			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
 			if (need > have) {// Want to buy more                                
 				if (!best_quest && data[u].buy && data[u].buy.length) {
 					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
-//						debug('Buy: '+need);
+//						console.log(warn(), 'Buy: '+need);
 						best_buy = u;
 						buy = need;
 						if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
@@ -266,7 +266,7 @@ Town.update = function(event) {
 			} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
 				need = bestValue(data[u].sell, have - Math.max(need,want));
 				if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//					debug('Sell: '+need);
+//					console.log(warn(), 'Sell: '+need);
 					best_sell = u;
 					sell = need;
 				}
@@ -336,7 +336,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	var qty = bestValue(this.data[item].buy, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				debug('Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
 				$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
@@ -356,7 +356,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	var qty = bestValue(this.data[item].sell, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				debug('Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
+				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
 				$('div.eq_buy_costs select[name="amount"]:eq(1)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}

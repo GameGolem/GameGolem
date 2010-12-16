@@ -67,17 +67,17 @@ Settings.update = function(event) {
 			case 'None':
 				break;
 			case 'Load':
-				debug('Loading "' + this.option.which + '"');
+				console.log(warn(), 'Loading "' + this.option.which + '"');
 				this.get(this.option.which);
 				break;
 			case 'Save':
-				debug('Saving "' + this.option.name + '"');
+				console.log(warn(), 'Saving "' + this.option.name + '"');
 				this.set(this.option.name);
 				this.option.which = this.option.name;
 				break;
 			case 'Delete':
 				if (this.option.which !== '- default -') {
-					debug('Deleting "' + this.option.name + '"');
+					console.log(warn(), 'Deleting "' + this.option.name + '"');
 					delete this.data[this.option.which];
 				}
 				this.option.which = '- default -';

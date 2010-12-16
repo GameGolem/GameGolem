@@ -121,7 +121,7 @@ Config.init = function() {
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
 					k.settings.after = unique(k.settings.after);
-//					debug('Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
+//					console.log(warn(), 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
 				}
 			}
 		}
@@ -132,7 +132,7 @@ Config.init = function() {
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
 					k.settings.before = unique(k.settings.before);
-//					debug('Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
+//					console.log(warn(), 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
 				}
 			}
 		}
@@ -247,10 +247,10 @@ Config.makeOptions = function(worker, args) {
 		try {
 			return this.makeOptions(worker, args.call(worker));
 		} catch(e) {
-			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
+			console.log(warn(), e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		debug(Worker.stack[0]+' is trying to add an unknown type of option');
+		console.log(warn(), Worker.stack[0]+' is trying to add an unknown type of option');
 	}
 	return $([]);
 };
@@ -446,7 +446,7 @@ Config.set = function(key, value) {
 };
 
 Config.updateOptions = function() {
-//	debug('Options changed');
+//	console.log(warn(), 'Options changed');
 	// Get order of panels first
 	Queue.option.queue = this.getOrder();
 	// Now can we see the advanced stuff
@@ -472,7 +472,7 @@ Config.updateOptions = function() {
 			try {
 				Worker.find(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
-				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
+				console.log(warn(), e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
 	});
@@ -480,7 +480,7 @@ Config.updateOptions = function() {
 };
 
 Config.checkRequire = function(selector) {
-//	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
+//	console.log(log(), 'checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
 	if (isWorker(selector)) {
 		selector = '#'+selector.id+' .golem-require';
 	} else if (typeof selector !== 'undefined' && $(selector).length) {

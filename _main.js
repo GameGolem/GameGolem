@@ -54,15 +54,14 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
+			return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
 		};
-		if (show_debug) {
-			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
-			};
-		} else {
-			var debug = function(){};
-		}
+		var warn = function(txt) {
+			return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+		};
+		var error = function(txt) {
+			return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+		};
 
 		if (typeof unsafeWindow === 'undefined') {
 			var unsafeWindow = window;
@@ -79,7 +78,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				}
 			}
 			if (!userID || typeof userID !== 'number' || userID === 0) {
-				log('ERROR: No Facebook UserID!!!');
+				console.log('ERROR: No Facebook UserID!!!');
 				window.setTimeout(Page.reload, 5000); // Force reload without retrying
 				return;
 			}
@@ -89,7 +88,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			try {
 				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 			} catch(e) {
-				log('ERROR: Bad Page Load!!!');
+				console.log('ERROR: Bad Page Load!!!');
 				window.setTimeout(Page.reload, 5000);
 				return;
 			}
@@ -117,13 +116,13 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.1/jquery-ui.min.js';
 			head.appendChild(a);
 			head.appendChild(b);
-			log('Loading jQuery & jQueryUI');
+			console.log(log(), 'Loading jQuery & jQueryUI');
 			(function jQwait() {
-				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
+				console.log(log(), '...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
 				if (typeof window.jQuery === 'undefined') {
 					window.setTimeout(jQwait, 10000);
 				} else {
-					log('jQuery Loaded...');
+					console.log('jQuery Loaded...');
 					$(document).ready(document_ready);
 				}
 			})();

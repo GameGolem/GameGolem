@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 862;
+var revision = 863;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -75,15 +75,14 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		console.log('GameGolem; Unknown facebook application...');
 	} else {
 		var log = function(txt){
-			console.log('[' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
+			return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
 		};
-		if (show_debug) {
-			var debug = function(txt) {
-				console.log('[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + Worker.stack[0] + ': ' + $.makeArray(arguments).join("\n"));
-			};
-		} else {
-			var debug = function(){};
-		}
+		var warn = function(txt) {
+			return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+		};
+		var error = function(txt) {
+			return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+		};
 
 		if (typeof unsafeWindow === 'undefined') {
 			var unsafeWindow = window;
@@ -100,7 +99,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				}
 			}
 			if (!userID || typeof userID !== 'number' || userID === 0) {
-				log('ERROR: No Facebook UserID!!!');
+				console.log('ERROR: No Facebook UserID!!!');
 				window.setTimeout(Page.reload, 5000); // Force reload without retrying
 				return;
 			}
@@ -110,7 +109,7 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			try {
 				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
 			} catch(e) {
-				log('ERROR: Bad Page Load!!!');
+				console.log('ERROR: Bad Page Load!!!');
 				window.setTimeout(Page.reload, 5000);
 				return;
 			}
@@ -138,13 +137,13 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 			b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.1/jquery-ui.min.js';
 			head.appendChild(a);
 			head.appendChild(b);
-			log('Loading jQuery & jQueryUI');
+			console.log(log(), 'Loading jQuery & jQueryUI');
 			(function jQwait() {
-				log('...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
+				console.log(log(), '...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
 				if (typeof window.jQuery === 'undefined') {
 					window.setTimeout(jQwait, 10000);
 				} else {
-					log('jQuery Loaded...');
+					console.log('jQuery Loaded...');
 					$(document).ready(document_ready);
 				}
 			})();
@@ -596,7 +595,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 				Resources.set(['_'+units[i], user+'_'+x]);
 			}
 			if (Math.min(count, own) > 0) {
-//				debug('Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
+//				console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}
@@ -1100,7 +1099,7 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		})(this[type],x);
 	} catch(e) {
 		if (typeof def === 'undefined') {
-			debug(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message));
 		}
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
@@ -1116,7 +1115,7 @@ Worker.prototype._init = function() {
 		try {
 			this.init();
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.init(): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
 		}
 	}
 	this._pop();
@@ -1137,7 +1136,7 @@ Worker.prototype._load = function(type) {
 		try {
 			v = JSON.parse(v);
 		} catch(e) {
-			debug(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
+			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
 		this[type] = $.extend(true, {}, this[type], v);
@@ -1152,7 +1151,7 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		if (path.indexOf(i) === 0) {// Match the prefix
 			w = this._watching[i];
 			for (j=0; j<w.length; j++) {
-//				debug('Notify ' + w[j].name + ', id = ' + i);
+//				console.log(log(), 'Notify ' + w[j].name + ', id = ' + i);
 				w[j]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
 			}
 		}
@@ -1178,7 +1177,7 @@ Worker.prototype._parse = function(change) {
 	try {
 		result = this.parse && this.parse(change);
 	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 	}
 	this._pop();
 	return result;
@@ -1230,7 +1229,7 @@ Worker.prototype._save = function(type) {
 	try {
 		v = JSON.stringify(this[type]);
 	} catch (e) {
-		debug(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
 		// exit so we don't try to save mangled data over good data
 		return false;
 	}
@@ -1282,7 +1281,7 @@ Worker.prototype._set = function(what, value) {
 			return true;
 		})(this[type],x);
 	} catch(e) {
-		debug(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;
@@ -1302,7 +1301,7 @@ Worker.prototype._setup = function() {
 			try {
 				this.setup();
 			}catch(e) {
-				debug(e.name + ' in ' + this.name + '.setup(): ' + e.message);
+				console.log(error(e.name + ' in ' + this.name + '.setup(): ' + e.message));
 			}
 		}
 	} else { // Get us out of the list!!!
@@ -1365,7 +1364,7 @@ Worker.prototype._update = function(event) {
 		try {
 			this.update(newevent);
 		}catch(e) {
-			debug(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message);
+			console.log(error(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message));
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
@@ -1387,13 +1386,13 @@ Worker.prototype._update = function(event) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
 				if (!findInArray(worker._watching[path],this)) {
-//					debug('Watch(' + worker.name + ', "' + path + '")');
+//					console.log(log(), 'Watch(' + worker.name + ', "' + path + '")');
 					worker._watching[path].push(this);
 				}
 				return true;
 			}
 		}
-//		debug('Attempting to watch bad value: ' + worker.name + ':' + path);
+//		console.log(debug('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
@@ -1404,7 +1403,7 @@ Worker.prototype._work = function(state) {
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
-		debug(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+		console.log(error(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message));
 	}
 	this._pop();
 	return result;
@@ -1538,7 +1537,7 @@ Army.get = function(what, def) {
 		if (!section || !uid) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
 			return;
 		}
-	//	log('this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+	//	console.log(log(), 'this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
 		x.unshift('data', uid, section);
 	}
 // Removed for performance reasons...
@@ -1685,7 +1684,7 @@ Army.dashboard = function(sort, rev) {
 					td(output, '');
 				}
 			} catch(e3) {
-				debug(e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
+				console.log(warn(), e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
 				td(output, '');
 			}
 		}
@@ -1720,7 +1719,7 @@ Army.dashboard = function(sort, rev) {
 				}
 			}
 		} catch(e4) {
-			debug(e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
+			console.log(warn(), e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
 		}
 		return false;
 	});
@@ -1849,7 +1848,7 @@ Config.init = function() {
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
 					k.settings.after = unique(k.settings.after);
-//					debug('Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
+//					console.log(warn(), 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
 				}
 			}
 		}
@@ -1860,7 +1859,7 @@ Config.init = function() {
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
 					k.settings.before = unique(k.settings.before);
-//					debug('Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
+//					console.log(warn(), 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
 				}
 			}
 		}
@@ -1975,10 +1974,10 @@ Config.makeOptions = function(worker, args) {
 		try {
 			return this.makeOptions(worker, args.call(worker));
 		} catch(e) {
-			debug(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
+			console.log(warn(), e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		debug(Worker.stack[0]+' is trying to add an unknown type of option');
+		console.log(warn(), Worker.stack[0]+' is trying to add an unknown type of option');
 	}
 	return $([]);
 };
@@ -2174,7 +2173,7 @@ Config.set = function(key, value) {
 };
 
 Config.updateOptions = function() {
-//	debug('Options changed');
+//	console.log(warn(), 'Options changed');
 	// Get order of panels first
 	Queue.option.queue = this.getOrder();
 	// Now can we see the advanced stuff
@@ -2200,7 +2199,7 @@ Config.updateOptions = function() {
 			try {
 				Worker.find(tmp[0]).set('option.'+tmp[1], val);
 			} catch(e) {
-				debug(e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
+				console.log(warn(), e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
 			}
 		}
 	});
@@ -2208,7 +2207,7 @@ Config.updateOptions = function() {
 };
 
 Config.checkRequire = function(selector) {
-//	log('checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
+//	console.log(log(), 'checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
 	if (isWorker(selector)) {
 		selector = '#'+selector.id+' .golem-require';
 	} else if (typeof selector !== 'undefined' && $(selector).length) {
@@ -2384,7 +2383,7 @@ Dashboard.update = function(event) {
 			event.worker._unflush();
 			event.worker.dashboard();
 		}catch(e) {
-			debug(e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
+			console.log(warn(), e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
 		$('#golem-dashboard-'+event.worker.name).empty();
@@ -2477,7 +2476,7 @@ Debug.display = [
 	}
 ];
 
-Debug.stack = [];// Stack tracing
+Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 Debug.setup = function() {
 	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
@@ -2492,29 +2491,30 @@ Debug.setup = function() {
 			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
 				fn = wkr[j];
 				wkr[j] = function() {
-					if (!Debug.option._enabled) {
-						return arguments.callee._orig.apply(this, arguments);
-					}
 					var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
-					if (w) {
-						l = [w+'.'+arguments.callee._name, w];
+					Debug.stack.unshift([0, w || '', arguments]);
+					if (Debug.option._enabled) {
+						if (w) {
+							l = [w+'.'+arguments.callee._name, w];
+						}
+						if (!arguments.callee._worker) {
+							l[l.length] = '_worker.'+arguments.callee._name;
+						}
 					}
-					if (!arguments.callee._worker) {
-						l[l.length] = '_worker.'+arguments.callee._name;
-					}
-					Debug.stack.unshift([0, l[0], arguments]);
 					r = arguments.callee._orig.apply(this, arguments);
-					t = Date.now() - t;
-					for (i=0; i<l.length; i++) {
-						w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-						w[0]++;
-						w[1] += t - Debug.stack[0][0];
-						w[2] += t;
+					if (Debug.option._enabled) {
+						t = Date.now() - t;
+						if (Debug.stack.length > 1) {
+							Debug.stack[1][0] += t;
+						}
+						for (i=0; i<l.length; i++) {
+							w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+							w[0]++;
+							w[1] += t - Debug.stack[0][0];
+							w[2] += t;
+						}
 					}
 					Debug.stack.shift();
-					if (Debug.stack.length) {
-						Debug.stack[0][0] += t;
-					}
 					return r;
 				}
 				wkr[j]._name = j;
@@ -2526,6 +2526,30 @@ Debug.setup = function() {
 		}
 	}
 	delete Workers['__fake__']; // Remove the fake worker
+	// Replace the global functions for better log reporting
+	log = function(txt){
+		return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' ' + txt : '');
+	};
+	warn = function(txt){
+		var i, output = [];
+		for (i=0; i<Debug.stack.length; i++) {
+			if (!output.length || Debug.stack[i][1] !== output[0]) {
+				output.unshift(Debug.stack[i][1]);
+			}
+		}
+		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + output.join('->') + ':' + (txt ? ' ' + txt : '');
+	};
+	error = function(txt) {
+		var i, j, output = [];
+		for (i=0; i<Debug.stack.length; i++) {
+			output.unshift('->' + Debug.stack[i][1] + '.' + Debug.stack[i][2].callee._name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')');
+			for (j=1; j<output.length; j++) {
+				output[j] = '  ' + output[j];
+			}
+		}
+		output.unshift('');
+		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (txt ? ': ' + txt : '') + output.join("\n") + (txt ? "\n:" : '');
+	};
 };
 
 Debug.init = function() {
@@ -2566,9 +2590,10 @@ Debug.dashboard = function(sort, rev) {
 			case 0:	return (a).localeCompare(b);
 			case 1: return data[b][0] - data[a][0];
 			case 2: return data[b][1] - data[a][1];
-			case 3: return (data[b][1]/data[b][0]) - (data[a][1]/data[a][0]);
-			case 4: return (data[b][2]/data[b][0]) - (data[a][2]/data[a][0]);
-			case 5: return ((data[b][2]/data[b][0])-(data[a][1]/data[a][0])) - ((data[a][2]/data[a][0])-(data[b][1]/data[b][0]));
+			case 3: return data[b][2] - data[a][2];
+			case 4: return (data[b][1]/data[b][0]) - (data[a][1]/data[a][0]);
+			case 5: return (data[b][2]/data[b][0]) - (data[a][2]/data[a][0]);
+			case 6: return ((data[b][2]/data[b][0])-(data[a][1]/data[a][0])) - ((data[a][2]/data[a][0])-(data[b][1]/data[b][0]));
 		}
 	});
 	if (rev) {
@@ -2657,18 +2682,18 @@ History.update = function(event) {
 			delete this.data[i];
 		}
 	}
-//	debug('Exp: '+this.get('exp'));
-//	debug('Exp max: '+this.get('exp.max'));
-//	debug('Exp max change: '+this.get('exp.max.change'));
-//	debug('Exp min: '+this.get('exp.min'));
-//	debug('Exp min change: '+this.get('exp.min.change'));
-//	debug('Exp change: '+this.get('exp.change'));
-//	debug('Exp mean: '+this.get('exp.mean.change'));
-//	debug('Exp harmonic: '+this.get('exp.harmonic.change'));
-//	debug('Exp geometric: '+this.get('exp.geometric.change'));
-//	debug('Exp mode: '+this.get('exp.mode.change'));
-//	debug('Exp median: '+this.get('exp.median.change'));
-//	debug('Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
+//	console.log(warn(), 'Exp: '+this.get('exp'));
+//	console.log(warn(), 'Exp max: '+this.get('exp.max'));
+//	console.log(warn(), 'Exp max change: '+this.get('exp.max.change'));
+//	console.log(warn(), 'Exp min: '+this.get('exp.min'));
+//	console.log(warn(), 'Exp min change: '+this.get('exp.min.change'));
+//	console.log(warn(), 'Exp change: '+this.get('exp.change'));
+//	console.log(warn(), 'Exp mean: '+this.get('exp.mean.change'));
+//	console.log(warn(), 'Exp harmonic: '+this.get('exp.harmonic.change'));
+//	console.log(warn(), 'Exp geometric: '+this.get('exp.geometric.change'));
+//	console.log(warn(), 'Exp mode: '+this.get('exp.mode.change'));
+//	console.log(warn(), 'Exp median: '+this.get('exp.median.change'));
+//	console.log(warn(), 'Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value) {
@@ -2826,7 +2851,7 @@ History.get = function(what) {
 				if (value !== null && last !== null) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
-						debug('NaN: '+value+' - '+last);
+						console.log(warn(), 'NaN: '+value+' - '+last);
 					}
 				}
 				last = value;
@@ -3068,7 +3093,7 @@ Page.replaceClickHandlers = function() {
 	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
 	.click(function(event){
 		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
-			debug('Replacing CA link');
+			console.log(warn(), 'Replacing CA link');
 			event.preventDefault();
 			event.stopImmediatePropagation()
 			return false;
@@ -3170,7 +3195,7 @@ Page.work = function(state) {
 Page.identify = function() {
 	this.page = '';
 	if (!$('#app_content_'+APPID+' > div > div').length || !$('#app'+APPID+'_globalContainer > div > div').length) {
-		debug('Page apparently not loaded correctly, reloading.');
+		console.log(warn(), 'Page apparently not loaded correctly, reloading.');
 		this.reload();
 		return null;
 	}
@@ -3195,7 +3220,7 @@ Page.identify = function() {
 	if (this.page !== '') {
 		this.data[this.page] = Date.now();
 	}
-//	debug('this.identify("'+Page.page+'")');
+//	console.log(warn(), 'this.identify("'+Page.page+'")');
 	return this.page;
 };
 
@@ -3225,7 +3250,7 @@ Page.onreadystatechange = function() {
 				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
 			}
 			if (Page.option.click) {
-//				debug('replacing click handlers');
+//				console.log(warn(), 'replacing click handlers');
 				data = data.replace(/<a onclick="[^"]*" href/g, '<a href');
 			}
 			$('#app'+APPID+'_AjaxLoadIcon').hide();
@@ -3235,14 +3260,14 @@ Page.onreadystatechange = function() {
 				Page.replaceClickHandlers();
 			}
 		} catch(e1){
-			debug(e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
+			console.log(warn(), e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
 		}
 		return;// Stop here as we're done
 	} catch(e2){
-		debug('AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
+		console.log(warn(), 'AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
 	}
 	if (++Page.retry < Page.option.retry && Page.request.url) {
-		debug('Page not loaded correctly, retry last action.');
+		console.log(warn(), 'Page not loaded correctly, retry last action.');
 		window.setTimeout(function(){
 			var request = new XMLHttpRequest();
 			request.open(Page.request.method || 'GET', Page.request.url);
@@ -3250,7 +3275,7 @@ Page.onreadystatechange = function() {
 			request.send(Page.request.body);
 		}, Page.option.delay * 1000);
 	} else {
-		debug('Page not loaded correctly, reloading.');
+		console.log(warn(), 'Page not loaded correctly, reloading.');
 		window.setTimeout(Page.reload, Page.option.delay * 1000);
 	}
 };
@@ -3307,9 +3332,9 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 				break;
 		}
 	}
-//	debug('Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
+//	console.log(warn(), 'Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
 	if (force === 0 && Queue.option.pause) {
-		debug('Trying to load page when paused...');
+		console.log(warn(), 'Trying to load page when paused...');
 		return true;
 	}
 	if (page === this.page && method !== 'POST' && (force || typeof args === 'undefined')) {
@@ -3327,7 +3352,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 			page = page + args;
 		}
 		this.loading = true;
-		debug('Navigating to ' + page + (force ? ' (FORCE)' : ''));
+		console.log(warn(), 'Navigating to ' + page + (force ? ' (FORCE)' : ''));
 		if (force) {
 			window.location.replace(page);// Load new page without giving a back button
 			window.setTimeout(function(){Page.loading = false;}, this.option.timeout * 1000);// Don't try to load again for timeout secs...
@@ -3349,7 +3374,7 @@ Page.to = function() { // Force = true/false (ignore pause and reload page if tr
 };
 
 Page.reload = function() {
-	debug('Page.reload()');
+	console.log(warn(), 'Page.reload()');
 	window.location.replace(window.location.href);
 };
 
@@ -3368,12 +3393,12 @@ Page.clearFBpost = function(obj) {
 
 Page.click = function(el) {
 	if (!$(el).length) {
-		log('Page.click: Unable to find element - '+el);
+		console.log(log(), 'Page.click: Unable to find element - '+el);
 		return false;
 	}
 	if (this.lastclick === el) {
 		if (++this.retry >= this.option.retry) {
-			debug('Element not clicked properly, reloading.');
+			console.log(warn(), 'Element not clicked properly, reloading.');
 			Page.reload();
 			return true;
 		}
@@ -3503,7 +3528,7 @@ Queue.init = function() {
 		if (Workers[i].work && Workers[i].display) {
 			this._watch(Workers[i], 'option._enabled');// Keep an eye out for them going disabled
 			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
-				log('Adding '+i+' to Queue');
+				console.log(log(), 'Adding '+i+' to Queue');
 				if (Workers[i].settings.unsortable) {
 					this.option.queue.unshift(i);
 				} else {
@@ -3516,7 +3541,7 @@ Queue.init = function() {
 		worker = Workers[this.option.queue[i]];
 		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
-				debug('Trigger '+worker.name+' (continue after load)');
+				console.log(warn(), 'Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.id));
@@ -3529,7 +3554,7 @@ Queue.init = function() {
 	});
 	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
 		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
-		debug('State: ' + (pause ? "paused" : "running"));
+		console.log(warn(), 'State: ' + (pause ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
 		Page.clear();
 		Queue.clearCurrent();
@@ -3581,7 +3606,7 @@ Queue.update = function(event) {
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
-				debug('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
+				console.log(warn(), 'At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
 				this.runtime[ensta[i]] = Player.get(ensta[i]);
 				this.runtime.force[ensta[i]] = true;
 				break;
@@ -3610,13 +3635,13 @@ Queue.update = function(event) {
 							: LevelUp.option.general );
 					this.runtime.basehit = action.basehit;
 				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
-					debug('Overriding manual general that multiplies attack/defense');
+					console.log(warn(), 'Overriding manual general that multiplies attack/defense');
 					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
 				}
 				Queue.runtime.force.stamina = (action.stamina !== 0);
 				Queue.runtime.force.energy = (action.energy !== 0);
-				debug('Leveling up: force burn ' + (this.runtime.stamina ? 'stamina' : 'energy') + ' ' + (this.runtime.stamina || this.runtime.energy));
-				//debug('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
+				console.log(warn(), 'Leveling up: force burn ' + (this.runtime.stamina ? 'stamina' : 'energy') + ' ' + (this.runtime.stamina || this.runtime.energy));
+				//console.log(warn(), 'Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
 				LevelUp.runtime.running = true;
 			}
 		} else {
@@ -3639,7 +3664,7 @@ Queue.update = function(event) {
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true) && !Workers[i].get(['option', '_sleep'], false)) {
-				debug(Workers[i].name + '.work(false);');
+				console.log(warn(), Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
 			}
@@ -3652,7 +3677,7 @@ Queue.update = function(event) {
 				}
 				continue;
 			}
-//			debug(worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
+//			console.log(warn(), worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 			if (this.runtime.current === worker.name) {
 				worker._unflush();
 				result = worker._work(true);
@@ -3674,14 +3699,14 @@ Queue.update = function(event) {
 		current = this.runtime.current ? Workers[this.runtime.current] : null;
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			this.clearCurrent();
-			debug('Trigger ' + next.name);
+			console.log(warn(), 'Trigger ' + next.name);
 			this.set('runtime.current', next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
 			this._notify('runtime.current');
 		}
-//		debug('End Queue');
+//		console.log(warn(), 'End Queue');
 		for (i in Workers) {
 			Workers[i]._flush();
 		}
@@ -3799,7 +3824,7 @@ Resources.update = function(event) {
 //		Config.makePanel(this, this.display2);
 //	}
 	var worker, type, total = 0;
-//	debug('Resources.update()');
+//	console.log(warn(), 'Resources.update()');
 	for (type in this.option.types) {
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
@@ -3816,7 +3841,7 @@ Resources.update = function(event) {
 			this.add(type, total);
 		}
 	}
-//	debug(this.runtime.buckets.toSource());
+//	console.log(warn(), this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
@@ -3832,7 +3857,7 @@ absolute = is an absolute amount, not relative
 NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
 Resources.add = function(type, amount, absolute) {
-//	debug('Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
+//	console.log(warn(), 'Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
 	this._push();
 	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
 	if (isUndefined(amount)) {// Setting up that we use this type
@@ -3901,12 +3926,12 @@ Resources.has = function(type, amount) {
 };
 
 Resources.get = function(what,def) {
-//	log('Resources.get('+what+', '+(def?def:'null')+')');
+//	console.log(log(), 'Resources.get('+what+', '+(def?def:'null')+')');
 	return this._get(what,def);
 };
 
 Resources.set = function(what,value) {
-//	log('Resources.set('+what+', '+(value?value:'null')+')');
+//	console.log(log(), 'Resources.set('+what+', '+(value?value:'null')+')');
 	return this._set(what,value);
 };
 
@@ -3979,17 +4004,17 @@ Settings.update = function(event) {
 			case 'None':
 				break;
 			case 'Load':
-				debug('Loading "' + this.option.which + '"');
+				console.log(warn(), 'Loading "' + this.option.which + '"');
 				this.get(this.option.which);
 				break;
 			case 'Save':
-				debug('Saving "' + this.option.name + '"');
+				console.log(warn(), 'Saving "' + this.option.name + '"');
 				this.set(this.option.name);
 				this.option.which = this.option.name;
 				break;
 			case 'Delete':
 				if (this.option.which !== '- default -') {
-					debug('Deleting "' + this.option.name + '"');
+					console.log(warn(), 'Deleting "' + this.option.name + '"');
 					delete this.data[this.option.which];
 				}
 				this.option.which = '- default -';
@@ -4113,7 +4138,7 @@ Title.update = function(event) {
 						}
 						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
 					} else {
-						debug('Bad worker specified = "' + tmp[1] + '"');
+						console.log(warn(), 'Bad worker specified = "' + tmp[1] + '"');
 					}
 				}
 			}
@@ -4269,7 +4294,7 @@ Update.update = function(event) {
 		this.checkVersion(false);
 	}
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
-		log('New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
+		console.log(log(), 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
 		if (this.runtime.version > this.temp.version) {
 			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
 		}
@@ -4474,7 +4499,7 @@ Alchemy.parse = function(change) {
 	this.data.summons = {};
 	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
 	if (!$elements.length) {
-		debug('Can\'t find any alchemy ingredients...');
+		console.log(warn(), 'Can\'t find any alchemy ingredients...');
 //		Page.to('keep_alchemy', false); // Force reload
 		return false;
 	}
@@ -4531,7 +4556,7 @@ Alchemy.work = function(state) {
 	if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
 	}
-	debug('Perform - ' + this.runtime.best);
+	console.log(warn(), 'Perform - ' + this.runtime.best);
 	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 		Page.reload(); // Can't find the recipe we just parsed when coming here...
 	}
@@ -4897,7 +4922,7 @@ Battle.parse = function(change) {
 //			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
-//				debug('wrong ID');
+//				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
@@ -4907,12 +4932,12 @@ Battle.parse = function(change) {
 					this.runtime.attacking = uid;
 				}
 				data[uid].last = Date.now();
-				//debug('win');
+				//console.log(warn(), 'win');
 			} else if ($('img[src*="battle_defeat"]').length) {
 				data[uid].loss = (data[uid].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
-				//debug('loss');
+				//console.log(warn(), 'loss');
 			} else {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
@@ -4976,7 +5001,7 @@ Battle.update = function(event) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache
-//		debug('Pruning target cache');
+//		console.log(warn(), 'Pruning target cache');
 		list = [];
 		for (i in data) {
 /*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
@@ -5004,7 +5029,7 @@ Battle.update = function(event) {
 		}
 	}
 	// Check if we need Demi-points
-        //debug('Queue Logic = ' + enabled);
+        //console.log(warn(), 'Queue Logic = ' + enabled);
 	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
@@ -5090,7 +5115,7 @@ Battle.update = function(event) {
 Battle.work = function(state) {
 	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
 	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
-//		debug('Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
+//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
@@ -5099,10 +5124,10 @@ Battle.work = function(state) {
 	var $symbol_rows = $('#app'+APPID+'_app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
 	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	if (!$form.length) {
-		debug('Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
+		console.log(warn(), 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');
 	} else {
-		log((this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		console.log(log(), (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}
@@ -5360,11 +5385,11 @@ Army._overload('parse', function(change) {
 			army._info.page = page;
 			army._info.id = start + i;
 			Army._taint.data = true;
-//			debug('Adding: ' + JSON.stringify(army));
+//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
 		});
 		if ($('img[src*="bonus_member.jpg"]').length) {
 			this.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
-//			log('Extra Army Members Found: '+Army.runtime.extra);
+//			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in army) {
 			if (army[i].Army) {
@@ -5383,7 +5408,7 @@ Army._overload('parse', function(change) {
 				this._set(['runtime','page'], page + 1);
 			}
 		}
-//		debug('parse: Army.runtime = '+JSON.stringify(this.runtime));
+//		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent();
 });
@@ -5393,7 +5418,7 @@ Army._overload('update', function(event) {
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
 		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
-			log('Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}
 		if (!page && this.option.recheck) {
@@ -5409,7 +5434,7 @@ Army._overload('update', function(event) {
 			this._set(['runtime','oldest'], oldest);
 		}
 		this._set(['runtime','page'], page);
-//		debug('update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
+//		console.log(warn(), 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	this._set(['option','_sleep'], !this.runtime.page);
 });
@@ -5539,7 +5564,7 @@ Elite.parse = function(change) {
 					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 1800000); // half hour
 				} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
 					Elite.runtime.waitarena = Date.now();
-					debug(this + 'Arena guard full, wait '+Elite.option.every+' hours');
+					console.log(warn(), this + 'Arena guard full, wait '+Elite.option.every+' hours');
 				}
 			}
 	*/
@@ -5552,7 +5577,7 @@ Elite.parse = function(change) {
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				Elite.runtime.waitelite = Date.now();
 				Elite.runtime.nextelite = null;
-				debug('Elite guard full, wait '+Elite.option.every+' hours');
+				console.log(warn(), 'Elite guard full, wait '+Elite.option.every+' hours');
 			}
 		});
 	} else {
@@ -5613,7 +5638,7 @@ Elite.work = function(state) {
 		return true;
 	}
 	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
-		debug('Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
+		console.log(warn(), 'Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
 		if (!Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite})) {
 			return true;
 		}
@@ -5676,7 +5701,7 @@ Generals.parse = function(change) {
 					weapon_bonus += ', ';
 				}
 				weapon_bonus += temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-				//debug("Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+				//console.log(warn(), "Found weapon: " + temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 			}
 		});
 		if (data[current]){
@@ -5684,7 +5709,7 @@ Generals.parse = function(change) {
 		}
 // Hopefully our Page.to() logic now catches most bad page loads and removes the need for this...
 //		if ($elements.length < length(data)) {
-//			debug('Different number of generals, have '+$elements.length+', want '+length(data));
+//			console.log(warn(), 'Different number of generals, have '+$elements.length+', want '+length(data));
 //			Page.to('heroes_generals', ''); // Force reload
 //			return false;
 //		}
@@ -5776,7 +5801,7 @@ Generals.update = function(event) {
 			}
 			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?[0-9]+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
 			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?[0-9]+) defense/gi)), 10) : 0);
-//			debug(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
+//			console.log(warn(), i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?[0-9]+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?[0-9]+) attack/gi) || 0)));
 			data[i].invade = {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
@@ -5798,7 +5823,7 @@ Generals.update = function(event) {
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			};
 /*			if (i === 'Xira' || i === 'Slayer') {
-				debug(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
+				console.log(warn(), i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?[0-9]+\.?[0-9]*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend);
 			}
 */			data[i].potential = {
 				bank: (skillcombo.regex(/Bank Fee/gi) ? 1 : 0),
@@ -5831,17 +5856,17 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!this.data[name]) {
-		log('General "'+name+'" requested but not found!');
+		console.log(log(), 'General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!Generals.test(name)) {
-		//debug('Identified general ' + name + ', but changing would cost stamina or energy.');
-		debug('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
-		//debug('stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
+		//console.log(warn(), 'Identified general ' + name + ', but changing would cost stamina or energy.');
+		console.log(warn(), 'General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
+		//console.log(warn(), 'stamina ' + Player.get('stamina') + ' new max stamina ' + (Player.get('maxstamina') + Generals.data[name].stats.stamina)+ ' old max stamina ' + Player.get('maxstamina') + ' new gen stamina ' + Generals.data[name].stats.stamina);
 		return true;
 	}
-//	debug('Changing to General '+name);
-	debug('General change: ' + Player.get('general') + ' to ' + name);
+//	console.log(warn(), 'Changing to General '+name);
+	console.log(warn(), 'General change: ' + Player.get('general') + ' to ' + name);
 	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null)
 	return false;
 };
@@ -5891,7 +5916,7 @@ Generals.best = function(type) {
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {
-		debug('No definition for best general for ' + type);
+		console.log(warn(), 'No definition for best general for ' + type);
 		return 'any';
 	}
 	best = bestObjValue(this.data, value, Generals.test);
@@ -5977,7 +6002,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Priority: Swapping '+gup+' with '+gdown);
+			console.log(warn(), 'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}
@@ -5996,7 +6021,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			debug('Priority: Swapping '+gup+' with '+gdown);
+			console.log(warn(), 'Priority: Swapping '+gup+' with '+gdown);
 			Generals.data[gdown].priority++;
 			Generals.data[gup].priority--;
 		}
@@ -6089,7 +6114,7 @@ Gift.init = function() {
 Gift.parse = function(change) {
 	if (change) {
 		if (change === 'facebook') {
-			debug('Facebook popup parsed...');
+			console.log(warn(), 'Facebook popup parsed...');
 		}
 		return false;
 	}
@@ -6097,63 +6122,63 @@ Gift.parse = function(change) {
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// We need to get the image of the gift from the index page.
-//		debug('Checking for a waiting gift and getting the id of the gift.');
+//		console.log(warn(), 'Checking for a waiting gift and getting the id of the gift.');
 		if ($('span.result_body').text().indexOf('has sent you a gift') >= 0) {
 			this.runtime.gift.sender_ca_name = $('span.result_body').text().regex(/[\t\n]*(.+) has sent you a gift/i);
 			this.runtime.gift.name = $('span.result_body').text().regex(/has sent you a gift:\s+(.+)!/i);
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
-			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
+			console.log(warn(), this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
 			this.runtime.gift_waiting = true;
 			return true;
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
-			debug(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
+			console.log(warn(), this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
 			return true;
 		} else {
-//			debug('No more waiting gifts. Did we miss the gift accepted page?');
+//			console.log(warn(), 'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	} else if (Page.page === 'army_invite') {
 		// Accepted gift first
-//		debug('Checking for accepted gift.');
+//		console.log(warn(), 'Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
 			if ($('div.game').text().indexOf('accepted the gift') >= 0 || $('div.game').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
-				debug('Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+				console.log(warn(), 'Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 				received.push(this.runtime.gift); // add the gift to our list of received gifts.  We will use this to clear facebook notifications and possibly return gifts
 				this.runtime.work = true;	// We need to clear our facebook notifications and/or return gifts
 				this.runtime.gift = {}; // reset our runtime gift tracker
 			}
 		}
 		// Check for gifts
-//		debug('Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
+//		console.log(warn(), 'Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
 		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
 			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
 				return false;	// let the work function send us to the index page to get the info.
 			}
-//			debug('Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
+//			console.log(warn(), 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
 			this.runtime.gift.sender_id = $('div.messages img[uid]').first().attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
 			if (this.runtime.gift.sender_id) {
 				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
-//				debug('Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
+//				console.log(warn(), 'Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
 			} else {
-				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+				console.log(log(), "Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
 			}
 		} else {
-//			debug('No more waiting gifts. Did we miss the gift accepted page?');
+//			console.log(warn(), 'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	
 	} else if (Page.page === 'gift_accept'){
 		// Check for sent
-//		debug('Checking for sent gifts.');
+//		console.log(warn(), 'Checking for sent gifts.');
 		if (this.runtime.sent_id && $('div#app'+APPID+'_results_main_wrapper').text().indexOf('You have sent') >= 0) {
-			debug(gifts[this.runtime.sent_id].name+' sent.');
+			console.log(warn(), gifts[this.runtime.sent_id].name+' sent.');
 			for (j=todo[this.runtime.sent_id].length-1; j >= Math.max(todo[this.runtime.sent_id].length - 30, 0); j--) {	// Remove the IDs from the list because we have sent them
 				todo[this.runtime.sent_id].pop();
 			}
@@ -6167,20 +6192,20 @@ Gift.parse = function(change) {
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
-//		debug('Parsing gifts.');
-//		debug('Found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
+//		console.log(warn(), 'Parsing gifts.');
+//		console.log(warn(), 'Found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
 		this.data.gifts = {};
 		gifts = this.data.gifts;
 		$('div[id*="_giftContainer"] div[id*="_gift"]').each(function(i,el){
 			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!',''), slot = $(el).attr('id').regex(/_gift([0-9]+)/);
-//			debug('Adding: '+name+'('+id+') to slot '+slot);
+//			console.log(warn(), 'Adding: '+name+'('+id+') to slot '+slot);
 			gifts[id] = {};
 			gifts[id].name = name;
 			gifts[id].slot = slot;
 		});
 	} else {
 		if ($('div.result').text().indexOf('have exceed') !== -1){
-			debug('We have run out of gifts to send.  Waiting one hour to retry.');
+			console.log(warn(), 'We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 		}
 	}
@@ -6218,7 +6243,7 @@ Gift.work = function(state) {
 		if (!Page.to('army_invite')) {
 			return QUEUE_CONTINUE;
 		}
-//		debug('Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+//		console.log(warn(), 'Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
 		if (!Page.to('army_invite', {act:'acpt', rqtp:'gift', uid:this.runtime.gift.sender_id}) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
 			return QUEUE_CONTINUE;
 		}
@@ -6239,7 +6264,7 @@ Gift.work = function(state) {
 		for (i = received.length - 1; i >= 0; i--){
 			temptype = this.option.type;
 			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type !== 'None') {
-				debug(received[i].id+' was not found in our sendable gift list.');
+				console.log(warn(), received[i].id+' was not found in our sendable gift list.');
 				temptype = 'Random';
 			}
 			switch(temptype) {
@@ -6250,7 +6275,7 @@ Gift.work = function(state) {
 							gift_ids.push(j);
 						}
 						random_gift_id = Math.floor(Math.random() * gift_ids.length);
-						debug('Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
+						console.log(warn(), 'Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
 						if (!todo[gift_ids[random_gift_id]]) {
 							todo[gift_ids[random_gift_id]] = [];
 						}
@@ -6259,7 +6284,7 @@ Gift.work = function(state) {
 					this.runtime.work = true;
 					break;
 				case 'Same as Received':
-					debug('Will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
+					console.log(warn(), 'Will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
 					if (!todo[received[i].id]) {
 						todo[received[i].id] = [];
 					}
@@ -6285,12 +6310,12 @@ Gift.work = function(state) {
 	}
 	
 	if (this.runtime.gift_sent > Date.now()) {	// We have sent gift(s) and are waiting for the fb popup
-//		debug('Waiting for FB popup.');
+//		console.log(warn(), 'Waiting for FB popup.');
 		if ($('div.dialog_buttons input[name="sendit"]').length){
 			this.runtime.gift_sent = null;
 			Page.click('div.dialog_buttons input[name="sendit"]');
 		} else if ($('span:contains("Out of requests")').text().indexOf('Out of requests') >= 0) {
-			debug('We have run out of gifts to send.  Waiting one hour to retry.');
+			console.log(warn(), 'We have run out of gifts to send.  Waiting one hour to retry.');
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[name="ok"]');
 		}
@@ -6331,7 +6356,7 @@ Gift.work = function(state) {
 					gift_ids.push(j);
 				}
 				random_gift_id = Math.floor(Math.random() * gift_ids.length);
-				debug('Unavaliable gift ('+i+') found in todo list. Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' instead.');
+				console.log(warn(), 'Unavaliable gift ('+i+') found in todo list. Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' instead.');
 				if (!todo[gift_ids[random_gift_id]]) {
 					todo[gift_ids[random_gift_id]] = [];
 				}
@@ -6344,12 +6369,12 @@ Gift.work = function(state) {
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
 				if ($('img[src*="gift_invite_castle_on"]').length){
 					if ($('div.unselected_list').children().length) {
-						debug('Sending out ' + this.data.gifts[i].name);
+						console.log(warn(), 'Sending out ' + this.data.gifts[i].name);
 						k = 0;
 						for (j=todo[i].length-1; j>=0; j--) {
 							if (k< 10) {	// Need to limit to 10 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-//									debug('User '+todo[i][j]+' wasn\'t in the CA friend list.');
+//									console.log(warn(), 'User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
 								}
 								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
@@ -6436,11 +6461,11 @@ Heal.me = function() {
 	if (!Page.to('keep_stats')) {
 		return true;
 	}
-	debug('Healing...');
+	console.log(warn(), 'Healing...');
 	if ($('input[value="Heal Wounds"]').length) {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
-		log('Danger Danger Will Robinson... Unable to heal!');
+		console.log(log(), 'Danger Danger Will Robinson... Unable to heal!');
 	}
 	return false;
 };
@@ -6625,7 +6650,7 @@ Income.work = function(state) {
 	if (!this.option.general || !Generals.test(Generals.best('income'))) {
 		return QUEUE_FINISH;
 	}
-//	debug(when + ', Margin: ' + Income.option.margin);
+//	console.log(warn(), when + ', Margin: ' + Income.option.margin);
 	if (Player.get('cash_timer') > this.option.margin) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;
@@ -6635,7 +6660,7 @@ Income.work = function(state) {
 	if (!state || !Generals.to('income')) {
 		return QUEUE_CONTINUE;
 	}
-	debug('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
+	console.log(warn(), 'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return QUEUE_CONTINUE;
 };
 
@@ -6832,7 +6857,7 @@ Land.work = function(state) {
 			} else {
 				$('select', $('.land_buy_costs .gold', el).parent().parent().next()).val(Land.runtime.buy <= -10 ? 10 : (Land.runtime.buy <= -5 ? 5 : 1));
 			}
-			debug((Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + shortNumber(Math.abs(Land.runtime.cost)));
+			console.log(warn(), (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + shortNumber(Math.abs(Land.runtime.cost)));
 			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
 	});
@@ -6980,7 +7005,7 @@ LevelUp.update = function(event) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
-				//debug('page.page ' + Page.page);
+				//console.log(warn(), 'page.page ' + Page.page);
 				this.runtime.last_stamina = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle';
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
@@ -6997,7 +7022,7 @@ LevelUp.update = function(event) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-	//debug('next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
+	//console.log(warn(), 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
@@ -7032,7 +7057,7 @@ LevelUp.work = function(state) {
 /*	if (action && action.big) {
 		Generals.set('runtime.disabled', false);
 		if (Generals.to(this.option.general)) {
-			//debug('Disabling Generals because next action will level.');
+			//console.log(warn(), 'Disabling Generals because next action will level.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
@@ -7080,11 +7105,11 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'best':
 		// Find the biggest exp quest or stamina return to push unusable exp into next level
 		big = this.findAction('big',energy,stamina,0); 
-		debug('Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
+		console.log(warn(), 'Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
 		if (this.option.order === 'Energy') {
 			check = this.findAction('energy',energy-big.energy,0,exp);
-			//debug(' levelup quest ' + energy + ' ' + exp);
-			//debug('this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
+			//console.log(warn(), ' levelup quest ' + energy + ' ' + exp);
+			//console.log(warn(), 'this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			// Do energy first if defending a monster or doing the best quest, but not little 'use energy' quests
 			if (check.exp && (check.quest === Quest.runtime.best || !check.quest)) {
 				return check;
@@ -7098,18 +7123,18 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		if (check.exp) {
 			return check;
 		}
-		//debug(' big.general ' + big.general+ big.exp);
+		//console.log(warn(), ' big.general ' + big.general+ big.exp);
 		return (big.exp ? big : nothing);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
 		energyAction = this.findAction('energy',energy,stamina,0);
 		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction.exp > staminaAction.exp) {
-			//debug('big energy ' + energyAction.exp);
+			//console.log(warn(), 'big energy ' + energyAction.exp);
 			energyAction.big = true;
 			return energyAction;
 		} else if (staminaAction.exp) {
-			//debug('big stamina ' + staminaAction.exp + staminaAction.general);
+			//console.log(warn(), 'big stamina ' + staminaAction.exp + staminaAction.general);
 			staminaAction.big = true;
 			return staminaAction;
 		} else {
@@ -7123,12 +7148,12 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 						< Queue.option.queue.indexOf('Quest'))) {
 			defendAction = this.findAction('defend',energy,0,exp);
 			if (defendAction.exp) {
-				debug('energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
+				console.log(warn(), 'energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
 				return defendAction;
 			}
 		}
 		questAction = this.findAction('quest',energy,0,exp);
-		debug('energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
+		console.log(warn(), 'energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
 		return questAction;
 	case 'quest':		
 		quests = Quest.get('id');
@@ -7141,7 +7166,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			});
 		}
 		if (i) {
-			//debug('quest ' + i);
+			//console.log(warn(), 'quest ' + i);
 			return {	energy : quests[i].energy,
 						stamina : 0,
 						exp : quests[i].exp,
@@ -7176,7 +7201,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		debug('mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
+		console.log(warn(), 'mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
 		if (monsterAction > 0 ) {
 			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
 						energy : (stat === 'energy') ? monsterAction : 0,
@@ -7919,28 +7944,28 @@ Monster.parse = function(change) {
 	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x;
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
-		//debug('Parsing for Monster type');
+		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('#app'+APPID+'_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
-				//debug('Found a dead '+i);
+				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = types[i].timer;
 				dead = true;
 				break;
 			} else if (types[i].image && $('#app'+APPID+'_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
-				//debug('Parsing '+i);
+				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
 				timer = types[i].timer;
 				break;
 			} else if (types[i].image2 && $('#app'+APPID+'_app_body img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
-				//debug('Parsing second stage '+i);
+				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
 				timer = types[i].timer2 || types[i].timer;
 				break;
 			}
 		}
 		if (!uid || !type_label) {
-			debug('Unknown monster (probably dead)');
+			console.log(warn(), 'Unknown monster (probably dead)');
 			return false;
 		}
 		mid = uid+'_'+(types[i].mpool || 4);
@@ -7980,7 +8005,7 @@ Monster.parse = function(change) {
 						calc_rolling_weighted_average(this.runtime.monsters[monster.type]
 								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
 								,ensta[i],this.runtime.used[ensta[i]],10);
-						//debug('Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[monster.type]['avg_damage_per_' + ensta[i]]);
+						//console.log(warn(), 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[monster.type]['avg_damage_per_' + ensta[i]]);
 					}
 					this.runtime.used[ensta[i]] = 0;
 					break;
@@ -8010,7 +8035,7 @@ Monster.parse = function(change) {
 			if ($(Monster.class_img[i]).length){
 				monster.mclass = i;
 				break;
-				//debug('Monster class : '+Monster['class_name'][i]);
+				//console.log(warn(), 'Monster class : '+Monster['class_name'][i]);
 			}
 		}
 		if ($(Monster.warrior).length) {
@@ -8023,7 +8048,7 @@ Monster.parse = function(change) {
 			$secondary = $(Monster['secondary_img']);
 			if ($secondary.length) {
 				monster.secondary = 100 * $secondary.width() / $secondary.parent().width();
-				debug(Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
+				console.log(warn(), Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
 		}
 		// If we have some other class but no cleric button, then we can't heal.
@@ -8062,13 +8087,13 @@ Monster.parse = function(change) {
 		monster.damage.siege = 0;
 		monster.damage.others = 0;
 		if (!dead &&$('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
-			//debug('Current Siege Phase is: '+ this.data[mid].phase);
+			//console.log(warn(), 'Current Siege Phase is: '+ this.data[mid].phase);
 			monster.phase = $('input[name*="help with"]').attr('title').regex(/ (.*)/i);
-			//debug('Assisted on '+monster.phase+'.');
+			//console.log(warn(), 'Assisted on '+monster.phase+'.');
 		}
 		$('img[src*="siege_small"]').each(function(i,el){
 			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			//debug('Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+			//console.log(warn(), 'Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
 			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
@@ -8107,12 +8132,12 @@ Monster.parse = function(change) {
 		this.runtime.used.energy = 0;
 		if (Page.page === 'monster_monster_list' || Page.page === 'battle_raid') { // Check monster / raid list
 			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
-				debug('Found a timed out monster.');
+				console.log(warn(), 'Found a timed out monster.');
 				if (this.runtime.mid) {
-					debug('Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
+					console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
 					delete data[this.runtime.mid];
 				} else {
-					debug('Unknown monster (timed out)');
+					console.log(warn(), 'Unknown monster (timed out)');
 				}
 				this.runtime.check = false;
 				return false;
@@ -8145,7 +8170,7 @@ Monster.parse = function(change) {
 						}
 					}
 					if (!type_label) {
-						debug('Unable to add monster - uid: '+uid+', image: "'+tmp+'"');
+						console.log(warn(), 'Unable to add monster - uid: '+uid+', image: "'+tmp+'"');
 						return;
 					}
 					mid = uid+'_'+(types[i].mpool || 4);
@@ -8185,7 +8210,7 @@ Monster.parse = function(change) {
 
 Monster.update = function(event) {
 	if (event.type === 'runtime') {
-		//debug('Allowing monster runtime update for event.type ' + event.type + ' worker ' + event.worker.name);
+		//console.log(warn(), 'Allowing monster runtime update for event.type ' + event.type + ' worker ' + event.worker.name);
 	// Something strange here.  This is always called with Worker monster, even when it should be called with worker Queue because the Queue.runtime.energy or stamina has changed. 
 		return;
 	}
@@ -8200,7 +8225,7 @@ Monster.update = function(event) {
 	// Flush stateless monsters
 	for (mid in this.data) {
 		if (!this.data[mid].state) {
-			log('Deleted monster MID ' + mid + ' because state is ' + this.data[mid].state);
+			console.log(log(), 'Deleted monster MID ' + mid + ' because state is ' + this.data[mid].state);
 			delete this.data[mid];
 		}
 	}
@@ -8215,7 +8240,7 @@ Monster.update = function(event) {
 	// Some generals use more stamina, but only in certain circumstances...
 	for (i in defatt) {
 		this.runtime.multiplier[defatt[i]] = (Generals.get([Queue.runtime.general || (Generals.best(this.option['best_' + defatt[i]] ? ('monster_' + defatt[i]) : this.option['general_' + defatt[i]])), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
-		//debug('mult ' + defatt[i] + ' X ' + this.runtime.multiplier[defatt[i]]);
+		//console.log(warn(), 'mult ' + defatt[i] + ' X ' + this.runtime.multiplier[defatt[i]]);
 	}
 	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.runtime.force.stamina;
@@ -8246,7 +8271,7 @@ Monster.update = function(event) {
 				}
 				searchterm = $.trim(suborder[p].match(new RegExp("^[^:]+")).toString());
 				condition = $.trim(suborder[p].replace(new RegExp("^[^:]+"), '').toString());
-				//debug('Priority order ' + searchterm +' condition ' + condition);
+				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition);
 				for (mid in this.data) {
 					monster = this.data[mid];
 					type = this.types[monster.type];
@@ -8288,7 +8313,7 @@ Monster.update = function(event) {
 							: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
-					//debug('monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
+					//console.log(warn(), 'monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
@@ -8316,7 +8341,7 @@ Monster.update = function(event) {
 								} else {
 									list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 								}
-								//debug('ATTACK monster ' + monster.name + ' ' + type.name);
+								//console.log(warn(), 'ATTACK monster ' + monster.name + ' ' + type.name);
 							} else if ((monster.max === false || damage < monster.max)
 									&& !attack_found && (attack_overach || o) === o) {
 								list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
@@ -8329,7 +8354,7 @@ Monster.update = function(event) {
 							&& !Queue.runtime.quest) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
-							//debug('Secondary target found (' + monster.secondary + '%)');
+							//console.log(warn(), 'Secondary target found (' + monster.secondary + '%)');
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
@@ -8353,7 +8378,7 @@ Monster.update = function(event) {
 								if (damage < monster.ach
 										|| (/:sec\b/.test(condition)
 											&& defense_kind === Monster.secondary_on)) {
-									//debug('DEFEND monster ' + monster.name + ' ' + type.name);
+									//console.log(warn(), 'DEFEND monster ' + monster.name + ' ' + type.name);
 									defend_found = o;
 								} else if ((monster.max === false || damage < monster.max)
 										&& !defend_found && (defend_overach || o) === o) {
@@ -8514,7 +8539,7 @@ Monster.update = function(event) {
 	};
 	for (i in list) {
 		// Find best target
-		//debug('list ' + i + ' is ' + length(list[i]));
+		//console.log(warn(), 'list ' + i + ' is ' + length(list[i]));
 		if (list[i].length) {
 			if (list[i].length > 1) {
 				list[i].sort(listSortFunc);
@@ -8545,12 +8570,12 @@ Monster.update = function(event) {
 						? monster.ach : damage < (monster.max || damage)
 						? monster.max : max);
 				max = Math.min(max,(limit - damage)/(this.runtime.monsters[monster.type]['avg_damage_per_'+ensta[i]] || 1)/this.runtime.multiplier[defatt[i]]);
-				//debug('monster damage ' + damage + ' average damage ' + (this.runtime.monsters[monster.type]['avg_damage_per_'+ensta[i]] || 1).round(0) + ' limit ' + limit + ' max ' + ensta[i] + ' ' + max.round(1));
+				//console.log(warn(), 'monster damage ' + damage + ' average damage ' + (this.runtime.monsters[monster.type]['avg_damage_per_'+ensta[i]] || 1).round(0) + ' limit ' + limit + ' max ' + ensta[i] + ' ' + max.round(1));
 				filter = function(e) { return (e >= min && e <= max); };
 				this.runtime.button[defatt[i]].pick = bestObjValue(type[defatt[i]], function(e) { return e; }, filter) || type[defatt[i]].indexOf(min);
-				//debug(' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.runtime.button[defatt[i]].pick);
-				//debug('min detail '+ defatt[i] + ' # buttons   ' + Math.min(this.runtime.button.count,type[defatt[i]].length) +' button val ' +type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' max of type[0] ' + type[defatt[i]][0] + ' queue or option ' + (Queue.runtime.basehit || this.option[defatt[i] + '_min']));
-				//debug('max detail '+ defatt[i] + ' physical max ' + type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' basehit||option ' + (Queue.runtime.basehit || this.option[defatt[i]]) + ' stamina avail ' + (Queue.runtime[ensta[i]] / this.runtime.multiplier[defatt[i]]));
+				//console.log(warn(), ' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.runtime.button[defatt[i]].pick);
+				//console.log(warn(), 'min detail '+ defatt[i] + ' # buttons   ' + Math.min(this.runtime.button.count,type[defatt[i]].length) +' button val ' +type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' max of type[0] ' + type[defatt[i]][0] + ' queue or option ' + (Queue.runtime.basehit || this.option[defatt[i] + '_min']));
+				//console.log(warn(), 'max detail '+ defatt[i] + ' physical max ' + type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' basehit||option ' + (Queue.runtime.basehit || this.option[defatt[i]]) + ' stamina avail ' + (Queue.runtime[ensta[i]] / this.runtime.multiplier[defatt[i]]));
 				this.runtime[ensta[i]] = type[defatt[i]][this.runtime.button[defatt[i]].pick] * this.runtime.multiplier[defatt[i]];
 			}
 			this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
@@ -8579,7 +8604,7 @@ Monster.update = function(event) {
 		this.runtime.mode = this.runtime.stat = null;
 	}
 	// Nothing to attack, so look for monsters we haven't reviewed for a while.
-	//debug('attack ' + this.runtime.attack + ' stat_req ' + stat_req + ' health ' + req_health);
+	//console.log(warn(), 'attack ' + this.runtime.attack + ' stat_req ' + stat_req + ' health ' + req_health);
 	if ((!this.runtime.defend || Queue.runtime.energy < this.runtime.energy)
 			&& (!this.runtime.attack || stat_req || req_health)) { // stat_req is last calculated in loop above, so ok
 		for (mid in this.data) {
@@ -8590,7 +8615,7 @@ Monster.update = function(event) {
 				if (monster.state === 'reward' && monster.ac) {
 					this.page(mid, 'Collecting Reward from ', 'casuser','&action=collectReward');
 				} else if (monster.remove && this.option.remove && parseFloat(uid) !== userID) {
-					//debug('remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
+					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
 				} else if (monster.last < Date.now() - this.option.check_interval) {
 					this.page(mid, 'Reviewing ', 'casuser','');
@@ -8623,7 +8648,7 @@ Monster.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	if (this.runtime.check) {
-		debug(this.runtime.message);
+		console.log(warn(), this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
 		this.runtime.check = this.runtime.limit = this.runtime.message = false;
 		return QUEUE_RELEASE;
@@ -8634,7 +8659,7 @@ Monster.work = function(state) {
 	if (this.runtime[stat]>Queue.runtime[stat] 
 			&& (!Queue.runtime.basehit 
 				|| this.runtime[stat] === Queue.runtime.basehit * this.runtime.multiplier[mode])) {
-		debug('Waiting for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
+		console.log(warn(), 'Waiting for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
 		return QUEUE_FINISH;
 	}
 	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
@@ -8648,18 +8673,18 @@ Monster.work = function(state) {
 		btn = $(Monster.raid_buttons[this.option.raid]);
 	} else {
 		//Primary method of finding button.
-		debug('Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
+		console.log(warn(), 'Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
 		if (this.runtime.button[mode].pick > $(this.runtime.button[mode].query).length - 1) {
-			//debug('Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name);
+			//console.log(warn(), 'Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name);
 		} else {
-			//debug(' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
+			//console.log(warn(), ' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
 			btn = $(this.runtime.button[mode].query).eq(this.runtime.button[mode].pick);
 			this.runtime.used[stat] = this.runtime[stat];
 		}
 		if (!btn || !btn.length){
 			monster.button_fail = (monster.button_fail || 0) + 1;
 			if (monster.button_fail > 10){
-				log('Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + (this.runtime.button[mode].pick || 'unknown') + ' ' + mode + ' button ' + monster.button_fail + ' times!');
+				console.log(log(), 'Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + (this.runtime.button[mode].pick || 'unknown') + ' ' + mode + ' button ' + monster.button_fail + ' times!');
 				monster.ignore = true;
 				monster.button_fail = 0;
 			}
@@ -8670,9 +8695,9 @@ Monster.work = function(state) {
 				&& Page.page !== 'monster_battle_monster')
 			|| ($('div[style*="dragon_title_owner"] img[linked]').attr('uid') !== uid
 				&& $('div[style*="nm_top"] img[linked]').attr('uid') !== uid)) {
-		//debug('Reloading page. Button = ' + btn.attr('name'));
-		//debug('Reloading page. Page.page = '+ Page.page);
-		//debug('Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
+		//console.log(warn(), 'Reloading page. Button = ' + btn.attr('name'));
+		//console.log(warn(), 'Reloading page. Page.page = '+ Page.page);
+		//console.log(warn(), 'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
 		this.page(this.runtime[mode],'','casuser','');
 		Page.to(this.runtime.page,this.runtime.check);
 		this.runtime.check = null;
@@ -8688,7 +8713,7 @@ Monster.work = function(state) {
 		}
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio) && this.option.raid.indexOf('Invade') >= 0) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio) && this.option.raid.indexOf('Invade') === -1)){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
-			log('No valid Raid target!');
+			console.log(log(), 'No valid Raid target!');
 			Page.to('battle_raid', ''); // Force a page reload to change the targets
 			return QUEUE_CONTINUE;
 		}
@@ -8809,7 +8834,7 @@ Monster.dashboard = function(sort, rev) {
 		// link icon
 		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
-		//debug(image_url);
+		//console.log(warn(), image_url);
 
 		// user
 		if (isString(monster.name)) {
@@ -8982,7 +9007,7 @@ News.parse = function(change) {
 					killed = false;
 				}
 				if (time > last_time) {
-//					debug('Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', wp = '+my_wp+', income = '+my_cash);
+//					console.log(warn(), 'Add to History (+battle): exp = '+my_xp+', bp = '+my_bp+', wp = '+my_wp+', income = '+my_cash);
 					time = Math.floor(time / 3600000);
 					History.add([time, 'exp+battle'], my_xp);
 					History.add([time, 'bp+battle'], my_bp);
@@ -9281,16 +9306,16 @@ Potions.update = function(event) {
         $('a.golem-potion-drink').live('click', function(event){
 		var x = $(this).attr('name');
                 var act = $(this).text().regex(/(.*)/);
-		//debug('Clicked on ' + x);
-                //debug('Action = ' + act);
+		//console.log(warn(), 'Clicked on ' + x);
+                //console.log(warn(), 'Action = ' + act);
                 switch (act){
                     case '[Drink]':
-                        //debug('Setting Runtime');
+                        //console.log(warn(), 'Setting Runtime');
                         Potions.runtime.type = x;
                         Potions.runtime.amount = 1;
                         break;
                     default:
-                        //debug('Clearing Runtime');
+                        //console.log(warn(), 'Clearing Runtime');
                         Potions.runtime.type = Potions.runtime.amount = null;
                 }
                 
@@ -9307,13 +9332,13 @@ Potions.work = function(state) {
 	}
 	for(var i in this.data) {
 		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
-			debug('Wanting to drink a ' + i + ' potion');
+			console.log(warn(), 'Wanting to drink a ' + i + ' potion');
 			Page.click('.statUnit:contains("' + i + '") form .imgButton input');
 			break;
 		}
 	}
         if (this.runtime.type && this.runtime.amount){
-                debug('Wanting to drink a ' + this.runtime.type + ' potion');
+                console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
                 this.runtime.type = this.runtime.amount = null;
         }
@@ -9425,7 +9450,7 @@ Quest.init = function() {
 			if (data[i].reps) {
 				x = (this.rdata[i] && this.rdata[i].reps) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
-					debug('Quest.init: deleting metrics for: ' + i);
+					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
 					delete data[i].m_c;
 					delete data[i].m_d;
 					delete data[i].reps;
@@ -9602,7 +9627,7 @@ Quest.parse = function(change) {
 	});
 	for (i in purge) {
 		if (purge[i]) {
-			debug('Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
+			console.log(warn(), 'Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
 			delete data.id[i];
 		}
 	}
@@ -9650,7 +9675,7 @@ Quest.update = function(event) {
 			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
 			has_cartigan = true; // Stop trying once we've got the general or the ingredients
 		}
-//		debug('option = ' + this.option.what);
+//		console.log(warn(), 'option = ' + this.option.what);
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
 			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
@@ -9758,7 +9783,7 @@ Quest.update = function(event) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = data.id[best].energy;
-			debug('Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
+			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
 		}
 	}
 	if (best) {
@@ -9845,12 +9870,12 @@ Quest.work = function(state) {
 			}
 			break;
 		default:
-			log('Can\'t get to quest area!');
+			console.log(log(), 'Can\'t get to quest area!');
 			return QUEUE_FINISH;
 	}
-	debug('Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
+	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
 	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		debug('Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
+		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];
 		this.runtime.best = null;
 		Page.reload();
@@ -10550,11 +10575,11 @@ Town.update = function(event) {
                                         'INCR':Math.pow(10,incr)
                                 })[this.option.maxcost];
                         }
-//			debug('Item: '+u+', need: '+need+', want: '+want);
+//			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
 			if (need > have) {// Want to buy more                                
 				if (!best_quest && data[u].buy && data[u].buy.length) {
 					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * bestValue(data[u].buy, need - have))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
-//						debug('Buy: '+need);
+//						console.log(warn(), 'Buy: '+need);
 						best_buy = u;
 						buy = need;
 						if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
@@ -10565,7 +10590,7 @@ Town.update = function(event) {
 			} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
 				need = bestValue(data[u].sell, have - Math.max(need,want));
 				if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//					debug('Sell: '+need);
+//					console.log(warn(), 'Sell: '+need);
 					best_sell = u;
 					sell = need;
 				}
@@ -10635,7 +10660,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	var qty = bestValue(this.data[item].buy, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				debug('Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
 				$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
@@ -10655,7 +10680,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	var qty = bestValue(this.data[item].sell, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				debug('Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
+				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
 				$('div.eq_buy_costs select[name="amount"]:eq(1)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}
