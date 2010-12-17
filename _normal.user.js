@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 865;
+var revision = 866;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -6128,7 +6128,7 @@ Gift.parse = function(change) {
 		}
 		return false;
 	}
-	var j, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
+	var i, j, id, $tmp, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// We need to get the image of the gift from the index page.
@@ -6202,17 +6202,17 @@ Gift.parse = function(change) {
 		}
 		
 	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
-//		console.log(warn(), 'Parsing gifts.');
-//		console.log(warn(), 'Found: '+$('#app'+APPID+'_giftContainer div[id^="app'+APPID+'_gift"]').length);
-		this.data.gifts = {};
-		gifts = this.data.gifts;
-		$('div[id*="_giftContainer"] div[id*="_gift"]').each(function(i,el){
-			var id = $('img', el).attr('src').filepart(), name = $(el).text().trim().replace('!',''), slot = $(el).attr('id').regex(/_gift([0-9]+)/);
-//			console.log(warn(), 'Adding: '+name+'('+id+') to slot '+slot);
-			gifts[id] = {};
-			gifts[id].name = name;
-			gifts[id].slot = slot;
-		});
+//		console.log(warn('Parsing gifts.'));
+		gifts = this.data.gifts = {};
+		// Gifts start at 1
+		for (i=1, $tmp=[0]; $tmp.length; i++) {
+			$tmp = $('#app'+APPID+'_gift'+i);
+			if ($tmp.length) {
+				id = $('img', $tmp).attr('src').filepart();
+				gifts[id] = {slot:i, name: $tmp.text().trim().replace('!','')};
+//				console.log(warn('Adding: '+gifts[id].name+' ('+id+') to slot '+i));
+			}
+		}
 	} else {
 		if ($('div.result').text().indexOf('have exceed') !== -1){
 			console.log(warn(), 'We have run out of gifts to send.  Waiting one hour to retry.');
