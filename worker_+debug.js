@@ -94,7 +94,11 @@ Debug.setup = function() {
 							l[l.length] = '_worker.'+arguments.callee._name;
 						}
 					}
-					r = arguments.callee._orig.apply(this, arguments);
+					try {
+						r = arguments.callee._orig.apply(this, arguments);
+					} catch(e) {
+						console.log(error(e.name + ': ' + e.message));
+					}
 					if (Debug.option._enabled) {
 						t = Date.now() - t;
 						if (Debug.stack.length > 1) {
@@ -140,8 +144,8 @@ Debug.setup = function() {
 				output[j] = '  ' + output[j];
 			}
 		}
-		output.unshift('');
-		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (txt ? ': ' + txt : '') + output.join("\n") + (txt ? "\n:" : '');
+		output.unshift(txt ? ': ' + txt : '');
+		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + output.join("\n") + (txt ? '' : "\n:");
 	};
 };
 

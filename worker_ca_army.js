@@ -60,28 +60,34 @@ Army._overload('init', function() {
 
 Army._overload('parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
-		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0;
-		page = $('table[width=740] div:first > div:eq(1)').html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
-		start = $('table[width=740] div:first > div:eq(2)').text().regex(/Displaying: ([0-9]+) - [0-9]+/);
-		page = Math.ceil(start / this.option.armyperpage);// Would prefer to work it out, but last page will never be full
-		$('img[linked="true"][size="square"]').each(function(i,el){
-			var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
-			if (uid === userID) {// Shouldn't ever happen!
-				return;
-			}
-			army = Army.data[uid] = Army.data[uid] || {};
-			army.Army = true;
-			army._info = army._info || {};
-			army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
-			army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
-			army._info.seen = now;
-			army._info.page = page;
-			army._info.id = start + i;
-			Army._taint.data = true;
-//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
-		});
-		if ($('img[src*="bonus_member.jpg"]').length) {
-			this.runtime.extra = 1 + $('img[src*="bonus_member.jpg"]').parent().next().text().regex('Extra member x([0-9]+)');
+		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
+		$tmp = $('table[width=740] div:first > div');
+		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
+		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
+		$tmp = $('img[linked="true"][size="square"]');
+		if ($tmp.length) {
+			$tmp.each(function(i,el){
+				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
+				if (uid === userID) {// Shouldn't ever happen!
+					return;
+				}
+				army = Army.data[uid] = Army.data[uid] || {};
+				army.Army = true;
+				army._info = army._info || {};
+				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
+				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+				army._info.seen = now;
+				army._info.page = page;
+				army._info.id = start + i;
+				Army._taint.data = true;
+	//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
+			});
+		} else {
+			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
+		}
+		$tmp = $('img[src*="bonus_member.jpg"]');
+		if ($tmp.length) {
+			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
 //			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in army) {
