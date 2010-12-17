@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 864;
+var revision = 865;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -5372,7 +5372,7 @@ Army._overload('init', function() {
 Army._overload('parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('table[width=740] div:first > div');
+		$tmp = $('table[width="740"] div:first > div');
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');

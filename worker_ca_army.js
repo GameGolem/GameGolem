@@ -61,7 +61,7 @@ Army._overload('init', function() {
 Army._overload('parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('table[width=740] div:first > div');
+		$tmp = $('table[width="740"] div:first > div');
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');
