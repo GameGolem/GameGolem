@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 866;
+var revision = 867;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1175,6 +1175,7 @@ Worker.prototype._parse = function(change) {
 	this._push();
 	var result = false;
 	try {
+		this._unflush();
 		result = this.parse && this.parse(change);
 	}catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
@@ -1310,9 +1311,11 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
-Worker.prototype._trigger = function(selector, id) {
-	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector}, function(event){
-		event.data.worker._remind(0, '_trigger' + event.data.id, event.data);
+Worker.prototype._trigger = function(selector, id, loose) {
+	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector, loose:loose}, function(event){
+		if (event.data.loose || $(event.target).filter(event.data.selector).length) {
+			event.data.worker._remind(0.1, '_trigger' + event.data.id, event.data);// 100ms delay in case of multiple changes in sequence
+		}
 	});
 };
 
@@ -3037,6 +3040,7 @@ Page.defaults = {
 			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
 			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
 			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
+			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
@@ -3082,11 +3086,11 @@ Page.removeFacebookChat = function() {
 		.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '')
 		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '')
 		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '')
-		.replace(/|chat\\\//,''))
+		.replace(/|chat\\\//,''));
 	});
 	var b = document.getElementsByTagName('body')[0] || document.documentElement, a = document.createElement('script');
 	a.type = 'text/javascript';
-	a.appendChild(document.createTextNode('window.setTimeout(function(){window.presenceNotifications=null;},1000);'));
+	a.appendChild(document.createTextNode('window.setTimeout(function(){delete window.presenceNotifications;},1000);'));
 	b.appendChild(a);
 	$('#pagelet_presence').remove();
 	$('#pagelet_chat_home').remove();
@@ -3119,15 +3123,18 @@ Page.init = function() {
 			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(true);},100);// Facebook popup display
 		}
 	});
+	// New version -
+//	this._trigger('#app'+APPID+'_app_body_container, #app'+APPID+'_globalContainer', 'page_change');
+//	this._trigger('.generic_dialog_popup', 'facebook');// This could be removed as it's not really a Page issue...
 	if (this.option.nochat) {
 		this.removeFacebookChat();
 	}
 	if (this.option.click) {
 		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
-                        if ($(el).parent().html()){
-                                $(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
-                        }
-                });
+			if ($(el).parent().html()){
+				$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
+			}
+		});
 		this.replaceClickHandlers();
 	}
 	$('.golem-link').live('click', function(event){
@@ -3147,11 +3154,9 @@ Page.parse_all = function(isFacebook) {
 		if (Workers[i].parse && Workers[i].pages) {
 			if (isFacebook) {
 				if (Workers[i].pages.indexOf('facebook') >= 0) {
-					Workers[i]._unflush();
 					Workers[i]._parse('facebook');
 				}
 			} else if (Workers[i].pages.indexOf('*') >= 0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
-				Workers[i]._unflush();
 				if (Workers[i]._parse(false)) {
 					list.push(Workers[i]);
 				}
@@ -3166,7 +3171,46 @@ Page.parse_all = function(isFacebook) {
 	}
 	this._pop();
 };
-
+/*
+Page.update = function(event) {
+	if (event.type === 'trigger') {
+		var i, list;
+		if (event.id === 'page_change') {
+			list = ['#app_content_'+APPID, '#app'+APPID+'_globalContainer', '#app'+APPID+'_globalcss', '#app'+APPID+'_main_bntp', '#app'+APPID+'_main_sts_container', '#app'+APPID+'_app_body_container', '#app'+APPID+'_nvbar', '#app'+APPID+'_current_pg_url', '#app'+APPID+'_current_pg_info'];
+			console.log(warn('Page change noticed...'));
+			for (i=0; i<list.length; i++) {
+				if (!$(list[i]).length) {
+					console.log(warn('Bad page warning: Unabled to find '+list[i]));
+					// Need to do the page reloading bit in here...
+					return;
+				}
+			}
+			Page.identify();
+			list = [];
+			for (i in Workers) {
+				if (Workers[i].parse
+				 && Workers[i].pages
+				 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
+				 && Workers[i]._parse(false)) {
+					list.push(Workers[i]);
+				}
+			}
+			for (i in list) {
+				list[i]._parse(true);
+			}
+			for (i in Workers) {
+				Workers[i]._flush();
+			}
+		} else if (event.id === 'facebook') {
+			for (i in Workers) {
+				if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
+					Workers[i]._parse('facebook');
+				}
+			}
+		}
+	}
+};
+*/
 Page.work = function(state) {
 	var i, l, list, found = null;
 	for (i in Workers) {
@@ -9371,7 +9415,7 @@ Potions.work = function(state) {
 var Quest = new Worker('Quest');
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
@@ -9394,7 +9438,7 @@ Quest.data = {
 	id: {}
 };
 
-Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City','Earth II'];
+Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City', 'Earth II', 'Water II'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
 Quest.display = [
@@ -9634,6 +9678,7 @@ Quest.parse = function(change) {
 				data.id[id].general = tmp.attr('title');
 			}
 		}
+		this._notify('data');
 	});
 	for (i in purge) {
 		if (purge[i]) {

@@ -79,6 +79,7 @@ Page.defaults = {
 			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
 			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
 			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
+			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
@@ -124,11 +125,11 @@ Page.removeFacebookChat = function() {
 		.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '')
 		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '')
 		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '')
-		.replace(/|chat\\\//,''))
+		.replace(/|chat\\\//,''));
 	});
 	var b = document.getElementsByTagName('body')[0] || document.documentElement, a = document.createElement('script');
 	a.type = 'text/javascript';
-	a.appendChild(document.createTextNode('window.setTimeout(function(){window.presenceNotifications=null;},1000);'));
+	a.appendChild(document.createTextNode('window.setTimeout(function(){delete window.presenceNotifications;},1000);'));
 	b.appendChild(a);
 	$('#pagelet_presence').remove();
 	$('#pagelet_chat_home').remove();
@@ -161,15 +162,18 @@ Page.init = function() {
 			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(true);},100);// Facebook popup display
 		}
 	});
+	// New version -
+//	this._trigger('#app'+APPID+'_app_body_container, #app'+APPID+'_globalContainer', 'page_change');
+//	this._trigger('.generic_dialog_popup', 'facebook');// This could be removed as it's not really a Page issue...
 	if (this.option.nochat) {
 		this.removeFacebookChat();
 	}
 	if (this.option.click) {
 		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
-                        if ($(el).parent().html()){
-                                $(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
-                        }
-                });
+			if ($(el).parent().html()){
+				$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
+			}
+		});
 		this.replaceClickHandlers();
 	}
 	$('.golem-link').live('click', function(event){
@@ -189,11 +193,9 @@ Page.parse_all = function(isFacebook) {
 		if (Workers[i].parse && Workers[i].pages) {
 			if (isFacebook) {
 				if (Workers[i].pages.indexOf('facebook') >= 0) {
-					Workers[i]._unflush();
 					Workers[i]._parse('facebook');
 				}
 			} else if (Workers[i].pages.indexOf('*') >= 0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
-				Workers[i]._unflush();
 				if (Workers[i]._parse(false)) {
 					list.push(Workers[i]);
 				}
@@ -208,7 +210,46 @@ Page.parse_all = function(isFacebook) {
 	}
 	this._pop();
 };
-
+/*
+Page.update = function(event) {
+	if (event.type === 'trigger') {
+		var i, list;
+		if (event.id === 'page_change') {
+			list = ['#app_content_'+APPID, '#app'+APPID+'_globalContainer', '#app'+APPID+'_globalcss', '#app'+APPID+'_main_bntp', '#app'+APPID+'_main_sts_container', '#app'+APPID+'_app_body_container', '#app'+APPID+'_nvbar', '#app'+APPID+'_current_pg_url', '#app'+APPID+'_current_pg_info'];
+			console.log(warn('Page change noticed...'));
+			for (i=0; i<list.length; i++) {
+				if (!$(list[i]).length) {
+					console.log(warn('Bad page warning: Unabled to find '+list[i]));
+					// Need to do the page reloading bit in here...
+					return;
+				}
+			}
+			Page.identify();
+			list = [];
+			for (i in Workers) {
+				if (Workers[i].parse
+				 && Workers[i].pages
+				 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
+				 && Workers[i]._parse(false)) {
+					list.push(Workers[i]);
+				}
+			}
+			for (i in list) {
+				list[i]._parse(true);
+			}
+			for (i in Workers) {
+				Workers[i]._flush();
+			}
+		} else if (event.id === 'facebook') {
+			for (i in Workers) {
+				if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
+					Workers[i]._parse('facebook');
+				}
+			}
+		}
+	}
+};
+*/
 Page.work = function(state) {
 	var i, l, list, found = null;
 	for (i in Workers) {

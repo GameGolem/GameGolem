@@ -291,6 +291,7 @@ Worker.prototype._parse = function(change) {
 	this._push();
 	var result = false;
 	try {
+		this._unflush();
 		result = this.parse && this.parse(change);
 	}catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
@@ -426,9 +427,11 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
-Worker.prototype._trigger = function(selector, id) {
-	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector}, function(event){
-		event.data.worker._remind(0, '_trigger' + event.data.id, event.data);
+Worker.prototype._trigger = function(selector, id, loose) {
+	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector, loose:loose}, function(event){
+		if (event.data.loose || $(event.target).filter(event.data.selector).length) {
+			event.data.worker._remind(0.1, '_trigger' + event.data.id, event.data);// 100ms delay in case of multiple changes in sequence
+		}
 	});
 };
 
