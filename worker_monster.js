@@ -58,7 +58,8 @@ Monster.runtime = {
 	defend:false, // id of monster if we have a defend target, otherwise false
 	secondary: false, // Is there a target for mage or rogue that is full or not in cycle?  Used to tell quest to wait if don't quest when fortifying is on.
 	multiplier : {defend:1,attack:1}, // General multiplier like Orc King or Barbarus
-	values : {defend:[],attack:[]}, // Attack/defend values available for levelup
+	values : {defend:[],attack:[]  // Attack/defend values available for levelup
+		, big:[]}, // Defend big values available for levelup
 	energy: 0, // How much can be used for next attack
 	stamina: 0, // How much can be used for next attack
 	used:{stamina:0,energy:0}, // How much was used in last attack
@@ -69,6 +70,8 @@ Monster.runtime = {
 	mode: null, // Used by update to tell work if defending or attacking
 	stat: null, // Used by update to tell work if using energy or stamina
 	message: null, // Message to display on dash and log when removing or reviewing or collecting monsters
+	
+	levelupdefending : false, // Used to preserve the runtime.defending value even when in force.stamina mode
 	page : null, // What page (battle or monster) the check page should go to
 	monsters : {}, // Used for storing running weighted averages for monsters
 	defending: false // hint for other workers as to whether we are potentially using energy to defend
@@ -385,7 +388,8 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="attack"]',
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
-		defend:[10,10,20,40,100]
+		defend:[10,10,20,40,100],
+		defense_img:'shield_img'
 	},
 	sylvanus: {
 		name:'Sylvana the Sorceress Queen',
@@ -557,7 +561,8 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="attack"]',
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
-		defend:[10,10,20,40,100]
+		defend:[10,10,20,40,100],
+		defense_img:'shield_img'
 	},
 	gehenna: {
 		name:'Gehenna',
@@ -582,7 +587,6 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
@@ -596,7 +600,6 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
@@ -610,7 +613,6 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
@@ -626,7 +628,20 @@ Monster.types = {
 		attack:[5,10,20,50],
 		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
 		tactics:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
+	corvintheus: {
+		name:'Corvintheus',
+		list:'corv_list.jpg',
+		image:'boss_corv.jpg',
+		dead:'boss_corv_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		orcs:true
@@ -643,7 +658,6 @@ Monster.types = {
 		attack:[5,10,20,50],
 		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
 		tactics:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		orcs:true
@@ -658,7 +672,6 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-//		defend_button:'input[name="Attack Dragon"][src*="heal"],input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]',
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	}
@@ -717,9 +730,6 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	if (change) {
-		return false;
-	}
 	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x;
 	if (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') { // In a monster or raid
 		uid = $('img[linked][size="square"]').attr('uid');
@@ -736,7 +746,8 @@ Monster.parse = function(change) {
 				type_label = i;
 				timer = types[i].timer;
 				break;
-			} else if (types[i].image2 && $('#app'+APPID+'_app_body img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]').length) {
+			} else if (types[i].image2 && $('#app'+APPID+'_app_body img[src$="'+types[i].image2+'"],div[style*="'+
+			types[i].image2+'"]').length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
 				timer = types[i].timer2 || types[i].timer;
@@ -757,14 +768,18 @@ Monster.parse = function(change) {
 		monster.last = now;
 		if (dead) {
 			// Will this catch Raid format rewards?
-			if ($('input[src*="collect_reward_button.jpg"]').length || monster.state === 'engage') {
+			if ($('input[src*="collect_reward_button.jpg"]').length) {
 				monster.state = 'reward';
 			} else if (monster.state === 'assist') {
 				monster.state = null;
-				return false;
-			} else if (monster.state === 'reward') {
+			} else if (monster.state === 'reward' || monster.state === 'engage') {
+				if (!monster.dead) {
+					History.add(type_label,1);
+					monster.dead = true;
+				}
 				monster.state = 'complete';
 			}
+			return false;
 		}
 		monster.stamina = monster.stamina || {};
 		monster.damage = monster.damage || {};
@@ -841,24 +856,33 @@ Monster.parse = function(change) {
 				break;
 			}
 		}
-		for (i in Monster['shield_img']){
-			if ($(Monster['shield_img'][i]).length){
-				$dispel = $(Monster['shield_img'][i]).parent();
-				monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
-				break;
+		if (!type.defense_img || type.defense_img === 'shield_img') {
+			// If we know this monster should have a shield image and don't find it, assume 0
+			if (type.defense_img === 'shield_img') {
+				monster.defense = 100;
+			}
+			for (i in Monster['shield_img']){
+				if ($(Monster['shield_img'][i]).length){
+					$dispel = $(Monster['shield_img'][i]).parent();
+					monster.defense = 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width())));
+					break;
+				}
 			}
 		}
-		for (i in Monster['defense_img']){
-			if ($(Monster['defense_img'][i]).length){
-				$defense = $(Monster['defense_img'][i]).parent();
-				monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
-				if ($defense.parent().width() < $defense.parent().parent().width()){
-					monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
-				} else {
-					monster.strength = 100;
+		if (!type.defense_img || type.defense_img === 'defense_img') {
+			// If we know this monster should have a defense image and don't find it, 
+			for (i in Monster['defense_img']){
+				if ($(Monster['defense_img'][i]).length){
+					$defense = $(Monster['defense_img'][i]).parent();
+					monster.defense = ($defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
+					if ($defense.parent().width() < $defense.parent().parent().width()){
+						monster.strength = 100 * $defense.parent().width() / $defense.parent().parent().width();
+					} else {
+						monster.strength = 100;
+					}
+					monster.defense = monster.defense * (monster.strength || 100) / 100;
+					break;
 				}
-				monster.defense = monster.defense * (monster.strength || 100) / 100;
-				break;
 			}
 		}
 		monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
@@ -988,9 +1012,7 @@ Monster.parse = function(change) {
 };
 
 Monster.update = function(event) {
-	if (event.type === 'runtime') {
-		//console.log(warn(), 'Allowing monster runtime update for event.type ' + event.type + ' worker ' + event.worker.name);
-	// Something strange here.  This is always called with Worker monster, even when it should be called with worker Queue because the Queue.runtime.energy or stamina has changed. 
+	if (event.type === 'runtime' && event.worker.name !== 'Queue') {
 		return;
 	}
 	var i, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
@@ -1035,7 +1057,8 @@ Monster.update = function(event) {
 				continue;
 			}
 			if (order[o] === 'levelup') {
-				if (Queue.runtime.force.stamina && !list.attack.length) {
+				if ((Queue.runtime.force.stamina && !list.attack.length) 
+						|| (Queue.runtime.force.energy && !list.defend.length)) {
 					matched_mids = [];
 					continue;
 				} else {
@@ -1075,7 +1098,7 @@ Monster.update = function(event) {
 						monster.ach=Math.min(monster.ach, monster.max);
 					}
 					if (type.defend) {
-						monster.defend_max = Math.min(this.conditions('f%',condition) || this.option.defend, 99);
+						monster.defend_max = Math.min(this.conditions('f%',condition) || this.option.defend, (monster.strength || 100) - 1);
 					}
 					damage = 0;
 					if (monster.damage && monster.damage.user) {
@@ -1129,19 +1152,24 @@ Monster.update = function(event) {
 						}
 					}
 					// Possible defend target?
-					if (this.option.defend_active && (defend_found || o) === o
-							&& !Queue.runtime.quest) {
+					if (this.option.defend_active && (defend_found || o) === o) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
 							//console.log(warn(), 'Secondary target found (' + monster.secondary + '%)');
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
-						} else if ((monster.defense || 100)
-									< Math.min(monster.defend_max, (monster.strength || 100) - 1 )
-								&& !monster.no_heal
-								&& (monster.defense || 100) > 1) {
+						} else if (!monster.no_heal 
+								&& ((/:big\b/.test(condition) && Queue.runtime.big)
+									|| ((monster.defense || 100) < monster.defend_max
+										&& (monster.defense || 100) > 1))) {
 							defense_kind = type.defend_button;
+						}
+						if (!monster.no_heal 
+								&& (/:big\b/.test(condition) 
+									|| ((monster.defense || 100) < monster.defend_max
+										&& (monster.defense || 100) > 1))) {
+							this.runtime.values.big = unique(this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)));
 						}
 						if (monster.secondary === 100
 								&& (monster.max === false
@@ -1277,6 +1305,13 @@ Monster.update = function(event) {
 		}
 	}
 	this.runtime.defending = list.defend && list.defend.length > 0;
+	// If using the priority list and levelup settings, the script may oscillate between having something to defend when in level up, and then forgetting it when it goes to attack something because it doesn't pass levelup in the priority list and tries to quest, and then finds it again.  The following preserves the runtime.defending value even when in force.stamina mode
+	if (Queue.runtime.force.stamina) {
+		this.runtime.defending = this.runtime.levelupdefending;
+	} else {
+		this.runtime.levelupdefending = this.runtime.defending;
+	}
+	
 	listSortFunc = function(a,b){
 		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]], late_a, late_b, time_a, time_b, goal_a, goal_b;
 		switch(Monster.option.choice) {
@@ -1429,9 +1464,12 @@ Monster.work = function(state) {
 	if (this.runtime.check) {
 		console.log(warn(), this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
-		this.runtime.check = this.runtime.limit = this.runtime.message = false;
+		this.runtime.check = this.runtime.limit = this.runtime.message = this.runtime.dead = false;
 		return QUEUE_RELEASE;
 	}
+	if (mode === 'defend' && Queue.get('runtime.quest')) {
+		return QUEUE_NO_ACTION;
+	}	
 	uid = this.runtime[mode].replace(/_\d+/,'');
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];

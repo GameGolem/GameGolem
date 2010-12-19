@@ -275,6 +275,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			return nothing;  
 		}
 	case 'energy':	
+		//console.log(warn(), 'monster runtime defending ' + Monster.get('runtime.defending'));
 		if (Monster.get('runtime.defending')
 				&& (Quest.option.monster === 'Wait for'
 					|| Quest.option.monster === 'When able'
@@ -319,6 +320,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				return nothing;
 		}
 		options = Monster.get('runtime.values.'+mode);
+		if (mode === 'defend' && !exp) {
+			options = unique(options.concat(Monster.get('runtime.values.big',[])));
+		}
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
 		monsterAction = basehit = bestValue(options, max);

@@ -181,6 +181,7 @@ Queue.update = function(event) {
 
 		this.runtime.stamina = this.runtime.energy = 0;
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
+		LevelUp.set('runtime.running',false);
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				console.log(warn(), 'At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.');
@@ -221,8 +222,6 @@ Queue.update = function(event) {
 				//console.log(warn(), 'Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
 				LevelUp.runtime.running = true;
 			}
-		} else {
-			LevelUp.runtime.running = false;
 		}
 		if (!this.runtime.stamina && !this.runtime.energy) {
 			if (this.runtime.burn.stamina || Player.get('stamina') >= this.option.start_stamina) {
@@ -235,7 +234,7 @@ Queue.update = function(event) {
 			}
 		} else {
 			if (this.runtime.force.stamina && Player.get('health') < 13) {
-				LevelUp.set('heal_me',true);
+				LevelUp.set('runtime.heal_me',true);
 			}
 		}
 		this._push();

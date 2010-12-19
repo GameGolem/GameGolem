@@ -50,11 +50,12 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
+/* These triggers have a heavy impact on CPU utilization
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
-	Resources.add('Energy');
+*/	Resources.add('Energy');
 	Resources.add('Stamina');
 	Resources.add('Gold');
 	Title.alias('energy', 'Player:data.energy');
@@ -132,7 +133,7 @@ Player.parse = function(change) {
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
 		History.add('income', sum(txt.regex(/Gain.*\$([0-9]+).*Cost|stealsGold:\+\$([0-9]+)|Youreceived\$([0-9]+)|Yougained\$([0-9]+)/i)));
 		if (txt.regex(/incomepaymentof\$([0-9]+)gold/i)){
-			History.set('land', sum(txt.regex(/incomepaymentof\$([0-9]+)gold|backinthemine:Extra([0-9]+)Gold/i)));
+			History.set('land', sum(txt.regex(/incomepaymentof\$([0-9]+)gold|backinthemine:Extra([0-9]+)Gold|Yousuccessfullysold.*for$([0-9]+)/i)));
 		}
 	});
 	this.set('worth', this.get('cash', 0) + this.get('bank', 0));

@@ -160,9 +160,6 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	if (change) {
-		return false;
-	}
 	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
@@ -458,11 +455,11 @@ Quest.work = function(state) {
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
 	if (!Queue.runtime.quest && 
-			(this.option.monster === 'When able' 
-				&& Monster.get('runtime.defending')) 
-			|| (this.option.monster === 'Wait for'
-				&& (Monster.get('runtime.defending')
-					|| !Queue.runtime.force.energy))) {
+			((this.option.monster === 'When able' 
+					&& Monster.get('runtime.defending')) 
+				|| (this.option.monster === 'Wait for'
+					&& (Monster.get('runtime.defending')
+						|| !Queue.runtime.force.energy)))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {

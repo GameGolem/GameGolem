@@ -146,6 +146,9 @@ function Worker(name,pages,settings) {
 
 // Static Functions
 Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
+	if (!name) {
+		return null;
+	}
 	try {
 		if (name in Workers) {
 			return Workers[name];
@@ -526,7 +529,7 @@ Worker.prototype._update = function(event) {
 				return true;
 			}
 		}
-//		console.log(debug('Attempting to watch bad value: ' + worker.name + ':' + path));
+//		console.log(warn(), 'Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
