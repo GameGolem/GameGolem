@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 867;
+var revision = 868;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -114,7 +114,6 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				return;
 			}
 			do_css();
-			Page.identify();
 			for (i in Workers) {
 				Workers[i]._setup();
 			}
@@ -125,7 +124,6 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				Workers[i]._update({type:'init', self:true});
 //				Workers[i]._flush();
 			}
-			Page.parse_all(); // Call once to get the ball rolling...
 		};
 
 		if (typeof jQuery !== 'undefined') {
@@ -876,7 +874,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = o.toString();
+			out = typeof o !== 'undefined' ? o.toString() : 'undefined';
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -1158,17 +1156,28 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 	}
 }
 
-Worker.prototype._overload = function(name, fn) {
-	var old = this[name] || new Function();
-	this[name] = function() {
-		var a = this, b = arguments, r, x = this._parent;
+Worker.prototype._overload = function(app, name, fn) {
+	var newfn = function() {
+		var a = arguments, r, x = this._parent;
 		this._parent = function() {
-			return old.apply(a, arguments.length ? arguments : b);
+			return arguments.callee._old.apply(this, arguments.length ? arguments : a);
 		};
-		var r = fn.apply(this, b);
+		this._parent._old = arguments.callee._old;
+		r = arguments.callee._new.apply(this, a);
 		this._parent = x;
 		return r;
 	};
+	newfn._old = (app && this.defaults && this.defaults[app] && this.defaults[app][name] ? this.defaults[app][name] : null) || this[name] || function(){};
+	newfn._new = fn;
+	if (app) {
+		this.defaults[app] = this.defaults[app] || {};
+		if (this.defaults[app][name] === this[name]) { // If we've already run _setup
+			this[name] = newfn;
+		}
+		this.defaults[app][name] = newfn;
+	} else {
+		this[name] = newfn;
+	}
 };
 
 Worker.prototype._parse = function(change) {
@@ -1293,7 +1302,11 @@ Worker.prototype._setup = function() {
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
-				this[i] = this.defaults[APP][i];
+				if (isObject(this.defaults[APP][i]) && isObject(this[i])) {
+					this[i] = $.extend(true, {}, this[i], this.defaults[APP][i]);
+				} else {
+					this[i] = this.defaults[APP][i];
+				}
 			}
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
@@ -1564,7 +1577,7 @@ Army.sectionlist = {
 		},
 		'tooltip':function(data,uid){
 			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $('<a href="http://apps.facebook.com/castle_age/keep.php?user=' + uid + '">Visit Keep</a><hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
+			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
 				var i, output = '';
 				for(i in obj) {
 					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
@@ -2486,48 +2499,50 @@ Debug.setup = function() {
 		return;
 	}
 	// Go through every worker and replace their functions with a stub function
-	var i, j, wkr, fn;
+	var i, j, p, wkr, fn;
 	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
 	for (i in Workers) {
-		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
-		for (j in wkr) {
-			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
-				fn = wkr[j];
-				wkr[j] = function() {
-					var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
-					Debug.stack.unshift([0, w || '', arguments]);
-					if (Debug.option._enabled) {
-						if (w) {
-							l = [w+'.'+arguments.callee._name, w];
+		for (p=0; p<=1; p++) {
+			wkr = (i === '__fake__' ? (p ? Worker.prototype : null) : (p ? Workers[i] : Workers[i].defaults[APP])) || {};
+			for (j in wkr) {
+				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+					fn = wkr[j];
+					wkr[j] = function() {
+						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
+						Debug.stack.unshift([0, w || '', arguments]);
+						if (Debug.option._enabled) {
+							if (w) {
+								l = [w+'.'+arguments.callee._name, w];
+							}
+							if (!arguments.callee._worker) {
+								l[l.length] = '_worker.'+arguments.callee._name;
+							}
 						}
-						if (!arguments.callee._worker) {
-							l[l.length] = '_worker.'+arguments.callee._name;
+						try {
+							r = arguments.callee._orig.apply(this, arguments);
+						} catch(e) {
+							console.log(error(e.name + ': ' + e.message));
 						}
+						if (Debug.option._enabled) {
+							t = Date.now() - t;
+							if (Debug.stack.length > 1) {
+								Debug.stack[1][0] += t;
+							}
+							for (i=0; i<l.length; i++) {
+								w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+								w[0]++;
+								w[1] += t - Debug.stack[0][0];
+								w[2] += t;
+							}
+						}
+						Debug.stack.shift();
+						return r;
 					}
-					try {
-						r = arguments.callee._orig.apply(this, arguments);
-					} catch(e) {
-						console.log(error(e.name + ': ' + e.message));
+					wkr[j]._name = j;
+					wkr[j]._orig = fn;
+					if (i !== '__fake__') {
+						wkr[j]._worker = i;
 					}
-					if (Debug.option._enabled) {
-						t = Date.now() - t;
-						if (Debug.stack.length > 1) {
-							Debug.stack[1][0] += t;
-						}
-						for (i=0; i<l.length; i++) {
-							w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-							w[0]++;
-							w[1] += t - Debug.stack[0][0];
-							w[2] += t;
-						}
-					}
-					Debug.stack.shift();
-					return r;
-				}
-				wkr[j]._name = j;
-				wkr[j]._orig = fn;
-				if (i !== '__fake__') {
-					wkr[j]._worker = i;
 				}
 			}
 		}
@@ -2606,7 +2621,7 @@ Debug.dashboard = function(sort, rev) {
 	if (rev) {
 		order.reverse();
 	}
-	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Total Run Time:</b> ' + addCommas(Date.now() - script_started) + 'ms, <b>CPU Percent:</b> ' + addCommas((total / (Date.now() - script_started) * 100).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Efficiency:</b> ' + addCommas((100 - (total / (Date.now() - script_started) * 100)).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count', 'style="text-align:right;"');
 	th(output, 'Time', 'style="text-align:right;"');
@@ -2635,6 +2650,32 @@ Debug.dashboard = function(sort, rev) {
 	$('#golem-profile-reset').click(function(){Debug.temp={};Debug._notify('data');});
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker.Global **********
+* Purely here for global options - save having too many system panels
+*/
+var Global = new Worker('Global');
+Global.data = Global.runtime = Global.temp = null;
+
+Global.settings = {
+	system:true,
+	unsortable:true,
+	no_disable:true
+};
+
+// Use _watch() to find our own options
+Global.option = {};
+
+// Use .push() to add ou own panel groups
+Global.display = [];
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Dashboard, History:true, Page, Queue, Resources, Land,
@@ -2975,110 +3016,81 @@ var Page = new Worker('Page');
 
 Page.settings = {
 	system:true,
-	unsortable:true,
-	keep:true,
-	no_disable:true
+	keep:true
 };
 
-Page.option = {
+Global.option.page = {
 	timeout:15,
-	delay:1,
 	reload:5,
-	nochat:false,
-	click:true
+	nochat:false
+};
+
+Page.temp = {
+	loading:false,
+	last:'', // Last url we tried to load
+	when:null,
+	lastclick:null,
+	retry:0 // Number of times we tried before hitting option.reload
+};
+
+Page.runtime = {
+	delay:0 // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
 };
 
 Page.page = '';
-Page.lastclick = null;
-Page.when = null;
-Page.retry = 0; // Number of times we tried
-Page.node_trigger = null;
-Page.loading = false;
 
-Page.display = [
-	{
-		id:'timeout',
-		label:'Retry after',
-		select:[10, 15, 30, 60],
-		after:'seconds'
-	},{
-		id:'delay',
-		label:'...Delay',
-		select:[1, 2, 3, 4, 5],
-		after:'seconds'
-	},{
-		id:'reload',
-		label:'Reload after',
-		select:[3, 5, 7, 9, 11, 13, 15],
-		after:'tries'
-	},{
-		id:'nochat',
-		label:'Remove Facebook Chat',
-		checkbox:true,
-		help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in facebook'
-	},{
-		id:'click',
-		label:'Replace Links',
-		checkbox:true,
-		help:'Uses Golem code for clicking on links rather than facebook code - may help with some white screen issues'
-	}
-];
+Page.pageNames = {}; //id:{url:'...', image:'filename.jpg', selector:'jquery selector'}
 
-Page.defaults = {
-	'castle_age':{
-		pageNames:{
-//			facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
-			index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
-			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
-			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
-			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
-			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
-			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-			battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
-			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-			monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
-			monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
-			keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
-			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
-			monster_class:			{url:'view_class_progress.php', selector:'#app'+APPID+'_choose_class_header'},
-			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-			town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-			town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-			town_land:				{url:'land.php', image:'tab_land_on.gif'},
-			oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-			oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-			oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-			oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
-			keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
-			keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
-			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-			army_invite:			{url:'army.php', image:'invite_on.gif'},
-			army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
-			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-			army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
-			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'},
-			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+Global.display.push({
+	title:'Page Loading',
+	group:[
+		{
+			id:'page.timeout',
+			label:'Retry after',
+			select:[10, 15, 30, 60],
+			after:'seconds'
+		},{
+			id:'page.reload',
+			label:'Reload after',
+			select:[3, 5, 7, 9, 11, 13, 15],
+			after:'tries'
+		},{
+			id:'page.nochat',
+			label:'Remove Facebook Chat',
+			checkbox:true,
+			help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in other facebook windows'
+		}
+	]
+});
+
+// We want this to run on the Global context
+Global._overload(null, 'work', function(state) {
+	var i, l, list, found = null;
+	for (i in Workers) {
+		if (isString(Workers[i].pages)) {
+			list = Workers[i].pages.split(' ');
+			for (l=0; l<list.length; l++) {
+				if (list[l] !== '*' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+					found = list[l];
+					break;
+				}
+			}
+		}
+		if (found) {
+			break;
 		}
 	}
-};
+	if (found) {
+		if (!state) {
+			return QUEUE_CONTINUE;
+		}
+		Page.to(found);
+		Page._set(['data', found], Date.now()); // Even if it's broken, we need to think we've been there!
+		return QUEUE_CONTINUE;
+	}
+	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
+	return this._parent();
+});
 
 Page.removeFacebookChat = function() {
 	$('script').each(function(i,el){
@@ -3096,46 +3108,11 @@ Page.removeFacebookChat = function() {
 	$('#pagelet_chat_home').remove();
 };
 
-Page.replaceClickHandlers = function() {
-	// Remove all CA click handlers...
-	$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"]')
-	.click(function(event){
-		if (event.which === 1 && $(this).attr('href') && !Page.to($(this).attr('href'), false)) {// Left click only
-			console.log(warn(), 'Replacing CA link');
-			event.preventDefault();
-			event.stopImmediatePropagation()
-			return false;
-		}
-		return true;
-	});
-};
-
 Page.init = function() {
-	// Only perform the check on the two id's referenced in get_cached_ajax()
-	// Give a short delay due to multiple children being added at once, 0.1 sec should be more than enough
-	$('body').bind('DOMNodeInserted', function(event){
-		if (($(event.target).attr('id') === 'app'+APPID+'_app_body_container' || $(event.target).attr('id') === 'app'+APPID+'_globalContainer')) {
-			window.clearTimeout(Page.node_trigger);
-			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(false);},100);// Normal game stuff
-		} else if ($(event.target).hasClass('generic_dialog_popup')) {
-//		} else if ($(event.target).attr('id') === 'pop_content') {
-			window.clearTimeout(Page.node_trigger);
-			Page.node_trigger = window.setTimeout(function(){Page.node_trigger=null;Page.parse_all(true);},100);// Facebook popup display
-		}
-	});
-	// New version -
-//	this._trigger('#app'+APPID+'_app_body_container, #app'+APPID+'_globalContainer', 'page_change');
-//	this._trigger('.generic_dialog_popup', 'facebook');// This could be removed as it's not really a Page issue...
-	if (this.option.nochat) {
+	this._trigger('#app'+APPID+'_app_body_container, #app'+APPID+'_globalContainer', 'page_change');
+	this._trigger('.generic_dialog_popup', 'facebook');
+	if (Global.option.page.nochat) {
 		this.removeFacebookChat();
-	}
-	if (this.option.click) {
-		$('#app'+APPID+'_globalContainer a[href*="/'+APP+'/"][onclick]').each(function(i,el){
-			if ($(el).parent().html()){
-				$(el).parent().html($(el).parent().html().replace(/<a onclick="[^"]*" href/g, '<a href'));
-			}
-		});
-		this.replaceClickHandlers();
 	}
 	$('.golem-link').live('click', function(event){
 		if (!Page.to($(this).attr('href'), false)) {
@@ -3144,48 +3121,44 @@ Page.init = function() {
 	});
 };
 
-Page.parse_all = function(isFacebook) {
-	this._push();
-	if (!isFacebook) {
-		Page.identify();
-	}
-	var i, list = [];
-	for (i in Workers) {
-		if (Workers[i].parse && Workers[i].pages) {
-			if (isFacebook) {
-				if (Workers[i].pages.indexOf('facebook') >= 0) {
-					Workers[i]._parse('facebook');
-				}
-			} else if (Workers[i].pages.indexOf('*') >= 0 || (Page.page !== '' && Workers[i].pages.indexOf(Page.page) >= 0)) {
-				if (Workers[i]._parse(false)) {
-					list.push(Workers[i]);
-				}
-			}
-		}
-	}
-	for (i in list) {
-		list[i]._parse(true);
-	}
-	for (i in Workers) {
-		Workers[i]._flush();
-	}
-	this._pop();
-};
-/*
 Page.update = function(event) {
-	if (event.type === 'trigger') {
+	// Can use init as no system workers (which can come before us) care what page we are on
+	if (event.type === 'init' || event.type === 'trigger') {
 		var i, list;
-		if (event.id === 'page_change') {
+		if (event.type === 'init' || event.id === 'page_change') {
 			list = ['#app_content_'+APPID, '#app'+APPID+'_globalContainer', '#app'+APPID+'_globalcss', '#app'+APPID+'_main_bntp', '#app'+APPID+'_main_sts_container', '#app'+APPID+'_app_body_container', '#app'+APPID+'_nvbar', '#app'+APPID+'_current_pg_url', '#app'+APPID+'_current_pg_info'];
-			console.log(warn('Page change noticed...'));
+//			console.log(warn('Page change noticed...'));
+			this._forget('retry');
+			this.set(['temp', 'loading'], false);
 			for (i=0; i<list.length; i++) {
 				if (!$(list[i]).length) {
 					console.log(warn('Bad page warning: Unabled to find '+list[i]));
-					// Need to do the page reloading bit in here...
+					this.retry();
 					return;
 				}
 			}
-			Page.identify();
+			// NOTE: Need a better function to identify pages, this lot is bad for CPU
+			this.page = '';
+			$('img', $('#app'+APPID+'_app_body')).each(function(i,el){
+				var i, filename = $(el).attr('src').filepart();
+				for (i in Page.pageNames) {
+					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
+						Page.page = i;
+						return;
+					}
+				}
+			});
+			if (!this.page) {
+				for (i in Page.pageNames) {
+					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
+						Page.page = i;
+					}
+				}
+			}
+			if (this.page !== '') {
+				this.data[this.page] = Date.now();
+			}
+//			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
 			list = [];
 			for (i in Workers) {
 				if (Workers[i].parse
@@ -3201,228 +3174,91 @@ Page.update = function(event) {
 			for (i in Workers) {
 				Workers[i]._flush();
 			}
-		} else if (event.id === 'facebook') {
+		} else if (event.id === 'facebook') { // Need to act as if it's a page change
+			this._forget('retry');
+			this.set(['temp', 'loading'], false);
 			for (i in Workers) {
 				if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
 					Workers[i]._parse('facebook');
 				}
 			}
 		}
+	} else if (event.type === 'reminder' && event.id === 'retry') {
+		this.retry();
 	}
 };
-*/
-Page.work = function(state) {
-	var i, l, list, found = null;
-	for (i in Workers) {
-		if (isString(Workers[i].pages)) {
-			list = Workers[i].pages.split(' ');
-			for (l=0; l<list.length; l++) {
-				if (list[l] !== '*' && this.pageNames[list[l]] && !this.data[list[l]] && list[l].indexOf('_active') === -1) {
-					found = list[l];
-					break;
-				}
-			}
-		}
-		if (found) {
-			break;
-		}
-	}
-	if (found) {
-		if (!state) {
-			return QUEUE_CONTINUE;
-		}
-		if (!this.to(found)) {
-			this.data[found] = Date.now(); // Even if it's broken, we need to think we've been there!
-			return QUEUE_CONTINUE;
-		}
-	}
-	this.work = null;// Only check when first loading, once we're running we never work() again :-P
-	return QUEUE_FINISH;
-};
 
-Page.identify = function() {
-	this.page = '';
-	if (!$('#app_content_'+APPID+' > div > div').length || !$('#app'+APPID+'_globalContainer > div > div').length) {
-		console.log(warn(), 'Page apparently not loaded correctly, reloading.');
-		this.reload();
-		return null;
-	}
-	this.clear();
-	var app_body = $('#app'+APPID+'_app_body'), p;
-	$('img', app_body).each(function(i,el){
-		var p, filename = $(el).attr('src').filepart();
-		for (p in Page.pageNames) {
-			if (Page.pageNames[p].image && filename === Page.pageNames[p].image) {
-				Page.page = p;
-				return;
-			}
-		}
-	});
-	if (!this.page) {
-		for (p in Page.pageNames) {
-			if (Page.pageNames[p].selector && $(Page.pageNames[p].selector).length) {
-				Page.page = p;
-			}
-		}
-	}
-	if (this.page !== '') {
-		this.data[this.page] = Date.now();
-	}
-//	console.log(warn(), 'this.identify("'+Page.page+'")');
-	return this.page;
-};
-
-Page.request = {method:'GET', url:null, body:null}
-
-Page.onreadystatechange = function() {
-	if (this.readyState !== 4) {
-		return;
-	}
-	try {
-		// First check it's there, and an html page
-		if (this.status !== 200 || !this.responseText || this.responseText.indexOf('</html>') === -1) {
-			throw(this.status===200 ? 'Bad response status' : 'Bad data');
-		}
-		// Reduce it to just the stuff we want...
-		var data = this.responseText.substring(this.responseText.indexOf('<div id="app'+APPID+'_globalContainer"'), this.responseText.indexOf('<div class="UIStandardFrame_SidebarAds"'));
-		// Then check if it's still valid
-		if (!data // || data.indexOf(APP) === -1
-		|| data.indexOf('app'+APPID+'_results_container') === -1
-		|| data.indexOf('app'+APPID+'_main_bntp') === -1
-		|| data.indexOf('app'+APPID+'_app_body') === -1) {
-			throw('Bad data');
-		}
-// Last things in source if loaded correctly...
-		try {// Once we're here we want to complete...
-			if (Page.option.nochat) {
-				data = data.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '').replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '').replace(/|chat\\\//,'');
-			}
-			if (Page.option.click) {
-//				console.log(warn(), 'replacing click handlers');
-				data = data.replace(/<a onclick="[^"]*" href/g, '<a href');
-			}
-			$('#app'+APPID+'_AjaxLoadIcon').hide();
-			$('#app'+APPID+'_globalContainer').replaceWith(data);
-			Page.clear();
-			if (Page.option.click) {
-				Page.replaceClickHandlers();
-			}
-		} catch(e1){
-			console.log(warn(), e1.name + ' in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e1.message);
-		}
-		return;// Stop here as we're done
-	} catch(e2){
-		console.log(warn(), 'AJAX_BAD_REPLY in XMLHttpRequest('+(Page.request.method || 'GET')+', '+Page.request.url+'): ' + e2);
-	}
-	if (++Page.retry < Page.option.retry && Page.request.url) {
-		console.log(warn(), 'Page not loaded correctly, retry last action.');
-		window.setTimeout(function(){
-			var request = new XMLHttpRequest();
-			request.open(Page.request.method || 'GET', Page.request.url);
-			request.onreadystatechange = Page.onreadystatechange;
-			request.send(Page.request.body);
-		}, Page.option.delay * 1000);
+Page.makeURL = function(url, args) {
+	var abs = 'apps.facebook.com/' + APP + '/';
+	if (url in this.pageNames) {
+		url = this.pageNames[url].url;
 	} else {
-		console.log(warn(), 'Page not loaded correctly, reloading.');
-		window.setTimeout(Page.reload, Page.option.delay * 1000);
+		if (url.indexOf(abs) !== -1) {// Absolute url within app
+			url = url.substr(abs.length);
+		}
 	}
+	if (isString(args)) {
+		url += (/^\?/.test(args) ? '' : '?') + args;
+	} else if (isObject(args)) {
+		url += '?' + decodeURIComponent($.param(args));
+	}
+	return url;
+};
+
+Page.makeLink = function(url, args, content) {
+	var page = this.makeURL(url, args);
+	return '<a href="' + window.location.protocol + '//apps.facebook.com/' + APP + '/' + page + '" onclick="' + 'a46755028429_ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
 };
 
 /*
-Page.to(['GET' | 'POST',] 'index', ['args' | {arg1:val, arg2:val},] [true|false]
+Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
-Page.to = function() { // Force = true/false (ignore pause and reload page if true)
-	var i, j, method = 'GET', page, body, args, force = 0, request;
-	for (i=0; i<arguments.length; i++) {
-		switch (typeof arguments[i]) {
-			case 'string':
-				if (arguments[i].toUpperCase() === 'GET' || arguments[i].toUpperCase() === 'POST') {
-					method = arguments[i].toUpperCase();
-				} else if (!page) {
-					if (arguments[i].indexOf('apps.facebook.com/' + APP + '/') !== -1) {// Absolute url
-						for (j in Page.pageNames) {
-							if (arguments[i].indexOf('/'+Page.pageNames[j].url) !== -1) {
-								page = j;
-								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
-							}
-						}
-					} else if (arguments[i].indexOf('/') === -1 && arguments[i].indexOf('?') !== -1) {// Relative url
-						for (j in Page.pageNames) {
-							if (arguments[i].indexOf(Page.pageNames[j].url) !== -1) {
-								page = j;
-								args = arguments[i].indexOf('?')>=0 ? arguments[i].substr(arguments[i].indexOf('?')) : '';
-							}
-						}
-					} else {// Unknown domain - we'll probably not handle it...
-						page = arguments[i];
-					}
-				} else {
-					if (method === 'GET') {
-						args = (arguments[i].indexOf('?') !== 0 ? '?' : '') + arguments[i];
-					} else {
-						body = arguments[i];
-					}
-				}
-				break;
-			case 'boolean':
-				force = arguments[i];
-				break;
-			case 'object':
-				if (arguments[i] !== null) {
-					if (method === 'GET') {
-						args = '?' + decodeURIComponent($.param(arguments[i]));
-					} else {
-						body = decodeURIComponent($.param(arguments[i]));
-					}
-				}
-				break;
-			default:
-				break;
-		}
-	}
-//	console.log(warn(), 'Page.to("'+method+'", "'+page+'", "'+args+'", '+force+');');
-	if (force === 0 && Queue.option.pause) {
-		console.log(warn(), 'Trying to load page when paused...');
+Page.to = function(url, args) { // Force = true/false (ignore pause if true)
+	var page = this.makeURL(url, args);
+//	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
+	if (Queue.option.pause) {
+		console.log(error('Trying to load page when paused...'));
 		return true;
 	}
-	if (page === this.page && method !== 'POST' && (force || typeof args === 'undefined')) {
+	page = page + args;
+	if (!page || page === (this.temp.last || this.page)) {
 		return true;
 	}
-//	this._push();
-	if (!this.loading && page && this.pageNames[page] && this.pageNames[page].url) {
-		this.clear();
-		page = window.location.protocol + '//apps.facebook.com/' + APP + '/' + this.pageNames[page].url;
-		this.when = Date.now();
-		if (method === 'GET' && args) {
-			if (page.indexOf('?') > 0) {
-				page = page.substr(0, page.indexOf('?'));
-			}
-			page = page + args;
-		}
-		this.loading = true;
-		console.log(warn(), 'Navigating to ' + page + (force ? ' (FORCE)' : ''));
-		if (force) {
-			window.location.replace(page);// Load new page without giving a back button
-			window.setTimeout(function(){Page.loading = false;}, this.option.timeout * 1000);// Don't try to load again for timeout secs...
-		} else {
-			Page.request = {
-				method:method,
-				url:page,
-				body:body
-			};
-			request = new XMLHttpRequest();
-			request.open(method, page);
-			request.onreadystatechange = Page.onreadystatechange;
-			request.send(body);
-			setTimeout(function() { if (Page.loading) {$('#app'+APPID+'_AjaxLoadIcon').show();} }, 1500);
-		}
-	}
-//	this._pop();
+	this.clear();
+	this.temp.last = page;
+	this.temp.when = Date.now();
+	this.set(['temp', 'loading'], true);
+	console.log(warn('Navigating to ' + page));
+	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
+	this._remind(Global.option.page.timeout, 'retry');
 	return false;
 };
 
+Page.retry = function() {
+	if (this.temp.reload || ++this.temp.retry >= Global.option.page.reload) {
+		this.reload();
+	} else if (this.temp.last) {
+		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
+		this.to(this.temp.last, true);
+	} else if (this.temp.lastclick) {
+		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
+		this.click(this.temp.lastclick);
+	} else {
+		// Probably a bad initial page load...
+		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
+		this._load('runtime');// Just in case we've got multiple copies
+		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : Global.option.page.timeout;
+		this._save('runtime');// Make sure it's saved for our next try
+		this.temp.reload = true;
+		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in <span class="golem-time" name="' + (Date.now() + (this.runtime.delay * 1000)) + '">' + makeTimer(this.runtime.delay) + '</span></div></div>');
+		this.set(['temp', 'loading'], true);
+		this._remind(this.runtime.delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
+		console.log(log('Unexpected retry event.'));
+	}
+};
+		
 Page.reload = function() {
-	console.log(warn(), 'Page.reload()');
+	console.log(warn('Page.reload()'));
 	window.location.replace(window.location.href);
 };
 
@@ -3444,28 +3280,24 @@ Page.click = function(el) {
 		console.log(log(), 'Page.click: Unable to find element - '+el);
 		return false;
 	}
-	if (this.lastclick === el) {
-		if (++this.retry >= this.option.retry) {
-			console.log(warn(), 'Element not clicked properly, reloading.');
-			Page.reload();
-			return true;
-		}
-	} else {
-		this.clear();
-	}
 	var e, element = $(el).get(0);
+	this.clear();
+	this.temp.lastclick = el;
+	this.temp.when = Date.now();
+	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
-	this.lastclick = el;
-	this.when = Date.now();
+	this._remind(Global.option.page.timeout, 'retry');
 	return true;
 };
 
 Page.clear = function() {
-	this.lastclick = this.when = null;
-	this.loading = false;
-	this.retry = 0;
+	this.temp.last = this.temp.lastclick = this.temp.when = null;
+	this.temp.retry = 0;
+	this.temp.reload = false;
+	this.set(['temp', 'loading'], false);
+	this.set(['runtime', 'delay'], 0);
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -3515,7 +3347,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Debug', 'Page', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Global', 'Debug', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -3523,6 +3355,10 @@ Queue.option = {
 	start_energy: 0,
 	energy: 0,
 	pause: false
+};
+
+Queue.temp = {
+	delay:-1
 };
 
 Queue.display = [
@@ -3566,8 +3402,6 @@ Queue.display = [
 
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 
-Queue.lasttimer = -1;
-
 Queue.init = function() {
 	var i, $btn, worker;
 //	this._watch(Player);
@@ -3604,12 +3438,12 @@ Queue.init = function() {
 		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
 		console.log(warn(), 'State: ' + (pause ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
-		Page.clear();
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
+	this._watch(Page, 'temp.loading');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -3624,29 +3458,26 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch') { // A worker getting disabled / enabled
-		if (event.id === 'option._enabled') {
-			if (event.worker.get(['option', '_enabled'], true)) {
-				$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
-			} else {
-				$('#'+event.worker.id+' .golem-panel-header').addClass('red');
-				if (this.runtime.current === i) {
-					this.clearCurrent();
-				}
+	if (event.type === 'watch' && event.id === 'option._enabled') { // A worker getting disabled / enabled
+		if (event.worker.get(['option', '_enabled'], true)) {
+			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+		} else {
+			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
+			if (this.runtime.current === i) {
+				this.clearCurrent();
 			}
 		}
-	} else if (event.type === 'init' || event.type === 'option') { // options have changed
-		if (this.option.pause) {
+	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
+		if (this.option.pause || Page.temp.loading) {
 			this._forget('run');
-			this.lasttimer = -1;
-		} else if (this.option.delay !== this.lasttimer) {
+			this.temp.delay = -1;
+		} else if (this.option.delay !== this.temp.delay) {
 			this._revive(this.option.delay, 'run');
-			this.lasttimer = this.option.delay;
+			this.temp.delay = this.option.delay;
 		}
-	} else if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
-		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
-		|| Page.loading) { // We want to wait xx seconds after the page has loaded
+		|| now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
 
@@ -3737,7 +3568,7 @@ Queue.update = function(event) {
 			} else {
 				result = worker._work(false);
 			}
-			if (!worker.settings.stateful && typeof result !== 'boolean') {// QUEUE_* are all numbers
+			if (!worker.settings.stateful && typeof result === 'number') {// QUEUE_* are all numbers
 				worker.settings.stateful = true;
 			}
 			if (!next && result) {
@@ -5367,45 +5198,50 @@ Blessing.work = function(state) {
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_viewarmy';
+Army.defaults.castle_age = {
+	pages:'army_viewarmy',
 
-// Careful not to hit any *real* army options
-Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
-Army.option.invite = false;
-Army.option.recheck = 0;
+	// Careful not to hit any *real* army options
+	option:{
+		invite:false,
+		recheck:0
+	},
 
-Army.runtime.count = -1; // How many people have we actively seen
-Army.runtime.page = 0; // Next page we want to look at 
-Army.runtime.extra = 0; // How many non-real army members are there
-Army.runtime.oldest = 0; // Timestamp of when we last saw the oldest member
-
-Army.display = [
-//Disabled until Army works correctly
-//{
-//	id:'invite',
-//	label:'Auto-Join New Armies',
-//	checkbox:true
-//},
-{
-	title:'Members',
-	group:[
+	runtime:{
+		count:-1, // How many people have we actively seen
+		page:0, // Next page we want to look at 
+		extra:0, // How many non-real army members are there
+		oldest:0 // Timestamp of when we last saw the oldest member
+	},
+	
+	display:[
+		//Disabled until Army works correctly
+		//{
+		//	id:'invite',
+		//	label:'Auto-Join New Armies',
+		//	checkbox:true
+		//},
 		{
-			id:'recheck',
-			label:'Re-check Old',
-			select:{
-				0:'Never',
-				86400000:'Daily',
-				259200000:'3 Days',
-				604800000:'Weekly',
-				1209600000:'2 Weekly',
-				2419200000:'4 Weekly'
-			}
+			title:'Members',
+			group:[
+				{
+					id:'recheck',
+					label:'Re-check Old',
+					select:{
+						0:'Never',
+						86400000:'Daily',
+						259200000:'3 Days',
+						604800000:'Weekly',
+						1209600000:'2 Weekly',
+						2419200000:'4 Weekly'
+					}
+				}
+			]
 		}
 	]
-}
-];
+};
 
-Army._overload('init', function() {
+Army._overload('castle_age', 'init', function() {
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
 //		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
@@ -5413,7 +5249,7 @@ Army._overload('init', function() {
 	this._parent();
 });
 
-Army._overload('parse', function(change) {
+Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
 		$tmp = $('table[width="740"] div:first > div');
@@ -5467,7 +5303,7 @@ Army._overload('parse', function(change) {
 	return this._parent();
 });
 
-Army._overload('update', function(event) {
+Army._overload('castle_age', 'update', function(event) {
 	this._parent();
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
@@ -5493,7 +5329,7 @@ Army._overload('update', function(event) {
 	this._set(['option','_sleep'], !this.runtime.page);
 });
 
-Army._overload('work', function(state) {
+Army._overload('castle_age', 'work', function(state) {
 	if (this.runtime.page) {
 		if (state) {
 			Page.to('army_viewarmy', {page:this.runtime.page});
@@ -5502,6 +5338,73 @@ Army._overload('work', function(state) {
 	}
 	return this._parent();
 });
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker.Page for Castle Age **********
+* Add defaults to Page for "Castle Age"
+*/
+
+Page.defaults.castle_age = {
+	pageNames:{
+//		facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
+		index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+		quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+		quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+		quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+		quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+		quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+		quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+		quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+		quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+		quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
+		quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
+		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
+		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
+		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+		battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
+		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
+		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
+		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
+		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
+		monster_class:			{url:'view_class_progress.php', selector:'#app'+APPID+'_choose_class_header'},
+		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+		heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+		town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+		town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+		town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+		town_land:				{url:'land.php', image:'tab_land_on.gif'},
+		oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+		oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+		oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
+		keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
+		keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
+		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+		keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+		army_invite:			{url:'army.php', image:'invite_on.gif'},
+		army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
+		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+		army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
+		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'},
+		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+	}
+};
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -6399,9 +6302,9 @@ Gift.work = function(state) {
 				}
 				continue;
 			}
-			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
+//			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
-//			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, false)) {
+			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
 				return QUEUE_RELEASE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
@@ -8800,7 +8703,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, type, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
+	var i, j, o, type, monster, args, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
 		engage:0,
 		assist:1,
 		reward:2,
@@ -8880,13 +8783,13 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
 		if (Monster.option.assist_links && (monster.state === 'engage' || monster.state === 'assist')) {
-			url = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '');
+			args = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '');
 		} else {
-			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
+			args = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
 
 		// link icon
-		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 

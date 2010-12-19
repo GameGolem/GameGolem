@@ -274,17 +274,28 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 	}
 }
 
-Worker.prototype._overload = function(name, fn) {
-	var old = this[name] || new Function();
-	this[name] = function() {
-		var a = this, b = arguments, r, x = this._parent;
+Worker.prototype._overload = function(app, name, fn) {
+	var newfn = function() {
+		var a = arguments, r, x = this._parent;
 		this._parent = function() {
-			return old.apply(a, arguments.length ? arguments : b);
+			return arguments.callee._old.apply(this, arguments.length ? arguments : a);
 		};
-		var r = fn.apply(this, b);
+		this._parent._old = arguments.callee._old;
+		r = arguments.callee._new.apply(this, a);
 		this._parent = x;
 		return r;
 	};
+	newfn._old = (app && this.defaults && this.defaults[app] && this.defaults[app][name] ? this.defaults[app][name] : null) || this[name] || function(){};
+	newfn._new = fn;
+	if (app) {
+		this.defaults[app] = this.defaults[app] || {};
+		if (this.defaults[app][name] === this[name]) { // If we've already run _setup
+			this[name] = newfn;
+		}
+		this.defaults[app][name] = newfn;
+	} else {
+		this[name] = newfn;
+	}
 };
 
 Worker.prototype._parse = function(change) {
@@ -409,7 +420,11 @@ Worker.prototype._setup = function() {
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		if (this.defaults[APP]) {
 			for (var i in this.defaults[APP]) {
-				this[i] = this.defaults[APP][i];
+				if (isObject(this.defaults[APP][i]) && isObject(this[i])) {
+					this[i] = $.extend(true, {}, this[i], this.defaults[APP][i]);
+				} else {
+					this[i] = this.defaults[APP][i];
+				}
 			}
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed

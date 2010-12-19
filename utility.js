@@ -598,7 +598,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = o.toString();
+			out = typeof o !== 'undefined' ? o.toString() : 'undefined';
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);

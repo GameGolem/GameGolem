@@ -93,7 +93,6 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				return;
 			}
 			do_css();
-			Page.identify();
 			for (i in Workers) {
 				Workers[i]._setup();
 			}
@@ -104,7 +103,6 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 				Workers[i]._update({type:'init', self:true});
 //				Workers[i]._flush();
 			}
-			Page.parse_all(); // Call once to get the ball rolling...
 		};
 
 		if (typeof jQuery !== 'undefined') {

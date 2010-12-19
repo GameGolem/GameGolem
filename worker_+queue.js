@@ -45,7 +45,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Debug', 'Page', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Global', 'Debug', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -53,6 +53,10 @@ Queue.option = {
 	start_energy: 0,
 	energy: 0,
 	pause: false
+};
+
+Queue.temp = {
+	delay:-1
 };
 
 Queue.display = [
@@ -96,8 +100,6 @@ Queue.display = [
 
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 
-Queue.lasttimer = -1;
-
 Queue.init = function() {
 	var i, $btn, worker;
 //	this._watch(Player);
@@ -134,12 +136,12 @@ Queue.init = function() {
 		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
 		console.log(warn(), 'State: ' + (pause ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
-		Page.clear();
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
 	$('#golem_buttons').prepend($btn); // Make sure it comes first
 	// Running the queue every second, options within it give more delay
+	this._watch(Page, 'temp.loading');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -154,29 +156,26 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch') { // A worker getting disabled / enabled
-		if (event.id === 'option._enabled') {
-			if (event.worker.get(['option', '_enabled'], true)) {
-				$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
-			} else {
-				$('#'+event.worker.id+' .golem-panel-header').addClass('red');
-				if (this.runtime.current === i) {
-					this.clearCurrent();
-				}
+	if (event.type === 'watch' && event.id === 'option._enabled') { // A worker getting disabled / enabled
+		if (event.worker.get(['option', '_enabled'], true)) {
+			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+		} else {
+			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
+			if (this.runtime.current === i) {
+				this.clearCurrent();
 			}
 		}
-	} else if (event.type === 'init' || event.type === 'option') { // options have changed
-		if (this.option.pause) {
+	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
+		if (this.option.pause || Page.temp.loading) {
 			this._forget('run');
-			this.lasttimer = -1;
-		} else if (this.option.delay !== this.lasttimer) {
+			this.temp.delay = -1;
+		} else if (this.option.delay !== this.temp.delay) {
 			this._revive(this.option.delay, 'run');
-			this.lasttimer = this.option.delay;
+			this.temp.delay = this.option.delay;
 		}
-	} else if (event.type === 'reminder' && !Page.loading) { // This is where we call worker.work() for everyone
+	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
 		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
-		|| now - this.lastclick < this.option.clickdelay * 1000 // Want to make sure we delay after a click
-		|| Page.loading) { // We want to wait xx seconds after the page has loaded
+		|| now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
 
@@ -267,7 +266,7 @@ Queue.update = function(event) {
 			} else {
 				result = worker._work(false);
 			}
-			if (!worker.settings.stateful && typeof result !== 'boolean') {// QUEUE_* are all numbers
+			if (!worker.settings.stateful && typeof result === 'number') {// QUEUE_* are all numbers
 				worker.settings.stateful = true;
 			}
 			if (!next && result) {

@@ -76,48 +76,50 @@ Debug.setup = function() {
 		return;
 	}
 	// Go through every worker and replace their functions with a stub function
-	var i, j, wkr, fn;
+	var i, j, p, wkr, fn;
 	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
 	for (i in Workers) {
-		wkr = i === '__fake__' ? Worker.prototype : Workers[i];
-		for (j in wkr) {
-			if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
-				fn = wkr[j];
-				wkr[j] = function() {
-					var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
-					Debug.stack.unshift([0, w || '', arguments]);
-					if (Debug.option._enabled) {
-						if (w) {
-							l = [w+'.'+arguments.callee._name, w];
+		for (p=0; p<=1; p++) {
+			wkr = (i === '__fake__' ? (p ? Worker.prototype : null) : (p ? Workers[i] : Workers[i].defaults[APP])) || {};
+			for (j in wkr) {
+				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+					fn = wkr[j];
+					wkr[j] = function() {
+						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
+						Debug.stack.unshift([0, w || '', arguments]);
+						if (Debug.option._enabled) {
+							if (w) {
+								l = [w+'.'+arguments.callee._name, w];
+							}
+							if (!arguments.callee._worker) {
+								l[l.length] = '_worker.'+arguments.callee._name;
+							}
 						}
-						if (!arguments.callee._worker) {
-							l[l.length] = '_worker.'+arguments.callee._name;
+						try {
+							r = arguments.callee._orig.apply(this, arguments);
+						} catch(e) {
+							console.log(error(e.name + ': ' + e.message));
 						}
+						if (Debug.option._enabled) {
+							t = Date.now() - t;
+							if (Debug.stack.length > 1) {
+								Debug.stack[1][0] += t;
+							}
+							for (i=0; i<l.length; i++) {
+								w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
+								w[0]++;
+								w[1] += t - Debug.stack[0][0];
+								w[2] += t;
+							}
+						}
+						Debug.stack.shift();
+						return r;
 					}
-					try {
-						r = arguments.callee._orig.apply(this, arguments);
-					} catch(e) {
-						console.log(error(e.name + ': ' + e.message));
+					wkr[j]._name = j;
+					wkr[j]._orig = fn;
+					if (i !== '__fake__') {
+						wkr[j]._worker = i;
 					}
-					if (Debug.option._enabled) {
-						t = Date.now() - t;
-						if (Debug.stack.length > 1) {
-							Debug.stack[1][0] += t;
-						}
-						for (i=0; i<l.length; i++) {
-							w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-							w[0]++;
-							w[1] += t - Debug.stack[0][0];
-							w[2] += t;
-						}
-					}
-					Debug.stack.shift();
-					return r;
-				}
-				wkr[j]._name = j;
-				wkr[j]._orig = fn;
-				if (i !== '__fake__') {
-					wkr[j]._worker = i;
 				}
 			}
 		}
@@ -196,7 +198,7 @@ Debug.dashboard = function(sort, rev) {
 	if (rev) {
 		order.reverse();
 	}
-	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Total Run Time:</b> ' + addCommas(Date.now() - script_started) + 'ms, <b>CPU Percent:</b> ' + addCommas((total / (Date.now() - script_started) * 100).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Efficiency:</b> ' + addCommas((100 - (total / (Date.now() - script_started) * 100)).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count', 'style="text-align:right;"');
 	th(output, 'Time', 'style="text-align:right;"');

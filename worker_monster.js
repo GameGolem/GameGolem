@@ -1525,7 +1525,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, type, monster, url, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
+	var i, j, o, type, monster, args, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
 		engage:0,
 		assist:1,
 		reward:2,
@@ -1605,13 +1605,13 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
 		if (Monster.option.assist_links && (monster.state === 'engage' || monster.state === 'assist')) {
-			url = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '');
+			args = '?user=' + uid + '&action=doObjective' + (type.mpool ? '&mpool=' + type.mpool : '');
 		} else {
-			url = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
+			args = '?user=' + uid + (type.mpool ? '&mpool=' + type.mpool : '');
 		}
 
 		// link icon
-		td(output, '<a class="golem-link" href="' + (type.raid ? 'raid.php' : 'battle_monster.php') + url + '"><img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong></a>', 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 

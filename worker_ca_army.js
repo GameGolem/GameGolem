@@ -12,45 +12,50 @@
 * We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
-Army.pages = 'army_viewarmy';
+Army.defaults.castle_age = {
+	pages:'army_viewarmy',
 
-// Careful not to hit any *real* army options
-Army.option.armyperpage = 25; // Read only, but if they change it and I don't notice...
-Army.option.invite = false;
-Army.option.recheck = 0;
+	// Careful not to hit any *real* army options
+	option:{
+		invite:false,
+		recheck:0
+	},
 
-Army.runtime.count = -1; // How many people have we actively seen
-Army.runtime.page = 0; // Next page we want to look at 
-Army.runtime.extra = 0; // How many non-real army members are there
-Army.runtime.oldest = 0; // Timestamp of when we last saw the oldest member
-
-Army.display = [
-//Disabled until Army works correctly
-//{
-//	id:'invite',
-//	label:'Auto-Join New Armies',
-//	checkbox:true
-//},
-{
-	title:'Members',
-	group:[
+	runtime:{
+		count:-1, // How many people have we actively seen
+		page:0, // Next page we want to look at 
+		extra:0, // How many non-real army members are there
+		oldest:0 // Timestamp of when we last saw the oldest member
+	},
+	
+	display:[
+		//Disabled until Army works correctly
+		//{
+		//	id:'invite',
+		//	label:'Auto-Join New Armies',
+		//	checkbox:true
+		//},
 		{
-			id:'recheck',
-			label:'Re-check Old',
-			select:{
-				0:'Never',
-				86400000:'Daily',
-				259200000:'3 Days',
-				604800000:'Weekly',
-				1209600000:'2 Weekly',
-				2419200000:'4 Weekly'
-			}
+			title:'Members',
+			group:[
+				{
+					id:'recheck',
+					label:'Re-check Old',
+					select:{
+						0:'Never',
+						86400000:'Daily',
+						259200000:'3 Days',
+						604800000:'Weekly',
+						1209600000:'2 Weekly',
+						2419200000:'4 Weekly'
+					}
+				}
+			]
 		}
 	]
-}
-];
+};
 
-Army._overload('init', function() {
+Army._overload('castle_age', 'init', function() {
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
 //		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
@@ -58,7 +63,7 @@ Army._overload('init', function() {
 	this._parent();
 });
 
-Army._overload('parse', function(change) {
+Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
 		$tmp = $('table[width="740"] div:first > div');
@@ -112,7 +117,7 @@ Army._overload('parse', function(change) {
 	return this._parent();
 });
 
-Army._overload('update', function(event) {
+Army._overload('castle_age', 'update', function(event) {
 	this._parent();
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
@@ -138,7 +143,7 @@ Army._overload('update', function(event) {
 	this._set(['option','_sleep'], !this.runtime.page);
 });
 
-Army._overload('work', function(state) {
+Army._overload('castle_age', 'work', function(state) {
 	if (this.runtime.page) {
 		if (state) {
 			Page.to('army_viewarmy', {page:this.runtime.page});
