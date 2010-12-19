@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 873;
+var revision = 874;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -3235,14 +3235,17 @@ Page.to = function(url, args, force) { // Force = true/false (ignore pause if tr
 		console.log(error('Trying to load page when paused...'));
 		return true;
 	}
-	if (!page || (!force && page === (this.temp.last || this.page))) {
+	if (force) {
+		window.location.href = 'javascript:void((function(){})())';// Force it to change
+	} else if (!page || page === (this.temp.last || this.page)) {
 		return true;
+	} else {
+		this.clear();
+		this.temp.last = page;
+		this.temp.when = Date.now();
+		this.set(['temp', 'loading'], true);
+		console.log(warn('Navigating to ' + page));
 	}
-	this.clear();
-	this.temp.last = page;
-	this.temp.when = Date.now();
-	this.set(['temp', 'loading'], true);
-	console.log(warn('Navigating to ' + page));
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(Global.option.page.timeout, 'retry');
 	return false;
