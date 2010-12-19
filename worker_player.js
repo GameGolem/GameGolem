@@ -50,12 +50,11 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-/* These triggers have a heavy impact on CPU utilization
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
-*/	Resources.add('Energy');
+	Resources.add('Energy');
 	Resources.add('Stamina');
 	Resources.add('Gold');
 	Title.alias('energy', 'Player:data.energy');

@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 871;
+var revision = 872;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -9108,12 +9108,11 @@ Player.init = function() {
 	this.runtime.energy_timeout = null;
 	this.runtime.health_timeout = null;
 	this.runtime.stamina_timeout = null;
-/* These triggers have a heavy impact on CPU utilization
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
-*/	Resources.add('Energy');
+	Resources.add('Energy');
 	Resources.add('Stamina');
 	Resources.add('Gold');
 	Title.alias('energy', 'Player:data.energy');
