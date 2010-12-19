@@ -15,7 +15,7 @@ var isArray = function(obj) {// Not an object
 };
 
 var isObject = function(obj) {// Not an array
-    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+    return typeof obj !== 'undefined' && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
 };
 
 var isFunction = function(obj) {

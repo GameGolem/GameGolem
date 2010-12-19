@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 868;
+var revision = 869;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -291,7 +291,7 @@ var isArray = function(obj) {// Not an object
 };
 
 var isObject = function(obj) {// Not an array
-    return obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+    return typeof obj !== 'undefined' && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
 };
 
 var isFunction = function(obj) {
@@ -3220,7 +3220,6 @@ Page.to = function(url, args) { // Force = true/false (ignore pause if true)
 		console.log(error('Trying to load page when paused...'));
 		return true;
 	}
-	page = page + args;
 	if (!page || page === (this.temp.last || this.page)) {
 		return true;
 	}
@@ -3239,7 +3238,7 @@ Page.retry = function() {
 		this.reload();
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
-		this.to(this.temp.last, true);
+		this.to(this.temp.last);
 	} else if (this.temp.lastclick) {
 		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
 		this.click(this.temp.lastclick);
@@ -9581,7 +9580,7 @@ Quest.parse = function(change) {
 				data.id[id].general = tmp.attr('title');
 			}
 		}
-		this._notify('data');
+		Quest._notify('data');
 	});
 	for (i in purge) {
 		if (purge[i]) {

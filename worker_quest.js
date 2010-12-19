@@ -277,7 +277,7 @@ Quest.parse = function(change) {
 				data.id[id].general = tmp.attr('title');
 			}
 		}
-		this._notify('data');
+		Quest._notify('data');
 	});
 	for (i in purge) {
 		if (purge[i]) {
