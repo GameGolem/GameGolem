@@ -165,6 +165,7 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 
 // Static Data
 Worker.stack = ['unknown'];// array of active workers, last at the start
+Worker._triggers_ = [];// Used for this._trigger
 
 // Private functions - only override if you know exactly what you're doing
 Worker.prototype._flush = function(force) {
@@ -445,12 +446,18 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
-Worker.prototype._trigger = function(selector, id, loose) {
-	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector, loose:loose}, function(event){
-		if (event.data.loose || $(event.target).filter(event.data.selector).length) {
-			event.data.worker._remind(0.1, '_trigger' + event.data.id, event.data);// 100ms delay in case of multiple changes in sequence
-		}
-	});
+Worker.prototype._trigger = function(selector, id) {
+	if (!Worker._triggers_.length) {
+		$('body').bind('DOMNodeInserted', function(event){
+			var i, t = Worker._triggers_, $target = $(event.target);
+			for (i=0; i<t.length; i++) {
+				if ($target.is(t[i][1])) {
+					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+				}
+			}
+		});
+	}
+	Worker._triggers_.push([this, selector, id || selector]);
 };
 
 Worker.prototype._unflush = function() {
@@ -523,13 +530,13 @@ Worker.prototype._update = function(event) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
 				if (!findInArray(worker._watching[path],this)) {
-//					console.log(log(), 'Watch(' + worker.name + ', "' + path + '")');
+//					console.log(log('Watch(' + worker.name + ', "' + path + '")'));
 					worker._watching[path].push(this);
 				}
 				return true;
 			}
 		}
-//		console.log(warn(), 'Attempting to watch bad value: ' + worker.name + ':' + path));
+//		console.log(warn('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };

@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 870;
+var revision = 871;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1047,6 +1047,7 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 
 // Static Data
 Worker.stack = ['unknown'];// array of active workers, last at the start
+Worker._triggers_ = [];// Used for this._trigger
 
 // Private functions - only override if you know exactly what you're doing
 Worker.prototype._flush = function(force) {
@@ -1327,12 +1328,18 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
-Worker.prototype._trigger = function(selector, id, loose) {
-	$('body').delegate(selector, 'DOMNodeInserted', {worker:this, self:true, type:'trigger', id:id || selector, selector:selector, loose:loose}, function(event){
-		if (event.data.loose || $(event.target).filter(event.data.selector).length) {
-			event.data.worker._remind(0.1, '_trigger' + event.data.id, event.data);// 100ms delay in case of multiple changes in sequence
-		}
-	});
+Worker.prototype._trigger = function(selector, id) {
+	if (!Worker._triggers_.length) {
+		$('body').bind('DOMNodeInserted', function(event){
+			var i, t = Worker._triggers_, $target = $(event.target);
+			for (i=0; i<t.length; i++) {
+				if ($target.is(t[i][1])) {
+					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+				}
+			}
+		});
+	}
+	Worker._triggers_.push([this, selector, id || selector]);
 };
 
 Worker.prototype._unflush = function() {
@@ -1405,13 +1412,13 @@ Worker.prototype._update = function(event) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
 				if (!findInArray(worker._watching[path],this)) {
-//					console.log(log(), 'Watch(' + worker.name + ', "' + path + '")');
+//					console.log(log('Watch(' + worker.name + ', "' + path + '")'));
 					worker._watching[path].push(this);
 				}
 				return true;
 			}
 		}
-//		console.log(warn(), 'Attempting to watch bad value: ' + worker.name + ':' + path));
+//		console.log(warn('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
@@ -2718,13 +2725,10 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
-//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
-	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
-//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -2951,22 +2955,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (typeof type === 'string') {
 		type = [type];
 	}
-//	if (type[0] === 'serpent_ancient') {
-//		console.log(warn(), 'OK serp');
-//	}
-//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
-				if (j === 'serpent_ancient' && value[i][j]) {
-					console.log(warn(), j +' ' + value[i][j]);
-				}
+				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			if (sum(value[i])) {
-				min = Math.min(min, sum(value[i]))-1;
-			}
+			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
