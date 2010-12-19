@@ -211,14 +211,14 @@ Page.makeLink = function(url, args, content) {
 /*
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
-Page.to = function(url, args) { // Force = true/false (ignore pause if true)
+Page.to = function(url, args, force) { // Force = true/false (ignore pause if true)
 	var page = this.makeURL(url, args);
 //	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
 	if (Queue.option.pause) {
 		console.log(error('Trying to load page when paused...'));
 		return true;
 	}
-	if (!page || page === (this.temp.last || this.page)) {
+	if (!page || (!force && page === (this.temp.last || this.page))) {
 		return true;
 	}
 	this.clear();
@@ -236,7 +236,7 @@ Page.retry = function() {
 		this.reload();
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
-		this.to(this.temp.last);
+		this.to(this.temp.last, null, true);// Force
 	} else if (this.temp.lastclick) {
 		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
 		this.click(this.temp.lastclick);

@@ -49,8 +49,8 @@ Page.defaults.castle_age = {
 		oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
 		oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
 		oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
+//		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+//		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
 		keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
 		keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
 		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
@@ -60,8 +60,8 @@ Page.defaults.castle_age = {
 		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 		army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
-		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'},
-		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
+//		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 	}
 };
 

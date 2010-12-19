@@ -13,25 +13,26 @@
 var Debug = new Worker('Debug');
 Debug.data = Debug.runtime = null;
 
+Debug.settings = {
+//	system:true,
+	unsortable:true,
+	advanced:true,
+	taint:true
+};
+
 Debug.option = {
 	timer:0,
 	count:2,
 	show:10,
 	digits:1,
 	total:false,
+	prototypes:true,
 	worker:'All'
 };
 
 Debug.runtime = {
 	sort:2,
 	rev:false
-};
-
-Debug.settings = {
-//	system:true,
-	unsortable:true,
-	advanced:true,
-	taint:true
 };
 
 Debug.display = [
@@ -57,6 +58,10 @@ Debug.display = [
 			},{
 				id:'total',
 				label:'Show Worker Totals',
+				checkbox:true
+			},{
+				id:'prototypes',
+				label:'Show Prototype Functions',
 				checkbox:true
 			},{
 				id:'worker',
@@ -175,7 +180,7 @@ Debug.work = function(){};// Stub so we can be disabled
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
-		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || rx.test(i))) {
+		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.prototypes || !/^[^.]+\._/.test(i)) && (this.option.worker === 'All' || rx.test(i))) {
 			order.push(i);
 		}
 		if (i.indexOf('.') === -1) {

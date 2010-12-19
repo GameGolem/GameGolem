@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 872;
+var revision = 873;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -2446,25 +2446,26 @@ Dashboard.status = function(worker, value) {
 var Debug = new Worker('Debug');
 Debug.data = Debug.runtime = null;
 
+Debug.settings = {
+//	system:true,
+	unsortable:true,
+	advanced:true,
+	taint:true
+};
+
 Debug.option = {
 	timer:0,
 	count:2,
 	show:10,
 	digits:1,
 	total:false,
+	prototypes:true,
 	worker:'All'
 };
 
 Debug.runtime = {
 	sort:2,
 	rev:false
-};
-
-Debug.settings = {
-//	system:true,
-	unsortable:true,
-	advanced:true,
-	taint:true
 };
 
 Debug.display = [
@@ -2490,6 +2491,10 @@ Debug.display = [
 			},{
 				id:'total',
 				label:'Show Worker Totals',
+				checkbox:true
+			},{
+				id:'prototypes',
+				label:'Show Prototype Functions',
 				checkbox:true
 			},{
 				id:'worker',
@@ -2608,7 +2613,7 @@ Debug.work = function(){};// Stub so we can be disabled
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
-		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.worker === 'All' || rx.test(i))) {
+		if (data[i][0] >= this.option.count && (this.option.total || i.indexOf('.') !== -1) && (this.option.prototypes || !/^[^.]+\._/.test(i)) && (this.option.worker === 'All' || rx.test(i))) {
 			order.push(i);
 		}
 		if (i.indexOf('.') === -1) {
@@ -3223,14 +3228,14 @@ Page.makeLink = function(url, args, content) {
 /*
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
-Page.to = function(url, args) { // Force = true/false (ignore pause if true)
+Page.to = function(url, args, force) { // Force = true/false (ignore pause if true)
 	var page = this.makeURL(url, args);
 //	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
 	if (Queue.option.pause) {
 		console.log(error('Trying to load page when paused...'));
 		return true;
 	}
-	if (!page || page === (this.temp.last || this.page)) {
+	if (!page || (!force && page === (this.temp.last || this.page))) {
 		return true;
 	}
 	this.clear();
@@ -3248,7 +3253,7 @@ Page.retry = function() {
 		this.reload();
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
-		this.to(this.temp.last);
+		this.to(this.temp.last, null, true);// Force
 	} else if (this.temp.lastclick) {
 		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
 		this.click(this.temp.lastclick);
@@ -5398,8 +5403,8 @@ Page.defaults.castle_age = {
 		oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
 		oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
 		oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
+//		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+//		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
 		keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
 		keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
 		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
@@ -5409,8 +5414,8 @@ Page.defaults.castle_age = {
 		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
 		army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
-		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'},
-		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
+//		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 	}
 };
 
@@ -9515,6 +9520,21 @@ Quest.init = function() {
 
 Quest.parse = function(change) {
 	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
+/*
+<div style="float: left; height: 75px; width: 431px;">
+	<div style="clear: both;"></div>
+	<div class="title_tab">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=9"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image9" src="http://image2.castleagegame.com/2189/graphics/tab_ivory_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=10"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image10" src="http://image2.castleagegame.com/2189/graphics/tab_earth2_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab_selected">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=11"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image11" src="http://image2.castleagegame.com/2189/graphics/tab_water2_big.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab">
+		<div><img title="More land coming soon!" src="http://image2.castleagegame.com/2189/graphics/land_coming_soon.gif"></div>
+	</div>
+	<div style="clear: both;"></div>
+</div>
+*/
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {

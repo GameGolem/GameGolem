@@ -161,6 +161,21 @@ Quest.init = function() {
 
 Quest.parse = function(change) {
 	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
+/*
+<div style="float: left; height: 75px; width: 431px;">
+	<div style="clear: both;"></div>
+	<div class="title_tab">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=9"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image9" src="http://image2.castleagegame.com/2189/graphics/tab_ivory_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=10"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image10" src="http://image2.castleagegame.com/2189/graphics/tab_earth2_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab_selected">
+		<a href="http://apps.facebook.com/castle_age/quests.php?land=11"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image11" src="http://image2.castleagegame.com/2189/graphics/tab_water2_big.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
+	<div class="title_tab">
+		<div><img title="More land coming soon!" src="http://image2.castleagegame.com/2189/graphics/land_coming_soon.gif"></div>
+	</div>
+	<div style="clear: both;"></div>
+</div>
+*/
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
