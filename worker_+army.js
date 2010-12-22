@@ -19,7 +19,6 @@ Army.data = {};
 
 Army.settings = {
 	system:true,
-	advanced:true,
 	taint:true
 };
 

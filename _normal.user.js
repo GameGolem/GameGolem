@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 874;
+var revision = 875;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1456,7 +1456,6 @@ Army.data = {};
 
 Army.settings = {
 	system:true,
-	advanced:true,
 	taint:true
 };
 
@@ -3085,7 +3084,7 @@ Global._overload(null, 'work', function(state) {
 		if (isString(Workers[i].pages)) {
 			list = Workers[i].pages.split(' ');
 			for (l=0; l<list.length; l++) {
-				if (list[l] !== '*' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+				if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
 					found = list[l];
 					break;
 				}
@@ -10844,7 +10843,7 @@ Upgrade.update = function(event) {
 		this.runtime.run = 0;
 	}
 	var points = Player.get('upgrade'), args;
-	this.option._sleep = (!this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
+	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {

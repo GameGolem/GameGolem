@@ -53,7 +53,7 @@ Upgrade.update = function(event) {
 		this.runtime.run = 0;
 	}
 	var points = Player.get('upgrade'), args;
-	this.option._sleep = (!this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
+	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {
