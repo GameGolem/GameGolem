@@ -87,7 +87,7 @@ Debug.setup = function() {
 		for (p=0; p<=1; p++) {
 			wkr = (i === '__fake__' ? (p ? Worker.prototype : null) : (p ? Workers[i] : Workers[i].defaults[APP])) || {};
 			for (j in wkr) {
-				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j) && !/^_.*_$/.test(j)) {// Don't overload functions using _blah_ names - they're speed conscious
 					fn = wkr[j];
 					wkr[j] = function() {
 						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];

@@ -142,30 +142,14 @@ Army.sectionlist = {
 		'key':'_info',
 		'name':'Name',
 		'label':function(data,uid){
-			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : '';
+			return (data[uid]._info.name || '').html_escape();
 		},
 		'sort':function(data,uid){
-			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
+			return data[uid]._info.name || null;
 		},
 		'tooltip':function(data,uid){
 			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
-				var i, output = '';
-				for(i in obj) {
-					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
-					if (isArray(obj[i])) {
-						output = output + '[<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + ']';
-					} else if (typeof obj[i] === 'object') {
-						output = output + '{<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + '}';
-					} else if (typeof obj[i] === 'string') {
-						output = output + '"' + obj[i] + '"';
-					} else {
-						output = output + obj[i];
-					}
-					output = output + ',<br>';
-				}
-				return output;
-			})(data[uid],space).replace(/,<br>$/, '<br>')) + '}<br>');
+			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(data[uid], null, '   ') + '</pre><br>');
 			return $tooltip;
 		}
 	},
@@ -174,14 +158,14 @@ Army.sectionlist = {
 		'name':function(){return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';},
 		'show':'Info',
 		'label':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : '';
+			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || '';
 		},
 		'sort':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
+			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || null;
 		}
 	}
 };
-Army.section = function(name, object) {
+Army.section = function(name, object) { // Safe to call in setup()
 	// Add a section to the dashboard.
 	// callback = function(type, data), returns text or html string
 	// type = 'id', 'sort', 'tooltip'

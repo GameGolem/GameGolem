@@ -503,79 +503,11 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 	}
 	return best;
 };
-/*
-var shallowStringify = function(obj, depth) {
-	var str = '', i;
-	depth = isNumber(depth) ? depth : 10;
-	if (obj === null) {
-		str = 'null';
-	} else {
-		switch (typeof obj) {
-		case 'boolean':
-		case 'number':
-			str = obj.toString();
-			break;
-		case 'string':
-			str = '"' + obj.replace(/\\/g, '\\').replace(/"/g, '\\"') + '"';
-			break;
-		case 'object':
-			if (obj === Worker) {
-				str = 'Worker';
-			} else if (obj instanceof Worker) {
-				str = 'Worker.' + obj.name;
-			} else if (isArray(obj)) {
-				try {
-				    for (i = 0; i < obj.length; i++) {
-					    if (str !== '') {
-						    str += ', ';
-						}
-						str += '"' + i + '":';
-						if (depth > 0) {
-						    str += shallowStringify(obj[i], depth - 1);
-					    } else {
-						    str += '(' + (typeof obj[i]) + ')';
-					    }
-				    }
-				} catch (e) {
-					str = '(bad type: ' + e + ')';
-				}
-				str = '[' + str + ']';
-			} else {
-				try {
-					for (i in obj) {
-						if (str !== '') {
-							str += ', ';
-						}
-						str += '"' + i + '":';
-						if (depth > 0) {
-							str += '{' + shallowStringify(obj[i], depth - 1) + '}';
-						} else {
-							str += '(' + (typeof obj[i]) + ')';
-						}
-					}
-				} catch (e) {
-					str += '(bad type: ' + e + ')';
-				}
-				str = '{' + str + '}';
-			}
-			break;
-		default:
-			try {
-				str = obj.toString();
-				str = '(' + str + ')';
-			} catch (e) {
-				str = '(bad type: ' + e + ')';
-			}
-			break;
-		}
-	}
-	return str;
-};
-*/
+
 JSON.shallow = function(obj, depth, replacer, space) {
 	return JSON.stringify((function(o,d) {
 		var i, out;
-		if (typeof o === 'object') {
+		if (o && typeof o === 'object') {
 			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
 				if (d > 0) {
 					out = [];
@@ -602,5 +534,28 @@ JSON.shallow = function(obj, depth, replacer, space) {
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
+};
+
+// jQuery selector extensions
+
+$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
+	var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
+	switch(args[1]) {
+		case '<':	return value < args[2];
+		case '<=':	return value <= args[2];
+		case '>':	return value > args[2];
+		case '>=':	return value >= args[2];
+		case '=':
+		case '==':	return value === args[2];
+		case '!=':	return value !== args[2];
+		default:
+			console.log(warn('Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')'));
+			return false;
+	}
+};
+
+$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
+	var args = meta[3].toLowerCase().split(',');
+	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
 };
 

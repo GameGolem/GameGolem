@@ -55,6 +55,21 @@ Army.defaults.castle_age = {
 	]
 };
 
+Army._overload('castle_age', 'setup', function() {
+	this.section('Changed', { // Second column = Info
+		'key':'Army',
+		'name':'Changed',
+		'show':'Changed',
+		'label':function(data,uid){
+			var time = data[uid]._info.seen - data[uid]._info.changed;
+			return time < 86400000 ? 'Last Day' : time < 604800000 ? 'Last Week' : time < 2419200000 ? 'Last Month' : data[uid]._info.changed ? Math.floor(time / 86400000) + ' Days Ago' : 'Unknown';
+		},
+		'sort':function(data,uid){
+			return data[uid].Army ? data[uid]._info.changed || null : null;
+		}
+	});
+});
+
 Army._overload('castle_age', 'init', function() {
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
@@ -66,21 +81,27 @@ Army._overload('castle_age', 'init', function() {
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('table[width="740"] div:first > div');
+		$tmp = $('#app'+APPID+'_app_body table[width=740] div:first > div');
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');
 		if ($tmp.length) {
 			$tmp.each(function(i,el){
-				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
+				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army, level;
 				if (uid === userID) {// Shouldn't ever happen!
 					return;
 				}
 				army = Army.data[uid] = Army.data[uid] || {};
 				army.Army = true;
 				army._info = army._info || {};
-				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
-				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+				army._info.fbname = $('a', who).text();
+				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
+				army._info.friend = (army._info.fbname === 'Facebook User');
+				level = $(who).text().regex(/([0-9]+) Commander/i);
+				if (!army._info.changed || army._info.level !== level) {
+					army._info.changed = now;
+					army._info.level = level;
+				}
 				army._info.seen = now;
 				army._info.page = page;
 				army._info.id = start + i;

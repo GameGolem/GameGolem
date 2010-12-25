@@ -48,7 +48,7 @@ Elite.display = [
 	}
 ];
 
-Elite.init = function() { // Convert old elite guard list
+Elite.setup = function() {
 	Army.section(this.name, {
 		'key':'Elite',
 		'name':'Elite',
@@ -92,7 +92,9 @@ Elite.init = function() { // Convert old elite guard list
 			return true;
 		}
 	});
-	
+};
+
+Elite.init = function() {
 	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
 		Elite.set('runtime.waitelite', 0);
 		Elite._save('runtime');

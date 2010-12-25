@@ -137,13 +137,6 @@ Config.init = function() {
 			}
 		}
 	}
-	$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
-		var args = meta[3].toLowerCase().split(',');
-		if ($(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim()) {
-			return true;
-		}
-		return false;
-	};
 	$('input.golem_addselect').live('click', function(){
 		var i, value, values = $('.golem_select', $(this).parent()).val().split(',');
 		for (i=0; i<values.length; i++) {

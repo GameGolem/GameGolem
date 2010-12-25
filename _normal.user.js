@@ -18,7 +18,7 @@
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 875;
+var revision = 876;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -779,79 +779,11 @@ var bestObjValue = function(obj, callback, filter) {// pass an object and a func
 	}
 	return best;
 };
-/*
-var shallowStringify = function(obj, depth) {
-	var str = '', i;
-	depth = isNumber(depth) ? depth : 10;
-	if (obj === null) {
-		str = 'null';
-	} else {
-		switch (typeof obj) {
-		case 'boolean':
-		case 'number':
-			str = obj.toString();
-			break;
-		case 'string':
-			str = '"' + obj.replace(/\\/g, '\\').replace(/"/g, '\\"') + '"';
-			break;
-		case 'object':
-			if (obj === Worker) {
-				str = 'Worker';
-			} else if (obj instanceof Worker) {
-				str = 'Worker.' + obj.name;
-			} else if (isArray(obj)) {
-				try {
-				    for (i = 0; i < obj.length; i++) {
-					    if (str !== '') {
-						    str += ', ';
-						}
-						str += '"' + i + '":';
-						if (depth > 0) {
-						    str += shallowStringify(obj[i], depth - 1);
-					    } else {
-						    str += '(' + (typeof obj[i]) + ')';
-					    }
-				    }
-				} catch (e) {
-					str = '(bad type: ' + e + ')';
-				}
-				str = '[' + str + ']';
-			} else {
-				try {
-					for (i in obj) {
-						if (str !== '') {
-							str += ', ';
-						}
-						str += '"' + i + '":';
-						if (depth > 0) {
-							str += '{' + shallowStringify(obj[i], depth - 1) + '}';
-						} else {
-							str += '(' + (typeof obj[i]) + ')';
-						}
-					}
-				} catch (e) {
-					str += '(bad type: ' + e + ')';
-				}
-				str = '{' + str + '}';
-			}
-			break;
-		default:
-			try {
-				str = obj.toString();
-				str = '(' + str + ')';
-			} catch (e) {
-				str = '(bad type: ' + e + ')';
-			}
-			break;
-		}
-	}
-	return str;
-};
-*/
+
 JSON.shallow = function(obj, depth, replacer, space) {
 	return JSON.stringify((function(o,d) {
 		var i, out;
-		if (typeof o === 'object') {
+		if (o && typeof o === 'object') {
 			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
 				if (d > 0) {
 					out = [];
@@ -878,6 +810,29 @@ JSON.shallow = function(obj, depth, replacer, space) {
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
+};
+
+// jQuery selector extensions
+
+$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
+	var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
+	switch(args[1]) {
+		case '<':	return value < args[2];
+		case '<=':	return value <= args[2];
+		case '>':	return value > args[2];
+		case '>=':	return value >= args[2];
+		case '=':
+		case '==':	return value === args[2];
+		case '!=':	return value !== args[2];
+		default:
+			console.log(warn('Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')'));
+			return false;
+	}
+};
+
+$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
+	var args = meta[3].toLowerCase().split(',');
+	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -1079,8 +1034,18 @@ Worker.prototype._forget = function(id) {
 	return forgot;
 };
 
+Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
+	if (!isUndefined(data)) {
+		if (path.length) {
+			return arguments.callee(data[path.shift()], path, def);
+		}
+		return data === null ? null : data.valueOf();
+	}
+	return def;
+};
+
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), type;
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -1088,21 +1053,9 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		what = x.join('.');
-		type = x.shift();
-		return (function(a,b){
-			if (typeof a !== 'undefined') {
-				if (b.length) {
-					return arguments.callee(a[b.shift()],b);
-				}
-				return a === null ? null : a.valueOf();
-			}
-			return def
-		})(this[type],x);
+		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
-		if (typeof def === 'undefined') {
-			console.log(error(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message));
-		}
+		console.log(error(e.name + ' in ' + this.name + '.get('+x.join('.')+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message));
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -1258,9 +1211,30 @@ Worker.prototype._save = function(type) {
 	return false;
 };
 
+Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array['data','etc','etc'], value, depth
+	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth], l = (path.length - depth) > 1, t = typeof value;
+	if (l && !isObject(data[i])) {
+		data[i] = {};
+	}
+	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+		delete data[i];
+		return false;
+	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
+		this._notify(path.join('.'));// Notify the watchers...
+		this._taint[path[0]] = true;
+		this._remind(0, '_update', {type:path[0], self:true});
+		if (t === 'undefined') {
+			delete data[i];
+			return false;
+		}
+		data[i] = value;
+	}
+	return true;
+};
+
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type;
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -1271,31 +1245,9 @@ Worker.prototype._set = function(what, value) {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		what = x.join('.');
-		type = x.shift();
-		(function(a,b){ // Don't allow setting of root data/object/runtime
-			var c = b.shift(), l = b.length;
-			if (l && !isObject(a[c])) {
-				a[c] = {};
-			}
-			if (l && !arguments.callee(a[c],b) && empty(a[c])) {// Can clear out empty trees completely...
-				delete a[c];
-				return false;
-			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
-				me._notify(what);// Notify the watchers...
-				me._taint[type] = true;
-				me._remind(0, '_update', {type:type, self:true});
-				if (isUndefined(value)) {
-					delete a[c];
-					return false;
-				} else {
-					a[c] = value;
-				}
-			}
-			return true;
-		})(this[type],x);
+		this._set_(this[x[0]], x, value, 1);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.set('+x.join('.')+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;
@@ -1334,7 +1286,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+					t[i][0]._remind(0.2, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 200ms delay in case of multiple changes in sequence
 				}
 			}
 		});
@@ -1579,30 +1531,14 @@ Army.sectionlist = {
 		'key':'_info',
 		'name':'Name',
 		'label':function(data,uid){
-			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : '';
+			return (data[uid]._info.name || '').html_escape();
 		},
 		'sort':function(data,uid){
-			return typeof data[uid]['_info']['name'] !== 'undefined' ? data[uid]['_info']['name'] : null;
+			return data[uid]._info.name || null;
 		},
 		'tooltip':function(data,uid){
 			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>' + uid + ':</b> {<br>' + ((function(obj,indent){
-				var i, output = '';
-				for(i in obj) {
-					output = output + indent + (isArray(obj) ? '' : '<b>' + i + ':</b> ');
-					if (isArray(obj[i])) {
-						output = output + '[<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + ']';
-					} else if (typeof obj[i] === 'object') {
-						output = output + '{<br>' + arguments.callee(obj[i],indent + space).replace(/,<br>$/, '<br>') + indent + '}';
-					} else if (typeof obj[i] === 'string') {
-						output = output + '"' + obj[i] + '"';
-					} else {
-						output = output + obj[i];
-					}
-					output = output + ',<br>';
-				}
-				return output;
-			})(data[uid],space).replace(/,<br>$/, '<br>')) + '}<br>');
+			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(data[uid], null, '   ') + '</pre><br>');
 			return $tooltip;
 		}
 	},
@@ -1611,14 +1547,14 @@ Army.sectionlist = {
 		'name':function(){return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';},
 		'show':'Info',
 		'label':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : '';
+			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || '';
 		},
 		'sort':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : typeof data[uid]['_info'][Army.runtime.info] !== 'undefined' ? data[uid]['_info'][Army.runtime.info] : null;
+			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || null;
 		}
 	}
 };
-Army.section = function(name, object) {
+Army.section = function(name, object) { // Safe to call in setup()
 	// Add a section to the dashboard.
 	// callback = function(type, data), returns text or html string
 	// type = 'id', 'sort', 'tooltip'
@@ -1889,13 +1825,6 @@ Config.init = function() {
 			}
 		}
 	}
-	$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
-		var args = meta[3].toLowerCase().split(',');
-		if ($(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim()) {
-			return true;
-		}
-		return false;
-	};
 	$('input.golem_addselect').live('click', function(){
 		var i, value, values = $('.golem_select', $(this).parent()).val().split(',');
 		for (i=0; i<values.length; i++) {
@@ -2519,7 +2448,7 @@ Debug.setup = function() {
 		for (p=0; p<=1; p++) {
 			wkr = (i === '__fake__' ? (p ? Worker.prototype : null) : (p ? Workers[i] : Workers[i].defaults[APP])) || {};
 			for (j in wkr) {
-				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j)) {
+				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j) && !/^_.*_$/.test(j)) {// Don't overload functions using _blah_ names - they're speed conscious
 					fn = wkr[j];
 					wkr[j] = function() {
 						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
@@ -5256,6 +5185,21 @@ Army.defaults.castle_age = {
 	]
 };
 
+Army._overload('castle_age', 'setup', function() {
+	this.section('Changed', { // Second column = Info
+		'key':'Army',
+		'name':'Changed',
+		'show':'Changed',
+		'label':function(data,uid){
+			var time = data[uid]._info.seen - data[uid]._info.changed;
+			return time < 86400000 ? 'Last Day' : time < 604800000 ? 'Last Week' : time < 2419200000 ? 'Last Month' : data[uid]._info.changed ? Math.floor(time / 86400000) + ' Days Ago' : 'Unknown';
+		},
+		'sort':function(data,uid){
+			return data[uid].Army ? data[uid]._info.changed || null : null;
+		}
+	});
+});
+
 Army._overload('castle_age', 'init', function() {
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
@@ -5267,21 +5211,27 @@ Army._overload('castle_age', 'init', function() {
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('table[width="740"] div:first > div');
+		$tmp = $('#app'+APPID+'_app_body table[width=740] div:first > div');
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');
 		if ($tmp.length) {
 			$tmp.each(function(i,el){
-				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army;
+				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army, level;
 				if (uid === userID) {// Shouldn't ever happen!
 					return;
 				}
 				army = Army.data[uid] = Army.data[uid] || {};
 				army.Army = true;
 				army._info = army._info || {};
-				army._info.name = $('a', who).text() + ' ' + $('a', who).next().text();
-				army._info.level = $(who).text().regex(/([0-9]+) Commander/i);
+				army._info.fbname = $('a', who).text();
+				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
+				army._info.friend = (army._info.fbname === 'Facebook User');
+				level = $(who).text().regex(/([0-9]+) Commander/i);
+				if (!army._info.changed || army._info.level !== level) {
+					army._info.changed = now;
+					army._info.level = level;
+				}
 				army._info.seen = now;
 				army._info.page = page;
 				army._info.id = start + i;
@@ -5471,7 +5421,7 @@ Elite.display = [
 	}
 ];
 
-Elite.init = function() { // Convert old elite guard list
+Elite.setup = function() {
 	Army.section(this.name, {
 		'key':'Elite',
 		'name':'Elite',
@@ -5515,7 +5465,9 @@ Elite.init = function() { // Convert old elite guard list
 			return true;
 		}
 	});
-	
+};
+
+Elite.init = function() {
 	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
 		Elite.set('runtime.waitelite', 0);
 		Elite._save('runtime');
@@ -9682,7 +9634,7 @@ Quest.update = function(event) {
 		}
 	}
 	// Now choose the next quest...
-	if (this.option.unique) {
+	if (this.option.unique) {// Boss monster quests first - to unlock the next area
 		for (i in data.id) {
 			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
 				continue;

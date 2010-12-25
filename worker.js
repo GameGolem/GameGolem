@@ -197,8 +197,18 @@ Worker.prototype._forget = function(id) {
 	return forgot;
 };
 
+Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
+	if (!isUndefined(data)) {
+		if (path.length) {
+			return arguments.callee(data[path.shift()], path, def);
+		}
+		return data === null ? null : data.valueOf();
+	}
+	return def;
+};
+
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), type;
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -206,21 +216,9 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		what = x.join('.');
-		type = x.shift();
-		return (function(a,b){
-			if (typeof a !== 'undefined') {
-				if (b.length) {
-					return arguments.callee(a[b.shift()],b);
-				}
-				return a === null ? null : a.valueOf();
-			}
-			return def
-		})(this[type],x);
+		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
-		if (typeof def === 'undefined') {
-			console.log(error(e.name + ' in ' + this.name + '.get('+what+', undefined): ' + e.message));
-		}
+		console.log(error(e.name + ' in ' + this.name + '.get('+x.join('.')+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message));
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -376,9 +374,30 @@ Worker.prototype._save = function(type) {
 	return false;
 };
 
+Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array['data','etc','etc'], value, depth
+	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth], l = (path.length - depth) > 1, t = typeof value;
+	if (l && !isObject(data[i])) {
+		data[i] = {};
+	}
+	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+		delete data[i];
+		return false;
+	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
+		this._notify(path.join('.'));// Notify the watchers...
+		this._taint[path[0]] = true;
+		this._remind(0, '_update', {type:path[0], self:true});
+		if (t === 'undefined') {
+			delete data[i];
+			return false;
+		}
+		data[i] = value;
+	}
+	return true;
+};
+
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var me = this, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), type;
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -389,31 +408,9 @@ Worker.prototype._set = function(what, value) {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		what = x.join('.');
-		type = x.shift();
-		(function(a,b){ // Don't allow setting of root data/object/runtime
-			var c = b.shift(), l = b.length;
-			if (l && !isObject(a[c])) {
-				a[c] = {};
-			}
-			if (l && !arguments.callee(a[c],b) && empty(a[c])) {// Can clear out empty trees completely...
-				delete a[c];
-				return false;
-			} else if (!l && ((isString(value) && value.localeCompare(a[c]||'')) || (!isString(value) && a[c] != value))) {
-				me._notify(what);// Notify the watchers...
-				me._taint[type] = true;
-				me._remind(0, '_update', {type:type, self:true});
-				if (isUndefined(value)) {
-					delete a[c];
-					return false;
-				} else {
-					a[c] = value;
-				}
-			}
-			return true;
-		})(this[type],x);
+		this._set_(this[x[0]], x, value, 1);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.set('+what+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.set('+x.join('.')+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;
@@ -452,7 +449,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+					t[i][0]._remind(0.2, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 200ms delay in case of multiple changes in sequence
 				}
 			}
 		});

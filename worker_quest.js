@@ -321,7 +321,7 @@ Quest.update = function(event) {
 		}
 	}
 	// Now choose the next quest...
-	if (this.option.unique) {
+	if (this.option.unique) {// Boss monster quests first - to unlock the next area
 		for (i in data.id) {
 			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
 				continue;
