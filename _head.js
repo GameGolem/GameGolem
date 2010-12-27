@@ -6,9 +6,10 @@
 // @version		31.4
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
-// @require		http://cloutman.com/jquery-latest.min.js
+// @require		http://cloutman.com/jquery-1.4.2.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
 // ==/UserScript==
+// @disabled-require		http://cloutman.com/jquery-latest.min.js
 // @disabled-include		http://apps.facebook.com/reqs.php
 // @disabled-include		https://apps.facebook.com/reqs.php
 // 

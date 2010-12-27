@@ -110,8 +110,8 @@ if (window.location.hostname.match(/\.facebook\.com$/i)) {
 		} else {
 			var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
 			a.type = b.type = 'text/javascript';
-			a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js';
-			b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.1/jquery-ui.min.js';
+			a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+			b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
 			head.appendChild(a);
 			head.appendChild(b);
 			console.log(log(), 'Loading jQuery & jQueryUI');

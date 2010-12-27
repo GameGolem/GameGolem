@@ -138,17 +138,17 @@ var makeTimer = function(sec) {
 };
 
 var shortNumber = function(number){
-        if (typeof number === 'number'){
-            if (number / Math.pow(10,9) >= 1){
-                return (number / Math.pow(10,9)).round(1) + ' B';
-            } else if (number / Math.pow(10,6) >= 1){
-                return (number / Math.pow(10,6)).round(1) + ' M';
-            } else if (number / Math.pow(10,3) >= 1){
-                return (number / Math.pow(10,3)).round(1) + ' K';
-            } else {
-                return number;
-            }
-        }
+	if (typeof number === 'number'){
+		if (number / Math.pow(10,9) >= 1){
+			return (number / Math.pow(10,9)).round(1) + ' B';
+		} else if (number / Math.pow(10,6) >= 1){
+			return (number / Math.pow(10,6)).round(1) + ' M';
+		} else if (number / Math.pow(10,3) >= 1){
+			return (number / Math.pow(10,3)).round(1) + ' K';
+		} else {
+			return number;
+		}
+	}
 };
 
 var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times

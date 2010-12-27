@@ -84,7 +84,6 @@ if "%tortoise%"=="1" (
 rem If we can get the revision any other ways, place before here...
 if NOT "%revision%"=="0" (
 	call:VReplace _head_version.tmpl >_head_version.js
-	call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 	call:VReplace _version.tmpl >_version.js
 )
 
@@ -119,8 +118,18 @@ echo.Creating unpacked Chrome extension...
 if NOT EXIST "chrome\GameGolem" (
 	mkdir chrome\GameGolem
 )
+rem OLD
+rem copy /Y %script% .\chrome\GameGolem\golem.user.js >nul 2>nul
+rem NEW - use the manifest instead
+del /F /S /Q chrome\GameGolem >nul 2>nul
+call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
-copy /Y %script% .\chrome\GameGolem\golem.user.js >nul 2>nul
+copy /Y _head_version.js chrome\GameGolem\head_version.js >nul 2>nul
+copy /Y _main.js chrome\GameGolem\main.js >nul 2>nul
+copy /Y css.js chrome\GameGolem >nul 2>nul
+copy /Y utility.js chrome\GameGolem >nul 2>nul
+copy /Y worker.js chrome\GameGolem >nul 2>nul
+copy /Y worker_*.js chrome\GameGolem >nul 2>nul
 
 rem ----------------------------------------------------------------------
 rem GOOGLE CHROME EXTENSION - .\chrome\GameGolem.crx

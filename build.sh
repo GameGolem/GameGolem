@@ -73,7 +73,7 @@ build_release="No"
 cd "$workdir"
 
 # Remove old stuff
-rm -f _normal.user.js _min.user.js chrome\GameGolem\golem.user.js _head_revision.js _head_tortoise.js _head_version.js _version.js
+rm -f _normal.user.js _min.user.js chrome\GameGolem\* _head_revision.js _head_tortoise.js _head_version.js _version.js
 
 # Compute revision number
 if [ -d .svn ]; then
@@ -104,7 +104,15 @@ echo "Creating unpacked Chrome extension"
 mkdir -p chrome/GameGolem
 cp -r chrome/GameGolem.tmpl/* chrome/GameGolem
 sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" chrome/manifest.tmpl > chrome/GameGolem/manifest.json
-cp _normal.user.js chrome/GameGolem/golem.user.js
+### OLD - cp _normal.user.js chrome/GameGolem/golem.user.js
+cp _head_version.js chrome/GameGolem/head_version.js
+cp _main.js chrome/GameGolem/main.js
+cp  css.js \
+    utility.js \
+    worker.js \
+    $(ls -1 worker_+*.js) \
+    $(ls -1 worker_*.js | grep -v "\+") \
+	chrome/GameGolem/
 
 ### GOOGLE CHROME EXTENSION ###
 # To build the "proper" chrome extension you need Chrome installed

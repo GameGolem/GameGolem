@@ -449,7 +449,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.2, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 200ms delay in case of multiple changes in sequence
+					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
 				}
 			}
 		});
