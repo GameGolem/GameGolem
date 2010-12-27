@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
+	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -98,14 +98,6 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._pop()					- Pops us off the "active worker" list
 */
 var Workers = {};// 'name':worker
-
-if (browser === 'greasemonkey') {
-	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
-	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
-} else {
-	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);};
-	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);};
-}
 
 function Worker(name,pages,settings) {
 	Workers[name] = this;

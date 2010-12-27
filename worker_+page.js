@@ -146,7 +146,7 @@ Page.update = function(event) {
 					}
 				}
 			});
-			if (!this.page) {
+			if (this.page === '') {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
 						Page.page = i;

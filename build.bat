@@ -90,7 +90,8 @@ if NOT "%revision%"=="0" (
 rem ----------------------------------------------------------------------
 rem NORMAL VERSION - _normal.user.js
 echo.Joining files into _normal.user.js
-type _head*.js >_normal.user.js 2>nul
+type _head.js >_normal.user.js 2>nul
+type _head_version.js >_normal.user.js 2>nul
 type _main.js >>_normal.user.js 2>nul
 type css.js >>_normal.user.js 2>nul
 type utility.js >>_normal.user.js 2>nul
@@ -118,12 +119,13 @@ echo.Creating unpacked Chrome extension...
 if NOT EXIST "chrome\GameGolem" (
 	mkdir chrome\GameGolem
 )
-rem OLD
-rem copy /Y %script% .\chrome\GameGolem\golem.user.js >nul 2>nul
-rem NEW - use the manifest instead
+if NOT EXIST "chrome\GameGolem\images" (
+	mkdir chrome\GameGolem\images
+)
 del /F /S /Q chrome\GameGolem >nul 2>nul
 call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
+copy /Y images\*.png chrome\GameGolem\images >nul 2>nul
 copy /Y _head_version.js chrome\GameGolem\head_version.js >nul 2>nul
 copy /Y _main.js chrome\GameGolem\main.js >nul 2>nul
 copy /Y css.js chrome\GameGolem >nul 2>nul
@@ -134,7 +136,6 @@ copy /Y worker_*.js chrome\GameGolem >nul 2>nul
 rem ----------------------------------------------------------------------
 rem GOOGLE CHROME EXTENSION - .\chrome\GameGolem.crx
 rem To build the "proper" chrome extension you need Chrome installed
-rem *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issues/detail?id=22901
 rem To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
 if "%chrome_pack%"=="1" (
 	if NOT "%revision%"=="0" (

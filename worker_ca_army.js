@@ -61,8 +61,8 @@ Army._overload('castle_age', 'setup', function() {
 		'name':'Changed',
 		'show':'Changed',
 		'label':function(data,uid){
-			var time = data[uid]._info.seen - data[uid]._info.changed;
-			return time < 86400000 ? 'Last Day' : time < 604800000 ? 'Last Week' : time < 2419200000 ? 'Last Month' : data[uid]._info.changed ? Math.floor(time / 86400000) + ' Days Ago' : 'Unknown';
+			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
+			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
 		},
 		'sort':function(data,uid){
 			return data[uid].Army ? data[uid]._info.changed || null : null;
@@ -81,7 +81,7 @@ Army._overload('castle_age', 'init', function() {
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('#app'+APPID+'_app_body table[width=740] div:first > div');
+		$tmp = $('table.layout table[width=740] div').first().children();
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');

@@ -1,45 +1,22 @@
-// ==UserScript==
-// @name		Rycochet's Castle Age Golem
-// @namespace	golem
-// @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
-// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.4
-// @include		http://apps.facebook.com/castle_age/*
-// @include		https://apps.facebook.com/castle_age/*
-// @require		http://cloutman.com/jquery-1.4.2.min.js
-// @require		http://cloutman.com/jquery-ui-latest.min.js
-// ==/UserScript==
-// @disabled-require		http://cloutman.com/jquery-latest.min.js
-// @disabled-include		http://apps.facebook.com/reqs.php
-// @disabled-include		https://apps.facebook.com/reqs.php
-// 
-// For the source code please check the sourse repository
-// - http://code.google.com/p/game-golem/
-// 
-// For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 877;
+var revision = 878;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	GM_log, GM_setValue, GM_getValue, localStorage, console, window, unsafeWindow:true, revision, version, do_css, jQuery,
+	GM_log, GM_setValue, GM_getValue, localStorage, console, window, revision, version, do_css, jQuery,
 	Workers, QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
-// User changeable
-var show_debug = true;
+// Global variables only
 
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-var first_timer = window.setTimeout(function(){return;},0);
 
 // Automatically filled
-var userID = 0;
-var imagepath = '';
+var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 
 // Detect browser - this is rough detection, mainly for updates
 var browser = 'unknown';
@@ -53,100 +30,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	browser = 'firefox';
 	if (typeof GM_log === 'function') {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
-	}
-}
-
-// Decide which facebook app we're in...
-if (window.location.hostname.match(/\.facebook\.com$/i)) {
-	var applications = {
-		'reqs.php':['','Gifts'], // For gifts etc
-		'castle_age':['46755028429', 'Castle Age']
-	};
-
-	for (var i in applications) {
-		if (window.location.pathname.indexOf(i) === 1) {
-			var APP = i;
-			var APPID = applications[i][0];
-			var APPNAME = applications[i][1];
-			var PREFIX = 'golem'+APPID+'_';
-			break;
-		}
-	}
-	if (typeof APP === 'undefined') {
-		console.log('GameGolem; Unknown facebook application...');
-	} else {
-		var log = function(txt){
-			return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
-		};
-		var warn = function(txt) {
-			return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
-		};
-		var error = function(txt) {
-			return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
-		};
-
-		if (typeof unsafeWindow === 'undefined') {
-			var unsafeWindow = window;
-		}
-
-		var document_ready = function() {
-			var i = 0;
-			try {
-				userID = $('script').text().regex(/user:([0-9]+),/i);
-			} catch(e) {
-				if (i++ < 5) {// Try 5 times before we give up...
-					window.setTimeout(document_ready, 1000);
-					return;
-				}
-			}
-			if (!userID || typeof userID !== 'number' || userID === 0) {
-				console.log('ERROR: No Facebook UserID!!!');
-				window.setTimeout(Page.reload, 5000); // Force reload without retrying
-				return;
-			}
-			if (APP === 'reqs.php') { // Let's get the next gift we can...
-				return;
-			}
-			try {
-				imagepath = $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart();
-			} catch(e) {
-				console.log('ERROR: Bad Page Load!!!');
-				window.setTimeout(Page.reload, 5000);
-				return;
-			}
-			do_css();
-			for (i in Workers) {
-				Workers[i]._setup();
-			}
-			for (i in Workers) {
-				Workers[i]._init();
-			}
-			for (i in Workers) {
-				Workers[i]._update({type:'init', self:true});
-//				Workers[i]._flush();
-			}
-		};
-
-		if (typeof jQuery !== 'undefined') {
-			$(document).ready(document_ready);
-		} else {
-			var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
-			a.type = b.type = 'text/javascript';
-			a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
-			b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
-			head.appendChild(a);
-			head.appendChild(b);
-			console.log(log(), 'Loading jQuery & jQueryUI');
-			(function jQwait() {
-				console.log(log(), '...loading... jQuery: '+typeof jQuery+', window.jQuery: '+typeof unsafeWindow.jQuery);
-				if (typeof window.jQuery === 'undefined') {
-					window.setTimeout(jQwait, 10000);
-				} else {
-					console.log('jQuery Loaded...');
-					$(document).ready(document_ready);
-				}
-			})();
-		}
 	}
 }
 
@@ -191,7 +74,7 @@ Images.log = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9T
 Images.wiki = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAB2lBMVEXp6enS0tL19fXj4+Tk5OXn5+jf3+DAwcPR0dPi4uPu7u61trnr6+zY2Nnb29zCwsS1trjd3d7DxMbv7/D9/f3Ozc6hoqTt7e7m5ubn5+eIiIjr6+vHyMne3t7Ly82ys7TBwsTAwcLR0dLe3t/l5ebExcemp6rGx8nt7e10dHSWmJr8/PzKycplZWXW1tbKyszT09P6+vqPkJJubm5qamq4uLrs7e3k5OSIiYy1trfz8/Ojo6W7vLzq6ut+foG3tretra+Ulpizs7OgoaTm5ufo6OnNzc7d3t+2tri8u7ydnJ6io6POzs/c3N2qq67Y19i9vsDa2tvNztCAgIK0tbWio6W2trfOztCmpaasrbDi4uLa2tq/v7+XmJugoaO7u7umpqa6urumqKrDw8Ta2drIycrs7O2+vr7KysqtrrDl5eWrrK7Y2NjX19iOjpCsrK3U1NbFxcaQkZPV1da8vL21tra2tbeZmp2lp6mztLagoKK2t7na29y4uLm5ubm6urrh4eK3uLqytLbX19fGxsfu7u/q6uqOj5KjpafFxMXMzM2bm5zDwsPT1NWZmpy1tbV2d3evr6+jpKfLy8zBwcGysrOAgYOxsrOFhYipqaqlpqiwsrS/wMH////ndYJhAAAAnnRSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AD6H4/gAAAD9SURBVHjaYpiLBhiAONFg7lxtw7nR8iEQAacSprlW6Yr8qtzBM0ECMSxhc+eKdnm26CuIRebPZZCdLFufoSkVyOreqx4wu12ZYQpzqa6JsRSPipKPDLvfDGsGRh5exgnmTNK+EYVyc7jVYhl0GIWZ9BjahMU5+cLZG5MsGBjZWqOaezRc01gEU4WqQ6cxKDEwMORwckmwMpd5sTc5GzHUublw2TKIszYImjoIZGt5M0gkZzGn9ItKsvEGCVV22EkyzK1VZvG372Qr5pDJq3BMALpUZCJHDV9ugZyCQF95N9gvIvGK/PIelpmTiqZDfTtX2mZWXJXYVDMQGyDAAJWYUk4OgLgPAAAAAElFTkSuQmCC";
 
 var makeImage = function(type, title) {
-	return '<img class="g_image g_' + type + '" title="' + (typeof title !== 'undefined' ? title : ucfirst(type)) + '" src="' + Images.blank + '">';
+	return '<img class="g_image" title="' + (title || ucfirst(type)) + '" src="' + (browser==='chrome' ? chrome.extension.getURL('images/'+type+'.png') : Images[type]) + '">';
 };
 
 function do_css(){
@@ -281,7 +164,7 @@ img.g_facebook { width: 14px; height: 13px; margin-bottom: -1px; background: url
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
+	GM_setValue, GM_getValue, APP, APPID, log, debug, userID, imagepath, browser, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	Workers, makeImage
 */
@@ -312,6 +195,31 @@ var isString = function(str) {
 var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
+
+// These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
+var log = function(txt){
+	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
+};
+var warn = function(txt) {
+	return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+};
+var error = function(txt) {
+	return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+};
+
+// Data storage
+var setItem = function(n, v) {
+	localStorage.setItem('golem.' + APP + '.' + n, v);
+};
+
+var getItem = function(n) {
+	return localStorage.getItem('golem.' + APP + '.' + n);
+};
+
+if (browser === 'greasemonkey') {// Legacy - need GM to use localStorage like everything else at some point - set in main.js which is called before here
+	setItem = GM_setValue;
+	getItem = GM_getValue;
+}
 
 // Big shortcut for being inside a try/catch block
 var isWorker = function(obj) {
@@ -842,7 +750,7 @@ $.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
+	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -938,14 +846,6 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._pop()					- Pops us off the "active worker" list
 */
 var Workers = {};// 'name':worker
-
-if (browser === 'greasemonkey') {
-	var setItem = function(n,v){GM_setValue(n, v);};// Must make per-APP when we go to multi-app
-	var getItem = function(n){return GM_getValue(n);};// Must make per-APP when we go to multi-app
-} else {
-	var setItem = function(n,v){localStorage.setItem('golem.' + APP + '.' + n, v);};
-	var getItem = function(n){return localStorage.getItem('golem.' + APP + '.' + n);};
-}
 
 function Worker(name,pages,settings) {
 	Workers[name] = this;
@@ -2620,7 +2520,7 @@ Global.settings = {
 // Use _watch() to find our own options
 Global.option = {};
 
-// Use .push() to add ou own panel groups
+// Use .push() to add our own panel groups
 Global.display = [];
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -2947,6 +2847,106 @@ History.makeGraph = function(type, title, iscash, goal) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*Main
+	$, Worker, Army, Main:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeImage
+*/
+/********** Worker.Main **********
+* Initial kickstart of Golem.
+*/
+var Main = new Worker('Main');
+Main.data = Main.option = Main.runtime = Main.temp = null;
+
+Main.settings = {
+	system:true
+};
+
+Main._apps_ = {};
+Main._retry_ = 0;
+
+// Use this function to add more applications, "app" must be the pathname of the app under facebook.com, appid is the facebook app id, appname is the human readable name
+Main.add = function(app, appid, appname) {
+	this._apps_[app] = [appid, appname];
+};
+
+Main.update = function(event) {
+	if (event.id !== 'startup') {
+		return;
+	}
+	if (typeof $ === 'undefined') {
+		var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
+		a.type = b.type = 'text/javascript';
+		a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+		b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
+		head.appendChild(a);
+		head.appendChild(b);
+		console.log(log(), 'Loading jQuery & jQueryUI');
+		(function() {
+//				console.log(log(), '...loading...');
+			if (typeof window.jQuery === 'undefined') {
+				window.setTimeout(arguments.callee, 1000);
+			} else {
+				console.log('jQuery Loaded...');
+				Main._remind(0.1, 'startup');
+			}
+		})();
+		return;
+	}
+	var i;
+	if (!APP) {
+		if (!length(this._apps_)) {
+			console.log('GameGolem: No applications known...');
+		}
+		for (i in this._apps_) {
+			if (window.location.pathname.indexOf(i) === 1) {
+				APP = i;
+				APPID = this._apps_[i][0];
+				APPNAME = this._apps_[i][1];
+				PREFIX = 'golem'+APPID+'_';
+				console.log('GameGolem: Starting '+APPNAME);
+				break;
+			}
+		}
+		if (typeof APP === 'undefined') {
+			console.log('GameGolem: Unknown application...');
+			return;
+		}
+	}
+	// Once we hit this point we have our APP and can start things rolling
+	try {
+		userID = $('script').text().regex(/user:([0-9]+),/i);
+		imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
+	} catch(e) {
+		if (Main._retry_++ < 5) {// Try 5 times before we give up...
+			this._remind(1, 'startup');
+			return;
+		}
+	}
+	if (!userID || !imagepath || typeof userID !== 'number' || userID === 0) {
+		console.log('ERROR: Bad Page Load!!!');
+		window.setTimeout(Page.reload, 5000); // Force reload without retrying
+		return;
+	}
+	do_css();
+	var i;
+	for (i in Workers) {
+		Workers[i]._setup();
+	}
+	for (i in Workers) {
+		Workers[i]._init();
+	}
+	for (i in Workers) {
+		Workers[i]._update({type:'init', self:true});
+	}
+};
+
+Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
+Main._remind(0, 'startup');
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
@@ -3094,7 +3094,7 @@ Page.update = function(event) {
 					}
 				}
 			});
-			if (!this.page) {
+			if (this.page === '') {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
 						Page.page = i;
@@ -5131,6 +5131,8 @@ Blessing.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+// Add "Castle Age" to known applications
+Main.add('castle_age', '46755028429', 'Castle Age');
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
@@ -5194,8 +5196,8 @@ Army._overload('castle_age', 'setup', function() {
 		'name':'Changed',
 		'show':'Changed',
 		'label':function(data,uid){
-			var time = data[uid]._info.seen - data[uid]._info.changed;
-			return time < 86400000 ? 'Last Day' : time < 604800000 ? 'Last Week' : time < 2419200000 ? 'Last Month' : data[uid]._info.changed ? Math.floor(time / 86400000) + ' Days Ago' : 'Unknown';
+			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
+			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
 		},
 		'sort':function(data,uid){
 			return data[uid].Army ? data[uid]._info.changed || null : null;
@@ -5214,7 +5216,7 @@ Army._overload('castle_age', 'init', function() {
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('#app'+APPID+'_app_body table[width=740] div:first > div');
+		$tmp = $('table.layout table[width=740] div').first().children();
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
 		$tmp = $('img[linked="true"][size="square"]');
@@ -5323,7 +5325,7 @@ Army._overload('castle_age', 'work', function(state) {
 Page.defaults.castle_age = {
 	pageNames:{
 //		facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
-		index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+		index:					{url:'index.php', selector:'#app46755028429_indexNewFeaturesBox'},
 		quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 		quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
 		quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
@@ -5348,7 +5350,7 @@ Page.defaults.castle_age = {
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
-		monster_class:			{url:'view_class_progress.php', selector:'#app'+APPID+'_choose_class_header'},
+		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
 		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 		heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 		town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -5365,10 +5367,10 @@ Page.defaults.castle_age = {
 		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
 		keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
 		army_invite:			{url:'army.php', image:'invite_on.gif'},
-		army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
+		army_gifts:				{url:'gift.php', selector:'#app46755028429_giftContainer'},
 		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-		army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
+		army_newsfeed:			{url:'army_news_feed.php', selector:'#app46755028429_army_feed_header'},
 		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
 //		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 	}
@@ -8933,8 +8935,12 @@ Monster.conditions = function (type, conditions) {
 /********** Worker.News **********
 * Aggregate the news feed
 */
-var News = new Worker('News', 'index');
+var News = new Worker('News');
 News.data = null;
+
+News.defaults['castle_age'] = {
+	pages:'index'
+};
 
 News.runtime = {
 	last:0

@@ -22,5 +22,5 @@ Global.settings = {
 // Use _watch() to find our own options
 Global.option = {};
 
-// Use .push() to add ou own panel groups
+// Use .push() to add our own panel groups
 Global.display = [];

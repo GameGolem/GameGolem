@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, GM_setValue, GM_getValue, localStorage, window,
+	GM_setValue, GM_getValue, APP, APPID, log, debug, userID, imagepath, browser, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	Workers, makeImage
 */
@@ -33,6 +33,31 @@ var isString = function(str) {
 var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
+
+// These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
+var log = function(txt){
+	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
+};
+var warn = function(txt) {
+	return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+};
+var error = function(txt) {
+	return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+};
+
+// Data storage
+var setItem = function(n, v) {
+	localStorage.setItem('golem.' + APP + '.' + n, v);
+};
+
+var getItem = function(n) {
+	return localStorage.getItem('golem.' + APP + '.' + n);
+};
+
+if (browser === 'greasemonkey') {// Legacy - need GM to use localStorage like everything else at some point - set in main.js which is called before here
+	setItem = GM_setValue;
+	getItem = GM_getValue;
+}
 
 // Big shortcut for being inside a try/catch block
 var isWorker = function(obj) {

@@ -14,7 +14,7 @@
 Page.defaults.castle_age = {
 	pageNames:{
 //		facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
-		index:					{url:'index.php', selector:'#app'+APPID+'_indexNewFeaturesBox'},
+		index:					{url:'index.php', selector:'#app46755028429_indexNewFeaturesBox'},
 		quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 		quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
 		quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
@@ -39,7 +39,7 @@ Page.defaults.castle_age = {
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
-		monster_class:			{url:'view_class_progress.php', selector:'#app'+APPID+'_choose_class_header'},
+		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
 		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 		heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 		town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
@@ -56,10 +56,10 @@ Page.defaults.castle_age = {
 		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
 		keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
 		army_invite:			{url:'army.php', image:'invite_on.gif'},
-		army_gifts:				{url:'gift.php', selector:'#app'+APPID+'_giftContainer'},
+		army_gifts:				{url:'gift.php', selector:'#app46755028429_giftContainer'},
 		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
 		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-		army_newsfeed:			{url:'army_news_feed.php', selector:'#app'+APPID+'_army_feed_header'},
+		army_newsfeed:			{url:'army_news_feed.php', selector:'#app46755028429_army_feed_header'},
 		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
 //		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
 	}
