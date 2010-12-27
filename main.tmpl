@@ -1,0 +1,29 @@
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+// Global variables only
+
+// Shouldn't touch
+var isRelease = false;
+var script_started = Date.now();
+
+// Version of the script
+var version = "$VER$";
+var revision = $REV$;
+
+// Automatically filled from Worker:Main
+var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
+
+// Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
+var browser = 'unknown';
+if (navigator.userAgent.indexOf('Chrome') >= 0) {
+	browser = 'chrome';
+} else if (navigator.userAgent.indexOf('Safari') >= 0) {
+	browser = 'safari';
+} else if (navigator.userAgent.indexOf('Opera') >= 0) {
+	browser = 'opera';
+} else if (navigator.userAgent.indexOf('Mozilla') >= 0) {
+	browser = 'firefox';
+	if (typeof GM_log === 'function') {
+		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
+	}
+}
+

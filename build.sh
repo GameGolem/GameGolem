@@ -51,7 +51,7 @@ build_chrome="No"
 # Generate _release.user.js
 #
 # Set it to "Yes" to generate the minimised version.
-# This is only required for release!
+# This is only required for release, but is recommended as it can catch syntax errors!
 #
 build_release="No"
 
@@ -85,34 +85,34 @@ rev=`LANG=C $vcs info . | awk '/^Revision:/{print $2 + 1}'`
 ver=`cat _version.txt`
 
 sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _version.tmpl > _version.js
+sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" main.tmpl > main.js
 
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
-sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _head_version.tmpl > _head_version.js
-cat _head*.js \
-    _main.js \
-    css.js \
+sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _head.tmpl > _normal.user.js
+cat _head.js \
+    main.js \
     utility.js \
     worker.js \
     $(ls -1 worker_+*.js) \
     $(ls -1 worker_*.js | grep -v "\+") \
-    > _normal.user.js
+    >> _normal.user.js
 
 ### Google Chrome extension (unpacked) ###
 echo "Creating unpacked Chrome extension"
 # Create chrome build dir if doesn't exists
 mkdir -p chrome/GameGolem
+mkdir -p chrome/GameGolem/images
 cp -r chrome/GameGolem.tmpl/* chrome/GameGolem
 sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" chrome/manifest.tmpl > chrome/GameGolem/manifest.json
-### OLD - cp _normal.user.js chrome/GameGolem/golem.user.js
-cp _head_version.js chrome/GameGolem/head_version.js
-cp _main.js chrome/GameGolem/main.js
-cp  css.js \
+cp  main.js \
     utility.js \
     worker.js \
+	golem.css \
     $(ls -1 worker_+*.js) \
     $(ls -1 worker_*.js | grep -v "\+") \
 	chrome/GameGolem/
+cp -r images/*.png chrome/GameGolem/images/
 
 ### GOOGLE CHROME EXTENSION ###
 # To build the "proper" chrome extension you need Chrome installed
@@ -133,8 +133,8 @@ fi
 if [ "$build_release" = "Yes" ]; then
     echo "Creating minimised version (will display any syntax errors)"
     if [ -r "$js_compiler" ]; then
-      cat _head.js > _release.user.js
-      java -jar "$js_compiler" --js _normal.user.js >> _release.user.js
+      sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _head.tmpl > _min.user.js
+      java -jar "$js_compiler" --js _normal.user.js >> _min.user.js
     else
       echo "Error: missing js compiler."
     fi
