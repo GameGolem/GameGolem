@@ -8,6 +8,7 @@
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
 // @require		http://cloutman.com/jquery-ui-latest.min.js
+// @resource	stylesheet http://game-golem.googlecode.com/svn/trunk/golem.css
 // ==/UserScript==
 // @disabled-require		http://cloutman.com/jquery-latest.min.js
 // @disabled-include		http://apps.facebook.com/reqs.php

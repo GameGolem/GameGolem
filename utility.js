@@ -584,3 +584,18 @@ $.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker
 	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
 };
 
+// Images - either on SVN, or via extension location
+
+var getImage = function(name) {
+	switch(browser) {
+		case 'chrome':
+			return chrome.extension.getURL('images/'+name+'.png');
+		default:
+			return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
+	}
+};
+
+var makeImage = function(name, title) {
+	return '<img class="golem-image" title="' + (title || ucfirst(name)) + '" src="' + getImage(name) + '">';
+};
+

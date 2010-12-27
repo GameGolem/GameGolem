@@ -1,5 +1,26 @@
+// ==UserScript==
+// @name		Rycochet's Castle Age Golem
+// @namespace	golem
+// @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
+// @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
+// @version		31.4
+// @include		http://apps.facebook.com/castle_age/*
+// @include		https://apps.facebook.com/castle_age/*
+// @require		http://cloutman.com/jquery-1.4.2.min.js
+// @require		http://cloutman.com/jquery-ui-latest.min.js
+// @resource	stylesheet http://game-golem.googlecode.com/svn/trunk/golem.css
+// ==/UserScript==
+// @disabled-require		http://cloutman.com/jquery-latest.min.js
+// @disabled-include		http://apps.facebook.com/reqs.php
+// @disabled-include		https://apps.facebook.com/reqs.php
+// 
+// For the source code please check the sourse repository
+// - http://code.google.com/p/game-golem/
+// 
+// For the unshrunk Work In Progress version (which may introduce new bugs)
+// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 var version = "31.5";
-var revision = 878;
+var revision = 879;
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -33,133 +54,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
-	Images:true, makeImage:true
-*/
-/********** CSS code **********
-* Gets pushed into the <head> on loading
-* Also contains all inlined images (for later theming...)
-*/
-var Images = {};
-
-// Might need to translate, / %2F, + %2B, = %3D
-Images.blank = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg=="
-Images.energy = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAACGVBMVEX9/f7+/v75jhQOVYA2b5QMRG8LVpIZWozb1MoLSHRKX2cvb5UOTHv7/PyJXCCJXSMWUYEXU4IJTYZFf6T8/f4ZWIMAPWcbVn2owM0WV4qRWhcHRm7n7fDm7fJYjKslYI9nYkdHfZvjiBz79/MBLUjnixzsoEGevc9MWlbF1uJvnLROUlDeghXvlSn6kRsKQHDGehoZYJTs7vG+cxX6+/tCZHEOT4YHRGlMY273mCR8c1wVVoCqwc4eVX+90t/8/f0cUXY9ZX4SVYAqYYcPR3mEgGwQR3PHkEn7/P349/RtZkgTTnbAzNbg08MtXofj6OkcX4pPco9TW1lMhKYNQ3AvUWTK2eHrq1R4mKQDP23X4eT5jhVbZ2WjwdUJSXKCZjfz7OQNS3sVUYMARXgTL0kSU4ntjRlBRT10n7nv8vQmXolyWjoFQmwpaY12enHLfiJ3oLjG1OCgvs3oo0EzTFovZpAXXInv6NsEUI/j7PD0kBc4bozC1eDl6u1ITkbxjxpIaHz++vQLQGIyWG2jv9NHfqUYSXATTXqOrcEYWo4cWYcKRG5Ti6w2b5LrixkgVn/o7fBJXmV5gHbF1uAXVoXl7O+zytXvkxvg18wVU3/qjyLplCsubpcmZo4TTXwKVJNEe52jZx5qmbHT3uRglK8zc531kCBqla5hZFP3mTIPR3eFqr4PS3nc5OsiXpAeZZ+scSsMWZr///+BnyLTAAAAs3RSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AA8pv+gAAADsSURBVHjaYti0aVNjeLGnh4n9JjBgAGJlXdWIJcuLKmECDD6zlExzS1l6YkUgAtOq8/u45P2y+ntbQNKbpgqbb6iauJG9c0rbnDCQgLr4qni9mMBJzpIC7QWyQAG5eYIK093VZjsadnkrLgYKBDuUBUXrGKQ1rF9nO1cCKNDKahbKn57NZDE/yS3ABiiQIe2S2F2xot4qr1lsQRRQoHBmDk8qm8aylZbayaszgQJGizj11wiVLJQyrlvqD3aYjFZcZEhTigqfqyYjxC8TOridmK1FvWYwQj23ibd2sl3NWg5fmG+hoDwBRAIEGABNL3JjCRNNHAAAAABJRU5ErkJggg=="
-Images.exp = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAB6VBMVEX/cwH+/v7dZAfn7fDg6u78/f4AOWGIPRJWhqZrmbEaVII2b5MPTHkNTHhmOCWjv9OjwdXuawIHQm5GfaMFQGwfVIAEOmWIRiBEPkQJRHUZVYO7VAvX4eQAIVDMXAfj6Ol3NhHdZAiMssaOsscADjzuawMcV3zz9PWmvs0iO1Tx9PUSU4YUTXsAEEDS3uMiDyEARnEEPWjdZAbF1N6kwM93NhvuawFvm7QANWMAHEkvZpATRGsPTnw7dZlSi6wcUXY1b5T3+fowb5Xo7fAzQEthk6zuawSau827VA3MXAoXXYhVLiiEqr6ZRxUFO2cVVHs2cJP9/f0ALlaWtskdVYF3NhcALFYgV342bpKjv9RHfqIgV393Ng6kwdVEMDMLR3QAJVZmLhUzLz8eXYYFQnJVQDkIP2sCPWstZ48KQXAJSXKkvMozHCsvaIsyYopvl7HJ2eFEeZcuX4gtX4ciLklymrB1nrfI1t4NR2lELy8RNFciO1JTi6wAHU3B0d4bVIMAOmkGOmcAAC8AMGNEO0Iva48SVoCvxtVIfp8iKDvs7vHMXAG7VAwAL10nXYd0nrlMhKakwM4ZXIfG09omXokGQnQPVX9TiKgCO2jp8PP6+/zMXASRr8MtbZYDP20iL0gfUn++0Nr////0BgUzAAAAo3RSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAgq3AQAAANxJREFUeNpiWIQGGEAEi0mpa/5EFpgAa6ydQ0auFXeNACtEIDIgvC+vqHhKdAT/LJAAc1TFAtEQLiltG+u5BYxAAXc1P4mqahfN+UklM8pmAgWm61h4xjDx+RrJMXQW6gEFJtizKZix6/aYNjFUJmcDBYQNZWd3s6sw6Ie6WU7SAAr0s4lLJyrmqAoyxQV1yAAF6njDepsTvD1qG8QMfLSAAl2c8Zk8U1tSJeuFbOVB1i5iNs+al5beKJLSOjkQ4hfnOU5t0/y9OBYywjynbhyspNxe7gj3LTIACDAAJ4hoN8tJObAAAAAASUVORK5CYII=";
-Images.gold = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAACBFBMVEX///8AOWYAOmefn3kYTXlSSQFckrUvaZbp3ZNWSwPo7fBum7a9zM+ivsv8/Pz98rL/8rJTRwAHNlfz9PTi7O6swtTn7PDDxarm6vAOSXqpwtQIRHfy8tf7+/wIR3razHx6bBevn0VnWhv+/v5pla9bVhgwcpRpWwc0dZpuXwuMr8QAPWMycJQAOWDj6u4lU3PN2OF6g2/s5KePrL7j14tkZC9+bhD+/v+voUy9y9K1z98LUH/g04rs4KG8qVNJaW16ZhCTgCJzZxaThj1zfnlug3vLyJFXZVycuMrh0HjKv3KkkTSVscXX1KZ4orXg5ejIt4T8/f7+/v3o4Jb//Nq/y8+lwc+txr6zpEf677m+sGLp7vAvbZUCMFHYxm1Lg6ehvModMi8TSm4jVXJpfGYsPDRnWgkVWIYbS28ZNEIwc5caYI+Jehm8zdaTt9EnYYnf1IFlk6gINmHI2eGuoEB6dU7m1oZgip+IcB+6xKcUVn+1mCy6toDy8vHe0Hy6qlTEtmBcjKorW3/Vw3ddYERKhKeFbhefjjFHg6Syn0EycJaPfx3///KFk3ibiSgGPWaFq76UmnY5b5BFU0kaPFlcfojayH1uXx/9/f1XjK2QfBvU3OLw8/Jdb2ybtsjLu19hlK8QOU8YTXrR2+Dx9PRGfKGKeSJck7TD0965zNcrW37///8saeTJAAAArHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8ABZUVsQAAAN1JREFUeNpiWI0GGECEnlWeSiGvCEwgqHj5pN7K8PJ40UCIAI/GqtLqSAaZqexSsiABrqVy7mk5Nj0hbsldBuZAgbAqfVNBh4hgowZXab9ooECjpL0qq2Z3Z733RBYdS6BA66IUJU51s1mO7TVN2R5AgY5+Q2cnhWV9Jc2+GekJQIGZjHO9LBTt5hfwixephQIFcq2nBMhPqzOxFXBhmlALFBDm1p4cFedZxsEslOXPAHKYGJtu6vS2ipbYmMUzIH6R0MpfmJiZtGC2MsxzS1bMM/ZZOYcP7ltkABBgAA5ccOTTo6PaAAAAAElFTkSuQmCC";
-Images.health = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAB/lBMVEX9/f3+/v7H3W7R5IoEO28EPW+/3kxch5jT44ofPkXS44oPNkwAQ2nS4oopXoApWYRPhKjp867b64EFSHMsbJTr9K9eka6FqroISHm81VWz1DjE3m78/PzE3XAzapXi652NsMhHf5+Nr8NAeJ3l6/Dn7PDa4uYobZinvUgDRHRCfKB7obsyZZH+/v8lTly6ydKrw9LP5Gva6JxKe5Hc6qPj6e6uxNOcsHNxizMoY4h+ljIiQ0OgwM/v8fEDPnBifywLM1Wv0C8xcpgWU3wwcJCsxxu9z9txk5Exa5D8/f79/v6twEpAeaawwarU5KFSeIMcVII7d5seYIsXWIcAQm8/Wkbr7u/h5+kAQ24QR3M+aX7U5YoQUX+VtcggXIZNg6Xa6aSz0zMyZ4y0ytc5UyDJ3HA2aJNGfKbj7PALMV2nvaS5zNXb55sEMmKowtXX3+Xw8/OxxtNvmrFRazFHZka9zNNXe3jI1KGUs8dDbHrS3d7N2+K70t1ejau6zG3y9PVcgGzq9rO/30wAM2Bika65yKcTVIAALlcFMFfY6aDa6IDB12pkkbDg755ynrjz9fbI2Kz6+/yivMweWYEfXYu611GUqoU1YoW72FPU5IuFqr/R2uDm+K0ucZGbu80SUY6ywKQuaZDb6qMiWHxCYFnX5LTP4W3X6p8ANV7///81w7I2AAAAqnRSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ALUJyNUAAADeSURBVHjaYliJBhhAhGmNuFiRTRUDVMCrVMAlLUlnobKZJ0QgWz2AL85yCv/iuXkTQQIZWpULWtnnG2f5+stV6wIF5k0vnyO41H1Co6hflLYtUCC+TH650aIEk5zO3mke+kABn4YuZi6O6JnMvELmkycBBdL16gxlmVKZpJd1Lwk2AArUrgjVaJoqOYPNu6RdUQ0oUBjTzGnhKJVoZZ2rOasfKFDQJ8HSUexq78AaEhjOCHKYao8wT2YKt12E02wGiF9UlETaIp2DWvIZYZ6rd4tVqEgOk4H7FhkABBgAKgRuRslNt+MAAAAASUVORK5CYII=";
-Images.percent = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAB9VBMVEX+/v4smQ3g6u7n7fD8/f7j6OkAMWAAMGI6zAajv9QNRnUIOWA6zAVSi6xGfaNHfqILRG8HRm4xrRMtZ48ERG0xrhWkwdUddCwEQHIFQnIxqgsPVX8VVHsTTnYSTn0UU3+MssZTi6wTUjIXXYgieBgTVzcdVX8cV3zx9PW+0NoFQGwANmCEqr6vxtUYVYMFSmYAHk2kvMqmvs0VSHU2b5PX4eQTSXcsmRMfV4Jvl7EdfDMxshhTiKgGP2c2vg82cJMqXIQdZg0FQFlLgJ47dZkeVXwPVkkKQnQ/3QeWtsnp8PMKPkUHPWj9/f33+foYVQ8EP3FWhqYFRGPB0d4EP3Nhk6wUTXsJRHAAIVKkwM8RRXKkwM6jwdUHQnMsmQsRR3MQR3QvaIsAJFEcX4oxqgiOssckVX4idxMxaY1MhKajv9NIfp8ijzEIRXEXVIY1b5Ts7vEwb5UdcCfJ2eH6+/wYU3sAPmwvZpDG09qRr8MFPFXF1N4MR3UiUnomZY46zQtumbISVoAddy0va49rmbEKQW12n7gFNVLo7fAcUXYANGUxqg1ymrAPVUUUS3PI1t4ubpfz9PUAOmgAO2kUTXoJRXM2uwcPSWssnxkPWkx0nrkdU30DSXRE7gTS3uMPUEM2vhGau80xsBgihicBPWoTSCb////oG/YqAAAAp3RSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AHTV0agAAADdSURBVHjaYliGBhhABFNkT6hlNBNMgEWMN184sdxEMYYFIsBp7zq7Ns3Boi8jqwQkwMw/3bh38cypQTncE4oZgAIL1ePb56bbGVhbxU5p8wIK2ISZqU5zZDQXL9OTdZ4HFMjsLHUSkkphVNLPU6szBArwCcjlJqnE8XQvCklINgIKzBJ0Zy+asZTDX3SSbbYpUCBYXrtpQYS3R72bzxwdDaBAQcuS+VUSAWxdXFourCBrlzE3iExurYkKl2yu8IX4paOysFFaRjlQkwHmuYnVngqpuv1+cN8iA4AAAwAJT2wCZEE6ZAAAAABJRU5ErkJggg==";
-Images.stamina = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAACAVBMVEX9/f7/4gEDRXgNSXwdVnwdV3+0ydMybZYdUo21ytMVTngFOG0LRXC5ytIlXoRNhKYBOnH/2wHy9PQHR3ueusoXVID7/Pbz8/LR2+Du8vMxcZv///9VaIn/xwAnWpSniFEaUYL/3gAaWZqZbETx9fiVbkv93wSqw8//3QJcX5To7vCyx9Njkq4hYIu5z9+5lEuUrcH/3Rj7/Pz/1h6+0txURUkVUnjK1tz/6gBdZm5CRVqbhF+sxNPS3eITVY2MrsA4YYvspRP83UEwVHxlmbQlRmtul7O4kUEcYJzFf0nk6OnquCp+pLPaqiWYcl38/PsOUYD/4YtIgp5IbZn8/v3lrSIST3sQTXXssCcOSHy4ytEAR3gNRXY3c5wbUXxPhqX+/v4XTXYucZfq7/AdVYD93AFSaYKmjVSZt8kZWIkCQW/WljIYVoWYZCtbi6ePfGl0nblMha3F0dXXmkL/yQRQbn7g6e7tshZrmrctao0sToZuXV6Bpbg2bpWQZzqXqrsDPWz+3wofWYY3b5f86VAhXIb81QAtcprckhASVJL7303/3QBOiKqgwdLn7Ovkoh+gwM9kaH391V3ltiPn7fDl6+3H1+H/2AQKNl8RTHb+/v//2QA2WoZmlrT9/f331K8OR2/+8ZIgXpJDUGEXXYlQh6kwbZb/+cIycZM1TXf///9rsl//AAAAq3RSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wC3Kj1sAAAA3UlEQVR42mJYhQYYQMRUvRodtwllMAEG3vjaytL84B4bBogAZzsL36I52fI5K7SNQAJ9QQsUmiZqTvatimy2nQUU8BHlskuL8GZ05zALL0gGCiydyapkrWihUSyTmcgeBRQojGv1SO9uVJuuL5eiKwIU4OcJ6/QzbkllDHWOWaIOFMjLErb0nLSwTbB8ZUNSEVCALUBAVbZLzGl2v2u0vThQQKiCycrRMGR5SR13rJc0yGFac5lNOwLn586QMp8H8cuU3mWLlasdXCQSYJ5TmZZRb2Ai6Q/3LTIACDAAc3lv52gZgTgAAAAASUVORK5CYII=";
-Images.lock = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAxSURBVHjaYmBEAwxECzAwMKAIMDDAROACjCgCDAxwJbgFGAkKoGrBtJYcv8ABQIABAG4RAM99K2ubAAAAAElFTkSuQmCC";
-Images.play = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEWnp6fIyMhZWVlAQEAAAACfMOfAAAAABXRSTlP/////APu2DlMAAAArSURBVHjaYmBBAwxUE2BmYkQTYIYLwQVgQkgCzMwMeFWgmYFuC2VOBwgwAAPvA8bp1OMpAAAAAElFTkSuQmCC";
-Images.pause = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVAQEAAAABp2LPXAAAAAnRSTlP/AOW3MEoAAAAaSURBVHjaYmBEAwxUE2BggGA6C1DmdIAAAwB7HgDlRYlYnQAAAABJRU5ErkJggg==";
-Images.star_off = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAMAAABhq6zVAAAAllBMVEXn6Onn6Ory8/Tk5ebf4OHh4uPa29zS09TT1NXe3+Dx8vPo6evY2drv8fLu8PLr7e/r7e7q7O7x8/Tf4eHk5ufb3d3j5Oba3N3q6+3w8fLj5OXi4+Ts7e719vjy8/Xs7u/c3t/k5efv8PLq6+z09ffn6er29/nm6Onb3d7z9Pbs7u7g4eLt7u/U1db09fbV1tf19vf///9tZvvjAAAAMnRSTlP/////////////////////////////////////////////////////////////////AA1QmO8AAAB2SURBVHjaPI3ZFoIwDETDTkXFBRDcwAWUbmn//+egweN9yOS+zIB1eB4FuPNWavzLQ4hqkduzxmaFmbwPINI1A2NeYZyWsENpCIkcLMfr73cFfaxnWEFtn1D7vj5fSKIgUCqCL8kp6TaHY4IkeesGt3trJwEGAJLlFLAynwfAAAAAAElFTkSuQmCC";
-Images.star_on = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAMAAABhq6zVAAAA/FBMVEX/7Hjs5djClTbbw4/EljjDljr24nfl17vJnTvClTnMpVXTtnfq49Pu59r96l3q4Mz+72PctkH/40vCkzfFmjrXvYX+85Xhujvp4MvgvUjv1mzv6d/nzGTo38n033HWrDzNoj3/8YrjxmDYvoj19fXQsGvy8u7/4lDrzk7uyDzv7OPDlTfEmDrs5NTKo1Pdxpvs02vgz6v/7mDWuoDav4fx8Ovq4c/Pql3/5U/i0a/66YP13Wrnw0DoxUPElTnt02nk17zy7+fElzf77IfgwV//74D/9ZnCljncyJ/Flzjz8OzZwZDaxJTTtHS/ji7FmTf/7Fz/3kL/96D///925i+yAAAAVHRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////wBT93LRAAAAg0lEQVR42mIIBgFmEzDFACIcmTyl4RxlGXtfMEeFl12fRcxNxNuS34tB1d/FwCooyFlKiUOPwcyOLSgoSNGVwVpHliFYl1WOQT0wUFNbAmSAg0KgkEWgvAfYNEPBAAE+I1tjMEdUXMPJXdKGC8wx9+PWUvMR5gRzGBlBFpryBAcDBBgAMYwgZEnMsYUAAAAASUVORK5CYII=";
-Images.timer = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAMAAABhq6zVAAAABlBMVEUiIiL///9ehyAxAAAAAnRSTlP/AOW3MEoAAAAnSURBVHjaYmBEAgzoHAYIAHPADAhBEgfMg3NAPAQHKoNiDwIABBgAGO8ASmLad/8AAAAASUVORK5CYII=";
-Images.timer_red = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAMAAABhq6zVAAAABlBMVEXNCgr///8tompyAAAAAnRSTlP/AOW3MEoAAAAoSURBVHjaYmBEAgxABAFgDpgB4ZHEAZNwDohCcKAyKPagugABAAIMABUNAErZhQbgAAAAAElFTkSuQmCC";
-Images.potion_energy = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABcVBMVEXk4d4Ne/9NlP/E0+Hs7O77+/oCmf9RVmEAm/wpcv/39vYpcP/p7P/7+vp0dHTU4OsAff8zjeP6+fkHf/0gav9eotZETVKuo50HSHI6mu0Xnudxk8mBt9nX4Ovx8fMVaf8Hj/6kyN1rnMyasf/w8PANmNyAfnwIfP+Qg3JcnMrz8vBEktIGlfzRz9kOh/lvyfn9/PyeoKP1+f3HwLhkYGFdhKqhuN1Bf86gpsNhmP5HSEiGor4Aj/r19PL19feopKJ2nf8Mev8rc//6+voAsvgClv/n6v93d3gdlOgAjv8qav+to5YpsfFdu+0LLGzy8fKhkH5yrcpXg/8tofhdqPq70OYmh/zZ1M4iqPlliv8Snv8Fdf8ZZ/8Tbf9lcYcgcP8DbP90Zlo+nuOcxt85d/8pwPQXcv/R0tseebXU5vkAhf8OcP/08/GOjpEjc/8Nb/9ZveSMfGy6yP9Hhv8joOzs7e0gvv8AjdI0jv8ASYr///9Dm66MAAAAe3RSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCTw6jqAAAAqklEQVR42mKoAgFeM3NpfzCrigFMpvtJVFogC7Cwi8XpIgvk8JnYMyALaOVaqaEIcAVmKJUiCwgVuPioIAswp3JEJDsjBEL1y9LCVGVYYQL8IRUKlkzC5YpQAQNftoRit6I8Gyk5iIBRcJZ8JI+yl6NOJkTATlIgJsghJT5fTxYiEGDqqu7EyS3iqV0IEfBO1IyKjmXMFnTXgNoSLm6d5FEiamhsC+QABBgAYUlcOLkwHUEAAAAASUVORK5CYII=";
-Images.potion_stamina = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABdFBMVEX9sFH9+/f9+/b6YCT69ez++un12rv02Lv9sFLu5dfs4cn6+PPt59j7+PF7gIP5lUn79On9/Pj+/vvya0f/dSz9lzvpZzb/fCnog1j+kDr/jTCRjYj6fzf8XUD3noTUlYCIf2T48eXbi1PPrZCANB7+hjHdUDT76NnYxp7ni1T+0I33YkewpJT8cS790oH29PL9bSLwvJj38OX/aCj+nkDwhmfWPyH/q0z9vmq8W0P/njzmrIqjmoeoo5vz5NX9sFD69e3+++j5YiPzkFb2aj359ez5RRP0iWT9qEqUkZFqaGz+jTf+rkj/cjiWKg79qER3WTCXg3iVj3iwtLX8yXT8pUDMxr1tY2L9wX3+7sa9tKTc1tDZqnmViXf4qXjqVS3q4snUn4HwbUD4fkfUj2zfjV79ji7py6a9rpj9sWv+5avtvaD9u17++vfzJg/gl3D69uv9t1H8WyOejG79/Pf+mTn5fC98c2bBkWn9lU344sz///9nYujqAAAAfHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAWraMQAAAKtJREFUeNpiqAYBxnSlGBYwq5oBTHIFqPhpIAsolocHJiALOEjzBXMiC7jaennyIAvwylsmGiELMJnmCQsgC7Bpu7kYliAE2OVkTfjVrAVhAlVxlboRmWVm2VABIfeiNAvHSHOn+AKIQG6yQagea1ahN7M6RIDbWdw/RCvHo1TGDiJgU2GsysFg7yOSGgQR0FFI8ZWykhTVLI6F2hIdpSwhlpSfEaYP5AAEGAC69V033xuuWwAAAABJRU5ErkJggg==";
-Images.beta = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGFBMVEX///9paWloaGhqampra2tsbGxtbW1wcHDCJiNbAAAAAXRSTlMAQObYZgAAAEZJREFUeNpsj0kSADEIAnFJ+P+Px5wScTh2NVgCI0wBBnbgaxiranFB+IFqcdTKTL61Qo4fraUOUQCxu5PmumIKYj7/CTAASOIAfItU/pEAAAAASUVORK5CYII=";
-Images.update = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGFBMVEXIyMjBwcG6urrx8fFnZ2f///9AQED///99XOwUAAAACHRSTlP/////////AN6DvVkAAABPSURBVHjajI9BCsAgDARXjev/f6wxW1FpoXMKwyQQtAt8iZxPYaTtInGQNmEsRQkU1KoEujCKSFyAAhI++woZYga+MhNE8PAufj636AIMAFoDBlE5ZEUlAAAAAElFTkSuQmCC";
-Images.options = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEXi4uKKioqsrKz///9VVVUcy87TAAAABHRSTlP///8AQCqp9AAAAD1JREFUeNqkj0EOAEAEA6n+/81L0rC7V73NlAiLL7YQTr6iGJcACXBEcqWFuFeKkTEJqOwrjGFNYPXLEWAAnPADB/a8HSwAAAAASUVORK5CYII=";
-Images.arena = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAACalBMVEW1djT/78ry6uD/46rWuJi0djX69O/89/T9tU3/69X8zo3vp2X0nEr2nEn91aP/+ez79/P5tGPsvZH6z5i3gEH+zm7Zwan2olLm1cPQk1LpjTPSqXj8xZL+16b81qXpwY/916fXu5vXomjxlD3tkT747+L3tG7QlVX/99jytWzxqlzyrl3/+er6wX7YoWPcv53/9dfMkE/48+7748X06t/OnmX3ypXbv6HYsoL7yIb22r/+5sj/1Jn5yY/UiDTJn27Shzrw5drbl0D/ulDxtXHfxae6gkP3mEPGhT7/2aPFgzb50KG7cSDs39DAkFz+7tj71qfzwY7MjkP+4sH1wnbptHb12sL5oEn6x4TjpV/crHb50qzRp3f4uGm1fEHxrm79+/n5uV/4pVTsnEjizLTplULCjlL/5Kr6y5Thk0T59e/28On/+vDujTX4t2z/7cLn1sH81aHVsIP12MDsmEPz6eLzmkvotXr3plP77eL/89nukDj2zqDrrHXtuXrsvI7tuYfz6uT/57j6x3/44cjx593p2sr/3o/ytX3cwKH58unSlUXu4tX+3bb+3Kj61aLBiEr+58T/xWLAhEXuolr0xpb8tE3Vu6Dhp1fQr4r4sFv/zW3vqWW+gT74t2nt4NHWsYfcw6j9zIfAeivutX3z5tX+27DvxpXtx53937i9cyb/6bjIhTr62LDzpli+gj3zx5z/1HD64MLk0Lv7xYrx5tnQqXz92ZH0rV3XlEH7y4vcijf88uT/47T507Dv2r3y6uHnmkDwtYDxp1nawaT+/v3/2H//+fDNgjf/1Y3MpXzxu4z///////800fcoAAAAznRSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AFUGoWwAAAEHSURBVHjaYjgLAkZt5p2bs8FMBiDOOjVBrzw0UjLGESLAlBbFmL+3z9PGxUMCJMAWJ6+hc9yq3jpgUd6arUABeyWDnDNnTqtsCs4QPGyawHCAob/qzBn2Q2WBy+TUkhxaGcQmN/GfOVO8T2bKSlndikxXBhb11XtKG2uFGnJXLNcUT17AoG+Y7l8Z1rFhKs8c4Vje1G0M++eenMi5JLrFeEt1xDz33QsZVNeHMK/l7q3xVlDWnhV+Yj7DWYug9rp4PjPbwnVSWiXSRxnOdrnNOLada5dlc+K0HYt9QU5fKtItunH2JGeOgz5HIJ4TKGL12ulkt8qvAOrbs2dNUqbPVOwBMwECDAB/unqBP5E+dAAAAABJRU5ErkJggg==";
-Images.facebook = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAANCAMAAACuAq9NAAAAFVBMVEV7j7pgeKxFYp/s7/VthbX///87WZl+beUXAAAAOklEQVR42mJgYEMCDCg8IB/GYGRmZUXiAnnIXBAHF5cVDOBcZqBWZmYi9cK5TCwQwMoKJJjQuAABBgCBXwPP4ld3xQAAAABJRU5ErkJggg==";
-Images.log = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAACVBMVEX///9paWn///+DGHxoAAAAAXRSTlMAQObYZgAAADVJREFUeNpiYMAAjCgAJMCEBCACQCFGEAkicKsASjPCBXCZQVgFYVvANB4zINZgVYEGAAIMAKaFAUCh7Oi1AAAAAElFTkSuQmCC";
-Images.wiki = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAB2lBMVEXp6enS0tL19fXj4+Tk5OXn5+jf3+DAwcPR0dPi4uPu7u61trnr6+zY2Nnb29zCwsS1trjd3d7DxMbv7/D9/f3Ozc6hoqTt7e7m5ubn5+eIiIjr6+vHyMne3t7Ly82ys7TBwsTAwcLR0dLe3t/l5ebExcemp6rGx8nt7e10dHSWmJr8/PzKycplZWXW1tbKyszT09P6+vqPkJJubm5qamq4uLrs7e3k5OSIiYy1trfz8/Ojo6W7vLzq6ut+foG3tretra+Ulpizs7OgoaTm5ufo6OnNzc7d3t+2tri8u7ydnJ6io6POzs/c3N2qq67Y19i9vsDa2tvNztCAgIK0tbWio6W2trfOztCmpaasrbDi4uLa2tq/v7+XmJugoaO7u7umpqa6urumqKrDw8Ta2drIycrs7O2+vr7KysqtrrDl5eWrrK7Y2NjX19iOjpCsrK3U1NbFxcaQkZPV1da8vL21tra2tbeZmp2lp6mztLagoKK2t7na29y4uLm5ubm6urrh4eK3uLqytLbX19fGxsfu7u/q6uqOj5KjpafFxMXMzM2bm5zDwsPT1NWZmpy1tbV2d3evr6+jpKfLy8zBwcGysrOAgYOxsrOFhYipqaqlpqiwsrS/wMH////ndYJhAAAAnnRSTlP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AD6H4/gAAAD9SURBVHjaYpiLBhiAONFg7lxtw7nR8iEQAacSprlW6Yr8qtzBM0ECMSxhc+eKdnm26CuIRebPZZCdLFufoSkVyOreqx4wu12ZYQpzqa6JsRSPipKPDLvfDGsGRh5exgnmTNK+EYVyc7jVYhl0GIWZ9BjahMU5+cLZG5MsGBjZWqOaezRc01gEU4WqQ6cxKDEwMORwckmwMpd5sTc5GzHUublw2TKIszYImjoIZGt5M0gkZzGn9ItKsvEGCVV22EkyzK1VZvG372Qr5pDJq3BMALpUZCJHDV9ugZyCQF95N9gvIvGK/PIelpmTiqZDfTtX2mZWXJXYVDMQGyDAAJWYUk4OgLgPAAAAAElFTkSuQmCC";
-
-var makeImage = function(type, title) {
-	return '<img class="g_image" title="' + (title || ucfirst(type)) + '" src="' + (browser==='chrome' ? chrome.extension.getURL('images/'+type+'.png') : Images[type]) + '">';
-};
-
-function do_css(){
-$('head').append("<style type=\"text/css\">\
-.red { background: #ffd3d3 !important; }\
-.red:hover { background: #ffc0c0 !important; }\
-.green { background: #e6ffe6 !important; }\
-.green:hover { background: #d3ffd3 !important; }\
-.golem-shadow { box-shadow: 2px 2px 4px black; -webkit-box-shadow: 2px 2px 4px black; -moz-box-shadow: 2px 2px 4px black; }\
-.golem-tooltip { display: none; position: absolute; top: 10000px; left: 10000px; min-width: 250px; z-index: 5; margin: 0; padding: 0; }\
-.golem-tooltip > p { background: white; border: 1px solid #aaaaaa; margin: 0; padding: 5px; }\
-.golem-tooltip > a { float: right; color: red; }\
-.golem-config { position: static; width: 190px; padding: 4px; margin-bottom: 17px; overflow: hidden; overflow-y: auto; float: right; z-index: 10; }\
-.golem-config > div { margin-top: 4px; }\
-.golem_config h3 { -webkit-user-select: none; -moz-user-select: none; }\
-.golem-config #golem_fixed { float:right; margin:-2px; width:16px; height: 16px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEXe3t7d3d1jY2NVVVUAAAAjBnsxAAAABXRSTlP/////APu2DlMAAAAuSURBVHjaYmBBAwxkCzAzgRhMSAIQgCzAhCQAlmTCpwKrGUyMqLZQw+kIABBgAAB6A8ckFzCRAAAAAElFTkSuQmCC') no-repeat; }\
-.golem-config-fixed { position: fixed; margin-left: 760px; }\
-.golem-config-fixed #golem_fixed { background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEXe3t7d3d1jY2NVVVUAAAAjBnsxAAAABXRSTlP/////APu2DlMAAAA1SURBVHjaYmBBAwzECTAxgwATkgqwAAspAozMTExMzAx4DGVmRuiBuYMZ3WGEBUjwHECAAQD+OQPH1IxVowAAAABJRU5ErkJggg==') no-repeat; }\
-#golem-dashboard { position: absolute; width: 600px; height: 185px; margin: 0; border-left: 1px solid black; border-right:1px solid black; overflow: hidden; background: white; z-index: 3; }\
-#golem-dashboard thead th { cursor: pointer }\
-#golem-dashboard thead th.golem-sort:after { content: '&darr;'; }\
-#golem-dashboard thead th.golem-sort-reverse:after { content: '&uarr;'; }\
-#golem-dashboard tbody tr:nth-child(odd) { background: #eeeeee; }\
-#golem-dashboard tbody th { text-align: left; font-weight: normal; }\
-#golem-dashboard td, #golem-dashboard th { margin: 2px; text-align: center; padding: 0 8px; }\
-#golem-dashboard > div { height: 163px; overflow: hidden; overflow-y: scroll; border-top: 1px solid #d3d3d3; }\
-#golem-dashboard > div > div { padding: 2px; }\
-#golem-dashboard .golem-status { width: 100%; }\
-#golem-dashboard .golem-status tbody th { text-align: right; padding: 2px; font-weight: bold; }\
-#golem-dashboard .golem-status tbody td { text-align: left; }\
-#golem-dashboard .overlay { position: absolute; left:10px; margin: 3px; color: white; text-shadow: black 0px 0px 2px; }\
-table.golem-graph { height: 100px }\
-table.golem-graph tbody th, table.golem-graph tbody td { border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; }\
-table.golem-graph tbody th { max-width: 75px; }\
-table.golem-graph tbody th:first-child { text-align: right; border-left: 1px solid #dddddd; border-right: 1px solid #cccccc; }\
-table.golem-graph tbody th:first-child div { line-height: 60px; height: 60px; }\
-table.golem-graph tbody th:first-child div:first-child, table.golem-graph tbody th:first-child div:last-child { line-height: 20px; height: 20px; }\
-table.golem-graph tbody th:last-child { text-align: left; border-right: 1px solid #dddddd; vertical-align: bottom; }\
-table.golem-graph tbody th:last-child div { position: relative; height: 10px; margin: -10px 0 0; }\
-table.golem-graph tbody th:last-child div:nth-last-child(1) { color: #ff0000; }\
-table.golem-graph tbody th:last-child div:nth-last-child(2) { color: #0000ff; }\
-table.golem-graph tbody th:last-child div:nth-last-child(3) { color: #00ffff; }\
-table.golem-graph tbody th:last-child div:nth-last-child(4) { color: #aa00aa; }\
-table.golem-graph tbody td { margin: 0; padding: 0 !important; vertical-align: bottom; width: 5px; border-right: 1px solid #dddddd; }\
-table.golem-graph tbody td:nth-child(12n+1) { border-right: 1px solid #cccccc; }\
-table.golem-graph tbody td div div { margin: 0; padding: 0; width: 5px; }\
-table.golem-graph tbody td div.bars div:nth-last-child(1) { background: #00ff00; }\
-table.golem-graph tbody td div.bars div:nth-last-child(2) { background: #00aa00; }\
-table.golem-graph tbody td div.bars div:nth-last-child(3) { background: #ffff00; }\
-table.golem-graph tbody td div.bars div:nth-last-child(4) { background: #ff00ff; }\
-table.golem-graph tbody td div.goal div { position: relative; height: 1px; margin: -1px 0 0; }\
-table.golem-graph tbody td div.goal div:nth-last-child(1) { background: #ff0000; }\
-table.golem-graph tbody td div.goal div:nth-last-child(2) { background: #0000ff; }\
-table.golem-graph tbody td div.goal div:nth-last-child(3) { background: #00ffff; }\
-table.golem-graph tbody td div.goal div:nth-last-child(4) { background: #aa00aa; }\
-.golem-button, .golem-button-active { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; font-weight: normal; font-size: 13px; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
-.golem-button:hover, .golem-button-active { border: 1px solid #aaaaaa; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
-img.golem-button, img.golem-button-active { margin-bottom: -2px }\
-.golem-tab-header { position: relative; top: 1px; border: 1px solid #d3d3d3; display: inline-block; cursor: pointer; margin-left: 1px; margin-right: 1px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 1px 2px; -moz-border-radius-topleft: 3px; -webkit-border-top-left-radius: 3px; border-top-left-radius: 3px; -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }\
-.golem-tab-header-active { border: 1px solid #aaaaaa; border-bottom: 0 !important; padding: 2px; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; }\
-.golem-title { padding: 4px; margin: -4px -4px 0 -4px !important; overflow: hidden; border-bottom: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }\
-.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header { border: 1px solid #d3d3d3; cursor: pointer; margin-top: 1px; width: 184px; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; padding: 2px 2px 2px 2px; -moz-border-radius: 3px; -webkit-border-radius: 3px; border-radius: 3px; }\
-.golem-panel-header input { float: right; margin: 2px; }\
-.golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content { border: 1px solid #aaaaaa; border-top: 0 !important; padding: 2px 6px; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; display: none; -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }\
-.golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header { border: 1px solid #aaaaaa; border-bottom: 0 !important; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; -moz-border-radius-bottomleft: 0 !important; -webkit-border-bottom-left-radius: 0 !important; border-bottom-left-radius: 0 !important; -moz-border-radius-bottomright: 0 !important; -webkit-border-bottom-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }\
-.golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content { display: block; }\
-.golem-panel-sortable .golem-lock { display: none; }\
-.golem-panel-content br:last-child { clear: both; }\
-.golem-panel .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAwzUE2DAEGDAEGDAEGAgpIKQLRQ5HSDAAIEOAPHeJZW+AAAAAElFTkSuQmCC') no-repeat; }\
-.golem-panel .golem-panel-header .golem-lock { float: right; width: 16px; height: 16px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAxSURBVHjaYmBEAwxECzAwMKAIMDDAROACjCgCDAxwJbgFGAkKoGrBtJYcv8ABQIABAG4RAM99K2ubAAAAAElFTkSuQmCC') no-repeat;}\
-.golem-panel-show .golem-panel-header .golem-icon { float: left; width: 16px; height: 16px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAww0E2CAACQVCD5MC5zPiE7T0GHIACDAAH/eAPHMY6ZiAAAAAElFTkSuQmCC') no-repeat; }\
-.golem-info { text-align: center; display: block; }\
-img.g_image { width: 16px; height: 16px; margin-bottom: -4px; }\
-img.g_arena { background: url(\""+Images.arena+"\") no-repeat; }\
-img.g_energy { background: url(\""+Images.energy+"\") no-repeat; }\
-img.g_exp { background: url(\""+Images.exp+"\") no-repeat; }\
-img.g_gold { background: url(\""+Images.gold+"\") no-repeat; }\
-img.g_health { background: url(\""+Images.health+"\") no-repeat; }\
-img.g_percent { background: url(\""+Images.percent+"\") no-repeat; }\
-img.g_stamina { background: url(\""+Images.stamina+"\") no-repeat; }\
-img.g_potion_stamina { background: url(\""+Images.potion_stamina+"\") no-repeat; }\
-img.g_potion_energy { background: url(\""+Images.potion_energy+"\") no-repeat; }\
-img.g_facebook { width: 14px; height: 13px; margin-bottom: -1px; background: url(\""+Images.facebook+"\") no-repeat; }\
-</style>");
-}
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -744,6 +638,21 @@ $.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
 $.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
 	var args = meta[3].toLowerCase().split(',');
 	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
+};
+
+// Images - either on SVN, or via extension location
+
+var getImage = function(name) {
+	switch(browser) {
+		case 'chrome':
+			return chrome.extension.getURL('images/'+name+'.png');
+		default:
+			return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
+	}
+};
+
+var makeImage = function(name, title) {
+	return '<img class="golem-image" title="' + (title || ucfirst(name)) + '" src="' + getImage(name) + '">';
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -1593,7 +1502,7 @@ Army.dashboard = function(sort, rev) {
 /*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -1629,7 +1538,7 @@ Config.init = function() {
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	var i, j, k, $display;
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + Images.blank + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + Images.options + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + getImage('blank') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -1773,7 +1682,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + Images.blank + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.no_disable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + Images.lock + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.no_disable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
@@ -2931,7 +2840,16 @@ Main.update = function(event) {
 		window.setTimeout(Page.reload, 5000); // Force reload without retrying
 		return;
 	}
-	do_css();
+	switch(browser) {
+		case 'chrome':	break;// Handled by extension code
+		case 'greasemonkey':
+			GM_addStyle(GM_getResourceText('stylesheet'));
+			break;
+		default:
+			$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
+			break;
+	}
+//	do_css();
 	var i;
 	for (i in Workers) {
 		Workers[i]._setup();
@@ -3252,7 +3170,7 @@ Page.clear = function() {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -3382,10 +3300,10 @@ Queue.init = function() {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '">').click(function() {
 		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
 		console.log(warn('State: ' + (pause ? "paused" : "running")));
-		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
+		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
@@ -3992,7 +3910,7 @@ Title.alias = function(name,str) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, Images, window, browser, GM_xmlhttpRequest,
+	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, window, browser, GM_xmlhttpRequest,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -4046,13 +3964,13 @@ Update.init = function() {
 			break;
 	}
 	// Add an update button for everyone
-	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + Images.update + '">').click(function(){
+	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
 		$(this).addClass('red');
 		Update.checkVersion(true);
 	});
 	$('#golem_buttons').append($btn);
 	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
+		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
 			$(this).addClass('red');
 			Update.checkVersion(true);
@@ -4060,12 +3978,12 @@ Update.init = function() {
 		$('#golem_buttons').append($btn);
 	}
 	// Add a changelog advanced button
-	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + Images.log + '">').click(function(){
+	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
 	});
 	$('#golem_buttons').append($btn)
 	// Add a wiki button
-	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + Images.wiki + '">').click(function(){
+	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
 	});
 	$('#golem_buttons').append($btn)
@@ -5380,7 +5298,7 @@ Page.defaults.castle_age = {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -5434,16 +5352,16 @@ Elite.setup = function() {
 		'label':function(data,uid){
 			return ('Elite' in data[uid]
 				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? '<img src="' + Images.star_on + '">'
-					: '<img src="' + Images.star_off + '">')
+					? '<img src="' + getImage('star_on') + '">'
+					: '<img src="' + getImage('star_off') + '">')
 				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
-					? ' <img src="' + Images.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					? ' <img src="' + getImage('timer') + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
 					: '')
 				 + ('full' in data[uid]['Elite'] && data[uid]['Elite']['full']
-					? ' <img src="' + Images.timer_red + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
+					? ' <img src="' + getImage('timer_red') + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
 					: '')
 				: ('Army' in data[uid] && data[uid]['Army']
-					? '<img src="' + Images.star_off + '">'
+					? '<img src="' + getImage('star_off') + '">'
 					: '')
 				);
 		},

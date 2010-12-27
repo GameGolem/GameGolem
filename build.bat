@@ -91,9 +91,9 @@ rem ----------------------------------------------------------------------
 rem NORMAL VERSION - _normal.user.js
 echo.Joining files into _normal.user.js
 type _head.js >_normal.user.js 2>nul
-type _head_version.js >_normal.user.js 2>nul
+type _head_version.js >>_normal.user.js 2>nul
 type _main.js >>_normal.user.js 2>nul
-type css.js >>_normal.user.js 2>nul
+rem type css.js >>_normal.user.js 2>nul
 type utility.js >>_normal.user.js 2>nul
 type worker.js >>_normal.user.js 2>nul
 type worker_*.js >>_normal.user.js 2>nul
@@ -126,9 +126,9 @@ del /F /S /Q chrome\GameGolem >nul 2>nul
 call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
 copy /Y images\*.png chrome\GameGolem\images >nul 2>nul
+copy /Y golem.css chrome\GameGolem >nul 2>nul
 copy /Y _head_version.js chrome\GameGolem\head_version.js >nul 2>nul
 copy /Y _main.js chrome\GameGolem\main.js >nul 2>nul
-copy /Y css.js chrome\GameGolem >nul 2>nul
 copy /Y utility.js chrome\GameGolem >nul 2>nul
 copy /Y worker.js chrome\GameGolem >nul 2>nul
 copy /Y worker_*.js chrome\GameGolem >nul 2>nul

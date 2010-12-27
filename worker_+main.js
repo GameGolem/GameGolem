@@ -83,7 +83,16 @@ Main.update = function(event) {
 		window.setTimeout(Page.reload, 5000); // Force reload without retrying
 		return;
 	}
-	do_css();
+	switch(browser) {
+		case 'chrome':	break;// Handled by extension code
+		case 'greasemonkey':
+			GM_addStyle(GM_getResourceText('stylesheet'));
+			break;
+		default:
+			$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
+			break;
+	}
+//	do_css();
 	var i;
 	for (i in Workers) {
 		Workers[i]._setup();

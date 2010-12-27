@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, Images, window, browser, GM_xmlhttpRequest,
+	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, window, browser, GM_xmlhttpRequest,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -56,13 +56,13 @@ Update.init = function() {
 			break;
 	}
 	// Add an update button for everyone
-	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + Images.update + '">').click(function(){
+	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
 		$(this).addClass('red');
 		Update.checkVersion(true);
 	});
 	$('#golem_buttons').append($btn);
 	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + Images.beta + '">').click(function(){
+		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
 			$(this).addClass('red');
 			Update.checkVersion(true);
@@ -70,12 +70,12 @@ Update.init = function() {
 		$('#golem_buttons').append($btn);
 	}
 	// Add a changelog advanced button
-	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + Images.log + '">').click(function(){
+	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
 	});
 	$('#golem_buttons').append($btn)
 	// Add a wiki button
-	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + Images.wiki + '">').click(function(){
+	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
 	});
 	$('#golem_buttons').append($btn)

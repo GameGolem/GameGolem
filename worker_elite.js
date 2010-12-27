@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
@@ -56,16 +56,16 @@ Elite.setup = function() {
 		'label':function(data,uid){
 			return ('Elite' in data[uid]
 				? ('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? '<img src="' + Images.star_on + '">'
-					: '<img src="' + Images.star_off + '">')
+					? '<img src="' + getImage('star_on') + '">'
+					: '<img src="' + getImage('star_off') + '">')
 				 + ('elite' in data[uid]['Elite'] && data[uid]['Elite']['elite']
-					? ' <img src="' + Images.timer + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
+					? ' <img src="' + getImage('timer') + '" title="Member until: ' + makeTime(data[uid]['Elite']['elite']) + '">'
 					: '')
 				 + ('full' in data[uid]['Elite'] && data[uid]['Elite']['full']
-					? ' <img src="' + Images.timer_red + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
+					? ' <img src="' + getImage('timer_red') + '" title="Full until: ' + makeTime(data[uid]['Elite']['full']) + '">'
 					: '')
 				: ('Army' in data[uid] && data[uid]['Army']
-					? '<img src="' + Images.star_off + '">'
+					? '<img src="' + getImage('star_off') + '">'
 					: '')
 				);
 		},

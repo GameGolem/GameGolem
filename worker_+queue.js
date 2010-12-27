@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
 	makeImage
 */
@@ -132,10 +132,10 @@ Queue.init = function() {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + (this.option.pause ? Images.play : Images.pause) + '">').click(function() {
+	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '">').click(function() {
 		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
 		console.log(warn('State: ' + (pause ? "paused" : "running")));
-		$(this).toggleClass('red green').attr('src', (pause ? Images.play : Images.pause));
+		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
