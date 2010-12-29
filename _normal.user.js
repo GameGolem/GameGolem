@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.882
+// @version		31.5.883
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 882;
+var revision = 883;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -7353,12 +7353,32 @@ Monster.display = [
 ];
 
 Monster.types = {
-	// Special (level 5) - not under Monster tab
-	//	kull: {
-	//		name:'Kull, the Orc Captain',
-	//		timer:259200 // 72 hours
-	//	},
-
+	// Quest unlocks
+	kull: {
+		name:'Kull, the Orc Captain',
+		list:'orc_captain_list.jpg',
+		image:'orc_captain_large.jpg',
+		dead:'orc_captain_dead.jpg',
+		achievement:1000, // total guess
+		timer:259200, // 72 hours
+		mpool:4,
+		attack_button:'input[name="Attack Dragon"]',
+		siege:false,
+		attack:[1]
+	},
+	minotaur: {
+		name:'Karn, The Minotaur',
+		list:'monster_minotaur_list.jpg',
+		image:'monster_minotaur.jpg',
+		dead:'monster_minotaur_dead.jpg',
+		achievement:10000, // total guess
+		timer:432000, // 120 hours
+		mpool:4,
+		attack_button:'input[name="Attack Dragon"]',
+		siege:false,
+		attack:[1,6]
+	},
+	// Raids
 	raid_easy: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list1.jpg',

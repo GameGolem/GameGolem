@@ -287,12 +287,32 @@ Monster.display = [
 ];
 
 Monster.types = {
-	// Special (level 5) - not under Monster tab
-	//	kull: {
-	//		name:'Kull, the Orc Captain',
-	//		timer:259200 // 72 hours
-	//	},
-
+	// Quest unlocks
+	kull: {
+		name:'Kull, the Orc Captain',
+		list:'orc_captain_list.jpg',
+		image:'orc_captain_large.jpg',
+		dead:'orc_captain_dead.jpg',
+		achievement:1000, // total guess
+		timer:259200, // 72 hours
+		mpool:4,
+		attack_button:'input[name="Attack Dragon"]',
+		siege:false,
+		attack:[1]
+	},
+	minotaur: {
+		name:'Karn, The Minotaur',
+		list:'monster_minotaur_list.jpg',
+		image:'monster_minotaur.jpg',
+		dead:'monster_minotaur_dead.jpg',
+		achievement:10000, // total guess
+		timer:432000, // 120 hours
+		mpool:4,
+		attack_button:'input[name="Attack Dragon"]',
+		siege:false,
+		attack:[1,6]
+	},
+	// Raids
 	raid_easy: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list1.jpg',
