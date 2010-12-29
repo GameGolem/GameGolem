@@ -18,7 +18,8 @@ Army.defaults.castle_age = {
 	// Careful not to hit any *real* army options
 	option:{
 		invite:false,
-		recheck:0
+		recheck:0,
+		general:true
 	},
 
 	runtime:{
@@ -36,6 +37,10 @@ Army.defaults.castle_age = {
 		//	checkbox:true
 		//},
 		{
+			id:'general',
+			label:'Use Idle General',
+			checkbox:true
+		},{
 			title:'Members',
 			group:[
 				{
@@ -166,7 +171,7 @@ Army._overload('castle_age', 'update', function(event) {
 
 Army._overload('castle_age', 'work', function(state) {
 	if (this.runtime.page) {
-		if (state) {
+		if (state && (!this.option.general || Generals.to(Idle.get('option.general','any')))) {
 			Page.to('army_viewarmy', {page:this.runtime.page});
 		}
 		return true;

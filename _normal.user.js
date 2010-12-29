@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.881
+// @version		31.5.882
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 881;
+var revision = 882;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -5060,7 +5060,8 @@ Army.defaults.castle_age = {
 	// Careful not to hit any *real* army options
 	option:{
 		invite:false,
-		recheck:0
+		recheck:0,
+		general:true
 	},
 
 	runtime:{
@@ -5078,6 +5079,10 @@ Army.defaults.castle_age = {
 		//	checkbox:true
 		//},
 		{
+			id:'general',
+			label:'Use Idle General',
+			checkbox:true
+		},{
 			title:'Members',
 			group:[
 				{
@@ -5208,7 +5213,7 @@ Army._overload('castle_age', 'update', function(event) {
 
 Army._overload('castle_age', 'work', function(state) {
 	if (this.runtime.page) {
-		if (state) {
+		if (state && (!this.option.general || Generals.to(Idle.get('option.general','any')))) {
 			Page.to('army_viewarmy', {page:this.runtime.page});
 		}
 		return true;
