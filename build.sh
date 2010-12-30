@@ -90,8 +90,7 @@ sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" main.tmpl > main.js
 ### generate _normal.user.js ###
 echo "Joining files into _normal.user.js"
 sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" _head.tmpl > _normal.user.js
-cat _head.js \
-    main.js \
+cat main.js \
     utility.js \
     worker.js \
     $(ls -1 worker_+*.js) \

@@ -25,7 +25,7 @@ Army.defaults.castle_age = {
 	runtime:{
 		count:-1, // How many people have we actively seen
 		page:0, // Next page we want to look at 
-		extra:0, // How many non-real army members are there
+		extra:1, // How many non-real army members are there (you are one of them)
 		oldest:0 // Timestamp of when we last saw the oldest member
 	},
 	
@@ -117,7 +117,7 @@ Army._overload('castle_age', 'parse', function(change) {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
 		}
 		$tmp = $('img[src*="bonus_member.jpg"]');
-		if ($tmp.length) {
+		if ($tmp.length || !this.runtime.extra) {
 			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
 //			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
