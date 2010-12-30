@@ -73,7 +73,7 @@ build_release="No"
 cd "$workdir"
 
 # Remove old stuff
-rm -f _normal.user.js _min.user.js chrome\GameGolem\* _head_revision.js _head_tortoise.js _head_version.js _version.js
+rm -f _normal.user.js _min.user.js chrome/GameGolem/* _head_revision.js _head_tortoise.js _head_version.js _version.js
 
 # Compute revision number
 if [ -d .svn ]; then

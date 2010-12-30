@@ -1,7 +1,7 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
-	Bank, Battle, Generals, LevelUp, Player:true,
+	Bank, Battle, Generals, LevelUp, Player:true, Title,
 	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
@@ -79,7 +79,7 @@ Player.parse = function(change) {
 		Page.reload();
 		return;
 	}
-	var data = this.data, keep, stats, tmp;
+	var self = this, data = this.data, keep, stats, tmp;
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		this.set('energy', $('#app'+APPID+'_energy_current_value').text().regex(/([0-9]+)/) || 0);
 		Resources.add('Energy', data.energy, true);
@@ -122,6 +122,21 @@ Player.parse = function(change) {
 			this.set('upkeep', stats[1]);
 			this.set('income', stats[2]);
 			Resources.add('Gold', data.bank + data.cash, true);
+
+			// remember artifacts - useful for quest requirements
+
+			if ((tmp = $('div.statsT2 td.statsTMainback .statsTTitle:contains("ARTIFACTS") + .statsTMain')).length === 1) {
+				self.set('data.artifact', {});
+				$('.statUnit a img', tmp).each(function(a, el) {
+					/*jslint onevar:false*/
+					var n = ($(el).attr('title') || $(el).attr('alt') || '').trim();
+					var i = $(el).attr('src').filepart();
+					/*jslint onevar:true*/
+					if (n) {
+						self.set(['data', 'artifact', n], i);
+					}
+				});
+			}
 		}
 	}
 	if (Page.page==='town_land') {
