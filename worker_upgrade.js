@@ -68,7 +68,7 @@ Upgrade.work = function(state) {
 	}
 	if (state) {
 		this.runtime.working = true;
-		Page.to('keep_stats', {upgrade:args}, false);
+		Page.to('keep_stats', {upgrade:args}, true);
 	}
 	return QUEUE_RELEASE;
 };
