@@ -76,6 +76,7 @@ Army._overload('castle_age', 'setup', function() {
 });
 
 Army._overload('castle_age', 'init', function() {
+	this.runtime.extra = Math.max(1, this.runtime.extra);
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
 //		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
@@ -117,7 +118,7 @@ Army._overload('castle_age', 'parse', function(change) {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
 		}
 		$tmp = $('img[src*="bonus_member.jpg"]');
-		if ($tmp.length || !this.runtime.extra) {
+		if ($tmp.length) {
 			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
 //			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
