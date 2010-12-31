@@ -57,20 +57,30 @@ set firefox1=""
 set firefox2=""
 set wait=1
 
+rem User-defined options
 if EXIST "build.ini" (
 	for /F "eol=; tokens=1,2 delims==" %%a in (build.ini) do (
 		if NOT "%%~b"=="" set %%a=%%~b
 	)
 )
 
-for /F "tokens=1 delims=" %%a in (_version.txt) do (
-	set version=%%~a
+rem Version (not revision)
+for /F "tokens=1 delims=" %%a in (_version.txt) do set version=%%~a
+
+rem Files
+if NOT EXIST "_manifest.txt" (
+	echo.Missing _manifest.txt file - this contains the list of source files used to create Golem.
+	goto:eof
+)
+set manifest=
+for /F "eol=#" %%a in (_manifest.txt) do (
+	if "!manifest!"=="" (set manifest="%%a") else (set manifest=!manifest!,"%%a")
 )
 
 rem ----------------------------------------------------------------------
 rem Delete old files...
 echo.Deleting old user.js files
-del /F /Q _normal.user.js _min.user.js .\chrome\GameGolem\golem.user.js 2>nul
+del /F /Q _normal.user.js _min.user.js 2>nul
 
 rem ----------------------------------------------------------------------
 rem Current revision (assuming this copy is committed, so Update / Build / Commit)
@@ -91,10 +101,9 @@ rem ----------------------------------------------------------------------
 rem NORMAL VERSION - _normal.user.js
 echo.Joining files into _normal.user.js
 call:VReplace _head.tmpl >_normal.user.js
-type main.js >>_normal.user.js 2>nul
-type utility.js >>_normal.user.js 2>nul
-type worker.js >>_normal.user.js 2>nul
-type worker_*.js >>_normal.user.js 2>nul
+for /F "eol=#" %%a in (_manifest.txt) do (
+	type "%%a" >>_normal.user.js 2>nul
+)
 set script=_normal.user.js
 
 rem --------------------------------------------------------------------------------------
@@ -125,10 +134,9 @@ call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
 copy /Y images\*.png chrome\GameGolem\images >nul 2>nul
 copy /Y golem.css chrome\GameGolem >nul 2>nul
-copy /Y main.js chrome\GameGolem >nul 2>nul
-copy /Y utility.js chrome\GameGolem >nul 2>nul
-copy /Y worker.js chrome\GameGolem >nul 2>nul
-copy /Y worker_*.js chrome\GameGolem >nul 2>nul
+for /F "eol=#" %%a in (_manifest.txt) do (
+	copy /Y "%%a" chrome\GameGolem >nul 2>nul
+)
 
 rem ----------------------------------------------------------------------
 rem GOOGLE CHROME EXTENSION - .\chrome\GameGolem.crx
@@ -195,6 +203,7 @@ for /f "tokens=* delims=" %%A in (%1) do (
 	if defined line (
 		call set "line=%%line:$VER$=%version%%%"
 		call set "line=%%line:$REV$=%revision%%%"
+		call set "line=%%line:$FILE$=%manifest%%%"
 		echo.!line!
 	) ELSE echo.
 )

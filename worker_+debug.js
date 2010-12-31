@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -203,7 +203,7 @@ Debug.dashboard = function(sort, rev) {
 	if (rev) {
 		order.reverse();
 	}
-	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Efficiency:</b> ' + addCommas((100 - (total / (Date.now() - script_started) * 100)).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated CPU Time:</b> ' + total.addCommas() + 'ms, <b>Efficiency:</b> ' + (100 - (total / (Date.now() - script_started) * 100)).addCommas(2) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count', 'style="text-align:right;"');
 	th(output, 'Time', 'style="text-align:right;"');
@@ -217,12 +217,12 @@ Debug.dashboard = function(sort, rev) {
 		o = order[i];
 		th(output, o, 'style="text-align:left;"');
 		o = data[o];
-		td(output, addCommas(o[0]), 'style="text-align:right;"');
-		td(output, addCommas(o[1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(o[2]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas((o[1]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas((o[2]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(((o[2]/o[0])-(o[1]/o[0])).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, o[0].addCommas(), 'style="text-align:right;"');
+		td(output, o[1].addCommas() + 'ms', 'style="text-align:right;"');
+		td(output, o[2].addCommas() + 'ms', 'style="text-align:right;"');
+		td(output, (o[1]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, (o[2]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, ((o[2]/o[0])-(o[1]/o[0])).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');

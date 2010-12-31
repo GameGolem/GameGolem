@@ -4,7 +4,7 @@
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -456,11 +456,11 @@ Quest.update = function(event) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = data.id[best].energy;
-			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
+			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + makeImage('energy') + data.id[best].energy + ' = ' + makeImage('exp') + data.id[best].exp + ' + ' + makeImage('gold') + '$' + shortNumber(data.id[best].reward) + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + makeImage('energy') + data.id[best].energy + ' = ' + makeImage('exp') + data.id[best].exp + ' + ' + makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -752,7 +752,7 @@ Quest.dashboard = function(sort, rev) {
 		td(output, (quest.exp / quest.energy).round(2), 'title="' + quest.exp + ' total, ' + (quest.exp / quest.energy * 12).round(2) + ' per hour"');
 
 		// reward
-		td(output, '$' + addCommas((quest.reward / quest.energy).round()), 'title="$' + addCommas(quest.reward) + ' total, $' + addCommas((quest.reward / quest.energy * 12).round()) + ' per hour"');
+		td(output, '$' + (quest.reward / quest.energy).addCommas(0), 'title="$' + quest.reward.addCommas() + ' total, $' + (quest.reward / quest.energy * 12).addCommas(0) + ' per hour"');
 
 		// item
 		td(output, quest.itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + quest.itemimg + '" alt="' + quest.item + '" title="' + quest.item + '">' : '');
@@ -820,11 +820,11 @@ Quest.cost = function(id) {
 						desc += ' (n/a)';
 						ccount++;
 					} else if (k) {
-						desc += ' $' + shortNumber((n - c) * k);
+						desc += ' $' + ((n - c) * k).SI();
 						ccount++;
 					}
 					if (j) {
-						desc += ' (upkeep $' + shortNumber((n - c) * j) + ')';
+						desc += ' (upkeep $' + ((n - c) * j).SI() + ')';
 						ucount++;
 					}
 				}
@@ -834,14 +834,14 @@ Quest.cost = function(id) {
 		if (ccount > 1 && cost) {
 			desc += '; total ';
 			if (cost < 1e50) {
-				desc += '$' + shortNumber(cost);
+				desc += '$' + cost.SI();
 			} else {
 				desc += '(n/a)';
 			}
 		}
 
 		if (ucount > 1 && upkeep) {
-			desc += '; upkeep $' + shortNumber(upkeep);
+			desc += '; upkeep $' + upkeep.SI();
 		}
 
 		this.temp.cost = cost;

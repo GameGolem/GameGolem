@@ -115,7 +115,6 @@ cp -r images/*.png chrome/GameGolem/images/
 
 ### GOOGLE CHROME EXTENSION ###
 # To build the "proper" chrome extension you need Chrome installed
-# *NOTE*: Chrome *CANNOT* be running - http://code.google.com/p/chromium/issues/detail?id=22901
 # To get the GameGolem.pem file please ask Rycochet - and don't share it!!!
 if [ "$build_chrome" = "Yes" ]; then
     if [ -f chrome/GameGolem.pem ]; then

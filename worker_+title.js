@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Title **********
@@ -70,7 +70,7 @@ Title.update = function(event) {
 						} else if (what[2] && !value) {
 							value = what[2];
 						}
-						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
+						output += isNumber(value) ? value.addCommas() : isString(value) ? value : '';
 					} else {
 						console.log(warn(), 'Bad worker specified = "' + tmp[1] + '"');
 					}

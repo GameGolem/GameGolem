@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.History **********
@@ -288,13 +288,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		suffix = 'k';
 	}
 	max = Math.ceil(max / divide) * divide;
-	max_s = (iscash ? '$' : '') + addCommas(max / divide) + suffix;
+	max_s = (iscash ? '$' : '') + (max / divide).addCommas() + suffix;
 	min = Math.floor(min / divide) * divide;
-	min_s = (iscash ? '$' : '') + addCommas(min / divide) + suffix;
+	min_s = (iscash ? '$' : '') + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(1)) + suffix + '</div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + (goal[i] / divide).addCommas(1) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -310,12 +310,12 @@ History.makeGraph = function(type, title, iscash, goal) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
 			if (value[i][j]) {
-				numbers.push((value[i][j] ? (iscash ? '$' : '') + addCommas(value[i][j]) : ''));
+				numbers.push((value[i][j] ? (iscash ? '$' : '') + value[i][j].addCommas() : ''));
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
 		numbers.reverse();
-		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + addCommas(sum(value[i])) : '');
+		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + sum(value[i]).addCommas() : '');
 		td(list, output.join(''), 'title="' + title + '"');
 	}
 	th(list, goal_s.join(''));

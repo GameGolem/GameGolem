@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
@@ -916,7 +916,7 @@ Monster.parse = function(change) {
 		}
 		$('img[src*="siege_small"]').each(function(i,el){
 			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			//console.log(warn(), 'Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+			//console.log(warn(), 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
@@ -1669,7 +1669,7 @@ Monster.dashboard = function(sort, rev) {
 		}
 
 		// link icon
-		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + (monster.ach || type.achievement).addCommas() + (monster.max?' | Max: ' + monster.max.addCommas():'') + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 
@@ -1690,7 +1690,7 @@ Monster.dashboard = function(sort, rev) {
 					: monster.health.round(1) + '%',
 			blank
 				? ''
-				: 'title="' + addCommas(monster.total - sum(monster.damage)) + '"');
+				: 'title="' + (monster.total - sum(monster.damage)).addCommas() + '"');
 		title = (isNumber(monster.strength)
 					? 'Max: '+ monster.strength.round(1) +'% '
 					: '')
@@ -1726,7 +1726,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''
-				: '<span style="color: ' + color + ';">' + addCommas(activity) + '</span>',
+				: '<span style="color: ' + color + ';">' + activity.addCommas() + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');

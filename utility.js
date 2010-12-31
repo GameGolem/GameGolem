@@ -34,6 +34,11 @@ var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
 
+var isWorker = function(obj) {
+	try {return Workers[obj.name] === obj;}catch(e){}// Big shortcut for being inside a try/catch block
+	return false;
+};
+
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
 var log = function(txt){
 	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
@@ -58,12 +63,6 @@ if (browser === 'greasemonkey') {// Legacy - need GM to use localStorage like ev
 	setItem = GM_setValue;
 	getItem = GM_getValue;
 }
-
-// Big shortcut for being inside a try/catch block
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}
-	catch(e) {return false;}
-};
 
 // Prototypes to ease functionality
 
@@ -146,8 +145,53 @@ String.prototype.parseTimer = function() {
 	return b;
 };
 
+String.prototype.ucfirst = function() {
+	return this.charAt(0).toUpperCase() + this.substr(1);
+};
+
+String.prototype.ucwords = function() {
+	return this.replace(/^(.)|\s(.)/g, function($1){
+		return $1.toUpperCase();
+	});
+};
+
+String.prototype.html_escape = function() {
+	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+String.prototype.regexp_escape = function() {
+	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$')
+		.replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*')
+		.replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}')
+		.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[')
+		.replace(/\]/g, '\\]').replace(/\|/g, '\\|');
+};
+
 Number.prototype.round = function(dec) {
 	return Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+};
+
+Number.prototype.SI = function() {
+	var a = Math.abs(this);
+	if (a >= 1e12) {
+		return (this / 1e12).toFixed(1) + ' T';
+	}
+	if (a >= 1e9) {
+		return (this / 1e9).toFixed(1) + ' B';
+	}
+	if (a >= 1e6) {
+		return (this / 1e6).toFixed(1) + ' M';
+	}
+	if (a >= 1e3) {
+		return (this / 1e3).toFixed(1) + ' k';
+	}
+	return this;
+};
+
+Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
+    var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
+    var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+    return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 
 Math.range = function(min, num, max) {
@@ -160,20 +204,6 @@ Math.range = function(min, num, max) {
 var makeTimer = function(sec) {
 	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
-};
-
-var shortNumber = function(number){
-	if (typeof number === 'number'){
-		if (number / Math.pow(10,9) >= 1){
-			return (number / Math.pow(10,9)).round(1) + ' B';
-		} else if (number / Math.pow(10,6) >= 1){
-			return (number / Math.pow(10,6)).round(1) + ' M';
-		} else if (number / Math.pow(10,3) >= 1){
-			return (number / Math.pow(10,3)).round(1) + ' K';
-		} else {
-			return number;
-		}
-	}
 };
 
 var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times
@@ -256,14 +286,6 @@ var sum = function(a) { // Adds the values of all array entries together
 		t = parseFloat(a);
 	}
 	return t;
-};
-
-var addCommas = function(s) { // Adds commas into a string, ignore any number formatting
-	var a=s ? s.toString() : '0', r=new RegExp('(-?[0-9]+)([0-9]{3})');
-	while(r.test(a)) {
-		a = a.replace(r, '$1,$2');
-	}
-	return a;
 };
 
 var findInArray = function(list, value) {
@@ -449,43 +471,6 @@ Date.replaceChars = {
 	U: function() { return this.getTime() / 1000; }
 };
 
-var ucfirst = function(str) {
-	return str.charAt(0).toUpperCase() + str.substr(1);
-};
-
-var ucwords = function(str) {
-	return (str + '').replace(/^(.)|\s(.)/g, function($1){
-		return $1.toUpperCase();
-	});
-};
-
-String.prototype.html_escape = function() {
-	var str = this;
-	str = str.replace(/&/g, '&amp;');
-	str = str.replace(/</g, '&lt;');
-	str = str.replace(/>/g, '&gt;');
-	return str;
-};
-
-String.prototype.regexp_escape = function() {
-	var str = this;
-	str = str.replace(/\\/g, '\\\\');
-	str = str.replace(/\^/g, '\\^');
-	str = str.replace(/\$/g, '\\$');
-	str = str.replace(/\./g, '\\.');
-	str = str.replace(/\+/g, '\\+');
-	str = str.replace(/\*/g, '\\*');
-	str = str.replace(/\?/g, '\\?');
-	str = str.replace(/\{/g, '\\{');
-	str = str.replace(/\}/g, '\\}');
-	str = str.replace(/\(/g, '\\(');
-	str = str.replace(/\)/g, '\\)');
-	str = str.replace(/\[/g, '\\[');
-	str = str.replace(/\]/g, '\\]');
-	str = str.replace(/\|/g, '\\|');
-	return str;
-};
-
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
 	var name, label_list, y_label_list, x_label_list;
 	name = y_label + '_per_' + x_label;
@@ -596,6 +581,6 @@ var getImage = function(name) {
 };
 
 var makeImage = function(name, title) {
-	return '<img class="golem-image" title="' + (title || ucfirst(name)) + '" src="' + getImage(name) + '">';
+	return '<img class="golem-image" title="' + (title || name.ucfirst()) + '" src="' + getImage(name) + '">';
 };
 

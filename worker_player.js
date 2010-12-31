@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, LevelUp, Player:true, Title,
 	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Player **********
@@ -151,7 +151,7 @@ Player.parse = function(change) {
 		}
 	});
 	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
-	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(this.get('bank', 0)));
+	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
 	return false;
 };
 

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.889
+// @version		31.5.890
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 889;
+var revision = 890;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -79,6 +79,11 @@ var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
 
+var isWorker = function(obj) {
+	try {return Workers[obj.name] === obj;}catch(e){}// Big shortcut for being inside a try/catch block
+	return false;
+};
+
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
 var log = function(txt){
 	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
@@ -103,12 +108,6 @@ if (browser === 'greasemonkey') {// Legacy - need GM to use localStorage like ev
 	setItem = GM_setValue;
 	getItem = GM_getValue;
 }
-
-// Big shortcut for being inside a try/catch block
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}
-	catch(e) {return false;}
-};
 
 // Prototypes to ease functionality
 
@@ -191,8 +190,53 @@ String.prototype.parseTimer = function() {
 	return b;
 };
 
+String.prototype.ucfirst = function() {
+	return this.charAt(0).toUpperCase() + this.substr(1);
+};
+
+String.prototype.ucwords = function() {
+	return this.replace(/^(.)|\s(.)/g, function($1){
+		return $1.toUpperCase();
+	});
+};
+
+String.prototype.html_escape = function() {
+	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+String.prototype.regexp_escape = function() {
+	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$')
+		.replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*')
+		.replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}')
+		.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[')
+		.replace(/\]/g, '\\]').replace(/\|/g, '\\|');
+};
+
 Number.prototype.round = function(dec) {
 	return Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
+};
+
+Number.prototype.SI = function() {
+	var a = Math.abs(this);
+	if (a >= 1e12) {
+		return (this / 1e12).toFixed(1) + ' T';
+	}
+	if (a >= 1e9) {
+		return (this / 1e9).toFixed(1) + ' B';
+	}
+	if (a >= 1e6) {
+		return (this / 1e6).toFixed(1) + ' M';
+	}
+	if (a >= 1e3) {
+		return (this / 1e3).toFixed(1) + ' k';
+	}
+	return this;
+};
+
+Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
+    var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
+    var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+    return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 
 Math.range = function(min, num, max) {
@@ -205,20 +249,6 @@ Math.range = function(min, num, max) {
 var makeTimer = function(sec) {
 	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
 	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
-};
-
-var shortNumber = function(number){
-	if (typeof number === 'number'){
-		if (number / Math.pow(10,9) >= 1){
-			return (number / Math.pow(10,9)).round(1) + ' B';
-		} else if (number / Math.pow(10,6) >= 1){
-			return (number / Math.pow(10,6)).round(1) + ' M';
-		} else if (number / Math.pow(10,3) >= 1){
-			return (number / Math.pow(10,3)).round(1) + ' K';
-		} else {
-			return number;
-		}
-	}
 };
 
 var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times
@@ -301,14 +331,6 @@ var sum = function(a) { // Adds the values of all array entries together
 		t = parseFloat(a);
 	}
 	return t;
-};
-
-var addCommas = function(s) { // Adds commas into a string, ignore any number formatting
-	var a=s ? s.toString() : '0', r=new RegExp('(-?[0-9]+)([0-9]{3})');
-	while(r.test(a)) {
-		a = a.replace(r, '$1,$2');
-	}
-	return a;
 };
 
 var findInArray = function(list, value) {
@@ -494,43 +516,6 @@ Date.replaceChars = {
 	U: function() { return this.getTime() / 1000; }
 };
 
-var ucfirst = function(str) {
-	return str.charAt(0).toUpperCase() + str.substr(1);
-};
-
-var ucwords = function(str) {
-	return (str + '').replace(/^(.)|\s(.)/g, function($1){
-		return $1.toUpperCase();
-	});
-};
-
-String.prototype.html_escape = function() {
-	var str = this;
-	str = str.replace(/&/g, '&amp;');
-	str = str.replace(/</g, '&lt;');
-	str = str.replace(/>/g, '&gt;');
-	return str;
-};
-
-String.prototype.regexp_escape = function() {
-	var str = this;
-	str = str.replace(/\\/g, '\\\\');
-	str = str.replace(/\^/g, '\\^');
-	str = str.replace(/\$/g, '\\$');
-	str = str.replace(/\./g, '\\.');
-	str = str.replace(/\+/g, '\\+');
-	str = str.replace(/\*/g, '\\*');
-	str = str.replace(/\?/g, '\\?');
-	str = str.replace(/\{/g, '\\{');
-	str = str.replace(/\}/g, '\\}');
-	str = str.replace(/\(/g, '\\(');
-	str = str.replace(/\)/g, '\\)');
-	str = str.replace(/\[/g, '\\[');
-	str = str.replace(/\]/g, '\\]');
-	str = str.replace(/\|/g, '\\|');
-	return str;
-};
-
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
 	var name, label_list, y_label_list, x_label_list;
 	name = y_label + '_per_' + x_label;
@@ -641,7 +626,7 @@ var getImage = function(name) {
 };
 
 var makeImage = function(name, title) {
-	return '<img class="golem-image" title="' + (title || ucfirst(name)) + '" src="' + getImage(name) + '">';
+	return '<img class="golem-image" title="' + (title || name.ucfirst()) + '" src="' + getImage(name) + '">';
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -650,7 +635,7 @@ var makeImage = function(name, title) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /* Worker Prototype
@@ -1194,7 +1179,7 @@ Worker.prototype._work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Army **********
@@ -1493,7 +1478,7 @@ Army.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Config **********
@@ -2025,7 +2010,7 @@ Config.getOrder = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Dashboard **********
@@ -2166,7 +2151,7 @@ Dashboard.status = function(worker, value) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -2365,7 +2350,7 @@ Debug.dashboard = function(sort, rev) {
 	if (rev) {
 		order.reverse();
 	}
-	list.push('<b>Estimated CPU Time:</b> ' + addCommas(total) + 'ms, <b>Efficiency:</b> ' + addCommas((100 - (total / (Date.now() - script_started) * 100)).toFixed(2)) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
+	list.push('<b>Estimated CPU Time:</b> ' + total.addCommas() + 'ms, <b>Efficiency:</b> ' + (100 - (total / (Date.now() - script_started) * 100)).addCommas(2) + '% <span style="float:right;">' + (this.option.timer ? '' : '&nbsp;<a id="golem-profile-update">update</a>') + '&nbsp;<a id="golem-profile-reset" style="color:red;">reset</a>&nbsp;</span><br style="clear:both">');
 	th(output, 'Function', 'style="text-align:left;"');
 	th(output, 'Count', 'style="text-align:right;"');
 	th(output, 'Time', 'style="text-align:right;"');
@@ -2379,12 +2364,12 @@ Debug.dashboard = function(sort, rev) {
 		o = order[i];
 		th(output, o, 'style="text-align:left;"');
 		o = data[o];
-		td(output, addCommas(o[0]), 'style="text-align:right;"');
-		td(output, addCommas(o[1]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(o[2]) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas((o[1]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas((o[2]/o[0]).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
-		td(output, addCommas(((o[2]/o[0])-(o[1]/o[0])).toFixed(this.option.digits)) + 'ms', 'style="text-align:right;"');
+		td(output, o[0].addCommas(), 'style="text-align:right;"');
+		td(output, o[1].addCommas() + 'ms', 'style="text-align:right;"');
+		td(output, o[2].addCommas() + 'ms', 'style="text-align:right;"');
+		td(output, (o[1]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, (o[2]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, ((o[2]/o[0])-(o[1]/o[0])).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
@@ -2400,7 +2385,7 @@ Debug.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Global **********
@@ -2426,7 +2411,7 @@ Global.display = [];
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.History **********
@@ -2710,13 +2695,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		suffix = 'k';
 	}
 	max = Math.ceil(max / divide) * divide;
-	max_s = (iscash ? '$' : '') + addCommas(max / divide) + suffix;
+	max_s = (iscash ? '$' : '') + (max / divide).addCommas() + suffix;
 	min = Math.floor(min / divide) * divide;
-	min_s = (iscash ? '$' : '') + addCommas(min / divide) + suffix;
+	min_s = (iscash ? '$' : '') + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + addCommas((goal[i] / divide).round(1)) + suffix + '</div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + (goal[i] / divide).addCommas(1) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -2732,12 +2717,12 @@ History.makeGraph = function(type, title, iscash, goal) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
 			if (value[i][j]) {
-				numbers.push((value[i][j] ? (iscash ? '$' : '') + addCommas(value[i][j]) : ''));
+				numbers.push((value[i][j] ? (iscash ? '$' : '') + value[i][j].addCommas() : ''));
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
 		numbers.reverse();
-		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + addCommas(sum(value[i])) : '');
+		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + sum(value[i]).addCommas() : '');
 		td(list, output.join(''), 'title="' + title + '"');
 	}
 	th(list, goal_s.join(''));
@@ -2750,7 +2735,7 @@ History.makeGraph = function(type, title, iscash, goal) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Main **********
@@ -2859,7 +2844,7 @@ Main._remind(0, 'startup');
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Page() **********
@@ -3161,7 +3146,7 @@ Page.clear = function() {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Queue() **********
@@ -3454,7 +3439,7 @@ Queue.update = function(event) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Resources **********
@@ -3675,7 +3660,7 @@ Resources.set = function(what,value) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Settings **********
@@ -3804,7 +3789,7 @@ Settings.get = function(what) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Title **********
@@ -3870,7 +3855,7 @@ Title.update = function(event) {
 						} else if (what[2] && !value) {
 							value = what[2];
 						}
-						output += typeof value === 'number' ? addCommas(value) : typeof value === 'string' ? value : '';
+						output += isNumber(value) ? value.addCommas() : isString(value) ? value : '';
 					} else {
 						console.log(warn(), 'Bad worker specified = "' + tmp[1] + '"');
 					}
@@ -3902,7 +3887,7 @@ Title.alias = function(name,str) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, window, browser, GM_xmlhttpRequest,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Update **********
@@ -4046,7 +4031,7 @@ Update.update = function(event) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Window **********
@@ -4181,13 +4166,264 @@ Window.update = function(event) {
 	this._taint.data = true;
 	this._flush();// We really don't want to store data any longer than we really have to!
 };
+// Add "Castle Age" to known applications
+Main.add('castle_age', '46755028429', 'Castle Age');
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage
+*/
+/********** Worker Army Extension **********
+* This fills in your army information by overloading Worker.Army()
+* We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
+* This is the CA version
+*/
+Army.defaults.castle_age = {
+	pages:'army_viewarmy',
+
+	// Careful not to hit any *real* army options
+	option:{
+		invite:false,
+		recheck:0,
+		general:true
+	},
+
+	runtime:{
+		count:-1, // How many people have we actively seen
+		page:0, // Next page we want to look at 
+		extra:1, // How many non-real army members are there (you are one of them)
+		oldest:0 // Timestamp of when we last saw the oldest member
+	},
+	
+	display:[
+		//Disabled until Army works correctly
+		//{
+		//	id:'invite',
+		//	label:'Auto-Join New Armies',
+		//	checkbox:true
+		//},
+		{
+			id:'general',
+			label:'Use Idle General',
+			checkbox:true
+		},{
+			title:'Members',
+			group:[
+				{
+					id:'recheck',
+					label:'Re-check Old',
+					select:{
+						0:'Never',
+						86400000:'Daily',
+						259200000:'3 Days',
+						604800000:'Weekly',
+						1209600000:'2 Weekly',
+						2419200000:'4 Weekly'
+					}
+				}
+			]
+		}
+	]
+};
+
+Army._overload('castle_age', 'setup', function() {
+	this.section('Changed', { // Second column = Info
+		'key':'Army',
+		'name':'Changed',
+		'show':'Changed',
+		'label':function(data,uid){
+			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
+			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
+		},
+		'sort':function(data,uid){
+			return data[uid].Army ? data[uid]._info.changed || null : null;
+		}
+	});
+});
+
+Army._overload('castle_age', 'init', function() {
+	this.runtime.extra = Math.max(1, this.runtime.extra);
+	this._watch(Player, 'data.armymax');
+//	if (this.runtime.oldest && this.option.recheck) {
+//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
+//	}
+	this._parent();
+});
+
+Army._overload('castle_age', 'parse', function(change) {
+	if (!change && Page.page === 'army_viewarmy') {
+		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
+		$tmp = $('table.layout table[width=740] div').first().children();
+		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
+		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
+		$tmp = $('img[linked="true"][size="square"]');
+		if ($tmp.length) {
+			$tmp.each(function(i,el){
+				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army, level;
+				if (uid === userID) {// Shouldn't ever happen!
+					return;
+				}
+				army = Army.data[uid] = Army.data[uid] || {};
+				army.Army = true;
+				army._info = army._info || {};
+				army._info.fbname = $('a', who).text();
+				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
+				army._info.friend = (army._info.fbname === 'Facebook User');
+				level = $(who).text().regex(/([0-9]+) Commander/i);
+				if (!army._info.changed || army._info.level !== level) {
+					army._info.changed = now;
+					army._info.level = level;
+				}
+				army._info.seen = now;
+				army._info.page = page;
+				army._info.id = start + i;
+				Army._taint.data = true;
+	//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
+			});
+		} else {
+			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
+		}
+		$tmp = $('img[src*="bonus_member.jpg"]');
+		if ($tmp.length) {
+			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
+//			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
+		}
+		for (i in army) {
+			if (army[i].Army) {
+				if (!army[i]._info || (army[i]._info.page === page && army[i]._info.seen !== now)) {
+					delete army[i].Army;// Forget this one, not found on the correct page
+				} else {
+					count++;// Lets count this one instead
+				}
+			}
+		}
+		this._set(['runtime','count'], count);
+		if (this.runtime.page) {
+			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
+				this._set(['runtime','page'], 0);
+			} else {
+				this._set(['runtime','page'], page + 1);
+			}
+		}
+//		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
+	}
+	return this._parent();
+});
+
+Army._overload('castle_age', 'update', function(event) {
+	this._parent();
+	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
+		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
+		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
+			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			page = 1;
+		}
+		if (!page && this.option.recheck) {
+			for (i in army) {
+				ai = army[i];
+				if (ai.Army && ai._info && ai._info.page && ai._info.seen) {
+					oldest = Math.min(oldest || Number.MAX_VALUE, ai._info.seen);
+					if (!page && ai._info.seen < then) {
+						page = Math.min(page || Number.MAX_VALUE, ai._info.page);
+					}
+				}
+			}
+			this._set(['runtime','oldest'], oldest);
+		}
+		this._set(['runtime','page'], page);
+//		console.log(warn(), 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
+	}
+	this._set(['option','_sleep'], !this.runtime.page);
+});
+
+Army._overload('castle_age', 'work', function(state) {
+	if (this.runtime.page) {
+		if (state && (!this.option.general || Generals.to(Idle.get('option.general','any')))) {
+			Page.to('army_viewarmy', {page:this.runtime.page});
+		}
+		return true;
+	}
+	return this._parent();
+});
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage
+*/
+/********** Worker.Page for Castle Age **********
+* Add defaults to Page for "Castle Age"
+*/
+
+Page.defaults.castle_age = {
+	pageNames:{
+//		facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
+		index:					{url:'index.php', selector:'#app46755028429_indexNewFeaturesBox'},
+		quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
+		quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
+		quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
+		quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
+		quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
+		quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
+		quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
+		quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
+		quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
+		quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
+		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
+		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
+		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
+		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
+		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
+		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
+		battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
+		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
+		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
+		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
+		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
+		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
+		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
+		heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
+		town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
+		town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
+		town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
+		town_land:				{url:'land.php', image:'tab_land_on.gif'},
+		oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
+		oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
+		oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
+//		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
+//		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
+		keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
+		keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
+		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
+		keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
+		army_invite:			{url:'army.php', image:'invite_on.gif'},
+		army_gifts:				{url:'gift.php', selector:'#app46755028429_giftContainer'},
+		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
+		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
+		army_newsfeed:			{url:'army_news_feed.php', selector:'#app46755028429_army_feed_header'},
+		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
+//		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+	}
+};
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Alchemy **********
@@ -4303,7 +4539,7 @@ Alchemy.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Bank **********
@@ -4360,8 +4596,8 @@ Bank.work = function(state) {
 Bank.update = function(event) {
 	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
 		Dashboard.status(this,
-			'Worth: ' + makeImage('gold') + '$' + addCommas(Player.get('worth', 0)) + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
-			'Income: ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0) + History.get('income.average.24').round()) + ' per hour (currently ' + makeImage('gold') + '$' + addCommas(Player.get('income', 0)) + ' from land)');
+			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
+			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
 	} else {
 		Dashboard.status(this);
 	}
@@ -4412,7 +4648,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 	Battle:true, Generals, LevelUp, Monster, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Battle **********
@@ -4715,7 +4951,7 @@ Battle.parse = function(change) {
 */
 Battle.update = function(event) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = this.get(['option', '_enabled'], true);
-	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + addCommas(this.data.bp || 0) + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
@@ -4947,7 +5183,7 @@ Battle.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Blessing **********
@@ -5039,264 +5275,13 @@ Blessing.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-// Add "Castle Age" to known applications
-Main.add('castle_age', '46755028429', 'Castle Age');
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
-	makeImage
-*/
-/********** Worker Army Extension **********
-* This fills in your army information by overloading Worker.Army()
-* We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
-* This is the CA version
-*/
-Army.defaults.castle_age = {
-	pages:'army_viewarmy',
-
-	// Careful not to hit any *real* army options
-	option:{
-		invite:false,
-		recheck:0,
-		general:true
-	},
-
-	runtime:{
-		count:-1, // How many people have we actively seen
-		page:0, // Next page we want to look at 
-		extra:1, // How many non-real army members are there (you are one of them)
-		oldest:0 // Timestamp of when we last saw the oldest member
-	},
-	
-	display:[
-		//Disabled until Army works correctly
-		//{
-		//	id:'invite',
-		//	label:'Auto-Join New Armies',
-		//	checkbox:true
-		//},
-		{
-			id:'general',
-			label:'Use Idle General',
-			checkbox:true
-		},{
-			title:'Members',
-			group:[
-				{
-					id:'recheck',
-					label:'Re-check Old',
-					select:{
-						0:'Never',
-						86400000:'Daily',
-						259200000:'3 Days',
-						604800000:'Weekly',
-						1209600000:'2 Weekly',
-						2419200000:'4 Weekly'
-					}
-				}
-			]
-		}
-	]
-};
-
-Army._overload('castle_age', 'setup', function() {
-	this.section('Changed', { // Second column = Info
-		'key':'Army',
-		'name':'Changed',
-		'show':'Changed',
-		'label':function(data,uid){
-			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
-			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
-		},
-		'sort':function(data,uid){
-			return data[uid].Army ? data[uid]._info.changed || null : null;
-		}
-	});
-});
-
-Army._overload('castle_age', 'init', function() {
-	this.runtime.extra = Math.max(1, this.runtime.extra);
-	this._watch(Player, 'data.armymax');
-//	if (this.runtime.oldest && this.option.recheck) {
-//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
-//	}
-	this._parent();
-});
-
-Army._overload('castle_age', 'parse', function(change) {
-	if (!change && Page.page === 'army_viewarmy') {
-		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
-		$tmp = $('table.layout table[width=740] div').first().children();
-		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
-		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
-		$tmp = $('img[linked="true"][size="square"]');
-		if ($tmp.length) {
-			$tmp.each(function(i,el){
-				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army, level;
-				if (uid === userID) {// Shouldn't ever happen!
-					return;
-				}
-				army = Army.data[uid] = Army.data[uid] || {};
-				army.Army = true;
-				army._info = army._info || {};
-				army._info.fbname = $('a', who).text();
-				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
-				army._info.friend = (army._info.fbname === 'Facebook User');
-				level = $(who).text().regex(/([0-9]+) Commander/i);
-				if (!army._info.changed || army._info.level !== level) {
-					army._info.changed = now;
-					army._info.level = level;
-				}
-				army._info.seen = now;
-				army._info.page = page;
-				army._info.id = start + i;
-				Army._taint.data = true;
-	//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
-			});
-		} else {
-			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
-		}
-		$tmp = $('img[src*="bonus_member.jpg"]');
-		if ($tmp.length) {
-			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
-//			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
-		}
-		for (i in army) {
-			if (army[i].Army) {
-				if (!army[i]._info || (army[i]._info.page === page && army[i]._info.seen !== now)) {
-					delete army[i].Army;// Forget this one, not found on the correct page
-				} else {
-					count++;// Lets count this one instead
-				}
-			}
-		}
-		this._set(['runtime','count'], count);
-		if (this.runtime.page) {
-			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
-				this._set(['runtime','page'], 0);
-			} else {
-				this._set(['runtime','page'], page + 1);
-			}
-		}
-//		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
-	}
-	return this._parent();
-});
-
-Army._overload('castle_age', 'update', function(event) {
-	this._parent();
-	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
-		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
-		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
-			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
-			page = 1;
-		}
-		if (!page && this.option.recheck) {
-			for (i in army) {
-				ai = army[i];
-				if (ai.Army && ai._info && ai._info.page && ai._info.seen) {
-					oldest = Math.min(oldest || Number.MAX_VALUE, ai._info.seen);
-					if (!page && ai._info.seen < then) {
-						page = Math.min(page || Number.MAX_VALUE, ai._info.page);
-					}
-				}
-			}
-			this._set(['runtime','oldest'], oldest);
-		}
-		this._set(['runtime','page'], page);
-//		console.log(warn(), 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
-	}
-	this._set(['option','_sleep'], !this.runtime.page);
-});
-
-Army._overload('castle_age', 'work', function(state) {
-	if (this.runtime.page) {
-		if (state && (!this.option.general || Generals.to(Idle.get('option.general','any')))) {
-			Page.to('army_viewarmy', {page:this.runtime.page});
-		}
-		return true;
-	}
-	return this._parent();
-});
-
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global
-	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
-	makeImage
-*/
-/********** Worker.Page for Castle Age **********
-* Add defaults to Page for "Castle Age"
-*/
-
-Page.defaults.castle_age = {
-	pageNames:{
-//		facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
-		index:					{url:'index.php', selector:'#app46755028429_indexNewFeaturesBox'},
-		quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-		quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-		quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-		quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-		quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-		quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-		quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-		quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-		quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
-		quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
-		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
-		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
-		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
-		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
-		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-		battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
-		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
-		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
-		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
-		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
-		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
-		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
-		heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
-		town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
-		town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
-		town_magic:				{url:'magic.php', image:'tab_magic_on.gif'},
-		town_land:				{url:'land.php', image:'tab_land_on.gif'},
-		oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-		oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-		oracle_treasurealpha:	{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-//		oracle_treasurevanguard:{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-//		oracle_treasureonslaught:{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
-		keep_stats:				{url:'keep.php', image:'tab_stats_on.gif'},
-		keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
-		keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-		keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-		army_invite:			{url:'army.php', image:'invite_on.gif'},
-		army_gifts:				{url:'gift.php', selector:'#app46755028429_giftContainer'},
-		army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-		army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-		army_newsfeed:			{url:'army_news_feed.php', selector:'#app46755028429_army_feed_header'},
-		gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
-//		apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
-	}
-};
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Elite() **********
@@ -5495,7 +5480,7 @@ Elite.work = function(state) {
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Generals **********
@@ -5824,12 +5809,12 @@ Generals.dashboard = function(sort, rev) {
 		output.push(i);
 		output.push('<div'+(isNumber(Generals.data[i].progress) ? ' title="'+Generals.data[i].progress+'%"' : '')+'>'+Generals.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(Generals.data[i].progress || 0)+'%;"></div></div>');
 		output.push(Generals.data[i].priority ? ((Generals.data[i].priority !== 1 ? '<a class="golem-moveup" name='+Generals.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + Generals.data[i].priority + (Generals.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+Generals.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
-		output.push(Generals.data[i].invade ? (iatt === Generals.data[i].invade.att ? '<strong>' : '') + addCommas(Generals.data[i].invade.att) + (iatt === Generals.data[i].invade.att ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].invade ? (idef === Generals.data[i].invade.def ? '<strong>' : '') + addCommas(Generals.data[i].invade.def) + (idef === Generals.data[i].invade.def ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].duel ? (datt === Generals.data[i].duel.att ? '<strong>' : '') + addCommas(Generals.data[i].duel.att) + (datt === Generals.data[i].duel.att ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].duel ? (ddef === Generals.data[i].duel.def ? '<strong>' : '') + addCommas(Generals.data[i].duel.def) + (ddef === Generals.data[i].duel.def ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].monster ? (matt === Generals.data[i].monster.att ? '<strong>' : '') + addCommas(Generals.data[i].monster.att) + (matt === Generals.data[i].monster.att ? '</strong>' : '') : '?');
-		output.push(Generals.data[i].monster ? (mdef === Generals.data[i].monster.def ? '<strong>' : '') + addCommas(Generals.data[i].monster.def) + (mdef === Generals.data[i].monster.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].invade ? (iatt === Generals.data[i].invade.att ? '<strong>' : '') + (Generals.data[i].invade.att).addCommas() + (iatt === Generals.data[i].invade.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].invade ? (idef === Generals.data[i].invade.def ? '<strong>' : '') + (Generals.data[i].invade.def).addCommas() + (idef === Generals.data[i].invade.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (datt === Generals.data[i].duel.att ? '<strong>' : '') + (Generals.data[i].duel.att).addCommas() + (datt === Generals.data[i].duel.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].duel ? (ddef === Generals.data[i].duel.def ? '<strong>' : '') + (Generals.data[i].duel.def).addCommas() + (ddef === Generals.data[i].duel.def ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (matt === Generals.data[i].monster.att ? '<strong>' : '') + (Generals.data[i].monster.att).addCommas() + (matt === Generals.data[i].monster.att ? '</strong>' : '') : '?');
+		output.push(Generals.data[i].monster ? (mdef === Generals.data[i].monster.def ? '<strong>' : '') + (Generals.data[i].monster.def).addCommas() + (mdef === Generals.data[i].monster.def ? '</strong>' : '') : '?');
 		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
 	}
 	list.push('</tbody></table>');
@@ -5885,7 +5870,7 @@ Generals.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Gift() **********
@@ -6259,7 +6244,7 @@ Gift.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Heal **********
@@ -6319,7 +6304,7 @@ Heal.me = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Idle **********
@@ -6449,7 +6434,7 @@ Idle.work = function(state) {
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Income **********
@@ -6513,7 +6498,7 @@ Income.work = function(state) {
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Land **********
@@ -6667,7 +6652,7 @@ Land.update = function(event) {
 		}
 		this.runtime.buy = buy;
 		this.runtime.cost = buy * this.data[best].cost; // May be negative if we're making money by selling
-		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
+		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -6683,7 +6668,7 @@ Land.work = function(state) {
 			this.runtime.lastlevel = Player.get('level');
 		}
                 if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
-                    Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + shortNumber(Math.abs(this.runtime.cost)) + ' (Available Cash: $' + shortNumber(Bank.worth()) + ')');
+                    Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
                 } else {
                     Dashboard.status(this);
                 }
@@ -6700,7 +6685,7 @@ Land.work = function(state) {
 			} else {
 				$('select', $('.land_buy_costs .gold', el).parent().parent().next()).val(Land.runtime.buy <= -10 ? 10 : (Land.runtime.buy <= -5 ? 5 : 1));
 			}
-			console.log(warn(), (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + shortNumber(Math.abs(Land.runtime.cost)));
+			console.log(warn(), (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + Math.abs(Land.runtime.cost).SI());
 			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
 	});
@@ -6713,7 +6698,7 @@ Land.work = function(state) {
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestValue, bestObjValue
 */
 /********** Worker.LevelUp **********
@@ -6819,8 +6804,8 @@ LevelUp.parse = function(change) {
 	var exp, runtime = this.runtime;
 	if (change) {
 
-//		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour').html(addCommas(Player.get('exp_needed')) + '<span style="font-weight:normal;"><span style="color:rgb(25,123,48);" name="' + this.get('level_timer') + '"> ' + this.get('time') + '</span></span>');
-		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp', 0) + '/' + Player.get('maxexp', 1) + ' at ' + addCommas(this.get('exp_average').round(1)) + ' per hour">' + addCommas(Player.get('exp_needed', 0)) + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
+//		$('#app'+APPID+'_st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + this.get('exp_average').round(1).addCommas() + ' per hour').html(Player.get('exp_needed').addCommas() + '<span style="font-weight:normal;"><span style="color:rgb(25,123,48);" name="' + this.get('level_timer') + '"> ' + this.get('time') + '</span></span>');
+		$('#app'+APPID+'_st_2_5 strong').html('<span title="' + Player.get('exp', 0) + '/' + Player.get('maxexp', 1) + ' at ' + this.get('exp_average').round(1).addCommas() + ' per hour">' + Player.get('exp_needed', 0).addCommas() + '</span> <span style="font-weight:normal;color:rgb(25,123,48);" title="' + this.get('timer') + '">' + this.get('time') + '</span>');
 	} else {
 		$('.result_body').each(function(i,el){
 			if (!$('img[src$="battle_victory.gif"]', el).length) {
@@ -6869,9 +6854,9 @@ LevelUp.update = function(event) {
 	d = new Date(this.get('level_time'));
 	if (this.option.enabled) {
 		if (runtime.running) {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + addCommas(this.get('exp_average').round(1)) + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + addCommas(this.get('exp_average').round(1)) + ' exp per hour)</span>');
+			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
 		}
 	} else {
 		Dashboard.status(this);
@@ -7072,7 +7057,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
@@ -7984,7 +7969,7 @@ Monster.parse = function(change) {
 		}
 		$('img[src*="siege_small"]').each(function(i,el){
 			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			//console.log(warn(), 'Monster Siege',siege + ' did ' + addCommas(dmg) + ' amount of damage.');
+			//console.log(warn(), 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
@@ -8737,7 +8722,7 @@ Monster.dashboard = function(sort, rev) {
 		}
 
 		// link icon
-		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + addCommas(monster.ach || type.achievement) + (monster.max?(' | Max: ' + addCommas(monster.max)):'') + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + (monster.ach || type.achievement).addCommas() + (monster.max?' | Max: ' + monster.max.addCommas():'') + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 
@@ -8758,7 +8743,7 @@ Monster.dashboard = function(sort, rev) {
 					: monster.health.round(1) + '%',
 			blank
 				? ''
-				: 'title="' + addCommas(monster.total - sum(monster.damage)) + '"');
+				: 'title="' + (monster.total - sum(monster.damage)).addCommas() + '"');
 		title = (isNumber(monster.strength)
 					? 'Max: '+ monster.strength.round(1) +'% '
 					: '')
@@ -8794,7 +8779,7 @@ Monster.dashboard = function(sort, rev) {
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
 				? ''
-				: '<span style="color: ' + color + ';">' + addCommas(activity) + '</span>',
+				: '<span style="color: ' + color + ';">' + activity.addCommas() + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
@@ -8863,7 +8848,7 @@ Monster.conditions = function (type, conditions) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.News **********
@@ -8940,10 +8925,10 @@ News.parse = function(change) {
 		});
 		if (win || lose) {
 			list.push('You were challenged <strong>' + (win + lose) + '</strong> times, winning <strong>' + win + '</strong> and losing <strong>' + lose + '</strong>.');
-			list.push('You ' + (xp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(xp)) + '</span> experience points.');
-			list.push('You ' + (cash >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + '<b class="gold">$' + addCommas(Math.abs(cash)) + '</b></span>.');
-			list.push('You ' + (bp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(bp)) + '</span> Battle Points.');
-			list.push('You ' + (wp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + addCommas(Math.abs(wp)) + '</span> War Points.');
+			list.push('You ' + (xp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + Math.abs(xp).addCommas() + '</span> experience points.');
+			list.push('You ' + (cash >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + '<b class="gold">$' + Math.abs(cash).addCommas() + '</b></span>.');
+			list.push('You ' + (bp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + Math.abs(bp).addCommas() + '</span> Battle Points.');
+			list.push('You ' + (wp >= 0 ? 'gained <span class="positive">' : 'lost <span class="negative">') + Math.abs(wp).addCommas() + '</span> War Points.');
 			if (deaths) {
 				list.push('You died ' + (deaths>1 ? deaths+' times' : 'once') + '!');
 			}
@@ -8964,7 +8949,7 @@ News.parse = function(change) {
 	Bank, Battle, Generals, LevelUp, Player:true, Title,
 	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Player **********
@@ -9111,7 +9096,7 @@ Player.parse = function(change) {
 		}
 	});
 	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
-	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + addCommas(this.get('bank', 0)));
+	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
 	return false;
 };
 
@@ -9158,7 +9143,7 @@ Player.get = function(what) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Potions **********
@@ -9275,7 +9260,7 @@ Potions.work = function(state) {
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -9727,11 +9712,11 @@ Quest.update = function(event) {
 		this.runtime.best = best;
 		if (best) {
 			this.runtime.energy = data.id[best].energy;
-			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + shortNumber(data.id[best].reward) + ')');
+			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + makeImage('energy') + data.id[best].energy + ' = ' + makeImage('exp') + data.id[best].exp + ' + ' + makeImage('gold') + '$' + shortNumber(data.id[best].reward) + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + makeImage('energy') + data.id[best].energy + ' = ' + makeImage('exp') + data.id[best].exp + ' + ' + makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -10023,7 +10008,7 @@ Quest.dashboard = function(sort, rev) {
 		td(output, (quest.exp / quest.energy).round(2), 'title="' + quest.exp + ' total, ' + (quest.exp / quest.energy * 12).round(2) + ' per hour"');
 
 		// reward
-		td(output, '$' + addCommas((quest.reward / quest.energy).round()), 'title="$' + addCommas(quest.reward) + ' total, $' + addCommas((quest.reward / quest.energy * 12).round()) + ' per hour"');
+		td(output, '$' + (quest.reward / quest.energy).addCommas(0), 'title="$' + quest.reward.addCommas() + ' total, $' + (quest.reward / quest.energy * 12).addCommas(0) + ' per hour"');
 
 		// item
 		td(output, quest.itemimg ? '<img style="width:25px;height:25px;" src="' + imagepath + quest.itemimg + '" alt="' + quest.item + '" title="' + quest.item + '">' : '');
@@ -10091,11 +10076,11 @@ Quest.cost = function(id) {
 						desc += ' (n/a)';
 						ccount++;
 					} else if (k) {
-						desc += ' $' + shortNumber((n - c) * k);
+						desc += ' $' + ((n - c) * k).SI();
 						ccount++;
 					}
 					if (j) {
-						desc += ' (upkeep $' + shortNumber((n - c) * j) + ')';
+						desc += ' (upkeep $' + ((n - c) * j).SI() + ')';
 						ucount++;
 					}
 				}
@@ -10105,14 +10090,14 @@ Quest.cost = function(id) {
 		if (ccount > 1 && cost) {
 			desc += '; total ';
 			if (cost < 1e50) {
-				desc += '$' + shortNumber(cost);
+				desc += '$' + cost.SI();
 			} else {
 				desc += '(n/a)';
 			}
 		}
 
 		if (ucount > 1 && upkeep) {
-			desc += '; upkeep $' + shortNumber(upkeep);
+			desc += '; upkeep $' + upkeep.SI();
 		}
 
 		this.temp.cost = cost;
@@ -10455,7 +10440,7 @@ Quest.rdata =			// #321
 	Bank, Battle, Generals, LevelUp, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Town **********
@@ -10731,15 +10716,15 @@ Town.update = function(event) {
 		this.runtime.best_sell = best_sell;
 		this.runtime.sell = sell;
 		this.runtime.cost = sell * data[best_sell].cost / 2;
-		Dashboard.status(this, 'Selling ' + this.runtime.sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+		Dashboard.status(this, 'Selling ' + this.runtime.sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 	} else if (best_buy){
 		this.runtime.best_buy = best_buy;
 		this.runtime.buy = bestValue(data[best_buy].buy, buy - data[best_buy].own);
 		this.runtime.cost = this.runtime.buy * data[best_buy].cost;
 		if (Bank.worth(this.runtime.cost)) {
-			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 		}
 	} else {
                 if (this.option.maxcost === 'INCR'){
@@ -10766,7 +10751,7 @@ Town.work = function(state) {
                                 this.runtime.cost_incr = 4;
                                 this.runtime.check = Date.now() + 3600000;
                         }                        
-                        Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + this.runtime.best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+                        Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + this.runtime.best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
                         return QUEUE_FINISH;
 		}
 		if (!state || !this.buy(this.runtime.best_buy, this.runtime.buy)) {
@@ -10787,7 +10772,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	var qty = bestValue(this.data[item].buy, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 				$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
@@ -10807,7 +10792,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	var qty = bestValue(this.data[item].sell, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
+				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 				$('div.eq_buy_costs select[name="amount"]:eq(1)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}
@@ -10849,7 +10834,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
 		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
-				output.push('<p><div style="height:25px;margin:1px;"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+shortNumber(list[units[i]].cost):'') + '</div></p>');
+				output.push('<p><div style="height:25px;margin:1px;"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+list[units[i]].cost.SI():'') + '</div></p>');
 		}
 	}
 	if (name) {
@@ -10894,7 +10879,7 @@ Town.dashboard = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Upgrade **********

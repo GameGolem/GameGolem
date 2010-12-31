@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, LevelUp, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, shortNumber, Divisor, length, unique, deleteElement, sum, addCommas, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, ucfirst, ucwords,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Town **********
@@ -280,15 +280,15 @@ Town.update = function(event) {
 		this.runtime.best_sell = best_sell;
 		this.runtime.sell = sell;
 		this.runtime.cost = sell * data[best_sell].cost / 2;
-		Dashboard.status(this, 'Selling ' + this.runtime.sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+		Dashboard.status(this, 'Selling ' + this.runtime.sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 	} else if (best_buy){
 		this.runtime.best_buy = best_buy;
 		this.runtime.buy = bestValue(data[best_buy].buy, buy - data[best_buy].own);
 		this.runtime.cost = this.runtime.buy * data[best_buy].cost;
 		if (Bank.worth(this.runtime.cost)) {
-			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Buying ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
 		}
 	} else {
                 if (this.option.maxcost === 'INCR'){
@@ -315,7 +315,7 @@ Town.work = function(state) {
                                 this.runtime.cost_incr = 4;
                                 this.runtime.check = Date.now() + 3600000;
                         }                        
-                        Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost - Bank.worth()) + ' to buy ' + this.runtime.buy + ' &times; ' + this.runtime.best_buy + ' for ' + makeImage('gold') + '$' + shortNumber(this.runtime.cost));
+                        Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + this.runtime.best_buy + ' for ' + makeImage('gold') + '$' + this.runtime.cost.SI());
                         return QUEUE_FINISH;
 		}
 		if (!state || !this.buy(this.runtime.best_buy, this.runtime.buy)) {
@@ -336,7 +336,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	var qty = bestValue(this.data[item].buy, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost));
+				console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 				$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Buy"]', el));
 		}
@@ -356,7 +356,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	var qty = bestValue(this.data[item].sell, number);
 	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
 		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + addCommas(qty * Town.data[item].cost / 2));
+				console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 				$('div.eq_buy_costs select[name="amount"]:eq(1)', el).val(qty);
 				Page.click($('div.eq_buy_costs input[name="Sell"]', el));
 		}
@@ -398,7 +398,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
 		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
-				output.push('<p><div style="height:25px;margin:1px;"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+shortNumber(list[units[i]].cost):'') + '</div></p>');
+				output.push('<p><div style="height:25px;margin:1px;"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+list[units[i]].cost.SI():'') + '</div></p>');
 		}
 	}
 	if (name) {
