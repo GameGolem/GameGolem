@@ -208,3 +208,5 @@ for /f "tokens=* delims=" %%A in (%1) do (
 	) ELSE echo.
 )
 goto:eof
+
+:eof
