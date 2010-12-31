@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.890
+// @version		31.5.892
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 890;
+var revision = 892;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -753,8 +753,8 @@ function Worker(name,pages,settings) {
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type,worker){};
-	this.get = function(what,def) {return this._get(what,def);}; // Overload if needed
-	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
+	this.get = this._get; // Overload if needed
+	this.set = this._set; // Overload if needed
 
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
@@ -4236,11 +4236,11 @@ Army._overload('castle_age', 'setup', function() {
 		'name':'Changed',
 		'show':'Changed',
 		'label':function(data,uid){
-			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
-			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
+			var time = Math.floor((Date.now() - (data[uid]._info.changed || 0)) / 86400000);
+			return data[uid].Army && data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : '-';
 		},
 		'sort':function(data,uid){
-			return data[uid].Army ? data[uid]._info.changed || null : null;
+			return data[uid].Army ? data[uid]._info.changed || 0 : null;
 		}
 	});
 });
@@ -4272,7 +4272,7 @@ Army._overload('castle_age', 'parse', function(change) {
 				army._info = army._info || {};
 				army._info.fbname = $('a', who).text();
 				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
-				army._info.friend = (army._info.fbname === 'Facebook User');
+				army._info.friend = (army._info.fbname !== 'Facebook User');
 				level = $(who).text().regex(/([0-9]+) Commander/i);
 				if (!army._info.changed || army._info.level !== level) {
 					army._info.changed = now;
@@ -5290,13 +5290,17 @@ Blessing.work = function(state) {
 var Elite = new Worker('Elite');
 Elite.data = null;
 
+Elite.settings = {
+	taint:true
+};
+
 Elite.defaults['castle_age'] = {
 	pages:'* keep_eliteguard army_viewarmy'
 };
 
 Elite.option = {
-//	elite:true,
 	every:12,
+	friends:true,
 	armyperpage:25 // Read only, but if they change it and I don't notice...
 };
 
@@ -5309,19 +5313,24 @@ Elite.runtime = {
 
 Elite.display = [
 	{
-		id:'elite',
-		label:'Fill Elite Guard',
-		checkbox:true
-	},{
-		id:'every',
-		label:'Every',
-		select:[1, 2, 3, 6, 12, 24],
-		after:'hours',
-		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-	},{
-		id:'fill',
-		label:'Fill Now',
-		button:true
+		title:'Fill Elite Guard',
+		group:[
+			{
+				id:'friends',
+				label:'Facebook Friends Only',
+				checkbox:true
+			},{
+				id:'every',
+				label:'Every',
+				select:[1, 2, 3, 6, 12, 24],
+				after:'hours',
+				help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
+			},{
+				id:'fill',
+				label:'Fill Now',
+				button:true
+			}
+		]
 	}
 ];
 
@@ -5376,102 +5385,80 @@ Elite.init = function() {
 		Elite.set('runtime.waitelite', 0);
 		Elite._save('runtime');
 	});
+	if (!this.get(['option','elite'], true)) {
+		this.option._enabled = false;
+		this.set(['option','elite']);
+	}
 };
 
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		$('span.result_body').each(function(i,el){
 			var txt = $(el).text();
-	/*Arena possibly gone for good
-			if (Elite.runtime.nextarena) {
-				if (txt.match(/has not joined in the Arena!/i)) {
-					Army.set([Elite.runtime.nextarena, 'arena'], -1);
-				} else if (txt.match(/Arena Guard, and they have joined/i)) {
-					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 43200000); // 12 hours
-				} else if (txt.match(/'s Arena Guard is FULL/i)) {
-					Army.set([Elite.runtime.nextarena, 'arena'], Date.now() + 1800000); // half hour
-				} else if (txt.match(/YOUR Arena Guard is FULL/i)) {
-					Elite.runtime.waitarena = Date.now();
-					console.log(warn(), this + 'Arena guard full, wait '+Elite.option.every+' hours');
-				}
-			}
-	*/
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				Army.set([$('img', el).attr('uid'), 'elite'], Date.now() + 86400000); // 24 hours
-				Elite.runtime.nextelite = null;
+				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 				Army.set([$('img', el).attr('uid'), 'full'], Date.now() + 1800000); // half hour
-				Elite.runtime.nextelite = null;
+				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
-				Elite.runtime.waitelite = Date.now();
-				Elite.runtime.nextelite = null;
+				Elite.set(['runtime','waitelite'], Date.now());
+				Elite.set(['runtime','nextelite']);
 				console.log(warn(), 'Elite guard full, wait '+Elite.option.every+' hours');
 			}
 		});
 	} else {
 		if ($('input[src*="elite_guard_add"]').length) {
-			this.runtime.waitelite = 0;
+			this.set(['runtime','waitelite'], 0);
 		}
 	}
 	return false;
 };
 
 Elite.update = function(event) {
-	var i, list, tmp = [], now = Date.now(), check;
-	this.runtime.nextelite = null;
+	var i, list, tmp = [], now = Date.now(), check, next;
 	if (this.get(['option', '_enabled'], true)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
-			/*jslint eqeqeq:false*/
-			if (list[i] == userID) {
-			/*jslint eqeqeq:true*/
-				continue; // skip self
-			}
 			check = Army.get([list[i],'elite'], 0) || Army.get([list[i],'full'], 0);
 			if (check < now) {
 				Army.set([list[i],'elite']);// Delete the old timers if they exist...
 				Army.set([list[i],'full']);// Delete the old timers if they exist...
 				if (Army.get([list[i],'prefer'], false)) {// Prefer takes precidence
-					this.runtime.nextelite = list[i];
+					next = list[i];
 					break;
 				}
-				this.runtime.nextelite = this.runtime.nextelite || list[i];// Earlier in our army rather than later
+				if (!next && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) { // Only facebook friends unless we say otherwise
+					next = list[i];// Earlier in our army rather than later
+				}
 			}
 		}
-		if (!this.runtime.nextelite) {
+		if (!next) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				/*jslint eqeqeq:false*/
-				if (list[i] == userID) {
-				/*jslint eqeqeq:true*/
-					continue; // skip self
-				}
-				if (!Army.get([list[i]], false)) {// Only try to add a non-member who's not already added
-					this.runtime.nextelite = list[i];
+				if (!Army.get([list[i]], false) && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) {// Only try to add a non-member who's not already added
+					next = list[i];
 					break;
 				}
 			}
 		}
-		check = (this.runtime.waitelite + (this.option.every * 3600000));
-		tmp.push('Elite Guard: Check' + (check < now ? 'ing now' : ' in <span class="golem-time" name="' + check + '">' + makeTimer((check - now) / 1000) + '</span>') + (this.runtime.nextelite ? ', Next: '+Army.get(['_info', this.runtime.nextelite, 'name']) : ''));
+		check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
+		tmp.push('Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in <span class="golem-time" name="' + ((check * 1000) + now) + '">' + makeTimer(check) + '</span>') + (next ? ', Next: '+Army.get(['_info', next, 'name']) : ''));
+		if (next && this.runtime.waitelite) {
+			this._remind(check, 'recheck');
+		}
 	}
+	this.set(['runtime','nextelite'], next);
+	this.set(['option','_sleep'], !next || (this.runtime.waitelite + (this.option.every * 3600000)) > now);
 	Dashboard.status(this, tmp.join('<br>'));
 };
 
 Elite.work = function(state) {
-	if (!this.option.elite || !this.runtime.nextelite || (this.runtime.waitelite + (this.option.every * 3600000)) > Date.now()) {
-		return false;
-	}
-	if (!state) {
-		return true;
-	}
-	if ((this.runtime.waitelite + (this.option.every * 3600000)) <= Date.now()) {
+	if (state) {
 		console.log(warn(), 'Add ' + Army.get(['_info', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
-		if (!Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite})) {
-			return true;
-		}
+		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite});
 	}
-	return false;
+	return true;
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */

@@ -66,11 +66,11 @@ Army._overload('castle_age', 'setup', function() {
 		'name':'Changed',
 		'show':'Changed',
 		'label':function(data,uid){
-			var time = Math.floor((data[uid]._info.seen - data[uid]._info.changed) / 86400000);
-			return data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : 'Unknown';
+			var time = Math.floor((Date.now() - (data[uid]._info.changed || 0)) / 86400000);
+			return data[uid].Army && data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : '-';
 		},
 		'sort':function(data,uid){
-			return data[uid].Army ? data[uid]._info.changed || null : null;
+			return data[uid].Army ? data[uid]._info.changed || 0 : null;
 		}
 	});
 });
@@ -102,7 +102,7 @@ Army._overload('castle_age', 'parse', function(change) {
 				army._info = army._info || {};
 				army._info.fbname = $('a', who).text();
 				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
-				army._info.friend = (army._info.fbname === 'Facebook User');
+				army._info.friend = (army._info.fbname !== 'Facebook User');
 				level = $(who).text().regex(/([0-9]+) Commander/i);
 				if (!army._info.changed || army._info.level !== level) {
 					army._info.changed = now;

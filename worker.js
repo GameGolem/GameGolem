@@ -122,8 +122,8 @@ function Worker(name,pages,settings) {
 	this.parse = null; //function(change) {return false;};
 	this.work = null; //function(state) {return false;};
 	this.update = null; //function(type,worker){};
-	this.get = function(what,def) {return this._get(what,def);}; // Overload if needed
-	this.set = function(what,value) {return this._set(what,value);}; // Overload if needed
+	this.get = this._get; // Overload if needed
+	this.set = this._set; // Overload if needed
 
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
