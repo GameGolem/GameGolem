@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.895
+// @version		31.5.896
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 895;
+var revision = 896;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9351,7 +9351,7 @@ Quest.init = function() {
 		for (i in data) {
 			if (data[i].reps) {
 				r = 'reps_' + (isNumber(data[i].land) ? (data[i].land + 1) : data[i].area);
-				j = i.toLowerCase();
+				j = i.name.toLowerCase();
 				x = (this.rdata[j] && this.rdata[j][r]) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
 					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
@@ -9617,7 +9617,7 @@ Quest.update = function(event) {
 				}
 			}
 			r = 'reps_' + (isNumber(data.id[i].land) ? (data.id[i].land + 1) : data.id[i].area);
-			j = data.id[i].toLowerCase();
+			j = data.id[i].name.toLowerCase();
 			eff = data.id[i].eff || (data.id[i].energy * (!isNumber(data.id[i].level) ? 1 : ((this.rdata[j] && this.rdata[j][r]) || 16)));
 			if (0 < (data.id[i].influence || 0) && (data.id[i].influence || 0) < 100) {
 				eff = Math.ceil(eff * (100 - data.id[i].influence) / 100);

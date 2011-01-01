@@ -105,7 +105,7 @@ Quest.init = function() {
 		for (i in data) {
 			if (data[i].reps) {
 				r = 'reps_' + (isNumber(data[i].land) ? (data[i].land + 1) : data[i].area);
-				j = i.toLowerCase();
+				j = i.name.toLowerCase();
 				x = (this.rdata[j] && this.rdata[j][r]) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
 					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
@@ -371,7 +371,7 @@ Quest.update = function(event) {
 				}
 			}
 			r = 'reps_' + (isNumber(data.id[i].land) ? (data.id[i].land + 1) : data.id[i].area);
-			j = data.id[i].toLowerCase();
+			j = data.id[i].name.toLowerCase();
 			eff = data.id[i].eff || (data.id[i].energy * (!isNumber(data.id[i].level) ? 1 : ((this.rdata[j] && this.rdata[j][r]) || 16)));
 			if (0 < (data.id[i].influence || 0) && (data.id[i].influence || 0) < 100) {
 				eff = Math.ceil(eff * (100 - data.id[i].influence) / 100);
