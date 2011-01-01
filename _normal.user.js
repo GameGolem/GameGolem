@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.894
+// @version		31.5.895
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 894;
+var revision = 895;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -205,11 +205,8 @@ String.prototype.html_escape = function() {
 };
 
 String.prototype.regexp_escape = function() {
-	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$')
-		.replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*')
-		.replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}')
-		.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[')
-		.replace(/\]/g, '\\]').replace(/\|/g, '\\|');
+	return this.replace(/([\\\^\$*+[\]?{}.=!:(|)])/g, '\\$&');
+//	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$').replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*').replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|');
 };
 
 Number.prototype.round = function(dec) {
@@ -318,8 +315,9 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
-		for(i=0; i<a.length; i++) {
-			t += sum(a[i] || 0);
+		i = a.length;
+		while(i--) {
+			t += sum(a[i]);
 		}
 	} else if (isObject(a)) {
 		for(i in a) {
@@ -4189,6 +4187,7 @@ Army.defaults.castle_age = {
 	option:{
 		invite:false,
 		recheck:0,
+		auto:true,
 		general:true
 	},
 
@@ -4214,8 +4213,12 @@ Army.defaults.castle_age = {
 			title:'Members',
 			group:[
 				{
+					id:'auto',
+					label:'Automatically Check',
+					checkbox:true
+				},{
 					id:'recheck',
-					label:'Re-check Old',
+					label:'Manually Check',
 					select:{
 						0:'Never',
 						86400000:'Daily',
@@ -4318,7 +4321,7 @@ Army._overload('castle_age', 'update', function(event) {
 	this._parent();
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
-		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
+		if (!page && this.option.auto && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
 			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}
@@ -10423,7 +10426,7 @@ Quest.rdata =			// #321
 	'vesuv lookout':					{ reps_2: 17 },
 	'visit the blacksmith':				{ reps_1: 24 },
 	'vulcans secret':					{ reps_8: 11 },
-	'watch the skies':					{ reps_demiquest: 12 },
+	'watch the skies':					{ reps_demiquest: 12 }
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global

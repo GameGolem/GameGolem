@@ -19,6 +19,7 @@ Army.defaults.castle_age = {
 	option:{
 		invite:false,
 		recheck:0,
+		auto:true,
 		general:true
 	},
 
@@ -44,8 +45,12 @@ Army.defaults.castle_age = {
 			title:'Members',
 			group:[
 				{
+					id:'auto',
+					label:'Automatically Check',
+					checkbox:true
+				},{
 					id:'recheck',
-					label:'Re-check Old',
+					label:'Manually Check',
 					select:{
 						0:'Never',
 						86400000:'Daily',
@@ -148,7 +153,7 @@ Army._overload('castle_age', 'update', function(event) {
 	this._parent();
 	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
-		if (!page && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
+		if (!page && this.option.auto && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
 			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}

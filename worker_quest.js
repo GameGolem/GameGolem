@@ -1180,5 +1180,5 @@ Quest.rdata =			// #321
 	'vesuv lookout':					{ reps_2: 17 },
 	'visit the blacksmith':				{ reps_1: 24 },
 	'vulcans secret':					{ reps_8: 11 },
-	'watch the skies':					{ reps_demiquest: 12 },
+	'watch the skies':					{ reps_demiquest: 12 }
 };

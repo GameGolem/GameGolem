@@ -160,11 +160,8 @@ String.prototype.html_escape = function() {
 };
 
 String.prototype.regexp_escape = function() {
-	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$')
-		.replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*')
-		.replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}')
-		.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[')
-		.replace(/\]/g, '\\]').replace(/\|/g, '\\|');
+	return this.replace(/([\\\^\$*+[\]?{}.=!:(|)])/g, '\\$&');
+//	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$').replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*').replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|');
 };
 
 Number.prototype.round = function(dec) {
@@ -273,8 +270,9 @@ var deleteElement = function(list, value) { // Removes matching elements from an
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
-		for(i=0; i<a.length; i++) {
-			t += sum(a[i] || 0);
+		i = a.length;
+		while(i--) {
+			t += sum(a[i]);
 		}
 	} else if (isObject(a)) {
 		for(i in a) {
