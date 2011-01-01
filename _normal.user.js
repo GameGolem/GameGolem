@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.896
+// @version		31.5.897
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 896;
+var revision = 897;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9351,7 +9351,7 @@ Quest.init = function() {
 		for (i in data) {
 			if (data[i].reps) {
 				r = 'reps_' + (isNumber(data[i].land) ? (data[i].land + 1) : data[i].area);
-				j = i.name.toLowerCase();
+				j = i.toLowerCase();
 				x = (this.rdata[j] && this.rdata[j][r]) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
 					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
@@ -9411,7 +9411,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
+	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge, changes = 0;
 /*
 <div style="float: left; height: 75px; width: 431px;">
 	<div style="clear: both;"></div>
@@ -9540,13 +9540,17 @@ Quest.parse = function(change) {
 				data.id[id].general = tmp.attr('title');
 			}
 		}
-		Quest._notify('data');
+		changes++;
 	});
 	for (i in purge) {
 		if (purge[i]) {
 			console.log(warn(), 'Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
 			delete data.id[i];
+			changes++;
 		}
+	}
+	if (changes) {
+		Quest._notify('data');
 	}
 	return false;
 };

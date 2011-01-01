@@ -105,7 +105,7 @@ Quest.init = function() {
 		for (i in data) {
 			if (data[i].reps) {
 				r = 'reps_' + (isNumber(data[i].land) ? (data[i].land + 1) : data[i].area);
-				j = i.name.toLowerCase();
+				j = i.toLowerCase();
 				x = (this.rdata[j] && this.rdata[j][r]) || 16;
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
 					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
@@ -165,7 +165,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge;
+	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge, changes = 0;
 /*
 <div style="float: left; height: 75px; width: 431px;">
 	<div style="clear: both;"></div>
@@ -294,13 +294,17 @@ Quest.parse = function(change) {
 				data.id[id].general = tmp.attr('title');
 			}
 		}
-		Quest._notify('data');
+		changes++;
 	});
 	for (i in purge) {
 		if (purge[i]) {
 			console.log(warn(), 'Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
 			delete data.id[i];
+			changes++;
 		}
+	}
+	if (changes) {
+		Quest._notify('data');
 	}
 	return false;
 };
