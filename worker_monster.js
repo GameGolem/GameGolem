@@ -1476,7 +1476,7 @@ Monster.update = function(event) {
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = this.runtime.mode, stat = this.runtime.stat, monster, title;
 	if (!this.runtime.check && !mode) {
-		return QUEUE_FINISH;
+		return QUEUE_NO_ACTION;
 	}
 	if (!state) {
 		return QUEUE_CONTINUE;
@@ -1497,7 +1497,7 @@ Monster.work = function(state) {
 			&& (!Queue.runtime.basehit 
 				|| this.runtime[stat] === Queue.runtime.basehit * this.runtime.multiplier[mode])) {
 		console.log(warn(), 'Waiting for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
-		return QUEUE_FINISH;
+		return QUEUE_RELEASE;
 	}
 	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
 			? (type.raid
@@ -1567,7 +1567,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_\d+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s')
+		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s') : '')
 				+ ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}

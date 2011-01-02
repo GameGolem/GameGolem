@@ -482,12 +482,11 @@ Quest.work = function(state) {
 		return QUEUE_FINISH;
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-	if (!Queue.runtime.quest && 
-			((this.option.monster === 'When able' 
-					&& Monster.get('runtime.defending')) 
-				|| (this.option.monster === 'Wait for'
-					&& (Monster.get('runtime.defending')
-						|| !Queue.runtime.force.energy)))) {
+	if ((Queue.runtime.levelup && !Queue.runtime.quest)
+			|| (!Queue.runtime.levelup 
+				&& ((this.option.monster === 'When able' && Monster.get('runtime.defending')) 
+					|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending')
+						|| !Queue.runtime.force.energy))))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {

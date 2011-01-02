@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.900
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 900;
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2506,10 +2506,13 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
+//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
+	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
+//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -2736,13 +2739,22 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (typeof type === 'string') {
 		type = [type];
 	}
+//	if (type[0] === 'serpent_ancient') {
+//		console.log(warn(), 'OK serp');
+//	}
+//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + type[j]);
+				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
+				if (j === 'serpent_ancient' && value[i][j]) {
+					console.log(warn(), j +' ' + value[i][j]);
+				}
 			}
-			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
+			if (sum(value[i])) {
+				min = Math.min(min, sum(value[i]))-1;
+			}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
@@ -6132,8 +6144,8 @@ Gift.work = function(state) {
 		return QUEUE_FINISH;
 	}
         if (!Generals.to(Idle.option.general)){
-                        return QUEUE_CONTINUE;
-                }
+			return QUEUE_CONTINUE;
+		}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
 			return QUEUE_CONTINUE;
@@ -6159,7 +6171,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return QUEUE_FINISH;
+		return QUEUE_INTERRUPT_OK;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -6230,7 +6242,7 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_RELEASE;
+		return QUEUE_CONTINUE;
 	}
 	
 	// Give some gifts back
@@ -6253,7 +6265,7 @@ Gift.work = function(state) {
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
-				return QUEUE_RELEASE;
+				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];
@@ -7010,56 +7022,61 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'best':
 		// Find the biggest exp quest or stamina return to push unusable exp into next level
 		big = this.findAction('big',energy,stamina,0); 
-		console.log(warn(), 'Big: sta ' + stamina + ' to use: ' + big.stamina + ' en ' + stamina + ' to use: ' + big.energy+ ' exp ' + exp + ' to use: ' + big.exp);
 		if (this.option.order === 'Energy') {
 			check = this.findAction('energy',energy-big.energy,0,exp);
 			//console.log(warn(), ' levelup quest ' + energy + ' ' + exp);
 			//console.log(warn(), 'this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			// Do energy first if defending a monster or doing the best quest, but not little 'use energy' quests
 			if (check.exp && (check.quest === Quest.runtime.best || !check.quest)) {
+				console.log(warn(), 'Doing regular quest ' + Quest.runtime.best);
 				return check;
 			}
 		}
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check.exp) {
+			console.log(warn(), 'Doing stamina attack');
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
 		if (check.exp) {
+			console.log(warn(), 'Doing little quest ' + check.quest);
 			return check;
 		}
-		//console.log(warn(), ' big.general ' + big.general+ big.exp);
+		console.log(warn(), 'Doing big action to save exp');
 		return (big.exp ? big : nothing);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
 		energyAction = this.findAction('energy',energy,stamina,0);
 		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction.exp > staminaAction.exp) {
-			//console.log(warn(), 'big energy ' + energyAction.exp);
+			console.log(warn(), 'Big action is energy.  Exp use:' + energyAction.exp + '/' + exp);
 			energyAction.big = true;
 			return energyAction;
 		} else if (staminaAction.exp) {
 			//console.log(warn(), 'big stamina ' + staminaAction.exp + staminaAction.general);
+			console.log(warn(), 'Big action is stamina.  Exp use:' + staminaAction.exp + '/' + exp);
 			staminaAction.big = true;
 			return staminaAction;
 		} else {
+			console.log(warn(), 'Big action not found');
 			return nothing;  
 		}
 	case 'energy':	
 		//console.log(warn(), 'monster runtime defending ' + Monster.get('runtime.defending'));
-		if (Monster.get('runtime.defending')
-				&& (Quest.option.monster === 'Wait for'
-					|| Quest.option.monster === 'When able'
-					|| Queue.option.queue.indexOf('Monster')
-						< Queue.option.queue.indexOf('Quest'))) {
+		if ((Monster.get('runtime.defending')
+					&& (Quest.option.monster === 'Wait for'
+						|| Quest.option.monster === 'When able'
+						|| Queue.option.queue.indexOf('Monster')
+							< Queue.option.queue.indexOf('Quest')))
+				|| (!exp && Monster.get('runtime.values.big',false))) {
 			defendAction = this.findAction('defend',energy,0,exp);
 			if (defendAction.exp) {
-				console.log(warn(), 'energy defend en to use: ' + defendAction.energy + ' exp to use: ' + defendAction.exp);
+				console.log(warn(), 'Energy use defend');
 				return defendAction;
 			}
 		}
 		questAction = this.findAction('quest',energy,0,exp);
-		console.log(warn(), 'energy quest en  to use: ' + questAction.energy+ ' exp  to use: ' + questAction.exp + ' quest ' + questAction.quest);
+		console.log(warn(), 'Energy use quest' + (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
 		return questAction;
 	case 'quest':		
 		quests = Quest.get('id');
@@ -7072,12 +7089,13 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			});
 		}
 		if (i) {
-			//console.log(warn(), 'quest ' + i);
+			console.log(warn(), (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
 			return {	energy : quests[i].energy,
 						stamina : 0,
 						exp : quests[i].exp,
 						quest : i};
 		} else {
+			console.log(warn(), 'No appropriate quest found');
 			return nothing;
 		}
 	case 'defend':
@@ -7110,7 +7128,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
-		console.log(warn(), 'mode: ' + mode + ' options ' + options + ' monsterAction ' + monsterAction + ' basehit ' + basehit + ' general ' + general + ' exp ' + monsterAction * this.get('exp_per_' + stat));
+		console.log(warn(), (exp ? 'Normal' : 'Big') + ' mode: ' + mode + ' ' + stat + ' use: ' + monsterAction +'/' + ((stat === 'stamina') ? stamina : energy) + ' Exp use: ' + monsterAction * this.get('exp_per_' + stat) + '/' + exp + ' Basehit ' + basehit + ' options ' + options + ' General ' + general);
 		if (monsterAction > 0 ) {
 			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
 						energy : (stat === 'energy') ? monsterAction : 0,
@@ -8606,7 +8624,7 @@ Monster.update = function(event) {
 Monster.work = function(state) {
 	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = this.runtime.mode, stat = this.runtime.stat, monster, title;
 	if (!this.runtime.check && !mode) {
-		return QUEUE_FINISH;
+		return QUEUE_NO_ACTION;
 	}
 	if (!state) {
 		return QUEUE_CONTINUE;
@@ -8627,7 +8645,7 @@ Monster.work = function(state) {
 			&& (!Queue.runtime.basehit 
 				|| this.runtime[stat] === Queue.runtime.basehit * this.runtime.multiplier[mode])) {
 		console.log(warn(), 'Waiting for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
-		return QUEUE_FINISH;
+		return QUEUE_RELEASE;
 	}
 	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
 			? (type.raid
@@ -8697,7 +8715,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_\d+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s')
+		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s') : '')
 				+ ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}
@@ -9815,12 +9833,11 @@ Quest.work = function(state) {
 		return QUEUE_FINISH;
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-	if (!Queue.runtime.quest && 
-			((this.option.monster === 'When able' 
-					&& Monster.get('runtime.defending')) 
-				|| (this.option.monster === 'Wait for'
-					&& (Monster.get('runtime.defending')
-						|| !Queue.runtime.force.energy)))) {
+	if ((Queue.runtime.levelup && !Queue.runtime.quest)
+			|| (!Queue.runtime.levelup 
+				&& ((this.option.monster === 'When able' && Monster.get('runtime.defending')) 
+					|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending')
+						|| !Queue.runtime.force.energy))))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
