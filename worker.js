@@ -107,7 +107,7 @@ function Worker(name,pages,settings) {
 	this.name = name;
 	this.pages = pages;
 
-	this.defaults = {}; // {'APP':{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+	this.defaults = {}; // {'APP':{data:{}, option:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 

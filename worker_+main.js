@@ -25,6 +25,15 @@ Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
 };
 
+Main.parse = function() {
+	try {
+		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
+		if (newpath) {
+			imagepath = newpath;
+		}
+	} catch(e) {}
+};
+
 Main.update = function(event) {
 	if (event.id !== 'startup') {
 		return;

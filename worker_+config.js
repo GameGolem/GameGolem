@@ -25,19 +25,18 @@ Config.option = {
 };
 
 Config.init = function() {
+	var i, j, k, $display;
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
-	if (isObject(Queue.option.enabled)) {
-		for (i in Queue.option.enabled) {
-			worker = Worker.find(i);
-			if (worker && worker.option) {
-				worker.option._enabled = Queue.option.enabled[i];
+	for (i in Workers) {
+		if (Workers[i].option && ('_enabled' in Workers[i].option)) {
+			if (!Workers[i].option._enabled) {
+				Workers[i].set(['option','_disabled'], true);
 			}
+			Workers[i].set(['option','_enabled']);
 		}
-		delete Queue.option.enabled;
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + getImage('blank') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
@@ -164,8 +163,63 @@ Config.init = function() {
 	});
 	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
+	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
+	$('.golem-icon-menu').click(function(event) {
+		var i, key, keys, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name'));
+		if (Config.temp.menu !== worker.name) {
+			Config.temp.menu = worker.name;
+			for (i in Workers) {
+				if (Workers[i].menu) {
+					html = html ? html + '<hr>' : html;
+					keys = Workers[i].menu(worker);
+					for (key in keys) {
+						switch (keys[key].charAt(0)) {
+							case '+':	keys[key] = '<img src="' + getImage('tick') + '">' + keys[key].substr(1);	break;
+							case '-':	keys[key] = '<img src="' + getImage('cross') + '">' + keys[key].substr(1);	break;
+							case '=':	keys[key] = '<img src="' + getImage('dot') + '">' + keys[key].substr(1);	break;
+							default:	break;
+						}
+						html += '<div name="' + i + '.' + worker.name + '.' + key + '">' + keys[key] + '</div>';
+					}
+				}
+			}
+			$('#golem-menu').html(html || 'no options');
+			$('#golem-menu').css({
+				top:$this.offset().top + $this.height(),
+				left:$this.offset().left
+			}).show();
+		} else {
+			Config.temp.menu = null;
+			$('#golem-menu').hide();
+		}
+		event.stopPropagation();
+		return false;
+	});
+	$('.golem-menu > div').live('click', function(event) {
+		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
+//		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
+		Worker.find(key[0]).menu(Worker.find(key[1]), key[2]);
+	});
+	$('#golem-menu').click(function(){
+		Config.temp.menu = null;
+		$('#golem-menu').hide();}
+	);
 };
 
+/*
+Config.menu = function(worker, key) {
+	// !worker = global menu, otherwise for a specific worker
+	// !key = create menu - return an object {key:'Label'}
+	// key = user has clicked line, make changes and return null
+	if (worker) {
+		if (!key) {
+			return {
+			}
+		} else if (key === '...') {
+		}
+	}
+};
+*/
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -182,7 +236,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.no_disable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}

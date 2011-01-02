@@ -98,7 +98,8 @@
 }
 
 #golem-dashboard thead th {
-	cursor: pointer }
+	cursor: pointer;
+}
 
 #golem-dashboard thead th.golem-sort:after {
 	content: '&darr;';
@@ -157,7 +158,8 @@
 }
 
 table.golem-graph {
-	height: 100px }
+	height: 100px;
+}
 
 table.golem-graph tbody th, table.golem-graph tbody td {
 	border-top: 1px solid #dddddd;
@@ -290,7 +292,8 @@ table.golem-graph tbody td div.goal div:nth-last-child(4) {
 }
 
 img.golem-button, img.golem-button-active {
-	margin-bottom: -2px }
+	margin-bottom: -2px;
+}
 
 .golem-tab-header {
 	position: relative;
@@ -395,18 +398,25 @@ img.golem-button, img.golem-button-active {
 	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAwzUE2DAEGDAEGDAEGAgpIKQLRQ5HSDAAIEOAPHeJZW+AAAAAElFTkSuQmCC') no-repeat;
 }
 
-.golem-panel .golem-panel-header .golem-lock {
-	float: right;
-	width: 16px;
-	height: 16px;
-	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAxSURBVHjaYmBEAwxECzAwMKAIMDDAROACjCgCDAxwJbgFGAkKoGrBtJYcv8ABQIABAG4RAM99K2ubAAAAAElFTkSuQmCC') no-repeat;
-}
-
 .golem-panel-show .golem-panel-header .golem-icon {
 	float: left;
 	width: 16px;
 	height: 16px;
 	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAww0E2CAACQVCD5MC5zPiE7T0GHIACDAAH/eAPHMY6ZiAAAAAElFTkSuQmCC') no-repeat;
+}
+
+.golem-panel .golem-panel-header .golem-lock, .golem-icon-menu {
+	float: right;
+	width: 16px;
+	height: 16px;
+}
+
+.golem-icon-menu:hover {
+	border: 1px solid #aaaaaa;
+	margin: -1px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	border-radius: 3px;
 }
 
 .golem-info {
@@ -420,3 +430,41 @@ img.golem-image {
 	margin-bottom: -4px;
 }
 
+.golem-menu {
+	display: none;
+	position: absolute;
+	top: 10000px;
+	left: 10000px;
+	z-index: 5;
+	margin: 0;
+	padding: 0;
+	background: #f0f0f0;
+	border: 1px solid #aaaaaa;
+	margin: 0;
+	padding: 2px;
+	cursor: pointer;
+}
+
+.golem-menu > div {
+	margin: 0;
+	padding: 5px 5px 5px 26px;
+}
+
+.golem-menu > hr {
+	margin: 0;
+	padding: 0;
+}
+
+.golem-menu > div > img {
+	margin-top: -2px;
+	margin-left: -21px;
+	float: left;
+}
+
+.golem-menu > div:hover {
+	border: 1px solid #aecff7;
+	margin: -1px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	border-radius: 3px;
+}

@@ -59,7 +59,7 @@ Potions.parse = function(change) {
 Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	if (this.get(['option', '_enabled'], true)) {
+	if (!this.get(['option', '_disabled'], false)) {
 		for(i in this.data) {
 			if (this.data[i]) {
 				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');

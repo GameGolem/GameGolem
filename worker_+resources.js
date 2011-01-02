@@ -31,7 +31,7 @@ The Shared bucket has a priority of 0
 When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
 Priority is displayed as Disabled, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
 
-When a worker is disabled (worker.get(['option', '_enabled'], true) === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
+When a worker is disabled (worker.get(['option', '_disabled'], false)) then it's bucket is completely ignored and Resourcess are shared to other buckets.
 
 Buckets are filled in priority order, in cases of same priority, alphabetical order is used
 */

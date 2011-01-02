@@ -270,7 +270,7 @@ Army.dashboard = function(sort, rev) {
 	$('#golem-dashboard-Army td a').click(function(e){
 		e.stopPropagation();
 		var $this, section, uid, tooltip;
-		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
+		$this = $(this.wrappedJSObject || this);
 		try {
 			section = objectIndex(Army.sectionlist, $this.closest('td').index());
 			uid = Army.order[$this.closest('tr').index()];

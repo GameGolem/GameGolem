@@ -109,7 +109,7 @@ Elite.init = function() {
 		Elite._save('runtime');
 	});
 	if (!this.get(['option','elite'], true)) {
-		this.option._enabled = false;
+		this.option._disabled = true;
 		this.set(['option','elite']);
 	}
 };
@@ -140,7 +140,7 @@ Elite.parse = function(change) {
 
 Elite.update = function(event) {
 	var i, list, tmp = [], now = Date.now(), check, next;
-	if (this.get(['option', '_enabled'], true)) {
+	if (!this.get(['option', '_disabled'], false)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0) || Army.get([list[i],'full'], 0);

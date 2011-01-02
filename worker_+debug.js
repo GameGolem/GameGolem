@@ -76,7 +76,7 @@ Debug.display = [
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 Debug.setup = function() {
-	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
+	if (this.option._disabled) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
 		return;
 	}
@@ -92,7 +92,7 @@ Debug.setup = function() {
 					wkr[j] = function() {
 						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
 						Debug.stack.unshift([0, w || '', arguments]);
-						if (Debug.option._enabled) {
+						if (!Debug.option._disabled) {
 							if (w) {
 								l = [w+'.'+arguments.callee._name, w];
 							}
@@ -105,7 +105,7 @@ Debug.setup = function() {
 						} catch(e) {
 							console.log(error(e.name + ': ' + e.message));
 						}
-						if (Debug.option._enabled) {
+						if (!Debug.option._disabled) {
 							t = Date.now() - t;
 							if (Debug.stack.length > 1) {
 								Debug.stack[1][0] += t;
@@ -176,7 +176,17 @@ Debug.update = function(event) {
 };
 
 Debug.work = function(){};// Stub so we can be disabled
-
+/*
+Debug.menu = function(worker, key) {
+	if (worker) {
+		if (!key) {
+			return {
+			}
+		} else if (key === '...') {
+		}
+	}
+};
+*/
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {

@@ -316,7 +316,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'attack':	
 		stat = stat || 'stamina';
 		value = value || stamina;
-		if (!Monster.get(['option', '_enabled'], true)){
+		if (Monster.get(['option', '_disabled'], false)){
 				return nothing;
 		}
 		options = Monster.get('runtime.values.'+mode);
@@ -335,7 +335,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (monsterAction < 0 && mode === 'attack' && Battle.get(['option', '_enabled'], true) 
+		if (monsterAction < 0 && mode === 'attack' && !Battle.get(['option', '_disabled'], false) 
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}

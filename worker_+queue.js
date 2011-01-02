@@ -106,7 +106,7 @@ Queue.init = function() {
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {
 		if (Workers[i].work && Workers[i].display) {
-			this._watch(Workers[i], 'option._enabled');// Keep an eye out for them going disabled
+			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
 			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
 				console.log(log('Adding '+i+' to Queue'));
 				if (Workers[i].settings.unsortable) {
@@ -156,14 +156,14 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch' && event.id === 'option._enabled') { // A worker getting disabled / enabled
-		if (event.worker.get(['option', '_enabled'], true)) {
-			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
-		} else {
+	if (event.type === 'watch' && event.id === 'option._disabled') { // A worker getting disabled / enabled
+		if (event.worker.get(['option', '_disabled'], false)) {
 			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
 			if (this.runtime.current === i) {
 				this.clearCurrent();
 			}
+		} else {
+			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
 		}
 	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
 		if (this.option.pause || Page.temp.loading) {
@@ -190,7 +190,7 @@ Queue.update = function(event) {
 				break;
 			}
 		}
-		if (LevelUp.get(['option', '_enabled'], true) && !this.runtime.stamina && !this.runtime.energy 
+		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action.exp) {
@@ -239,7 +239,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true) && !Workers[i].get(['option', '_sleep'], false)) {
+			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 				console.log(warn(Workers[i].name + '.work(false);'));
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -247,7 +247,7 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true) || worker.get(['option', '_sleep'], false)) {
+			if (!worker || !worker.work || !worker.display || worker.get(['option', '_disabled'], false) || worker.get(['option', '_sleep'], false)) {
 				if (worker && this.runtime.current === worker.name) {
 					this.clearCurrent();
 				}
@@ -287,6 +287,20 @@ Queue.update = function(event) {
 			Workers[i]._flush();
 		}
 		this._pop();
+	}
+};
+
+Queue.menu = function(worker, key) {
+	if (worker) {
+		if (!key) {
+			return worker.work && !worker.settings.no_disable ? {enable:(worker.get(['option','_disabled'], false) ? '+' : '-') + 'Disabled'} : null;
+		} else if (key === 'enable') {
+			if (worker.get(['option','_disabled'], false)) {
+				worker.set(['option','_disabled']);
+			} else {
+				worker.set(['option','_disabled'], true);
+			}
+		}
 	}
 };
 

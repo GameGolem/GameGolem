@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.897
+// @version		31.5.898
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 897;
+var revision = 898;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -736,7 +736,7 @@ function Worker(name,pages,settings) {
 	this.name = name;
 	this.pages = pages;
 
-	this.defaults = {}; // {'APP':{data:{}, options:{}} - replaces with app-specific data, can be used for any this.* wanted...
+	this.defaults = {}; // {'APP':{data:{}, option:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 
@@ -1443,7 +1443,7 @@ Army.dashboard = function(sort, rev) {
 	$('#golem-dashboard-Army td a').click(function(e){
 		e.stopPropagation();
 		var $this, section, uid, tooltip;
-		$this = $(this.wrappedJSObject ? this.wrappedJSObject : this);
+		$this = $(this.wrappedJSObject || this);
 		try {
 			section = objectIndex(Army.sectionlist, $this.closest('td').index());
 			uid = Army.order[$this.closest('tr').index()];
@@ -1497,19 +1497,18 @@ Config.option = {
 };
 
 Config.init = function() {
+	var i, j, k, $display;
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
-	if (isObject(Queue.option.enabled)) {
-		for (i in Queue.option.enabled) {
-			worker = Worker.find(i);
-			if (worker && worker.option) {
-				worker.option._enabled = Queue.option.enabled[i];
+	for (i in Workers) {
+		if (Workers[i].option && ('_enabled' in Workers[i].option)) {
+			if (!Workers[i].option._enabled) {
+				Workers[i].set(['option','_disabled'], true);
 			}
+			Workers[i].set(['option','_enabled']);
 		}
-		delete Queue.option.enabled;
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	var i, j, k, $display;
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + getImage('blank') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
@@ -1636,8 +1635,63 @@ Config.init = function() {
 	});
 	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
+	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
+	$('.golem-icon-menu').click(function(event) {
+		var i, key, keys, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name'));
+		if (Config.temp.menu !== worker.name) {
+			Config.temp.menu = worker.name;
+			for (i in Workers) {
+				if (Workers[i].menu) {
+					html = html ? html + '<hr>' : html;
+					keys = Workers[i].menu(worker);
+					for (key in keys) {
+						switch (keys[key].charAt(0)) {
+							case '+':	keys[key] = '<img src="' + getImage('tick') + '">' + keys[key].substr(1);	break;
+							case '-':	keys[key] = '<img src="' + getImage('cross') + '">' + keys[key].substr(1);	break;
+							case '=':	keys[key] = '<img src="' + getImage('dot') + '">' + keys[key].substr(1);	break;
+							default:	break;
+						}
+						html += '<div name="' + i + '.' + worker.name + '.' + key + '">' + keys[key] + '</div>';
+					}
+				}
+			}
+			$('#golem-menu').html(html || 'no options');
+			$('#golem-menu').css({
+				top:$this.offset().top + $this.height(),
+				left:$this.offset().left
+			}).show();
+		} else {
+			Config.temp.menu = null;
+			$('#golem-menu').hide();
+		}
+		event.stopPropagation();
+		return false;
+	});
+	$('.golem-menu > div').live('click', function(event) {
+		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
+//		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
+		Worker.find(key[0]).menu(Worker.find(key[1]), key[2]);
+	});
+	$('#golem-menu').click(function(){
+		Config.temp.menu = null;
+		$('#golem-menu').hide();}
+	);
 };
 
+/*
+Config.menu = function(worker, key) {
+	// !worker = global menu, otherwise for a specific worker
+	// !key = create menu - return an object {key:'Label'}
+	// key = user has clicked line, make changes and return null
+	if (worker) {
+		if (!key) {
+			return {
+			}
+		} else if (key === '...') {
+		}
+	}
+};
+*/
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -1654,7 +1708,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (!worker.get(['option', '_enabled'], true) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<input id="'+this.makeID(worker,'_enabled')+'" type="checkbox"' + (worker.get(['option', '_enabled'], true) ? ' checked' : '') + (!worker.work || worker.settings.no_disable ? ' disabled="true"' : '') + '><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
@@ -2076,7 +2130,7 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%10%00%00%00%10%08%03%00%00%00(-%0FS%00%00%00%1EPLTE%BA%BA%BA%EF%EF%EF%E5%E5%E5%D4%D4%D4%D9%D9%D9%E3%E3%E3%F8%F8%F8%40%40%40%FF%FF%FF%00%00%00%83%AA%DF%CF%00%00%00%0AtRNS%FF%FF%FF%FF%FF%FF%FF%FF%FF%00%B2%CC%2C%CF%00%00%00EIDATx%DA%9C%8FA%0A%00%20%08%04%B5%CC%AD%FF%7F%B8%0D%CC%20%E8%D20%A7AX%94q!%7FA%10H%04%F4%00%19*j%07Np%9E%3B%C9%A0%0C%BA%DC%A1%91B3%98%85%AF%D9%E1%5C%A1%FE%F9%CB%14%60%00D%1D%07%E7%0AN(%89%00%00%00%00IEND%AEB%60%82">');
+	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="' + getImage('dashboard') + '">');
 	$('#golem_toggle_dash').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
@@ -2221,7 +2275,7 @@ Debug.display = [
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 Debug.setup = function() {
-	if (this.option._enabled === false) {// Need to remove our dashboard when disabled
+	if (this.option._disabled) {// Need to remove our dashboard when disabled
 		delete this.dashboard;
 		return;
 	}
@@ -2237,7 +2291,7 @@ Debug.setup = function() {
 					wkr[j] = function() {
 						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
 						Debug.stack.unshift([0, w || '', arguments]);
-						if (Debug.option._enabled) {
+						if (!Debug.option._disabled) {
 							if (w) {
 								l = [w+'.'+arguments.callee._name, w];
 							}
@@ -2250,7 +2304,7 @@ Debug.setup = function() {
 						} catch(e) {
 							console.log(error(e.name + ': ' + e.message));
 						}
-						if (Debug.option._enabled) {
+						if (!Debug.option._disabled) {
 							t = Date.now() - t;
 							if (Debug.stack.length > 1) {
 								Debug.stack[1][0] += t;
@@ -2321,7 +2375,17 @@ Debug.update = function(event) {
 };
 
 Debug.work = function(){};// Stub so we can be disabled
-
+/*
+Debug.menu = function(worker, key) {
+	if (worker) {
+		if (!key) {
+			return {
+			}
+		} else if (key === '...') {
+		}
+	}
+};
+*/
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
@@ -2752,6 +2816,15 @@ Main._retry_ = 0;
 // Use this function to add more applications, "app" must be the pathname of the app under facebook.com, appid is the facebook app id, appname is the human readable name
 Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
+};
+
+Main.parse = function() {
+	try {
+		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
+		if (newpath) {
+			imagepath = newpath;
+		}
+	} catch(e) {}
 };
 
 Main.update = function(event) {
@@ -3247,7 +3320,7 @@ Queue.init = function() {
 	this.option.queue = unique(this.option.queue);
 	for (i in Workers) {
 		if (Workers[i].work && Workers[i].display) {
-			this._watch(Workers[i], 'option._enabled');// Keep an eye out for them going disabled
+			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
 			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
 				console.log(log('Adding '+i+' to Queue'));
 				if (Workers[i].settings.unsortable) {
@@ -3297,14 +3370,14 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch' && event.id === 'option._enabled') { // A worker getting disabled / enabled
-		if (event.worker.get(['option', '_enabled'], true)) {
-			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
-		} else {
+	if (event.type === 'watch' && event.id === 'option._disabled') { // A worker getting disabled / enabled
+		if (event.worker.get(['option', '_disabled'], false)) {
 			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
 			if (this.runtime.current === i) {
 				this.clearCurrent();
 			}
+		} else {
+			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
 		}
 	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
 		if (this.option.pause || Page.temp.loading) {
@@ -3331,7 +3404,7 @@ Queue.update = function(event) {
 				break;
 			}
 		}
-		if (LevelUp.get(['option', '_enabled'], true) && !this.runtime.stamina && !this.runtime.energy 
+		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
 			if (action.exp) {
@@ -3380,7 +3453,7 @@ Queue.update = function(event) {
 		}
 		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && Workers[i].get(['option', '_enabled'], true) && !Workers[i].get(['option', '_sleep'], false)) {
+			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 				console.log(warn(Workers[i].name + '.work(false);'));
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -3388,7 +3461,7 @@ Queue.update = function(event) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || !worker.get(['option', '_enabled'], true) || worker.get(['option', '_sleep'], false)) {
+			if (!worker || !worker.work || !worker.display || worker.get(['option', '_disabled'], false) || worker.get(['option', '_sleep'], false)) {
 				if (worker && this.runtime.current === worker.name) {
 					this.clearCurrent();
 				}
@@ -3431,6 +3504,20 @@ Queue.update = function(event) {
 	}
 };
 
+Queue.menu = function(worker, key) {
+	if (worker) {
+		if (!key) {
+			return worker.work && !worker.settings.no_disable ? {enable:(worker.get(['option','_disabled'], false) ? '+' : '-') + 'Disabled'} : null;
+		} else if (key === 'enable') {
+			if (worker.get(['option','_disabled'], false)) {
+				worker.set(['option','_disabled']);
+			} else {
+				worker.set(['option','_disabled'], true);
+			}
+		}
+	}
+};
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
@@ -3464,7 +3551,7 @@ The Shared bucket has a priority of 0
 When there is a combination of Shared and Exclusive, the relative priority of the buckets are used - total of all priorities / number of buckets.
 Priority is displayed as Disabled, -4, -3, -2, -1, 0, +1, +2, +3, +4, +5
 
-When a worker is disabled (worker.get(['option', '_enabled'], true) === false) then it's bucket is completely ignored and Resourcess are shared to other buckets.
+When a worker is disabled (worker.get(['option', '_disabled'], false)) then it's bucket is completely ignored and Resourcess are shared to other buckets.
 
 Buckets are filled in priority order, in cases of same priority, alphabetical order is used
 */
@@ -4319,7 +4406,7 @@ Army._overload('castle_age', 'parse', function(change) {
 
 Army._overload('castle_age', 'update', function(event) {
 	this._parent();
-	if (this.option._enabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
+	if (!this.option._disabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
 		if (!page && this.option.auto && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
 			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
@@ -4953,7 +5040,7 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = this.get(['option', '_enabled'], true);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
@@ -5389,7 +5476,7 @@ Elite.init = function() {
 		Elite._save('runtime');
 	});
 	if (!this.get(['option','elite'], true)) {
-		this.option._enabled = false;
+		this.option._disabled = true;
 		this.set(['option','elite']);
 	}
 };
@@ -5420,7 +5507,7 @@ Elite.parse = function(change) {
 
 Elite.update = function(event) {
 	var i, list, tmp = [], now = Date.now(), check, next;
-	if (this.get(['option', '_enabled'], true)) {
+	if (!this.get(['option', '_disabled'], false)) {
 		list = Army.get('Elite');// Try to keep the same guards
 		for(i=0; i<list.length; i++) {
 			check = Army.get([list[i],'elite'], 0) || Army.get([list[i],'full'], 0);
@@ -7000,7 +7087,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'attack':	
 		stat = stat || 'stamina';
 		value = value || stamina;
-		if (!Monster.get(['option', '_enabled'], true)){
+		if (Monster.get(['option', '_disabled'], false)){
 				return nothing;
 		}
 		options = Monster.get('runtime.values.'+mode);
@@ -7019,7 +7106,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				general = i;
 			}
 		}
-		if (monsterAction < 0 && mode === 'attack' && Battle.get(['option', '_enabled'], true) 
+		if (monsterAction < 0 && mode === 'attack' && !Battle.get(['option', '_disabled'], false) 
 				&& Battle.runtime.attacking) {
 			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
 		}
@@ -9188,7 +9275,7 @@ Potions.parse = function(change) {
 Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
 	this.runtime.drink = false;
-	if (this.get(['option', '_enabled'], true)) {
+	if (!this.get(['option', '_disabled'], false)) {
 		for(i in this.data) {
 			if (this.data[i]) {
 				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');
