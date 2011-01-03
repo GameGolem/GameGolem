@@ -12,6 +12,7 @@
 */
 var Settings = new Worker('Settings');
 Settings._rootpath = false; // Override save path so we don't get limited to per-user
+Settings.option = Settings.runtime = null;
 
 Settings.settings = {
 	system:true,
@@ -20,110 +21,141 @@ Settings.settings = {
 	no_disable:true
 };
 
-Settings.option = {
-	action:'None',
-	which:'- default -',
-	name:'- default -',
-	confirm:false
+Settings.temp = {
+	worker:null,
+	edit:null,
+	paths:['-']
 };
-
-Settings.display = [
-	{
-		title:'IMPORTANT!',
-		label:'This will backup and restore your current options.<br>There is no confirmation dialog!'
-	},{
-		id:'action',
-		label:'Action (<b>Immediate!!</b>)',
-		select:['None', 'Load', 'Save', 'Delete']
-	},{
-		id:'which',
-		label:'Which',
-		select:'settings'
-	},{
-		id:'name',
-		label:'New Name',
-		text:true
-	}
-];
-
-Settings.oldwhich = null;
 
 Settings.init = function() {
-	if (!this.data['- default -']) {
-		this.set('- default -');
-	}
-	Settings.oldwhich = this.option.which;
-};
-
-Settings.update = function(event) {
-	if (event.type === 'option') {
-		var i, list = [];
-		if (this.oldwhich !== this.option.which) {
-			$('input:golem(settings,name)').val(this.option.which);
-			this.option.name = this.option.which;
-			this.oldwhich = this.option.which;
-		}
-		switch (this.option.action) {
-			case 'None':
-				break;
-			case 'Load':
-				console.log(warn(), 'Loading "' + this.option.which + '"');
-				this.get(this.option.which);
-				break;
-			case 'Save':
-				console.log(warn(), 'Saving "' + this.option.name + '"');
-				this.set(this.option.name);
-				this.option.which = this.option.name;
-				break;
-			case 'Delete':
-				if (this.option.which !== '- default -') {
-					console.log(warn(), 'Deleting "' + this.option.name + '"');
-					delete this.data[this.option.which];
-				}
-				this.option.which = '- default -';
-				this.option.name = '- default -';
-				break;
-			default:
-				break;
-		}
-		$('select:golem(settings,action)').val('None');
-		this.option.action = 'None';
-		for (i in this.data) {
-			list.push(i);
-		}
-		Config.set('settings', list.sort());
-	}
-};
-
-Settings.set = function(what, value) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
-		return this._set(what, value);
-	}
-	this._unflush();
-	this.data[what] = {};
+	var i, j;
 	for (i in Workers) {
-		if (Workers[i] !== this && Workers[i].option) {
-			this.data[what][i] = $.extend(true, {}, Workers[i].option);
+		for (j in Workers[i]._datatypes) {
+			this.temp.paths.push(i + '.' + j);
 		}
+	}
+	this.temp.paths.sort();
+	if (this.data['- default -']) {
+		this.data = this.data['- default -'];
 	}
 };
 
-Settings.get = function(what) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
-		return this._get(what);
-	}
-	this._unflush();
-	if (this.data[what]) {
-		for (i in Workers) {
-			if (Workers[i] !== this && Workers[i].option && this.data[what][i]) {
-				Workers[i].option = $.extend(true, {}, this.data[what][i]);
-				Workers[i]._save('option');
+Settings.menu = function(worker, key) {
+	var i, keys = [];
+	if (worker) {
+		if (!key) {
+			for (i in worker._datatypes) {
+				keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+			}
+			keys.push('---');
+			keys.push('backup:Backup&nbsp;Options');
+			keys.push('restore:Restore&nbsp;Options');
+			return keys;
+		} else if (key) {
+			if (key === 'backup') {
+				this.set(['data', worker.name], $.extend(true, {}, worker.option));
+			} else if (key === 'restore') {
+				if (confirm("WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\Are you sure?")) {
+					this.replace(worker, 'option', $.extend(true, {}, this.data[worker.name]));
+				}
+			} else if (this.temp.worker === worker.name && this.temp.edit === key) {
+				this.temp.worker = this.temp.edit = null;
+				this._notify('data');// Force dashboard update
+			} else {
+				this.temp.worker = worker.name;
+				this.temp.edit = key;
+				this._notify('data');// Force dashboard update
 			}
 		}
-		Page.reload();
+	} else {
+		if (!key) {
+			keys.push('backup:Backup&nbsp;Options');
+			keys.push('restore:Restore&nbsp;Options');
+			return keys;
+		} else {
+			if (key === 'backup') {
+				for (i in Workers) {
+					this.set(['data',i], Workers[i].option);
+				}
+			} else if (key === 'restore') {
+				if (confirm("WARNING!!!\n\nAbout to restore options for all workers.\n\Are you sure?")) {
+					for (i in Workers) {
+						if (i in this.data) {
+							this.replace(Workers[i], 'option', $.extend(true, {}, this.data[i]));
+						}
+					}
+				}
+			}
+		}
 	}
-	return;
+};
+
+Settings.replace = function(worker, type, data) {
+	if (type === 'data') {
+		worker._unflush();
+	}
+	var i, val, old = worker[type], rx = new RegExp('^'+type+'\.');
+	for (i in worker._watching) {
+		if (rx.test(i)) {
+			worker[type] = old;
+			val = worker._get(i, null);
+			worker[type] = data;
+			if (val !== worker._get(i, null)) {
+				worker._notify(i);
+			}
+		}
+	}
+	worker[type] = data;
+	if (type === 'option') {
+		Config.setOptions(worker);
+	}
+	worker._taint[type] = true;
+};
+
+Settings.dashboard = function() {
+	var i, path = this.temp.worker+'.'+this.temp.edit, html = '';
+	html = '<select id="golem_settings_path">';
+	for (i=0; i<this.temp.paths.length; i++) {
+		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
+	}
+	html += '</select>';
+//	html += '<input type="text" value="'+this.temp.worker+'.'+this.temp.edit+'" disabled>';
+	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
+	if (Config.option.advanced) {
+		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
+	}
+	html += '<br>';
+	if (this.temp.worker && this.temp.edit) {
+		if (this.temp.edit === 'data') {
+			Workers[this.temp.worker]._unflush();
+		}
+		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+	}
+	$('#golem-dashboard-Settings').html(html);
+	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
+	$('#golem_settings_save').click(function(){
+		var i, data;
+		try {
+			data = JSON.parse($('#golem_settings_edit').val())
+		} catch(e) {
+			alert("ERROR!!!\n\nBadly formed JSON data.\n\nPlease check the data and try again!");
+			return;
+		}
+		if (confirm("WARNING!!!\n\nReplacing internal data can be dangrous, only do this if you know exactly what you are doing.\n\nAre you sure you wish to replace "+Settings.temp.worker+'.'+Settings.temp.edit+"?")) {
+			// Need to copy data over and then trigger any notifications
+			Settings.replace(Workers[Settings.temp.worker], Settings.temp.edit, data);
+		}
+	});
+	$('#golem_settings_path').change(function(){
+		var path = $('#golem_settings_path').val().regex(/([^.]*)\.?(.*)/);
+		if (path[0] in Workers) {
+			Settings.temp.worker = path[0];
+			Settings.temp.edit = path[1];
+		} else {
+			Settings.temp.worker = Settings.temp.edit = null;
+		}
+		Settings.dashboard();
+	});
+	$('#golem_settings_edit').autoSize();
 };
 

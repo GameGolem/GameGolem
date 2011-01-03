@@ -538,7 +538,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = typeof o !== 'undefined' ? o.toString() : 'undefined';
+			out = typeof o === 'undefined' ? 'undefined' : o === null ? 'null' : o.toString();
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -565,6 +565,28 @@ $.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
 $.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
 	var args = meta[3].toLowerCase().split(',');
 	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
+};
+
+// jQuery extra functions
+
+$.fn.autoSize = function() {
+	function autoSize(e) {
+		var p = (e = e.target || e), s;
+		if (e.oldValueLength !== e.value.length) {
+			while (p && !p.scrollTop) {p = p.parentNode;}
+			if (p) {s = p.scrollTop;}
+			e.style.height = '0px';
+			e.style.height = e.scrollHeight + 'px';
+			if (p) {p.scrollTop = s;}
+			e.oldValueLength = e.value.length;
+		}
+		return true;
+	};
+	this.filter('textarea').each(function(){
+		$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
+		autoSize(this);
+	});
+	return this;
 };
 
 // Images - either on SVN, or via extension location

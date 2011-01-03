@@ -132,14 +132,24 @@ Queue.init = function() {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '">').click(function() {
-		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
+	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
+	$('#golem_pause').click(function() {
+		var pause = Queue.set('option.pause', !Queue.option.pause);
 		console.log(warn('State: ' + (pause ? "paused" : "running")));
 		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
+		if (!pause) {
+			$('#golem_step').hide();
+		} else if (Config.get('option.advanced', false)) {
+			$('#golem_step').show();
+		}
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
-	$('#golem_buttons').prepend($btn); // Make sure it comes first
+	$('#golem_step').click(function() {
+		$(this).toggleClass('red green');
+		Queue._update({type:'reminder'}); // A single shot
+		$(this).toggleClass('red green');
+	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
@@ -293,13 +303,11 @@ Queue.update = function(event) {
 Queue.menu = function(worker, key) {
 	if (worker) {
 		if (!key) {
-			return worker.work && !worker.settings.no_disable ? {enable:(worker.get(['option','_disabled'], false) ? '+' : '-') + 'Disabled'} : null;
-		} else if (key === 'enable') {
-			if (worker.get(['option','_disabled'], false)) {
-				worker.set(['option','_disabled']);
-			} else {
-				worker.set(['option','_disabled'], true);
+			if (worker.work && !worker.settings.no_disable) {
+				return ['enable:' + (worker.get(['option','_disabled'], false) ? '-Disabled' : '+Enabled')];
 			}
+		} else if (key === 'enable') {
+			worker.set(['option','_disabled'], worker.option._disabled ? undefined : true);
 		}
 	}
 };

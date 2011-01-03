@@ -44,7 +44,7 @@ Dashboard.init = function() {
 			this._watch(Workers[i], 'data');
 		}
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
@@ -72,8 +72,8 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="' + getImage('dashboard') + '">');
-	$('#golem_toggle_dash').click(function(){
+	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
+	$('#golem_icon_dashboard').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
@@ -127,7 +127,7 @@ Dashboard.update = function(event) {
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i in Workers) {
-		if (this.data[i]) {
+		if (this.data[i] && !Workers[i].get(['option','_hide_status'], false)) {
 			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
 		}
 	}
@@ -137,5 +137,27 @@ Dashboard.dashboard = function() {
 
 Dashboard.status = function(worker, value) {
 	this.set(['data', worker.name], value);
+};
+
+Dashboard.menu = function(worker, key) {
+	if (worker) {
+		this._unflush();
+		if (!key) {
+			var keys = [];
+			if (this.data[worker.name]) {
+				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
+			}
+			if (worker.dashboard) {
+				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+			}
+			return keys;
+		} else {
+			switch (key) {
+				case 'status':		worker.set(['option','_hide_status'], worker.option._hide_status ? undefined : true);	break;
+				case 'dashboard':	worker.set(['option','_hide_dashboard'], worker.option._hide_dashboard ? undefined : true);	break;
+			}
+			this._notify('data');
+		}
+	}
 };
 

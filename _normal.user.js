@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.901
+// @version		31.5.902
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 901;
+var revision = 902;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -583,7 +583,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = typeof o !== 'undefined' ? o.toString() : 'undefined';
+			out = typeof o === 'undefined' ? 'undefined' : o === null ? 'null' : o.toString();
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -610,6 +610,28 @@ $.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
 $.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
 	var args = meta[3].toLowerCase().split(',');
 	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
+};
+
+// jQuery extra functions
+
+$.fn.autoSize = function() {
+	function autoSize(e) {
+		var p = (e = e.target || e), s;
+		if (e.oldValueLength !== e.value.length) {
+			while (p && !p.scrollTop) {p = p.parentNode;}
+			if (p) {s = p.scrollTop;}
+			e.style.height = '0px';
+			e.style.height = e.scrollHeight + 'px';
+			if (p) {p.scrollTop = s;}
+			e.oldValueLength = e.value.length;
+		}
+		return true;
+	};
+	this.filter('textarea').each(function(){
+		$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
+		autoSize(this);
+	});
+	return this;
 };
 
 // Images - either on SVN, or via extension location
@@ -862,9 +884,11 @@ Worker.prototype._init = function() {
 
 Worker.prototype._load = function(type) {
 	if (!this._datatypes[type]) {
-		for (var i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				this._load(i);
+		if (!type) {
+			for (var i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					this._load(i);
+				}
 			}
 		}
 		return;
@@ -966,9 +990,11 @@ Worker.prototype._remind = function(seconds, id, callback) {
 
 Worker.prototype._save = function(type) {
 	if (!this._datatypes[type]) {
-		for (var i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				arguments.callee.call(this,i);
+		if (!type) {
+			for (var i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					arguments.callee.call(this,i);
+				}
 			}
 		}
 		return true;
@@ -1040,8 +1066,9 @@ Worker.prototype._set = function(what, value) {
 Worker.prototype._setup = function() {
 	this._push();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
+		var i;
 		if (this.defaults[APP]) {
-			for (var i in this.defaults[APP]) {
+			for (i in this.defaults[APP]) {
 				if (isObject(this.defaults[APP][i]) && isObject(this[i])) {
 					this[i] = $.extend(true, {}, this[i], this.defaults[APP][i]);
 				} else {
@@ -1051,6 +1078,11 @@ Worker.prototype._setup = function() {
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
+		for (i in this._datatypes) {// Delete non-existant datatypes
+			if (this._datatypes[i] && !this[i]) {
+				delete this._datatypes[i];
+			}
+		}
 		if (this.setup) {
 			try {
 				this.setup();
@@ -1083,7 +1115,7 @@ Worker.prototype._unflush = function() {
 	if (!this._loaded) {
 		this._init();
 	}
-	if (!this.settings.keep && !this.data) {
+	if (!this.settings.keep && !this.data && this._datatypes.data) {
 		this._load('data');
 	}
 	this._pop();
@@ -1509,17 +1541,12 @@ Config.init = function() {
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + getImage('blank') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-		Config._save('option');
-	});
-	$('#golem_fixed').click(function(){
-		Config.option.fixed ^= true;
-		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
 		Config._save('option');
 	});
 	for (i in Workers) {
@@ -1625,11 +1652,6 @@ Config.init = function() {
 	$('#golem_config input,textarea,select').live('change', function(){
 		Config.updateOptions();
 	});
-	$('#golem-config-advanced').click(function(){
-		Config.updateOptions();
-		$('.golem-advanced:not(".golem-require")').css('display', Config.option.advanced ? '' : 'none');
-		Config.checkRequire();
-	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
 	});
@@ -1637,30 +1659,43 @@ Config.init = function() {
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-icon-menu').click(function(event) {
-		var i, key, keys, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name'));
-		if (Config.temp.menu !== worker.name) {
-			Config.temp.menu = worker.name;
+		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
+		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
+		if (Config.temp.menu !== name) {
+			Config.temp.menu = name;
 			for (i in Workers) {
 				if (Workers[i].menu) {
-					html = html ? html + '<hr>' : html;
-					keys = Workers[i].menu(worker);
-					for (key in keys) {
-						switch (keys[key].charAt(0)) {
-							case '+':	keys[key] = '<img src="' + getImage('tick') + '">' + keys[key].substr(1);	break;
-							case '-':	keys[key] = '<img src="' + getImage('cross') + '">' + keys[key].substr(1);	break;
-							case '=':	keys[key] = '<img src="' + getImage('dot') + '">' + keys[key].substr(1);	break;
-							default:	break;
+					hr = true;
+					Workers[i]._unflush();
+					keys = Workers[i].menu(worker) || [];
+					for (j=0; j<keys.length; j++) {
+						k = keys[j].regex(/([^:]*):?(.*)/);
+						if (k[0] === '---') {
+							hr = true;
+						} else if (k[1]) {
+							if (hr) {
+								html += html ? '<hr>' : '';
+								hr = false;
+							}
+							switch (k[1].charAt(0)) {
+								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
+								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
+								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								default:	break;
+							}
+							html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
 						}
-						html += '<div name="' + i + '.' + worker.name + '.' + key + '">' + keys[key] + '</div>';
 					}
 				}
 			}
-			$('#golem-menu').html(html || 'no options');
+			$this.addClass('golem-icon-menu-active');
+			$('#golem-menu').html(html || 'no&nbsp;options');
 			$('#golem-menu').css({
+				position:Config.option.fixed ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:$this.offset().left
+				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true))
 			}).show();
-		} else {
+		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.temp.menu = null;
 			$('#golem-menu').hide();
 		}
@@ -1670,28 +1705,41 @@ Config.init = function() {
 	$('.golem-menu > div').live('click', function(event) {
 		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
-		Worker.find(key[0]).menu(Worker.find(key[1]), key[2]);
+		var worker = Worker.find(key[0]);
+		worker._unflush();
+		worker.menu(Worker.find(key[1]), key[2]);
 	});
-	$('#golem-menu').click(function(){
+	$(document).click(function(event){ // Any click hides it, relevant handling done above
 		Config.temp.menu = null;
-		$('#golem-menu').hide();}
-	);
+		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
+		$('#golem-menu').hide();
+	});
 };
 
-/*
 Config.menu = function(worker, key) {
-	// !worker = global menu, otherwise for a specific worker
-	// !key = create menu - return an object {key:'Label'}
-	// key = user has clicked line, make changes and return null
-	if (worker) {
+	if (!worker) {
 		if (!key) {
-			return {
+			return [
+				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options'
+			];
+		} else if (key) {
+			switch (key) {
+				case 'fixed':
+					this.option.fixed ^= true;
+					$('#golem_config_frame').toggleClass('golem-config-fixed');
+					break;
+				case 'advanced':
+					this.option.advanced ^= true;
+					$('.golem-advanced:not(".golem-require")').css('display', this.option.advanced ? '' : 'none');
+					this.checkRequire();
+					break;
 			}
-		} else if (key === '...') {
+			this._save('option');
 		}
 	}
 };
-*/
+
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -1968,8 +2016,6 @@ Config.updateOptions = function() {
 //	console.log(warn(), 'Options changed');
 	// Get order of panels first
 	Queue.option.queue = this.getOrder();
-	// Now can we see the advanced stuff
-	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
 	$('#golem_config :input:not(:button)').each(function(i,el){
 		if ($(el).attr('id')) {
@@ -1995,6 +2041,31 @@ Config.updateOptions = function() {
 			}
 		}
 	});
+	this.checkRequire();
+};
+
+Config.setOptions = function(worker) {
+//	if (worker === Queue) {
+		//Queue.option.queue = this.getOrder();
+//	}
+	var i, $el;
+	for (i in worker.option) {
+		$el = $('#'+this.makeID(worker, i));
+		if ($el.length === 1) {
+//			try {
+				if ($el.attr('type') === 'checkbox') {
+					$el.attr('checked', worker.option[i]);
+				} else if ($el.attr('multiple')) {
+					$el.empty();
+					(worker.option[i] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+				} else if ($el.attr('value')) {
+					$el.attr('value', worker.option[i]);
+				} else {
+					$el.val(worker.option[i]);
+				}
+//			} catch(e) {}
+		}
+	}
 	this.checkRequire();
 };
 
@@ -2102,7 +2173,7 @@ Dashboard.init = function() {
 			this._watch(Workers[i], 'data');
 		}
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if ($(this).hasClass('golem-tab-header-active')) {
 			return;
@@ -2130,8 +2201,8 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_toggle_dash" src="' + getImage('dashboard') + '">');
-	$('#golem_toggle_dash').click(function(){
+	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
+	$('#golem_icon_dashboard').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
 		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
@@ -2185,7 +2256,7 @@ Dashboard.update = function(event) {
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i in Workers) {
-		if (this.data[i]) {
+		if (this.data[i] && !Workers[i].get(['option','_hide_status'], false)) {
 			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
 		}
 	}
@@ -2195,6 +2266,28 @@ Dashboard.dashboard = function() {
 
 Dashboard.status = function(worker, value) {
 	this.set(['data', worker.name], value);
+};
+
+Dashboard.menu = function(worker, key) {
+	if (worker) {
+		this._unflush();
+		if (!key) {
+			var keys = [];
+			if (this.data[worker.name]) {
+				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
+			}
+			if (worker.dashboard) {
+				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+			}
+			return keys;
+		} else {
+			switch (key) {
+				case 'status':		worker.set(['option','_hide_status'], worker.option._hide_status ? undefined : true);	break;
+				case 'dashboard':	worker.set(['option','_hide_dashboard'], worker.option._hide_dashboard ? undefined : true);	break;
+			}
+			this._notify('data');
+		}
+	}
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -2506,13 +2599,10 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
-//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
-	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
-//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -2739,22 +2829,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (typeof type === 'string') {
 		type = [type];
 	}
-//	if (type[0] === 'serpent_ancient') {
-//		console.log(warn(), 'OK serp');
-//	}
-//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
-				if (j === 'serpent_ancient' && value[i][j]) {
-					console.log(warn(), j +' ' + value[i][j]);
-				}
+				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			if (sum(value[i])) {
-				min = Math.min(min, sum(value[i]))-1;
-			}
+			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
@@ -3134,13 +3215,13 @@ Page.makeLink = function(url, args, content) {
 /*
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
-Page.to = function(url, args, force) { // Force = true/false (ignore pause if true)
+Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
 	var page = this.makeURL(url, args);
 //	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
-	if (Queue.option.pause) {
-		console.log(error('Trying to load page when paused...'));
-		return true;
-	}
+//	if (Queue.option.pause) {
+//		console.log(error('Trying to load page when paused...'));
+//		return true;
+//	}
 	if (!page || (!force && page === (this.temp.last || this.page))) {
 		return true;
 	}
@@ -3358,14 +3439,24 @@ Queue.init = function() {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$btn = $('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '">').click(function() {
-		var pause = Queue.set('option.pause', !Queue.get('option.pause', false));
+	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
+	$('#golem_pause').click(function() {
+		var pause = Queue.set('option.pause', !Queue.option.pause);
 		console.log(warn('State: ' + (pause ? "paused" : "running")));
 		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
+		if (!pause) {
+			$('#golem_step').hide();
+		} else if (Config.get('option.advanced', false)) {
+			$('#golem_step').show();
+		}
 		Queue.clearCurrent();
 		Config.updateOptions();
 	});
-	$('#golem_buttons').prepend($btn); // Make sure it comes first
+	$('#golem_step').click(function() {
+		$(this).toggleClass('red green');
+		Queue._update({type:'reminder'}); // A single shot
+		$(this).toggleClass('red green');
+	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
@@ -3519,13 +3610,11 @@ Queue.update = function(event) {
 Queue.menu = function(worker, key) {
 	if (worker) {
 		if (!key) {
-			return worker.work && !worker.settings.no_disable ? {enable:(worker.get(['option','_disabled'], false) ? '+' : '-') + 'Disabled'} : null;
-		} else if (key === 'enable') {
-			if (worker.get(['option','_disabled'], false)) {
-				worker.set(['option','_disabled']);
-			} else {
-				worker.set(['option','_disabled'], true);
+			if (worker.work && !worker.settings.no_disable) {
+				return ['enable:' + (worker.get(['option','_disabled'], false) ? '-Disabled' : '+Enabled')];
 			}
+		} else if (key === 'enable') {
+			worker.set(['option','_disabled'], worker.option._disabled ? undefined : true);
 		}
 	}
 };
@@ -3765,6 +3854,7 @@ Resources.set = function(what,value) {
 */
 var Settings = new Worker('Settings');
 Settings._rootpath = false; // Override save path so we don't get limited to per-user
+Settings.option = Settings.runtime = null;
 
 Settings.settings = {
 	system:true,
@@ -3773,111 +3863,142 @@ Settings.settings = {
 	no_disable:true
 };
 
-Settings.option = {
-	action:'None',
-	which:'- default -',
-	name:'- default -',
-	confirm:false
+Settings.temp = {
+	worker:null,
+	edit:null,
+	paths:['-']
 };
-
-Settings.display = [
-	{
-		title:'IMPORTANT!',
-		label:'This will backup and restore your current options.<br>There is no confirmation dialog!'
-	},{
-		id:'action',
-		label:'Action (<b>Immediate!!</b>)',
-		select:['None', 'Load', 'Save', 'Delete']
-	},{
-		id:'which',
-		label:'Which',
-		select:'settings'
-	},{
-		id:'name',
-		label:'New Name',
-		text:true
-	}
-];
-
-Settings.oldwhich = null;
 
 Settings.init = function() {
-	if (!this.data['- default -']) {
-		this.set('- default -');
-	}
-	Settings.oldwhich = this.option.which;
-};
-
-Settings.update = function(event) {
-	if (event.type === 'option') {
-		var i, list = [];
-		if (this.oldwhich !== this.option.which) {
-			$('input:golem(settings,name)').val(this.option.which);
-			this.option.name = this.option.which;
-			this.oldwhich = this.option.which;
-		}
-		switch (this.option.action) {
-			case 'None':
-				break;
-			case 'Load':
-				console.log(warn(), 'Loading "' + this.option.which + '"');
-				this.get(this.option.which);
-				break;
-			case 'Save':
-				console.log(warn(), 'Saving "' + this.option.name + '"');
-				this.set(this.option.name);
-				this.option.which = this.option.name;
-				break;
-			case 'Delete':
-				if (this.option.which !== '- default -') {
-					console.log(warn(), 'Deleting "' + this.option.name + '"');
-					delete this.data[this.option.which];
-				}
-				this.option.which = '- default -';
-				this.option.name = '- default -';
-				break;
-			default:
-				break;
-		}
-		$('select:golem(settings,action)').val('None');
-		this.option.action = 'None';
-		for (i in this.data) {
-			list.push(i);
-		}
-		Config.set('settings', list.sort());
-	}
-};
-
-Settings.set = function(what, value) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
-		return this._set(what, value);
-	}
-	this._unflush();
-	this.data[what] = {};
+	var i, j;
 	for (i in Workers) {
-		if (Workers[i] !== this && Workers[i].option) {
-			this.data[what][i] = $.extend(true, {}, Workers[i].option);
+		for (j in Workers[i]._datatypes) {
+			this.temp.paths.push(i + '.' + j);
 		}
+	}
+	this.temp.paths.sort();
+	if (this.data['- default -']) {
+		this.data = this.data['- default -'];
 	}
 };
 
-Settings.get = function(what) {
-	var i, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
-	if (x.length && (x[0] === 'option' || x[0] === 'runtime')) {
-		return this._get(what);
-	}
-	this._unflush();
-	if (this.data[what]) {
-		for (i in Workers) {
-			if (Workers[i] !== this && Workers[i].option && this.data[what][i]) {
-				Workers[i].option = $.extend(true, {}, this.data[what][i]);
-				Workers[i]._save('option');
+Settings.menu = function(worker, key) {
+	var i, keys = [];
+	if (worker) {
+		if (!key) {
+			for (i in worker._datatypes) {
+				keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+			}
+			keys.push('---');
+			keys.push('backup:Backup&nbsp;Options');
+			keys.push('restore:Restore&nbsp;Options');
+			return keys;
+		} else if (key) {
+			if (key === 'backup') {
+				this.set(['data', worker.name], $.extend(true, {}, worker.option));
+			} else if (key === 'restore') {
+				if (confirm("WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\Are you sure?")) {
+					this.replace(worker, 'option', $.extend(true, {}, this.data[worker.name]));
+				}
+			} else if (this.temp.worker === worker.name && this.temp.edit === key) {
+				this.temp.worker = this.temp.edit = null;
+				this._notify('data');// Force dashboard update
+			} else {
+				this.temp.worker = worker.name;
+				this.temp.edit = key;
+				this._notify('data');// Force dashboard update
 			}
 		}
-		Page.reload();
+	} else {
+		if (!key) {
+			keys.push('backup:Backup&nbsp;Options');
+			keys.push('restore:Restore&nbsp;Options');
+			return keys;
+		} else {
+			if (key === 'backup') {
+				for (i in Workers) {
+					this.set(['data',i], Workers[i].option);
+				}
+			} else if (key === 'restore') {
+				if (confirm("WARNING!!!\n\nAbout to restore options for all workers.\n\Are you sure?")) {
+					for (i in Workers) {
+						if (i in this.data) {
+							this.replace(Workers[i], 'option', $.extend(true, {}, this.data[i]));
+						}
+					}
+				}
+			}
+		}
 	}
-	return;
+};
+
+Settings.replace = function(worker, type, data) {
+	if (type === 'data') {
+		worker._unflush();
+	}
+	var i, val, old = worker[type], rx = new RegExp('^'+type+'\.');
+	for (i in worker._watching) {
+		if (rx.test(i)) {
+			worker[type] = old;
+			val = worker._get(i, null);
+			worker[type] = data;
+			if (val !== worker._get(i, null)) {
+				worker._notify(i);
+			}
+		}
+	}
+	worker[type] = data;
+	if (type === 'option') {
+		Config.setOptions(worker);
+	}
+	worker._taint[type] = true;
+};
+
+Settings.dashboard = function() {
+	var i, path = this.temp.worker+'.'+this.temp.edit, html = '';
+	html = '<select id="golem_settings_path">';
+	for (i=0; i<this.temp.paths.length; i++) {
+		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
+	}
+	html += '</select>';
+//	html += '<input type="text" value="'+this.temp.worker+'.'+this.temp.edit+'" disabled>';
+	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
+	if (Config.option.advanced) {
+		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
+	}
+	html += '<br>';
+	if (this.temp.worker && this.temp.edit) {
+		if (this.temp.edit === 'data') {
+			Workers[this.temp.worker]._unflush();
+		}
+		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+	}
+	$('#golem-dashboard-Settings').html(html);
+	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
+	$('#golem_settings_save').click(function(){
+		var i, data;
+		try {
+			data = JSON.parse($('#golem_settings_edit').val())
+		} catch(e) {
+			alert("ERROR!!!\n\nBadly formed JSON data.\n\nPlease check the data and try again!");
+			return;
+		}
+		if (confirm("WARNING!!!\n\nReplacing internal data can be dangrous, only do this if you know exactly what you are doing.\n\nAre you sure you wish to replace "+Settings.temp.worker+'.'+Settings.temp.edit+"?")) {
+			// Need to copy data over and then trigger any notifications
+			Settings.replace(Workers[Settings.temp.worker], Settings.temp.edit, data);
+		}
+	});
+	$('#golem_settings_path').change(function(){
+		var path = $('#golem_settings_path').val().regex(/([^.]*)\.?(.*)/);
+		if (path[0] in Workers) {
+			Settings.temp.worker = path[0];
+			Settings.temp.edit = path[1];
+		} else {
+			Settings.temp.worker = Settings.temp.edit = null;
+		}
+		Settings.dashboard();
+	});
+	$('#golem_settings_edit').autoSize();
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -4294,7 +4415,8 @@ Army.defaults.castle_age = {
 		count:-1, // How many people have we actively seen
 		page:0, // Next page we want to look at 
 		extra:1, // How many non-real army members are there (you are one of them)
-		oldest:0 // Timestamp of when we last saw the oldest member
+		oldest:0, // Timestamp of when we last saw the oldest member
+		check:false
 	},
 	
 	display:[
@@ -4356,6 +4478,18 @@ Army._overload('castle_age', 'init', function() {
 	this._parent();
 });
 
+Army._overload('castle_age', 'menu', function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['fill:Check&nbsp;Army&nbsp;Now'];
+		} else if (key === 'fill') {
+			this.set(['runtime','page'], 1);
+			this.set(['runtime','check'], true);
+			this._save('runtime');
+		}
+	}
+});
+
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
@@ -4388,6 +4522,7 @@ Army._overload('castle_age', 'parse', function(change) {
 			});
 		} else {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
+			this._set(['runtime','check'], false);
 		}
 		$tmp = $('img[src*="bonus_member.jpg"]');
 		if ($tmp.length) {
@@ -4405,8 +4540,9 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 		this._set(['runtime','count'], count);
 		if (this.runtime.page) {
-			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
+			if (page !== this.runtime.page || (!this.runtime.check && Player.get('armymax',0) === (this.runtime.count + this.runtime.extra))) {
 				this._set(['runtime','page'], 0);
+				this._set(['runtime','check'], false);
 			} else {
 				this._set(['runtime','page'], page + 1);
 			}
@@ -4656,8 +4792,7 @@ Bank.option = {
 	general:true,
 	above:10000,
 	hand:0,
-	keep:10000,
-	status:true
+	keep:10000
 };
 
 Bank.display = [
@@ -4677,12 +4812,15 @@ Bank.display = [
 		id:'keep',
 		label:'Keep in Bank',
 		text:true
-	},{
-		id:'status',
-		label:'Show in Dashboard',
-		checkbox:true
 	}
 ];
+
+Bank.setup = function() {
+	if ('status' in this.option) {
+		this.option._hide_status = !this.option.status;
+		delete this.option.status;
+	}
+};
 
 Bank.init = function() {
 	this._watch(Player, 'data.cash');// We want other things too, but they all change in relation to this
@@ -4696,13 +4834,9 @@ Bank.work = function(state) {
 };
 
 Bank.update = function(event) {
-	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this,
+	Dashboard.status(this, // Don't use this.worth() as it ignores this.option.keep
 			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
 			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
-	} else {
-		Dashboard.status(this);
-	}
 	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
 };
 
@@ -4794,11 +4928,11 @@ Battle.runtime = {
 };
 
 Battle.symbol = { // Demi-Power symbols
-	1:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%17%90%B3%1AIn%99%AD%B0%3F%5Erj%7F%8A4%40J%22*1%FF%FF%FFm%0F%82%CD%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%ABIDATx%DAl%91%0B%0E%04!%08CAh%E7%FE7%DE%02%BA3%FBib%A2O%A8%02vm%91%00xN%B6%A1%10%EB%86O%0C%22r%AD%0Cmn%0C%8A%8Drxa%60-%B3p%AF%8C%05%0C%06%15d%E6-%5D%90%8D%E5%90~%B0x%A20e%117%0E%D9P%18%A1%60w%F3%B0%1D%1E%18%1C%85m'D%B9%08%E7%C6%FE%0F%B7%CF%13%C77%1Eo%F4%93%05%AA%24%3D%D9%3F%E1%DB%25%8E%07%BB%CA%D8%9C%8E%FE6%A6J%B9%1F%FB%DAa%8A%BFNW3%B5%9ANc%D5%FEn%9El%F7%20%F6tt%8C%12%F01%B4%CE%F8%9D%E5%B7%5E%02%0C%00n%97%07%B1AU%81%B7%00%00%00%00IEND%AEB%60%82",
-	2:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%E0%0D%0CZ%5B%5Bv%13%0F%2F%1A%16%7Byx%8941DB%3F%FF%FF%FFOmpc%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B4IDATx%DAT%D1%5B%12%C5%20%08%03P%08%C2%DD%FF%8Eo%12%EB%D8%F2%D1%C7%C1%01%C5%F8%3DQ%05T%9D%BFxP%C6%07%EA%CDF%07p%998%B9%14%C3%C4aj%AE%9CI%A5%B6%875zFL%0F%C8%CD%19vrG%AC%CD%5C%BC%C6nM%D57'%EB%CA%AD%EC%C2%E5b%B5%93%5B%E9%97%99%40D%CC%97sw%DB%FByqwF%83u%FA%F2%C8%A3%93u%A0%FD%8C%B8%BA%96NAn%90%17%C1%C7%E1'%D7%F2%85%01%D4%DC%A7d%16%EDM2%1A%C3%C5%1E%15%7DX%C7%23%19%EB%1El%F5h%B2lV%5B%CF%ED%A0w%89~%AE'%CE%ED%01%F7%CA%5E%FC%8D%BF%00%03%00%AA%CE%08%23%FB4h%C4%00%00%00%00IEND%AEB%60%82",
-	3:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%B1%98g%DE%BCyqpq%8CnF%12%11%0EME7y8%0B%FF%FF%FF6%A1%E73%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B7IDATx%DA%5C%91Y%16C!%0CB%C9%40%BA%FF%1D%17%7Cz%9Em%BE%F4%8A%19%08%3E%3BX%40%F1%DC%B0%A1%99_xcT%EF(%BC8%D8%CC%9A%A9%D4!%0E%0E%8Bf%863%FE%16%0F%06%5BR%22%02%1C%A0%89%07w%E6T%AC%A8A%F6%C2%251_%9CPG%C2%A1r7N%CB%E1%1CtN%E7%06%86%7F%B85%8B%1A%22%2F%AC%3E%D4%B2_.%9C%C6%EA%B3%E2%C6%BB%24%CA%25uY%98%D5H%0D%EE%922%40b%19%09%CFNs%99%C8Y%E2XS%D2%F3*%0F7%B5%B9%B6%AA%16_%0E%9A%D61V%DCu-%E5%A2g%3BnO%C1%B3%1E%9C%EDiax%94%3F%F87%BE%02%0C%00%98%F2%07%E0%CE%8C%E4%B1%00%00%00%00IEND%AEB%60%82",
-	4:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%90%CA%3CSTRq%9B5On*%10%13%0Dx%7Ct6B'%FF%FF%FFx%0A%94%CE%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%B2IDATx%DAT%D1A%16%C4%20%08%03P%20%92%B9%FF%8D'%80%B5%96%85%AF~%95*%D8o%07%09%90%CF%CC6%96%F5%CA%CD%E0%DAA%BC%0CM%B3C%CBxX%9A%E9%15Z%18%B7QW%E2%DB%9B%3D%E0%CD%99%11%18V%3AM%02%CD%FA%08.%8A%B5%D95%B1%A0%A7%E9Ci%D0%9Cb3%034D%F8%CB(%EE%F8%F0%F1%FA%C5ae9%BB%FD%B0%A7%CF%F9%1Au%9FfR%DB%A3%A19%179%CFa%B1%8E%EB*%91%BE_%B9*M%A9S%B7%97%AE)%15%B5%3F%BAX%A9%0Aw%C9m%9A%A0%CA%AA%20%5Eu%E5%D5%1DL%23%D4%9Eu7%AD%DBvZv%F17%FE%02%0C%00%D3%0A%07%E1%0961%CF%00%00%00%00IEND%AEB%60%82",
-	5:"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%16%00%00%00%16%08%03%00%00%00%F3j%9C%09%00%00%00%18PLTE%F2%F2%EF!!%20%A5%A5%A3vvv%5BZZ%3D%3D%3B%00%00%00%FF%FF%FF.%C4%F9%B3%00%00%00%08tRNS%FF%FF%FF%FF%FF%FF%FF%00%DE%83%BDY%00%00%00%BEIDATx%DA%5C%91Q%92%C30%08C%11B%DE%FB%DFx%25%C7n3%E5%23%E3%3Cd%01%A6%FEN%00%12p%FF%EA%40%A3%05%A7%F0%C6%C2%0A%CCW_%AC%B5%C4%1D9%5D%EC39%09'%B0y%A5%D8%E2H%5D%D53%DDH%E1%E05%A6%9A2'%9Bkcw%40%E9%C5e%5Ev%B6g%E4%B1)%DA%DF%EEQ%D3%A0%25Vw%EC%B9%D5)%C8%5Cob%9C%1E%E2%E2%D8%16%F1%94%F8%E0-%AF%B9%F8x%CB%F2%FE%C8g%1Eo%A03w%CA%86%13%DB%C4%1D%CA%7C%B7%E8w%E4d%FAL%E9%CE%9B%F3%F0%D0g%F8%F0%AD%CFSyD%DC%875%87%3B%B0%D1%5D%C4%D9N%5C%13%3A%EB%A9%F7.%F5%BB%CB%DF%F8%17%60%00%EF%2F%081%0F%2BNZ%00%00%00%00IEND%AEB%60%82"
+	1:getImage('symbol_1'),
+	2:getImage('symbol_2'),
+	3:getImage('symbol_3'),
+	4:getImage('symbol_4'),
+	5:getImage('symbol_5')
 };
 Battle.demi = {
 	1:'Ambrosia',
@@ -5056,11 +5190,11 @@ Battle.update = function(event) {
 	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
-		+ '<img src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'" style="width:11px;height:11px;"> ' + (this.data.points[0] || 0) + '/10 '
-		+ '<img src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'" style="width:11px;height:11px;"> ' + (this.data.points[1] || 0) + '/10 '
-		+ '<img src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'" style="width:11px;height:11px;"> ' + (this.data.points[2] || 0) + '/10 '
-		+ '<img src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'" style="width:11px;height:11px;"> ' + (this.data.points[3] || 0) + '/10 '
-		+ '<img src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'" style="width:11px;height:11px;"> ' + (this.data.points[4] || 0) + '/10');
+		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'"> ' + (this.data.points[1] || 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'"> ' + (this.data.points[2] || 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'"> ' + (this.data.points[3] || 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + (this.data.points[4] || 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
         limit = this.option.limit;
@@ -5163,7 +5297,7 @@ Battle.update = function(event) {
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
-			status.push('Next Target: <img src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'" style="width:11px;height:11px;"> ' + data[i].name.html_escape() + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + data[i].name.html_escape() + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found.');
@@ -5246,7 +5380,7 @@ Battle.dashboard = function(sort, rev) {
 	}
 	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.data.rank[Player.get('rank')].name + ' (' + Player.get('rank') + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
-		list.push(' <img src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'" style="width:11px;height:11px;"> ' + points[i]);
+		list.push(' <img class="golem-image" src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
 	list.push('</div><hr>');
 	th(output, 'Align');
@@ -5261,7 +5395,7 @@ Battle.dashboard = function(sort, rev) {
 	for (o=0; o<this.order.length; o++) {
 		data = this.data.user[this.order[o]];
 		output = [];
-		td(output, isNumber(data.align) ? '<img src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
+		td(output, isNumber(data.align) ? '<img class="golem-image" src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
@@ -5299,8 +5433,7 @@ Blessing.defaults['castle_age'] = {
 };
 
 Blessing.option = {
-	which:'Stamina',
-        display: false
+	which:'Stamina'
 };
 
 Blessing.runtime = {
@@ -5310,15 +5443,24 @@ Blessing.runtime = {
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
 Blessing.display = [
     {
-	id:'which',
-	label:'Which',
-	select:Blessing.which
-    },{
-        id:'display',
-        label:'Display in Blessing info on *',
-        checkbox:true
+		id:'which',
+		label:'Which',
+		select:Blessing.which
     }
 ];
+
+Blessing.setup = function() {
+	if ('display' in this.option) {
+		this.option._hide_status = !this.option.display;
+		delete this.option.display;
+	}
+};
+
+Blessing.init = function() {
+	if (this.runtime.when) {
+		this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+	}
+};
 
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
@@ -5329,47 +5471,46 @@ Blessing.parse = function(change) {
 		} else if (result.text().match(/You have paid tribute to/i)) {
 			this.runtime.when = Date.now() + 86460000; // 24 hours and 1 minute
 		}
+		if (this.runtime.when) {
+			this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+		}
 	}
 	return false;
 };
 
 Blessing.update = function(event){
     var d, demi;
-     if (this.option.display && this.option.which !== 'None'){
+     if (this.option.which && this.option.which !== 'None'){
          d = new Date(this.runtime.when);
          switch(this.option.which){
              case 'Energy':
-                 demi = 'Ambrosia (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_1')+'"> Ambrosia (' + this.option.which + ')';
                  break;
              case 'Attack':
-                 demi = 'Malekus (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_2')+'"> Malekus (' + this.option.which + ')';
                  break;
              case 'Defense':
-                 demi = 'Corvintheus (' + this.option.which + ')';
-                 break;
-             case 'Defense':
-                 demi = 'Corvintheus (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_3')+'"> Corvintheus (' + this.option.which + ')';
                  break;
              case 'Health':
-                 demi = 'Aurora (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_4')+'"> Aurora (' + this.option.which + ')';
                  break;
              case 'Stamina':
-                 demi = 'Azeron (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_5')+'"> Azeron (' + this.option.which + ')';
                  break;
              default:
                  demi = 'Unknown';
                  break;
          }
          Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+		 this.set(['option','_sleep'], Date.now() < this.runtime.when);
      } else {
          Dashboard.status(this);
-     }
+ 		 this.set(['option','_sleep'], true);
+    }
 };
 
 Blessing.work = function(state) {
-	if (!this.option.which || this.option.which === 'None' || Date.now() <= this.runtime.when) {
-		return QUEUE_FINISH;
-	}
 	if (!state || !Page.to('oracle_demipower')) {
 		return QUEUE_CONTINUE;
 	}
@@ -5427,10 +5568,6 @@ Elite.display = [
 				select:[1, 2, 3, 6, 12, 24],
 				after:'hours',
 				help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-			},{
-				id:'fill',
-				label:'Fill Now',
-				button:true
 			}
 		]
 	}
@@ -5483,13 +5620,20 @@ Elite.setup = function() {
 };
 
 Elite.init = function() {
-	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
-		Elite.set('runtime.waitelite', 0);
-		Elite._save('runtime');
-	});
 	if (!this.get(['option','elite'], true)) {
 		this.option._disabled = true;
 		this.set(['option','elite']);
+	}
+};
+
+Elite.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
+		} else if (key === 'fill') {
+			this.set('runtime.waitelite', 0);
+			this._save('runtime');
+		}
 	}
 };
 
@@ -6144,8 +6288,8 @@ Gift.work = function(state) {
 		return QUEUE_FINISH;
 	}
         if (!Generals.to(Idle.option.general)){
-			return QUEUE_CONTINUE;
-		}
+                        return QUEUE_CONTINUE;
+                }
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
 			return QUEUE_CONTINUE;
@@ -6171,7 +6315,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return QUEUE_INTERRUPT_OK;
+		return QUEUE_FINISH;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -6242,7 +6386,7 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_CONTINUE;
+		return QUEUE_RELEASE;
 	}
 	
 	// Give some gifts back
@@ -6265,7 +6409,7 @@ Gift.work = function(state) {
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
-				return QUEUE_CONTINUE;
+				return QUEUE_RELEASE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];

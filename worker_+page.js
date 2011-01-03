@@ -211,13 +211,13 @@ Page.makeLink = function(url, args, content) {
 /*
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
-Page.to = function(url, args, force) { // Force = true/false (ignore pause if true)
+Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
 	var page = this.makeURL(url, args);
 //	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
-	if (Queue.option.pause) {
-		console.log(error('Trying to load page when paused...'));
-		return true;
-	}
+//	if (Queue.option.pause) {
+//		console.log(error('Trying to load page when paused...'));
+//		return true;
+//	}
 	if (!page || (!force && page === (this.temp.last || this.page))) {
 		return true;
 	}

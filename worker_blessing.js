@@ -18,8 +18,7 @@ Blessing.defaults['castle_age'] = {
 };
 
 Blessing.option = {
-	which:'Stamina',
-        display: false
+	which:'Stamina'
 };
 
 Blessing.runtime = {
@@ -29,15 +28,24 @@ Blessing.runtime = {
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
 Blessing.display = [
     {
-	id:'which',
-	label:'Which',
-	select:Blessing.which
-    },{
-        id:'display',
-        label:'Display in Blessing info on *',
-        checkbox:true
+		id:'which',
+		label:'Which',
+		select:Blessing.which
     }
 ];
+
+Blessing.setup = function() {
+	if ('display' in this.option) {
+		this.option._hide_status = !this.option.display;
+		delete this.option.display;
+	}
+};
+
+Blessing.init = function() {
+	if (this.runtime.when) {
+		this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+	}
+};
 
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
@@ -48,47 +56,46 @@ Blessing.parse = function(change) {
 		} else if (result.text().match(/You have paid tribute to/i)) {
 			this.runtime.when = Date.now() + 86460000; // 24 hours and 1 minute
 		}
+		if (this.runtime.when) {
+			this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+		}
 	}
 	return false;
 };
 
 Blessing.update = function(event){
     var d, demi;
-     if (this.option.display && this.option.which !== 'None'){
+     if (this.option.which && this.option.which !== 'None'){
          d = new Date(this.runtime.when);
          switch(this.option.which){
              case 'Energy':
-                 demi = 'Ambrosia (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_1')+'"> Ambrosia (' + this.option.which + ')';
                  break;
              case 'Attack':
-                 demi = 'Malekus (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_2')+'"> Malekus (' + this.option.which + ')';
                  break;
              case 'Defense':
-                 demi = 'Corvintheus (' + this.option.which + ')';
-                 break;
-             case 'Defense':
-                 demi = 'Corvintheus (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_3')+'"> Corvintheus (' + this.option.which + ')';
                  break;
              case 'Health':
-                 demi = 'Aurora (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_4')+'"> Aurora (' + this.option.which + ')';
                  break;
              case 'Stamina':
-                 demi = 'Azeron (' + this.option.which + ')';
+                 demi = '<img class="golem-image" src="'+getImage('symbol_5')+'"> Azeron (' + this.option.which + ')';
                  break;
              default:
                  demi = 'Unknown';
                  break;
          }
          Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+		 this.set(['option','_sleep'], Date.now() < this.runtime.when);
      } else {
          Dashboard.status(this);
-     }
+ 		 this.set(['option','_sleep'], true);
+    }
 };
 
 Blessing.work = function(state) {
-	if (!this.option.which || this.option.which === 'None' || Date.now() <= this.runtime.when) {
-		return QUEUE_FINISH;
-	}
 	if (!state || !Page.to('oracle_demipower')) {
 		return QUEUE_CONTINUE;
 	}

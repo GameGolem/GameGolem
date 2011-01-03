@@ -37,17 +37,12 @@ Config.init = function() {
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img id="golem_fixed" src="' + getImage('blank') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div><div style="text-align:right;"><label>Advanced <input type="checkbox" id="golem-config-advanced"' + (Config.option.advanced ? ' checked' : '') + '></label></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-		Config._save('option');
-	});
-	$('#golem_fixed').click(function(){
-		Config.option.fixed ^= true;
-		$(this).closest('.golem-config').toggleClass('golem-config-fixed');
 		Config._save('option');
 	});
 	for (i in Workers) {
@@ -153,11 +148,6 @@ Config.init = function() {
 	$('#golem_config input,textarea,select').live('change', function(){
 		Config.updateOptions();
 	});
-	$('#golem-config-advanced').click(function(){
-		Config.updateOptions();
-		$('.golem-advanced:not(".golem-require")').css('display', Config.option.advanced ? '' : 'none');
-		Config.checkRequire();
-	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
 	});
@@ -165,30 +155,43 @@ Config.init = function() {
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-icon-menu').click(function(event) {
-		var i, key, keys, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name'));
-		if (Config.temp.menu !== worker.name) {
-			Config.temp.menu = worker.name;
+		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
+		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
+		if (Config.temp.menu !== name) {
+			Config.temp.menu = name;
 			for (i in Workers) {
 				if (Workers[i].menu) {
-					html = html ? html + '<hr>' : html;
-					keys = Workers[i].menu(worker);
-					for (key in keys) {
-						switch (keys[key].charAt(0)) {
-							case '+':	keys[key] = '<img src="' + getImage('tick') + '">' + keys[key].substr(1);	break;
-							case '-':	keys[key] = '<img src="' + getImage('cross') + '">' + keys[key].substr(1);	break;
-							case '=':	keys[key] = '<img src="' + getImage('dot') + '">' + keys[key].substr(1);	break;
-							default:	break;
+					hr = true;
+					Workers[i]._unflush();
+					keys = Workers[i].menu(worker) || [];
+					for (j=0; j<keys.length; j++) {
+						k = keys[j].regex(/([^:]*):?(.*)/);
+						if (k[0] === '---') {
+							hr = true;
+						} else if (k[1]) {
+							if (hr) {
+								html += html ? '<hr>' : '';
+								hr = false;
+							}
+							switch (k[1].charAt(0)) {
+								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
+								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
+								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								default:	break;
+							}
+							html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
 						}
-						html += '<div name="' + i + '.' + worker.name + '.' + key + '">' + keys[key] + '</div>';
 					}
 				}
 			}
-			$('#golem-menu').html(html || 'no options');
+			$this.addClass('golem-icon-menu-active');
+			$('#golem-menu').html(html || 'no&nbsp;options');
 			$('#golem-menu').css({
+				position:Config.option.fixed ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:$this.offset().left
+				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true))
 			}).show();
-		} else {
+		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.temp.menu = null;
 			$('#golem-menu').hide();
 		}
@@ -198,28 +201,41 @@ Config.init = function() {
 	$('.golem-menu > div').live('click', function(event) {
 		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
-		Worker.find(key[0]).menu(Worker.find(key[1]), key[2]);
+		var worker = Worker.find(key[0]);
+		worker._unflush();
+		worker.menu(Worker.find(key[1]), key[2]);
 	});
-	$('#golem-menu').click(function(){
+	$(document).click(function(event){ // Any click hides it, relevant handling done above
 		Config.temp.menu = null;
-		$('#golem-menu').hide();}
-	);
+		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
+		$('#golem-menu').hide();
+	});
 };
 
-/*
 Config.menu = function(worker, key) {
-	// !worker = global menu, otherwise for a specific worker
-	// !key = create menu - return an object {key:'Label'}
-	// key = user has clicked line, make changes and return null
-	if (worker) {
+	if (!worker) {
 		if (!key) {
-			return {
+			return [
+				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options'
+			];
+		} else if (key) {
+			switch (key) {
+				case 'fixed':
+					this.option.fixed ^= true;
+					$('#golem_config_frame').toggleClass('golem-config-fixed');
+					break;
+				case 'advanced':
+					this.option.advanced ^= true;
+					$('.golem-advanced:not(".golem-require")').css('display', this.option.advanced ? '' : 'none');
+					this.checkRequire();
+					break;
 			}
-		} else if (key === '...') {
+			this._save('option');
 		}
 	}
 };
-*/
+
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -496,8 +512,6 @@ Config.updateOptions = function() {
 //	console.log(warn(), 'Options changed');
 	// Get order of panels first
 	Queue.option.queue = this.getOrder();
-	// Now can we see the advanced stuff
-	this.option.advanced = $('#golem-config-advanced').attr('checked');
 	// Now save the contents of all elements with the right id style
 	$('#golem_config :input:not(:button)').each(function(i,el){
 		if ($(el).attr('id')) {
@@ -523,6 +537,31 @@ Config.updateOptions = function() {
 			}
 		}
 	});
+	this.checkRequire();
+};
+
+Config.setOptions = function(worker) {
+//	if (worker === Queue) {
+		//Queue.option.queue = this.getOrder();
+//	}
+	var i, $el;
+	for (i in worker.option) {
+		$el = $('#'+this.makeID(worker, i));
+		if ($el.length === 1) {
+//			try {
+				if ($el.attr('type') === 'checkbox') {
+					$el.attr('checked', worker.option[i]);
+				} else if ($el.attr('multiple')) {
+					$el.empty();
+					(worker.option[i] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+				} else if ($el.attr('value')) {
+					$el.attr('value', worker.option[i]);
+				} else {
+					$el.val(worker.option[i]);
+				}
+//			} catch(e) {}
+		}
+	}
 	this.checkRequire();
 };
 

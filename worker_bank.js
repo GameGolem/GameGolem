@@ -19,8 +19,7 @@ Bank.option = {
 	general:true,
 	above:10000,
 	hand:0,
-	keep:10000,
-	status:true
+	keep:10000
 };
 
 Bank.display = [
@@ -40,12 +39,15 @@ Bank.display = [
 		id:'keep',
 		label:'Keep in Bank',
 		text:true
-	},{
-		id:'status',
-		label:'Show in Dashboard',
-		checkbox:true
 	}
 ];
+
+Bank.setup = function() {
+	if ('status' in this.option) {
+		this.option._hide_status = !this.option.status;
+		delete this.option.status;
+	}
+};
 
 Bank.init = function() {
 	this._watch(Player, 'data.cash');// We want other things too, but they all change in relation to this
@@ -59,13 +61,9 @@ Bank.work = function(state) {
 };
 
 Bank.update = function(event) {
-	if (this.option.status) {// Don't use this.worth() as it ignores this.option.keep
-		Dashboard.status(this,
+	Dashboard.status(this, // Don't use this.worth() as it ignores this.option.keep
 			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
 			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
-	} else {
-		Dashboard.status(this);
-	}
 	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
 };
 

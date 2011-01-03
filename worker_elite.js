@@ -48,10 +48,6 @@ Elite.display = [
 				select:[1, 2, 3, 6, 12, 24],
 				after:'hours',
 				help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-			},{
-				id:'fill',
-				label:'Fill Now',
-				button:true
 			}
 		]
 	}
@@ -104,13 +100,20 @@ Elite.setup = function() {
 };
 
 Elite.init = function() {
-	$('#'+Config.makeID(this,'fill')).live('click',function(i,el){
-		Elite.set('runtime.waitelite', 0);
-		Elite._save('runtime');
-	});
 	if (!this.get(['option','elite'], true)) {
 		this.option._disabled = true;
 		this.set(['option','elite']);
+	}
+};
+
+Elite.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
+		} else if (key === 'fill') {
+			this.set('runtime.waitelite', 0);
+			this._save('runtime');
+		}
 	}
 };
 

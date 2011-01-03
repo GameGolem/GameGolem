@@ -31,7 +31,7 @@
 	top: 10000px;
 	left: 10000px;
 	min-width: 250px;
-	z-index: 5;
+	z-index: 3;
 	margin: 0;
 	padding: 0;
 }
@@ -56,7 +56,7 @@
 	overflow: hidden;
 	overflow-y: auto;
 	float: right;
-	z-index: 10;
+	z-index: 2;
 }
 
 .golem-config > div {
@@ -68,21 +68,9 @@
 	-moz-user-select: none;
 }
 
-.golem-config #golem_fixed {
-	float:right;
-	margin:-2px;
-	width:16px;
-	height: 16px;
-	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEXe3t7d3d1jY2NVVVUAAAAjBnsxAAAABXRSTlP/////APu2DlMAAAAuSURBVHjaYmBBAwxkCzAzgRhMSAIQgCzAhCQAlmTCpwKrGUyMqLZQw+kIABBgAAB6A8ckFzCRAAAAAElFTkSuQmCC') no-repeat;
-}
-
 .golem-config-fixed {
 	position: fixed;
 	margin-left: 760px;
-}
-
-.golem-config-fixed #golem_fixed {
-	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEXe3t7d3d1jY2NVVVUAAAAjBnsxAAAABXRSTlP/////APu2DlMAAAA1SURBVHjaYmBBAwzECTAxgwATkgqwAAspAozMTExMzAx4DGVmRuiBuYMZ3WGEBUjwHECAAQD+OQPH1IxVowAAAABJRU5ErkJggg==') no-repeat;
 }
 
 #golem-dashboard {
@@ -94,7 +82,7 @@
 	border-right:1px solid black;
 	overflow: hidden;
 	background: white;
-	z-index: 3;
+	z-index: 1;
 }
 
 #golem-dashboard thead th {
@@ -323,7 +311,8 @@ img.golem-button, img.golem-button-active {
 }
 
 .golem-title {
-	padding: 4px;
+	height:16px;
+	padding: 2px;
 	margin: -4px -4px 0 -4px !important;
 	overflow: hidden;
 	border-bottom: 1px solid #aaaaaa;
@@ -411,12 +400,16 @@ img.golem-button, img.golem-button-active {
 	height: 16px;
 }
 
-.golem-icon-menu:hover {
+.golem-icon-menu:hover, .golem-icon-menu-active {
 	border: 1px solid #aaaaaa;
 	margin: -1px;
 	-moz-border-radius: 3px;
 	-webkit-border-radius: 3px;
 	border-radius: 3px;
+}
+
+.golem-icon-menu-active {
+	background: #cccccc;
 }
 
 .golem-info {
@@ -435,7 +428,7 @@ img.golem-image {
 	position: absolute;
 	top: 10000px;
 	left: 10000px;
-	z-index: 5;
+	z-index: 3;
 	margin: 0;
 	padding: 0;
 	background: #f0f0f0;
@@ -443,6 +436,8 @@ img.golem-image {
 	margin: 0;
 	padding: 2px;
 	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
 }
 
 .golem-menu > div {
@@ -451,7 +446,7 @@ img.golem-image {
 }
 
 .golem-menu > hr {
-	margin: 0;
+	margin: 1px 0;
 	padding: 0;
 }
 

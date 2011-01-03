@@ -233,9 +233,11 @@ Worker.prototype._init = function() {
 
 Worker.prototype._load = function(type) {
 	if (!this._datatypes[type]) {
-		for (var i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				this._load(i);
+		if (!type) {
+			for (var i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					this._load(i);
+				}
 			}
 		}
 		return;
@@ -337,9 +339,11 @@ Worker.prototype._remind = function(seconds, id, callback) {
 
 Worker.prototype._save = function(type) {
 	if (!this._datatypes[type]) {
-		for (var i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				arguments.callee.call(this,i);
+		if (!type) {
+			for (var i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					arguments.callee.call(this,i);
+				}
 			}
 		}
 		return true;
@@ -411,8 +415,9 @@ Worker.prototype._set = function(what, value) {
 Worker.prototype._setup = function() {
 	this._push();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
+		var i;
 		if (this.defaults[APP]) {
-			for (var i in this.defaults[APP]) {
+			for (i in this.defaults[APP]) {
 				if (isObject(this.defaults[APP][i]) && isObject(this[i])) {
 					this[i] = $.extend(true, {}, this[i], this.defaults[APP][i]);
 				} else {
@@ -422,6 +427,11 @@ Worker.prototype._setup = function() {
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
+		for (i in this._datatypes) {// Delete non-existant datatypes
+			if (this._datatypes[i] && !this[i]) {
+				delete this._datatypes[i];
+			}
+		}
 		if (this.setup) {
 			try {
 				this.setup();
@@ -454,7 +464,7 @@ Worker.prototype._unflush = function() {
 	if (!this._loaded) {
 		this._init();
 	}
-	if (!this.settings.keep && !this.data) {
+	if (!this.settings.keep && !this.data && this._datatypes.data) {
 		this._load('data');
 	}
 	this._pop();

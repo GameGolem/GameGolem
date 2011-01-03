@@ -27,7 +27,8 @@ Army.defaults.castle_age = {
 		count:-1, // How many people have we actively seen
 		page:0, // Next page we want to look at 
 		extra:1, // How many non-real army members are there (you are one of them)
-		oldest:0 // Timestamp of when we last saw the oldest member
+		oldest:0, // Timestamp of when we last saw the oldest member
+		check:false
 	},
 	
 	display:[
@@ -89,6 +90,18 @@ Army._overload('castle_age', 'init', function() {
 	this._parent();
 });
 
+Army._overload('castle_age', 'menu', function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['fill:Check&nbsp;Army&nbsp;Now'];
+		} else if (key === 'fill') {
+			this.set(['runtime','page'], 1);
+			this.set(['runtime','check'], true);
+			this._save('runtime');
+		}
+	}
+});
+
 Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
@@ -121,6 +134,7 @@ Army._overload('castle_age', 'parse', function(change) {
 			});
 		} else {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
+			this._set(['runtime','check'], false);
 		}
 		$tmp = $('img[src*="bonus_member.jpg"]');
 		if ($tmp.length) {
@@ -138,8 +152,9 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 		this._set(['runtime','count'], count);
 		if (this.runtime.page) {
-			if (page !== this.runtime.page || Player.get('armymax',0) === (this.runtime.count + this.runtime.extra)) {
+			if (page !== this.runtime.page || (!this.runtime.check && Player.get('armymax',0) === (this.runtime.count + this.runtime.extra))) {
 				this._set(['runtime','page'], 0);
+				this._set(['runtime','check'], false);
 			} else {
 				this._set(['runtime','page'], page + 1);
 			}
