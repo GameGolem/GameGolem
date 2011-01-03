@@ -111,18 +111,16 @@ Player.parse = function(change) {
 			Resources.add('Gold', data.bank + data.cash, true);
 
 			// remember artifacts - useful for quest requirements
-
 			if ((tmp = $('div.statsT2 td.statsTMainback .statsTTitle:contains("ARTIFACTS") + .statsTMain')).length === 1) {
-				self.set('data.artifact', {});
+				var artifacts = {}, name, i;
 				$('.statUnit a img', tmp).each(function(a, el) {
-					/*jslint onevar:false*/
-					var n = ($(el).attr('title') || $(el).attr('alt') || '').trim();
-					var i = $(el).attr('src').filepart();
-					/*jslint onevar:true*/
-					if (n) {
-						self.set(['data', 'artifact', n], i);
+					if ((name = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
+						artifacts[name] = $(el).attr('src').filepart();
 					}
 				});
+				for (i in this.data.artifact) {
+					this.set(['data', 'artifact', i], (i in artifacts) ? artifacts[i] : undefined);
+				}
 			}
 		}
 	}

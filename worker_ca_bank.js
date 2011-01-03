@@ -50,7 +50,7 @@ Bank.setup = function() {
 };
 
 Bank.init = function() {
-	this._watch(Player, 'data.cash');// We want other things too, but they all change in relation to this
+	this._watch('Player', 'data.cash');// We want other things too, but they all change in relation to this
 };
 
 Bank.work = function(state) {
@@ -79,7 +79,6 @@ Bank.stash = function(amount) {
 	}
 	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
-	this.set('option._sleep', true);
 	return true;
 };
 

@@ -263,8 +263,7 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 		if (path.indexOf(i) === 0) {// Match the prefix
 			w = this._watching[i];
 			for (j=0; j<w.length; j++) {
-//				console.log(log(), 'Notify ' + w[j].name + ', id = ' + i);
-				w[j]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
+				Workers[w[j]]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
 			}
 		}
 	}
@@ -477,12 +476,11 @@ Worker.prototype._unwatch = function(worker, path) {
 	if (isWorker(worker)) {
 		if (isString(path)) {
 			if (path in worker._watching) {
-				deleteElement(worker._watching[path],this);
+				deleteElement(worker._watching[path],this.name);
 			}
 		} else {
-			var i;
-			for (i=0; i<worker._watching.length; i++) {
-				deleteElement(worker._watching[i],this);
+			for (var i=worker._watching.length-1; i>=0; i--) {
+				deleteElement(worker._watching[i],this.name);
 			}
 		}
 	}
@@ -525,12 +523,12 @@ Worker.prototype._update = function(event) {
 		if (!isString(path)) {
 			path = 'data';
 		}
-		for (var i in this._datatypes) {
+		for (var i in worker._datatypes) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
-				if (!findInArray(worker._watching[path],this)) {
+				if (!findInArray(worker._watching[path],this.name)) {
 //					console.log(log('Watch(' + worker.name + ', "' + path + '")'));
-					worker._watching[path].push(this);
+					worker._watching[path].push(this.name);
 				}
 				return true;
 			}
