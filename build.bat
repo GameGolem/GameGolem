@@ -30,9 +30,9 @@ java="java.exe"
 compiler=""
 
 [Firefox]
-; firefox: path to the firefox install of Golem, including filename
-; - winxp - C:\Documents and Settings\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js
-; - win7  - C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol\rycochets_castle_age_gol.user.js
+; firefox: path to the firefox install of Golem, *excluding* filename, no trailing "/" - which should be "rycochets_castle_age_gol.user.js"
+; - winxp - C:\Documents and Settings\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol
+; - win7  - C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol
 firefox=""
 firefox1=""
 firefox2=""
@@ -166,9 +166,12 @@ rem 	echo.Installing new version to Firefox
 rem 	copy /Y %script% "%firefox%" >nul
 rem )
 FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO (
-	IF EXIST "%%F" (
-		echo.Installing new version to Firefox (%%F)
-		copy /Y %script% %%F >nul 2>nul
+	IF NOT "%%~F"=="" (
+		IF EXIST "%%F" (
+			echo.Installing new version to Firefox (%%F)
+			copy /Y %script% %%F\rycochets_castle_age_gol.user.js >nul 2>nul
+			copy /Y golem.css %%F\ >nul 2>nul
+		)
 	)
 )
 
