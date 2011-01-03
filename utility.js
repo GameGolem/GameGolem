@@ -15,11 +15,11 @@ var isArray = function(obj) {// Not an object
 };
 
 var isObject = function(obj) {// Not an array
-    return typeof obj !== 'undefined' && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+    return obj !== undefined && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function' && typeof obj.length !== 'undefined';
+	return typeof obj === 'function' && obj.length !== undefined;
 };
 
 var isNumber = function(num) {
@@ -31,7 +31,7 @@ var isString = function(str) {
 };
 
 var isUndefined = function(obj) {
-	return typeof obj === 'undefined';
+	return obj === undefined;
 };
 
 var isWorker = function(obj) {
@@ -235,7 +235,7 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 };
 
 var empty = function(x) { // Tests whether an object is empty (also useable for other types)
-	if (typeof x === 'undefined' || !x) {
+	if (x === undefined || !x) {
 		return true;
 	} else if (typeof x === 'object') {
 		for (var i in x) {
@@ -323,7 +323,7 @@ var objectIndex = function(list, index) {
 
 var sortObject = function(obj, sortfunc, deep) {
 	var i, list = [], output = {};
-	if (typeof deep === 'undefined') {
+	if (deep === undefined) {
 		deep = false;
 	}
 	for (i in obj) {
@@ -402,7 +402,7 @@ var plural = function(i) {
 
 var makeTime = function(time, format) {
 	var d = new Date(time);
-	return d.format(typeof format !== 'undefined' && format ? format : 'l g:i a' );
+	return d.format(format !== undefined && format ? format : 'l g:i a' );
 };
 
 // Simulates PHP's date function
@@ -538,7 +538,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = typeof o === 'undefined' ? 'undefined' : o === null ? 'null' : o.toString();
+			out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -587,6 +587,10 @@ $.fn.autoSize = function() {
 		autoSize(this);
 	});
 	return this;
+};
+
+$.fn.selected = function() {
+	return $(this).filter(function(){return this.selected;});
 };
 
 // Images - either on SVN, or via extension location

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.905
+// @version		31.5.907
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 905;
+var revision = 907;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -60,11 +60,11 @@ var isArray = function(obj) {// Not an object
 };
 
 var isObject = function(obj) {// Not an array
-    return typeof obj !== 'undefined' && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+    return obj !== undefined && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function' && typeof obj.length !== 'undefined';
+	return typeof obj === 'function' && obj.length !== undefined;
 };
 
 var isNumber = function(num) {
@@ -76,7 +76,7 @@ var isString = function(str) {
 };
 
 var isUndefined = function(obj) {
-	return typeof obj === 'undefined';
+	return obj === undefined;
 };
 
 var isWorker = function(obj) {
@@ -280,7 +280,7 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 };
 
 var empty = function(x) { // Tests whether an object is empty (also useable for other types)
-	if (typeof x === 'undefined' || !x) {
+	if (x === undefined || !x) {
 		return true;
 	} else if (typeof x === 'object') {
 		for (var i in x) {
@@ -368,7 +368,7 @@ var objectIndex = function(list, index) {
 
 var sortObject = function(obj, sortfunc, deep) {
 	var i, list = [], output = {};
-	if (typeof deep === 'undefined') {
+	if (deep === undefined) {
 		deep = false;
 	}
 	for (i in obj) {
@@ -447,7 +447,7 @@ var plural = function(i) {
 
 var makeTime = function(time, format) {
 	var d = new Date(time);
-	return d.format(typeof format !== 'undefined' && format ? format : 'l g:i a' );
+	return d.format(format !== undefined && format ? format : 'l g:i a' );
 };
 
 // Simulates PHP's date function
@@ -583,7 +583,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = typeof o === 'undefined' ? 'undefined' : o === null ? 'null' : o.toString();
+			out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -632,6 +632,10 @@ $.fn.autoSize = function() {
 		autoSize(this);
 	});
 	return this;
+};
+
+$.fn.selected = function() {
+	return $(this).filter(function(){return this.selected;});
 };
 
 // Images - either on SVN, or via extension location
@@ -1644,7 +1648,7 @@ Config.init = function() {
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').live('click', function(){
-		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();});
+		$(this).parent().children().first().children().selected().remove();
 		Config.updateOptions();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
@@ -2055,7 +2059,7 @@ Config.setOptions = function(worker) {
 					$el.attr('checked', worker.option[i]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[i] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+					(worker.option[i] || []).forEach(function(val){$el.append('<option value="'+val+'">'+val+'</option>')});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[i]);
 				} else {
@@ -4723,21 +4727,30 @@ Army._overload('castle_age', 'work', function(state) {
 * Auto-banking
 */
 var Bank = new Worker('Bank');
-Bank.data = Bank.temp = null;
+Bank.data = null;
 
 Bank.defaults['castle_age'] = {};
 
 Bank.option = {
 	general:true,
+	auto:true,
 	above:10000,
 	hand:0,
 	keep:10000
+};
+
+Bank.temp = {
+	force:false
 };
 
 Bank.display = [
 	{
 		id:'general',
 		label:'Use Best General',
+		checkbox:true
+	},{
+		id:'auto',
+		label:'Bank Automatically',
 		checkbox:true
 	},{
 		id:'above',
@@ -4776,7 +4789,7 @@ Bank.update = function(event) {
 	Dashboard.status(this, // Don't use this.worth() as it ignores this.option.keep
 			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
 			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
-	this.set('option._sleep', Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand));
+	this.set('option._sleep', !(this.temp.force || (this.option.auto && Player.get('cash', 0) >= Math.max(10, this.option.above, this.option.hand))));
 };
 
 // Return true when finished
@@ -4791,6 +4804,7 @@ Bank.stash = function(amount) {
 	}
 	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
+	this.set(['temp','force'], false);
 	return true;
 };
 
@@ -4815,6 +4829,16 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 		return (amount <= worth);
 	}
 	return worth;
+};
+
+Bank.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key && !this.option._disabled) {
+			return ['bank:Bank&nbsp;Now'];
+		} else if (key === 'bank') {
+			this.set(['temp','force'], true);
+		}
+	}
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */

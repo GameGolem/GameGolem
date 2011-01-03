@@ -142,7 +142,7 @@ Config.init = function() {
 		Config.updateOptions();
 	});
 	$('input.golem_delselect').live('click', function(){
-		$('select.golem_multiple option[selected=true]', $(this).parent()).each(function(i,el){$(el).remove();});
+		$(this).parent().children().first().children().selected().remove();
 		Config.updateOptions();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
@@ -553,7 +553,7 @@ Config.setOptions = function(worker) {
 					$el.attr('checked', worker.option[i]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[i] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+					(worker.option[i] || []).forEach(function(val){$el.append('<option value="'+val+'">'+val+'</option>')});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[i]);
 				} else {
