@@ -11,6 +11,7 @@
 * Auto-buys property
 */
 var Land = new Worker('Land');
+Land.temp = null;
 
 Land.defaults['castle_age'] = {
 	pages:'town_land'

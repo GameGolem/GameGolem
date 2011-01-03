@@ -11,7 +11,7 @@
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
-Player.option = null;
+Player.option = Player.runtime = Player.temp = null;
 
 Player.settings = {
 	keep:true
@@ -20,15 +20,6 @@ Player.settings = {
 Player.defaults['castle_age'] = {
 	pages:'*'
 };
-
-Player.runtime = {
-	cash_timeout:null,
-	energy_timeout:null,
-	health_timeout:null,
-	stamina_timeout:null
-};
-
-var use_average_level = false;
 
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
@@ -46,10 +37,6 @@ Player.init = function() {
 		tmp -= Math.min(10, Math.sqrt(tmp - when));
 	}
 	this.set('cash_time', tmp);
-	this.runtime.cash_timeout = null;
-	this.runtime.energy_timeout = null;
-	this.runtime.health_timeout = null;
-	this.runtime.stamina_timeout = null;
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');

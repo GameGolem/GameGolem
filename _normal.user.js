@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.902
+// @version		31.5.904
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 902;
+var revision = 904;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1079,7 +1079,7 @@ Worker.prototype._setup = function() {
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
 		for (i in this._datatypes) {// Delete non-existant datatypes
-			if (this._datatypes[i] && !this[i]) {
+			if (!this[i]) {
 				delete this._datatypes[i];
 			}
 		}
@@ -2140,6 +2140,7 @@ Config.getOrder = function() {
 * Displays statistics and other useful info
 */
 var Dashboard = new Worker('Dashboard');
+Dashboard.temp = null;
 
 Dashboard.settings = {
 //	keep:true
@@ -2591,7 +2592,7 @@ Global.display = [];
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
-History.option = null;
+History.option = History.temp = null;
 History.settings = {
 	system:true
 };
@@ -3658,6 +3659,8 @@ Buckets are filled in priority order, in cases of same priority, alphabetical or
 */
 
 var Resources = new Worker('Resources');
+Resources.temp = null;
+
 Resources.settings = {
 	system:true,
 	unsortable:true,
@@ -3886,10 +3889,12 @@ Settings.menu = function(worker, key) {
 	var i, keys = [];
 	if (worker) {
 		if (!key) {
-			for (i in worker._datatypes) {
-				keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+			if (Config.option.advanced) {
+				for (i in worker._datatypes) {
+					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+				}
+				keys.push('---');
 			}
-			keys.push('---');
 			keys.push('backup:Backup&nbsp;Options');
 			keys.push('restore:Restore&nbsp;Options');
 			return keys;
@@ -4401,6 +4406,8 @@ Main.add('castle_age', '46755028429', 'Castle Age');
 * This is the CA version
 */
 Army.defaults.castle_age = {
+	temp:null,
+
 	pages:'army_viewarmy',
 
 	// Careful not to hit any *real* army options
@@ -4668,6 +4675,7 @@ Page.defaults.castle_age = {
 * Get all ingredients and recipes
 */
 var Alchemy = new Worker('Alchemy');
+Alchemy.temp = null;
 
 Alchemy.defaults['castle_age'] = {
 	pages:'keep_alchemy'
@@ -4784,7 +4792,7 @@ Alchemy.work = function(state) {
 * Auto-banking
 */
 var Bank = new Worker('Bank');
-Bank.data = null;
+Bank.data = Bank.temp = null;
 
 Bank.defaults['castle_age'] = {};
 
@@ -4837,14 +4845,14 @@ Bank.update = function(event) {
 	Dashboard.status(this, // Don't use this.worth() as it ignores this.option.keep
 			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
 			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
-	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
+	this.set('option._sleep', Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand));
 };
 
 // Return true when finished
 Bank.stash = function(amount) {
 	var cash = Player.get('cash', 0);
 	amount = (isNumber(amount) ? Math.min(cash, amount) : cash) - this.option.hand;
-	if (!amount || amount <= 10 || (this.option.general && !Generals.test('Aeris'))) {
+	if (!amount || amount <= 10) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
@@ -4852,6 +4860,7 @@ Bank.stash = function(amount) {
 	}
 	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
+	this.set('option._sleep', true);
 	return true;
 };
 
@@ -4891,6 +4900,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 * Battling other players (NOT raid or Arena)
 */
 var Battle = new Worker('Battle');
+Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
 	pages:'battle_rank battle_battle'
@@ -5426,7 +5436,7 @@ Battle.dashboard = function(sort, rev) {
 * Automatically receive blessings
 */
 var Blessing = new Worker('Blessing');
-Blessing.data = null;
+Blessing.data = Blessing.temp = null;
 
 Blessing.defaults['castle_age'] = {
 	pages:'oracle_demipower'
@@ -5531,7 +5541,7 @@ Blessing.work = function(state) {
 * Build your elite army
 */
 var Elite = new Worker('Elite');
-Elite.data = null;
+Elite.data = Elite.temp = null;
 
 Elite.settings = {
 	taint:true
@@ -5722,7 +5732,7 @@ Elite.work = function(state) {
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals');
-Generals.data = {};
+Generals.temp = null;
 
 Generals.defaults['castle_age'] = {
 	pages:'* heroes_generals'
@@ -6111,6 +6121,7 @@ Generals.dashboard = function(sort, rev) {
 * *** Needs to talk to Alchemy to work out what's being made
 */
 var Gift = new Worker('Gift');
+Gift.temp = null;
 
 Gift.defaults['castle_age'] = {
 	pages:'* facebook index army_invite army_gifts gift_accept'
@@ -6485,7 +6496,7 @@ Gift.work = function(state) {
 * *** Needs to check if we have enough money (cash and bank)
 */
 var Heal = new Worker('Heal');
-Heal.data = null;
+Heal.data = Heal.temp = null;
 
 Heal.defaults['castle_age'] = {};
 
@@ -6545,6 +6556,8 @@ Heal.me = function() {
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
+Idle.temp = null;
+
 Idle.defaults['castle_age'] = {};
 Idle.settings ={
     after:['LevelUp']
@@ -6675,7 +6688,7 @@ Idle.work = function(state) {
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
-Income.data = null;
+Income.data = Income.temp = null;
 
 Income.settings = {
 	important:true
@@ -6738,6 +6751,7 @@ Income.work = function(state) {
 * Auto-buys property
 */
 var Land = new Worker('Land');
+Land.temp = null;
 
 Land.defaults['castle_age'] = {
 	pages:'town_land'
@@ -6943,7 +6957,7 @@ Land.work = function(state) {
 */
 
 var LevelUp = new Worker('LevelUp');
-LevelUp.data = null;
+LevelUp.data = LevelUp.temp = null;
 
 LevelUp.settings = {
 	before:['Idle','Battle','Monster','Quest']
@@ -7303,7 +7317,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
  * Automates Monster
  */
 var Monster = new Worker('Monster');
-Monster.data = {};
+Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
 	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid'
@@ -9094,7 +9108,7 @@ Monster.conditions = function (type, conditions) {
 * Aggregate the news feed
 */
 var News = new Worker('News');
-News.data = null;
+News.data = News.temp = null;
 
 News.defaults['castle_age'] = {
 	pages:'index'
@@ -9195,7 +9209,7 @@ News.parse = function(change) {
 * Gets all current stats we can see
 */
 var Player = new Worker('Player');
-Player.option = null;
+Player.option = Player.runtime = Player.temp = null;
 
 Player.settings = {
 	keep:true
@@ -9204,15 +9218,6 @@ Player.settings = {
 Player.defaults['castle_age'] = {
 	pages:'*'
 };
-
-Player.runtime = {
-	cash_timeout:null,
-	energy_timeout:null,
-	health_timeout:null,
-	stamina_timeout:null
-};
-
-var use_average_level = false;
 
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
@@ -9230,10 +9235,6 @@ Player.init = function() {
 		tmp -= Math.min(10, Math.sqrt(tmp - when));
 	}
 	this.set('cash_time', tmp);
-	this.runtime.cash_timeout = null;
-	this.runtime.energy_timeout = null;
-	this.runtime.health_timeout = null;
-	this.runtime.stamina_timeout = null;
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
@@ -9389,6 +9390,7 @@ Player.get = function(what) {
 * Automatically drinks potions
 */
 var Potions = new Worker('Potions');
+Potions.temp = null;
 
 Potions.defaults['castle_age'] = {
 	pages:'*'
@@ -10693,7 +10695,7 @@ Quest.rdata =			// #321
 * Sorts and auto-buys all town units (not property)
 */
 var Town = new Worker('Town');
-Town.data = {};
+Town.temp = null;
 
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic'
@@ -11132,7 +11134,7 @@ Town.dashboard = function() {
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade');
-Upgrade.data = null;
+Upgrade.data = Upgrade.temp = null;
 
 Upgrade.defaults['castle_age'] = {
 	pages:'keep_stats'

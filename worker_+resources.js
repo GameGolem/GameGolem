@@ -37,6 +37,8 @@ Buckets are filled in priority order, in cases of same priority, alphabetical or
 */
 
 var Resources = new Worker('Resources');
+Resources.temp = null;
+
 Resources.settings = {
 	system:true,
 	unsortable:true,

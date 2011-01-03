@@ -11,7 +11,7 @@
 * Sorts and auto-buys all town units (not property)
 */
 var Town = new Worker('Town');
-Town.data = {};
+Town.temp = null;
 
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic'

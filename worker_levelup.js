@@ -16,7 +16,7 @@
 */
 
 var LevelUp = new Worker('LevelUp');
-LevelUp.data = null;
+LevelUp.data = LevelUp.temp = null;
 
 LevelUp.settings = {
 	before:['Idle','Battle','Monster','Quest']

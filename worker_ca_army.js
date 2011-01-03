@@ -13,6 +13,8 @@
 * This is the CA version
 */
 Army.defaults.castle_age = {
+	temp:null,
+
 	pages:'army_viewarmy',
 
 	// Careful not to hit any *real* army options

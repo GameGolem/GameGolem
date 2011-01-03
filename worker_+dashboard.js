@@ -11,6 +11,7 @@
 * Displays statistics and other useful info
 */
 var Dashboard = new Worker('Dashboard');
+Dashboard.temp = null;
 
 Dashboard.settings = {
 //	keep:true

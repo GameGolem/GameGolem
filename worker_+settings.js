@@ -44,10 +44,12 @@ Settings.menu = function(worker, key) {
 	var i, keys = [];
 	if (worker) {
 		if (!key) {
-			for (i in worker._datatypes) {
-				keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+			if (Config.option.advanced) {
+				for (i in worker._datatypes) {
+					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+				}
+				keys.push('---');
 			}
-			keys.push('---');
 			keys.push('backup:Backup&nbsp;Options');
 			keys.push('restore:Restore&nbsp;Options');
 			return keys;

@@ -29,7 +29,7 @@
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
-History.option = null;
+History.option = History.temp = null;
 History.settings = {
 	system:true
 };

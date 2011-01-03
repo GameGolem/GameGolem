@@ -428,7 +428,7 @@ Worker.prototype._setup = function() {
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		this._load();
 		for (i in this._datatypes) {// Delete non-existant datatypes
-			if (this._datatypes[i] && !this[i]) {
+			if (!this[i]) {
 				delete this._datatypes[i];
 			}
 		}

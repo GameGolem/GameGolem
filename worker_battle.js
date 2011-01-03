@@ -11,6 +11,7 @@
 * Battling other players (NOT raid or Arena)
 */
 var Battle = new Worker('Battle');
+Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
 	pages:'battle_rank battle_battle'

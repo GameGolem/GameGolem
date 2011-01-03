@@ -11,6 +11,7 @@
 * Automatically drinks potions
 */
 var Potions = new Worker('Potions');
+Potions.temp = null;
 
 Potions.defaults['castle_age'] = {
 	pages:'*'

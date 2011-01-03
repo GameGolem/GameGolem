@@ -11,7 +11,7 @@
 * Aggregate the news feed
 */
 var News = new Worker('News');
-News.data = null;
+News.data = News.temp = null;
 
 News.defaults['castle_age'] = {
 	pages:'index'

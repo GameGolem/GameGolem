@@ -11,6 +11,7 @@
 * Get all ingredients and recipes
 */
 var Alchemy = new Worker('Alchemy');
+Alchemy.temp = null;
 
 Alchemy.defaults['castle_age'] = {
 	pages:'keep_alchemy'

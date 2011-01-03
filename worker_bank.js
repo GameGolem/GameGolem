@@ -11,7 +11,7 @@
 * Auto-banking
 */
 var Bank = new Worker('Bank');
-Bank.data = null;
+Bank.data = Bank.temp = null;
 
 Bank.defaults['castle_age'] = {};
 
@@ -64,14 +64,14 @@ Bank.update = function(event) {
 	Dashboard.status(this, // Don't use this.worth() as it ignores this.option.keep
 			'Worth: ' + makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>' +
 			'Income: ' + makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
-	this.set('option._sleep', (Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand) || (this.option.general && !Generals.test('Aeris'))));
+	this.set('option._sleep', Player.get('cash', 0) <= Math.max(10, this.option.above, this.option.hand));
 };
 
 // Return true when finished
 Bank.stash = function(amount) {
 	var cash = Player.get('cash', 0);
 	amount = (isNumber(amount) ? Math.min(cash, amount) : cash) - this.option.hand;
-	if (!amount || amount <= 10 || (this.option.general && !Generals.test('Aeris'))) {
+	if (!amount || amount <= 10) {
 		return true;
 	}
 	if ((this.option.general && !Generals.to('bank')) || !Page.to('keep_stats')) {
@@ -79,6 +79,7 @@ Bank.stash = function(amount) {
 	}
 	$('input[name="stash_gold"]').val(amount);
 	Page.click('input[value="Stash"]');
+	this.set('option._sleep', true);
 	return true;
 };
 

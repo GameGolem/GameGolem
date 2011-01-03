@@ -13,7 +13,7 @@
 * *** Need to take into account army size and real stats for attack and defense
 */
 var Generals = new Worker('Generals');
-Generals.data = {};
+Generals.temp = null;
 
 Generals.defaults['castle_age'] = {
 	pages:'* heroes_generals'

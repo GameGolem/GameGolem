@@ -12,7 +12,7 @@
 * *** Needs to check if we have enough money (cash and bank)
 */
 var Heal = new Worker('Heal');
-Heal.data = null;
+Heal.data = Heal.temp = null;
 
 Heal.defaults['castle_age'] = {};
 

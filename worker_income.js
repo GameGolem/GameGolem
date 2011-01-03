@@ -12,7 +12,7 @@
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
-Income.data = null;
+Income.data = Income.temp = null;
 
 Income.settings = {
 	important:true

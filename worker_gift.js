@@ -12,6 +12,7 @@
 * *** Needs to talk to Alchemy to work out what's being made
 */
 var Gift = new Worker('Gift');
+Gift.temp = null;
 
 Gift.defaults['castle_age'] = {
 	pages:'* facebook index army_invite army_gifts gift_accept'

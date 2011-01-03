@@ -11,7 +11,7 @@
  * Automates Monster
  */
 var Monster = new Worker('Monster');
-Monster.data = {};
+Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
 	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid'

@@ -11,7 +11,7 @@
 * Build your elite army
 */
 var Elite = new Worker('Elite');
-Elite.data = null;
+Elite.data = Elite.temp = null;
 
 Elite.settings = {
 	taint:true
