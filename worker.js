@@ -129,12 +129,11 @@ function Worker(name,pages,settings) {
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
 	this._loaded = false;
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
+	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._taint = {}; // Has anything changed that might need saving?
 	this._watching = {};
 	this._watching_ = null;
 	this._reminders = {};
-	this._disabled = false;
-	this._flush_count = 0;
 }
 
 // Static Functions
@@ -182,17 +181,13 @@ Worker.stack = ['unknown'];// array of active workers, last at the start
 Worker._triggers_ = [];// Used for this._trigger
 
 // Private functions - only override if you know exactly what you're doing
-Worker.prototype._flush = function(force) {
+Worker.prototype._flush = function() {
 	this._push();
 	this._save();
 	if (!this.settings.keep) {// && !this._reminders._flush) {
 		var name = this.name;
 		window.clearTimeout(this._reminders._flush);
 		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
-//		if (force || this._flush_count++ > 60) {
-//			this._flush_count = 0;
-//			delete this.data;
-//		}
 	}
 	this._pop();
 };
@@ -360,6 +355,26 @@ Worker.prototype._remind = function(seconds, id, callback) {
 		this._reminders['t' + id] = timer;
 	}
 	return timer;
+};
+
+Worker.prototype._replace = function(type, data) {
+	if (type === 'data') {
+		this._unflush();
+	}
+	var i, val, old = this[type];
+	for (i in this._watching) {
+		if (i.indexOf(type) === 0) {
+			this[type] = old;
+			val = this._get(i, 123);
+			this[type] = data;
+			if (val !== this._get(i, 456)) {
+				this._notify(i);
+			}
+		}
+	}
+	this[type] = data;
+	this._taint[type] = true;
+	this._save(type);
 };
 
 Worker.prototype._save = function(type) {

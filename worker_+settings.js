@@ -58,7 +58,7 @@ Settings.menu = function(worker, key) {
 				this.set(['data', worker.name], $.extend(true, {}, worker.option));
 			} else if (key === 'restore') {
 				if (confirm("WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\Are you sure?")) {
-					this.replace(worker, 'option', $.extend(true, {}, this.data[worker.name]));
+					worker._replace('option', $.extend(true, {}, this.data[worker.name]));
 				}
 			} else if (this.temp.worker === worker.name && this.temp.edit === key) {
 				this.temp.worker = this.temp.edit = null;
@@ -83,35 +83,13 @@ Settings.menu = function(worker, key) {
 				if (confirm("WARNING!!!\n\nAbout to restore options for all workers.\n\Are you sure?")) {
 					for (i in Workers) {
 						if (i in this.data) {
-							this.replace(Workers[i], 'option', $.extend(true, {}, this.data[i]));
+							Workers[i]._replace('option', $.extend(true, {}, this.data[i]));
 						}
 					}
 				}
 			}
 		}
 	}
-};
-
-Settings.replace = function(worker, type, data) {
-	if (type === 'data') {
-		worker._unflush();
-	}
-	var i, val, old = worker[type], rx = new RegExp('^'+type+'\.');
-	for (i in worker._watching) {
-		if (rx.test(i)) {
-			worker[type] = old;
-			val = worker._get(i, null);
-			worker[type] = data;
-			if (val !== worker._get(i, null)) {
-				worker._notify(i);
-			}
-		}
-	}
-	worker[type] = data;
-	if (type === 'option') {
-		Config.setOptions(worker);
-	}
-	worker._taint[type] = true;
 };
 
 Settings.dashboard = function() {
@@ -145,7 +123,7 @@ Settings.dashboard = function() {
 		}
 		if (confirm("WARNING!!!\n\nReplacing internal data can be dangrous, only do this if you know exactly what you are doing.\n\nAre you sure you wish to replace "+Settings.temp.worker+'.'+Settings.temp.edit+"?")) {
 			// Need to copy data over and then trigger any notifications
-			Settings.replace(Workers[Settings.temp.worker], Settings.temp.edit, data);
+			Workers[Settings.temp.worker]._replace(Settings.temp.edit, data);
 		}
 	});
 	$('#golem_settings_path').change(function(){

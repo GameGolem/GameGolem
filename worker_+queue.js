@@ -143,7 +143,6 @@ Queue.init = function() {
 			$('#golem_step').show();
 		}
 		Queue.clearCurrent();
-		Config.updateOptions();
 	});
 	$('#golem_step').click(function() {
 		$(this).toggleClass('red green');

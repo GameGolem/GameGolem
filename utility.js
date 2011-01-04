@@ -286,6 +286,34 @@ var sum = function(a) { // Adds the values of all array entries together
 	return t;
 };
 
+var compare = function(left, right) {
+	if (typeof left !== typeof right) {
+		return false;
+	}
+	if (typeof left === 'object') {
+		if (length(left) !== length(right)) {
+			return false;
+		}
+		if (isArray(left)) {
+			var i = left.length;
+			while (i--) {
+				if (left[i] !== right[i]) {
+					return false;
+				}
+			}
+		}else {
+			for (i in left) {
+				if (!compare(left[i], right[i])) {
+					return false;
+				}
+			}
+		}
+	} else {
+		return left === right;
+	}
+	return true;
+};
+
 var findInArray = function(list, value) {
 	if (isArray(list)) {
 		return list.indexOf(value) !== -1;

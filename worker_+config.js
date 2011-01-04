@@ -24,6 +24,10 @@ Config.option = {
 	exploit:false
 };
 
+Config.temp = {
+	menu:null
+};
+
 Config.init = function() {
 	var i, j, k, $display;
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
@@ -46,7 +50,7 @@ Config.init = function() {
 		Config._save('option');
 	});
 	for (i in Workers) {
-		Config.makePanel(Workers[i]);
+		this.makePanel(Workers[i]);
 	}
 	$('.golem-config .golem-panel > h3').click(function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -77,7 +81,7 @@ Config.init = function() {
 			containment:'parent',
 			stop:function(event,ui) {
 				Queue.clearCurrent();// Make sure we deal with changed circumstances
-				Config.updateOptions();
+				Queue.set(['option','queue'], Config.getOrder());
 			}
 		})
 		.droppable({
@@ -132,21 +136,39 @@ Config.init = function() {
 		}
 	}
 	$('input.golem_addselect').live('click', function(){
-		var i, value, values = $('.golem_select', $(this).parent()).val().split(',');
+		var i, value, values = $(this).prev().val().split(','), $multiple = $(this).parent().children().first();
 		for (i=0; i<values.length; i++) {
 			value = values[i].trim();
 			if (value) {
-				$('select.golem_multiple', $(this).parent()).append('<option>' + value + '</option>');
+				$multiple.append('<option>' + value + '</option>');
 			}
 		}
-		Config.updateOptions();
+		$multiple.change();
 	});
 	$('input.golem_delselect').live('click', function(){
-		$(this).parent().children().first().children().selected().remove();
-		Config.updateOptions();
+		var $multiple = $(this).parent().children().first();
+		$multiple.children().selected().remove();
+		$multiple.change();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
-		Config.updateOptions();
+		var $this = $(this), tmp, worker, val;
+		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
+			if ($this.attr('type') === 'checkbox') {
+				val = $this.attr('checked');
+			} else if ($this.attr('multiple')) {
+				val = [];
+				$this.children().each(function(i,el){ val.push($(el).text()); });
+			} else {
+				val = $this.attr('value') || $this.val() || null;
+				if (val && val.search(/[^-0-9.]/) === -1) {
+					val = parseFloat(val);
+				}
+			}
+			if (!compare(val, worker.option[tmp[1]])) { // only continue if they change
+				worker.set('option.'+tmp[1], val);
+				Config.checkRequire();
+			}
+		}
 	});
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
@@ -210,6 +232,25 @@ Config.init = function() {
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
 	});
+};
+
+Config.update = function(event) {
+	if (event.type === 'watch') {
+		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
+		if (($el = $('#'+this.makeID(worker, id))).length === 1) {
+			if ($el.attr('type') === 'checkbox') {
+				$el.attr('checked', worker.option[id]);
+			} else if ($el.attr('multiple')) {
+				$el.empty();
+				(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+			} else if ($el.attr('value')) {
+				$el.attr('value', worker.option[id]);
+			} else {
+				$el.val(worker.option[id]);
+			}
+		}
+		this.checkRequire();
+	}
 };
 
 Config.menu = function(worker, key) {
@@ -330,6 +371,7 @@ Config.makeOption = function(worker, args) {
 		min: 0,
 		max: 100
 	}, args);
+	this._watch(worker, 'option.' + o.id);
 	o.real_id = o.id ? ' id="' + this.makeID(worker, o.id) + '"' : '';
 	o.value = worker.get('option.'+o.id, null);
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
@@ -400,7 +442,7 @@ Config.makeOption = function(worker, args) {
 	} else if (o.multiple) {
 		if (typeof o.value === 'array' || typeof o.value === 'object') {
 			for (i in o.value) {
-				list.push('<option value="'+o.value[i]+'">'+o.value[i]+'</option>');
+				list.push('<option>'+o.value[i]+'</option>');
 			}
 		}
 		txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
@@ -506,63 +548,6 @@ Config.set = function(key, value) {
 		return true;
 	}
 	return false;
-};
-
-Config.updateOptions = function() {
-//	console.log(warn(), 'Options changed');
-	// Get order of panels first
-	Queue.option.queue = this.getOrder();
-	// Now save the contents of all elements with the right id style
-	$('#golem_config :input:not(:button)').each(function(i,el){
-		if ($(el).attr('id')) {
-			var val, tmp = $(el).attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i);
-			if (!tmp) {
-				return;
-			}
-			if ($(el).attr('type') === 'checkbox') {
-				val = $(el).attr('checked');
-			} else if ($(el).attr('multiple')) {
-				val = [];
-				$('option', el).each(function(i,el){ val.push($(el).text()); });
-			} else {
-				val = $(el).attr('value') || ($(el).val() || null);
-				if (val && val.search(/[^-0-9.]/) === -1) {
-					val = parseFloat(val);
-				}
-			}
-			try {
-				Worker.find(tmp[0]).set('option.'+tmp[1], val);
-			} catch(e) {
-				console.log(warn(), e.name + ' in Config.updateOptions(): ' + $(el).attr('id') + '(' + JSON.stringify(tmp) + ') = ' + e.message);
-			}
-		}
-	});
-	this.checkRequire();
-};
-
-Config.setOptions = function(worker) {
-//	if (worker === Queue) {
-		//Queue.option.queue = this.getOrder();
-//	}
-	var i, $el;
-	for (i in worker.option) {
-		$el = $('#'+this.makeID(worker, i));
-		if ($el.length === 1) {
-//			try {
-				if ($el.attr('type') === 'checkbox') {
-					$el.attr('checked', worker.option[i]);
-				} else if ($el.attr('multiple')) {
-					$el.empty();
-					(worker.option[i] || []).forEach(function(val){$el.append('<option value="'+val+'">'+val+'</option>')});
-				} else if ($el.attr('value')) {
-					$el.attr('value', worker.option[i]);
-				} else {
-					$el.val(worker.option[i]);
-				}
-//			} catch(e) {}
-		}
-	}
-	this.checkRequire();
 };
 
 Config.checkRequire = function(selector) {
