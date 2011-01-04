@@ -11,7 +11,7 @@
 * Profiling information
 */
 var Debug = new Worker('Debug');
-Debug.data = Debug.runtime = null;
+Debug.runtime = null; // Can't remove Debug.data as it's needed for the dashboard trigger
 
 Debug.settings = {
 //	system:true,
@@ -162,6 +162,9 @@ Debug.init = function() {
 		list.push(i);
 	}
 	Config.set('worker_list', ['All', '_worker'].concat(unique(list).sort()));
+	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
+		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
+	}).appendTo('#golem_buttons');
 };
 
 Debug.update = function(event) {

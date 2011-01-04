@@ -86,6 +86,10 @@ Quest.display = [
 	}
 ];
 
+Quest.setup = function() {
+	Resources.use('Energy');
+};
+
 Quest.init = function() {
 	var data = this.get('data'), runtime = this.get('runtime'), i, j, r, x;
 	for (i in data) {
@@ -98,7 +102,6 @@ Quest.init = function() {
 	} else if (this.option.monster === false) {
 		this.option.monster = 'Never';
 	}
-	Resources.use('Energy');
 
 	// one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if ((runtime.revision || 0) < 845) {
@@ -326,7 +329,9 @@ Quest.update = function(event) {
 		}
 		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
-			Resources.set(['_'+unit, 'quest'], items[unit]);
+			if (!Resources.data['_'+unit] || Resources.data['_'+unit].quest !== items[unit]) {
+				Resources.set(['data','_'+unit,'quest'], items[unit]);
+			}
 		}
 	}
 	// Now choose the next quest...

@@ -33,7 +33,7 @@ LevelUp.option = {
 	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action',
-        override:false
+	override:false
 };
 
 LevelUp.runtime = {
@@ -53,10 +53,6 @@ LevelUp.display = [
 	{
 		title:'Important!',
 		label:'This will spend Energy and Stamina to force you to level up quicker.'
-	},{
-		id:'enabled',
-		label:'Enabled',
-		checkbox:true
 	},{
 		id:'general',
 		label:'Best General',
@@ -158,19 +154,12 @@ LevelUp.update = function(event) {
 	}
 	//console.log(warn(), 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
-	if (this.option.enabled) {
-		if (runtime.running) {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
-		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
-		}
+	if (runtime.running) {
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
 	}
-/*	if (!this.option.enabled || this.option.general === 'any') {
-		Generals.set('runtime.disabled', false);
-	}
-*/};
+};
 
 LevelUp.work = function(state) {
 	var heal = this.runtime.heal_me, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), order = Config.getOrder(), action = this.runtime.action;

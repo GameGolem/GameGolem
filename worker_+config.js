@@ -189,7 +189,7 @@ Config.init = function() {
 			$('#golem-menu').css({
 				position:Config.option.fixed ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true))
+				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true) - 4)
 			}).show();
 		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.temp.menu = null;

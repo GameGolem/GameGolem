@@ -90,7 +90,7 @@ Resources.display = function() {
 				text:true
 			},{
 				id:'types.'+type,
-				label:'Resources Use',
+				label:type+' Use',
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
@@ -102,32 +102,29 @@ Resources.display = function() {
 };
 
 Resources.init = function() {
-//	Config.addOption({label:'test',checkbox:true});
+	this._watch(this, 'option');
 };
 
 Resources.update = function(event) {
-//	if (event.type === 'init' && event.self) {
-//		Config.makePanel(this, this.display2);
-//	}
-	var worker, type, total = 0;
-//	console.log(warn(), 'Resources.update()');
-	for (type in this.option.types) {
-		for (worker in this.runtime.buckets) {
-			if (type in this.runtime.buckets[worker]) {
-				if (this.option.types[type] === 2) {// Exclusive
-					total += this.runtime.buckets[worker][type];
-				} else {
-					this.runtime.buckets[worker][type] = 0;
+	if (event.type === 'watch') {
+		var worker, type, total = 0;
+		for (type in this.option.types) {
+			for (worker in this.runtime.buckets) {
+				if (type in this.runtime.buckets[worker]) {
+					if (this.option.types[type] === 2) {// Exclusive
+						total += this.runtime.buckets[worker][type];
+					} else {
+						this.runtime.buckets[worker][type] = 0;
+					}
 				}
 			}
-		}
-		if (this.option.types[type] === 2 && Math.ceil(total) < Math.floor(this.runtime.types[type])) {// We've got an excess for Exclusive, so share
-			total = this.runtime.types[type] - total;
-			this.runtime.types[type] -= total;
-			this.add(type, total);
+			if (this.option.types[type] === 2 && Math.ceil(total) < Math.floor(this.runtime.types[type])) {// We've got an excess for Exclusive, so share
+				total = this.runtime.types[type] - total;
+				this.runtime.types[type] -= total;
+				this.add(type, total);
+			}
 		}
 	}
-//	console.log(warn(), this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
@@ -143,36 +140,35 @@ absolute = is an absolute amount, not relative
 NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
 Resources.add = function(type, amount, absolute) {
-//	console.log(warn(), 'Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
-	this._push();
-	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
 	if (isUndefined(amount)) {// Setting up that we use this type
-		this.set(['runtime','types',type], old_amount);
-		this.set(['option','types',type], this.get(['option','types',type], 1));
-		this.set(['option','reserve',type], this.get(['option','reserve',type], 0));
+		this.set(['runtime','types',type], this.runtime.types[type] || 0);
+		this.set(['option','types',type], this.option.types[type] || 1);
+		this.set(['option','reserve',type], this.option.reserve[type] || 0);
 	} else {// Telling of any changes to the amount
+		var total = 0, worker;
 		if (absolute) {
-			amount -= old_amount;
+			amount -= this.runtime.types[type];
 		}
-		// Store the new value
-		this.set(['runtime','types',type], old_amount + amount);
-		// Now fill any pots...
-		amount -= Math.max(0, old_amount - parseInt(this.option.reserve[type]));
-		if (amount > 0 && this.option.types[type] === 2) {
-			for (worker in this.option.buckets) {
-				if (type in this.option.buckets[worker]) {
-					total += this.option.buckets[worker][type]
+		if (amount) {
+			// Store the new value
+			this.set(['runtime','types',type], this.runtime.types[type] + amount);
+			// Now fill any pots...
+			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type]));
+			if (amount > 0 && this.option.types[type] === 2) {
+				for (worker in this.option.buckets) {
+					if (type in this.option.buckets[worker]) {
+						total += this.option.buckets[worker][type];
+					}
 				}
-			}
-			amount /= total;
-			for (worker in this.option.buckets) {
-				if (type in this.option.buckets[worker]) {
-					this.runtime.buckets[worker][type] += amount * this.option.buckets[worker][type];
+				amount /= total;
+				for (worker in this.option.buckets) {
+					if (type in this.option.buckets[worker]) {
+						this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker][type] + amount * this.option.buckets[worker][type]);
+					}
 				}
-			}
-		}		
+			}		
+		}
 	}
-	this._pop();
 };
 
 /***** Resources.use() *****
@@ -183,19 +179,22 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-	if (Worker.stack.length <= 1) {
+	if (Worker.stack.length) {
 		var worker = Worker.stack[0];
 		if (isUndefined(amount)) {
-			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
-			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));
+			this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker] && this.runtime.buckets[worker][type] || 0);
+			this.set(['option','buckets',worker,type], this.option.buckets[worker] && this.option.buckets[worker][type] || 5);
+		} else if (!amount) {
+			return true;
 		} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
 			if (use) {
-				this.runtime.types[type] -= amount;
+				this.set(['runtime','types',type], this.runtime.types[type] - amount);
 			}
 			return true;
 		} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
 			if (use) {
-				this.runtime.buckets[worker][type] -= amount;
+				this.set(['runtime','types',type], this.runtime.types[type] - amount);
+				this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker][type] - amount);
 			}
 			return true;
 		}
@@ -208,16 +207,6 @@ Check if we've got a certain number of a Resources in total - not on a per-worke
 Use this to check on "non-spending" resources
 */
 Resources.has = function(type, amount) {
-	return isUndefined(amount) ? this.get(['runtime','types',type], 0) : this.get(['runtime','types',type], 0) >= amount;
-};
-
-Resources.get = function(what,def) {
-//	console.log(log(), 'Resources.get('+what+', '+(def?def:'null')+')');
-	return this._get(what,def);
-};
-
-Resources.set = function(what,value) {
-//	console.log(log(), 'Resources.set('+what+', '+(value?value:'null')+')');
-	return this._set(what,value);
+	return isUndefined(amount) ? (this.runtime.types[type] || 0) : (this.runtime.types[type] || 0) >= amount;
 };
 

@@ -131,6 +131,7 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._taint = {}; // Has anything changed that might need saving?
 	this._watching = {};
+	this._watching_ = null;
 	this._reminders = {};
 	this._disabled = false;
 	this._flush_count = 0;
@@ -142,17 +143,38 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 		return null;
 	}
 	try {
-		if (name in Workers) {
-			return Workers[name];
-		}
-		name = name.toLowerCase();
-		for (var i in Workers) {
-			if (i.toLowerCase() === name || Workers[i].id === name) {
-				return Workers[i];
+		if (isString(name)) {
+			if (name in Workers) {
+				return Workers[name];
 			}
+			name = name.toLowerCase();
+			for (var i in Workers) {
+				if (i.toLowerCase() === name || Workers[i].id === name) {
+					return Workers[i];
+				}
+			}
+		} else if (isWorker(name)) {
+			return name;
 		}
 	} catch(e) {}
 	return null;
+};
+
+// Private status functions
+Worker._notify_ = function(worker) {
+	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
+	Workers[worker]._watching_ = undefined;
+	for (i in w) {
+		j = watch[i].length;
+		while (j--) {
+			Workers[watch[i][j]]._update({worker:worker, type:'watch', id:i});
+		}
+	}
+};
+
+Worker._flush_ = function(worker) {
+	Workers[worker]._reminders._flush = undefined;
+	Workers[worker].data = undefined;
 };
 
 // Static Data
@@ -163,10 +185,13 @@ Worker._triggers_ = [];// Used for this._trigger
 Worker.prototype._flush = function(force) {
 	this._push();
 	this._save();
-	if (!this.settings.keep) {
+	if (!this.settings.keep) {// && !this._reminders._flush) {
+		var name = this.name;
+		window.clearTimeout(this._reminders._flush);
+		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
 //		if (force || this._flush_count++ > 60) {
 //			this._flush_count = 0;
-			delete this.data;
+//			delete this.data;
 //		}
 	}
 	this._pop();
@@ -258,13 +283,14 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._notify = function(path) {// Notify on a _watched path change
-	var i, j, w, id = '_' + this.name + '.';
-	for (i in this._watching) {
-		if (path.indexOf(i) === 0) {// Match the prefix
-			w = this._watching[i];
-			for (j=0; j<w.length; j++) {
-				Workers[w[j]]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
+	for (var i in this._watching) {
+		if (this._watching[i].length && path.indexOf(i) === 0) {// Match the prefix
+			if (!this._watching_) {
+				var name = this.name;
+				this._watching_ = {};
+				window.setTimeout(function(){Worker._notify_(name);}, 50);
 			}
+			this._watching_[i] = true;
 		}
 	}
 }
@@ -315,7 +341,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, timer = window.setInterval(function(){callback ? callback.apply(Workers[name]) : Workers[name]._update({type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -326,7 +352,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];isFunction(callback) ? callback.apply(me) : me._update(isObject(callback) ? callback : {worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, timer = window.setTimeout(function(){delete Workers[name]._reminders['t'+id];isFunction(callback) ? callback.apply(Workers[name]) : Workers[name]._update(isObject(callback) ? callback : {type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -361,7 +387,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._taint[type] = false;
-		this._update({worker:this, type:type, self:true});
+		this._update({type:type, self:true});
 		setItem(n, v);
 		this._pop();
 		return true;
@@ -375,14 +401,14 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 		data[i] = {};
 	}
 	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-		delete data[i];
+		data[i] = undefined;
 		return false;
 	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
 		this._notify(path.join('.'));// Notify the watchers...
 		this._taint[path[0]] = true;
 		this._remind(0, '_update', {type:path[0], self:true});
 		if (t === 'undefined') {
-			delete data[i];
+			data[i] = undefined;;
 			return false;
 		}
 		data[i] = value;
@@ -479,8 +505,13 @@ Worker.prototype._unwatch = function(worker, path) {
 				deleteElement(worker._watching[path],this.name);
 			}
 		} else {
-			for (var i=worker._watching.length-1; i>=0; i--) {
+			for (i in worker._watching) {
 				deleteElement(worker._watching[i],this.name);
+			}
+		}
+		for (i in worker._watching) {
+			if (!worker._watching[i].length) {
+				delete worker._watching[i];
 			}
 		}
 	}
@@ -489,23 +520,21 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false, newevent = {worker:this};
+		var i, flush = false, newevent = {};
 		if (isString(event)) {
-			newevent.type = event;
-		} else if (isObject(event)) {
-			for (i in event) {
-				newevent[i] = event[i];
-			}
+			event = {type:event};
+		} else if (!isObject(event)) {
+			event = {};
 		}
-		newevent.worker = newevent.worker || this;
-		if (isUndefined(this.data)) {
+		event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+		if (isUndefined(this.data) && this._datatypes.data) {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			this.update(newevent);
+			this.update(event);
 		}catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message));
+			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
@@ -516,9 +545,7 @@ Worker.prototype._update = function(event) {
 };
 
  Worker.prototype._watch = function(worker, path) {
-	if (typeof worker === 'string') {
-		worker = Worker.find(worker);
-	}
+	worker = Worker.find(worker);
 	if (isWorker(worker)) {
 		if (!isString(path)) {
 			path = 'data';

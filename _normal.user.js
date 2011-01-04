@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.907
+// @version		31.5.909
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 907;
+var revision = 909;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -401,11 +401,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 	for (i=0; i<units.length; i++) {
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
 		if (user) {
-			if (count) {
-				Resources.set(['_'+units[i], user+'_'+x], count);
-			} else {
-				Resources.set(['_'+units[i], user+'_'+x]);
-			}
+			Resources.set(['_'+units[i], user+'_'+x], count || undefined);
 			if (Math.min(count, own) > 0) {
 //				console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
@@ -786,6 +782,7 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._taint = {}; // Has anything changed that might need saving?
 	this._watching = {};
+	this._watching_ = null;
 	this._reminders = {};
 	this._disabled = false;
 	this._flush_count = 0;
@@ -797,17 +794,38 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 		return null;
 	}
 	try {
-		if (name in Workers) {
-			return Workers[name];
-		}
-		name = name.toLowerCase();
-		for (var i in Workers) {
-			if (i.toLowerCase() === name || Workers[i].id === name) {
-				return Workers[i];
+		if (isString(name)) {
+			if (name in Workers) {
+				return Workers[name];
 			}
+			name = name.toLowerCase();
+			for (var i in Workers) {
+				if (i.toLowerCase() === name || Workers[i].id === name) {
+					return Workers[i];
+				}
+			}
+		} else if (isWorker(name)) {
+			return name;
 		}
 	} catch(e) {}
 	return null;
+};
+
+// Private status functions
+Worker._notify_ = function(worker) {
+	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
+	Workers[worker]._watching_ = undefined;
+	for (i in w) {
+		j = watch[i].length;
+		while (j--) {
+			Workers[watch[i][j]]._update({worker:worker, type:'watch', id:i});
+		}
+	}
+};
+
+Worker._flush_ = function(worker) {
+	Workers[worker]._reminders._flush = undefined;
+	Workers[worker].data = undefined;
 };
 
 // Static Data
@@ -818,10 +836,13 @@ Worker._triggers_ = [];// Used for this._trigger
 Worker.prototype._flush = function(force) {
 	this._push();
 	this._save();
-	if (!this.settings.keep) {
+	if (!this.settings.keep) {// && !this._reminders._flush) {
+		var name = this.name;
+		window.clearTimeout(this._reminders._flush);
+		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
 //		if (force || this._flush_count++ > 60) {
 //			this._flush_count = 0;
-			delete this.data;
+//			delete this.data;
 //		}
 	}
 	this._pop();
@@ -913,13 +934,14 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._notify = function(path) {// Notify on a _watched path change
-	var i, j, w, id = '_' + this.name + '.';
-	for (i in this._watching) {
-		if (path.indexOf(i) === 0) {// Match the prefix
-			w = this._watching[i];
-			for (j=0; j<w.length; j++) {
-				Workers[w[j]]._remind(0.05, id + i, {worker:this, type:'watch', id:i});
+	for (var i in this._watching) {
+		if (this._watching[i].length && path.indexOf(i) === 0) {// Match the prefix
+			if (!this._watching_) {
+				var name = this.name;
+				this._watching_ = {};
+				window.setTimeout(function(){Worker._notify_(name);}, 50);
 			}
+			this._watching_[i] = true;
 		}
 	}
 }
@@ -970,7 +992,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var me = this, timer = window.setInterval(function(){callback ? callback.apply(me) : me._update({worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, timer = window.setInterval(function(){callback ? callback.apply(Workers[name]) : Workers[name]._update({type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -981,7 +1003,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var me = this, timer = window.setTimeout(function(){delete me._reminders['t'+id];isFunction(callback) ? callback.apply(me) : me._update(isObject(callback) ? callback : {worker:me, type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, timer = window.setTimeout(function(){delete Workers[name]._reminders['t'+id];isFunction(callback) ? callback.apply(Workers[name]) : Workers[name]._update(isObject(callback) ? callback : {type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -1016,7 +1038,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._taint[type] = false;
-		this._update({worker:this, type:type, self:true});
+		this._update({type:type, self:true});
 		setItem(n, v);
 		this._pop();
 		return true;
@@ -1030,14 +1052,14 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 		data[i] = {};
 	}
 	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-		delete data[i];
+		data[i] = undefined;
 		return false;
 	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
 		this._notify(path.join('.'));// Notify the watchers...
 		this._taint[path[0]] = true;
 		this._remind(0, '_update', {type:path[0], self:true});
 		if (t === 'undefined') {
-			delete data[i];
+			data[i] = undefined;;
 			return false;
 		}
 		data[i] = value;
@@ -1134,8 +1156,13 @@ Worker.prototype._unwatch = function(worker, path) {
 				deleteElement(worker._watching[path],this.name);
 			}
 		} else {
-			for (var i=worker._watching.length-1; i>=0; i--) {
+			for (i in worker._watching) {
 				deleteElement(worker._watching[i],this.name);
+			}
+		}
+		for (i in worker._watching) {
+			if (!worker._watching[i].length) {
+				delete worker._watching[i];
 			}
 		}
 	}
@@ -1144,23 +1171,21 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false, newevent = {worker:this};
+		var i, flush = false, newevent = {};
 		if (isString(event)) {
-			newevent.type = event;
-		} else if (isObject(event)) {
-			for (i in event) {
-				newevent[i] = event[i];
-			}
+			event = {type:event};
+		} else if (!isObject(event)) {
+			event = {};
 		}
-		newevent.worker = newevent.worker || this;
-		if (isUndefined(this.data)) {
+		event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+		if (isUndefined(this.data) && this._datatypes.data) {
 			flush = true;
 			this._unflush();
 		}
 		try {
-			this.update(newevent);
+			this.update(event);
 		}catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.update({worker:' + newevent.worker.name + ', type:' + newevent.type + '}): ' + e.message));
+			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 		}
 		if (flush) {
 			this._remind(0.1, '_flush', this._flush);
@@ -1171,9 +1196,7 @@ Worker.prototype._update = function(event) {
 };
 
  Worker.prototype._watch = function(worker, path) {
-	if (typeof worker === 'string') {
-		worker = Worker.find(worker);
-	}
+	worker = Worker.find(worker);
 	if (isWorker(worker)) {
 		if (!isString(path)) {
 			path = 'data';
@@ -1695,7 +1718,7 @@ Config.init = function() {
 			$('#golem-menu').css({
 				position:Config.option.fixed ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true))
+				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true) - 4)
 			}).show();
 		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.temp.menu = null;
@@ -2306,7 +2329,7 @@ Dashboard.menu = function(worker, key) {
 * Profiling information
 */
 var Debug = new Worker('Debug');
-Debug.data = Debug.runtime = null;
+Debug.runtime = null; // Can't remove Debug.data as it's needed for the dashboard trigger
 
 Debug.settings = {
 //	system:true,
@@ -2457,6 +2480,9 @@ Debug.init = function() {
 		list.push(i);
 	}
 	Config.set('worker_list', ['All', '_worker'].concat(unique(list).sort()));
+	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
+		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
+	}).appendTo('#golem_buttons');
 };
 
 Debug.update = function(event) {
@@ -3355,7 +3381,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Global', 'Debug', 'Queue', 'Resources', 'Settings', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Global', 'Debug', 'Queue', 'Resources', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	start_stamina: 0,
@@ -3714,7 +3740,7 @@ Resources.display = function() {
 				text:true
 			},{
 				id:'types.'+type,
-				label:'Resources Use',
+				label:type+' Use',
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
@@ -3726,32 +3752,29 @@ Resources.display = function() {
 };
 
 Resources.init = function() {
-//	Config.addOption({label:'test',checkbox:true});
+	this._watch(this, 'option');
 };
 
 Resources.update = function(event) {
-//	if (event.type === 'init' && event.self) {
-//		Config.makePanel(this, this.display2);
-//	}
-	var worker, type, total = 0;
-//	console.log(warn(), 'Resources.update()');
-	for (type in this.option.types) {
-		for (worker in this.runtime.buckets) {
-			if (type in this.runtime.buckets[worker]) {
-				if (this.option.types[type] === 2) {// Exclusive
-					total += this.runtime.buckets[worker][type];
-				} else {
-					this.runtime.buckets[worker][type] = 0;
+	if (event.type === 'watch') {
+		var worker, type, total = 0;
+		for (type in this.option.types) {
+			for (worker in this.runtime.buckets) {
+				if (type in this.runtime.buckets[worker]) {
+					if (this.option.types[type] === 2) {// Exclusive
+						total += this.runtime.buckets[worker][type];
+					} else {
+						this.runtime.buckets[worker][type] = 0;
+					}
 				}
 			}
-		}
-		if (this.option.types[type] === 2 && Math.ceil(total) < Math.floor(this.runtime.types[type])) {// We've got an excess for Exclusive, so share
-			total = this.runtime.types[type] - total;
-			this.runtime.types[type] -= total;
-			this.add(type, total);
+			if (this.option.types[type] === 2 && Math.ceil(total) < Math.floor(this.runtime.types[type])) {// We've got an excess for Exclusive, so share
+				total = this.runtime.types[type] - total;
+				this.runtime.types[type] -= total;
+				this.add(type, total);
+			}
 		}
 	}
-//	console.log(warn(), this.runtime.buckets.toSource());
 };
 
 /***** Resources.add() *****
@@ -3767,36 +3790,35 @@ absolute = is an absolute amount, not relative
 NOTE: we can add() items etc here, by never calling with just the item name - so it won't ever be "spent"
 */
 Resources.add = function(type, amount, absolute) {
-//	console.log(warn(), 'Resources.add('+type+', '+amount+', '+(absolute ? true : false)+')');
-	this._push();
-	var i, total = 0, worker, old_amount = this.get(['runtime','types',type], 0);
 	if (isUndefined(amount)) {// Setting up that we use this type
-		this.set(['runtime','types',type], old_amount);
-		this.set(['option','types',type], this.get(['option','types',type], 1));
-		this.set(['option','reserve',type], this.get(['option','reserve',type], 0));
+		this.set(['runtime','types',type], this.runtime.types[type] || 0);
+		this.set(['option','types',type], this.option.types[type] || 1);
+		this.set(['option','reserve',type], this.option.reserve[type] || 0);
 	} else {// Telling of any changes to the amount
+		var total = 0, worker;
 		if (absolute) {
-			amount -= old_amount;
+			amount -= this.runtime.types[type];
 		}
-		// Store the new value
-		this.set(['runtime','types',type], old_amount + amount);
-		// Now fill any pots...
-		amount -= Math.max(0, old_amount - parseInt(this.option.reserve[type]));
-		if (amount > 0 && this.option.types[type] === 2) {
-			for (worker in this.option.buckets) {
-				if (type in this.option.buckets[worker]) {
-					total += this.option.buckets[worker][type]
+		if (amount) {
+			// Store the new value
+			this.set(['runtime','types',type], this.runtime.types[type] + amount);
+			// Now fill any pots...
+			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type]));
+			if (amount > 0 && this.option.types[type] === 2) {
+				for (worker in this.option.buckets) {
+					if (type in this.option.buckets[worker]) {
+						total += this.option.buckets[worker][type];
+					}
 				}
-			}
-			amount /= total;
-			for (worker in this.option.buckets) {
-				if (type in this.option.buckets[worker]) {
-					this.runtime.buckets[worker][type] += amount * this.option.buckets[worker][type];
+				amount /= total;
+				for (worker in this.option.buckets) {
+					if (type in this.option.buckets[worker]) {
+						this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker][type] + amount * this.option.buckets[worker][type]);
+					}
 				}
-			}
-		}		
+			}		
+		}
 	}
-	this._pop();
 };
 
 /***** Resources.use() *****
@@ -3807,19 +3829,22 @@ amount = amount to use
 use = are we using it, or just checking if we can?
 */
 Resources.use = function(type, amount, use) {
-	if (Worker.stack.length <= 1) {
+	if (Worker.stack.length) {
 		var worker = Worker.stack[0];
 		if (isUndefined(amount)) {
-			this.set(['runtime','buckets',worker,type], this.get(['runtime','buckets',worker,type], 0));
-			this.set(['option','buckets',worker,type], this.get(['option','buckets',worker,type], 5));
+			this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker] && this.runtime.buckets[worker][type] || 0);
+			this.set(['option','buckets',worker,type], this.option.buckets[worker] && this.option.buckets[worker][type] || 5);
+		} else if (!amount) {
+			return true;
 		} else if (this.option.types[type] === 1 && this.runtime.types[type] >= amount) {// Shared
 			if (use) {
-				this.runtime.types[type] -= amount;
+				this.set(['runtime','types',type], this.runtime.types[type] - amount);
 			}
 			return true;
 		} else if (this.option.types[type] === 2 && this.runtime.buckets[worker][type] >= amount) {// Exlusive
 			if (use) {
-				this.runtime.buckets[worker][type] -= amount;
+				this.set(['runtime','types',type], this.runtime.types[type] - amount);
+				this.set(['runtime','buckets',worker,type], this.runtime.buckets[worker][type] - amount);
 			}
 			return true;
 		}
@@ -3832,17 +3857,7 @@ Check if we've got a certain number of a Resources in total - not on a per-worke
 Use this to check on "non-spending" resources
 */
 Resources.has = function(type, amount) {
-	return isUndefined(amount) ? this.get(['runtime','types',type], 0) : this.get(['runtime','types',type], 0) >= amount;
-};
-
-Resources.get = function(what,def) {
-//	console.log(log(), 'Resources.get('+what+', '+(def?def:'null')+')');
-	return this._get(what,def);
-};
-
-Resources.set = function(what,value) {
-//	console.log(log(), 'Resources.set('+what+', '+(value?value:'null')+')');
-	return this._set(what,value);
+	return isUndefined(amount) ? (this.runtime.types[type] || 0) : (this.runtime.types[type] || 0) >= amount;
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -4164,29 +4179,25 @@ Update.init = function() {
 			break;
 	}
 	// Add an update button for everyone
-	var $btn = $('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
+	$('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
 		$(this).addClass('red');
 		Update.checkVersion(true);
-	});
-	$('#golem_buttons').append($btn);
+	}).appendTo('#golem_buttons');
 	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$btn = $('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
+		$('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
 			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
 			$(this).addClass('red');
 			Update.checkVersion(true);
-		});
-		$('#golem_buttons').append($btn);
+		}).appendTo('#golem_buttons');
 	}
 	// Add a changelog advanced button
-	$btn = $('<img class="golem-button golem-advanced green"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
+	$('<img class="golem-button golem-advanced blue"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
-	});
-	$('#golem_buttons').append($btn)
+	}).appendTo('#golem_buttons');
 	// Add a wiki button
-	$btn = $('<img class="golem-button green" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
+	$('<img class="golem-button blue" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
-	});
-	$('#golem_buttons').append($btn)
+	}).appendTo('#golem_buttons');
 	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
@@ -4197,8 +4208,7 @@ Update.init = function() {
 				Update.runtime.version = tmp[0];
 				Update.runtime.revision = tmp[1];
 				if (Update.runtime.force && Update.temp.version >= tmp[0] && (isRelease || Update.temp.revision >= tmp[1])) {
-					$btn = $('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} });
-					$('#golem_buttons').after($btn);
+					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
 				}
 				Update.runtime.force = false;
 				$('.golem-version').removeClass('red');
@@ -5022,6 +5032,10 @@ Battle.display = [
 	}
 ];
 
+Battle.setup = function() {
+	Resources.use('Stamina');
+};
+
 /***** Battle.init() *****
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
@@ -5034,7 +5048,6 @@ Battle.init = function() {
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 //	this.option.arena = false;// ARENA!!!!!!
-	Resources.use('Stamina');
 
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
@@ -6767,9 +6780,12 @@ Land.display = [
 */
 ];
 
-Land.init = function(){
-    this._watch(Player, 'data.worth');
+Land.setup = function() {
 	Resources.use('Gold');
+};
+
+Land.init = function() {
+	this._watch(Player, 'data.worth');
 };
 
 Land.parse = function(change) {
@@ -6928,7 +6944,7 @@ LevelUp.option = {
 	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action',
-        override:false
+	override:false
 };
 
 LevelUp.runtime = {
@@ -6948,10 +6964,6 @@ LevelUp.display = [
 	{
 		title:'Important!',
 		label:'This will spend Energy and Stamina to force you to level up quicker.'
-	},{
-		id:'enabled',
-		label:'Enabled',
-		checkbox:true
 	},{
 		id:'general',
 		label:'Best General',
@@ -7053,19 +7065,12 @@ LevelUp.update = function(event) {
 	}
 	//console.log(warn(), 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
-	if (this.option.enabled) {
-		if (runtime.running) {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
-		} else {
-			Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
-		}
+	if (runtime.running) {
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
 	}
-/*	if (!this.option.enabled || this.option.general === 'any') {
-		Generals.set('runtime.disabled', false);
-	}
-*/};
+};
 
 LevelUp.work = function(state) {
 	var heal = this.runtime.heal_me, energy = Player.get('energy', 0), stamina = Player.get('stamina', 0), order = Config.getOrder(), action = this.runtime.action;
@@ -7979,6 +7984,10 @@ Monster.raid_buttons = {
 Monster.name_re = null;
 Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match regexp
 
+Monster.setup = function() {
+	Resources.use('Energy');
+	Resources.use('Stamina');
+};
 
 Monster.init = function() {
 	var i, str;
@@ -7988,8 +7997,6 @@ Monster.init = function() {
 	this._watch(Queue, 'runtime'); // BAD!!! Shouldn't be touching queue!!!
 	this._revive(60);
 	this.runtime.limit = 0;
-	Resources.use('Energy');
-	Resources.use('Stamina');
 	if (isNumber(this.runtime.multiplier)) {
 		delete this.runtime.multiplier;
 		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
@@ -9240,6 +9247,12 @@ Player.defaults['castle_age'] = {
 	pages:'*'
 };
 
+Player.setup = function() {
+	Resources.add('Energy');
+	Resources.add('Stamina');
+	Resources.add('Gold');
+};
+
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -9260,9 +9273,6 @@ Player.init = function() {
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
-	Resources.add('Energy');
-	Resources.add('Stamina');
-	Resources.add('Gold');
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -9364,8 +9374,8 @@ Player.update = function(event) {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
-			step = Divisor(Player.data['max'+types[j]]);
-			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
+			step = Divisor(this.data['max'+types[j]]);
+			for (i=0; i<=this.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
 			Config.set(types[j], list);
@@ -9374,6 +9384,11 @@ Player.update = function(event) {
 		History.set('exp', this.data.exp);
 	} else if (event.type === 'trigger') {
 		this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
+		switch (event.id) {
+			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+		}
 	}
 	Dashboard.status(this);
 };
@@ -9602,6 +9617,10 @@ Quest.display = [
 	}
 ];
 
+Quest.setup = function() {
+	Resources.use('Energy');
+};
+
 Quest.init = function() {
 	var data = this.get('data'), runtime = this.get('runtime'), i, j, r, x;
 	for (i in data) {
@@ -9614,7 +9633,6 @@ Quest.init = function() {
 	} else if (this.option.monster === false) {
 		this.option.monster = 'Never';
 	}
-	Resources.use('Energy');
 
 	// one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if ((runtime.revision || 0) < 845) {
@@ -9842,7 +9860,9 @@ Quest.update = function(event) {
 		}
 		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
-			Resources.set(['_'+unit, 'quest'], items[unit]);
+			if (!Resources.data['_'+unit] || Resources.data['_'+unit].quest !== items[unit]) {
+				Resources.set(['data','_'+unit,'quest'], items[unit]);
+			}
 		}
 	}
 	// Now choose the next quest...
@@ -10792,9 +10812,12 @@ Town.blacksmith = {
 	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
 };
 
-Town.init = function(){
-	this._watch(Player, 'data.worth');
+Town.setup = function() {
 	Resources.use('Gold');
+};
+
+Town.init = function() {
+	this._watch(Player, 'data.worth');
 	this.runtime.cost_incr = 4;
 };
 
@@ -10898,7 +10921,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
+	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, resource,
 	incr = (this.runtime.cost_incr || 4);
         
 	switch (this.option.number) {
@@ -10922,7 +10945,8 @@ Town.update = function(event) {
 	// 4. profit (or something)...
 	if (this.option.quest_buy || max_buy){
 		for (u in data) {
-			want = Resources.get(['_'+u, 'quest'], 0);
+			resource = Resources.data['_'+u] || {};
+			want = resource.quest || 0;
 			need = this.option.quest_buy ? want : 0;
 			have = data[u].own;
 			// Sorry about the nested max/min/max -
@@ -10930,10 +10954,10 @@ Town.update = function(event) {
 			// Min - 'max_buy' is the most we want to buy
 			// Max - needs to accounts for invade and duel
 			if (this.option.units !== 'Best Defense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_att'], 0), Resources.get(['_'+u, 'duel_att'], 0))));
+				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
 			}
 			if (this.option.units !== 'Best Offense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_def'], 0), Resources.get(['_'+u, 'duel_def'], 0))));
+				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
 			}
                         if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
 				max_cost = Math.pow(10,30);

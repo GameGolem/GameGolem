@@ -19,6 +19,14 @@
 	background: #d3ffd3 !important;
 }
 
+.blue {
+	background: #e6e6ff !important;
+}
+
+.blue:hover {
+	background: #d3d3ff !important;
+}
+
 .golem-shadow {
 	box-shadow: 2px 2px 4px black;
 	-webkit-box-shadow: 2px 2px 4px black;
@@ -263,7 +271,6 @@ table.golem-graph tbody td div.goal div:nth-last-child(4) {
 	background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
 	display: inline-block;
 	cursor: pointer;
-	margin-left: 1px;
 	margin-right: 1px;
 	font-weight: normal;
 	font-size: 13px;

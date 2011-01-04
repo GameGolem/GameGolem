@@ -21,6 +21,12 @@ Player.defaults['castle_age'] = {
 	pages:'*'
 };
 
+Player.setup = function() {
+	Resources.add('Energy');
+	Resources.add('Stamina');
+	Resources.add('Gold');
+};
+
 Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
@@ -41,9 +47,6 @@ Player.init = function() {
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
-	Resources.add('Energy');
-	Resources.add('Stamina');
-	Resources.add('Gold');
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -145,8 +148,8 @@ Player.update = function(event) {
 		var i, j, types = ['stamina', 'energy', 'health'], list, step;
 		for (j=0; j<types.length; j++) {
 			list = [];
-			step = Divisor(Player.data['max'+types[j]]);
-			for (i=0; i<=Player.data['max'+types[j]]; i+=step) {
+			step = Divisor(this.data['max'+types[j]]);
+			for (i=0; i<=this.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
 			Config.set(types[j], list);
@@ -155,6 +158,11 @@ Player.update = function(event) {
 		History.set('exp', this.data.exp);
 	} else if (event.type === 'trigger') {
 		this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
+		switch (event.id) {
+			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+		}
 	}
 	Dashboard.status(this);
 };

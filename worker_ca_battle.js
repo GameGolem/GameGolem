@@ -179,6 +179,10 @@ Battle.display = [
 	}
 ];
 
+Battle.setup = function() {
+	Resources.use('Stamina');
+};
+
 /***** Battle.init() *****
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
@@ -191,7 +195,6 @@ Battle.init = function() {
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 //	this.option.arena = false;// ARENA!!!!!!
-	Resources.use('Stamina');
 
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};

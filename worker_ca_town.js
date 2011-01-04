@@ -89,9 +89,12 @@ Town.blacksmith = {
 	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
 };
 
-Town.init = function(){
-	this._watch(Player, 'data.worth');
+Town.setup = function() {
 	Resources.use('Gold');
+};
+
+Town.init = function() {
+	this._watch(Player, 'data.worth');
 	this.runtime.cost_incr = 4;
 };
 
@@ -195,7 +198,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0,
+	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, resource,
 	incr = (this.runtime.cost_incr || 4);
         
 	switch (this.option.number) {
@@ -219,7 +222,8 @@ Town.update = function(event) {
 	// 4. profit (or something)...
 	if (this.option.quest_buy || max_buy){
 		for (u in data) {
-			want = Resources.get(['_'+u, 'quest'], 0);
+			resource = Resources.data['_'+u] || {};
+			want = resource.quest || 0;
 			need = this.option.quest_buy ? want : 0;
 			have = data[u].own;
 			// Sorry about the nested max/min/max -
@@ -227,10 +231,10 @@ Town.update = function(event) {
 			// Min - 'max_buy' is the most we want to buy
 			// Max - needs to accounts for invade and duel
 			if (this.option.units !== 'Best Defense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_att'], 0), Resources.get(['_'+u, 'duel_att'], 0))));
+				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
 			}
 			if (this.option.units !== 'Best Offense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(Resources.get(['_'+u, 'invade_def'], 0), Resources.get(['_'+u, 'duel_def'], 0))));
+				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
 			}
                         if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
 				max_cost = Math.pow(10,30);

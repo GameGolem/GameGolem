@@ -73,9 +73,12 @@ Land.display = [
 */
 ];
 
-Land.init = function(){
-    this._watch(Player, 'data.worth');
+Land.setup = function() {
 	Resources.use('Gold');
+};
+
+Land.init = function() {
+	this._watch(Player, 'data.worth');
 };
 
 Land.parse = function(change) {

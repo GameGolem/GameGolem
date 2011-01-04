@@ -719,6 +719,10 @@ Monster.raid_buttons = {
 Monster.name_re = null;
 Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match regexp
 
+Monster.setup = function() {
+	Resources.use('Energy');
+	Resources.use('Stamina');
+};
 
 Monster.init = function() {
 	var i, str;
@@ -728,8 +732,6 @@ Monster.init = function() {
 	this._watch(Queue, 'runtime'); // BAD!!! Shouldn't be touching queue!!!
 	this._revive(60);
 	this.runtime.limit = 0;
-	Resources.use('Energy');
-	Resources.use('Stamina');
 	if (isNumber(this.runtime.multiplier)) {
 		delete this.runtime.multiplier;
 		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
