@@ -151,6 +151,7 @@ Queue.init = function() {
 	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
+	this._watch(Session, 'temp.active');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -175,7 +176,7 @@ Queue.update = function(event) {
 			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
 		}
 	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
-		if (this.option.pause || Page.temp.loading) {
+		if (this.option.pause || Page.temp.loading || !Session.temp.active) {
 			this._forget('run');
 			this.temp.delay = -1;
 		} else if (this.option.delay !== this.temp.delay) {
@@ -183,8 +184,7 @@ Queue.update = function(event) {
 			this.temp.delay = this.option.delay;
 		}
 	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
-		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
-		|| now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
+		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
 

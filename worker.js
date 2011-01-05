@@ -131,6 +131,7 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._taint = {}; // Has anything changed that might need saving?
+	this._saving = {}; // Prevent looping on save
 	this._watching = {}; // Watching for changes, path:[workers]
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
@@ -251,7 +252,7 @@ Worker.prototype._init = function() {
 	this._pop();
 };
 
-Worker.prototype._load = function(type) {
+Worker.prototype._load = function(type, merge) {
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (var i in this._datatypes) {
@@ -271,7 +272,7 @@ Worker.prototype._load = function(type) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
-		this[type] = $.extend(true, {}, this[type], v);
+		this[type] = merge ? $.extend(true, {}, this[type], v) : v;
 		this._taint[type] = false;
 	}
 	this._pop();
@@ -389,7 +390,7 @@ Worker.prototype._save = function(type) {
 		}
 		return true;
 	}
-	if (typeof this[type] === 'undefined' || !this[type]) {
+	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;
 	}
 	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
@@ -402,8 +403,10 @@ Worker.prototype._save = function(type) {
 	}
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
-		this._taint[type] = false;
+		this._saving[type] = true;
 		this._update({type:type, self:true});
+		this._saving[type] = this._taint[type] = false;
+		this._timestamps[type] = Date.now();
 		setItem(n, v);
 		this._pop();
 		return true;
@@ -467,8 +470,8 @@ Worker.prototype._setup = function() {
 			}
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
-		this._load();
 		for (i in this._datatypes) {// Delete non-existant datatypes
+			this._load(i, true); // Merge with default data, first time only
 			if (!this[i]) {
 				delete this._datatypes[i];
 			}
@@ -553,8 +556,7 @@ Worker.prototype._update = function(event) {
 			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 		}
 		if (flush) {
-			this._remind(0.1, '_flush', this._flush);
-//			this._flush();
+			this._flush();
 		}
 		this._pop();
 	}

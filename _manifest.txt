@@ -17,10 +17,10 @@ worker_+main.js
 worker_+page.js
 worker_+queue.js
 worker_+resources.js
+worker_+session.js
 worker_+settings.js
 worker_+title.js
 worker_+update.js
-worker_+window.js
 #############
 ### Games ###
 #############

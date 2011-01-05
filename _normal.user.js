@@ -810,6 +810,7 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._taint = {}; // Has anything changed that might need saving?
+	this._saving = {}; // Prevent looping on save
 	this._watching = {}; // Watching for changes, path:[workers]
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
@@ -930,7 +931,7 @@ Worker.prototype._init = function() {
 	this._pop();
 };
 
-Worker.prototype._load = function(type) {
+Worker.prototype._load = function(type, merge) {
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (var i in this._datatypes) {
@@ -950,7 +951,7 @@ Worker.prototype._load = function(type) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 //			v = eval(v); // We used to save our data in non-JSON format...
 		}
-		this[type] = $.extend(true, {}, this[type], v);
+		this[type] = merge ? $.extend(true, {}, this[type], v) : v;
 		this._taint[type] = false;
 	}
 	this._pop();
@@ -1068,7 +1069,7 @@ Worker.prototype._save = function(type) {
 		}
 		return true;
 	}
-	if (typeof this[type] === 'undefined' || !this[type]) {
+	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;
 	}
 	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
@@ -1081,8 +1082,10 @@ Worker.prototype._save = function(type) {
 	}
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
-		this._taint[type] = false;
+		this._saving[type] = true;
 		this._update({type:type, self:true});
+		this._saving[type] = this._taint[type] = false;
+		this._timestamps[type] = Date.now();
 		setItem(n, v);
 		this._pop();
 		return true;
@@ -1146,8 +1149,8 @@ Worker.prototype._setup = function() {
 			}
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
-		this._load();
 		for (i in this._datatypes) {// Delete non-existant datatypes
+			this._load(i, true); // Merge with default data, first time only
 			if (!this[i]) {
 				delete this._datatypes[i];
 			}
@@ -1232,8 +1235,7 @@ Worker.prototype._update = function(event) {
 			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 		}
 		if (flush) {
-			this._remind(0.1, '_flush', this._flush);
-//			this._flush();
+			this._flush();
 		}
 		this._pop();
 	}
@@ -3517,6 +3519,7 @@ Queue.init = function() {
 	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
+	this._watch(Session, 'temp.active');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -3541,7 +3544,7 @@ Queue.update = function(event) {
 			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
 		}
 	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
-		if (this.option.pause || Page.temp.loading) {
+		if (this.option.pause || Page.temp.loading || !Session.temp.active) {
 			this._forget('run');
 			this.temp.delay = -1;
 		} else if (this.option.delay !== this.temp.delay) {
@@ -3549,8 +3552,7 @@ Queue.update = function(event) {
 			this.temp.delay = this.option.delay;
 		}
 	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
-		if ((isWorker(Window) && !Window.temp.active) // Disabled tabs don't get to do anything!!!
-		|| now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
+		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
 
@@ -3889,6 +3891,156 @@ Resources.has = function(type, amount) {
 	return isUndefined(amount) ? (this.runtime.types[type] || 0) : (this.runtime.types[type] || 0) >= amount;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage
+*/
+/********** Worker.Session **********
+* Deals with multiple Tabs/Windows being open at the same time...
+*/
+var Session = new Worker('Session');
+Session.runtime = Session.option = null; // Don't save anything except global stuff
+Session._rootpath = false; // Override save path so we don't get limited to per-user
+
+Session.settings = {
+	system:true,
+	keep:true,// We automatically load when needed
+	taint:true
+};
+
+Session.data = { // Shared between all windows
+	_active:null, // Currently active session
+	_sessions:{} // List of available sessions
+};
+
+Session.temp = {
+	active:false, // Are we the active tab (able to do anything)?
+	_id:null
+};
+
+Session.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
+Session.warning = null;// If clicking the Disabled button when not able to go Enabled
+
+Session.setup = function() {
+	if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
+		sessionStorage['golem.'+APP] = Session.temp._id = '#' + Date.now();
+	}
+};
+
+/***** Session.init() *****
+3. Add ourselves to this.data._sessions with the _active time
+4. If no active worker (in the last 2 seconds) then make ourselves active
+4a. Set this.temp.active, this.data._active, and immediately call this._save()
+4b/5. Add the "Enabled/Disabled" button, hidden if necessary (hiding other elements if we're disabled)
+6. Add a click handler for the Enable/Disable button
+6a. Button only works when either active, or no active at all.
+6b. If active, make inactive, update this.temp.active, this.data._active and hide other elements
+6c. If inactive , make active, update this.temp.active, this.data._active and show other elements (if necessary)
+7. Add a repeating reminder for every 1 second
+*/
+Session.init = function() {
+	var now = Date.now();
+	this.set(['data','_sessions',this.temp._id], now);
+	$('.golem-title').after('<div id="golem_session" class="golem-info golem-button green" style="display:none;">Enabled</div>');
+	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.timeout || this.data._active === this.temp._id) {
+		this._set(['temp','active'], true);
+		this._set(['data','_active'], this.temp._id);
+		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
+	} else {
+		$('#golem_session').html('<b>Disabled</b>').toggleClass('red green').show();
+	}
+	$('#golem_session').click(function(event){
+		Session._unflush();
+		if (Session.temp.active) {
+			$(this).html('<b>Disabled</b>').toggleClass('red green');
+			Session._set(['data','_active'], null);
+			Session._set(['temp','active'], false);
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Session.timeout) {
+			$(this).html('Enabled').toggleClass('red green');
+			Queue.clearCurrent();// Make sure we deal with changed circumstances
+			Session._set(['data','_active'], Session.temp._id);
+			Session._set(['temp','active'], true);
+		} else {// Not able to go active
+			Queue.clearCurrent();
+			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
+			if (!Session.warning) {
+				(function(){
+					if ($('#golem_session span').length) {
+						if ($('#golem_session span').css('color').indexOf('255') === -1) {
+							$('#golem_session span').animate({'color':'red'},200,arguments.callee);
+						} else {
+							$('#golem_session span').animate({'color':'black'},200,arguments.callee);
+						}
+					}
+				})();
+			}
+			window.clearTimeout(Session.warning);
+			Session.warning = window.setTimeout(function(){if(!Session.temp.active){$('#golem_session').html('<b>Disabled</b>');}Session.warning=null;}, 3000);
+		}
+		Session._save('data');
+	});
+	this._revive(1); // Call us *every* 1 second - not ideal with loads of Session, but good enough for half a dozen or more
+	Title.alias('disable', 'Session:temp.active::(Disabled) ');
+};
+
+/***** Session.update() *****
+1. We don't care about any data, only about the regular reminder we've set, so return if not the reminder
+2. Update the data[id] to now() so we're not removed
+3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
+4. If there are other open instances then show the "Enabled/Disabled" button
+*/
+Session.update = function(event) {
+	if (event.type !== 'reminder') {
+		return;
+	}
+	var i, j, _old, _new, _ts, now = Date.now();
+	this._load('data');
+	this.set(['data','_sessions',this.temp._id], now);
+	for(i in this.data._sessions) {
+		if (this.data._sessions[i] < (now - this.timeout)) {
+			this.set(['data','_sessions',i]);
+		}
+	}
+	for (i in Workers) {
+		if (i !== this.name) {
+			for (j in Workers[i]._datatypes) {
+				if (Workers[i]._datatypes[j]) {
+					_ts = this.get(['data','_timestamps',j,i], 0);
+					if (Workers[i]._timestamps[j] === undefined) {
+						Workers[i]._timestamps[j] = _ts;
+					} else if (_ts > Workers[i]._timestamps[j]) {
+//						console.log(log('Need to replace '+i+'.'+j+' with newer data'));
+						_old = Workers[i][j];
+						Workers[i]._load(j);
+						_new = Workers[i][j];
+						Workers[i][j] = _old;
+						Workers[i]._replace(j, _new);
+						Workers[i]._timestamps[j] = _ts;
+					}
+					this.set(['data','_timestamps',j,i], Workers[i]._timestamps[j]);
+				}
+			}
+		}
+	}
+	i = length(this.data._sessions);
+	if (i === 1) {
+		if (!this.temp.active) {
+			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
+//			Queue.clearCurrent();// Make sure we deal with changed circumstances
+			this._set('data._active', this.temp._id);
+			this._set('temp.active', true);
+		}
+		$('#golem_session').hide();
+	} else if (i > 1) {
+		$('#golem_session').show();
+	}
+	this._save('data');
+};
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
@@ -4294,147 +4446,6 @@ Update.update = function(event) {
 	}
 };
 
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
-*/
-/********** Worker.Window **********
-* Deals with multiple Windows being open at the same time...
-*
-* http://code.google.com/p/game-golem/issues/detail?id=86
-*
-* NOTE: Cannot share "global" information across page reloads any more
-*/
-var Window = new Worker('Window');
-Window.runtime = Window.option = null; // Don't save anything except global stuff
-Window._rootpath = false; // Override save path so we don't get limited to per-user
-
-Window.settings = {
-	system:true,
-	taint:true
-};
-
-Window.data = { // Shared between all windows
-	current:null, // Currently active window
-	list:{} // List of available windows
-};
-
-Window.temp = {
-	active:false, // Are we the active tab (able to do anything)?
-	_id:'#' + Date.now()
-};
-
-Window.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
-Window.warning = null;// If clicking the Disabled button when not able to go Enabled
-
-/***** Window.init() *****
-3. Add ourselves to this.data.list with the current time
-4. If no active worker (in the last 2 seconds) then make ourselves active
-4a. Set this.temp.active, this.data.current, and immediately call this._save()
-4b/5. Add the "Enabled/Disabled" button, hidden if necessary (hiding other elements if we're disabled)
-6. Add a click handler for the Enable/Disable button
-6a. Button only works when either active, or no active at all.
-6b. If active, make inactive, update this.temp.active, this.data.current and hide other elements
-6c. If inactive , make active, update this.temp.active, this.data.current and show other elements (if necessary)
-7. Add a repeating reminder for every 1 second
-*/
-Window.init = function() {
-	var now = Date.now(), data;
-	this.data.list = this.data.list || {};
-	this.data.list[this.temp._id] = now;
-	if (!this.data.current || typeof this.data.list[this.data.current] === 'undefined' || this.data.list[this.data.current] < now - this.timeout || this.data.current === this.temp._id) {
-		this._set('temp.active', true);
-		this.data.current = this.temp._id;
-		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
-		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button green" style="display:none;">Enabled</div>');
-	} else {
-		$('.golem-title').after('<div id="golem_window" class="golem-info golem-button red"><b>Disabled</b></div>');
-		$('#golem_window').nextAll().hide();
-	}
-	$('#golem_window').click(function(event){
-		Window._unflush();
-		if (Window.temp.active) {
-			$(this).html('<b>Disabled</b>').toggleClass('red green').nextAll().hide();
-			Window.data.current = null;
-			Window.temp.active = false;
-		} else if (!Window.data.current || typeof Window.data.list[Window.data.current] === 'undefined' || Window.data.list[Window.data.current] < Date.now() - Window.timeout) {
-			$(this).html('Enabled').toggleClass('red green');
-			$('#golem_buttons').show();
-			if (Config.get('option.display') === 'block') {
-				$('#golem_config').parent().show();
-			}
-			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			Window.data.current = Window.temp._id;
-			Window.temp.active = true;
-		} else {// Not able to go active
-			Queue.clearCurrent();
-			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
-			if (!Window.warning) {
-				(function(){
-					if ($('#golem_window span').length) {
-						if ($('#golem_window span').css('color').indexOf('255') === -1) {
-							$('#golem_window span').animate({'color':'red'},200,arguments.callee);
-						} else {
-							$('#golem_window span').animate({'color':'black'},200,arguments.callee);
-						}
-					}
-				})();
-			}
-			window.clearTimeout(Window.warning);
-			Window.warning = window.setTimeout(function(){if(!Window.temp.active){$('#golem_window').html('<b>Disabled</b>');}Window.warning=null;}, 3000);
-		}
-		Window._taint.data = true;
-		Window._flush();
-	});
-	this._taint.data = true;
-	this._revive(1); // Call us *every* 1 second - not ideal with loads of Window, but good enough for half a dozen or more
-	Title.alias('disable', 'Window:temp.active::(Disabled) ');
-};
-
-/***** Window.update() *****
-1. We don't care about any data, only about the regular reminder we've set, so return if not the reminder
-2. Update the data[id] to now() so we're not removed
-3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
-4. If there are other open instances then show the "Enabled/Disabled" button
-*/
-Window.update = function(event) {
-	if (event.type !== 'reminder') {
-		return;
-	}
-	var i, now = Date.now();
-	this.data = this.data || {};
-	this.data.list = this.data.list || {};
-	this.data.list[this.temp._id] = now;
-	for(i in this.data.list) {
-		if (this.data.list[i] < (now - this.timeout)) {
-			delete this.data.list[i];
-		}
-	}
-	i = length(this.data.list);
-	if (i === 1) {
-		if (!this.temp.active) {
-			$('#golem_window').css('color','black').html('Enabled').toggleClass('red green');
-			$('#golem_buttons').show();
-			if (Config.get('option.display') === 'block') {
-				$('#golem_config').parent().show();
-			}
-			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			this.data.current = this.temp._id;
-			this.temp.active = true;
-			this._notify('temp.active');
-		}
-		$('#golem_window').hide();
-	} else if (i > 1) {
-		$('#golem_window').show();
-	}
-	this._taint.data = true;
-	this._flush();// We really don't want to store data any longer than we really have to!
-};
 // Add "Castle Age" to known applications
 Main.add('castle_age', '46755028429', 'Castle Age');
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
