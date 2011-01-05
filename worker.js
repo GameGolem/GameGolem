@@ -209,7 +209,7 @@ Worker.prototype._forget = function(id) {
 	}
 	return forgot;
 };
-
+/*
 Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
 	if (!isUndefined(data)) {
 		if (path.length) {
@@ -219,9 +219,9 @@ Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['
 	}
 	return def;
 };
-
+*/
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -229,9 +229,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		return this._get_(this[x.shift()], x, def);
+		data = this;
+		while (x.length && data !== undefined) {
+			data = data[x.shift()];
+		}
+		return data === undefined ? def : data === null ? null : data.valueOf();
+//		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.get('+x.join('.')+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };

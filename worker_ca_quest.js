@@ -329,7 +329,7 @@ Quest.update = function(event) {
 		}
 		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
-			if (!Resources.data['_'+unit] || Resources.data['_'+unit].quest !== items[unit]) {
+			if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
 				Resources.set(['data','_'+unit,'quest'], items[unit]);
 			}
 		}

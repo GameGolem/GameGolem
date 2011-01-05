@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.911
+// @version		31.5.914
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 911;
+var revision = 914;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -342,7 +342,7 @@ var compare = function(left, right) {
 		if (isArray(left)) {
 			var i = left.length;
 			while (i--) {
-				if (left[i] !== right[i]) {
+				if (!compare(left[i], right[i])) {
 					return false;
 				}
 			}
@@ -888,7 +888,7 @@ Worker.prototype._forget = function(id) {
 	}
 	return forgot;
 };
-
+/*
 Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
 	if (!isUndefined(data)) {
 		if (path.length) {
@@ -898,9 +898,9 @@ Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['
 	}
 	return def;
 };
-
+*/
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
+	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -908,9 +908,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		return this._get_(this[x.shift()], x, def);
+		data = this;
+		while (x.length && data !== undefined) {
+			data = data[x.shift()];
+		}
+		return data === undefined ? def : data === null ? null : data.valueOf();
+//		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.get('+x.join('.')+', '+(typeof def === 'undefined' ? 'undefined' : def)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
 	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
 };
@@ -9905,7 +9910,7 @@ Quest.update = function(event) {
 		}
 		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
-			if (!Resources.data['_'+unit] || Resources.data['_'+unit].quest !== items[unit]) {
+			if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
 				Resources.set(['data','_'+unit,'quest'], items[unit]);
 			}
 		}

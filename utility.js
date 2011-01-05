@@ -297,7 +297,7 @@ var compare = function(left, right) {
 		if (isArray(left)) {
 			var i = left.length;
 			while (i--) {
-				if (left[i] !== right[i]) {
+				if (!compare(left[i], right[i])) {
 					return false;
 				}
 			}
