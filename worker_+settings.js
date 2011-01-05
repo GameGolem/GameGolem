@@ -55,9 +55,11 @@ Settings.menu = function(worker, key) {
 			return keys;
 		} else if (key) {
 			if (key === 'backup') {
-				this.set(['data', worker.name], $.extend(true, {}, worker.option));
+				if (confirm("BACKUP WARNING!!!\n\nAbout to replace '+worker.name+' backup options.\n\nAre you sure?")) {
+					this.set(['data', worker.name], $.extend(true, {}, worker.option));
+				}
 			} else if (key === 'restore') {
-				if (confirm("WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\Are you sure?")) {
+				if (confirm("RESTORE WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\nAre you sure?")) {
 					worker._replace('option', $.extend(true, {}, this.data[worker.name]));
 				}
 			} else if (this.temp.worker === worker.name && this.temp.edit === key) {
@@ -73,18 +75,43 @@ Settings.menu = function(worker, key) {
 		if (!key) {
 			keys.push('backup:Backup&nbsp;Options');
 			keys.push('restore:Restore&nbsp;Options');
+			if (Config.option.advanced) {
+				keys.push('---');
+				keys.push('reset:!Reset&nbsp;Golem');
+			}
 			return keys;
 		} else {
 			if (key === 'backup') {
-				for (i in Workers) {
-					this.set(['data',i], Workers[i].option);
+				if (confirm("BACKUP WARNING!!!\n\nAbout to replace backup options for all workers.\n\nAre you sure?")) {
+					for (i in Workers) {
+						this.set(['data',i], Workers[i].option);
+					}
 				}
 			} else if (key === 'restore') {
-				if (confirm("WARNING!!!\n\nAbout to restore options for all workers.\n\Are you sure?")) {
+				if (confirm("RESTORE WARNING!!!\n\nAbout to restore options for all workers.\n\nAre you sure?")) {
 					for (i in Workers) {
 						if (i in this.data) {
 							Workers[i]._replace('option', $.extend(true, {}, this.data[i]));
 						}
+					}
+				}
+			} else if (key === 'reset') {
+				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
+					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
+						// Well, they've had two chances...
+						if (browser === 'greasemonkey') {
+							keys = GM_listValues();
+							while ((i = keys.pop())) {
+								GM_deleteValue(i);
+							}
+						} else {
+							for (i in localStorage) {
+								if (i.indexOf('golem.' + APP + '.') === 0) {
+									localStorage.removeItem(i);
+								}
+							}
+						}
+						window.location.replace(window.location.href);
 					}
 				}
 			}

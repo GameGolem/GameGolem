@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.910
+// @version		31.5.911
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 910;
+var revision = 911;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -810,8 +810,8 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._taint = {}; // Has anything changed that might need saving?
-	this._watching = {};
-	this._watching_ = null;
+	this._watching = {}; // Watching for changes, path:[workers]
+	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
 }
 
@@ -841,7 +841,7 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 // Private status functions
 Worker._notify_ = function(worker) {
 	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
-	Workers[worker]._watching_ = undefined;
+	Workers[worker]._watching_ = {};
 	for (i in w) {
 		j = watch[i].length;
 		while (j--) {
@@ -957,17 +957,18 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._notify = function(path) {// Notify on a _watched path change
-	for (var i in this._watching) {
-		if (this._watching[i].length && path.indexOf(i) === 0) {// Match the prefix
-			if (!this._watching_) {
-				var name = this.name;
-				this._watching_ = {};
+	var i, name = this.name;
+	path = isArray(path) ? path : path.split('.');
+	while (path.length) {
+		i = (i ? i+'.' : '') + path.shift();
+		if (!this._watching_[i] && this._watching[i] !== undefined && this._watching[i].length) {
+			if (!length(this._watching_)) {
 				window.setTimeout(function(){Worker._notify_(name);}, 50);
 			}
 			this._watching_[i] = true;
 		}
 	}
-}
+};
 
 Worker.prototype._overload = function(app, name, fn) {
 	var newfn = function() {
@@ -1768,6 +1769,7 @@ Config.init = function() {
 								hr = false;
 							}
 							switch (k[1].charAt(0)) {
+								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
 								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
 								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
 								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
@@ -3944,9 +3946,11 @@ Settings.menu = function(worker, key) {
 			return keys;
 		} else if (key) {
 			if (key === 'backup') {
-				this.set(['data', worker.name], $.extend(true, {}, worker.option));
+				if (confirm("BACKUP WARNING!!!\n\nAbout to replace '+worker.name+' backup options.\n\nAre you sure?")) {
+					this.set(['data', worker.name], $.extend(true, {}, worker.option));
+				}
 			} else if (key === 'restore') {
-				if (confirm("WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\Are you sure?")) {
+				if (confirm("RESTORE WARNING!!!\n\nAbout to restore '+worker.name+' options.\n\nAre you sure?")) {
 					worker._replace('option', $.extend(true, {}, this.data[worker.name]));
 				}
 			} else if (this.temp.worker === worker.name && this.temp.edit === key) {
@@ -3962,18 +3966,43 @@ Settings.menu = function(worker, key) {
 		if (!key) {
 			keys.push('backup:Backup&nbsp;Options');
 			keys.push('restore:Restore&nbsp;Options');
+			if (Config.option.advanced) {
+				keys.push('---');
+				keys.push('reset:!Reset&nbsp;Golem');
+			}
 			return keys;
 		} else {
 			if (key === 'backup') {
-				for (i in Workers) {
-					this.set(['data',i], Workers[i].option);
+				if (confirm("BACKUP WARNING!!!\n\nAbout to replace backup options for all workers.\n\nAre you sure?")) {
+					for (i in Workers) {
+						this.set(['data',i], Workers[i].option);
+					}
 				}
 			} else if (key === 'restore') {
-				if (confirm("WARNING!!!\n\nAbout to restore options for all workers.\n\Are you sure?")) {
+				if (confirm("RESTORE WARNING!!!\n\nAbout to restore options for all workers.\n\nAre you sure?")) {
 					for (i in Workers) {
 						if (i in this.data) {
 							Workers[i]._replace('option', $.extend(true, {}, this.data[i]));
 						}
+					}
+				}
+			} else if (key === 'reset') {
+				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
+					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
+						// Well, they've had two chances...
+						if (browser === 'greasemonkey') {
+							keys = GM_listValues();
+							while ((i = keys.pop())) {
+								GM_deleteValue(i);
+							}
+						} else {
+							for (i in localStorage) {
+								if (i.indexOf('golem.' + APP + '.') === 0) {
+									localStorage.removeItem(i);
+								}
+							}
+						}
+						window.location.replace(window.location.href);
 					}
 				}
 			}

@@ -131,8 +131,8 @@ function Worker(name,pages,settings) {
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._taint = {}; // Has anything changed that might need saving?
-	this._watching = {};
-	this._watching_ = null;
+	this._watching = {}; // Watching for changes, path:[workers]
+	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
 }
 
@@ -162,7 +162,7 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 // Private status functions
 Worker._notify_ = function(worker) {
 	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
-	Workers[worker]._watching_ = undefined;
+	Workers[worker]._watching_ = {};
 	for (i in w) {
 		j = watch[i].length;
 		while (j--) {
@@ -278,17 +278,18 @@ Worker.prototype._load = function(type) {
 };
 
 Worker.prototype._notify = function(path) {// Notify on a _watched path change
-	for (var i in this._watching) {
-		if (this._watching[i].length && path.indexOf(i) === 0) {// Match the prefix
-			if (!this._watching_) {
-				var name = this.name;
-				this._watching_ = {};
+	var i, name = this.name;
+	path = isArray(path) ? path : path.split('.');
+	while (path.length) {
+		i = (i ? i+'.' : '') + path.shift();
+		if (!this._watching_[i] && this._watching[i] !== undefined && this._watching[i].length) {
+			if (!length(this._watching_)) {
 				window.setTimeout(function(){Worker._notify_(name);}, 50);
 			}
 			this._watching_[i] = true;
 		}
 	}
-}
+};
 
 Worker.prototype._overload = function(app, name, fn) {
 	var newfn = function() {

@@ -196,6 +196,7 @@ Config.init = function() {
 								hr = false;
 							}
 							switch (k[1].charAt(0)) {
+								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
 								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
 								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
 								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
