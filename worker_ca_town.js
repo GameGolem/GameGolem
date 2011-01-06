@@ -388,15 +388,18 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 	if (list[units[0]]) {
 		if (type === 'duel' && list[units[0]].type) {
 				units.sort(function(a,b) {
-					return order[list[a].type] - order[list[b].type];
+					return order[list[a].type] - order[list[b].type]
+						|| (list[a].cost || 0) - (list[b].cost || 0);
 				});
 		} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
 				units.sort(function(a,b) {
-					return (list[b][type][x] || 0) - (list[a][type][x] || 0);
+					return (list[b][type][x] || 0) - (list[a][type][x] || 0)
+						|| (list[a][type].cost || 0) - (list[b][type].cost || 0);
 				});
 		} else {
 				units.sort(function(a,b) {
-					return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
+					return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]))
+						|| (list[a].cost || 0) - (list[b].cost || 0);
 				});
 		}
 	}
