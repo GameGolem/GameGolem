@@ -209,17 +209,7 @@ Worker.prototype._forget = function(id) {
 	}
 	return forgot;
 };
-/*
-Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
-	if (!isUndefined(data)) {
-		if (path.length) {
-			return arguments.callee(data[path.shift()], path, def);
-		}
-		return data === null ? null : data.valueOf();
-	}
-	return def;
-};
-*/
+
 Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
@@ -234,7 +224,6 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 			data = data[x.shift()];
 		}
 		return data === undefined ? def : data === null ? null : data.valueOf();
-//		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
@@ -420,22 +409,28 @@ Worker.prototype._save = function(type) {
 };
 
 Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array['data','etc','etc'], value, depth
-	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth], l = (path.length - depth) > 1, t = typeof value;
-	if (l && !isObject(data[i])) {
-		data[i] = {};
-	}
-	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-		data[i] = undefined;
-		return false;
-	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
-		this._notify(path.join('.'));// Notify the watchers...
-		this._taint[path[0]] = true;
-		this._remind(0, '_update', {type:path[0], self:true});
-		if (t === 'undefined') {
-			data[i] = undefined;;
-			return false;
-		}
-		data[i] = value;
+	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
+	switch ((path.length - depth) > 1) { // Can we go deeper?
+		case true:
+			if (!isObject(data[i])) {
+				data[i] = {};
+			}
+			if (!this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+				data[i] = undefined;
+				return false;
+			}
+			break;
+		case false:
+			if (!compare(value, data[i])) {
+				this._notify(path.join('.'));// Notify the watchers...
+				this._taint[path[0]] = true;
+				this._remind(0, '_update', {type:path[0], self:true});
+				data[i] = value;
+				if (isUndefined(value)) {
+					return false;
+				}
+			}
+			break;
 	}
 	return true;
 };
@@ -455,7 +450,7 @@ Worker.prototype._set = function(what, value) {
 		}
 		this._set_(this[x[0]], x, value, 1);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.set('+x.join('.')+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;

@@ -11,15 +11,19 @@
 // Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
 var isArray = function(obj) {// Not an object
-    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+	return obj && obj.constructor === Array;
 };
 
 var isObject = function(obj) {// Not an array
-    return obj !== undefined && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+	return obj && obj.constructor === Object;
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function' && obj.length !== undefined;
+	return obj && obj.constructor === Function;
+};
+
+var isWorker = function(obj) {
+	return obj && obj.constructor === Worker;
 };
 
 var isNumber = function(num) {
@@ -31,12 +35,7 @@ var isString = function(str) {
 };
 
 var isUndefined = function(obj) {
-	return obj === undefined;
-};
-
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}catch(e){}// Big shortcut for being inside a try/catch block
-	return false;
+	return typeof obj === 'undefined';
 };
 
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
@@ -186,9 +185,9 @@ Number.prototype.SI = function() {
 };
 
 Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
-    var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
-    var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
-    return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
+	var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
+	var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 
 Math.range = function(min, num, max) {

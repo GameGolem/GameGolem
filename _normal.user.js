@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.914
+// @version		31.5.915
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 914;
+var revision = 915;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -56,15 +56,19 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 // Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
 var isArray = function(obj) {// Not an object
-    return obj && typeof obj === 'object' && !(obj.propertyIsEnumerable('length')) && typeof obj.length === 'number';
+	return obj && obj.constructor === Array;
 };
 
 var isObject = function(obj) {// Not an array
-    return obj !== undefined && obj && typeof obj === 'object' && (!('length' in obj) || obj.propertyIsEnumerable('length'));
+	return obj && obj.constructor === Object;
 };
 
 var isFunction = function(obj) {
-	return typeof obj === 'function' && obj.length !== undefined;
+	return obj && obj.constructor === Function;
+};
+
+var isWorker = function(obj) {
+	return obj && obj.constructor === Worker;
 };
 
 var isNumber = function(num) {
@@ -76,12 +80,7 @@ var isString = function(str) {
 };
 
 var isUndefined = function(obj) {
-	return obj === undefined;
-};
-
-var isWorker = function(obj) {
-	try {return Workers[obj.name] === obj;}catch(e){}// Big shortcut for being inside a try/catch block
-	return false;
+	return typeof obj === 'undefined';
 };
 
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
@@ -231,9 +230,9 @@ Number.prototype.SI = function() {
 };
 
 Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
-    var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
-    var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
-    return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
+	var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
+	var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 
 Math.range = function(min, num, max) {
@@ -888,17 +887,7 @@ Worker.prototype._forget = function(id) {
 	}
 	return forgot;
 };
-/*
-Worker.prototype._get_ = function(data, path, def){ // data=Object, path=Array['data','etc','etc'], default
-	if (!isUndefined(data)) {
-		if (path.length) {
-			return arguments.callee(data[path.shift()], path, def);
-		}
-		return data === null ? null : data.valueOf();
-	}
-	return def;
-};
-*/
+
 Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
@@ -913,7 +902,6 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 			data = data[x.shift()];
 		}
 		return data === undefined ? def : data === null ? null : data.valueOf();
-//		return this._get_(this[x.shift()], x, def);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
@@ -1099,22 +1087,28 @@ Worker.prototype._save = function(type) {
 };
 
 Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array['data','etc','etc'], value, depth
-	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth], l = (path.length - depth) > 1, t = typeof value;
-	if (l && !isObject(data[i])) {
-		data[i] = {};
-	}
-	if (l && !this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-		data[i] = undefined;
-		return false;
-	} else if (!l && ((t === 'string' && value.localeCompare(data[i]||'')) || (t !== 'string' && data[i] != value))) {
-		this._notify(path.join('.'));// Notify the watchers...
-		this._taint[path[0]] = true;
-		this._remind(0, '_update', {type:path[0], self:true});
-		if (t === 'undefined') {
-			data[i] = undefined;;
-			return false;
-		}
-		data[i] = value;
+	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
+	switch ((path.length - depth) > 1) { // Can we go deeper?
+		case true:
+			if (!isObject(data[i])) {
+				data[i] = {};
+			}
+			if (!this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+				data[i] = undefined;
+				return false;
+			}
+			break;
+		case false:
+			if (!compare(value, data[i])) {
+				this._notify(path.join('.'));// Notify the watchers...
+				this._taint[path[0]] = true;
+				this._remind(0, '_update', {type:path[0], self:true});
+				data[i] = value;
+				if (isUndefined(value)) {
+					return false;
+				}
+			}
+			break;
 	}
 	return true;
 };
@@ -1134,7 +1128,7 @@ Worker.prototype._set = function(what, value) {
 		}
 		this._set_(this[x[0]], x, value, 1);
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.set('+x.join('.')+', '+(typeof value === 'undefined' ? 'undefined' : value)+'): ' + e.message));
+		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
 //	this._pop();
 	return value;
@@ -4568,6 +4562,191 @@ Alchemy.work = function(state) {
 		Page.reload(); // Can't find the recipe we just parsed when coming here...
 	}
 	return QUEUE_RELEASE;
+};
+
+/********** Worker.Arena() **********
+* Build your arena army
+* Auto-attack Arena targets
+*/
+var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
+Arena.data = null;
+
+Arena.defaults['castle_age'] = {};
+
+Arena.option = {
+//	general:true,
+//	general_choice:'any',
+	start:false,
+	collect:true,
+	tokens:'min',
+	safety:60000
+};
+
+Arena.runtime = {
+	tokens:0,
+	status:'none',// none, wait, start, fight, collect
+	last:0,
+	begin:0,
+	finish:0,
+	rank:0
+};
+
+Arena.temp = {
+	status:{
+		none:'Unknown',
+		wait:'Waiting for Next Battle',
+		start:'Entering Battle',
+		fight:'In Battle',
+		collect:'Collecting Reward'
+	},
+	rank:[
+		'None',
+		'Brawler',
+		'Swordsman',
+		'Warrior',
+		'Gladiator',
+		'Hero',
+		'Annihilator',
+		'Alpha Annihilator'
+	]
+};
+
+Arena.display = [
+	{
+//		id:'general',
+// 		label:'Use Best General',
+//		checkbox:true
+//	},{
+//		advanced:true,
+//		id:'general_choice',
+//		label:'Use General',
+//		require:{'general':false},
+//		select:'generals'
+//	},{
+		id:'start',
+ 		label:'Automatically Start',
+		checkbox:true
+	},{
+		id:'collect',
+ 		label:'Collect Rewards',
+		checkbox:true
+	},{
+		id:'tokens',
+		label:'Use Tokens',
+		select:{min:'Immediately', max:'Save Up'}
+	},{
+		is:'safety',
+		label:'Safety Margin',
+		select:{30000:'30 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+	}
+];
+
+Arena.init = function() {
+	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	this._trigger('#app'+APPID+'_guild_token_current_value', 'tokens');
+};
+
+Arena.parse = function(change) {
+	var now = Date.now(), tmp, i;
+	switch (Page.page) {
+		case 'index':
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_arena_token_current_value').text() || '0').regex(/([0-9]+)/));
+			break;
+		case 'battle_arena':
+			this.set(['runtime','last'], now);
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/([0-9]+)/));
+			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
+			tmp = $('#app'+APPID+'_arena_banner').next().next().text();
+			if (tmp.indexOf('Collect') !== -1) {
+				if (this.runtime.status === 'fight') {
+					this.set(['runtime','status'], 'collect');
+				}
+				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				this.set(['runtime','begin'], i * 1000 + now);
+				this._remind(i, 'start');
+			} else if (this.runtime.status !== 'fight' && this.runtime.status !== 'start' && tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
+				this.set(['runtime','status'], 'start');
+			}
+			tmp = $('img[src*="arena3_rank"]');
+			if (tmp.length) {
+				this.set(['runtime','rank'], tmp.attr('src').regex(/arena3_rank([0-9]+)\.gif/i));
+			}
+			break;
+		case 'battle_arena_battle':
+			this.set(['runtime','last'], now);
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/([0-9]+)/));
+			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
+			if ($('input[src*="arena3_collectbutton.gif"]').length) {
+				this.set(['runtime','status'], 'collect');
+			}
+			i = ($('#app'+APPID+'_monsterTicker').text() || '0').parseTimer();
+			this.set(['runtime','finish'], i * 1000 * now);
+			this._remind(i, 'finish');
+			break;
+	}
+};
+
+Arena.update = function(event) {
+	var now = Date.now();
+	if (event.type === 'reminder') {
+		if (event.id === 'tokens') {
+			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+			if (this.runtime.tokens < 10) {
+				this._remind(180, 'tokens');
+			}
+		} else if (event.id === 'start') {
+			this.set(['runtime','status'], 'start');
+		} else if (event.id === 'finish') {
+			this.set(['runtime','status'], 'collect');
+		}
+	}
+	if (event.type === 'trigger' && event.id === 'tokens') {
+		if ($('#app'+APPID+'_guild_token_current_value').length) {
+			this.set(['runtime','tokens'], $('#app'+APPID+'_guild_token_current_value').text().regex(/([0-9]+)/) || 0);
+		}
+	}
+	this.set(['option','_sleep'], (Date.now() - this.runtime.last < 100000)
+	&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
+	&& !(this.runtime.status === 'fight'
+		&& ((this.option.tokens === 'min' && this.runtime.tokens)
+		|| (this.runtime.tokens === 'max' && (this.runtime.tokens === 10 || (this.runtime.tokens && (this.runtime.finish || 0) - now <= this.option.safety)))))
+	&& !(this.runtime.status === 'collect' && this.option.collect));
+	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + ', Status: ' + this.temp.status[this.runtime.status] + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
+}
+
+Arena.work = function(state) {
+	if (state) {
+		if (Page.page !== 'battle_arena_battle') {
+			if (Page.page !== 'battle_arena') {
+				Page.to('battle_arena');
+			} else {
+				Page.click('input[src*="battle_enter_battle.gif"]');
+			}
+		} else {
+			if (this.runtime.status === 'collect') {
+				Page.click('input[src*="arena3_collectbutton.gif"]');
+				this.set(['runtime','status'], 'wait');
+			} else if (this.runtime.status === 'start') {
+				Page.click('input[src*="guild_enter_battle_button.gif"]');
+				this.set(['runtime','status'], 'fight');
+			} else if (this.runtime.status === 'fight') {
+				var best = null, bestname, besthealth;
+				$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
+					var $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+					if ((health && !best) || (health >= 200 && (besthealth < 200 || health < besthealth))) {
+						best = el;
+						besthealth = health;
+						bestname = txt.regex(/^(.*) Level:/i);
+					}
+				});
+				if (best) {
+					console.log(log('Attacking '+bestname+' with '+besthealth+' health'));
+					Page.click($('input[src*="monster_duel_button.gif"]', best));
+				}
+			}
+		}
+	}
+	return QUEUE_CONTINUE;
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -9242,7 +9421,8 @@ Page.defaults.castle_age = {
 		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-		battle_arena:			{url:'arena.php', image:'tab_arena_on.gif'},
+		battle_arena:			{url:'arena.php', image:'arena3_rewardsbutton.gif'},
+		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section'},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},

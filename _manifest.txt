@@ -27,6 +27,7 @@ worker_+update.js
 ### Castle Age ###
 worker_ca.js
 worker_ca_alchemy.js
+worker_ca_arena.js
 worker_ca_army.js
 worker_ca_bank.js
 worker_ca_battle.js
