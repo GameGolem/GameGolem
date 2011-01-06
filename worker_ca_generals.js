@@ -231,7 +231,7 @@ Generals.test = function(name) {
 	} else if (name === 'any') {
 		return true;
 	} else {
-		return (Player.get('maxstamina') + next.stats.stamina >= Player.get('stamina') && Player.get('maxenergy') + next.stats.energy >= Player.get('energy'));
+		return (Player.get('maxstamina') + ((next.stats && next.stats.stamina) || 0) >= Player.get('stamina') && Player.get('maxenergy') + ((next.stats && next.stats.energy) || 0) >= Player.get('energy'));
 	}
 };
 
