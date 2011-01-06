@@ -34,8 +34,12 @@ Session.timeout = 15000; // How long to give a tab to update itself before delet
 Session.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 Session.setup = function() {
-	if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
-		sessionStorage['golem.'+APP] = Session.temp._id = '#' + Date.now();
+	try {
+		if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
+			sessionStorage['golem.'+APP] = Session.temp._id = '#' + Date.now();
+		}
+	} catch(e) {// sessionStorage not available
+		Session.temp._id = '#' + Date.now();
 	}
 };
 
