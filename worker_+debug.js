@@ -132,7 +132,7 @@ Debug.setup = function() {
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global functions for better log reporting
 	log = function(txt){
-		return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' ' + txt : '');
+		return '[' + (new Date()).toLocaleTimeString() + ']' + (Debug.stack.length ? ' '+Debug.stack[0][1]+':' : '') + (txt ? ' ' + txt : '');
 	};
 	warn = function(txt){
 		var i, output = [];

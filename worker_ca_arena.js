@@ -23,7 +23,8 @@ Arena.runtime = {
 	start:0,
 	finish:0,
 	rank:0,
-	points:0
+	points:0,
+	burn:false
 };
 
 Arena.temp = {
@@ -70,9 +71,10 @@ Arena.display = [
 		label:'Use Tokens',
 		select:{min:'Immediately', max:'Save Up'}
 	},{
-		is:'safety',
+		id:'safety',
 		label:'Safety Margin',
-		select:{30000:'30 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+		require:{'tokens':'max'},
+		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	}
 ];
 
@@ -105,11 +107,16 @@ Arena.parse = function(change) {
 				if (this.runtime.status === 'fight') {
 					this.set(['runtime','status'], 'collect');
 				}
-				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
-				this.set(['runtime','start'], i * 1000 + now);
+				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				this.set(['runtime','start'], (i * 1000) + now);
 				this._remind(i, 'start');
-			} else if (this.runtime.status !== 'fight' && this.runtime.status !== 'start' && tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
-				this.set(['runtime','status'], 'start');
+			} else if (tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
+				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+					this.set(['runtime','status'], 'start');
+				}
+				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				this.set(['runtime','finish'], (i * 1000) + now);
+				this._remind(i, 'finish');
 			}
 			tmp = $('img[src*="arena3_rank"]');
 			if (tmp.length) {
@@ -123,8 +130,8 @@ Arena.parse = function(change) {
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			}
-			i = ($('#app'+APPID+'_monsterTicker').text() || '0').parseTimer();
-			this.set(['runtime','finish'], i * 1000 * now);
+			i = $('#app'+APPID+'_monsterTicker').text().parseTimer();
+			this.set(['runtime','finish'], (i * 1000) + now);
 			this._remind(i, 'finish');
 			break;
 	}
@@ -152,12 +159,17 @@ Arena.update = function(event) {
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
 		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
 	}
+	if (this.runtime.tokens === 0) {
+		this.set(['runtime','burn'], false);
+	} else if (this.runtime.tokens === 10) {
+		this.set(['runtime','burn'], true);
+	}
 	this.set(['option','_sleep'],
 		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight'
 			&& ((this.option.tokens === 'min' && this.runtime.tokens)
-			|| (this.runtime.tokens === 'max' && (this.runtime.tokens === 10 || (this.runtime.tokens && (this.runtime.finish || 0) - this.option.safety <= now)))))
+			|| (this.option.tokens === 'max' && (this.runtime.burn || (this.runtime.tokens && (this.runtime.finish || 0) - this.option.safety <= now)))))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
 	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
 }
@@ -173,9 +185,11 @@ Arena.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
+					console.log(log('Collecting Reward'));
 					Page.click('input[src*="arena3_collectbutton.gif"]');
 					this.set(['runtime','status'], 'wait');
 				} else if (this.runtime.status === 'start') {
+					console.log(log('Entering Battle'));
 					Page.click('input[src*="guild_enter_battle_button.gif"]');
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
