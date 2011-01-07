@@ -398,6 +398,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
+		this._forget('_update_'+type);
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();
@@ -424,7 +425,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			if (!compare(value, data[i])) {
 				this._notify(path.join('.'));// Notify the watchers...
 				this._taint[path[0]] = true;
-				this._remind(0, '_update', {type:path[0], self:true});
+				this._remind(0, '_update_'+path[0], {type:path[0], self:true});
 				data[i] = value;
 				if (isUndefined(value)) {
 					return false;

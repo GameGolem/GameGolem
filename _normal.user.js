@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.919
+// @version		31.5.920
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 919;
+var revision = 920;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1076,6 +1076,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
+		this._forget('_update_'+type);
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();
@@ -1102,7 +1103,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			if (!compare(value, data[i])) {
 				this._notify(path.join('.'));// Notify the watchers...
 				this._taint[path[0]] = true;
-				this._remind(0, '_update', {type:path[0], self:true});
+				this._remind(0, '_update_'+path[0], {type:path[0], self:true});
 				data[i] = value;
 				if (isUndefined(value)) {
 					return false;
@@ -2360,7 +2361,6 @@ Dashboard.menu = function(worker, key) {
 * Profiling information
 */
 var Debug = new Worker('Debug');
-Debug.runtime = null; // Can't remove Debug.data as it's needed for the dashboard trigger
 
 Debug.settings = {
 //	system:true,
@@ -2376,12 +2376,14 @@ Debug.option = {
 	digits:1,
 	total:false,
 	prototypes:true,
-	worker:'All'
+	worker:'All',
+	trace:false
 };
 
 Debug.runtime = {
 	sort:2,
-	rev:false
+	rev:false,
+	watch:false
 };
 
 Debug.display = [
@@ -2416,10 +2418,13 @@ Debug.display = [
 				id:'worker',
 				label:'Worker',
 				select:'worker_list'
-			},{
-				label:'<b>NOTE:</b> You must reload Golem to show/hide the dashboard panel.'
 			}
 		]
+	},{
+		title:'Stack Trace',
+		id:'trace',
+		label:'Full Stack Trace',
+		checkbox:true
 	}
 ];
 
@@ -2439,32 +2444,39 @@ Debug.setup = function() {
 				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j) && !/^_.*_$/.test(j)) {// Don't overload functions using _blah_ names - they're speed conscious
 					fn = wkr[j];
 					wkr[j] = function() {
-						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
+						var t, r, ac = arguments.callee, w = (ac._worker || (this ? this.name : null)), l = [], s;
 						Debug.stack.unshift([0, w || '', arguments]);
-						if (!Debug.option._disabled) {
-							if (w) {
-								l = [w+'.'+arguments.callee._name, w];
-							}
-							if (!arguments.callee._worker) {
-								l[l.length] = '_worker.'+arguments.callee._name;
-							}
-						}
 						try {
-							r = arguments.callee._orig.apply(this, arguments);
+							if (Debug.option._disabled) {
+								r = ac._orig.apply(this, arguments);
+							} else {
+								w && (l = [w+'.'+ac._name, w]);
+								if (!ac._worker) {
+									l.push('_worker.'+ac._name);
+								}
+								t = Date.now();
+								r = ac._orig.apply(this, arguments);
+								t = Date.now() - t;
+								if (Debug.stack.length > 1) {
+									Debug.stack[1][0] += t;
+								}
+								while ((i = l.shift())) {
+									w = Debug.temp[i] = Debug.temp[i] || [0,0,0,false];
+									w[0]++;
+									w[1] += t - Debug.stack[0][0];
+									w[2] += t;
+									if (Debug.temp[i][3]) {
+										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(r, 2).replace(/^\[?|\]?$/g, '');
+										if (Debug.option.trace) {
+											console.log('!!! ' + error(s));
+										} else {
+											console.log('!!! [' + (new Date()).toLocaleTimeString() + '] ' + s);
+										}
+									}
+								}
+							}
 						} catch(e) {
 							console.log(error(e.name + ': ' + e.message));
-						}
-						if (!Debug.option._disabled) {
-							t = Date.now() - t;
-							if (Debug.stack.length > 1) {
-								Debug.stack[1][0] += t;
-							}
-							for (i=0; i<l.length; i++) {
-								w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-								w[0]++;
-								w[1] += t - Debug.stack[0][0];
-								w[2] += t;
-							}
 						}
 						Debug.stack.shift();
 						return r;
@@ -2577,7 +2589,7 @@ Debug.dashboard = function(sort, rev) {
 	for (i=0; i<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); i++) {
 		output = [];
 		o = order[i];
-		th(output, o, 'style="text-align:left;"');
+		th(output, '<input style="margin:0;" type="checkbox" name="'+o+'"' + (data[o][3] ? ' checked' : '') + (o.indexOf('.') >= 0 ? '' : ' disabled') + '> ' + o, 'style="text-align:left;"');
 		o = data[o];
 		td(output, o[0].addCommas(), 'style="text-align:right;"');
 		td(output, o[1].addCommas() + 'ms', 'style="text-align:right;"');
@@ -2590,6 +2602,10 @@ Debug.dashboard = function(sort, rev) {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Debug').html(list.join(''));
 	$('#golem-dashboard-Debug thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	$('#golem-dashboard-Debug input').change(function() {
+		var name = $(this).attr('name');
+		Debug.temp[name][3] = !Debug.temp[name][3];
+	});
 	$('#golem-profile-update').click(function(){Debug._notify('data');});
 	$('#golem-profile-reset').click(function(){Debug.temp={};Debug._notify('data');});
 };
@@ -3501,8 +3517,8 @@ Queue.init = function() {
 	});
 	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
 	$('#golem_pause').click(function() {
-		var pause = Queue.set('option.pause', !Queue.option.pause);
-		console.log(warn('State: ' + (pause ? "paused" : "running")));
+		var pause = Queue.set(['option','pause'], !Queue.option.pause);
+		console.log(log('State: ' + (pause ? "paused" : "running")));
 		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 		if (!pause) {
 			$('#golem_step').hide();
@@ -4575,6 +4591,10 @@ Alchemy.work = function(state) {
 var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
 Arena.data = null;
 
+Arena.settings = {
+	taint:true
+};
+
 Arena.defaults['castle_age'] = {};
 
 Arena.option = {
@@ -4583,7 +4603,8 @@ Arena.option = {
 	start:false,
 	collect:true,
 	tokens:'min',
-	safety:60000
+	safety:60000,
+	ignore:''
 };
 
 Arena.runtime = {
@@ -4645,6 +4666,12 @@ Arena.display = [
 		label:'Safety Margin',
 		require:{'tokens':'max'},
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+	},{
+		advanced:true,
+		id:'ignore',
+		label:'Ignore Targets',
+		text:true,
+		help:'Ignore any targets with names containing these tags - use | to separate multiple tags'
 	}
 ];
 
@@ -4746,7 +4773,11 @@ Arena.update = function(event) {
 
 Arena.work = function(state) {
 	if (state) {
-		if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+		if (this.runtime.status === 'wait') {
+			if (!Page.to('battle_arena')) {
+				return QUEUE_FINISH;
+			}
+		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
 			if (Page.page !== 'battle_arena_battle') {
 				if (Page.page !== 'battle_arena') {
 					Page.to('battle_arena');
@@ -4755,21 +4786,30 @@ Arena.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					console.log(log('Collecting Reward'));
-					Page.click('input[src*="arena3_collectbutton.gif"]');
-					this.set(['runtime','status'], 'wait');
+					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
+						Page.to('battle_arena');
+					} else {
+						console.log(log('Collecting Reward'));
+						Page.click('input[src*="arena3_collectbutton.gif"]');
+						this.set(['runtime','status'], 'wait');
+					}
 				} else if (this.runtime.status === 'start') {
 					console.log(log('Entering Battle'));
 					Page.click('input[src*="guild_enter_battle_button.gif"]');
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
-					var best = null, bestname, besthealth;
+					var best = null, bestname, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
-						var $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+						var i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), name = txt.regex(/^(.*) Level:/i), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+						while (i--) {
+							if (name.indexOf(ignore[i]) >= 0) {
+								return;
+							}
+						}
 						if ((health && !best) || (health >= 200 && (besthealth < 200 || health < besthealth))) {
 							best = el;
 							besthealth = health;
-							bestname = txt.regex(/^(.*) Level:/i);
+							bestname = name;
 						}
 					});
 					if (best) {

@@ -5,6 +5,10 @@
 var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
 Arena.data = null;
 
+Arena.settings = {
+	taint:true
+};
+
 Arena.defaults['castle_age'] = {};
 
 Arena.option = {
@@ -13,7 +17,8 @@ Arena.option = {
 	start:false,
 	collect:true,
 	tokens:'min',
-	safety:60000
+	safety:60000,
+	ignore:''
 };
 
 Arena.runtime = {
@@ -75,6 +80,12 @@ Arena.display = [
 		label:'Safety Margin',
 		require:{'tokens':'max'},
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+	},{
+		advanced:true,
+		id:'ignore',
+		label:'Ignore Targets',
+		text:true,
+		help:'Ignore any targets with names containing these tags - use | to separate multiple tags'
 	}
 ];
 
@@ -176,7 +187,11 @@ Arena.update = function(event) {
 
 Arena.work = function(state) {
 	if (state) {
-		if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+		if (this.runtime.status === 'wait') {
+			if (!Page.to('battle_arena')) {
+				return QUEUE_FINISH;
+			}
+		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
 			if (Page.page !== 'battle_arena_battle') {
 				if (Page.page !== 'battle_arena') {
 					Page.to('battle_arena');
@@ -185,21 +200,30 @@ Arena.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					console.log(log('Collecting Reward'));
-					Page.click('input[src*="arena3_collectbutton.gif"]');
-					this.set(['runtime','status'], 'wait');
+					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
+						Page.to('battle_arena');
+					} else {
+						console.log(log('Collecting Reward'));
+						Page.click('input[src*="arena3_collectbutton.gif"]');
+						this.set(['runtime','status'], 'wait');
+					}
 				} else if (this.runtime.status === 'start') {
 					console.log(log('Entering Battle'));
 					Page.click('input[src*="guild_enter_battle_button.gif"]');
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
-					var best = null, bestname, besthealth;
+					var best = null, bestname, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
-						var $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+						var i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), name = txt.regex(/^(.*) Level:/i), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+						while (i--) {
+							if (name.indexOf(ignore[i]) >= 0) {
+								return;
+							}
+						}
 						if ((health && !best) || (health >= 200 && (besthealth < 200 || health < besthealth))) {
 							best = el;
 							besthealth = health;
-							bestname = txt.regex(/^(.*) Level:/i);
+							bestname = name;
 						}
 					});
 					if (best) {

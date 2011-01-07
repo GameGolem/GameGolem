@@ -134,8 +134,8 @@ Queue.init = function() {
 	});
 	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
 	$('#golem_pause').click(function() {
-		var pause = Queue.set('option.pause', !Queue.option.pause);
-		console.log(warn('State: ' + (pause ? "paused" : "running")));
+		var pause = Queue.set(['option','pause'], !Queue.option.pause);
+		console.log(log('State: ' + (pause ? "paused" : "running")));
 		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 		if (!pause) {
 			$('#golem_step').hide();

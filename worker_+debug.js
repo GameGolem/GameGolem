@@ -11,7 +11,6 @@
 * Profiling information
 */
 var Debug = new Worker('Debug');
-Debug.runtime = null; // Can't remove Debug.data as it's needed for the dashboard trigger
 
 Debug.settings = {
 //	system:true,
@@ -27,12 +26,14 @@ Debug.option = {
 	digits:1,
 	total:false,
 	prototypes:true,
-	worker:'All'
+	worker:'All',
+	trace:false
 };
 
 Debug.runtime = {
 	sort:2,
-	rev:false
+	rev:false,
+	watch:false
 };
 
 Debug.display = [
@@ -67,10 +68,13 @@ Debug.display = [
 				id:'worker',
 				label:'Worker',
 				select:'worker_list'
-			},{
-				label:'<b>NOTE:</b> You must reload Golem to show/hide the dashboard panel.'
 			}
 		]
+	},{
+		title:'Stack Trace',
+		id:'trace',
+		label:'Full Stack Trace',
+		checkbox:true
 	}
 ];
 
@@ -90,32 +94,39 @@ Debug.setup = function() {
 				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j) && !/^_.*_$/.test(j)) {// Don't overload functions using _blah_ names - they're speed conscious
 					fn = wkr[j];
 					wkr[j] = function() {
-						var t = Date.now(), r, w = (arguments.callee._worker || (this ? this.name : null)), l = [];
+						var t, r, ac = arguments.callee, w = (ac._worker || (this ? this.name : null)), l = [], s;
 						Debug.stack.unshift([0, w || '', arguments]);
-						if (!Debug.option._disabled) {
-							if (w) {
-								l = [w+'.'+arguments.callee._name, w];
-							}
-							if (!arguments.callee._worker) {
-								l[l.length] = '_worker.'+arguments.callee._name;
-							}
-						}
 						try {
-							r = arguments.callee._orig.apply(this, arguments);
+							if (Debug.option._disabled) {
+								r = ac._orig.apply(this, arguments);
+							} else {
+								w && (l = [w+'.'+ac._name, w]);
+								if (!ac._worker) {
+									l.push('_worker.'+ac._name);
+								}
+								t = Date.now();
+								r = ac._orig.apply(this, arguments);
+								t = Date.now() - t;
+								if (Debug.stack.length > 1) {
+									Debug.stack[1][0] += t;
+								}
+								while ((i = l.shift())) {
+									w = Debug.temp[i] = Debug.temp[i] || [0,0,0,false];
+									w[0]++;
+									w[1] += t - Debug.stack[0][0];
+									w[2] += t;
+									if (Debug.temp[i][3]) {
+										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(r, 2).replace(/^\[?|\]?$/g, '');
+										if (Debug.option.trace) {
+											console.log('!!! ' + error(s));
+										} else {
+											console.log('!!! [' + (new Date()).toLocaleTimeString() + '] ' + s);
+										}
+									}
+								}
+							}
 						} catch(e) {
 							console.log(error(e.name + ': ' + e.message));
-						}
-						if (!Debug.option._disabled) {
-							t = Date.now() - t;
-							if (Debug.stack.length > 1) {
-								Debug.stack[1][0] += t;
-							}
-							for (i=0; i<l.length; i++) {
-								w = Debug.temp[l[i]] = Debug.temp[l[i]] || [0,0,0];
-								w[0]++;
-								w[1] += t - Debug.stack[0][0];
-								w[2] += t;
-							}
 						}
 						Debug.stack.shift();
 						return r;
@@ -228,7 +239,7 @@ Debug.dashboard = function(sort, rev) {
 	for (i=0; i<Math.min(this.option.show || Number.POSITIVE_INFINITY,order.length); i++) {
 		output = [];
 		o = order[i];
-		th(output, o, 'style="text-align:left;"');
+		th(output, '<input style="margin:0;" type="checkbox" name="'+o+'"' + (data[o][3] ? ' checked' : '') + (o.indexOf('.') >= 0 ? '' : ' disabled') + '> ' + o, 'style="text-align:left;"');
 		o = data[o];
 		td(output, o[0].addCommas(), 'style="text-align:right;"');
 		td(output, o[1].addCommas() + 'ms', 'style="text-align:right;"');
@@ -241,6 +252,10 @@ Debug.dashboard = function(sort, rev) {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Debug').html(list.join(''));
 	$('#golem-dashboard-Debug thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
+	$('#golem-dashboard-Debug input').change(function() {
+		var name = $(this).attr('name');
+		Debug.temp[name][3] = !Debug.temp[name][3];
+	});
 	$('#golem-profile-update').click(function(){Debug._notify('data');});
 	$('#golem-profile-reset').click(function(){Debug.temp={};Debug._notify('data');});
 };
