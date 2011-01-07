@@ -162,7 +162,7 @@ Elite.update = function(event) {
 		if (!next) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				if (!Army.get([list[i]], false) && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) {// Only try to add a non-member who's not already added
+				if (!Army.get([list[i],'elite'], 0) && !Army.get([list[i],'full'], 0) && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) {// Only try to add a non-member who's not already added
 					next = list[i];
 					break;
 				}

@@ -20,7 +20,8 @@ Page.settings = {
 Global.option.page = {
 	timeout:15,
 	reload:5,
-	nochat:false
+	nochat:false,
+	refresh:250
 };
 
 Page.temp = {
@@ -28,7 +29,9 @@ Page.temp = {
 	last:'', // Last url we tried to load
 	when:null,
 	lastclick:null,
-	retry:0 // Number of times we tried before hitting option.reload
+	retry:0, // Number of times we tried before hitting option.reload
+	checked:false, // Finished checking for new pages
+	count:0
 };
 
 Page.runtime = {
@@ -57,6 +60,10 @@ Global.display.push({
 			label:'Remove Facebook Chat',
 			checkbox:true,
 			help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in other facebook windows'
+		},{
+			id:'page.refresh',
+			label:'Refresh After',
+			select:{0:'Never', 50:'50 Pages', 100:'100 Pages', 150:'150 Pages', 200:'200 Pages', 250:'250 Pages', 500:'500 Pages'}
 		}
 	]
 });
@@ -64,29 +71,38 @@ Global.display.push({
 // We want this to run on the Global context
 Global._overload(null, 'work', function(state) {
 	var i, l, list, found = null;
-	for (i in Workers) {
-		if (isString(Workers[i].pages)) {
-			list = Workers[i].pages.split(' ');
-			for (l=0; l<list.length; l++) {
-				if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
-					found = list[l];
-					break;
+	if (!Page.temp.checked) {
+		for (i in Workers) {
+			if (isString(Workers[i].pages)) {
+				list = Workers[i].pages.split(' ');
+				for (l=0; l<list.length; l++) {
+					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+						found = list[l];
+						break;
+					}
 				}
+			}
+			if (found) {
+				break;
 			}
 		}
 		if (found) {
-			break;
+			if (!state) {
+				return QUEUE_CONTINUE;
+			}
+			Page.to(found);
+			Page._set(['data', found], Date.now()); // Even if it's broken, we need to think we've been there!
+			return QUEUE_CONTINUE;
 		}
+	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
+		Page.temp.checked = true;
 	}
-	if (found) {
+	if (Global.option.page.refresh && Page.temp.count >= Global.option.page.refresh) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to(found);
-		Page._set(['data', found], Date.now()); // Even if it's broken, we need to think we've been there!
-		return QUEUE_CONTINUE;
+		Page.to('http://www.cloutman.com/reload.php');
 	}
-	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
 	return this._parent();
 });
 
@@ -232,6 +248,7 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 	}
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(Global.option.page.timeout, 'retry');
+	this.temp.count++;
 	return false;
 };
 
@@ -293,6 +310,7 @@ Page.click = function(el) {
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
 	this._remind(Global.option.page.timeout, 'retry');
+	this.temp.count++;
 	return true;
 };
 

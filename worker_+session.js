@@ -22,7 +22,8 @@ Session.settings = {
 
 Session.data = { // Shared between all windows
 	_active:null, // Currently active session
-	_sessions:{} // List of available sessions
+	_sessions:{}, // List of available sessions
+	_timestamps:{} // List of all last-saved timestamps from all workers
 };
 
 Session.temp = {
@@ -111,17 +112,17 @@ Session.update = function(event) {
 	}
 	var i, j, _old, _new, _ts, now = Date.now();
 	this._load('data');
-	this.set(['data','_sessions',this.temp._id], now);
+	this.data._sessions[this.temp._id] = now;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < (now - this.timeout)) {
-			this.set(['data','_sessions',i]);
+			this.data._sessions[i] = undefined;
 		}
 	}
 	for (i in Workers) {
 		if (i !== this.name) {
 			for (j in Workers[i]._datatypes) {
 				if (Workers[i]._datatypes[j]) {
-					_ts = this.get(['data','_timestamps',j,i], 0);
+					_ts = this.data._timestamps[j][i] || 0;
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
 					} else if (_ts > Workers[i]._timestamps[j]) {
@@ -133,7 +134,8 @@ Session.update = function(event) {
 						Workers[i]._replace(j, _new);
 						Workers[i]._timestamps[j] = _ts;
 					}
-					this.set(['data','_timestamps',j,i], Workers[i]._timestamps[j]);
+					this.data._timestamps[j] = this.data._timestamps[j] || {};
+					this.data._timestamps[j][i] = Workers[i]._timestamps[j];
 				}
 			}
 		}
@@ -143,12 +145,13 @@ Session.update = function(event) {
 		if (!this.temp.active) {
 			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
 //			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			this._set('data._active', this.temp._id);
-			this._set('temp.active', true);
+			this.data._active = this.temp._id;
+			this.temp.active = true;
 		}
 		$('#golem_session').hide();
 	} else if (i > 1) {
 		$('#golem_session').show();
 	}
+	this._taint.data = true;
 	this._save('data');
 };

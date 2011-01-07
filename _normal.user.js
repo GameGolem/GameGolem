@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.901
+// @version		31.5.924
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 901;
+var revision = 924;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2681,13 +2681,10 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
-//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
-	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
-//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph(['land', 'income'], 'Income', {prefix:'$', goal:{'Average Income':this.get('land.mean') + this.get('income.mean')}}));
+	list.push(this.makeGraph('bank', 'Bank', {prefix:'$', goal:Land.runtime.best ? {'Next Land':Land.runtime.cost} : null})); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', {goal:{'Next Level':Player.get('maxexp')}}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', {goal:{'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))}} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -2898,12 +2895,14 @@ History.getTypes = function(what) {
 	return list;
 };
 
-History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, count, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers;
-	if (typeof goal === 'number') {
-		goal = [goal];
-	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
+History.makeGraph = function(type, title, options) {
+	var i, j, count, min = options.min || Number.POSITIVE_INFINITY, max = options.max || Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
+	if (isNumber(options.goal)) {
+		goal = [options.goal];
+	} else if (!isArray(options.goal) && !isObject(options.goal)) {
 		goal = null;
+	} else {
+		goal = options.goal;
 	}
 	if (goal && length(goal)) {
 		for (i in goal) {
@@ -2911,26 +2910,19 @@ History.makeGraph = function(type, title, iscash, goal) {
 			max = Math.max(max, goal[i]);
 		}
 	}
-	if (typeof type === 'string') {
+	if (isString(type)) {
 		type = [type];
 	}
-//	if (type[0] === 'serpent_ancient') {
-//		console.log(warn(), 'OK serp');
-//	}
-//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
-				if (j === 'serpent_ancient' && value[i][j]) {
-					console.log(warn(), j +' ' + value[i][j]);
-				}
+				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			if (sum(value[i])) {
-				min = Math.min(min, sum(value[i]))-1;
+			if ((j = sum(value[i]))) {
+				min = Math.min(min, j);
+				max = Math.max(max, j);
 			}
-			max = Math.max(max, sum(value[i]));
 		}
 	}
 	if (max >= 1000000000) {
@@ -2944,13 +2936,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		suffix = 'k';
 	}
 	max = Math.ceil(max / divide) * divide;
-	max_s = (iscash ? '$' : '') + (max / divide).addCommas() + suffix;
+	max_s = prefix + (max / divide).addCommas() + suffix;
 	min = Math.floor(min / divide) * divide;
-	min_s = (iscash ? '$' : '') + (min / divide).addCommas() + suffix;
+	min_s = prefix + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -2966,12 +2958,12 @@ History.makeGraph = function(type, title, iscash, goal) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
 			if (value[i][j]) {
-				numbers.push((value[i][j] ? (iscash ? '$' : '') + value[i][j].addCommas() : ''));
+				numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
 		numbers.reverse();
-		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + sum(value[i]).addCommas() : '');
+		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + prefix + sum(value[i]).addCommas() : '');
 		td(list, output.join(''), 'title="' + title + '"');
 	}
 	th(list, goal_s.join(''));
@@ -3118,7 +3110,8 @@ Page.settings = {
 Global.option.page = {
 	timeout:15,
 	reload:5,
-	nochat:false
+	nochat:false,
+	refresh:250
 };
 
 Page.temp = {
@@ -3126,7 +3119,9 @@ Page.temp = {
 	last:'', // Last url we tried to load
 	when:null,
 	lastclick:null,
-	retry:0 // Number of times we tried before hitting option.reload
+	retry:0, // Number of times we tried before hitting option.reload
+	checked:false, // Finished checking for new pages
+	count:0
 };
 
 Page.runtime = {
@@ -3155,6 +3150,10 @@ Global.display.push({
 			label:'Remove Facebook Chat',
 			checkbox:true,
 			help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in other facebook windows'
+		},{
+			id:'page.refresh',
+			label:'Refresh After',
+			select:{0:'Never', 50:'50 Pages', 100:'100 Pages', 150:'150 Pages', 200:'200 Pages', 250:'250 Pages', 500:'500 Pages'}
 		}
 	]
 });
@@ -3162,29 +3161,38 @@ Global.display.push({
 // We want this to run on the Global context
 Global._overload(null, 'work', function(state) {
 	var i, l, list, found = null;
-	for (i in Workers) {
-		if (isString(Workers[i].pages)) {
-			list = Workers[i].pages.split(' ');
-			for (l=0; l<list.length; l++) {
-				if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
-					found = list[l];
-					break;
+	if (!Page.temp.checked) {
+		for (i in Workers) {
+			if (isString(Workers[i].pages)) {
+				list = Workers[i].pages.split(' ');
+				for (l=0; l<list.length; l++) {
+					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+						found = list[l];
+						break;
+					}
 				}
+			}
+			if (found) {
+				break;
 			}
 		}
 		if (found) {
-			break;
+			if (!state) {
+				return QUEUE_CONTINUE;
+			}
+			Page.to(found);
+			Page._set(['data', found], Date.now()); // Even if it's broken, we need to think we've been there!
+			return QUEUE_CONTINUE;
 		}
+	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
+		Page.temp.checked = true;
 	}
-	if (found) {
+	if (Global.option.page.refresh && Page.temp.count >= Global.option.page.refresh) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to(found);
-		Page._set(['data', found], Date.now()); // Even if it's broken, we need to think we've been there!
-		return QUEUE_CONTINUE;
+		Page.to('http://www.cloutman.com/reload.php');
 	}
-	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
 	return this._parent();
 });
 
@@ -3330,6 +3338,7 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 	}
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(Global.option.page.timeout, 'retry');
+	this.temp.count++;
 	return false;
 };
 
@@ -3391,6 +3400,7 @@ Page.click = function(el) {
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
 	this._remind(Global.option.page.timeout, 'retry');
+	this.temp.count++;
 	return true;
 };
 
@@ -3951,7 +3961,8 @@ Session.settings = {
 
 Session.data = { // Shared between all windows
 	_active:null, // Currently active session
-	_sessions:{} // List of available sessions
+	_sessions:{}, // List of available sessions
+	_timestamps:{} // List of all last-saved timestamps from all workers
 };
 
 Session.temp = {
@@ -4040,17 +4051,17 @@ Session.update = function(event) {
 	}
 	var i, j, _old, _new, _ts, now = Date.now();
 	this._load('data');
-	this.set(['data','_sessions',this.temp._id], now);
+	this.data._sessions[this.temp._id] = now;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < (now - this.timeout)) {
-			this.set(['data','_sessions',i]);
+			this.data._sessions[i] = undefined;
 		}
 	}
 	for (i in Workers) {
 		if (i !== this.name) {
 			for (j in Workers[i]._datatypes) {
 				if (Workers[i]._datatypes[j]) {
-					_ts = this.get(['data','_timestamps',j,i], 0);
+					_ts = this.data._timestamps[j][i] || 0;
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
 					} else if (_ts > Workers[i]._timestamps[j]) {
@@ -4062,7 +4073,8 @@ Session.update = function(event) {
 						Workers[i]._replace(j, _new);
 						Workers[i]._timestamps[j] = _ts;
 					}
-					this.set(['data','_timestamps',j,i], Workers[i]._timestamps[j]);
+					this.data._timestamps[j] = this.data._timestamps[j] || {};
+					this.data._timestamps[j][i] = Workers[i]._timestamps[j];
 				}
 			}
 		}
@@ -4072,13 +4084,14 @@ Session.update = function(event) {
 		if (!this.temp.active) {
 			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
 //			Queue.clearCurrent();// Make sure we deal with changed circumstances
-			this._set('data._active', this.temp._id);
-			this._set('temp.active', true);
+			this.data._active = this.temp._id;
+			this.temp.active = true;
 		}
 		$('#golem_session').hide();
 	} else if (i > 1) {
 		$('#golem_session').show();
 	}
+	this._taint.data = true;
 	this._save('data');
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -4610,7 +4623,6 @@ Alchemy.work = function(state) {
 * Auto-attack Arena targets
 */
 var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
-Arena.data = null;
 
 Arena.settings = {
 	taint:true
@@ -4688,6 +4700,10 @@ Arena.display = [
 		require:{'tokens':'max'},
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
+		id:'order',
+		label:'Attack',
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
 		advanced:true,
 		id:'ignore',
 		label:'Ignore Targets',
@@ -4724,6 +4740,8 @@ Arena.parse = function(change) {
 			if (tmp.indexOf('Collect') !== -1) {
 				if (this.runtime.status === 'fight') {
 					this.set(['runtime','status'], 'collect');
+					this._forget('finish');
+					this._forget('start');
 				}
 				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','start'], (i * 1000) + now);
@@ -4751,6 +4769,15 @@ Arena.parse = function(change) {
 			i = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			this.set(['runtime','finish'], (i * 1000) + now);
 			this._remind(i, 'finish');
+			tmp = $('#app'+APPID+'_results_main_wrapper');
+			if (tmp.length) {
+				i = tmp.text().regex(/\+([0-9]+) Battle Activity Points/i);
+				if (isNumber(i)) {
+					History.add('arena', i);
+					History.add('arena_count', 1);
+					this._notify('data');// Force dashboard update
+				}
+			}
 			break;
 	}
 };
@@ -4808,7 +4835,7 @@ Arena.work = function(state) {
 			} else {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
-						Page.to('battle_arena');
+						Page.to('battle_arena', {close_result:'global_bottom'});
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
@@ -4819,22 +4846,35 @@ Arena.work = function(state) {
 					Page.click('input[src*="guild_enter_battle_button.gif"]');
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
-					var best = null, bestname, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
+					var best = null, besttarget, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
-						var i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), name = txt.regex(/^(.*) Level:/i), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+					
+						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
+						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						while (i--) {
-							if (name.indexOf(ignore[i]) >= 0) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
-						if ((health && !best) || (health >= 200 && (besthealth < 200 || health < besthealth))) {
+						if (besttarget) {
+							switch(Arena.option.order) {
+								case 'level':		test = target[1] < besttarget[1];	break;
+								case 'health':		test = target[3] < besttarget[3];	break;
+								case 'maxhealth':	test = target[4] < besttarget[4];	break;
+								case 'activity':	test = target[6] < besttarget[6];	break;
+								case 'level2':		test = target[1] > besttarget[1];	break;
+								case 'health2':		test = target[3] > besttarget[3];	break;
+								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+								case 'activity2':	test = target[6] > besttarget[6];	break;
+							}
+						}
+						if ((target[3] && !best) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
-							besthealth = health;
-							bestname = name;
+							besttarget = target;
 						}
 					});
 					if (best) {
-						console.log(log('Attacking '+bestname+' with '+besthealth+' health'));
+						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
 						Page.click($('input[src*="monster_duel_button.gif"]', best));
 					}
 				}
@@ -4842,6 +4882,14 @@ Arena.work = function(state) {
 		}
 	}
 	return QUEUE_CONTINUE;
+};
+
+Arena.dashboard = function() {
+	var list = [];
+	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
+	list.push(History.makeGraph('arena', 'Arena Points', {min:0, goal:{'Average Points':History.get('arena') / History.get('arena_count')}}));
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Arena').html(list.join(''));
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -5983,7 +6031,7 @@ Elite.update = function(event) {
 		if (!next) {
 			list = Army.get('Army');// Otherwise lets just get anyone in the army
 			for(i=0; i<list.length; i++) {
-				if (!Army.get([list[i]], false) && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) {// Only try to add a non-member who's not already added
+				if (!Army.get([list[i],'elite'], 0) && !Army.get([list[i],'full'], 0) && (!this.option.friends || Army.get(['_info',list[i],'friend'], false))) {// Only try to add a non-member who's not already added
 					next = list[i];
 					break;
 				}
@@ -6862,7 +6910,7 @@ Idle.option = {
 	quests:0,
 	town:0,
 	keep:0,
-//	arena:0,
+	arena:0,
 	battle:900000,
 	monsters:3600000,
 	collect:0
@@ -6909,11 +6957,11 @@ Idle.display = [
 		id:'keep',
 		label:'Keep',
 		select:Idle.when
-/*	},{
+	},{
 		id:'arena',
 		label:'Arena',
 		select:Idle.when
-*/	},{
+	},{
 		id:'battle',
 		label:'Battle',
 		select:Idle.when
@@ -6934,7 +6982,7 @@ Idle.pages = {
 	quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_quest7', 'quests_quest8', 'quests_quest9', 'quests_demiquests', 'quests_atlantis'],
 	town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 	keep:['keep_stats'],
-//	arena:['battle_arena'],
+	arena:['battle_arena'],
 	battle:['battle_battle'],
 	monsters:['monster_monster_list', 'battle_raid'],
 	collect:['apprentice_collect']

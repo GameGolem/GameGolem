@@ -37,13 +37,10 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
-//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
-	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
-//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph(['land', 'income'], 'Income', {prefix:'$', goal:{'Average Income':this.get('land.mean') + this.get('income.mean')}}));
+	list.push(this.makeGraph('bank', 'Bank', {prefix:'$', goal:Land.runtime.best ? {'Next Land':Land.runtime.cost} : null})); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+	list.push(this.makeGraph('exp', 'Experience', {goal:{'Next Level':Player.get('maxexp')}}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', {goal:{'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))}} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -254,12 +251,14 @@ History.getTypes = function(what) {
 	return list;
 };
 
-History.makeGraph = function(type, title, iscash, goal) {
-	var i, j, count, min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers;
-	if (typeof goal === 'number') {
-		goal = [goal];
-	} else if (typeof goal !== 'array' && typeof goal !== 'object') {
+History.makeGraph = function(type, title, options) {
+	var i, j, count, min = options.min || Number.POSITIVE_INFINITY, max = options.max || Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
+	if (isNumber(options.goal)) {
+		goal = [options.goal];
+	} else if (!isArray(options.goal) && !isObject(options.goal)) {
 		goal = null;
+	} else {
+		goal = options.goal;
 	}
 	if (goal && length(goal)) {
 		for (i in goal) {
@@ -267,26 +266,19 @@ History.makeGraph = function(type, title, iscash, goal) {
 			max = Math.max(max, goal[i]);
 		}
 	}
-	if (typeof type === 'string') {
+	if (isString(type)) {
 		type = [type];
 	}
-//	if (type[0] === 'serpent_ancient') {
-//		console.log(warn(), 'OK serp');
-//	}
-//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
-				if (j === 'serpent_ancient' && value[i][j]) {
-					console.log(warn(), j +' ' + value[i][j]);
-				}
+				value[i][j] = this.get(i + '.' + type[j]);
 			}
-			if (sum(value[i])) {
-				min = Math.min(min, sum(value[i]))-1;
+			if ((j = sum(value[i]))) {
+				min = Math.min(min, j);
+				max = Math.max(max, j);
 			}
-			max = Math.max(max, sum(value[i]));
 		}
 	}
 	if (max >= 1000000000) {
@@ -300,13 +292,13 @@ History.makeGraph = function(type, title, iscash, goal) {
 		suffix = 'k';
 	}
 	max = Math.ceil(max / divide) * divide;
-	max_s = (iscash ? '$' : '') + (max / divide).addCommas() + suffix;
+	max_s = prefix + (max / divide).addCommas() + suffix;
 	min = Math.floor(min / divide) * divide;
-	min_s = (iscash ? '$' : '') + (min / divide).addCommas() + suffix;
+	min_s = prefix + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
 			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + (iscash ? '$' : '') + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -322,12 +314,12 @@ History.makeGraph = function(type, title, iscash, goal) {
 			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
 			count++;
 			if (value[i][j]) {
-				numbers.push((value[i][j] ? (iscash ? '$' : '') + value[i][j].addCommas() : ''));
+				numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
 		numbers.reverse();
-		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + (iscash ? '$' : '') + sum(value[i]).addCommas() : '');
+		title = title + (numbers.length ? ', ' : '') + numbers.join(' + ') + (numbers.length > 1 ? ' = ' + prefix + sum(value[i]).addCommas() : '');
 		td(list, output.join(''), 'title="' + title + '"');
 	}
 	th(list, goal_s.join(''));

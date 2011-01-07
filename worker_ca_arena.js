@@ -3,7 +3,6 @@
 * Auto-attack Arena targets
 */
 var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
-Arena.data = null;
 
 Arena.settings = {
 	taint:true
@@ -81,6 +80,10 @@ Arena.display = [
 		require:{'tokens':'max'},
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
+		id:'order',
+		label:'Attack',
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
 		advanced:true,
 		id:'ignore',
 		label:'Ignore Targets',
@@ -117,6 +120,8 @@ Arena.parse = function(change) {
 			if (tmp.indexOf('Collect') !== -1) {
 				if (this.runtime.status === 'fight') {
 					this.set(['runtime','status'], 'collect');
+					this._forget('finish');
+					this._forget('start');
 				}
 				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','start'], (i * 1000) + now);
@@ -144,6 +149,15 @@ Arena.parse = function(change) {
 			i = $('#app'+APPID+'_monsterTicker').text().parseTimer();
 			this.set(['runtime','finish'], (i * 1000) + now);
 			this._remind(i, 'finish');
+			tmp = $('#app'+APPID+'_results_main_wrapper');
+			if (tmp.length) {
+				i = tmp.text().regex(/\+([0-9]+) Battle Activity Points/i);
+				if (isNumber(i)) {
+					History.add('arena', i);
+					History.add('arena_count', 1);
+					this._notify('data');// Force dashboard update
+				}
+			}
 			break;
 	}
 };
@@ -201,7 +215,7 @@ Arena.work = function(state) {
 			} else {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
-						Page.to('battle_arena');
+						Page.to('battle_arena', {close_result:'global_bottom'});
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
@@ -212,22 +226,35 @@ Arena.work = function(state) {
 					Page.click('input[src*="guild_enter_battle_button.gif"]');
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
-					var best = null, bestname, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
+					var best = null, besttarget, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
-						var i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), name = txt.regex(/^(.*) Level:/i), health = (txt.regex(/Health: ([0-9]+)\//i) || 0);
+					
+						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
+						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						while (i--) {
-							if (name.indexOf(ignore[i]) >= 0) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
-						if ((health && !best) || (health >= 200 && (besthealth < 200 || health < besthealth))) {
+						if (besttarget) {
+							switch(Arena.option.order) {
+								case 'level':		test = target[1] < besttarget[1];	break;
+								case 'health':		test = target[3] < besttarget[3];	break;
+								case 'maxhealth':	test = target[4] < besttarget[4];	break;
+								case 'activity':	test = target[6] < besttarget[6];	break;
+								case 'level2':		test = target[1] > besttarget[1];	break;
+								case 'health2':		test = target[3] > besttarget[3];	break;
+								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+								case 'activity2':	test = target[6] > besttarget[6];	break;
+							}
+						}
+						if ((target[3] && !best) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
-							besthealth = health;
-							bestname = name;
+							besttarget = target;
 						}
 					});
 					if (best) {
-						console.log(log('Attacking '+bestname+' with '+besthealth+' health'));
+						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
 						Page.click($('input[src*="monster_duel_button.gif"]', best));
 					}
 				}
@@ -235,5 +262,13 @@ Arena.work = function(state) {
 		}
 	}
 	return QUEUE_CONTINUE;
+};
+
+Arena.dashboard = function() {
+	var list = [];
+	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
+	list.push(History.makeGraph('arena', 'Arena Points', {min:0, goal:{'Average Points':History.get('arena') / History.get('arena_count')}}));
+	list.push('</tbody></table>');
+	$('#golem-dashboard-Arena').html(list.join(''));
 };
 
