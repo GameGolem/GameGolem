@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.921
+// @version		31.5.922
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 921;
+var revision = 922;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -11628,8 +11628,8 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
 				units.sort(function(a,b) {
 					return (list[b][type][x] || 0) - (list[a][type][x] || 0)
-						|| (list[a][type].upkeep || 0) - (list[b][type].upkeep || 0)
-						|| (list[a][type].cost || 0) - (list[b][type].cost || 0);
+						|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
+						|| (list[a].cost || 0) - (list[b].cost || 0);
 				});
 		} else {
 				units.sort(function(a,b) {
