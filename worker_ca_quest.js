@@ -358,7 +358,11 @@ Quest.update = function(event) {
 //		console.log(warn(), 'option = ' + this.option.what);
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
-			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
+			// Skip quests we can't afford or can't equip the general for
+			//console.log(warn(),'Quest ' + data.id[i].name + ' general ' + data.id[i].general + ' test ' + !Generals.test(data.id[i].general || 'any') + ' data || '+ (data.id[i].general || 'any') + ' queue ' + (Queue.runtime.general && data.id[i].general));
+			if (data.id[i].energy > maxenergy 
+					|| !Generals.test(data.id[i].general || 'any')
+					|| (Queue.runtime.general && data.id[i].general)) {
 				continue;
 			}
 			if (data.id[i].units) {

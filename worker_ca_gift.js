@@ -217,7 +217,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return QUEUE_FINISH;
+		return QUEUE_INTERRUPT_OK;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -288,7 +288,7 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_RELEASE;
+		return QUEUE_CONTINUE;
 	}
 	
 	// Give some gifts back
@@ -311,7 +311,7 @@ Gift.work = function(state) {
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
-				return QUEUE_RELEASE;
+				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];

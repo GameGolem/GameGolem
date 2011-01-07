@@ -282,7 +282,10 @@ Page.click = function(el) {
 		return false;
 	}
 	var e, element = $(el).get(0);
-	this.clear();
+	if (this.temp.lastclick !== el) {
+		this.clear();
+	}
+	this.set(['runtime', 'delay'], 0);
 	this.temp.lastclick = el;
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);

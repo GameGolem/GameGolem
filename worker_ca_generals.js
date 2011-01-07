@@ -226,10 +226,10 @@ Generals.to = function(name) {
 Generals.test = function(name) {
 	Generals._unflush(); // Can't use "this" because called out of context
 	var next = isObject(name) ? name : Generals.data[name];
-	if (!name || !next) {
-		return false;
-	} else if (name === 'any') {
+	if (name === 'any') {
 		return true;
+	} else if (!name || !next) {
+		return false;
 	} else {
 		return (Player.get('maxstamina') + ((next.stats && next.stats.stamina) || 0) >= Player.get('stamina') && Player.get('maxenergy') + ((next.stats && next.stats.energy) || 0) >= Player.get('energy'));
 	}

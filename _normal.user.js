@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.922
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 922;
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2681,10 +2681,13 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
+//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
+	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
+//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -2911,13 +2914,22 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (typeof type === 'string') {
 		type = [type];
 	}
+//	if (type[0] === 'serpent_ancient') {
+//		console.log(warn(), 'OK serp');
+//	}
+//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + type[j]);
+				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
+				if (j === 'serpent_ancient' && value[i][j]) {
+					console.log(warn(), j +' ' + value[i][j]);
+				}
 			}
-			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
+			if (sum(value[i])) {
+				min = Math.min(min, sum(value[i]))-1;
+			}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
@@ -3368,7 +3380,10 @@ Page.click = function(el) {
 		return false;
 	}
 	var e, element = $(el).get(0);
-	this.clear();
+	if (this.temp.lastclick !== el) {
+		this.clear();
+	}
+	this.set(['runtime', 'delay'], 0);
 	this.temp.lastclick = el;
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);
@@ -6221,10 +6236,10 @@ Generals.to = function(name) {
 Generals.test = function(name) {
 	Generals._unflush(); // Can't use "this" because called out of context
 	var next = isObject(name) ? name : Generals.data[name];
-	if (!name || !next) {
-		return false;
-	} else if (name === 'any') {
+	if (name === 'any') {
 		return true;
+	} else if (!name || !next) {
+		return false;
 	} else {
 		return (Player.get('maxstamina') + ((next.stats && next.stats.stamina) || 0) >= Player.get('stamina') && Player.get('maxenergy') + ((next.stats && next.stats.energy) || 0) >= Player.get('energy'));
 	}
@@ -6602,7 +6617,7 @@ Gift.work = function(state) {
 	if (!received.length && (!length(todo) || (this.runtime.gift_delay > Date.now()))) {
 		this.runtime.work = false;
 		Page.to('keep_alchemy');
-		return QUEUE_FINISH;
+		return QUEUE_INTERRUPT_OK;
 	}
 	
 	// We have received gifts so we need to figure out what to send back.
@@ -6673,7 +6688,7 @@ Gift.work = function(state) {
 	}
 	if ($('div.dialog_buttons input[name="skip_ci_btn"]').length) {     // Eventually skip additional requests dialog
 		Page.click('div.dialog_buttons input[name="skip_ci_btn"]');
-		return QUEUE_RELEASE;
+		return QUEUE_CONTINUE;
 	}
 	
 	// Give some gifts back
@@ -6696,7 +6711,7 @@ Gift.work = function(state) {
 //			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot}, true)) {	// forcing the page to load to fix issues with gifting getting interrupted while waiting for the popup confirmation dialog box which then causes the script to never find the popup.  Should also speed up gifting.
 // Need to deal with the fb requests some other way - possibly an extra parse() option...
 			if (!Page.to('army_gifts', {app_friends:'c', giftSelection:this.data.gifts[i].slot})) {
-				return QUEUE_RELEASE;
+				return QUEUE_CONTINUE;
 			}
 			if (typeof this.data.gifts[i] === 'undefined') {  // Unknown gift in todo list
 				gift_ids = [];
@@ -10199,7 +10214,11 @@ Quest.update = function(event) {
 //		console.log(warn(), 'option = ' + this.option.what);
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
-			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
+			// Skip quests we can't afford or can't equip the general for
+			//console.log(warn(),'Quest ' + data.id[i].name + ' general ' + data.id[i].general + ' test ' + !Generals.test(data.id[i].general || 'any') + ' data || '+ (data.id[i].general || 'any') + ' queue ' + (Queue.runtime.general && data.id[i].general));
+			if (data.id[i].energy > maxenergy 
+					|| !Generals.test(data.id[i].general || 'any')
+					|| (Queue.runtime.general && data.id[i].general)) {
 				continue;
 			}
 			if (data.id[i].units) {

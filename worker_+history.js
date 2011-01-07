@@ -37,10 +37,13 @@ History.settings = {
 History.dashboard = function() {
 	var list = [];
 	list.push('<table cellspacing="0" cellpadding="0" class="golem-graph"><thead><tr><th></th><th colspan="73"><span style="float:left;">&lArr; Older</span>72 Hour History<span style="float:right;">Newer &rArr;</span><th></th></th></tr></thead><tbody>');
-	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
-	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
-	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+//	list.push(this.makeGraph(['land', 'income'], 'Income', true, {'Average Income':this.get('land.mean') + this.get('income.mean')}));
+//	list.push(this.makeGraph('serpent_ancient', 'Monsters', false, {'10':10}));
+//console.log(warn(), 'monster types ' + Monster.types.skaar.name);
+	list.push(this.makeGraph(Monster.types, 'Monsters', false, {'5':5}));
+//	list.push(this.makeGraph('bank', 'Bank', true, Land.runtime.best ? {'Next Land':Land.runtime.cost} : null)); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
+//	list.push(this.makeGraph('exp', 'Experience', false, {'Next Level':Player.get('maxexp')}));
+//	list.push(this.makeGraph('exp.change', 'Exp Gain', false, {'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -267,13 +270,22 @@ History.makeGraph = function(type, title, iscash, goal) {
 	if (typeof type === 'string') {
 		type = [type];
 	}
+//	if (type[0] === 'serpent_ancient') {
+//		console.log(warn(), 'OK serp');
+//	}
+//	console.log(warn(), 'type ' + type);
 	for (i=hour-72; i<=hour; i++) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + type[j]);
+				value[i][j] = this.get(i + '.' + (isObject(type[j]) ? j : type[j]));
+				if (j === 'serpent_ancient' && value[i][j]) {
+					console.log(warn(), j +' ' + value[i][j]);
+				}
 			}
-			if (sum(value[i])) {min = Math.min(min, sum(value[i]));}
+			if (sum(value[i])) {
+				min = Math.min(min, sum(value[i]))-1;
+			}
 			max = Math.max(max, sum(value[i]));
 		}
 	}
