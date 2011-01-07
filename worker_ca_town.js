@@ -2,10 +2,10 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player, Quest,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, bestValue
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
@@ -80,6 +80,7 @@ Town.display = [
 }
 ];
 
+/*
 Town.blacksmith = {
 	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|grinder|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword |sword$|talon|trident|wand|^Avenger$|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Excalibur|Holy Avenger|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
 	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
@@ -87,6 +88,204 @@ Town.blacksmith = {
 	Gloves:	/gauntlet|glove|hand|bracer|fist|Slayer's Embrace|Soul Crusher|Soul Eater|Virtue of Temperance/i,
 	Armor:	/armor|belt|chainmail|cloak|epaulets|gear|garb|pauldrons|plate|raiments|robe|tunic|vestment|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
+};
+*/
+
+  // I know, I know, really verbose, but don't gripe unless it doesn't match
+  // better than the short list above.  This is based on a generated list that
+  // ensures the list has no outstanding mismatches or conflicts given all
+  // known items as of a given date.
+
+  // as of Thu Jan  6 20:13:20 2011 UTC
+Town.blacksmith = {
+      // Feral Staff is a multi-pass match:
+      //   shield.11{Feral Staff}, weapon.5{Staff}
+      // Frost Tear Dagger is a multi-pass match:
+      //   shield.17{Frost Tear Dagger}, weapon.6{Dagger}
+      // Ice Dagger is a multi-pass match:
+      //   shield.10{Ice Dagger}, weapon.6{Dagger}
+      // Sword of Redemption is a multi-pass match:
+      //   shield.19{Sword of Redemption}, weapon.5{Sword}
+    Weapon: new RegExp('(' +
+      '\\baxe\\b' +				// 12
+      '|\\bblades?\\b' +		// 24+1
+      '|\\bbonecrusher\\b' +	// 1
+      '|\\bbow\\b' +			// 7
+      '|\\bcleaver\\b' +		// 1
+      '|\\bcudgel\\b' +			// 1
+      '|\\bdagger\\b' +			// 8 (mismatches 2)
+      '|\\bedge\\b' +			// 1
+      '|\\bfang\\b' +			// 1
+      '|\\bgreatsword\\b' +		// 1
+      '|\\bgrinder\\b' +		// 1
+      '|\\bhalberd\\b' +		// 1
+      '|\\bhammer\\b' +			// 1
+      '|\\bhellblade\\b' +		// 1
+      '|\\bkatara\\b' +			// 1
+      '|\\blance\\b' +			// 1
+      '|\\blongsword\\b' +		// 1
+      '|\\bmace\\b' +			// 6
+      '|\\bmorningstar\\b' +	// 1
+      '|\\brod\\b' +			// 2
+      '|\\bsaber\\b' +			// 4
+      '|\\bscepter\\b' +		// 1
+      '|\\bshortsword\\b' +		// 1
+      '|\\bspear\\b' +			// 3
+      '|\\bstaff\\b' +			// 6 (mismatches 1)
+      '|\\bstaves\\b' +			// 1
+      '|\\bsword\\b' +			// 16 (mismatches 1)
+      '|\\btalon\\b' +			// 1
+      '|\\btrident\\b' +		// 1
+      '|\\bwand\\b' +			// 3
+      '|^Atonement$' +
+      '|^Avenger$' +
+      '|^Bloodblade$' +
+      '|^Celestas Devotion$' +
+      '|^Daedalus$' +
+      '|^Death Dealer$' +
+      '|^Deathbellow$' +
+      '|^Deliverance$' +
+      '|^Draganblade$' +
+      '|^Dragonbane$' +
+      '|^Excalibur$' +
+      '|^Exsanguinator$' +
+      '|^Holy Avenger$' +
+      '|^Incarnation$' +
+      "|^Ironhart's Might$" +
+      '|^Judgement$' +
+      '|^Justice$' +
+      '|^Lifebane$' +
+      '|^Lightbringer$' +
+      '|^Moonclaw$' +
+      '|^Oathkeeper$' +
+      '|^Onslaught$' +
+      '|^Punisher$' +
+      '|^Righteousness$' +
+      '|^Scytheblade$' +
+      '|^Soulforge$' +
+      '|^The Disemboweler$' +
+      '|^The Reckoning$' +
+      '|^Virtue of Justice$' +
+      ')', 'i'),
+    Shield: new RegExp('(' +
+      '\\baegis\\b' +			// 1
+      '|\\bbuckler\\b' +		// 1
+      '|\\bdeathshield\\b' +	// 1
+      '|\\bdefender\\b' +		// 3
+      '|\\bshield\\b' +			// 22
+      '|\\btome\\b' +			// 2
+      '|^Absolution$' +
+      '|^Dragon Scale$' +
+      '|^Feral Staff$' +
+      '|^Frost Tear Dagger$' +
+      '|^Harmony$' +
+      '|^Heart of the Pride$' +
+      '|^Hour Glass$' +
+      '|^Ice Dagger$' +
+      '|^Illvasan Crest$' +
+      '|^Purgatory$' +
+      '|^Serenes Arrow$' +
+      '|^Sword of Redemption$' +
+      "|^Terra's Guard$" +
+      '|^The Dreadnought$' +
+      '|^Zenarean Crest$' +
+      ')', 'i'),
+    Armor: new RegExp('(' +
+      '\\barmguard\\b' +		// 1
+      '|\\barmor\\b' +			// 17
+      '|\\bbattlegarb\\b' +		// 1
+      '|\\bbattlegear\\b' +		// 3
+      '|\\bbelt\\b' +			// 1
+      '|\\bchainmail\\b' +		// 2
+      '|\\bcloak\\b' +			// 7
+      '|\\bepaulets\\b' +		// 1
+      '|\\bgarb\\b' +			// 1
+      '|\\bpauldrons\\b' +		// 1
+      '|\\bplate\\b' +			// 26
+      '|\\bplatemail\\b' +		// 2
+      '|\\braiments\\b' +		// 4
+      '|\\brobes?\\b' +			// 1+7
+      '|\\btunic\\b' +			// 1
+      '|\\bvestment\\b' +		// 1
+      '|^Castle Rampart$' +
+      '|^Death Ward$' +
+      '|^Deathrune Hellplate$' +
+      '|^Faerie Wings$' +
+      '|^Plated Earth$' +
+      ')', 'i'),
+    Helmet: new RegExp('(' +
+      '\\bcowl\\b' +			// 1
+      '|\\bcrown\\b' +			// 12
+      '|\\bdoomhelm\\b' +		// 1
+      '|\\bhelm\\b' +			// 33
+      '|\\bhelmet\\b' +			// 2
+      '|\\bhorns\\b' +			// 1
+      '|\\bmask\\b' +			// 1
+      '|\\btiara\\b' +			// 1
+      '|\\bveil\\b' +			// 1
+      '|^Virtue of Fortitude$' +
+      ')', 'i'),
+    Amulet: new RegExp('(' +
+      '\\bamulet\\b' +			// 14
+      '|\\bband\\b' +			// 2
+      '|\\bbauble\\b' +			// 1
+      '|\\bcharm\\b' +			// 2
+      '|\\bcross\\b' +			// 1
+      '|\\bearrings\\b' +		// 1
+      '|\\beye\\b' +			// 2
+      '|\\bflask\\b' +			// 1
+      '|\\binsignia\\b' +		// 2
+      '|\\bjewel\\b' +			// 3
+      '|\\blantern\\b' +		// 1
+      '|\\blocket\\b' +			// 1
+      '|\\bmark\\b' +			// 1
+      '|\\bmemento\\b' +		// 1
+      '|\\bnecklace\\b' +		// 4
+      '|\\bpendant\\b' +		// 8
+      '|\\brelic\\b' +			// 1
+      '|\\bring\\b' +			// 6
+      '|\\bruby\\b' +			// 1
+      '|\\bseal\\b' +			// 1
+      '|\\bshard\\b' +			// 6
+      '|\\bsignet\\b' +			// 7
+      '|\\bsunstone\\b' +		// 1
+      '|\\btalisman\\b' +		// 1
+      '|\\btrinket\\b' +		// 2
+      '|^Blue Lotus Petal$' +
+      '|^Crystal of Lament$' +
+      '|^Dragon Ashes$' +
+      '|^Earth Orb$' +
+      '|^Gold Bar$' +
+      '|^Heart of Elos$' +
+      '|^Ice Orb$' +
+      "|^Keira's Soul$" +
+      '|^Lava Orb$' +
+      '|^Magic Mushrooms$' +
+      "|^Paladin's Oath$" +
+      '|^Poseidons Horn$' +
+      '|^Shadowmoon$' +
+      '|^Silver Bar$' +
+      '|^Soul Catcher$' +
+      "|^Terra's Heart$" +
+      '|^Thawing Star$' +
+      '|^Tooth of Gehenna$' +
+      '|^Transcendence$' +
+      '|^Tribal Crest$' +
+      '|^Vincents Soul$' +
+      ')', 'i'),
+    Gloves: new RegExp('(' +
+      '\\bbracer\\b' +			// 1
+      '|\\bfists?\\b' +			// 1+1
+      '|\\bgauntlets?\\b' +		// 9+4
+      '|\\bgloves?\\b' +		// 2+2
+      '|\\bhandguards\\b' +		// 1
+      '|\\bhands?\\b' +			// 2+3
+      "|^Slayer's Embrace$" +
+      '|^Soul Crusher$' +
+      '|^Soul Eater$' +
+      '|^Tempered Steel$' +
+      '|^Virtue of Temperance$' +
+      ')', 'i')
 };
 
 Town.setup = function() {
@@ -144,12 +343,13 @@ Town.parse = function(change) {
 				delete unit[name].type;
 				for (i in Town.blacksmith) {
 					if ((match = name.match(Town.blacksmith[i]))) {
-						for (j=0; j<match.length; j++) {
+						j = 1;
+						//for (j=0; j<match.length; j++) {
 							if (match[j].length > maxlen) {
 								unit[name].type = i;
 								maxlen = match[j].length;
 							}
-						}
+						//}
 					}
 				}
 			}
@@ -198,7 +398,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, resource,
+	var i, u, need, want, have, best_buy = null, best_sell = null, best_quest = false, buy = 0, sell = 0, data = this.data, quests, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, resource, max_cost,
 	incr = (this.runtime.cost_incr || 4);
         
 	switch (this.option.number) {
@@ -389,16 +589,19 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		if (type === 'duel' && list[units[0]].type) {
 				units.sort(function(a,b) {
 					return order[list[a].type] - order[list[b].type]
+						|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
 						|| (list[a].cost || 0) - (list[b].cost || 0);
 				});
 		} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
 				units.sort(function(a,b) {
 					return (list[b][type][x] || 0) - (list[a][type][x] || 0)
+						|| (list[a][type].upkeep || 0) - (list[b][type].upkeep || 0)
 						|| (list[a][type].cost || 0) - (list[b][type].cost || 0);
 				});
 		} else {
 				units.sort(function(a,b) {
 					return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]))
+						|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
 						|| (list[a].cost || 0) - (list[b].cost || 0);
 				});
 		}

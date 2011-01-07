@@ -1,10 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
+	browser, window, localStorage, console, chrome
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	GM_setValue, GM_getValue, APP, APPID, log, debug, userID, imagepath, browser, window,
+	version, revision, isRelease
+	GM_setValue, GM_getValue, APP, APPID, PREFIX, log:true, debug, userID, imagepath
+	length:true
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	Workers, makeImage
+	Workers, makeImage:true
 */
 // Utility functions
 
@@ -159,7 +162,7 @@ String.prototype.html_escape = function() {
 };
 
 String.prototype.regexp_escape = function() {
-	return this.replace(/([\\\^\$*+[\]?{}.=!:(|)])/g, '\\$&');
+	return this.replace(/([\\\^\$*+\[\]?{}.=!:(|)])/g, '\\$&');
 //	return this.replace(/\\/g, '\\\\').replace(/\^/g, '\\^').replace(/\$/g, '\\$').replace(/\./g, '\\.').replace(/\+/g, '\\+').replace(/\*/g, '\\*').replace(/\?/g, '\\?').replace(/\{/g, '\\{').replace(/\}/g, '\\}').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|');
 };
 
@@ -245,7 +248,7 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 		return true;
 	}
 	return false;
-}
+};
 
 var unique = function(a) { // Return an array with no duplicates
 	var o = {}, i, l = a.length, r = [];
@@ -286,6 +289,7 @@ var sum = function(a) { // Adds the values of all array entries together
 };
 
 var compare = function(left, right) {
+	var i;
 	if (typeof left !== typeof right) {
 		return false;
 	}
@@ -294,7 +298,7 @@ var compare = function(left, right) {
 			return false;
 		}
 		if (isArray(left)) {
-			var i = left.length;
+			i = left.length;
 			while (i--) {
 				if (!compare(left[i], right[i])) {
 					return false;
@@ -378,7 +382,9 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 		units = getAttDefList;
 	}
 	units.sort(function(a,b) {
-		return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]));
+		return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]))
+			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
+			|| (list[a].cost || 0) - (list[b].cost || 0);
 	});
 	for (i=0; i<units.length; i++) {
 		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
@@ -604,7 +610,7 @@ $.fn.autoSize = function() {
 			e.oldValueLength = e.value.length;
 		}
 		return true;
-	};
+	}
 	this.filter('textarea').each(function(){
 		$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
 		autoSize(this);
