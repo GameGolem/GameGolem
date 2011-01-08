@@ -31,6 +31,7 @@ Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
+/*
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000)), tmp;
 	when = when.getSeconds() + (when.getMinutes() * 60);
 	tmp = this.data.cash_time || when;
@@ -43,10 +44,12 @@ Player.init = function() {
 		tmp -= Math.min(10, Math.sqrt(tmp - when));
 	}
 	this.set('cash_time', tmp);
+*/
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
+	this._trigger('#app'+APPID+'_gold_time_value', 'cash_timer');
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -157,11 +160,15 @@ Player.update = function(event) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	} else if (event.type === 'trigger') {
-		this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
-		switch (event.id) {
-			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
-			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
-			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+		if (event.id === 'cash_timer') {
+			this.set(['data', 'cash_time'], (Math.floor(Date.now() / 1000) + $('#app46755028429_gold_time_value').text().parseTimer()) * 1000);
+		} else {
+			this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
+			switch (event.id) {
+				case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+				case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+				case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+			}
 		}
 	}
 	Dashboard.status(this);
@@ -170,9 +177,9 @@ Player.update = function(event) {
 Player.get = function(what) {
 	var data = this.data, when;
 	switch(what) {
-//		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
-		case 'cash_timer':		when = new Date();
-								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
+//		case 'cash_timer':		when = new Date();
+//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();

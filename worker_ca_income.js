@@ -12,10 +12,11 @@
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
-Income.data = Income.temp = null;
+Income.data = Income.runtime = null;
 
 Income.settings = {
-	important:true
+	important:true,
+	taint:true
 };
 
 Income.defaults['castle_age'] = {};
@@ -24,6 +25,11 @@ Income.option = {
 	general:true,
 	bank:true,
 	margin:45
+};
+
+Income.temp = {
+	income:false,
+	bank:false
 };
 
 Income.display = [
@@ -44,21 +50,35 @@ Income.display = [
 	}
 ];
 
+Income.init = function(event) {
+	this._watch(Player, 'data.cash_time');
+};
+
+Income.update = function(event) {
+	var when = Player.get('cash_timer', 9999) - this.option.margin;
+	if (when > 0) {
+		this._remind(when, 'income');
+	}
+	if ((this.set(['temp','income'], when <= 0))) {
+		this.set(['temp','bank'], true);
+	}
+	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
+};
+
 Income.work = function(state) {
-	if (!this.option.general || !Generals.test(Generals.best('income'))) {
-		return QUEUE_FINISH;
-	}
-//	console.log(warn(), when + ', Margin: ' + Income.option.margin);
-	if (Player.get('cash_timer') > this.option.margin) {
-		if (state && this.option.bank && !Bank.stash()) {
-			return QUEUE_CONTINUE;
+	if (state) {
+		if (this.temp.income) {
+			if (Generals.to('income')) {
+				console.log(log('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)'));
+			}
+		} else if (this.temp.bank) {
+			if (!Bank.stash()) {
+				console.log(log('Banking Income...'));
+			} else {
+				this.set(['temp','bank'], false);
+			}
 		}
-		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to('income')) {
-		return QUEUE_CONTINUE;
-	}
-	console.log(warn(), 'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return QUEUE_CONTINUE;
 };
 

@@ -383,8 +383,12 @@ Worker.prototype._save = function(type) {
 					n = arguments.callee.call(this,i) || n;
 				}
 			}
+			return n;
+		} else if (this._taint[type]) {
+			this._forget('_update_'+type);
+			this._update({type:type, self:true});
+			this._taint[type] = false;
 		}
-		return n;
 	}
 	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;

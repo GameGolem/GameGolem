@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.929
+// @version		31.5.930
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 929;
+var revision = 930;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1067,8 +1067,12 @@ Worker.prototype._save = function(type) {
 					n = arguments.callee.call(this,i) || n;
 				}
 			}
+			return n;
+		} else if (this._taint[type]) {
+			this._forget('_update_'+type);
+			this._update({type:type, self:true});
+			this._taint[type] = false;
 		}
-		return n;
 	}
 	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;
@@ -7083,10 +7087,11 @@ Idle.work = function(state) {
 * User selectable safety margin - at default 5 sec trigger it can take up to 14 seconds (+ netlag) to change
 */
 var Income = new Worker('Income');
-Income.data = Income.temp = null;
+Income.data = Income.runtime = null;
 
 Income.settings = {
-	important:true
+	important:true,
+	taint:true
 };
 
 Income.defaults['castle_age'] = {};
@@ -7095,6 +7100,11 @@ Income.option = {
 	general:true,
 	bank:true,
 	margin:45
+};
+
+Income.temp = {
+	income:false,
+	bank:false
 };
 
 Income.display = [
@@ -7115,21 +7125,35 @@ Income.display = [
 	}
 ];
 
+Income.init = function(event) {
+	this._watch(Player, 'data.cash_time');
+};
+
+Income.update = function(event) {
+	var when = Player.get('cash_timer', 9999) - this.option.margin;
+	if (when > 0) {
+		this._remind(when, 'income');
+	}
+	if ((this.set(['temp','income'], when <= 0))) {
+		this.set(['temp','bank'], true);
+	}
+	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
+};
+
 Income.work = function(state) {
-	if (!this.option.general || !Generals.test(Generals.best('income'))) {
-		return QUEUE_FINISH;
-	}
-//	console.log(warn(), when + ', Margin: ' + Income.option.margin);
-	if (Player.get('cash_timer') > this.option.margin) {
-		if (state && this.option.bank && !Bank.stash()) {
-			return QUEUE_CONTINUE;
+	if (state) {
+		if (this.temp.income) {
+			if (Generals.to('income')) {
+				console.log(log('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)'));
+			}
+		} else if (this.temp.bank) {
+			if (!Bank.stash()) {
+				console.log(log('Banking Income...'));
+			} else {
+				this.set(['temp','bank'], false);
+			}
 		}
-		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to('income')) {
-		return QUEUE_CONTINUE;
-	}
-	console.log(warn(), 'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 	return QUEUE_CONTINUE;
 };
 
@@ -9686,6 +9710,7 @@ Player.init = function() {
 	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
 	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
+/*
 	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000)), tmp;
 	when = when.getSeconds() + (when.getMinutes() * 60);
 	tmp = this.data.cash_time || when;
@@ -9698,10 +9723,12 @@ Player.init = function() {
 		tmp -= Math.min(10, Math.sqrt(tmp - when));
 	}
 	this.set('cash_time', tmp);
+*/
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
 	this._trigger('#app'+APPID+'_health_current_value', 'health');
+	this._trigger('#app'+APPID+'_gold_time_value', 'cash_timer');
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -9812,11 +9839,15 @@ Player.update = function(event) {
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
 	} else if (event.type === 'trigger') {
-		this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
-		switch (event.id) {
-			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
-			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
-			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+		if (event.id === 'cash_timer') {
+			this.set(['data', 'cash_time'], (Math.floor(Date.now() / 1000) + $('#app46755028429_gold_time_value').text().parseTimer()) * 1000);
+		} else {
+			this.set(['data', event.id], $(event.selector).text().replace(/[^0-9]/g, '').regex(/([0-9]+)/));
+			switch (event.id) {
+				case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+				case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+				case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+			}
 		}
 	}
 	Dashboard.status(this);
@@ -9825,9 +9856,9 @@ Player.update = function(event) {
 Player.get = function(what) {
 	var data = this.data, when;
 	switch(what) {
-//		case 'cash_timer':		return $('#app'+APPID+'_gold_time_value').text().parseTimer();
-		case 'cash_timer':		when = new Date();
-								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
+		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
+//		case 'cash_timer':		when = new Date();
+//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
 		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
 		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
