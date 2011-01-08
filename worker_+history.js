@@ -163,17 +163,17 @@ History.math = {
 History.get = function(what) {
 	this._unflush();
 	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
-	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
+	if (x.length && (isNumber(x[0]) || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	if (x.length && (typeof x[x.length-1] === 'number' || !x[x.length-1].regex(/[^0-9]/gi))) {
+	if (x.length && (isNumber(x[x.length-1]) || !x[x.length-1].regex(/[^0-9]/gi))) {
 		past = Math.range(1, parseInt(x.pop(), 10), 168);
 	}
 	if (!x.length) {
 		return data;
 	}
 	for (i in data) {
-		if (typeof data[i][x[0]] === 'number') {
+		if (isNumber(data[i][x[0]])) {
 			exact = true;
 			break;
 		}
@@ -183,7 +183,7 @@ History.get = function(what) {
 			return data[hour][x[0]];
 		}
 		for (j in data[hour]) {
-			if (j.indexOf(x[0] + '+') === 0 && typeof data[hour][j] === 'number') {
+			if (j.indexOf(x[0] + '+') === 0 && isNumber(data[hour][j])) {
 				value = (value || 0) + data[hour][j];
 			}
 		}
@@ -193,7 +193,7 @@ History.get = function(what) {
 		if (data[hour] && data[hour-1]) {
 			i = this.get([hour, x[0]]);
 			j = this.get([hour - 1, x[0]]);
-			if (typeof i === 'number' && typeof j === 'number') {
+			if (isNumber(i) && isNumber(j)) {
 				return i - j;
 			}
 			return 0;
@@ -207,12 +207,12 @@ History.get = function(what) {
 		if (data[i]) {
 			value = null;
 			if (exact) {
-				if (typeof data[i][x[0]] === 'number') {
+				if (isNumber(data[i][x[0]])) {
 					value = data[i][x[0]];
 				}
 			} else {
 				for (j in data[i]) {
-					if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
+					if (j.indexOf(x[0] + '+') === 0 && isNumber(data[i][j])) {
 						value = (value || 0) + data[i][j];
 					}
 				}

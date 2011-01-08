@@ -123,14 +123,14 @@ Arena.parse = function(change) {
 					this._forget('finish');
 					this._forget('start');
 				}
-				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','start'], (i * 1000) + now);
 				this._remind(i, 'start');
 			} else if (tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
-				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','finish'], (i * 1000) + now);
 				this._remind(i, 'finish');
 			}
@@ -216,10 +216,10 @@ Arena.work = function(state) {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
 						Page.to('battle_arena', {close_result:'global_bottom'});
+						this.set(['runtime','status'], 'wait');
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
-						this.set(['runtime','status'], 'wait');
 					}
 				} else if (this.runtime.status === 'start') {
 					console.log(log('Entering Battle'));

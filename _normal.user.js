@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.924
+// @version		31.5.925
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 924;
+var revision = 925;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2807,17 +2807,17 @@ History.math = {
 History.get = function(what) {
 	this._unflush();
 	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
-	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/[^0-9]/gi))) {
+	if (x.length && (isNumber(x[0]) || !x[0].regex(/[^0-9]/gi))) {
 		hour = x.shift();
 	}
-	if (x.length && (typeof x[x.length-1] === 'number' || !x[x.length-1].regex(/[^0-9]/gi))) {
+	if (x.length && (isNumber(x[x.length-1]) || !x[x.length-1].regex(/[^0-9]/gi))) {
 		past = Math.range(1, parseInt(x.pop(), 10), 168);
 	}
 	if (!x.length) {
 		return data;
 	}
 	for (i in data) {
-		if (typeof data[i][x[0]] === 'number') {
+		if (isNumber(data[i][x[0]])) {
 			exact = true;
 			break;
 		}
@@ -2827,7 +2827,7 @@ History.get = function(what) {
 			return data[hour][x[0]];
 		}
 		for (j in data[hour]) {
-			if (j.indexOf(x[0] + '+') === 0 && typeof data[hour][j] === 'number') {
+			if (j.indexOf(x[0] + '+') === 0 && isNumber(data[hour][j])) {
 				value = (value || 0) + data[hour][j];
 			}
 		}
@@ -2837,7 +2837,7 @@ History.get = function(what) {
 		if (data[hour] && data[hour-1]) {
 			i = this.get([hour, x[0]]);
 			j = this.get([hour - 1, x[0]]);
-			if (typeof i === 'number' && typeof j === 'number') {
+			if (isNumber(i) && isNumber(j)) {
 				return i - j;
 			}
 			return 0;
@@ -2851,12 +2851,12 @@ History.get = function(what) {
 		if (data[i]) {
 			value = null;
 			if (exact) {
-				if (typeof data[i][x[0]] === 'number') {
+				if (isNumber(data[i][x[0]])) {
 					value = data[i][x[0]];
 				}
 			} else {
 				for (j in data[i]) {
-					if (j.indexOf(x[0] + '+') === 0 && typeof data[i][j] === 'number') {
+					if (j.indexOf(x[0] + '+') === 0 && isNumber(data[i][j])) {
 						value = (value || 0) + data[i][j];
 					}
 				}
@@ -3950,13 +3950,30 @@ Resources.has = function(type, amount) {
 * Deals with multiple Tabs/Windows being open at the same time...
 */
 var Session = new Worker('Session');
-Session.runtime = Session.option = null; // Don't save anything except global stuff
+Session.runtime = null; // Don't save anything except global stuff
 Session._rootpath = false; // Override save path so we don't get limited to per-user
 
 Session.settings = {
 	system:true,
 	keep:true,// We automatically load when needed
 	taint:true
+};
+
+Global.display.push({
+	advanced:true,
+	title:'Multiple Tabs / Windows',
+	group:[
+		{
+			id:'session.timeout',
+			label:'Forget After',
+			select:{5000:'5 Seconds', 10000:'10 Seconds', 15000:'15 Seconds', 20000:'20 Seconds', 25000:'25 Seconds', 30000:'30 Seconds'},
+			help:'When you have multiple tabs open this is the length of time after closing all others that the Enabled/Disabled warning will remain.'
+		}
+	]
+});
+
+Global.option.session = {
+	timeout:15000 // How long to give a tab to update itself before deleting it (ms)
 };
 
 Session.data = { // Shared between all windows
@@ -3967,11 +3984,9 @@ Session.data = { // Shared between all windows
 
 Session.temp = {
 	active:false, // Are we the active tab (able to do anything)?
+	warning:null, // If clicking the Disabled button when not able to go Enabled
 	_id:null
 };
-
-Session.timeout = 15000; // How long to give a tab to update itself before deleting it (15 seconds)
-Session.warning = null;// If clicking the Disabled button when not able to go Enabled
 
 Session.setup = function() {
 	try {
@@ -3998,7 +4013,7 @@ Session.init = function() {
 	var now = Date.now();
 	this.set(['data','_sessions',this.temp._id], now);
 	$('.golem-title').after('<div id="golem_session" class="golem-info golem-button green" style="display:none;">Enabled</div>');
-	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.timeout || this.data._active === this.temp._id) {
+	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - Global.option.session.timeout || this.data._active === this.temp._id) {
 		this._set(['temp','active'], true);
 		this._set(['data','_active'], this.temp._id);
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
@@ -4011,7 +4026,7 @@ Session.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green');
 			Session._set(['data','_active'], null);
 			Session._set(['temp','active'], false);
-		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Session.timeout) {
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Global.option.session.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Session._set(['data','_active'], Session.temp._id);
@@ -4019,7 +4034,7 @@ Session.init = function() {
 		} else {// Not able to go active
 			Queue.clearCurrent();
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
-			if (!Session.warning) {
+			if (!Session.temp.warning) {
 				(function(){
 					if ($('#golem_session span').length) {
 						if ($('#golem_session span').css('color').indexOf('255') === -1) {
@@ -4030,8 +4045,8 @@ Session.init = function() {
 					}
 				})();
 			}
-			window.clearTimeout(Session.warning);
-			Session.warning = window.setTimeout(function(){if(!Session.temp.active){$('#golem_session').html('<b>Disabled</b>');}Session.warning=null;}, 3000);
+			window.clearTimeout(Session.temp.warning);
+			Session.temp.warning = window.setTimeout(function(){if(!Session.temp.active){$('#golem_session').html('<b>Disabled</b>');}Session.temp.warning=null;}, 3000);
 		}
 		Session._save('data');
 	});
@@ -4040,23 +4055,11 @@ Session.init = function() {
 };
 
 /***** Session.update() *****
-1. We don't care about any data, only about the regular reminder we've set, so return if not the reminder
-2. Update the data[id] to now() so we're not removed
-3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
-4. If there are other open instances then show the "Enabled/Disabled" button
+1. Update the timestamps in data._timestamps[type][worker]
+2. Replace the relevant datatype with the updated (saved) version if it's newer
 */
-Session.update = function(event) {
-	if (event.type !== 'reminder') {
-		return;
-	}
-	var i, j, _old, _new, _ts, now = Date.now();
-	this._load('data');
-	this.data._sessions[this.temp._id] = now;
-	for(i in this.data._sessions) {
-		if (this.data._sessions[i] < (now - this.timeout)) {
-			this.data._sessions[i] = undefined;
-		}
-	}
+Session.updateTimestamps = function() {
+	var i, j, _old, _new, _ts;
 	for (i in Workers) {
 		if (i !== this.name) {
 			for (j in Workers[i]._datatypes) {
@@ -4079,16 +4082,39 @@ Session.update = function(event) {
 			}
 		}
 	}
-	i = length(this.data._sessions);
-	if (i === 1) {
+};
+
+/***** Session.update() *****
+1. We don't care about any data, only about the regular reminder we've set, so return if not the reminder
+2. Update data._sessions[id] to Date.now() so we're not removed
+3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
+4. If there are other open instances then show the "Enabled/Disabled" button
+*/
+Session.update = function(event) {
+	if (event.type !== 'reminder') {
+		return;
+	}
+	var i, l, now = Date.now();
+	this._load('data');
+	this.data._sessions[this.temp._id] = now;
+	now -= Global.option.session.timeout;
+	for(i in this.data._sessions) {
+		if (this.data._sessions[i] < now) {
+			this.data._sessions[i] = undefined;
+		}
+	}
+	l = length(this.data._sessions);
+	if (l === 1) {
 		if (!this.temp.active) {
+			this.updateTimestamps();
 			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
 //			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			this.data._active = this.temp._id;
 			this.temp.active = true;
 		}
 		$('#golem_session').hide();
-	} else if (i > 1) {
+	} else if (l > 1) {
+		this.updateTimestamps();
 		$('#golem_session').show();
 	}
 	this._taint.data = true;
@@ -4743,14 +4769,14 @@ Arena.parse = function(change) {
 					this._forget('finish');
 					this._forget('start');
 				}
-				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','start'], (i * 1000) + now);
 				this._remind(i, 'start');
 			} else if (tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
-				i = tmp.regex(/([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
 				this.set(['runtime','finish'], (i * 1000) + now);
 				this._remind(i, 'finish');
 			}
@@ -4836,10 +4862,10 @@ Arena.work = function(state) {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
 						Page.to('battle_arena', {close_result:'global_bottom'});
+						this.set(['runtime','status'], 'wait');
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
-						this.set(['runtime','status'], 'wait');
 					}
 				} else if (this.runtime.status === 'start') {
 					console.log(log('Entering Battle'));
