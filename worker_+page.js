@@ -303,7 +303,7 @@ Page.click = function(el) {
 		this.clear();
 	}
 	this.set(['runtime', 'delay'], 0);
-	this.temp.lastclick = el;
+	this.temp.lastclick = el; // Causes circular reference when watching...
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");

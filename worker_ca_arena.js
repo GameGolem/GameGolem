@@ -221,12 +221,13 @@ Arena.work = function(state) {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 					}
-				} else if (this.runtime.status === 'start') {
+				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
 					console.log(log('Entering Battle'));
-					Page.click('input[src*="guild_enter_battle_button.gif"]');
-					this.set(['runtime','status'], 'fight');
+					if (Page.click('input[src*="guild_enter_battle_button.gif"]')) {
+						this.set(['runtime','status'], 'fight');
+					}
 				} else if (this.runtime.status === 'fight') {
-					var best = null, besttarget, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
+					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
 					
 						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);

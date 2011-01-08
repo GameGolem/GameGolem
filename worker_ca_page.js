@@ -33,7 +33,7 @@ Page.defaults.castle_age = {
 		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-		battle_arena:			{url:'arena.php', image:'arena3_rewardsbutton.gif'},
+		battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg'},
 		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section'},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},

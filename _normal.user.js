@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.925
+// @version		31.5.926
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 925;
+var revision = 926;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3393,7 +3393,7 @@ Page.click = function(el) {
 		this.clear();
 	}
 	this.set(['runtime', 'delay'], 0);
-	this.temp.lastclick = el;
+	this.temp.lastclick = el; // Causes circular reference when watching...
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");
@@ -4867,12 +4867,13 @@ Arena.work = function(state) {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 					}
-				} else if (this.runtime.status === 'start') {
+				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
 					console.log(log('Entering Battle'));
-					Page.click('input[src*="guild_enter_battle_button.gif"]');
-					this.set(['runtime','status'], 'fight');
+					if (Page.click('input[src*="guild_enter_battle_button.gif"]')) {
+						this.set(['runtime','status'], 'fight');
+					}
 				} else if (this.runtime.status === 'fight') {
-					var best = null, besttarget, besthealth, ignore = this.option.ignore.length ? this.option.ignore.split('|') : [];
+					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
 					
 						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
@@ -9590,7 +9591,7 @@ Page.defaults.castle_age = {
 		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-		battle_arena:			{url:'arena.php', image:'arena3_rewardsbutton.gif'},
+		battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg'},
 		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section'},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
