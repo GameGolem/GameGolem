@@ -145,7 +145,7 @@ cp golem.css chrome/GameGolem/
 in=chrome/manifest.tmpl
 out=chrome/GameGolem/manifest.json
 if [ -f "$in" ] ; then
-    sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g";s/\\\$FILE\\\$/$manilist/g" "$in" > "$out"
+    sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$FILE\\\$/$manilist/g" "$in" > "$out"
 else
     echo "Error: missing $in"
     rc=1

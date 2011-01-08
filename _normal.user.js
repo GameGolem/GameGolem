@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.927
+// @version		31.5.928
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -21,14 +21,18 @@
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
+
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
+
 // Version of the script
 var version = "31.5";
-var revision = 927;
+var revision = 928;
+
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
+
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -43,6 +47,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -4875,8 +4880,11 @@ Arena.work = function(state) {
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 					}
 				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
-					console.log(log('Entering Battle'));
-					Page.click('input[src*="guild_enter_battle_button.gif"]');
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						this.set(['runtime','status'], 'fight');
+					}
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];

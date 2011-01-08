@@ -222,8 +222,11 @@ Arena.work = function(state) {
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 					}
 				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
-					console.log(log('Entering Battle'));
-					Page.click('input[src*="guild_enter_battle_button.gif"]');
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						this.set(['runtime','status'], 'fight');
+					}
 					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
