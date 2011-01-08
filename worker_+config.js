@@ -238,19 +238,23 @@ Config.init = function() {
 Config.update = function(event) {
 	if (event.type === 'watch') {
 		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
-		if (($el = $('#'+this.makeID(worker, id))).length === 1) {
-			if ($el.attr('type') === 'checkbox') {
-				$el.attr('checked', worker.option[id]);
-			} else if ($el.attr('multiple')) {
-				$el.empty();
-				(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
-			} else if ($el.attr('value')) {
-				$el.attr('value', worker.option[id]);
-			} else {
-				$el.val(worker.option[id]);
+		if (id === '_sleep') {
+			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
+		} else {
+			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
+				if ($el.attr('type') === 'checkbox') {
+					$el.attr('checked', worker.option[id]);
+				} else if ($el.attr('multiple')) {
+					$el.empty();
+					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+				} else if ($el.attr('value')) {
+					$el.attr('value', worker.option[id]);
+				} else {
+					$el.val(worker.option[id]);
+				}
 			}
+			this.checkRequire();
 		}
-		this.checkRequire();
 	}
 };
 
@@ -294,7 +298,8 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}

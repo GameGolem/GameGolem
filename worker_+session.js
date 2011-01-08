@@ -171,7 +171,7 @@ Session.update = function(event) {
 			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
 //			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			this.data._active = this.temp._id;
-			this.temp.active = true;
+			this.set(['temp','active'], true);
 		}
 		$('#golem_session').hide();
 	} else if (l > 1) {

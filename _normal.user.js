@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.926
+// @version		31.5.927
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 926;
+var revision = 927;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1058,20 +1058,22 @@ Worker.prototype._replace = function(type, data) {
 };
 
 Worker.prototype._save = function(type) {
+	var i, n, v;
 	if (!this._datatypes[type]) {
 		if (!type) {
+			n = false;
 			for (var i in this._datatypes) {
 				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-					arguments.callee.call(this,i);
+					n = arguments.callee.call(this,i) || n;
 				}
 			}
 		}
-		return true;
+		return n;
 	}
 	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;
 	}
-	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
+	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	try {
 		v = JSON.stringify(this[type]);
 	} catch (e) {
@@ -1819,19 +1821,23 @@ Config.init = function() {
 Config.update = function(event) {
 	if (event.type === 'watch') {
 		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
-		if (($el = $('#'+this.makeID(worker, id))).length === 1) {
-			if ($el.attr('type') === 'checkbox') {
-				$el.attr('checked', worker.option[id]);
-			} else if ($el.attr('multiple')) {
-				$el.empty();
-				(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
-			} else if ($el.attr('value')) {
-				$el.attr('value', worker.option[id]);
-			} else {
-				$el.val(worker.option[id]);
+		if (id === '_sleep') {
+			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
+		} else {
+			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
+				if ($el.attr('type') === 'checkbox') {
+					$el.attr('checked', worker.option[id]);
+				} else if ($el.attr('multiple')) {
+					$el.empty();
+					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+				} else if ($el.attr('value')) {
+					$el.attr('value', worker.option[id]);
+				} else {
+					$el.val(worker.option[id]);
+				}
 			}
+			this.checkRequire();
 		}
-		this.checkRequire();
 	}
 };
 
@@ -1875,7 +1881,8 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
@@ -4110,7 +4117,7 @@ Session.update = function(event) {
 			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
 //			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			this.data._active = this.temp._id;
-			this.temp.active = true;
+			this.set(['temp','active'], true);
 		}
 		$('#golem_session').hide();
 	} else if (l > 1) {
@@ -4869,9 +4876,8 @@ Arena.work = function(state) {
 					}
 				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
 					console.log(log('Entering Battle'));
-					if (Page.click('input[src*="guild_enter_battle_button.gif"]')) {
-						this.set(['runtime','status'], 'fight');
-					}
+					Page.click('input[src*="guild_enter_battle_button.gif"]');
+					this.set(['runtime','status'], 'fight');
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
@@ -6864,6 +6870,10 @@ Gift.work = function(state) {
 var Heal = new Worker('Heal');
 Heal.data = Heal.temp = null;
 
+Heal.settings = {
+	taint:true
+};
+
 Heal.defaults['castle_age'] = {};
 
 Heal.option = {
@@ -6885,14 +6895,22 @@ Heal.display = [
 	}
 ];
 
+Heal.init = function() {
+	this._watch(Player, 'health');
+	this._watch(Player, 'maxhealth');
+	this._watch(Player, 'stamina');
+};
+
+Heal.update = function(event) {
+	var health = Player.get('health', -1);
+	this.set(['option','_sleep'], health >= Player.get('maxhealth') || Player.get('stamina') < this.option.stamina || health >= this.option.health);
+};
+
 Heal.work = function(state) {
-	if (Player.get('health') >= Player.get('maxhealth') || Player.get('stamina') < Heal.option.stamina || Player.get('health') >= Heal.option.health) {
-		return QUEUE_FINISH;
-	}
 	if (!state || this.me()) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
-	return QUEUE_RELEASE;
+	return false;
 };
 
 Heal.me = function() {
@@ -6904,6 +6922,7 @@ Heal.me = function() {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
 		console.log(log(), 'Danger Danger Will Robinson... Unable to heal!');
+		this.set(['option','_disabled'], true);
 	}
 	return false;
 };
@@ -9826,8 +9845,17 @@ Player.get = function(what) {
 var Potions = new Worker('Potions');
 Potions.temp = null;
 
+Potions.settings = {
+	taint:true
+};
+
 Potions.defaults['castle_age'] = {
 	pages:'*'
+};
+
+Potions.data = {
+	Energy:0,
+	Stamina:0
 };
 
 Potions.option = {
@@ -9836,7 +9864,8 @@ Potions.option = {
 };
 
 Potions.runtime = {
-	drink:false
+	type:null,
+	amount:0
 };
 
 Potions.display = [
@@ -9853,17 +9882,29 @@ Potions.display = [
 	}
 ];
 
+Potions.init = function() {
+	$('a.golem-potion-drink').live('click', function(event) {
+		if (/Do/.test($(this).text())) {
+			Potions.set(['runtime','type'], null);
+			Potions.set(['runtime','amount'], 0);
+		} else {
+			Potions.set(['runtime','type'], $(this).attr('name'));
+			Potions.set(['runtime','amount'], 1);
+		}
+	});
+};
+
 Potions.parse = function(change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
 	$('.result_body:contains("You have acquired the Energy Potion!")').each(function(i,el){
-		Potions.data['Energy'] = (Potions.data['Energy'] || 0) + 1;
+		Potions.set(['data','Energy'], Potions.data['Energy'] + 1);
 	});
 	if (Page.page === 'keep_stats' && $('div.keep_attribute_section').length) {// Only our own keep
 		this.data = {}; // Reset potion count completely at the keep
 		$('.statUnit', $('.statsTTitle:contains("CONSUMABLES")').next()).each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 			if (info && info[0] && info[1]) {
-				Potions.data[info[0]] = info[1];
+				Potions.set(['data',info[0]], info[1]);
 			}
 		});
 	}
@@ -9872,60 +9913,32 @@ Potions.parse = function(change) {
 
 Potions.update = function(event) {
 	var i, txt = [], levelup = LevelUp.get('runtime.running');
-	this.runtime.drink = false;
-	if (!this.get(['option', '_disabled'], false)) {
-		for(i in this.data) {
-			if (this.data[i]) {
-				txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + '<a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type)?'[Don\'t Drink]':'[Drink]') + '</a>');
-			}
-			if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
-				this.runtime.drink = true;
-			}
+	for (i in this.data) {
+		if (this.data[i]) {
+			txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type === i) ? '[Don\'t Drink]' : '[Drink]') + '</a>');
+		}
+		if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
+			this.set(['runtime','type'], i);
+			this.set(['runtime','amount'], 1);
 		}
 	}
-        if (this.runtime.type){
-            txt.push('Going to drink ' + this.runtime.amount + ' ' + this.runtime.type + ' potion.');
-        }
+	if (this.runtime.type) {
+		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
+	}
 	Dashboard.status(this, txt.join(', '));
-        $('a.golem-potion-drink').live('click', function(event){
-		var x = $(this).attr('name');
-                var act = $(this).text().regex(/(.*)/);
-		//console.log(warn(), 'Clicked on ' + x);
-                //console.log(warn(), 'Action = ' + act);
-                switch (act){
-                    case '[Drink]':
-                        //console.log(warn(), 'Setting Runtime');
-                        Potions.runtime.type = x;
-                        Potions.runtime.amount = 1;
-                        break;
-                    default:
-                        //console.log(warn(), 'Clearing Runtime');
-                        Potions.runtime.type = Potions.runtime.amount = null;
-                }
-                
-                
-	});
+	this.set(['option','_sleep'], !this.runtime.type);
 };
 
 Potions.work = function(state) {
-	if (!this.runtime.drink && !this.runtime.type) {
-		return QUEUE_FINISH;
-	}
 	if (!state || !Page.to('keep_stats')) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
-	for(var i in this.data) {
-		if (typeof this.option[i.toLowerCase()] === 'number' && this.data[i] > this.option[i.toLowerCase()]) {
-			console.log(warn(), 'Wanting to drink a ' + i + ' potion');
-			Page.click('.statUnit:contains("' + i + '") form .imgButton input');
-			break;
-		}
-	}
-        if (this.runtime.type && this.runtime.amount){
-                console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
+	if (this.runtime.type && this.runtime.amount){
+		console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
-                this.runtime.type = this.runtime.amount = null;
-        }
+		this.set(['runtime','type'], null);
+		this.set(['runtime','amount'], 0);
+	}
 	return QUEUE_RELEASE;
 };
 

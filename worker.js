@@ -374,20 +374,22 @@ Worker.prototype._replace = function(type, data) {
 };
 
 Worker.prototype._save = function(type) {
+	var i, n, v;
 	if (!this._datatypes[type]) {
 		if (!type) {
+			n = false;
 			for (var i in this._datatypes) {
 				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-					arguments.callee.call(this,i);
+					n = arguments.callee.call(this,i) || n;
 				}
 			}
 		}
-		return true;
+		return n;
 	}
 	if (this[type] === undefined || !this[type] || this._saving[type]) {
 		return false;
 	}
-	var i, n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name, v;
+	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	try {
 		v = JSON.stringify(this[type]);
 	} catch (e) {

@@ -14,6 +14,10 @@
 var Heal = new Worker('Heal');
 Heal.data = Heal.temp = null;
 
+Heal.settings = {
+	taint:true
+};
+
 Heal.defaults['castle_age'] = {};
 
 Heal.option = {
@@ -35,14 +39,22 @@ Heal.display = [
 	}
 ];
 
+Heal.init = function() {
+	this._watch(Player, 'health');
+	this._watch(Player, 'maxhealth');
+	this._watch(Player, 'stamina');
+};
+
+Heal.update = function(event) {
+	var health = Player.get('health', -1);
+	this.set(['option','_sleep'], health >= Player.get('maxhealth') || Player.get('stamina') < this.option.stamina || health >= this.option.health);
+};
+
 Heal.work = function(state) {
-	if (Player.get('health') >= Player.get('maxhealth') || Player.get('stamina') < Heal.option.stamina || Player.get('health') >= Heal.option.health) {
-		return QUEUE_FINISH;
-	}
 	if (!state || this.me()) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
-	return QUEUE_RELEASE;
+	return false;
 };
 
 Heal.me = function() {
@@ -54,6 +66,7 @@ Heal.me = function() {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
 		console.log(log(), 'Danger Danger Will Robinson... Unable to heal!');
+		this.set(['option','_disabled'], true);
 	}
 	return false;
 };
