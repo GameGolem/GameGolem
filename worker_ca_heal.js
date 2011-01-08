@@ -40,9 +40,9 @@ Heal.display = [
 ];
 
 Heal.init = function() {
-	this._watch(Player, 'health');
-	this._watch(Player, 'maxhealth');
-	this._watch(Player, 'stamina');
+	this._watch(Player, 'data.health');
+	this._watch(Player, 'data.maxhealth');
+	this._watch(Player, 'data.stamina');
 };
 
 Heal.update = function(event) {

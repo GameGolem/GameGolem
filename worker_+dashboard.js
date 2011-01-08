@@ -14,6 +14,7 @@ var Dashboard = new Worker('Dashboard');
 Dashboard.temp = null;
 
 Dashboard.settings = {
+	taint:true
 //	keep:true
 };
 
@@ -25,40 +26,30 @@ Dashboard.defaults = {
 
 Dashboard.option = {
 	display:'block',
-	active:null
+	active:'Dashboard'
 };
 
 Dashboard.init = function() {
-	var i, id, tabs = [], divs = [], active = this.option.active;
+	var i, tabs = [], divs = [], active = this.option.active;
+	if (!Workers[this.option.active]) {
+		active = this.option.active = this.name;
+	}
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
-			id = 'golem-dashboard-'+i;
-			if (!active) {
-				this.option.active = active = id;
-			}
 			if (Workers[i] === this) { // Dashboard always comes first with the * tab
-				tabs.unshift('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 			} else {
-				tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
+				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">' + i + '</h3>');
 			}
-			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i], 'data');
 		}
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
-		if ($(this).hasClass('golem-tab-header-active')) {
-			return;
+		if (!$(this).hasClass('golem-tab-header-active')) {
+			Dashboard.set(['option','active'], $(this).attr('name'));
 		}
-		if (Dashboard.option.active) {
-			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
-			$('#'+Dashboard.option.active).hide();
-		}
-		Dashboard.option.active = $(this).attr('name');
-		$(this).addClass('golem-tab-header-active');
-		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});
-		$('#'+Dashboard.option.active).show();
-		Dashboard._save('option');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -69,26 +60,26 @@ Dashboard.init = function() {
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
-		var worker = Worker.find(Dashboard.option.active.substr(16));
+		var worker = Workers[Dashboard.option.active];
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
 	$('#golem_icon_dashboard').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
-		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
-			Worker.find(Dashboard.option.active.substr(16)).dashboard();
+		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
+		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});// Make sure we update the active page at init
+	this._watch(this, 'option.active');
 	this._revive(1);// update() once every second to update any timers
 };
 
 Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
+	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
 Dashboard.update = function(event) {
@@ -110,10 +101,22 @@ Dashboard.update = function(event) {
 			}
 		});
 	}
-	if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.type === 'init') {
+		event.worker = Workers[this.option.active];
+	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
+	if (event.id === 'option.active') {
+		if (!Workers[this.option.active]) {
+			this.option.active = this.name;
+		}
+		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
+		$('#golem-dashboard > div > div').hide();
+		$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
+		$('#golem-dashboard-'+this.option.active).show();
+		event.worker = Workers[this.option.active];
+	}
+	if (this.option.active === event.worker.name && this.option.display === 'block') {
 		try {
 			event.worker._unflush();
 			event.worker.dashboard();

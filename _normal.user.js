@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.928
+// @version		31.5.929
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -21,18 +21,14 @@
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
-
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-
 // Version of the script
 var version = "31.5";
-var revision = 928;
-
+var revision = 929;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
-
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -47,7 +43,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -1116,7 +1111,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			if (!compare(value, data[i])) {
 				this._notify(path.join('.'));// Notify the watchers...
 				this._taint[path[0]] = true;
-				this._remind(0, '_update_'+path[0], {type:path[0], self:true});
+				this._remind(0, '_update_'+path[0], {type:'save', id:path[0]});
 				data[i] = value;
 				if (isUndefined(value)) {
 					return false;
@@ -1237,18 +1232,22 @@ Worker.prototype._update = function(event) {
 		} else if (!isObject(event)) {
 			event = {};
 		}
-		event.worker = Worker.find(event.worker || this); // Can handle strings or workers
-		if (isUndefined(this.data) && this._datatypes.data) {
-			flush = true;
-			this._unflush();
-		}
-		try {
-			this.update(event);
-		}catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
-		}
-		if (flush) {
-			this._flush();
+		if (event.type === 'save') {
+			this._save(event.id);
+		} else {
+			event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+			if (isUndefined(this.data) && this._datatypes.data) {
+				flush = true;
+				this._unflush();
+			}
+			try {
+				this.update(event);
+			}catch(e) {
+				console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+			}
+			if (flush) {
+				this._flush();
+			}
 		}
 		this._pop();
 	}
@@ -2218,6 +2217,7 @@ var Dashboard = new Worker('Dashboard');
 Dashboard.temp = null;
 
 Dashboard.settings = {
+	taint:true
 //	keep:true
 };
 
@@ -2229,40 +2229,30 @@ Dashboard.defaults = {
 
 Dashboard.option = {
 	display:'block',
-	active:null
+	active:'Dashboard'
 };
 
 Dashboard.init = function() {
-	var i, id, tabs = [], divs = [], active = this.option.active;
+	var i, tabs = [], divs = [], active = this.option.active;
+	if (!Workers[this.option.active]) {
+		active = this.option.active = this.name;
+	}
 	for (i in Workers) {
 		if (Workers[i].dashboard) {
-			id = 'golem-dashboard-'+i;
-			if (!active) {
-				this.option.active = active = id;
-			}
 			if (Workers[i] === this) { // Dashboard always comes first with the * tab
-				tabs.unshift('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 			} else {
-				tabs.push('<h3 name="'+id+'" class="golem-tab-header' + (active===id ? ' golem-tab-header-active' : '') + '">' + (Workers[i] === this ? '&nbsp;*&nbsp;' : i) + '</h3>');
+				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">' + i + '</h3>');
 			}
-			divs.push('<div id="'+id+'"'+(active===id ? '' : ' style="display:none;"')+'></div>');
+			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i], 'data');
 		}
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display+';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
-		if ($(this).hasClass('golem-tab-header-active')) {
-			return;
+		if (!$(this).hasClass('golem-tab-header-active')) {
+			Dashboard.set(['option','active'], $(this).attr('name'));
 		}
-		if (Dashboard.option.active) {
-			$('h3[name="'+Dashboard.option.active+'"]').removeClass('golem-tab-header-active');
-			$('#'+Dashboard.option.active).hide();
-		}
-		Dashboard.option.active = $(this).attr('name');
-		$(this).addClass('golem-tab-header-active');
-		Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});
-		$('#'+Dashboard.option.active).show();
-		Dashboard._save('option');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -2273,26 +2263,26 @@ Dashboard.init = function() {
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
-		var worker = Worker.find(Dashboard.option.active.substr(16));
+		var worker = Workers[Dashboard.option.active];
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
 	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
 	$('#golem_icon_dashboard').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
-		Dashboard.option.display = Dashboard.option.display==='block' ? 'none' : 'block';
-		if (Dashboard.option.display === 'block' && !$('#'+Dashboard.option.active).children().length) {
-			Worker.find(Dashboard.option.active.substr(16)).dashboard();
+		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
+		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
-	Dashboard.update({worker:Worker.find(Dashboard.option.active.substr(16)),type:'watch'});// Make sure we update the active page at init
+	this._watch(this, 'option.active');
 	this._revive(1);// update() once every second to update any timers
 };
 
 Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px');
+	$('#golem-dashboard').css('top', $('#app'+APPID+'_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
 Dashboard.update = function(event) {
@@ -2314,10 +2304,22 @@ Dashboard.update = function(event) {
 			}
 		});
 	}
-	if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+	if (event.type === 'init') {
+		event.worker = Workers[this.option.active];
+	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
 	}
-	if (this.option.active === 'golem-dashboard-'+event.worker.name && this.option.display === 'block') {
+	if (event.id === 'option.active') {
+		if (!Workers[this.option.active]) {
+			this.option.active = this.name;
+		}
+		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
+		$('#golem-dashboard > div > div').hide();
+		$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
+		$('#golem-dashboard-'+this.option.active).show();
+		event.worker = Workers[this.option.active];
+	}
+	if (this.option.active === event.worker.name && this.option.display === 'block') {
 		try {
 			event.worker._unflush();
 			event.worker.dashboard();
@@ -6904,9 +6906,9 @@ Heal.display = [
 ];
 
 Heal.init = function() {
-	this._watch(Player, 'health');
-	this._watch(Player, 'maxhealth');
-	this._watch(Player, 'stamina');
+	this._watch(Player, 'data.health');
+	this._watch(Player, 'data.maxhealth');
+	this._watch(Player, 'data.stamina');
 };
 
 Heal.update = function(event) {
@@ -9920,34 +9922,32 @@ Potions.parse = function(change) {
 };
 
 Potions.update = function(event) {
-	var i, txt = [], levelup = LevelUp.get('runtime.running');
+	var i, l, txt = [], levelup = LevelUp.get('runtime.running');
 	for (i in this.data) {
 		if (this.data[i]) {
-			txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type === i) ? '[Don\'t Drink]' : '[Drink]') + '</a>');
+			l = i.toLowerCase();
+			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[l] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>');
 		}
-		if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
+		if (!levelup && isNumber(this.option[l]) && this.data[i] > this.option[l] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
 			this.set(['runtime','amount'], 1);
 		}
 	}
-	if (this.runtime.type) {
+	if (this.runtime.type && this.runtime.amount){
 		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
 	}
 	Dashboard.status(this, txt.join(', '));
-	this.set(['option','_sleep'], !this.runtime.type);
+	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
 };
 
 Potions.work = function(state) {
-	if (!state || !Page.to('keep_stats')) {
-		return true;
-	}
-	if (this.runtime.type && this.runtime.amount){
+	if (state && Page.to('keep_stats')) {
 		console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
 		this.set(['runtime','type'], null);
 		this.set(['runtime','amount'], 0);
 	}
-	return QUEUE_RELEASE;
+	return QUEUE_CONTINUE;
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */

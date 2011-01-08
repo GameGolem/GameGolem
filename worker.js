@@ -427,7 +427,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			if (!compare(value, data[i])) {
 				this._notify(path.join('.'));// Notify the watchers...
 				this._taint[path[0]] = true;
-				this._remind(0, '_update_'+path[0], {type:path[0], self:true});
+				this._remind(0, '_update_'+path[0], {type:'save', id:path[0]});
 				data[i] = value;
 				if (isUndefined(value)) {
 					return false;
@@ -548,18 +548,22 @@ Worker.prototype._update = function(event) {
 		} else if (!isObject(event)) {
 			event = {};
 		}
-		event.worker = Worker.find(event.worker || this); // Can handle strings or workers
-		if (isUndefined(this.data) && this._datatypes.data) {
-			flush = true;
-			this._unflush();
-		}
-		try {
-			this.update(event);
-		}catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
-		}
-		if (flush) {
-			this._flush();
+		if (event.type === 'save') {
+			this._save(event.id);
+		} else {
+			event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+			if (isUndefined(this.data) && this._datatypes.data) {
+				flush = true;
+				this._unflush();
+			}
+			try {
+				this.update(event);
+			}catch(e) {
+				console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+			}
+			if (flush) {
+				this._flush();
+			}
 		}
 		this._pop();
 	}

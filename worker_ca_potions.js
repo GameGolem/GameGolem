@@ -80,33 +80,31 @@ Potions.parse = function(change) {
 };
 
 Potions.update = function(event) {
-	var i, txt = [], levelup = LevelUp.get('runtime.running');
+	var i, l, txt = [], levelup = LevelUp.get('runtime.running');
 	for (i in this.data) {
 		if (this.data[i]) {
-			txt.push(makeImage('potion_'+i.toLowerCase()) + this.data[i] + '/' + this.option[i.toLowerCase()] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + ((this.runtime.type === i) ? '[Don\'t Drink]' : '[Drink]') + '</a>');
+			l = i.toLowerCase();
+			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[l] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>');
 		}
-		if (!levelup && isNumber(this.option[i.toLowerCase()]) && this.data[i] > this.option[i.toLowerCase()] && (Player.get(i.toLowerCase()) || 0) + 10 < (Player.get('max' + i.toLowerCase()) || 0)) {
+		if (!levelup && isNumber(this.option[l]) && this.data[i] > this.option[l] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
 			this.set(['runtime','amount'], 1);
 		}
 	}
-	if (this.runtime.type) {
+	if (this.runtime.type && this.runtime.amount){
 		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
 	}
 	Dashboard.status(this, txt.join(', '));
-	this.set(['option','_sleep'], !this.runtime.type);
+	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
 };
 
 Potions.work = function(state) {
-	if (!state || !Page.to('keep_stats')) {
-		return true;
-	}
-	if (this.runtime.type && this.runtime.amount){
+	if (state && Page.to('keep_stats')) {
 		console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
 		this.set(['runtime','type'], null);
 		this.set(['runtime','amount'], 0);
 	}
-	return QUEUE_RELEASE;
+	return QUEUE_CONTINUE;
 };
 
