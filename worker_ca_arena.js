@@ -17,7 +17,8 @@ Arena.option = {
 	collect:true,
 	tokens:'min',
 	safety:60000,
-	ignore:''
+	ignore:'',
+	cleric:false
 };
 
 Arena.runtime = {
@@ -29,7 +30,8 @@ Arena.runtime = {
 	rank:0,
 	points:0,
 	burn:false,
-	last:null // name of last target, .data[last] then we've lost so skip them
+	last:null, // name of last target, .data[last] then we've lost so skip them
+	stunned:false
 };
 
 Arena.temp = {
@@ -74,7 +76,7 @@ Arena.display = [
 	},{
 		id:'tokens',
 		label:'Use Tokens',
-		select:{min:'Immediately', max:'Save Up'}
+		select:{min:'Immediately', healthy:'Save if Stunned', max:'Save Up'}
 	},{
 		id:'safety',
 		label:'Safety Margin',
@@ -84,6 +86,11 @@ Arena.display = [
 		id:'order',
 		label:'Attack',
 		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
+		id:'cleric',
+ 		label:'Attack Clerics First',
+		checkbox:true,
+		help:'This might help prevent the enemy from healing up again...'
 	},{
 		id:'defeat',
  		label:'Avoid Defeat',
@@ -167,6 +174,7 @@ Arena.parse = function(change) {
 			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {
 				this.set(['data',this.runtime.last], true);
 			}
+			this.set(['runtime','stunned'], !!$('#app'+APPID+'_arena_battle_banner_section:contains("Status: Stunned")').length);
 			break;
 	}
 };
@@ -203,7 +211,8 @@ Arena.update = function(event) {
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight'
 			&& ((this.option.tokens === 'min' && this.runtime.tokens)
-			|| (this.option.tokens === 'max' && (this.runtime.burn || (this.runtime.tokens && (this.runtime.finish || 0) - this.option.safety <= now)))))
+			|| (this.option.tokens === 'healthy' && this.runtime.tokens && !this.runtime.stunned)
+			|| ((this.option.tokens === 'max' || this.option.tokens === 'healthy') && (this.runtime.burn || (this.runtime.tokens && (this.runtime.finish || 0) - this.option.safety <= now)))))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
 	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
 }
@@ -225,10 +234,10 @@ Arena.work = function(state) {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
 						Page.to('battle_arena', {close_result:'global_bottom'});
-						this.set(['runtime','status'], 'wait');
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
+						this.set(['runtime','status'], 'wait');
 					}
 				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
@@ -241,7 +250,7 @@ Arena.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
 					
-						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
+						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						while (i--) {
 							if ((Arena.option.defeat && Arena.data[target[0]]) || target[0].indexOf(ignore[i]) >= 0) {
@@ -260,7 +269,10 @@ Arena.work = function(state) {
 								case 'activity2':	test = target[6] > besttarget[6];	break;
 							}
 						}
-						if ((target[3] && !best) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if (Arena.option.cleric) {
+							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric' || test);
+						}
+						if ((target[3] && !best) || cleric || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
 							besttarget = target;
 						}
