@@ -84,7 +84,7 @@ Settings.menu = function(worker, key) {
 			if (key === 'backup') {
 				if (confirm("BACKUP WARNING!!!\n\nAbout to replace backup options for all workers.\n\nAre you sure?")) {
 					for (i in Workers) {
-						this.set(['data',i], Workers[i].option);
+						this.set(['data',i], $.extend(true, {}, Workers[i].option));
 					}
 				}
 			} else if (key === 'restore') {
