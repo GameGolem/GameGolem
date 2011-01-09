@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.933
+// @version		31.5.934
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 933;
+var revision = 934;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3217,7 +3217,7 @@ Global._overload(null, 'work', function(state) {
 			if (isString(Workers[i].pages)) {
 				list = Workers[i].pages.split(' ');
 				for (l=0; l<list.length; l++) {
-					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.pageNames[list[l]].skip && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
 						found = list[l];
 						break;
 					}
@@ -4314,9 +4314,9 @@ Settings.dashboard = function() {
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
 	$('#golem_settings_save').click(function(){
-		var i, data;
+		var data;
 		try {
-			data = JSON.parse($('#golem_settings_edit').val())
+			data = JSON.parse($('#golem_settings_edit').val());
 		} catch(e) {
 			alert("ERROR!!!\n\nBadly formed JSON data.\n\nPlease check the data and try again!");
 			return;
@@ -4949,8 +4949,11 @@ Arena.work = function(state) {
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
+						if (Arena.option.defeat && Arena.data[target[0]]) {
+							return;
+						}
 						while (i--) {
-							if ((Arena.option.defeat && Arena.data[target[0]]) || target[0].indexOf(ignore[i]) >= 0) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
@@ -4967,9 +4970,9 @@ Arena.work = function(state) {
 							}
 						}
 						if (Arena.option.cleric) {
-							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric' || test);
+							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && !best) || cleric || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
 							besttarget = target;
 						}
@@ -9691,7 +9694,7 @@ Page.defaults.castle_age = {
 		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
 		battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg'},
-		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section'},
+		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},

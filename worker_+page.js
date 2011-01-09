@@ -77,7 +77,7 @@ Global._overload(null, 'work', function(state) {
 			if (isString(Workers[i].pages)) {
 				list = Workers[i].pages.split(' ');
 				for (l=0; l<list.length; l++) {
-					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
+					if (list[l] !== '*' && list[l] !== 'facebook' && Page.pageNames[list[l]] && !Page.pageNames[list[l]].skip && !Page.data[list[l]] && list[l].indexOf('_active') === -1) {
 						found = list[l];
 						break;
 					}

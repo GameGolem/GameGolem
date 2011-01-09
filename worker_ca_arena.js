@@ -252,8 +252,11 @@ Arena.work = function(state) {
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
+						if (Arena.option.defeat && Arena.data[target[0]]) {
+							return;
+						}
 						while (i--) {
-							if ((Arena.option.defeat && Arena.data[target[0]]) || target[0].indexOf(ignore[i]) >= 0) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
@@ -270,9 +273,9 @@ Arena.work = function(state) {
 							}
 						}
 						if (Arena.option.cleric) {
-							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric' || test);
+							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && !best) || cleric || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
 							besttarget = target;
 						}

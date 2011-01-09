@@ -141,9 +141,9 @@ Settings.dashboard = function() {
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
 	$('#golem_settings_save').click(function(){
-		var i, data;
+		var data;
 		try {
-			data = JSON.parse($('#golem_settings_edit').val())
+			data = JSON.parse($('#golem_settings_edit').val());
 		} catch(e) {
 			alert("ERROR!!!\n\nBadly formed JSON data.\n\nPlease check the data and try again!");
 			return;
