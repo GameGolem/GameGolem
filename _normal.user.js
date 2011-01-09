@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.930
+// @version		31.5.931
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 930;
+var revision = 931;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1859,11 +1859,11 @@ Config.menu = function(worker, key) {
 		} else if (key) {
 			switch (key) {
 				case 'fixed':
-					this.option.fixed ^= true;
+					this._set(['option','fixed'], !this.option.fixed);
 					$('#golem_config_frame').toggleClass('golem-config-fixed');
 					break;
 				case 'advanced':
-					this.option.advanced ^= true;
+					this._set(['option','advanced'], !this.option.advanced);
 					$('.golem-advanced:not(".golem-require")').css('display', this.option.advanced ? '' : 'none');
 					this.checkRequire();
 					break;
@@ -2237,7 +2237,7 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var i, tabs = [], divs = [], active = this.option.active;
+	var i, tabs = [], divs = [], active = this.option.active, hide;
 	if (!Workers[this.option.active]) {
 		active = this.option.active = this.name;
 	}
@@ -2246,10 +2246,15 @@ Dashboard.init = function() {
 			if (Workers[i] === this) { // Dashboard always comes first with the * tab
 				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 			} else {
-				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">' + i + '</h3>');
+				hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '"' + (hide ? ' style="display:none;"' : '') + '>' + i + '</h3>');
+				if (hide && this.option.active === i) {
+					this.set(['option','active'], this.name);
+				}
 			}
 			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i], 'data');
+			this._watch(Workers[i], 'option._hide_dashboard');
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -2282,6 +2287,7 @@ Dashboard.init = function() {
 		Dashboard._save('option');
 	});
 	this._watch(this, 'option.active');
+	this._watch(Config, 'option.advanced');
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -2311,6 +2317,32 @@ Dashboard.update = function(event) {
 	if (event.type === 'init') {
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+		return;
+	}
+	if (event.id === 'option.advanced') {
+		for (var i in Workers) {
+			if (Workers[i].settings.advanced) {
+				if (Config.option.advanced) {
+					$('#golem-dashboard > h3[name="'+i+'"]').show();
+				} else {
+					$('#golem-dashboard > h3[name="'+i+'"]').hide();
+					if (this.option.active === i) {
+						this.set(['option','active'], this.name);
+					}
+				}
+			}
+		}
+		return;
+	}
+	if (event.id === 'option._hide_dashboard') {
+		if (event.worker._get(['option','_hide_dashboard'], false)) {
+			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
+			if (this.option.active === event.worker.name) {
+				this.set(['option','active'], this.name);
+			}
+		} else {
+			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+		}
 		return;
 	}
 	if (event.id === 'option.active') {
@@ -2347,7 +2379,7 @@ Dashboard.dashboard = function() {
 };
 
 Dashboard.status = function(worker, value) {
-	this.set(['data', worker.name], value);
+	this.set(['data', isString(worker) ? worker : worker.name], value);
 };
 
 Dashboard.menu = function(worker, key) {
@@ -3136,11 +3168,12 @@ Page.temp = {
 	loading:false,
 	last:'', // Last url we tried to load
 	when:null,
-	lastclick:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
 	count:0
 };
+
+Page.lastclick = null;
 
 Page.runtime = {
 	delay:0 // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
@@ -3366,9 +3399,9 @@ Page.retry = function() {
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
 		this.to(this.temp.last, null, true);// Force
-	} else if (this.temp.lastclick) {
+	} else if (this.lastclick) {
 		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
-		this.click(this.temp.lastclick);
+		this.click(this.lastclick);
 	} else {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
@@ -3407,11 +3440,11 @@ Page.click = function(el) {
 		return false;
 	}
 	var e, element = $(el).get(0);
-	if (this.temp.lastclick !== el) {
+	if (this.lastclick !== el) {
 		this.clear();
 	}
 	this.set(['runtime', 'delay'], 0);
-	this.temp.lastclick = el; // Causes circular reference when watching...
+	this.lastclick = el; // Causes circular reference when watching...
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");
@@ -3423,7 +3456,7 @@ Page.click = function(el) {
 };
 
 Page.clear = function() {
-	this.temp.last = this.temp.lastclick = this.temp.when = null;
+	this.temp.last = this.lastclick = this.temp.when = null;
 	this.temp.retry = 0;
 	this.temp.reload = false;
 	this.set(['temp', 'loading'], false);
@@ -4692,7 +4725,8 @@ Arena.runtime = {
 	finish:0,
 	rank:0,
 	points:0,
-	burn:false
+	burn:false,
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Arena.temp = {
@@ -4747,6 +4781,11 @@ Arena.display = [
 		id:'order',
 		label:'Attack',
 		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
+		id:'defeat',
+ 		label:'Avoid Defeat',
+		checkbox:true,
+		help:'This will prevent you attacking a target that you have already lost to'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -4822,6 +4861,9 @@ Arena.parse = function(change) {
 					this._notify('data');// Force dashboard update
 				}
 			}
+			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {
+				this.set(['data',this.runtime.last], true);
+			}
 			break;
 	}
 };
@@ -4889,9 +4931,9 @@ Arena.work = function(state) {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
-						this.set(['runtime','status'], 'fight');
 					}
 					this.set(['runtime','status'], 'fight');
+					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
@@ -4899,7 +4941,7 @@ Arena.work = function(state) {
 						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						while (i--) {
-							if (target[0].indexOf(ignore[i]) >= 0) {
+							if ((Arena.option.defeat && Arena.data[target[0]]) || target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
@@ -4921,8 +4963,11 @@ Arena.work = function(state) {
 						}
 					});
 					if (best) {
+						this.set(['runtime','last'], besttarget[0]);
 						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
 						Page.click($('input[src*="monster_duel_button.gif"]', best));
+					} else {
+						this.set(['runtime','last'], null);
 					}
 				}
 			}
@@ -6131,22 +6176,18 @@ Generals.runtime = {
 };
 
 Generals.init = function() {
-	for (var i in this.data) {
-		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
-			delete this.data[i];
-		}
-	}
 	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
 		this._watch(Player, 'data.attack');
 		this._watch(Player, 'data.defense');
 	}
 	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
-	this._watch(Town);
+	this._watch(Town, 'data');
 };
 
 Generals.parse = function(change) {
 	if ($('div.results').text().match(/has gained a level!/i)) {
-		this.data[Player.get('general')].level++; // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
 	}
 	if (Page.page === 'heroes_generals') {
 		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '', current = $('div.general_name_div3').first().text().trim();
@@ -6164,12 +6205,6 @@ Generals.parse = function(change) {
 		if (data[current]){
 			data[current].weaponbonus = weapon_bonus;
 		}
-// Hopefully our Page.to() logic now catches most bad page loads and removes the need for this...
-//		if ($elements.length < length(data)) {
-//			console.log(warn(), 'Different number of generals, have '+$elements.length+', want '+length(data));
-//			Page.to('heroes_generals', ''); // Force reload
-//			return false;
-//		}
 		$elements.each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i), 10), progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i), 10);
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
@@ -6224,8 +6259,7 @@ Generals.update = function(event) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel)
-		|| this.runtime.force) {
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel) || this.runtime.force) {
 		this.runtime.force = false;
 		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
@@ -9707,23 +9741,6 @@ Player.setup = function() {
 };
 
 Player.init = function() {
-	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
-	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
-	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
-/*
-	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000)), tmp;
-	when = when.getSeconds() + (when.getMinutes() * 60);
-	tmp = this.data.cash_time || when;
-	if (tmp > 3600) {// Fix for bad previous data!!!
-		tmp = when;
-	}
-	if (when > tmp) {
-		tmp += Math.min(10, Math.sqrt(when - tmp));
-	} else if (when < tmp) {
-		tmp -= Math.min(10, Math.sqrt(tmp - when));
-	}
-	this.set('cash_time', tmp);
-*/
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
@@ -9741,6 +9758,8 @@ Player.init = function() {
 	Title.alias('bsi', 'Player:bsi');
 	Title.alias('lsi', 'Player:lsi');
 	Title.alias('csi', 'Player:csi');
+	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
+	this.set('cash_time', script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
 };
 
 Player.parse = function(change) {
@@ -11841,6 +11860,10 @@ Town.dashboard = function() {
 var Upgrade = new Worker('Upgrade');
 Upgrade.data = Upgrade.temp = null;
 
+Upgrade.settings = {
+	taint:true
+};
+
 Upgrade.defaults['castle_age'] = {
 	pages:'keep_stats'
 };
@@ -11871,31 +11894,35 @@ Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
 		this.set('runtime.working', false);
-		this.runtime.run++;
+		this.set(['runtime','run'], this.runtime.run + 1);
 	}
 	return false;
 };
 
 Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
-		this.runtime.run = 0;
+		this.set(['runtime','run'], 0);
 	}
 	var points = Player.get('upgrade'), args;
 	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {
-	var args;
+	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
+	if (!args) {
+		this.set(['runtime','run'], this.runtime.run + 1);
+	} else
+/*
 	switch (this.option.order[this.runtime.run]) {
 		case 'Energy':	args = 'energy_max';	break;
 		case 'Stamina':	args = 'stamina_max';	break;
 		case 'Attack':	args = 'attack';		break;
 		case 'Defense':	args = 'defense';		break;
 		case 'Health':	args = 'health_max';	break;
-		default: this.runtime.run++; return QUEUE_RELEASE; // Should never happen
+		default:this.set(['runtime','run'], this.runtime.run + 1);	break; // Should never happen
 	}
-	if (state) {
-		this.runtime.working = true;
+*/	if (state) {
+		this.set(['runtime','working'], true);
 		Page.to('keep_stats', {upgrade:args}, true);
 	}
 	return QUEUE_RELEASE;

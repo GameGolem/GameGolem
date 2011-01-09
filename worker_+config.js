@@ -268,11 +268,11 @@ Config.menu = function(worker, key) {
 		} else if (key) {
 			switch (key) {
 				case 'fixed':
-					this.option.fixed ^= true;
+					this._set(['option','fixed'], !this.option.fixed);
 					$('#golem_config_frame').toggleClass('golem-config-fixed');
 					break;
 				case 'advanced':
-					this.option.advanced ^= true;
+					this._set(['option','advanced'], !this.option.advanced);
 					$('.golem-advanced:not(".golem-require")').css('display', this.option.advanced ? '' : 'none');
 					this.checkRequire();
 					break;

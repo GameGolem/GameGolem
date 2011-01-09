@@ -28,11 +28,12 @@ Page.temp = {
 	loading:false,
 	last:'', // Last url we tried to load
 	when:null,
-	lastclick:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
 	count:0
 };
+
+Page.lastclick = null;
 
 Page.runtime = {
 	delay:0 // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
@@ -258,9 +259,9 @@ Page.retry = function() {
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
 		this.to(this.temp.last, null, true);// Force
-	} else if (this.temp.lastclick) {
+	} else if (this.lastclick) {
 		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
-		this.click(this.temp.lastclick);
+		this.click(this.lastclick);
 	} else {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
@@ -299,11 +300,11 @@ Page.click = function(el) {
 		return false;
 	}
 	var e, element = $(el).get(0);
-	if (this.temp.lastclick !== el) {
+	if (this.lastclick !== el) {
 		this.clear();
 	}
 	this.set(['runtime', 'delay'], 0);
-	this.temp.lastclick = el; // Causes circular reference when watching...
+	this.lastclick = el; // Causes circular reference when watching...
 	this.temp.when = Date.now();
 	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");
@@ -315,7 +316,7 @@ Page.click = function(el) {
 };
 
 Page.clear = function() {
-	this.temp.last = this.temp.lastclick = this.temp.when = null;
+	this.temp.last = this.lastclick = this.temp.when = null;
 	this.temp.retry = 0;
 	this.temp.reload = false;
 	this.set(['temp', 'loading'], false);

@@ -13,6 +13,10 @@
 var Upgrade = new Worker('Upgrade');
 Upgrade.data = Upgrade.temp = null;
 
+Upgrade.settings = {
+	taint:true
+};
+
 Upgrade.defaults['castle_age'] = {
 	pages:'keep_stats'
 };
@@ -43,31 +47,35 @@ Upgrade.parse = function(change) {
 	var result = $('div.results');
 	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
 		this.set('runtime.working', false);
-		this.runtime.run++;
+		this.set(['runtime','run'], this.runtime.run + 1);
 	}
 	return false;
 };
 
 Upgrade.update = function(event) {
 	if (this.runtime.run >= this.option.order.length) {
-		this.runtime.run = 0;
+		this.set(['runtime','run'], 0);
 	}
 	var points = Player.get('upgrade'), args;
 	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
 };
 
 Upgrade.work = function(state) {
-	var args;
+	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
+	if (!args) {
+		this.set(['runtime','run'], this.runtime.run + 1);
+	} else
+/*
 	switch (this.option.order[this.runtime.run]) {
 		case 'Energy':	args = 'energy_max';	break;
 		case 'Stamina':	args = 'stamina_max';	break;
 		case 'Attack':	args = 'attack';		break;
 		case 'Defense':	args = 'defense';		break;
 		case 'Health':	args = 'health_max';	break;
-		default: this.runtime.run++; return QUEUE_RELEASE; // Should never happen
+		default:this.set(['runtime','run'], this.runtime.run + 1);	break; // Should never happen
 	}
-	if (state) {
-		this.runtime.working = true;
+*/	if (state) {
+		this.set(['runtime','working'], true);
 		Page.to('keep_stats', {upgrade:args}, true);
 	}
 	return QUEUE_RELEASE;

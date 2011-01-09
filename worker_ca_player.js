@@ -28,23 +28,6 @@ Player.setup = function() {
 };
 
 Player.init = function() {
-	// Get the gold timer from within the page - should really remove the "official" one, and write a decent one, but we're about playing and not fixing...
-	// gold_increase_ticker(1418, 6317, 3600, 174738470, 'gold', true);
-	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
-/*
-	var when = new Date(script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000)), tmp;
-	when = when.getSeconds() + (when.getMinutes() * 60);
-	tmp = this.data.cash_time || when;
-	if (tmp > 3600) {// Fix for bad previous data!!!
-		tmp = when;
-	}
-	if (when > tmp) {
-		tmp += Math.min(10, Math.sqrt(when - tmp));
-	} else if (when < tmp) {
-		tmp -= Math.min(10, Math.sqrt(tmp - when));
-	}
-	this.set('cash_time', tmp);
-*/
 	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
 	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
 	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
@@ -62,6 +45,8 @@ Player.init = function() {
 	Title.alias('bsi', 'Player:bsi');
 	Title.alias('lsi', 'Player:lsi');
 	Title.alias('csi', 'Player:csi');
+	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
+	this.set('cash_time', script_started + ($('*').html().regex(/gold_increase_ticker\(([0-9]+),/) * 1000));
 };
 
 Player.parse = function(change) {

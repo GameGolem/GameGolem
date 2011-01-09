@@ -26,22 +26,18 @@ Generals.runtime = {
 };
 
 Generals.init = function() {
-	for (var i in this.data) {
-		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
-			delete this.data[i];
-		}
-	}
 	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
 		this._watch(Player, 'data.attack');
 		this._watch(Player, 'data.defense');
 	}
 	this.runtime.force = true; // Flag to force initial re-read of general skills to catch new terms
-	this._watch(Town);
+	this._watch(Town, 'data');
 };
 
 Generals.parse = function(change) {
 	if ($('div.results').text().match(/has gained a level!/i)) {
-		this.data[Player.get('general')].level++; // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
 	}
 	if (Page.page === 'heroes_generals') {
 		var $elements = $('.generalSmallContainer2'), data = this.data, weapon_bonus = '', current = $('div.general_name_div3').first().text().trim();
@@ -59,12 +55,6 @@ Generals.parse = function(change) {
 		if (data[current]){
 			data[current].weaponbonus = weapon_bonus;
 		}
-// Hopefully our Page.to() logic now catches most bad page loads and removes the need for this...
-//		if ($elements.length < length(data)) {
-//			console.log(warn(), 'Different number of generals, have '+$elements.length+', want '+length(data));
-//			Page.to('heroes_generals', ''); // Force reload
-//			return false;
-//		}
 		$elements.each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level ([0-9]+)/i), 10), progress = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: ([0-9]*\.*[0-9]*)%/i), 10);
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
@@ -119,8 +109,7 @@ Generals.update = function(event) {
 	this.runtime.max_priority = priority_list.length;
 	// End Priority Stuff
 	
-	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel)
-		|| this.runtime.force) {
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel) || this.runtime.force) {
 		this.runtime.force = false;
 		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...

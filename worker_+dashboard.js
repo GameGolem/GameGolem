@@ -30,7 +30,7 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var i, tabs = [], divs = [], active = this.option.active;
+	var i, tabs = [], divs = [], active = this.option.active, hide;
 	if (!Workers[this.option.active]) {
 		active = this.option.active = this.name;
 	}
@@ -39,10 +39,15 @@ Dashboard.init = function() {
 			if (Workers[i] === this) { // Dashboard always comes first with the * tab
 				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 			} else {
-				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">' + i + '</h3>');
+				hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '"' + (hide ? ' style="display:none;"' : '') + '>' + i + '</h3>');
+				if (hide && this.option.active === i) {
+					this.set(['option','active'], this.name);
+				}
 			}
 			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
 			this._watch(Workers[i], 'data');
+			this._watch(Workers[i], 'option._hide_dashboard');
 		}
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app'+APPID+'_main_bn').offset().top+'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
@@ -75,6 +80,7 @@ Dashboard.init = function() {
 		Dashboard._save('option');
 	});
 	this._watch(this, 'option.active');
+	this._watch(Config, 'option.advanced');
 	this._revive(1);// update() once every second to update any timers
 };
 
@@ -104,6 +110,32 @@ Dashboard.update = function(event) {
 	if (event.type === 'init') {
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
+		return;
+	}
+	if (event.id === 'option.advanced') {
+		for (var i in Workers) {
+			if (Workers[i].settings.advanced) {
+				if (Config.option.advanced) {
+					$('#golem-dashboard > h3[name="'+i+'"]').show();
+				} else {
+					$('#golem-dashboard > h3[name="'+i+'"]').hide();
+					if (this.option.active === i) {
+						this.set(['option','active'], this.name);
+					}
+				}
+			}
+		}
+		return;
+	}
+	if (event.id === 'option._hide_dashboard') {
+		if (event.worker._get(['option','_hide_dashboard'], false)) {
+			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
+			if (this.option.active === event.worker.name) {
+				this.set(['option','active'], this.name);
+			}
+		} else {
+			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+		}
 		return;
 	}
 	if (event.id === 'option.active') {
@@ -140,7 +172,7 @@ Dashboard.dashboard = function() {
 };
 
 Dashboard.status = function(worker, value) {
-	this.set(['data', worker.name], value);
+	this.set(['data', isString(worker) ? worker : worker.name], value);
 };
 
 Dashboard.menu = function(worker, key) {

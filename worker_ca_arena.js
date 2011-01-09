@@ -28,7 +28,8 @@ Arena.runtime = {
 	finish:0,
 	rank:0,
 	points:0,
-	burn:false
+	burn:false,
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Arena.temp = {
@@ -83,6 +84,11 @@ Arena.display = [
 		id:'order',
 		label:'Attack',
 		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
+		id:'defeat',
+ 		label:'Avoid Defeat',
+		checkbox:true,
+		help:'This will prevent you attacking a target that you have already lost to'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -158,6 +164,9 @@ Arena.parse = function(change) {
 					this._notify('data');// Force dashboard update
 				}
 			}
+			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {
+				this.set(['data',this.runtime.last], true);
+			}
 			break;
 	}
 };
@@ -225,9 +234,9 @@ Arena.work = function(state) {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
-						this.set(['runtime','status'], 'fight');
 					}
 					this.set(['runtime','status'], 'fight');
+					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
@@ -235,7 +244,7 @@ Arena.work = function(state) {
 						var test = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						while (i--) {
-							if (target[0].indexOf(ignore[i]) >= 0) {
+							if ((Arena.option.defeat && Arena.data[target[0]]) || target[0].indexOf(ignore[i]) >= 0) {
 								return;
 							}
 						}
@@ -257,8 +266,11 @@ Arena.work = function(state) {
 						}
 					});
 					if (best) {
+						this.set(['runtime','last'], besttarget[0]);
 						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
 						Page.click($('input[src*="monster_duel_button.gif"]', best));
+					} else {
+						this.set(['runtime','last'], null);
 					}
 				}
 			}
