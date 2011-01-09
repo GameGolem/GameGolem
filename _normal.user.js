@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.936
+// @version		31.5.937
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 936;
+var revision = 937;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -84,6 +84,10 @@ var isString = function(str) {
 
 var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
+};
+
+var isNull = function(obj) {
+	return obj === null;
 };
 
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
@@ -853,14 +857,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 			this._unflush();
 		}
 		data = this;
-		while (x.length && data !== undefined) {
+		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		return data === undefined ? def : data === null ? null : data.valueOf();
+		return isUndefined(data) ? def : isNull(data) ? null : data.valueOf();
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
-	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
+	return isUndefined(def) ? null : def;// Don't want to return "undefined" at this time...
 };
 
 Worker.prototype._init = function() {
@@ -9880,7 +9884,7 @@ Player.update = function(event) {
 	Dashboard.status(this);
 };
 
-Player.get = function(what) {
+Player.get = function(what, def) {
 	var data = this.data, when;
 	switch(what) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
@@ -9894,7 +9898,7 @@ Player.get = function(what) {
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
 		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
-		default: return this._get(what);
+		default: return this._get(what, def);
 	}
 };
 

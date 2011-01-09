@@ -220,14 +220,14 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 			this._unflush();
 		}
 		data = this;
-		while (x.length && data !== undefined) {
+		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		return data === undefined ? def : data === null ? null : data.valueOf();
+		return isUndefined(data) ? def : isNull(data) ? null : data.valueOf();
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
-	return typeof def !== 'undefined' ? def : null;// Don't want to return "undefined" at this time...
+	return isUndefined(def) ? null : def;// Don't want to return "undefined" at this time...
 };
 
 Worker.prototype._init = function() {

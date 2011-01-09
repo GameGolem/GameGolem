@@ -157,7 +157,7 @@ Player.update = function(event) {
 	Dashboard.status(this);
 };
 
-Player.get = function(what) {
+Player.get = function(what, def) {
 	var data = this.data, when;
 	switch(what) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
@@ -171,7 +171,7 @@ Player.get = function(what) {
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
 		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
-		default: return this._get(what);
+		default: return this._get(what, def);
 	}
 };
 

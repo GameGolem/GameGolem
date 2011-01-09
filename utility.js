@@ -41,6 +41,10 @@ var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
 
+var isNull = function(obj) {
+	return obj === null;
+};
+
 // These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
 var log = function(txt){
 	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
