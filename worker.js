@@ -448,14 +448,14 @@ Worker.prototype._set = function(what, value) {
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
-	if (x.length <= 1) { // Return early if we're not setting a subvalue
-		return null;
-	}
+//	if (x.length <= 1) { // Return early if we're not setting a subvalue
+//		return null;
+//	}
 	try {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		this._set_(this[x[0]], x, value, 1);
+		this._set_(this, x, value);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}

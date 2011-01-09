@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.934
+// @version		31.5.935
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 934;
+var revision = 935;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1132,14 +1132,14 @@ Worker.prototype._set = function(what, value) {
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
-	if (x.length <= 1) { // Return early if we're not setting a subvalue
-		return null;
-	}
+//	if (x.length <= 1) { // Return early if we're not setting a subvalue
+//		return null;
+//	}
 	try {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		this._set_(this[x[0]], x, value, 1);
+		this._set_(this, x, value);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
@@ -9785,7 +9785,7 @@ Player.parse = function(change) {
 		Page.reload();
 		return;
 	}
-	var self = this, data = this.data, keep, stats, tmp;
+	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
 	if ($('#app'+APPID+'_energy_current_value').length) {
 		this.set('energy', $('#app'+APPID+'_energy_current_value').text().regex(/([0-9]+)/) || 0);
 		Resources.add('Energy', data.energy, true);
@@ -9812,7 +9812,7 @@ Player.parse = function(change) {
 	this.set('general', $('div.general_name_div3').first().text().trim());
 	this.set('imagepath', $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart());
 	if (Page.page==='keep_stats') {
-		keep = $('div.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
+		keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
 			this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
 			this.set('rank', $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/([0-9]+)/));
@@ -9830,16 +9830,14 @@ Player.parse = function(change) {
 			Resources.add('Gold', data.bank + data.cash, true);
 
 			// remember artifacts - useful for quest requirements
-			if ((tmp = $('div.statsT2 td.statsTMainback .statsTTitle:contains("ARTIFACTS") + .statsTMain')).length === 1) {
-				var artifacts = {}, name, i;
-				$('.statUnit a img', tmp).each(function(a, el) {
-					if ((name = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
-						artifacts[name] = $(el).attr('src').filepart();
+			$tmp = $('.statsTTitle:contains("ARTIFACTS") + div div div a img');
+			if ($tmp.length) {
+				$tmp.each(function(i,el){
+					if ((tmp = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
+						artifacts[tmp] = $(el).attr('src').filepart();
 					}
 				});
-				for (i in this.data.artifact) {
-					this.set(['data', 'artifact', i], (i in artifacts) ? artifacts[i] : undefined);
-				}
+				this.set(['data'], artifacts);
 			}
 		}
 	}
@@ -9974,14 +9972,15 @@ Potions.parse = function(change) {
 	$('.result_body:contains("You have acquired the Energy Potion!")').each(function(i,el){
 		Potions.set(['data','Energy'], Potions.data['Energy'] + 1);
 	});
-	if (Page.page === 'keep_stats' && $('div.keep_attribute_section').length) {// Only our own keep
-		this.data = {}; // Reset potion count completely at the keep
-		$('.statUnit', $('.statsTTitle:contains("CONSUMABLES")').next()).each(function(i,el){
+	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
+		var potions = {};
+		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
 			if (info && info[0] && info[1]) {
-				Potions.set(['data',info[0]], info[1]);
+				potions[info[0]] = info[1];
 			}
 		});
+		this.set(['data'], potions);
 	}
 	return false;
 };
