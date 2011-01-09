@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.935
+// @version		31.5.936
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 935;
+var revision = 936;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -618,64 +618,13 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	})(obj, depth || 1), replacer, space);
 };
 
-// jQuery selector extensions
-
-$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
-	var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
-	switch(args[1]) {
-		case '<':	return value < args[2];
-		case '<=':	return value <= args[2];
-		case '>':	return value > args[2];
-		case '>=':	return value >= args[2];
-		case '=':
-		case '==':	return value === args[2];
-		case '!=':	return value !== args[2];
-		default:
-			console.log(warn('Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')'));
-			return false;
-	}
-};
-
-$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
-	var args = meta[3].toLowerCase().split(',');
-	return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
-};
-
-// jQuery extra functions
-
-$.fn.autoSize = function() {
-	function autoSize(e) {
-		var p = (e = e.target || e), s;
-		if (e.oldValueLength !== e.value.length) {
-			while (p && !p.scrollTop) {p = p.parentNode;}
-			if (p) {s = p.scrollTop;}
-			e.style.height = '0px';
-			e.style.height = e.scrollHeight + 'px';
-			if (p) {p.scrollTop = s;}
-			e.oldValueLength = e.value.length;
-		}
-		return true;
-	}
-	this.filter('textarea').each(function(){
-		$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
-		autoSize(this);
-	});
-	return this;
-};
-
-$.fn.selected = function() {
-	return $(this).filter(function(){return this.selected;});
-};
-
 // Images - either on SVN, or via extension location
 
 var getImage = function(name) {
-	switch(browser) {
-		case 'chrome':
-			return chrome.extension.getURL('images/'+name+'.png');
-		default:
-			return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
+	if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
+		return chrome.extension.getURL('images/'+name+'.png');
 	}
+	return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
 };
 
 var makeImage = function(name, title) {
@@ -3047,6 +2996,9 @@ Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
 };
 
+Main.setup = function() {
+};
+
 Main.parse = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
@@ -3079,6 +3031,7 @@ Main.update = function(event) {
 		})();
 		return;
 	}
+	// Identify Application
 	var i;
 	if (!APP) {
 		if (!length(this._apps_)) {
@@ -3114,6 +3067,50 @@ Main.update = function(event) {
 		window.setTimeout(Page.reload, 5000); // Force reload without retrying
 		return;
 	}
+	// jQuery selector extensions
+	$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
+		var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
+		switch(args[1]) {
+			case '<':	return value < args[2];
+			case '<=':	return value <= args[2];
+			case '>':	return value > args[2];
+			case '>=':	return value >= args[2];
+			case '=':
+			case '==':	return value === args[2];
+			case '!=':	return value !== args[2];
+			default:
+				console.log(warn('Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')'));
+				return false;
+		}
+	};
+	$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
+		var args = meta[3].toLowerCase().split(',');
+		return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
+	};
+	// jQuery extra functions
+	$.fn.autoSize = function() {
+		function autoSize(e) {
+			var p = (e = e.target || e), s;
+			if (e.oldValueLength !== e.value.length) {
+				while (p && !p.scrollTop) {p = p.parentNode;}
+				if (p) {s = p.scrollTop;}
+				e.style.height = '0px';
+				e.style.height = e.scrollHeight + 'px';
+				if (p) {p.scrollTop = s;}
+				e.oldValueLength = e.value.length;
+			}
+			return true;
+		}
+		this.filter('textarea').each(function(){
+			$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
+			autoSize(this);
+		});
+		return this;
+	};
+	$.fn.selected = function() {
+		return $(this).filter(function(){return this.selected;});
+	};
+	// Now we're rolling
 	switch(browser) {
 		case 'chrome':	break;// Handled by extension code
 		case 'greasemonkey':
@@ -3123,8 +3120,6 @@ Main.update = function(event) {
 			$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
 			break;
 	}
-//	do_css();
-	var i;
 	for (i in Workers) {
 		Workers[i]._setup();
 	}
@@ -9837,7 +9832,7 @@ Player.parse = function(change) {
 						artifacts[tmp] = $(el).attr('src').filepart();
 					}
 				});
-				this.set(['data'], artifacts);
+				this.set(['data','artifact'], artifacts);
 			}
 		}
 	}

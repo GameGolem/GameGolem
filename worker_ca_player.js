@@ -109,7 +109,7 @@ Player.parse = function(change) {
 						artifacts[tmp] = $(el).attr('src').filepart();
 					}
 				});
-				this.set(['data'], artifacts);
+				this.set(['data','artifact'], artifacts);
 			}
 		}
 	}
