@@ -85,14 +85,14 @@ Potions.update = function(event) {
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
-			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[l] + ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>');
+			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[l] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
 		}
 		if (!levelup && isNumber(this.option[l]) && this.data[i] > this.option[l] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
 			this.set(['runtime','amount'], 1);
 		}
 	}
-	if (this.runtime.type && this.runtime.amount){
+	if (!this.option._disabled && this.runtime.type && this.runtime.amount){
 		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
 	}
 	Dashboard.status(this, txt.join(', '));
