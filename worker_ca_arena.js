@@ -124,10 +124,10 @@ Arena.parse = function(change) {
 	var now = Date.now(), tmp, i;
 	switch (Page.page) {
 		case 'index':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_arena_token_current_value').text() || '0').regex(/([0-9]+)/));
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_arena_token_current_value').text() || '0').regex(/(\d+)/));
 			break;
 		case 'battle_arena':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/([0-9]+)/));
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/(\d+)/));
 			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			tmp = $('#app'+APPID+'_arena_banner').next().next().text();
 			if (tmp.indexOf('Collect') !== -1) {
@@ -136,25 +136,25 @@ Arena.parse = function(change) {
 					this._forget('finish');
 					this._forget('start');
 				}
-				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: (\d+:\d+:\d+)/i).parseTimer();
 				this.set(['runtime','start'], (i * 1000) + now);
 				this._remind(i, 'start');
 			} else if (tmp.indexOf('Remaining') !== tmp.lastIndexOf('Remaining')) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
-				i = tmp.regex(/Time Remaining: ([0-9]+:[0-9]+:[0-9]+)/i).parseTimer();
+				i = tmp.regex(/Time Remaining: (\d+:\d+:\d+)/i).parseTimer();
 				this.set(['runtime','finish'], (i * 1000) + now);
 				this._remind(i, 'finish');
 			}
 			tmp = $('img[src*="arena3_rank"]');
 			if (tmp.length) {
-				this.set(['runtime','rank'], tmp.attr('src').regex(/arena3_rank([0-9]+)\.gif/i));
+				this.set(['runtime','rank'], tmp.attr('src').regex(/arena3_rank(\d+)\.gif/i));
 				this.set(['runtime','points'], parseInt(tmp.parent().next().next().text().regex(/Points: ([0-9,]+)/i).replace(/,/g,'')));
 			}
 			break;
 		case 'battle_arena_battle':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/([0-9]+)/));
+			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/(\d+)/));
 			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
@@ -164,7 +164,7 @@ Arena.parse = function(change) {
 			this._remind(i, 'finish');
 			tmp = $('#app'+APPID+'_results_main_wrapper');
 			if (tmp.length) {
-				i = tmp.text().regex(/\+([0-9]+) Battle Activity Points/i);
+				i = tmp.text().regex(/\+(\d+) Battle Activity Points/i);
 				if (isNumber(i)) {
 					History.add('arena', i);
 					History.add('arena_count', 1);
@@ -195,7 +195,7 @@ Arena.update = function(event) {
 	}
 	if (event.type === 'trigger' && event.id === 'tokens') {
 		if ($('#app'+APPID+'_guild_token_current_value').length) {
-			this.set(['runtime','tokens'], $('#app'+APPID+'_guild_token_current_value').text().regex(/([0-9]+)/) || 0);
+			this.set(['runtime','tokens'], $('#app'+APPID+'_guild_token_current_value').text().regex(/(\d+)/) || 0);
 		}
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
@@ -250,7 +250,7 @@ Arena.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
 					
-						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: ([0-9]+) Class: ([^ ]+) Health: ([0-9]+)\/([0-9]+) Status: ([^ ]+) Arena Activity Points: ([0-9]+)/i);
+						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) Arena Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (Arena.option.defeat && Arena.data[target[0]]) {
 							return;

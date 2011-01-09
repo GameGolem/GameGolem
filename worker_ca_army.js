@@ -108,8 +108,8 @@ Army._overload('castle_age', 'parse', function(change) {
 	if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
 		$tmp = $('table.layout table[width=740] div').first().children();
-		page = $tmp.eq(1).html().regex(/\<div[^>]*\>([0-9]+)\<\/div\>/);
-		start = $tmp.eq(2).text().regex(/Displaying: ([0-9]+) - [0-9]+/);
+		page = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
+		start = $tmp.eq(2).text().regex(/Displaying: (\d+) - \d+/);
 		$tmp = $('img[linked="true"][size="square"]');
 		if ($tmp.length) {
 			$tmp.each(function(i,el){
@@ -123,7 +123,7 @@ Army._overload('castle_age', 'parse', function(change) {
 				army._info.fbname = $('a', who).text();
 				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
 				army._info.friend = (army._info.fbname !== 'Facebook User');
-				level = $(who).text().regex(/([0-9]+) Commander/i);
+				level = $(who).text().regex(/(\d+) Commander/i);
 				if (!army._info.changed || army._info.level !== level) {
 					army._info.changed = now;
 					army._info.level = level;
@@ -140,7 +140,7 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 		$tmp = $('img[src*="bonus_member.jpg"]');
 		if ($tmp.length) {
-			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x([0-9]+)');
+			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x(\d+)');
 //			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in army) {

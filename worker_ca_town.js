@@ -311,14 +311,14 @@ Town.parse = function(change) {
 			if (!$('div.eq_buy_txt_int', el).length) {
 				$('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
 			}
-			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/[^0-9]/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/[^0-9]/g, ''), match, maxlen = 0;
+			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/\D/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/\D/g, ''), match, maxlen = 0;
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-			unit[name].own = $(costs).text().regex(/Owned: ([0-9]+)/i);
+			unit[name].own = $(costs).text().regex(/Owned: (\d+)/i);
 			Resources.add('_'+name, unit[name].own, true);
-			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/([0-9]+)\s*Attack/);
-			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/([0-9]+)\s*Defense/);
+			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/(\d+)\s*Attack/);
+			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/(\d+)\s*Defense/);
 			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
 			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
 			if (cost) {

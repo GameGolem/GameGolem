@@ -50,7 +50,7 @@ Blessing.init = function() {
 Blessing.parse = function(change) {
 	var result = $('div.results'), time;
 	if (result.length) {
-		time = result.text().regex(/Please come back in: ([0-9]+) hours and ([0-9]+) minutes/i);
+		time = result.text().regex(/Please come back in: (\d+) hours and (\d+) minutes/i);
 		if (time && time.length) {
 			this.runtime.when = Date.now() + (((time[0] * 60) + time[1] + 1) * 60000);
 		} else if (result.text().match(/You have paid tribute to/i)) {

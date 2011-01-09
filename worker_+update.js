@@ -78,7 +78,7 @@ Update.init = function() {
 	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
-			tmp = $(event.target).attr('content').regex(/([0-9]+\.[0-9]+)\.([0-9]+)/);
+			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
 			if (tmp) {
 				Update._remind(21600, 'check');// 6 hours
 				Update.runtime.lastcheck = Date.now();

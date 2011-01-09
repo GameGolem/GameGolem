@@ -26,30 +26,30 @@ News.parse = function(change) {
 		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.runtime.last, killed = false;
 		this.runtime.last = Date.now();
 		$('#app'+APPID+'_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
-			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/([0-9]+) days/i), hours = title.regex(/([0-9]+) hours/i), minutes = title.regex(/([0-9]+) minutes/i), seconds = title.regex(/([0-9]+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
+			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/(\d+) days/i), hours = title.regex(/(\d+) hours/i), minutes = title.regex(/(\d+) minutes/i), seconds = title.regex(/(\d+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);
 			if (txt.regex(/You were killed/i)) {
 				killed = true;
 				deaths++;
 			} else {
-				uid = $('a:eq(0)', el).attr('href').regex(/user=([0-9]+)/i);
+				uid = $('a:eq(0)', el).attr('href').regex(/user=(\d+)/i);
 				user[uid] = user[uid] || {name:$('a:eq(0)', el).text(), win:0, lose:0, deaths:0};
 				result = null;
 				if (txt.regex(/Victory!/i)) {
 					win++;
 					user[uid].lose++;
-					my_xp = txt.regex(/([0-9]+) experience/i);
-					my_bp = txt.regex(/([0-9]+) Battle Points!/i);
-					my_wp = txt.regex(/([0-9]+) War Points!/i);
-					my_cash = txt.regex(/\$([0-9]+)/i);
+					my_xp = txt.regex(/(\d+) experience/i);
+					my_bp = txt.regex(/(\d+) Battle Points!/i);
+					my_wp = txt.regex(/(\d+) War Points!/i);
+					my_cash = txt.regex(/\$(\d+)/i);
 					result = 'win';
 				} else {
 					lose++;
 					user[uid].win++;
-					my_xp = 0 - txt.regex(/([0-9]+) experience/i);
-					my_bp = 0 - txt.regex(/([0-9]+) Battle Points!/i);
-					my_wp = 0 - txt.regex(/([0-9]+) War Points!/i);
-					my_cash = 0 - txt.regex(/\$([0-9]+)/i);
+					my_xp = 0 - txt.regex(/(\d+) experience/i);
+					my_bp = 0 - txt.regex(/(\d+) Battle Points!/i);
+					my_wp = 0 - txt.regex(/(\d+) War Points!/i);
+					my_cash = 0 - txt.regex(/\$(\d+)/i);
 					result = 'loss';
 				}
 				if (killed) {

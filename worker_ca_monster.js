@@ -917,19 +917,19 @@ Monster.parse = function(change) {
 			//console.log(warn(), 'Assisted on '+monster.phase+'.');
 		}
 		$('img[src*="siege_small"]').each(function(i,el){
-			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/\D/g,'').regex(/(\d+)/);
 			//console.log(warn(), 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			monster.damage.siege += dmg / (types[type_label].orcs ? 1000 : 1);
 		});
 		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
-			var user = $(el).attr('href').regex(/user=([0-9]+)/i), tmp, dmg, fort;
+			var user = $(el).attr('href').regex(/user=(\d+)/i), tmp, dmg, fort;
 			if (types[type_label].raid){
 				tmp = $(el).parent().next().text().replace(/[^0-9\/]/g,'');
 			} else {
 				tmp = $(el).parent().parent().next().text().replace(/[^0-9\/]/g,'');
 			}
-			dmg = tmp.regex(/([0-9]+)/);
-			fort = tmp.regex(/\/([0-9]+)/);
+			dmg = tmp.regex(/(\d+)/);
+			fort = tmp.regex(/\/(\d+)/);
 			if (user === userID){
 				monster.damage.user.manual = dmg - (monster.damage.user.script || 0);
 				monster.defend.manual = fort - (monster.defend.script || 0);
@@ -947,7 +947,7 @@ Monster.parse = function(change) {
 		}
 		monster.dps = sum(monster.damage) / (timer - monster.timer);
 		if (types[type_label].raid) {
-			monster.total = sum(monster.damage) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/([0-9]+)/);
+			monster.total = sum(monster.damage) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/(\d+)/);
 		} else {
 			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health === 100 ? 0.1 : (100 - monster.health)));
 		}
@@ -986,8 +986,8 @@ Monster.parse = function(change) {
 			}
 			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
 				if ($('a', el).attr('href')
-						&& $('a', el).attr('href').regex(/casuser=([0-9]+)/i)) {
-					var i, uid = $('a', el).attr('href').regex(/casuser=([0-9]+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = null;
+						&& $('a', el).attr('href').regex(/casuser=(\d+)/i)) {
+					var i, uid = $('a', el).attr('href').regex(/casuser=(\d+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = null;
 					for (i in types) {
 						if (tmp === types[i].list) {
 							type_label = i;
@@ -1007,7 +1007,7 @@ Monster.parse = function(change) {
 						tmp = $(el).parent().parent().children().eq(2).text().trim();
 						data[mid].name = tmp.regex(/(.+)'s /i);
 					}
-					switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
+					switch($('img', el).attr('src').regex(/dragon_list_btn_(\d)/)) {
 						case 2:
 							data[mid].state = 'reward';
 							break;
@@ -1062,7 +1062,7 @@ Monster.update = function(event) {
 	}
 	// Some generals use more stamina, but only in certain circumstances...
 	for (i in defatt) {
-		this.runtime.multiplier[defatt[i]] = (Generals.get([Queue.runtime.general || (Generals.best(this.option['best_' + defatt[i]] ? ('monster_' + defatt[i]) : this.option['general_' + defatt[i]])), 'skills'], '').regex(/Increase Power Attacks by ([0-9]+)/i) || 1);
+		this.runtime.multiplier[defatt[i]] = (Generals.get([Queue.runtime.general || (Generals.best(this.option['best_' + defatt[i]] ? ('monster_' + defatt[i]) : this.option['general_' + defatt[i]])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
 		//console.log(warn(), 'mult ' + defatt[i] + ' X ' + this.runtime.multiplier[defatt[i]]);
 	}
 	this.runtime.secondary = false;
@@ -1550,7 +1550,7 @@ Monster.work = function(state) {
 			}
 			$('input[name*="target_id"]').val((list[Math.floor(Math.random() * (list.length))] || 0)); // Changing the ID for the button we're gonna push.
 		}
-		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*([0-9]+).*Army: ([0-9]+)/);
+		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*(\d+).*Army: (\d+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio) && this.option.raid.indexOf('Invade') >= 0) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio) && this.option.raid.indexOf('Invade') === -1)){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
 			console.log(log(), 'No valid Raid target!');
 			Page.to('battle_raid', ''); // Force a page reload to change the targets

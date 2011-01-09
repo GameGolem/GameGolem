@@ -60,7 +60,7 @@ Army.init = function() {
 	});
 	this.data = this.data || {};
 	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
-		if (typeof i === 'string' && i.regex(/[^0-9]/g)) {
+		if (typeof i === 'string' && i.regex(/\D/g)) {
 			delete this.data[i];
 		}
 	}

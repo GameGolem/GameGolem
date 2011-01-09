@@ -93,14 +93,14 @@ Land.parse = function(change) {
 				$('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
 			}
 			Land.data[name] = {};
-			Land.data[name].income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
-			Land.data[name].max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: ([0-9]+)/i);
-			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			Land.data[name].income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
+			Land.data[name].max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
+			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
 			tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
 			if (tmp) {
 				Land.data[name].buy = tmp;
 			}
-			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/[^0-9]/g,'').regex(/([0-9]+)/);
+			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
 		} else {
 			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}

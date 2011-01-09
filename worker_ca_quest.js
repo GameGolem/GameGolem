@@ -192,7 +192,7 @@ Quest.parse = function(change) {
 		area = 'atlantis';
 	} else {
 		area = 'quest';
-		land = Page.page.regex(/quests_quest([0-9]+)/i) - 1;
+		land = Page.page.regex(/quests_quest(\d+)/i) - 1;
 	}
 	purge = {};
 	for (i in data.id) {
@@ -211,19 +211,19 @@ Quest.parse = function(change) {
 		}
 		if ($(el).hasClass('quests_background_sub')) { // Subquest
 			name = $('.quest_sub_title', el).text().trim();
-			reward = $('.qd_2_sub', el).text().replace(/mil/g, '000000').replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('.qd_3_sub', el).text().regex(/([0-9]+)/);
-			level = $('.quest_sub_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+			reward = $('.qd_2_sub', el).text().replace(/mil/g, '000000').replace(/[^0-9$]/g, '').regex(/^(\d+)\$(\d+)\$(\d+)$/);
+			energy = $('.qd_3_sub', el).text().regex(/(\d+)/);
+			level = $('.quest_sub_progress', el).text().regex(/LEVEL (\d+)/i);
+			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: (\d+)%/i);
 			type = 2;
 		} else {
 			name = $('.qd_1 b', el).text().trim();
-			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^([0-9]+)\$([0-9]+)\$([0-9]+)$/);
-			energy = $('.quest_req b', el).text().regex(/([0-9]+)/);
+			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^(\d+)\$(\d+)\$(\d+)$/);
+			energy = $('.quest_req b', el).text().regex(/(\d+)/);
 			if ($(el).hasClass('quests_background')) { // Main quest
 				last_main = id;
-				level = $('.quest_progress', el).text().regex(/LEVEL ([0-9]+)/i);
-				influence = $('.quest_progress', el).text().regex(/INFLUENCE: ([0-9]+)%/i);
+				level = $('.quest_progress', el).text().regex(/LEVEL (\d+)/i);
+				influence = $('.quest_progress', el).text().regex(/INFLUENCE: (\d+)%/i);
 				type = 1;
 			} else { // Special / boss Quest
 				type = 3;
@@ -287,7 +287,7 @@ Quest.parse = function(change) {
 			units = {};
 			$('.quest_req >div >div >div', el).each(function(i,el){
 				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/([0-9]+)/);
+				units[title] = $(el).text().regex(/(\d+)/);
 			});
 			if (length(units)) {
 				data.id[id].units = units;

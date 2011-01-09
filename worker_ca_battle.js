@@ -228,11 +228,11 @@ Battle.parse = function(change) {
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
-			var info = $(el).text().regex(/Rank ([0-9]+) - (.*)\s*([0-9]+)/i);
+			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
 		this.data.rank = data;
-		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with ([0-9]+) Battle Points/i);
+		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -249,12 +249,12 @@ Battle.parse = function(change) {
 			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
 				data[uid].hide = (data[uid].hide || 0) + 1;
 				data[uid].dead = Date.now();
-//			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of ([0-9]+) fought with|'s Defense)",'i'))) {
+//			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of (\d+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
-				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of ([0-9]+) Battle Points/i);
+				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i);
 				data[uid].win = (data[uid].win || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+win',1);
@@ -272,23 +272,23 @@ Battle.parse = function(change) {
 				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
 			}
 		}
-		tmp = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10([0-9]+)\/10/);
+		tmp = $('#app'+APPID+'_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/);
 		if (tmp) {
 			this.data.points = tmp;
 		}
 		myrank = Player.get('rank');
 		$('#app'+APPID+'_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank ([0-9]+)\)/i);
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i);
 			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
 			data[uid] = data[uid] || {};
 			data[uid].name = $('a', el).text().trim();
-			data[uid].level = info.regex(/\(Level ([0-9]+)\)/i);
+			data[uid].level = info.regex(/\(Level (\d+)\)/i);
 			data[uid].rank = rank;
-			data[uid].war = info.regex(/War:[^(]+\(Rank ([0-9]+)\)/i);
-			data[uid].army = $('td.bluelink', el).next().text().regex(/([0-9]+)/);
-			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_([0-9])/i);
+			data[uid].war = info.regex(/War:[^(]+\(Rank (\d+)\)/i);
+			data[uid].army = $('td.bluelink', el).next().text().regex(/(\d+)/);
+			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_(\d)/i);
 		});
 	}
 	return false;
@@ -379,7 +379,7 @@ Battle.update = function(event) {
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
 			i = this.option.prefer[j];
-			if (!/[^0-9]/g.test(i)) {
+			if (!/\D/g.test(i)) {
 				if (this.option.preferonly === 'Never') {
 					skip[i] = true;
 					continue;

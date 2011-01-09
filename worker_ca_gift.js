@@ -62,7 +62,7 @@ Gift.init = function() {
 			gift_ids.push(i);
 		}
 		for (i in this.data.todo) {
-			if (!(/[^0-9]/g).test(i)) {	// If we have an old entry
+			if (!(/\D/g).test(i)) {	// If we have an old entry
 				random_gift_id = Math.floor(Math.random() * gift_ids.length);
 				if (!this.data.todo[gift_ids[random_gift_id]]) {
 					this.data.todo[gift_ids[random_gift_id]] = [];

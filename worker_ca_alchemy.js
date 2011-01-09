@@ -70,7 +70,7 @@ Alchemy.parse = function(change) {
 		recipe.ingredients = {};
 		$('div.recipeImgContainer', el).parent().each(function(i,el){
 			var name = $('img', el).attr('src').filepart();
-			recipe.ingredients[name] = ($(el).text().regex(/x([0-9]+)/) || 1);
+			recipe.ingredients[name] = ($(el).text().regex(/x(\d+)/) || 1);
 			Alchemy.data.ingredients[name] = 0;// Make sure we know an ingredient exists
 			if (recipe.type === 'Summons') {
 				Alchemy.data.summons[name] = true;// Make sure we know an ingredient exists
@@ -80,7 +80,7 @@ Alchemy.parse = function(change) {
 	});
 	$('div.ingredientUnit').each(function(i,el){
 		var name = $('img', el).attr('src').filepart();
-		Alchemy.data.ingredients[name] = $(el).text().regex(/x([0-9]+)/);
+		Alchemy.data.ingredients[name] = $(el).text().regex(/x(\d+)/);
 	});
 };
 

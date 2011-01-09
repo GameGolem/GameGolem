@@ -83,7 +83,7 @@ Main.update = function(event) {
 	}
 	// Once we hit this point we have our APP and can start things rolling
 	try {
-		userID = $('script').text().regex(/user:([0-9]+),/i);
+		userID = $('script').text().regex(/user:(\d+),/i);
 		imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
 	} catch(e) {
 		if (Main._retry_++ < 5) {// Try 5 times before we give up...

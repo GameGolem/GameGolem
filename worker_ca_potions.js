@@ -70,7 +70,7 @@ Potions.parse = function(change) {
 	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		var potions = {};
 		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
-			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x ([0-9]+)/i);
+			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x (\d+)/i);
 			if (info && info[0] && info[1]) {
 				potions[info[0]] = info[1];
 			}

@@ -114,15 +114,15 @@ LevelUp.parse = function(change) {
 				return;
 			}
 			var txt = $(el).text().replace(/,|\t/g, ''), x;
-			x = txt.regex(/([+-][0-9]+) Experience/i);
+			x = txt.regex(/([+-]\d+) Experience/i);
 			if (x) { History.add('exp+battle', x); }
-			x = (txt.regex(/\+\$([0-9]+)/i) || 0) - (txt.regex(/\-\$([0-9]+)/i) || 0);
+			x = (txt.regex(/\+\$(\d+)/i) || 0) - (txt.regex(/\-\$(\d+)/i) || 0);
 			if (x) { History.add('income+battle', x); }
-			x = txt.regex(/([+-][0-9]+) Battle Points/i);
+			x = txt.regex(/([+-]\d+) Battle Points/i);
 			if (x) { History.add('bp+battle', x); }
-			x = txt.regex(/([+-][0-9]+) Stamina/i);
+			x = txt.regex(/([+-]\d+) Stamina/i);
 			if (x) { History.add('stamina+battle', x); }
-			x = txt.regex(/([+-][0-9]+) Energy/i);
+			x = txt.regex(/([+-]\d+) Energy/i);
 			if (x) { History.add('energy+battle', x); }
 		});
 	}

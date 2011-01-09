@@ -97,7 +97,7 @@ String.prototype.regex = function(r) {
 	if (a) {
 		!r.global && a.shift();
 		for (i=0; i<a.length; i++) {
-			if (a[i] && a[i].search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
+			if (a[i] && a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
 				a[i] = parseFloat(a[i].replace('+',''));
 			}
 		}
@@ -286,7 +286,7 @@ var sum = function(a) { // Adds the values of all array entries together
 		}
 	} else if (isNumber(a)) {
 		t = a;
-	} else if (isString(a) && a.search(/^[-+]?[0-9]*\.?[0-9]*$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d*$/) >= 0) {
 		t = parseFloat(a);
 	}
 	return t;
