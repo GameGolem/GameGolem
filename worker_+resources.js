@@ -62,15 +62,13 @@ Resources.runtime = {
 //Resources.display = 'Discovering Resources...';
 
 Resources.display = function() {
-	var type, group, worker, require, display = [];
+	var type, group, worker, display = [];
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
 	}
 	display.push({label:'Not doing anything yet...'});
 	for (type in this.option.types) {
 		group = [];
-		require = {};
-		require['types.'+type] = 2;
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				group.push({
@@ -94,7 +92,7 @@ Resources.display = function() {
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
-				require:require
+				require:'types.'+type+'=2'
 			});
 		}
 	}

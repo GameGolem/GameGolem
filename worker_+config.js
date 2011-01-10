@@ -25,6 +25,7 @@ Config.option = {
 };
 
 Config.temp = {
+	require:[],
 	menu:null
 };
 
@@ -170,7 +171,6 @@ Config.init = function() {
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
 	});
-	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-icon-menu').click(function(event) {
@@ -301,7 +301,7 @@ Config.makePanel = function(worker, args) {
 		$('#'+worker.id+' > div').empty();
 	}
 	this.addOption(worker, args);
-	this.checkRequire(worker.id);
+	this.checkRequire();
 };
 
 Config.makeID = function(worker, id) {
@@ -485,6 +485,31 @@ Config.makeOption = function(worker, args) {
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
 	if (o.require) {
+		// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+		// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+		try {
+			var outer = [,,o.require.trim()], inner, path, require = [];
+			while(outer[2]) {
+				outer = outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
+				inner = outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
+				path = inner[1].split('.');
+				if (!Worker.find(path[0])) {
+					if (isUndefined(worker._datatypes[path[0]])) {
+						path.unshift('option');
+					}
+					path.unshift(worker.name);
+				}
+				if (inner[0] === '!') {path.unshift(false);}
+				require.push(path);
+				if (inner[2]) {require.push(inner[2]);}
+				if (inner[3]) {require.push(inner[3]);}
+				if (outer[1] && outer[2]) {require.push(outer[1][0]);}
+			}
+			$option.addClass('golem-require').attr('require', JSON.stringify(require));
+		} catch(e) {
+			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
+		}
+		/*
 		if (typeof o.require === 'string') {
 			i = o.require;
 			o.require = {};
@@ -503,6 +528,7 @@ Config.makeOption = function(worker, args) {
 			}
 		}
 		$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
+		*/
 	}
 	if (o.group) {
 		$option.append(this.makeOptions(worker,o.group));
@@ -553,45 +579,60 @@ Config.set = function(key, value) {
 	return false;
 };
 
-Config.checkRequire = function(selector) {
-//	console.log(log(), 'checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
-	if (isWorker(selector)) {
-		selector = '#'+selector.id+' .golem-require';
-	} else if (typeof selector !== 'undefined' && $(selector).length) {
-		selector = $('.golem-require', selector);
-	} else {
-		selector = '.golem-require';
-	}
-	$(selector).each(function(a,el){
-		var i, j, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
+Config.checkRequire = function() {
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+	$('.golem-require').each(function(a,el){
+		var i, j, worker, path, show = true, value = false, value2 = null, not = false, and = true, or = false, test = null, require = JSON.parse($(el).attr('require')), doTest;
+		doTest = function() {
+			if (test) {
+				switch (test) {
+					case '>':	value = (value > value2);	break;
+					case '>=':	value = (value >= value2);	break;
+					case '=':
+					case '==':	value = (value === value2);	break;
+					case '<=':	value = (value <= value2);	break;
+					case '<':	value = (value < value2);	break;
+					case '!=':	value = (value !== value2);	break;
+				}
+			}
+			if (and) {
+				show = show && value;
+			} if (or) {
+				show = show || value;
+			}
+			and = or = test = false;
+		}
 		if ($(el).hasClass('golem-advanced')) {
 			show = Config.option.advanced;
 		}
-		for (i in require) {
-			path = i.split('.');
-			worker = Worker.find(path.shift());
-			if (!isWorker(worker)) {
-				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
-				break;
-			}
-			value = worker.get(path,false);
-//			{key:[true,true,true], key:[[false,false,false],true,true]} - false is AND, true are OR
-			or = [];
-			for (j=0; j<require[i].length; j++) {
-				if (isArray(require[i][j])) {
-					if (findInArray(require[i][j], value)) {
-						show = false;
-						break;
-					}
+		for (i=0; i<require.length; i++) {
+			if (isArray(require[i])) {
+				if (!require[i][0]) {
+					not = true;
+					path = require[i].slice(1);
 				} else {
-					or.push(require[i][j]);
+					not = false;
+					path = require[i].slice(0);
 				}
-			}
-			if (!show || (or.length && !findInArray(or, value))) {
-				show = false;
-				break;
+				worker = Worker.find(path.shift());
+				value = worker.get(path, false);
+				if (not) {
+					value = !value;
+				}
+			} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
+				test = require[i];
+			} else if (require[i] === '&') {
+				doTest();
+				and = true;
+			} else if (require[i] === '&') {
+				doTest();
+				or = true;
+			} else {
+				value2 = require[i];
 			}
 		}
+		doTest();
 		if (show) {
 			$(el).show();
 		} else {

@@ -62,7 +62,7 @@ LevelUp.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':'Manual'},
+		require:'general=Manual',
 		select:'generals'
 	},{
 		id:'order',
@@ -77,13 +77,13 @@ LevelUp.display = [
 	},{
 		id:'manual_exp_per_stamina',
 		label:'Exp per stamina',
-		require:{'algorithm':'Manual'},
+		require:'algorithm=Manual',
 		text:true,
 		help:'Experience per stamina point.  Defaults to Per Action if 0 or blank.'
 	},{
 		id:'manual_exp_per_energy',
 		label:'Exp per energy',
-		require:{'algorithm':'Manual'},
+		require:'algorithm=Manual',
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
 	},{

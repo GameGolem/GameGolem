@@ -63,7 +63,7 @@ Arena.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'start',
@@ -80,7 +80,7 @@ Arena.display = [
 	},{
 		id:'safety',
 		label:'Safety Margin',
-		require:{'tokens':'max'},
+		require:'tokens!=min',
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
 		id:'order',
@@ -241,7 +241,7 @@ Arena.work = function(state) {
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 						this.set(['runtime','status'], 'wait');
 					}
-				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
+				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
@@ -249,6 +249,10 @@ Arena.work = function(state) {
 					this.set(['runtime','status'], 'fight');
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
 					

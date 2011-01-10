@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.943
+// @version		31.5.944
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 943;
+var revision = 944;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1589,6 +1589,7 @@ Config.option = {
 };
 
 Config.temp = {
+	require:[],
 	menu:null
 };
 
@@ -1734,7 +1735,6 @@ Config.init = function() {
 	$('.golem-panel-header input').click(function(event){
 		event.stopPropagation(true);
 	});
-	this.checkRequire();
 	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-icon-menu').click(function(event) {
@@ -1865,7 +1865,7 @@ Config.makePanel = function(worker, args) {
 		$('#'+worker.id+' > div').empty();
 	}
 	this.addOption(worker, args);
-	this.checkRequire(worker.id);
+	this.checkRequire();
 };
 
 Config.makeID = function(worker, id) {
@@ -2049,6 +2049,31 @@ Config.makeOption = function(worker, args) {
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
 	if (o.require) {
+		// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+		// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+		try {
+			var outer = [,,o.require.trim()], inner, path, require = [];
+			while(outer[2]) {
+				outer = outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
+				inner = outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
+				path = inner[1].split('.');
+				if (!Worker.find(path[0])) {
+					if (isUndefined(worker._datatypes[path[0]])) {
+						path.unshift('option');
+					}
+					path.unshift(worker.name);
+				}
+				if (inner[0] === '!') {path.unshift(false);}
+				require.push(path);
+				if (inner[2]) {require.push(inner[2]);}
+				if (inner[3]) {require.push(inner[3]);}
+				if (outer[1] && outer[2]) {require.push(outer[1][0]);}
+			}
+			$option.addClass('golem-require').attr('require', JSON.stringify(require));
+		} catch(e) {
+			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
+		}
+		/*
 		if (typeof o.require === 'string') {
 			i = o.require;
 			o.require = {};
@@ -2067,6 +2092,7 @@ Config.makeOption = function(worker, args) {
 			}
 		}
 		$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
+		*/
 	}
 	if (o.group) {
 		$option.append(this.makeOptions(worker,o.group));
@@ -2117,45 +2143,60 @@ Config.set = function(key, value) {
 	return false;
 };
 
-Config.checkRequire = function(selector) {
-//	console.log(log(), 'checkRequire($("'+(typeof id === 'string' ? '#'+id+' ' : '')+'.golem-require"))');
-	if (isWorker(selector)) {
-		selector = '#'+selector.id+' .golem-require';
-	} else if (typeof selector !== 'undefined' && $(selector).length) {
-		selector = $('.golem-require', selector);
-	} else {
-		selector = '.golem-require';
-	}
-	$(selector).each(function(a,el){
-		var i, j, worker, path, value, show = true, or, require = JSON.parse($(el).attr('require'));
+Config.checkRequire = function() {
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+	$('.golem-require').each(function(a,el){
+		var i, j, worker, path, show = true, value = false, value2 = null, not = false, and = true, or = false, test = null, require = JSON.parse($(el).attr('require')), doTest;
+		doTest = function() {
+			if (test) {
+				switch (test) {
+					case '>':	value = (value > value2);	break;
+					case '>=':	value = (value >= value2);	break;
+					case '=':
+					case '==':	value = (value === value2);	break;
+					case '<=':	value = (value <= value2);	break;
+					case '<':	value = (value < value2);	break;
+					case '!=':	value = (value !== value2);	break;
+				}
+			}
+			if (and) {
+				show = show && value;
+			} if (or) {
+				show = show || value;
+			}
+			and = or = test = false;
+		}
 		if ($(el).hasClass('golem-advanced')) {
 			show = Config.option.advanced;
 		}
-		for (i in require) {
-			path = i.split('.');
-			worker = Worker.find(path.shift());
-			if (!isWorker(worker)) {
-				show = false;// Worker doesn't exist - assume it's not a typo, so always hide us...
-				break;
-			}
-			value = worker.get(path,false);
-//			{key:[true,true,true], key:[[false,false,false],true,true]} - false is AND, true are OR
-			or = [];
-			for (j=0; j<require[i].length; j++) {
-				if (isArray(require[i][j])) {
-					if (findInArray(require[i][j], value)) {
-						show = false;
-						break;
-					}
+		for (i=0; i<require.length; i++) {
+			if (isArray(require[i])) {
+				if (!require[i][0]) {
+					not = true;
+					path = require[i].slice(1);
 				} else {
-					or.push(require[i][j]);
+					not = false;
+					path = require[i].slice(0);
 				}
-			}
-			if (!show || (or.length && !findInArray(or, value))) {
-				show = false;
-				break;
+				worker = Worker.find(path.shift());
+				value = worker.get(path, false);
+				if (not) {
+					value = !value;
+				}
+			} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
+				test = require[i];
+			} else if (require[i] === '&') {
+				doTest();
+				and = true;
+			} else if (require[i] === '&') {
+				doTest();
+				or = true;
+			} else {
+				value2 = require[i];
 			}
 		}
+		doTest();
 		if (show) {
 			$(el).show();
 		} else {
@@ -3854,15 +3895,13 @@ Resources.runtime = {
 //Resources.display = 'Discovering Resources...';
 
 Resources.display = function() {
-	var type, group, worker, require, display = [];
+	var type, group, worker, display = [];
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
 	}
 	display.push({label:'Not doing anything yet...'});
 	for (type in this.option.types) {
 		group = [];
-		require = {};
-		require['types.'+type] = 2;
 		for (worker in this.runtime.buckets) {
 			if (type in this.runtime.buckets[worker]) {
 				group.push({
@@ -3886,7 +3925,7 @@ Resources.display = function() {
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
-				require:require
+				require:'types.'+type+'=2'
 			});
 		}
 	}
@@ -4778,7 +4817,7 @@ Arena.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'start',
@@ -4795,7 +4834,7 @@ Arena.display = [
 	},{
 		id:'safety',
 		label:'Safety Margin',
-		require:{'tokens':'max'},
+		require:'tokens!=min',
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
 		id:'order',
@@ -4956,7 +4995,7 @@ Arena.work = function(state) {
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 						this.set(['runtime','status'], 'wait');
 					}
-				} else if (this.runtime.status === 'start' || $('input[src*="guild_enter_battle_button.gif"]').length) {
+				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
@@ -4964,6 +5003,10 @@ Arena.work = function(state) {
 					this.set(['runtime','status'], 'fight');
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
 					
@@ -5424,7 +5467,7 @@ Battle.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'stamina_reserve',
@@ -5465,7 +5508,7 @@ Battle.display = [
 		advanced:true,
 		id:'limit',
 		before:'<center>Target Ranks</center>',
-		require:{'bp':'Always'},
+		require:'bp=Always',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -5494,7 +5537,7 @@ Battle.display = [
 		advanced:true,
 		id:'chain',
 		label:'Chain after wins',
-		require:{'between':0},
+		require:'between=0',
 		select:[1,2,3,4,5],
 		help:'How many times to chain before stopping'
 	},{
@@ -5505,13 +5548,13 @@ Battle.display = [
 		help:'The lowest health you can attack with is 10, but you can lose up to 12 health in an attack, so are you going to risk it???'
 	},{
 		id:'army',
-		require:{'type':'Invade'},
+		require:'type=Invade',
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
-		require:{'type':[['Invade']]},
+		require:'type!=Invade',
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
@@ -7484,7 +7527,7 @@ LevelUp.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':'Manual'},
+		require:'general=Manual',
 		select:'generals'
 	},{
 		id:'order',
@@ -7499,13 +7542,13 @@ LevelUp.display = [
 	},{
 		id:'manual_exp_per_stamina',
 		label:'Exp per stamina',
-		require:{'algorithm':'Manual'},
+		require:'algorithm=Manual',
 		text:true,
 		help:'Experience per stamina point.  Defaults to Per Action if 0 or blank.'
 	},{
 		id:'manual_exp_per_energy',
 		label:'Exp per energy',
-		require:{'algorithm':'Manual'},
+		require:'algorithm=Manual',
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
 	},{
@@ -7870,14 +7913,14 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'best_attack':false},
+		require:'!best_attack',
 		select:'generals'
 	},{
 		advanced:true,
 		id:'hide',
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		advanced:true,
@@ -7914,20 +7957,20 @@ Monster.display = [
 	},{
 		id:'priority',
 		label:'Priority List',
-		require:{'stop':'Priority List'},
+		require:'stop=Priority List',
 		textarea:true,
 		help:'Prioritized list of which monsters to attack'
 	},{
 		advanced:true,
 		id:'own',
 		label:'Never stop on Your Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		checkbox:true,
 		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 	},{
 		advanced:true,
 		id:'rescue',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		label:'Rescue failing monsters',
 		checkbox:true,
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -7935,7 +7978,7 @@ Monster.display = [
 		advanced:true,
 		id:'avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
@@ -7974,7 +8017,7 @@ Monster.display = [
 			},{
 				advanced:true,
 				id:'general_defend',
-				require:{'best_defend':false},
+				require:'!best_defend',
 				label:'Defend General',
 				select:'generals'
 			},{
@@ -8005,7 +8048,7 @@ Monster.display = [
 		advanced:true,
 		id:'general_raid',
 		label:'Raid General',
-		require:{'best_raid':false},
+		require:'!best_raid',
 		select:'generals'
 	},{
 		id:'raid',
@@ -8019,13 +8062,13 @@ Monster.display = [
 		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
 	},{
 		id:'armyratio',
-		require:{'raid':[['Duel', 'Duel x5']]},
+		require:'raid!=Duel & raid!=Duel x5',
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:{'raid':[['Invade', 'Invade x5']]},
+		require:'raid!=Invade & raid!=Invade x5',
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
@@ -10080,7 +10123,7 @@ Quest.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'energy_reserve',
@@ -10098,7 +10141,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:{'what':['Cartigan', 'Vampire Lord']}
+		require:'what=Cartigan | what=Vampire Lord'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -11275,27 +11318,27 @@ Town.display = [
 	help:'Minimum will only buy items need for quests if enabled. Army will buy up to your army size (modified by some generals), Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
-	require:{'number':[['None'],['Minimum']]},
+	require:'number!=None & number!=Minimum',
 	label:'Sell Surplus',
 	checkbox:true,
 	help:'Only keep the best items for selected sets.'
 },{
 	advanced:true,
 	id:'units',
-	require:{'number':[['None']]},
+	require:'number!=None',
 	label:'Set Type',
 	select:['Best Offense', 'Best Defense', 'Best for Both'],
 	help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
 },{
 	advanced:true,
 	id:'maxcost',
-	require:{'number':[['None']]},
+	require:'number!=None',
 	label:'Maximum Item Cost',
 	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
 	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
-	require:{'number':[['None']]},
+	require:'number!=None',
 	id:'upkeep',
 	label:'Max Upkeep',
 	text:true,

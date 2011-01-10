@@ -52,7 +52,7 @@ Quest.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'energy_reserve',
@@ -70,7 +70,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:{'what':['Cartigan', 'Vampire Lord']}
+		require:'what=Cartigan | what=Vampire Lord'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',

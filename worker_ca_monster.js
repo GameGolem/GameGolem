@@ -94,14 +94,14 @@ Monster.display = [
 		advanced:true,
 		id:'general_attack',
 		label:'Attack General',
-		require:{'best_attack':false},
+		require:'!best_attack',
 		select:'generals'
 	},{
 		advanced:true,
 		id:'hide',
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		advanced:true,
@@ -138,20 +138,20 @@ Monster.display = [
 	},{
 		id:'priority',
 		label:'Priority List',
-		require:{'stop':'Priority List'},
+		require:'stop=Priority List',
 		textarea:true,
 		help:'Prioritized list of which monsters to attack'
 	},{
 		advanced:true,
 		id:'own',
 		label:'Never stop on Your Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		checkbox:true,
 		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 	},{
 		advanced:true,
 		id:'rescue',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		label:'Rescue failing monsters',
 		checkbox:true,
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -159,7 +159,7 @@ Monster.display = [
 		advanced:true,
 		id:'avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
-		require:{'stop':['Never', 'Achievement', '2X Achievement', 'Continuous']},
+		require:'stop!=Priority List',
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
@@ -198,7 +198,7 @@ Monster.display = [
 			},{
 				advanced:true,
 				id:'general_defend',
-				require:{'best_defend':false},
+				require:'!best_defend',
 				label:'Defend General',
 				select:'generals'
 			},{
@@ -229,7 +229,7 @@ Monster.display = [
 		advanced:true,
 		id:'general_raid',
 		label:'Raid General',
-		require:{'best_raid':false},
+		require:'!best_raid',
 		select:'generals'
 	},{
 		id:'raid',
@@ -243,13 +243,13 @@ Monster.display = [
 		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
 	},{
 		id:'armyratio',
-		require:{'raid':[['Duel', 'Duel x5']]},
+		require:'raid!=Duel & raid!=Duel x5',
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:{'raid':[['Invade', 'Invade x5']]},
+		require:'raid!=Invade & raid!=Invade x5',
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'

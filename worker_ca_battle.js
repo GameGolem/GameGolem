@@ -72,7 +72,7 @@ Battle.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:{'general':false},
+		require:'!general',
 		select:'generals'
 	},{
 		id:'stamina_reserve',
@@ -113,7 +113,7 @@ Battle.display = [
 		advanced:true,
 		id:'limit',
 		before:'<center>Target Ranks</center>',
-		require:{'bp':'Always'},
+		require:'bp=Always',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -142,7 +142,7 @@ Battle.display = [
 		advanced:true,
 		id:'chain',
 		label:'Chain after wins',
-		require:{'between':0},
+		require:'between=0',
 		select:[1,2,3,4,5],
 		help:'How many times to chain before stopping'
 	},{
@@ -153,13 +153,13 @@ Battle.display = [
 		help:'The lowest health you can attack with is 10, but you can lose up to 12 health in an attack, so are you going to risk it???'
 	},{
 		id:'army',
-		require:{'type':'Invade'},
+		require:'type=Invade',
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
-		require:{'type':[['Invade']]},
+		require:'type!=Invade',
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
