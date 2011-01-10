@@ -19,7 +19,7 @@ Config.settings = {
 
 Config.option = {
 	display:'block',
-	fixed:true,
+	fixed:false,
 	advanced:false,
 	exploit:false
 };

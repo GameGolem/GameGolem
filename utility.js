@@ -391,7 +391,7 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 			|| (list[a].cost || 0) - (list[b].cost || 0);
 	});
 	for (i=0; i<units.length; i++) {
-		own = typeof list[units[i]].own === 'number' ? list[units[i]].own : 1;
+		own = isNumber(list[units[i]].own) ? list[units[i]].own : 1;
 		if (user) {
 			Resources.set(['_'+units[i], user+'_'+x], count || undefined);
 			if (Math.min(count, own) > 0) {

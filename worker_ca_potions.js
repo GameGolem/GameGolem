@@ -36,19 +36,20 @@ Potions.runtime = {
 	amount:0
 };
 
-Potions.display = [
-	{
-		id:'energy',
-		label:'Maximum Energy Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
-		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
-	},{
-		id:'stamina',
-		label:'Maximum Stamina Potions',
-		select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
-		help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
+Potions.display = function(){
+	var i, opts = [];
+	for (i in this.option) {
+		if (i.charAt(0) !== '_') {
+			opts.push({
+				id:i,
+				label:'Maximum '+i.ucfirst()+' Potions',
+				select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
+				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
+			});
+		}
 	}
-];
+	return opts;
+};
 
 Potions.init = function() {
 	$('a.golem-potion-drink').live('click', function(event) {
@@ -73,6 +74,7 @@ Potions.parse = function(change) {
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x (\d+)/i);
 			if (info && info[0] && info[1]) {
 				potions[info[0]] = info[1];
+				Potions.set(['option',info[0]], Potions.option[info[0]] || 35); // Always pick up on new potion types
 			}
 		});
 		this.set(['data'], potions);
