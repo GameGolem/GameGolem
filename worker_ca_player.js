@@ -28,11 +28,11 @@ Player.setup = function() {
 };
 
 Player.init = function() {
-	this._trigger('#app'+APPID+'_gold_current_value', 'cash');
-	this._trigger('#app'+APPID+'_energy_current_value', 'energy');
-	this._trigger('#app'+APPID+'_stamina_current_value', 'stamina');
-	this._trigger('#app'+APPID+'_health_current_value', 'health');
-	this._trigger('#app'+APPID+'_gold_time_value', 'cash_timer');
+	this._trigger('#app46755028429_gold_current_value', 'cash');
+	this._trigger('#app46755028429_energy_current_value', 'energy');
+	this._trigger('#app46755028429_stamina_current_value', 'stamina');
+	this._trigger('#app46755028429_health_current_value', 'health');
+	this._trigger('#app46755028429_gold_time_value', 'cash_timer');
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -53,36 +53,36 @@ Player.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	if (!('#app'+APPID+'_main_bntp').length) {
+	if (!('#app46755028429_main_bntp').length) {
 		Page.reload();
 		return;
 	}
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
-	if ($('#app'+APPID+'_energy_current_value').length) {
-		this.set('energy', $('#app'+APPID+'_energy_current_value').text().regex(/(\d+)/) || 0);
+	if ($('#app46755028429_energy_current_value').length) {
+		this.set('energy', $('#app46755028429_energy_current_value').text().regex(/(\d+)/) || 0);
 		Resources.add('Energy', data.energy, true);
 	}
-	if ($('#app'+APPID+'_stamina_current_value').length) {
-		this.set('stamina', $('#app'+APPID+'_stamina_current_value').text().regex(/(\d+)/) || 0);
+	if ($('#app46755028429_stamina_current_value').length) {
+		this.set('stamina', $('#app46755028429_stamina_current_value').text().regex(/(\d+)/) || 0);
 		Resources.add('Stamina', data.stamina, true);
 	}
-	if ($('#app'+APPID+'_health_current_value').length) {
-		this.set('health', $('#app'+APPID+'_health_current_value').text().regex(/(\d+)/) || 0);
+	if ($('#app46755028429_health_current_value').length) {
+		this.set('health', $('#app46755028429_health_current_value').text().regex(/(\d+)/) || 0);
 	}
-	if ($('#app'+APPID+'_st_2_5 strong:not([title])').length) {
-		tmp = $('#app'+APPID+'_st_2_5').text().regex(/(\d+)\s*\/\s*(\d+)/);
+	if ($('#app46755028429_st_2_5 strong:not([title])').length) {
+		tmp = $('#app46755028429_st_2_5').text().regex(/(\d+)\s*\/\s*(\d+)/);
 		if (tmp) {
 			this.set('exp', tmp[0]);
 			this.set('maxexp', tmp[1]);
 		}
 	}
-	this.set('cash', $('#app'+APPID+'_gold_current_value').text().replace(/\D/g, '').regex(/(\d+)/));
-	this.set('level', $('#app'+APPID+'_st_5').text().regex(/Level: (\d+)!/i));
-	this.set('armymax', $('a[href*=army.php]', '#app'+APPID+'_main_bntp').text().regex(/(\d+)/));
+	this.set('cash', $('#app46755028429_gold_current_value').text().replace(/\D/g, '').regex(/(\d+)/));
+	this.set('level', $('#app46755028429_st_5').text().regex(/Level: (\d+)!/i));
+	this.set('armymax', $('a[href*=army.php]', '#app46755028429_main_bntp').text().regex(/(\d+)/));
 	this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
-	this.set('upgrade', $('a[href*=keep.php]', '#app'+APPID+'_main_bntp').text().regex(/(\d+)/) || 0);
+	this.set('upgrade', $('a[href*=keep.php]', '#app46755028429_main_bntp').text().regex(/(\d+)/) || 0);
 	this.set('general', $('div.general_name_div3').first().text().trim());
-	this.set('imagepath', $('#app'+APPID+'_globalContainer img:eq(0)').attr('src').pathpart());
+	this.set('imagepath', $('#app46755028429_globalContainer img:eq(0)').attr('src').pathpart());
 	if (Page.page==='keep_stats') {
 		keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
@@ -125,7 +125,7 @@ Player.parse = function(change) {
 		}
 	});
 	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
-	$('#app'+APPID+'_gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
+	$('#app46755028429_gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
 	return false;
 };
 
@@ -163,9 +163,9 @@ Player.get = function(what, def) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
 //		case 'cash_timer':		when = new Date();
 //								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
-		case 'energy_timer':	return $('#app'+APPID+'_energy_time_value').text().parseTimer();
-		case 'health_timer':	return $('#app'+APPID+'_health_time_value').text().parseTimer();
-		case 'stamina_timer':	return $('#app'+APPID+'_stamina_time_value').text().parseTimer();
+		case 'energy_timer':	return $('#app46755028429_energy_time_value').text().parseTimer();
+		case 'health_timer':	return $('#app46755028429_health_time_value').text().parseTimer();
+		case 'stamina_timer':	return $('#app46755028429_stamina_time_value').text().parseTimer();
 		case 'exp_needed':		return data.maxexp - data.exp;
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);

@@ -140,7 +140,7 @@ Gift.parse = function(change) {
 	} else if (Page.page === 'gift_accept'){
 		// Check for sent
 //		console.log(warn(), 'Checking for sent gifts.');
-		if (this.runtime.sent_id && $('div#app'+APPID+'_results_main_wrapper').text().indexOf('You have sent') >= 0) {
+		if (this.runtime.sent_id && $('div#app46755028429_results_main_wrapper').text().indexOf('You have sent') >= 0) {
 			console.log(warn(), gifts[this.runtime.sent_id].name+' sent.');
 			for (j=todo[this.runtime.sent_id].length-1; j >= Math.max(todo[this.runtime.sent_id].length - 30, 0); j--) {	// Remove the IDs from the list because we have sent them
 				todo[this.runtime.sent_id].pop();
@@ -159,7 +159,7 @@ Gift.parse = function(change) {
 		gifts = this.data.gifts = {};
 		// Gifts start at 1
 		for (i=1, $tmp=[0]; $tmp.length; i++) {
-			$tmp = $('#app'+APPID+'_gift'+i);
+			$tmp = $('#app46755028429_gift'+i);
 			if ($tmp.length) {
 				id = $('img', $tmp).attr('src').filepart();
 				gifts[id] = {slot:i, name: $tmp.text().trim().replace('!','')};

@@ -4,8 +4,8 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
+	makeImage, getItem, setItem, empty, compare
 */
 /* Worker Prototype
    ----------------
@@ -143,12 +143,13 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 		return null;
 	}
 	try {
+		var i;
 		if (isString(name)) {
 			if (name in Workers) {
 				return Workers[name];
 			}
 			name = name.toLowerCase();
-			for (var i in Workers) {
+			for (i in Workers) {
 				if (i.toLowerCase() === name || Workers[i].id === name) {
 					return Workers[i];
 				}
@@ -211,7 +212,7 @@ Worker.prototype._forget = function(id) {
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = isArray(what) ? what : isString(what) ? what.split('.') : [], data;
+	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -247,9 +248,10 @@ Worker.prototype._init = function() {
 };
 
 Worker.prototype._load = function(type, merge) {
+	var i;
 	if (!this._datatypes[type]) {
 		if (!type) {
-			for (var i in this._datatypes) {
+			for (i in this._datatypes) {
 				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
 					this._load(i);
 				}
@@ -258,30 +260,30 @@ Worker.prototype._load = function(type, merge) {
 		return;
 	}
 	this._push();
-	var v = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
-	if (v) {
+	i = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
+	if (i) {
 		try {
-			v = JSON.parse(v);
+			i = JSON.parse(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
-//			v = eval(v); // We used to save our data in non-JSON format...
+//			i = eval(i); // We used to save our data in non-JSON format...
 		}
-		this[type] = merge ? $.extend(true, {}, this[type], v) : v;
+		this[type] = merge ? $.extend(true, {}, this[type], i) : i;
 		this._taint[type] = false;
 	}
 	this._pop();
 };
 
 Worker.prototype._notify = function(path) {// Notify on a _watched path change
-	var i, name = this.name;
+	var i, txt = '', name = this.name;
 	path = isArray(path) ? path : path.split('.');
-	while (path.length) {
-		i = (i ? i+'.' : '') + path.shift();
-		if (!this._watching_[i] && this._watching[i] !== undefined && this._watching[i].length) {
+	for (i=0; i < path.length; i++) {
+		txt += (i ? '.' : '') + path[i];
+		if (!this._watching_[txt] && this._watching[txt] !== undefined && this._watching[txt].length) {
 			if (!length(this._watching_)) {
 				window.setTimeout(function(){Worker._notify_(name);}, 50);
 			}
-			this._watching_[i] = true;
+			this._watching_[txt] = true;
 		}
 	}
 };
@@ -332,7 +334,15 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var name = this.name, timer = window.setInterval(function(){callback ? callback.apply(Workers[name]) : Workers[name]._update({type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, fn, timer;
+	if (isFunction(callback)) {
+		fn = function(){callback.apply(Workers[name]);};
+	} else if (isObject(callback)) {
+		fn = function(){Workers[name]._update(callback);};
+	} else {
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+	}
+	timer = window.setInterval(fn, seconds * 1000);
 	if (id) {
 		if (this._reminders['i' + id]) {
 			window.clearInterval(this._reminders['i' + id]);
@@ -343,7 +353,15 @@ Worker.prototype._revive = function(seconds, id, callback) {
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var name = this.name, timer = window.setTimeout(function(){delete Workers[name]._reminders['t'+id];isFunction(callback) ? callback.apply(Workers[name]) : Workers[name]._update(isObject(callback) ? callback : {type:'reminder', self:true, id:(id || null)});}, seconds * 1000);
+	var name = this.name, fn, timer;
+	if (isFunction(callback)) {
+		fn = function(){callback.apply(Workers[name]);};
+	} else if (isObject(callback)) {
+		fn = function(){Workers[name]._update(callback);};
+	} else {
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+	}
+	timer = window.setTimeout(fn, seconds * 1000);
 	if (id) {
 		if (this._reminders['t' + id]) {
 			window.clearTimeout(this._reminders['t' + id]);
@@ -378,7 +396,7 @@ Worker.prototype._save = function(type) {
 	if (!this._datatypes[type]) {
 		if (!type) {
 			n = false;
-			for (var i in this._datatypes) {
+			for (i in this._datatypes) {
 				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
 					n = arguments.callee.call(this,i) || n;
 				}
@@ -444,7 +462,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var x = isArray(what) ? what : isString(what) ? what.split('.') : [];
+	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -526,6 +544,7 @@ Worker.prototype._unwatch = function(worker, path) {
 		worker = Worker.find(worker);
 	}
 	if (isWorker(worker)) {
+		var i;
 		if (isString(path)) {
 			if (path in worker._watching) {
 				deleteElement(worker._watching[path],this.name);
@@ -546,7 +565,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false, newevent = {};
+		var flush = false;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -576,10 +595,11 @@ Worker.prototype._update = function(event) {
  Worker.prototype._watch = function(worker, path) {
 	worker = Worker.find(worker);
 	if (isWorker(worker)) {
+		var i;
 		if (!isString(path)) {
 			path = 'data';
 		}
-		for (var i in worker._datatypes) {
+		for (i in worker._datatypes) {
 			if (path.indexOf(i) === 0) {
 				worker._watching[path] = worker._watching[path] || [];
 				if (!findInArray(worker._watching[path],this.name)) {

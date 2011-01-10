@@ -757,18 +757,18 @@ Monster.parse = function(change) {
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('#app'+APPID+'_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
+			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = types[i].timer;
 				dead = true;
 				break;
-			} else if (types[i].image && $('#app'+APPID+'_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
+			} else if (types[i].image && $('#app46755028429_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
 				timer = types[i].timer;
 				break;
-			} else if (types[i].image2 && $('#app'+APPID+'_app_body img[src$="'+types[i].image2+'"],div[style*="'+
+			} else if (types[i].image2 && $('#app46755028429_app_body img[src$="'+types[i].image2+'"],div[style*="'+
 			types[i].image2+'"]').length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
@@ -907,7 +907,7 @@ Monster.parse = function(change) {
 				}
 			}
 		}
-		monster.timer = $('#app'+APPID+'_monsterTicker').text().parseTimer();
+		monster.timer = $('#app46755028429_monsterTicker').text().parseTimer();
 		monster.finish = now + (monster.timer * 1000);
 		monster.damage.siege = 0;
 		monster.damage.others = 0;
@@ -969,7 +969,7 @@ Monster.parse = function(change) {
 			}
 			this.runtime.check = false;
 
-			if (!$('#app'+APPID+'_app_body div.imgButton').length) {
+			if (!$('#app46755028429_app_body div.imgButton').length) {
 				return false;
 			}
 			for (mid in data) {
@@ -984,7 +984,7 @@ Monster.parse = function(change) {
 					data[mid].state = null;
 				}
 			}
-			$('#app'+APPID+'_app_body div.imgButton').each(function(a,el){
+			$('#app46755028429_app_body div.imgButton').each(function(a,el){
 				if ($('a', el).attr('href')
 						&& $('a', el).attr('href').regex(/casuser=(\d+)/i)) {
 					var i, uid = $('a', el).attr('href').regex(/casuser=(\d+)/i), tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i), type_label = null;

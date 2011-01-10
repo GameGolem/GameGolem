@@ -18,6 +18,8 @@ Update.settings = {
 };
 
 Update.runtime = {
+	installed:0,// Date this version was first seen
+	current:'',// What is our current version
 	lastcheck:0,// Date.now() = time since last check
 	version:0,// Last ones we saw in a check
 	revision:0,
@@ -44,7 +46,6 @@ Update.init = function() {
 	this.runtime.revision = this.runtime.revision || revision;
 	switch(browser) {
 		case 'chrome':
-		case 'safari':
 			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
 			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
 			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
@@ -75,7 +76,6 @@ Update.init = function() {
 	$('<img class="golem-button blue" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
 	}).appendTo('#golem_buttons');
-	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
@@ -97,7 +97,11 @@ Update.init = function() {
 			return false;
 		}
 	});
-
+	if (this.runtime.current !== (version + revision)) {
+		this.set(['runtime','installed'], Date.now());
+		this.set(['runtime','current'], version + revision);
+	}
+	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 };
 
 Update.checkVersion = function(force) {

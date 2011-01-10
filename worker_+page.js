@@ -124,7 +124,7 @@ Page.removeFacebookChat = function() {
 };
 
 Page.init = function() {
-	this._trigger('#app'+APPID+'_app_body_container, #app'+APPID+'_globalContainer', 'page_change');
+	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (Global.option.page.nochat) {
 		this.removeFacebookChat();
@@ -141,7 +141,7 @@ Page.update = function(event) {
 	if (event.type === 'init' || event.type === 'trigger') {
 		var i, list;
 		if (event.type === 'init' || event.id === 'page_change') {
-			list = ['#app_content_'+APPID, '#app'+APPID+'_globalContainer', '#app'+APPID+'_globalcss', '#app'+APPID+'_main_bntp', '#app'+APPID+'_main_sts_container', '#app'+APPID+'_app_body_container', '#app'+APPID+'_nvbar', '#app'+APPID+'_current_pg_url', '#app'+APPID+'_current_pg_info'];
+			list = ['#app_content_'+APPID, '#app46755028429_globalContainer', '#app46755028429_globalcss', '#app46755028429_main_bntp', '#app46755028429_main_sts_container', '#app46755028429_app_body_container', '#app46755028429_nvbar', '#app46755028429_current_pg_url', '#app46755028429_current_pg_info'];
 //			console.log(warn('Page change noticed...'));
 			this._forget('retry');
 			this.set(['temp', 'loading'], false);
@@ -154,7 +154,7 @@ Page.update = function(event) {
 			}
 			// NOTE: Need a better function to identify pages, this lot is bad for CPU
 			this.page = '';
-			$('img', $('#app'+APPID+'_app_body')).each(function(i,el){
+			$('img', $('#app46755028429_app_body')).each(function(i,el){
 				var i, filename = $(el).attr('src').filepart();
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {

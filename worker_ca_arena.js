@@ -117,19 +117,19 @@ Arena.init = function() {
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
 		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
 	}
-	this._trigger('#app'+APPID+'_guild_token_current_value', 'tokens');
+	this._trigger('#app46755028429_guild_token_current_value', 'tokens');
 };
 
 Arena.parse = function(change) {
 	var now = Date.now(), tmp, i;
 	switch (Page.page) {
 		case 'index':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_arena_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_arena_token_current_value').text() || '0').regex(/(\d+)/));
 			break;
 		case 'battle_arena':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/(\d+)/));
-			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
-			tmp = $('#app'+APPID+'_arena_banner').next().next().text();
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
+			tmp = $('#app46755028429_arena_banner').next().next().text();
 			if (tmp.indexOf('Collect') !== -1) {
 				if (this.runtime.status === 'fight') {
 					this.set(['runtime','status'], 'collect');
@@ -154,15 +154,17 @@ Arena.parse = function(change) {
 			}
 			break;
 		case 'battle_arena_battle':
-			this.set(['runtime','tokens'], ($('#app'+APPID+'_guild_token_current_value').text() || '0').regex(/(\d+)/));
-			this._remind(($('#app'+APPID+'_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
+			} else if (this.runtime.status === 'collect') {
+				this.set(['runtime','status'], 'wait');
 			}
-			i = $('#app'+APPID+'_monsterTicker').text().parseTimer();
+			i = $('#app46755028429_monsterTicker').text().parseTimer();
 			this.set(['runtime','finish'], (i * 1000) + now);
 			this._remind(i, 'finish');
-			tmp = $('#app'+APPID+'_results_main_wrapper');
+			tmp = $('#app46755028429_results_main_wrapper');
 			if (tmp.length) {
 				i = tmp.text().regex(/\+(\d+) Battle Activity Points/i);
 				if (isNumber(i)) {
@@ -174,7 +176,7 @@ Arena.parse = function(change) {
 			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {
 				this.set(['data',this.runtime.last], true);
 			}
-			this.set(['runtime','stunned'], !!$('#app'+APPID+'_arena_battle_banner_section:contains("Status: Stunned")').length);
+			this.set(['runtime','stunned'], !!$('#app46755028429_arena_battle_banner_section:contains("Status: Stunned")').length);
 			break;
 	}
 };
@@ -194,25 +196,25 @@ Arena.update = function(event) {
 		}
 	}
 	if (event.type === 'trigger' && event.id === 'tokens') {
-		if ($('#app'+APPID+'_guild_token_current_value').length) {
-			this.set(['runtime','tokens'], $('#app'+APPID+'_guild_token_current_value').text().regex(/(\d+)/) || 0);
+		if ($('#app46755028429_guild_token_current_value').length) {
+			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);
 		}
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
 		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
 	}
-	if (this.runtime.tokens === 0) {
+	if (!this.runtime.tokens) {
 		this.set(['runtime','burn'], false);
-	} else if (this.runtime.tokens === 10) {
+	} else if (this.runtime.tokens >= 10 || (this.runtime.finish || 0) - this.option.safety <= now) {
 		this.set(['runtime','burn'], true);
 	}
 	this.set(['option','_sleep'],
 		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
-		&& !(this.runtime.status === 'fight'
-			&& ((this.option.tokens === 'min' && this.runtime.tokens)
-			|| (this.option.tokens === 'healthy' && this.runtime.tokens && !this.runtime.stunned)
-			|| ((this.option.tokens === 'max' || this.option.tokens === 'healthy') && (this.runtime.burn || (this.runtime.tokens && (this.runtime.finish || 0) - this.option.safety <= now)))))
+		&& !(this.runtime.status === 'fight' && this.runtime.tokens
+			&& (this.option.tokens === 'min'
+			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
+			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
 	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
 }
@@ -248,7 +250,7 @@ Arena.work = function(state) {
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#app'+APPID+'_enemy_guild_member_list_1 > div, #app'+APPID+'_enemy_guild_member_list_2 > div, #app'+APPID+'_enemy_guild_member_list_3 > div, #app'+APPID+'_enemy_guild_member_list_4 > div').each(function(i,el){
+					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) Arena Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
