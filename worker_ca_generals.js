@@ -15,6 +15,10 @@
 var Generals = new Worker('Generals');
 Generals.temp = null;
 
+Generals.settings = {
+	taint:true
+};
+
 Generals.defaults['castle_age'] = {
 	pages:'* heroes_generals'
 };

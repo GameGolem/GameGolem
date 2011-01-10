@@ -211,7 +211,7 @@ Worker.prototype._forget = function(id) {
 };
 
 Worker.prototype._get = function(what, def) { // 'path.to.data'
-	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []), data;
+	var x = isArray(what) ? what : isString(what) ? what.split('.') : [], data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -429,7 +429,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			break;
 		case false:
 			if (!compare(value, data[i])) {
-				this._notify(path.join('.'));// Notify the watchers...
+				this._notify(path);// Notify the watchers...
 				this._taint[path[0]] = true;
 				this._remind(0, '_update_'+path[0], {type:'save', id:path[0]});
 				data[i] = value;
@@ -444,7 +444,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 
 Worker.prototype._set = function(what, value) {
 //	this._push();
-	var x = isString(what) ? what.split('.') : (isArray(what) ? what : []);
+	var x = isArray(what) ? what : isString(what) ? what.split('.') : [];
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}

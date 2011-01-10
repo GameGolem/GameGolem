@@ -83,7 +83,7 @@ Land.init = function() {
 
 Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
-		var name = $('img', el).attr('alt'), tmp;
+		var name = $('img', el).attr('alt'), data = {}, tmp;
 		if (!change) {
 			// Fix for broken land page!!
 			if (!$('.land_buy_image_int', el).length) {
@@ -92,15 +92,12 @@ Land.parse = function(change) {
 			if (!$('.land_buy_info_int', el).length) {
 				$('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
 			}
-			Land.data[name] = {};
-			Land.data[name].income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			Land.data[name].max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
-			Land.data[name].cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			tmp = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value');
-			if (tmp) {
-				Land.data[name].buy = tmp;
-			}
-			Land.data[name].own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
+			data.income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
+			data.max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
+			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
+			data.buy = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value') || undefined;
+			data.own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
+			Land.set(['data','name'], data);
 		} else {
 			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
@@ -109,11 +106,10 @@ Land.parse = function(change) {
 };
 
 Land.update = function(event) {
-	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, buy = 0, cost_increase,time_limit;
+	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
 	
-	if (this.option.land_exp) {
-		$('input:golem(land,sell)').attr('checked',true);
-		this.option.sell = true;
+	if (event.type === 'option' && this.option.land_exp) {
+		this.set(['option','sell'], true);
 	}
 	
 	for (i in this.data) {
@@ -126,7 +122,9 @@ Land.update = function(event) {
 			break;
 		}
 		if (this.data[i].buy) {
-			if (!best || ((this.data[best].cost / income) + (this.data[i].cost / (income + this.data[best].income))) > ((this.data[i].cost / income) + (this.data[best].cost / (income + this.data[i].income)))) {
+			b_cost = this.data[best].cost;
+			i_cost = this.data[i].cost;
+			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;
 			}
 		}
@@ -160,13 +158,13 @@ Land.update = function(event) {
 				buy = Math.min(this.data[best].max - this.data[best].own, 10);
 			}
 		}
-		this.runtime.buy = buy;
-		this.runtime.cost = buy * this.data[best].cost; // May be negative if we're making money by selling
+		this.set(['runtime','buy'], buy);
+		this.set(['runtime','cost'], buy * this.data[best].cost); // May be negative if we're making money by selling
 		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
 	} else {
 		Dashboard.status(this);
 	}
-	this.runtime.best = best;
+	this.set(['runtime','best'], best);
 };
 
 Land.work = function(state) {
@@ -177,15 +175,15 @@ Land.work = function(state) {
 			}
 			this.runtime.lastlevel = Player.get('level');
 		}
-                if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
-                    Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
-                } else {
-                    Dashboard.status(this);
-                }
+		if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
+			Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
+		} else {
+			Dashboard.status(this);
+		}
 		return QUEUE_FINISH;
 	}
 	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
-                return QUEUE_CONTINUE;
+		return QUEUE_CONTINUE;
 	}
 //	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){

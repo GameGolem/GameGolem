@@ -140,14 +140,12 @@ Main.update = function(event) {
 		return $(this).filter(function(){return this.selected;});
 	};
 	// Now we're rolling
-	switch(browser) {
-		case 'chrome':	break;// Handled by extension code
-		case 'greasemonkey':
-			GM_addStyle(GM_getResourceText('stylesheet'));
-			break;
-		default:
-			$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
-			break;
+	if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
+		(function(){})(); // Handled by the extension itself
+	} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
+		GM_addStyle(GM_getResourceText('stylesheet'));
+	} else {
+		$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
 	}
 	for (i in Workers) {
 		Workers[i]._setup();

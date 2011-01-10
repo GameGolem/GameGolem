@@ -164,10 +164,7 @@ Config.init = function() {
 					val = parseFloat(val);
 				}
 			}
-			if (!compare(val, worker.option[tmp[1]])) { // only continue if they change
-				worker.set('option.'+tmp[1], val);
-				Config.checkRequire();
-			}
+			worker.set('option.'+tmp[1], val);
 		}
 	});
 	$('.golem-panel-header input').click(function(event){
