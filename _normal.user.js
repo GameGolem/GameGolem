@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.944
+// @version		31.5.945
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 944;
+var revision = 945;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4772,6 +4772,7 @@ Arena.option = {
 	tokens:'min',
 	safety:60000,
 	ignore:'',
+	limit:'',
 	cleric:false
 };
 
@@ -4841,10 +4842,16 @@ Arena.display = [
 		label:'Attack',
 		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
 	},{
+		advanced:true,
+		id:'limit',
+		label:'Limit Level',
+		text:true,
+		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
+	},{
 		id:'cleric',
  		label:'Attack Clerics First',
 		checkbox:true,
-		help:'This might help prevent the enemy from healing up again...'
+		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
 	},{
 		id:'defeat',
  		label:'Avoid Defeat',
@@ -5015,6 +5022,9 @@ Arena.work = function(state) {
 						if (Arena.option.defeat && Arena.data[target[0]]) {
 							return;
 						}
+						if (isNumber(Arena.option.limit) && target[1] > Player.get('level',0) + Arena.option.limit) {
+							return;
+						}
 						while (i--) {
 							if (target[0].indexOf(ignore[i]) >= 0) {
 								return;
@@ -5033,7 +5043,7 @@ Arena.work = function(state) {
 							}
 						}
 						if (Arena.option.cleric) {
-							cleric = target[2] === 'Cleric' && (!best || besttarget[2] !== 'Cleric');
+							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
 						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
