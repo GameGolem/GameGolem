@@ -71,7 +71,7 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -84,7 +84,7 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -162,7 +162,7 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
+	var i, j, value, last = null, list = [], data = this.data, x = isObject(what) ? what : isString(what) ? what.split('.') : [], hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
 	if (x.length && (isNumber(x[0]) || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}

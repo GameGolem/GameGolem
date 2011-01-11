@@ -563,7 +563,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, and = true, or = false, test = null, require = this.temp.require[id], doTest;
+	var i, j, path, show = true, value = false, value2 = null, test = null, op = null, require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
@@ -571,23 +571,20 @@ Config.checkRequire = function(id) {
 		return;
 	}
 	doTest = function() {
-		if (test) {
-			switch (test) {
-				case '>':	value = (value > value2);	break;
-				case '>=':	value = (value >= value2);	break;
-				case '=':
-				case '==':	value = (value === value2);	break;
-				case '<=':	value = (value <= value2);	break;
-				case '<':	value = (value < value2);	break;
-				case '!=':	value = (value !== value2);	break;
-			}
+		switch (test) {
+			case '>':	value = (value > value2);	break;
+			case '>=':	value = (value >= value2);	break;
+			case '=':
+			case '==':	value = (value === value2);	break;
+			case '<=':	value = (value <= value2);	break;
+			case '<':	value = (value < value2);	break;
+			case '!=':	value = (value !== value2);	break;
 		}
-		if (and) {
-			show = show && value;
-		} if (or) {
-			show = show || value;
+		switch (op) {
+			case '&':	show = show && value;		break;
+			case '|':	show = show || value;		break;
 		}
-		and = or = test = false;
+		op = test = null;
 	}
 	i = 0;
 	if (require[0] === 'advanced') {
@@ -607,12 +604,9 @@ Config.checkRequire = function(id) {
 			}
 		} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
 			test = require[i];
-		} else if (require[i] === '&') {
+		} else if (['&', '|'].indexOf(require[i]) >= 0) {
 			doTest();
-			and = true;
-		} else if (require[i] === '&') {
-			doTest();
-			or = true;
+			op = require[i];
 		} else {
 			value2 = require[i];
 		}

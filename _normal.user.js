@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.955
+// @version		31.5.956
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 955;
+var revision = 956;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2107,7 +2107,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, and = true, or = false, test = null, require = this.temp.require[id], doTest;
+	var i, j, path, show = true, value = false, value2 = null, test = null, op = null, require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
@@ -2115,23 +2115,20 @@ Config.checkRequire = function(id) {
 		return;
 	}
 	doTest = function() {
-		if (test) {
-			switch (test) {
-				case '>':	value = (value > value2);	break;
-				case '>=':	value = (value >= value2);	break;
-				case '=':
-				case '==':	value = (value === value2);	break;
-				case '<=':	value = (value <= value2);	break;
-				case '<':	value = (value < value2);	break;
-				case '!=':	value = (value !== value2);	break;
-			}
+		switch (test) {
+			case '>':	value = (value > value2);	break;
+			case '>=':	value = (value >= value2);	break;
+			case '=':
+			case '==':	value = (value === value2);	break;
+			case '<=':	value = (value <= value2);	break;
+			case '<':	value = (value < value2);	break;
+			case '!=':	value = (value !== value2);	break;
 		}
-		if (and) {
-			show = show && value;
-		} if (or) {
-			show = show || value;
+		switch (op) {
+			case '&':	show = show && value;		break;
+			case '|':	show = show || value;		break;
 		}
-		and = or = test = false;
+		op = test = null;
 	}
 	i = 0;
 	if (require[0] === 'advanced') {
@@ -2151,12 +2148,9 @@ Config.checkRequire = function(id) {
 			}
 		} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
 			test = require[i];
-		} else if (require[i] === '&') {
+		} else if (['&', '|'].indexOf(require[i]) >= 0) {
 			doTest();
-			and = true;
-		} else if (require[i] === '&') {
-			doTest();
-			or = true;
+			op = require[i];
 		} else {
 			value2 = require[i];
 		}
@@ -2741,7 +2735,7 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -2754,7 +2748,7 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []);
+	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -2832,7 +2826,7 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
+	var i, j, value, last = null, list = [], data = this.data, x = isObject(what) ? what : isString(what) ? what.split('.') : [], hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
 	if (x.length && (isNumber(x[0]) || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
