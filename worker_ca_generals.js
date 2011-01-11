@@ -195,7 +195,7 @@ Generals.to = function(name) {
 		console.log(warn('General "'+name+'" requested but not found!'));
 		return true; // Not found, so fake it
 	}
-	if (!Generals.test(name)) {
+	if (!this.test(name)) {
 		console.log(log('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name));
 		return true;
 	}

@@ -97,7 +97,7 @@ String.prototype.regex = function(r) {
 	if (a) {
 		if (r.global) {
 			if (/\(.*\)/.test(r.source)) {
-				rx = new RegExp(r.source, (r.ignoreCase && 'i') + (r.multiline && 'm'));
+				rx = new RegExp(r.source, (r.ignoreCase ? 'i' : '') + (r.multiline ? 'm' : ''));
 			}
 		} else {
 			a.shift();

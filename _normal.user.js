@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.952
+// @version		31.5.953
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 952;
+var revision = 953;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -142,7 +142,7 @@ String.prototype.regex = function(r) {
 	if (a) {
 		if (r.global) {
 			if (/\(.*\)/.test(r.source)) {
-				rx = new RegExp(r.source, (r.ignoreCase && 'i') + (r.multiline && 'm'));
+				rx = new RegExp(r.source, (r.ignoreCase ? 'i' : '') + (r.multiline ? 'm' : ''));
 			}
 		} else {
 			a.shift();
@@ -6403,7 +6403,7 @@ Generals.to = function(name) {
 		console.log(warn('General "'+name+'" requested but not found!'));
 		return true; // Not found, so fake it
 	}
-	if (!Generals.test(name)) {
+	if (!this.test(name)) {
 		console.log(log('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name));
 		return true;
 	}
