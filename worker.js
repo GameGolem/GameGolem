@@ -334,7 +334,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var name = this.name, fn, timer;
+	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
@@ -342,18 +342,14 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	} else {
 		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
 	}
-	timer = window.setInterval(fn, seconds * 1000);
-	if (id) {
-		if (this._reminders['i' + id]) {
-			window.clearInterval(this._reminders['i' + id]);
-		}
-		this._reminders['i' + id] = timer;
+	if (id && this._reminders['i' + id]) {
+		window.clearInterval(this._reminders['i' + id]);
 	}
-	return timer;
+	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(0, seconds) * 1000));
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var name = this.name, fn, timer;
+	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
@@ -361,14 +357,10 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	} else {
 		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
 	}
-	timer = window.setTimeout(fn, seconds * 1000);
-	if (id) {
-		if (this._reminders['t' + id]) {
-			window.clearTimeout(this._reminders['t' + id]);
-		}
-		this._reminders['t' + id] = timer;
+	if (id && this._reminders['t' + id]) {
+		window.clearTimeout(this._reminders['t' + id]);
 	}
-	return timer;
+	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(0, seconds) * 1000));
 };
 
 Worker.prototype._replace = function(type, data) {

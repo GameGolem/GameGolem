@@ -362,17 +362,17 @@ Config.makeOptions = function(worker, args) {
 		try {
 			return this.makeOptions(worker, args.call(worker));
 		} catch(e) {
-			console.log(warn(), e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
+			console.log(warn(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message));
 		}
 	} else {
-		console.log(warn(), Worker.stack[0]+' is trying to add an unknown type of option');
+		console.log(error(worker.name+' is trying to add an unknown type of option: '+(typeof args)));
 	}
 	return $([]);
 };
 
 Config.makeOption = function(worker, args) {
 	var i, o, r, step, $option, txt = [], list = [];
-	o = $.extend(true, {}, {
+	o = $.extend({}, {
 		before: '',
 		after: '',
 		suffix: '',

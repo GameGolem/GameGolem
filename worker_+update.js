@@ -101,7 +101,6 @@ Update.init = function() {
 		this.set(['runtime','installed'], Date.now());
 		this.set(['runtime','current'], version + revision);
 	}
-	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 };
 
 Update.checkVersion = function(force) {
@@ -125,8 +124,17 @@ Update.checkVersion = function(force) {
 4. Set a reminder if there isn't
 */
 Update.update = function(event) {
-	if (Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+	if (event.type === 'reminder') {
 		this.checkVersion(false);
+	}
+	if (event.type === 'init' || event.type === 'reminder') {
+		var now = Date.now(), age = (now - this.runtime.installed) / 1000, time = (now - this.runtime.lastcheck) / 1000;
+		if (age <= 21600) {time += 3600;}		// Every hour for 6 hours
+		else if (age <= 64800) {time += 7200;}	// Every 2 hours for another 12 hours (18 total)
+		else if (age <= 129600) {time += 10800;}// Every 3 hours for another 18 hours (36 total)
+		else if (age <= 216000) {time += 14400;}// Every 4 hours for another 24 hours (60 total)
+		else {time += 21600;}					// Every 6 hours normally
+		this._remind(Math.max(0, time), 'check');
 	}
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
 		console.log(log(), 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);

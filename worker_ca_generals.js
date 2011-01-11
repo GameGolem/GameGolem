@@ -110,44 +110,44 @@ Generals.update = function(event) {
 		}
 		for (i in data) {
 			skillcombo = data[i].skills + (data[i].weaponbonus || '');
-			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
-			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
-				+ sum(data[i].skills.numregex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
-				+ (sum(data[i].skills.numregex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
+			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.regex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
+				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
+				+ (sum(data[i].skills.regex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
 			attack = (Player.get('attack') + attack_bonus
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			defend = (Player.get('defense') + defense_bonus
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
 			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
-			army = Math.min(Player.get('armymax'),(sum(skillcombo.numregex(/Increases? Army Limit to (\d+)/gi)) || 501));
+			army = Math.min(Player.get('armymax'),(sum(skillcombo.regex(/Increases? Army Limit to (\d+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = sum(skillcombo.numregex(/Increase Player Attack when Defending by ([-+]?\d+)/gi));
-			def_when_att = sum(skillcombo.numregex(/([-+]?\d+) Defense when attacked/gi));
+			att_when_att = sum(skillcombo.regex(/Increase Player Attack when Defending by ([-+]?\d+)/gi));
+			def_when_att = sum(skillcombo.regex(/([-+]?\d+) Defense when attacked/gi));
 			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
-			monster_att = sum(skillcombo.numregex(/([-+]?\d+) Monster attack/gi));
-			monster_multiplier = 1.1 + sum(skillcombo.numregex(/([-+]?\d+)% Critical/gi))/100;
-			if ((pa = sum(skillcombo.numregex(/Increase Power Attacks by (\d+)/gi)))) {
+			monster_att = sum(skillcombo.regex(/([-+]?\d+) Monster attack/gi));
+			monster_multiplier = 1.1 + sum(skillcombo.regex(/([-+]?\d+)% Critical/gi))/100;
+			if ((pa = sum(skillcombo.regex(/Increase Power Attacks by (\d+)/gi)))) {
 				this.set(['runtime','multipliers',i], pa);
 			}
-			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?\d+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?\d+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?\d+) defense/gi)), 10) : 0);
+			current_att = data[i].att + parseInt(sum(data[i].skills.regex(/'s Attack by ([-+]?\d+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.regex(/([-+]?\d+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.regex(/([-+]?\d+) defense/gi)), 10) : 0);
 //			console.log(warn(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?\d+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?\d+) attack/gi) || 0))));
 			this.set(['data',i,'invade'], {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			});
 			this.set(['data',i,'stats'], {
-				stamina: sum(skillcombo.numregex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
-				energy:	sum(skillcombo.numregex(/Increase Max Energy by (\d+)|([-+]?\d+) Max Energy/gi))
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
+				stamina: sum(skillcombo.regex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
+						- (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
+				energy:	sum(skillcombo.regex(/Increase Max Energy by (\d+)|([-+]?\d+) Max Energy/gi))
+						- (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			});
 			this.set(['data',i,'duel'], {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
@@ -158,7 +158,7 @@ Generals.update = function(event) {
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			});
 /*			if (i === 'Xira' || i === 'Slayer') {
-				console.log(warn(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?\d+\.?\d*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend));
+				console.log(warn(i +' skillcombo:'+skillcombo+' regex'+sum(data[i].skills.regex(/Increase Player Defense  by ([-+]?\d+\.?\d*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend));
 			}
 */
 			this.set(['data',i,'potential'], {
@@ -245,7 +245,7 @@ Generals.best = function(type) {
 	default:  return 'any';
 	}
 	if (rx) {
-		value = function(g) { return sum(g.skills.numregex(rx)); };
+		value = function(g) { return sum(g.skills.regex(rx)); };
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.949
+// @version		31.5.950
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 949;
+var revision = 950;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -138,43 +138,28 @@ String.prototype.pathpart = function() {
 };
 
 String.prototype.regex = function(r) {
-	var a = this.match(r), i;
+	var a = this.match(r), i, rx;
 	if (a) {
-		!r.global && a.shift();
-		for (i=0; i<a.length; i++) {
-			if (a[i] && a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
-				a[i] = parseFloat(a[i].replace('+',''));
+		if (r.global) {
+			if (/\(.*\)/.test(r.source)) {
+				rx = new RegExp(r.source, (r.ignoreCase && 'i') + (r.multiline && 'm'));
 			}
+		} else {
+			a.shift();
 		}
-		if (a.length===1) {
-			return a[0];
-		}
-	}
-	return a;
-};
-
-String.prototype.numregex = function(r) {
-	var a = this.match(r), i, parens = RegExp.lastParen.length;
-	if (a) {
-		!r.global && a.shift();
-		for (i=0; i<a.length; i++) {
+		i = a.length;
+		while (i--) {
 			if (a[i]) {
-//				if (parens) {
-					a[i].match(r);
-					if (RegExp.$1) {
-						a[i] = RegExp.$1;
-					} else if (RegExp.$2) {
-						a[i] = RegExp.$2;
-					} else if (RegExp.$3) {
-						a[i] = RegExp.$3;
-					} else if (RegExp.$4) {
-						a[i] = RegExp.$4;
+				if (rx) {
+					a[i] = arguments.callee.call(a[i], rx);
+				} else {
+					if (a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
+						a[i] = parseFloat(a[i]);
 					}
-//				}
-				a[i] = (isNumber(parseFloat(a[i])) ? parseFloat(a[i]) : a[i]);
+				}
 			}
 		}
-		if (a.length===1) {
+		if (a.length === 1) {
 			return a[0];
 		}
 	}
@@ -275,10 +260,12 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 var length = function(obj) { // Find the number of entries in an object (also works on arrays)
 	if (isArray(obj)) {
 		return obj.length;
-	} else if (typeof obj === 'object') {
+	} else if (isObject(obj)) {
 		var l = 0, i;
 		for(i in obj) {
-			l++;
+			if (obj.hasOwnProperty(i)) {
+				l++;
+			}
 		}
 		return l;
 	}
@@ -288,13 +275,15 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 var empty = function(x) { // Tests whether an object is empty (also useable for other types)
 	if (x === undefined || !x) {
 		return true;
-	} else if (typeof x === 'object') {
+	} else if (isObject(x)) {
 		for (var i in x) {
 			if (x.hasOwnProperty(i)) {
 				return false;
 			}
 		}
 		return true;
+	} else if (isArray(x)) {
+		return x.length === 0;
 	}
 	return false;
 };
@@ -323,16 +312,16 @@ var sum = function(a) { // Adds the values of all array entries together
 	if (isArray(a)) {
 		i = a.length;
 		while(i--) {
-			t += sum(a[i]);
+			t += arguments.callee(a[i]);
 		}
 	} else if (isObject(a)) {
 		for(i in a) {
-			t += sum(a[i]);
+			t += arguments.callee(a[i]);
 		}
 	} else if (isNumber(a)) {
-		t = a;
+		return a;
 	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d*$/) >= 0) {
-		t = parseFloat(a);
+		return parseFloat(a);
 	}
 	return t;
 };
@@ -355,8 +344,10 @@ var compare = function(left, right) {
 			}
 		}else {
 			for (i in left) {
-				if (!compare(left[i], right[i])) {
-					return false;
+				if (left.hasOwnProperty(i) && right.hasOwnProperty(i)) {
+					if (!compare(left[i], right[i])) {
+						return false;
+					}
 				}
 			}
 		}
@@ -391,7 +382,7 @@ var findInObject = function(list, value) {
 };
 
 var objectIndex = function(list, index) {
-	if (typeof list === 'object') {
+	if (isObject(list)) {
 		for (var i in list) {
 			if (index-- <= 0) {
 				return i;
@@ -407,7 +398,9 @@ var sortObject = function(obj, sortfunc, deep) {
 		deep = false;
 	}
 	for (i in obj) {
-		list.push(i);
+		if (obj.hasOwnProperty(i)) {
+			list.push(i);
+		}
 	}
 	list.sort(sortfunc ? sortfunc : function(a,b){return b-a;});
 	for (i=0; i<list.length; i++) {
@@ -594,10 +587,11 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	return JSON.stringify((function(o,d) {
 		var i, out;
 		if (o && typeof o === 'object') {
-			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
+			if (isArray(o)) {
 				if (d > 0) {
 					out = [];
-					for (i=0; i<o.length; i++) {
+					i = o.length;
+					while (i--) {
 						out[i] = arguments.callee(o[i],d-1);
 					}
 				} else {
@@ -971,7 +965,7 @@ Worker.prototype._push = function() {
 };
 
 Worker.prototype._revive = function(seconds, id, callback) {
-	var name = this.name, fn, timer;
+	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
@@ -979,18 +973,14 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	} else {
 		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
 	}
-	timer = window.setInterval(fn, seconds * 1000);
-	if (id) {
-		if (this._reminders['i' + id]) {
-			window.clearInterval(this._reminders['i' + id]);
-		}
-		this._reminders['i' + id] = timer;
+	if (id && this._reminders['i' + id]) {
+		window.clearInterval(this._reminders['i' + id]);
 	}
-	return timer;
+	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(0, seconds) * 1000));
 };
 
 Worker.prototype._remind = function(seconds, id, callback) {
-	var name = this.name, fn, timer;
+	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
@@ -998,14 +988,10 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	} else {
 		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
 	}
-	timer = window.setTimeout(fn, seconds * 1000);
-	if (id) {
-		if (this._reminders['t' + id]) {
-			window.clearTimeout(this._reminders['t' + id]);
-		}
-		this._reminders['t' + id] = timer;
+	if (id && this._reminders['t' + id]) {
+		window.clearTimeout(this._reminders['t' + id]);
 	}
-	return timer;
+	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(0, seconds) * 1000));
 };
 
 Worker.prototype._replace = function(type, data) {
@@ -1921,17 +1907,17 @@ Config.makeOptions = function(worker, args) {
 		try {
 			return this.makeOptions(worker, args.call(worker));
 		} catch(e) {
-			console.log(warn(), e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
+			console.log(warn(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message));
 		}
 	} else {
-		console.log(warn(), Worker.stack[0]+' is trying to add an unknown type of option');
+		console.log(error(worker.name+' is trying to add an unknown type of option: '+(typeof args)));
 	}
 	return $([]);
 };
 
 Config.makeOption = function(worker, args) {
 	var i, o, r, step, $option, txt = [], list = [];
-	o = $.extend(true, {}, {
+	o = $.extend({}, {
 		before: '',
 		after: '',
 		suffix: '',
@@ -3032,13 +3018,11 @@ Main.settings = {
 
 Main._apps_ = {};
 Main._retry_ = 0;
+Main._jQuery_ = false; // Only set if we're loading it
 
 // Use this function to add more applications, "app" must be the pathname of the app under facebook.com, appid is the facebook app id, appname is the human readable name
 Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
-};
-
-Main.setup = function() {
 };
 
 Main.parse = function() {
@@ -3054,24 +3038,23 @@ Main.update = function(event) {
 	if (event.id !== 'startup') {
 		return;
 	}
-	if (typeof $ === 'undefined') {
-		var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
-		a.type = b.type = 'text/javascript';
-		a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
-		b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
-		head.appendChild(a);
-		head.appendChild(b);
-		console.log(log(), 'Loading jQuery & jQueryUI');
-		(function() {
-//				console.log(log(), '...loading...');
-			if (typeof window.jQuery === 'undefined') {
-				window.setTimeout(arguments.callee, 1000);
-			} else {
-				console.log('jQuery Loaded...');
-				Main._remind(0.1, 'startup');
-			}
-		})();
-		return;
+	// Let's get jQuery running
+	if (!$ || !$.support || !$.ui) {
+		if (!this._jQuery_) {
+			var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
+			a.type = b.type = 'text/javascript';
+			a.src = 'http://cloutman.com/jquery-latest.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+			b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
+			head.appendChild(a);
+			head.appendChild(b);
+			console.log('GameGolem: Loading jQuery & jQueryUI');
+			this._jQuery_ = true;
+		}
+		if (!(unsafeWindow || window).jQuery || !(unsafeWindow || window).jQuery.support || !(unsafeWindow || window).jQuery.ui) {
+			this._remind(0.1, 'startup');
+			return;
+		}
+		$ = jQuery = (window || unsafeWindow).jQuery.noConflict(true);
 	}
 	// Identify Application
 	var i;
@@ -4573,7 +4556,6 @@ Update.init = function() {
 		this.set(['runtime','installed'], Date.now());
 		this.set(['runtime','current'], version + revision);
 	}
-	this._remind(Math.max(0, (21600000 - (Date.now() - this.runtime.lastcheck)) / 1000), 'check');// 6 hours max
 };
 
 Update.checkVersion = function(force) {
@@ -4597,8 +4579,17 @@ Update.checkVersion = function(force) {
 4. Set a reminder if there isn't
 */
 Update.update = function(event) {
-	if (Date.now() - this.runtime.lastcheck > 21600000) {// 6+ hours since last check (60x60x6x1000ms)
+	if (event.type === 'reminder') {
 		this.checkVersion(false);
+	}
+	if (event.type === 'init' || event.type === 'reminder') {
+		var now = Date.now(), age = (now - this.runtime.installed) / 1000, time = (now - this.runtime.lastcheck) / 1000;
+		if (age <= 21600) {time += 3600;}		// Every hour for 6 hours
+		else if (age <= 64800) {time += 7200;}	// Every 2 hours for another 12 hours (18 total)
+		else if (age <= 129600) {time += 10800;}// Every 3 hours for another 18 hours (36 total)
+		else if (age <= 216000) {time += 14400;}// Every 4 hours for another 24 hours (60 total)
+		else {time += 21600;}					// Every 6 hours normally
+		this._remind(Math.max(0, time), 'check');
 	}
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
 		console.log(log(), 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
@@ -5583,7 +5574,7 @@ Battle.init = function() {
 
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
-	rank = Player.get('rank') || 0;
+	rank = Player.get('rank',0);
 	if (rank < 4) {
 		for (i = rank - 4; i < 0; i++) {
 			list[i] = '(' + i + ') ' + this.data.rank[0];
@@ -5661,7 +5652,7 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
-		myrank = Player.get('rank');
+		myrank = Player.get('rank',0);
 		$('#app46755028429_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i);
 			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
@@ -5695,8 +5686,8 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
+	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
@@ -5829,8 +5820,8 @@ Battle.update = function(event) {
 */
 Battle.work = function(state) {
 	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
-	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
-//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
+	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
+//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
@@ -5860,7 +5851,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army'), level = Player.get('level');
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -5887,7 +5878,7 @@ Battle.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.data.rank[Player.get('rank')].name + ' (' + Player.get('rank') + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data.rank && this.data.rank[Player.get('rank',0)] ? this.data.rank[Player.get('rank',0)].name : 'unknown') + ' (' + Player.get('rank',0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
 		list.push(' <img class="golem-image" src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
@@ -6328,44 +6319,44 @@ Generals.update = function(event) {
 		}
 		for (i in data) {
 			skillcombo = data[i].skills + (data[i].weaponbonus || '');
-			attack_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.numregex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
-			defense_bonus = Math.floor(sum(skillcombo.numregex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
-				+ sum(data[i].skills.numregex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
-				+ (sum(data[i].skills.numregex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
+			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.regex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
+			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
+				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
+				+ (sum(data[i].skills.regex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
 			attack = (Player.get('attack') + attack_bonus
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			defend = (Player.get('defense') + defense_bonus
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
+						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
 			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
 			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
-			army = Math.min(Player.get('armymax'),(sum(skillcombo.numregex(/Increases? Army Limit to (\d+)/gi)) || 501));
+			army = Math.min(Player.get('armymax'),(sum(skillcombo.regex(/Increases? Army Limit to (\d+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
-			att_when_att = sum(skillcombo.numregex(/Increase Player Attack when Defending by ([-+]?\d+)/gi));
-			def_when_att = sum(skillcombo.numregex(/([-+]?\d+) Defense when attacked/gi));
+			att_when_att = sum(skillcombo.regex(/Increase Player Attack when Defending by ([-+]?\d+)/gi));
+			def_when_att = sum(skillcombo.regex(/([-+]?\d+) Defense when attacked/gi));
 			att_when_att_potential = (att_when_att * 4) / data[i].level;	// Approximation
 			def_when_att_potential = (def_when_att * 4) / data[i].level;	// Approximation
-			monster_att = sum(skillcombo.numregex(/([-+]?\d+) Monster attack/gi));
-			monster_multiplier = 1.1 + sum(skillcombo.numregex(/([-+]?\d+)% Critical/gi))/100;
-			if ((pa = sum(skillcombo.numregex(/Increase Power Attacks by (\d+)/gi)))) {
+			monster_att = sum(skillcombo.regex(/([-+]?\d+) Monster attack/gi));
+			monster_multiplier = 1.1 + sum(skillcombo.regex(/([-+]?\d+)% Critical/gi))/100;
+			if ((pa = sum(skillcombo.regex(/Increase Power Attacks by (\d+)/gi)))) {
 				this.set(['runtime','multipliers',i], pa);
 			}
-			current_att = data[i].att + parseInt(sum(data[i].skills.numregex(/'s Attack by ([-+]?\d+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?\d+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
-			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.numregex(/([-+]?\d+) defense/gi)), 10) : 0);
+			current_att = data[i].att + parseInt(sum(data[i].skills.regex(/'s Attack by ([-+]?\d+)/gi)), 10) + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.regex(/([-+]?\d+) attack/gi)), 10) : 0);	// Need to grab weapon bonuses without grabbing Serene's skill bonus
+			current_def = data[i].def + (typeof data[i].weaponbonus !== 'undefined' ? parseInt(sum(data[i].weaponbonus.regex(/([-+]?\d+) defense/gi)), 10) : 0);
 //			console.log(warn(i + ' attack: ' + current_att + ' = ' + data[i].att + ' + ' + parseInt((data[i].skills.regex(/'s Attack by ([-+]?\d+)/gi) || 0)) + ' + ' + parseInt((data[i].weaponbonus.regex(/([-+]?\d+) attack/gi) || 0))));
 			this.set(['data',i,'invade'], {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			});
 			this.set(['data',i,'stats'], {
-				stamina: sum(skillcombo.numregex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
-				energy:	sum(skillcombo.numregex(/Increase Max Energy by (\d+)|([-+]?\d+) Max Energy/gi))
-						- (sum(skillcombo.numregex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
-						+ (sum(skillcombo.numregex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
+				stamina: sum(skillcombo.regex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
+						- (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100).round(0),
+				energy:	sum(skillcombo.regex(/Increase Max Energy by (\d+)|([-+]?\d+) Max Energy/gi))
+						- (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			});
 			this.set(['data',i,'duel'], {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
@@ -6376,7 +6367,7 @@ Generals.update = function(event) {
 				def: Math.floor(duel.defend + current_def + defend) // Fortify, so no def_when_att
 			});
 /*			if (i === 'Xira' || i === 'Slayer') {
-				console.log(warn(i +' skillcombo:'+skillcombo+' numregex'+sum(data[i].skills.numregex(/Increase Player Defense  by ([-+]?\d+\.?\d*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend));
+				console.log(warn(i +' skillcombo:'+skillcombo+' regex'+sum(data[i].skills.regex(/Increase Player Defense  by ([-+]?\d+\.?\d*) for every 3 Health/gi))+' attack:'+attack+' defend:'+defend));
 			}
 */
 			this.set(['data',i,'potential'], {
@@ -6463,7 +6454,7 @@ Generals.best = function(type) {
 	default:  return 'any';
 	}
 	if (rx) {
-		value = function(g) { return sum(g.skills.numregex(rx)); };
+		value = function(g) { return sum(g.skills.regex(rx)); };
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {
@@ -6666,7 +6657,7 @@ Gift.init = function() {
 Gift.parse = function(change) {
 	if (change) {
 		if (change === 'facebook') {
-			console.log(warn(), 'Facebook popup parsed...');
+			console.log(warn('Facebook popup parsed...'));
 		}
 		return false;
 	}
@@ -6674,19 +6665,19 @@ Gift.parse = function(change) {
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {
 		// We need to get the image of the gift from the index page.
-//		console.log(warn(), 'Checking for a waiting gift and getting the id of the gift.');
+//		console.log(warn('Checking for a waiting gift and getting the id of the gift.'));
 		if ($('span.result_body').text().indexOf('has sent you a gift') >= 0) {
 			this.runtime.gift.sender_ca_name = $('span.result_body').text().regex(/[\t\n]*(.+) has sent you a gift/i);
 			this.runtime.gift.name = $('span.result_body').text().regex(/has sent you a gift:\s+(.+)!/i);
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
-			console.log(warn(), this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
+			console.log(warn(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')'));
 			this.runtime.gift_waiting = true;
 			return true;
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
-			console.log(warn(), this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
+			console.log(warn(this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.'));
 			this.runtime.gift_waiting = true;
 			return true;
 		} else {
@@ -6699,38 +6690,38 @@ Gift.parse = function(change) {
 //		console.log(warn(), 'Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
 			if ($('div.game').text().indexOf('accepted the gift') >= 0 || $('div.game').text().indexOf('have been awarded the gift') >= 0) { // and we have just accepted a gift
-				console.log(warn(), 'Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+				console.log(warn('Accepted ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')'));
 				received.push(this.runtime.gift); // add the gift to our list of received gifts.  We will use this to clear facebook notifications and possibly return gifts
 				this.runtime.work = true;	// We need to clear our facebook notifications and/or return gifts
 				this.runtime.gift = {}; // reset our runtime gift tracker
 			}
 		}
 		// Check for gifts
-//		console.log(warn(), 'Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
+//		console.log(warn('Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.'));
 		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
 			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
 				return false;	// let the work function send us to the index page to get the info.
 			}
-//			console.log(warn(), 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
+//			console.log(warn('Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title')));
 			this.runtime.gift.sender_id = $('div.messages img[uid]').first().attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
 			if (this.runtime.gift.sender_id) {
 				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
-//				console.log(warn(), 'Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
+//				console.log(warn('Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')'));
 			} else {
-				console.log(log(), "Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+				console.log(log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id));
 			}
 		} else {
-//			console.log(warn(), 'No more waiting gifts. Did we miss the gift accepted page?');
+//			console.log(warn('No more waiting gifts. Did we miss the gift accepted page?'));
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	
 	} else if (Page.page === 'gift_accept'){
 		// Check for sent
-//		console.log(warn(), 'Checking for sent gifts.');
+//		console.log(warn('Checking for sent gifts.'));
 		if (this.runtime.sent_id && $('div#app46755028429_results_main_wrapper').text().indexOf('You have sent') >= 0) {
-			console.log(warn(), gifts[this.runtime.sent_id].name+' sent.');
+			console.log(warn(gifts[this.runtime.sent_id].name+' sent.'));
 			for (j=todo[this.runtime.sent_id].length-1; j >= Math.max(todo[this.runtime.sent_id].length - 30, 0); j--) {	// Remove the IDs from the list because we have sent them
 				todo[this.runtime.sent_id].pop();
 			}
@@ -6757,7 +6748,7 @@ Gift.parse = function(change) {
 		}
 	} else {
 		if ($('div.result').text().indexOf('have exceed') !== -1){
-			console.log(warn(), 'We have run out of gifts to send.  Waiting one hour to retry.');
+			console.log(warn('We have run out of gifts to send.  Waiting one hour to retry.'));
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 		}
 	}
@@ -6795,7 +6786,7 @@ Gift.work = function(state) {
 		if (!Page.to('army_invite')) {
 			return QUEUE_CONTINUE;
 		}
-//		console.log(warn(), 'Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')');
+//		console.log(warn('Accepting ' + this.runtime.gift.name + ' from ' + this.runtime.gift.sender_ca_name + '(id:' + this.runtime.gift.sender_id + ')'));
 		if (!Page.to('army_invite', {act:'acpt', rqtp:'gift', uid:this.runtime.gift.sender_id}) || this.runtime.gift.sender_id.length > 0) {	// Shortcut to accept gifts without going through Facebook's confirmation page
 			return QUEUE_CONTINUE;
 		}
@@ -6816,7 +6807,7 @@ Gift.work = function(state) {
 		for (i = received.length - 1; i >= 0; i--){
 			temptype = this.option.type;
 			if (typeof this.data.gifts[received[i].id] === 'undefined' && this.option.type !== 'None') {
-				console.log(warn(), received[i].id+' was not found in our sendable gift list.');
+				console.log(warn(received[i].id+' was not found in our sendable gift list.'));
 				temptype = 'Random';
 			}
 			switch(temptype) {
@@ -6827,7 +6818,7 @@ Gift.work = function(state) {
 							gift_ids.push(j);
 						}
 						random_gift_id = Math.floor(Math.random() * gift_ids.length);
-						console.log(warn(), 'Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name);
+						console.log(warn('Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' to ' + received[i].sender_ca_name));
 						if (!todo[gift_ids[random_gift_id]]) {
 							todo[gift_ids[random_gift_id]] = [];
 						}
@@ -6836,7 +6827,7 @@ Gift.work = function(state) {
 					this.runtime.work = true;
 					break;
 				case 'Same as Received':
-					console.log(warn(), 'Will return a ' + received[i].name + ' to ' + received[i].sender_ca_name);
+					console.log(warn('Will return a ' + received[i].name + ' to ' + received[i].sender_ca_name));
 					if (!todo[received[i].id]) {
 						todo[received[i].id] = [];
 					}
@@ -6862,12 +6853,12 @@ Gift.work = function(state) {
 	}
 	
 	if (this.runtime.gift_sent > Date.now()) {	// We have sent gift(s) and are waiting for the fb popup
-//		console.log(warn(), 'Waiting for FB popup.');
+//		console.log(warn('Waiting for FB popup.'));
 		if ($('div.dialog_buttons input[name="sendit"]').length){
 			this.runtime.gift_sent = null;
 			Page.click('div.dialog_buttons input[name="sendit"]');
 		} else if ($('span:contains("Out of requests")').text().indexOf('Out of requests') >= 0) {
-			console.log(warn(), 'We have run out of gifts to send.  Waiting one hour to retry.');
+			console.log(warn('We have run out of gifts to send.  Waiting one hour to retry.'));
 			this.runtime.gift_delay = Date.now() + 3600000;	// Wait an hour and try to send again.
 			Page.click('div.dialog_buttons input[name="ok"]');
 		}
@@ -6908,7 +6899,7 @@ Gift.work = function(state) {
 					gift_ids.push(j);
 				}
 				random_gift_id = Math.floor(Math.random() * gift_ids.length);
-				console.log(warn(), 'Unavaliable gift ('+i+') found in todo list. Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' instead.');
+				console.log(warn('Unavaliable gift ('+i+') found in todo list. Will randomly send a ' + this.data.gifts[gift_ids[random_gift_id]].name + ' instead.'));
 				if (!todo[gift_ids[random_gift_id]]) {
 					todo[gift_ids[random_gift_id]] = [];
 				}
@@ -6921,12 +6912,12 @@ Gift.work = function(state) {
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length){
 				if ($('img[src*="gift_invite_castle_on"]').length){
 					if ($('div.unselected_list').children().length) {
-						console.log(warn(), 'Sending out ' + this.data.gifts[i].name);
+						console.log(warn('Sending out ' + this.data.gifts[i].name));
 						k = 0;
 						for (j=todo[i].length-1; j>=0; j--) {
 							if (k< 10) {	// Need to limit to 10 at a time
 								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
-//									console.log(warn(), 'User '+todo[i][j]+' wasn\'t in the CA friend list.');
+//									console.log(warn('User '+todo[i][j]+' wasn\'t in the CA friend list.'));
 									continue;
 								}
 								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');

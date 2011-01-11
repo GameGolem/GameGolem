@@ -198,7 +198,7 @@ Battle.init = function() {
 
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
-	rank = Player.get('rank') || 0;
+	rank = Player.get('rank',0);
 	if (rank < 4) {
 		for (i = rank - 4; i < 0; i++) {
 			list[i] = '(' + i + ') ' + this.data.rank[0];
@@ -276,7 +276,7 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
-		myrank = Player.get('rank');
+		myrank = Player.get('rank',0);
 		$('#app46755028429_app_body table.layout table table tr:even').each(function(i,el){
 			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i);
 			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
@@ -310,8 +310,8 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army'), level = Player.get('level'), rank = Player.get('rank'), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + Player.get('rank') + ' ' + (Player.get('rank') && this.data.rank[Player.get('rank')].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
+	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
@@ -444,8 +444,8 @@ Battle.update = function(event) {
 */
 Battle.work = function(state) {
 	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
-	if (!this.runtime.attacking || Player.get('health') < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
-//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health') + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
+	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
+//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
@@ -475,7 +475,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army'), level = Player.get('level');
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -502,7 +502,7 @@ Battle.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + this.data.rank[Player.get('rank')].name + ' (' + Player.get('rank') + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data.rank && this.data.rank[Player.get('rank',0)] ? this.data.rank[Player.get('rank',0)].name : 'unknown') + ' (' + Player.get('rank',0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
 		list.push(' <img class="golem-image" src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}

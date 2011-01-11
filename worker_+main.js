@@ -19,13 +19,11 @@ Main.settings = {
 
 Main._apps_ = {};
 Main._retry_ = 0;
+Main._jQuery_ = false; // Only set if we're loading it
 
 // Use this function to add more applications, "app" must be the pathname of the app under facebook.com, appid is the facebook app id, appname is the human readable name
 Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
-};
-
-Main.setup = function() {
 };
 
 Main.parse = function() {
@@ -41,24 +39,23 @@ Main.update = function(event) {
 	if (event.id !== 'startup') {
 		return;
 	}
-	if (typeof $ === 'undefined') {
-		var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
-		a.type = b.type = 'text/javascript';
-		a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
-		b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
-		head.appendChild(a);
-		head.appendChild(b);
-		console.log(log(), 'Loading jQuery & jQueryUI');
-		(function() {
-//				console.log(log(), '...loading...');
-			if (typeof window.jQuery === 'undefined') {
-				window.setTimeout(arguments.callee, 1000);
-			} else {
-				console.log('jQuery Loaded...');
-				Main._remind(0.1, 'startup');
-			}
-		})();
-		return;
+	// Let's get jQuery running
+	if (!$ || !$.support || !$.ui) {
+		if (!this._jQuery_) {
+			var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
+			a.type = b.type = 'text/javascript';
+			a.src = 'http://cloutman.com/jquery-latest.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+			b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
+			head.appendChild(a);
+			head.appendChild(b);
+			console.log('GameGolem: Loading jQuery & jQueryUI');
+			this._jQuery_ = true;
+		}
+		if (!(unsafeWindow || window).jQuery || !(unsafeWindow || window).jQuery.support || !(unsafeWindow || window).jQuery.ui) {
+			this._remind(0.1, 'startup');
+			return;
+		}
+		$ = jQuery = (window || unsafeWindow).jQuery.noConflict(true);
 	}
 	// Identify Application
 	var i;

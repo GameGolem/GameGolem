@@ -93,43 +93,28 @@ String.prototype.pathpart = function() {
 };
 
 String.prototype.regex = function(r) {
-	var a = this.match(r), i;
+	var a = this.match(r), i, rx;
 	if (a) {
-		!r.global && a.shift();
-		for (i=0; i<a.length; i++) {
-			if (a[i] && a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
-				a[i] = parseFloat(a[i].replace('+',''));
+		if (r.global) {
+			if (/\(.*\)/.test(r.source)) {
+				rx = new RegExp(r.source, (r.ignoreCase && 'i') + (r.multiline && 'm'));
 			}
+		} else {
+			a.shift();
 		}
-		if (a.length===1) {
-			return a[0];
-		}
-	}
-	return a;
-};
-
-String.prototype.numregex = function(r) {
-	var a = this.match(r), i, parens = RegExp.lastParen.length;
-	if (a) {
-		!r.global && a.shift();
-		for (i=0; i<a.length; i++) {
+		i = a.length;
+		while (i--) {
 			if (a[i]) {
-//				if (parens) {
-					a[i].match(r);
-					if (RegExp.$1) {
-						a[i] = RegExp.$1;
-					} else if (RegExp.$2) {
-						a[i] = RegExp.$2;
-					} else if (RegExp.$3) {
-						a[i] = RegExp.$3;
-					} else if (RegExp.$4) {
-						a[i] = RegExp.$4;
+				if (rx) {
+					a[i] = arguments.callee.call(a[i], rx);
+				} else {
+					if (a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
+						a[i] = parseFloat(a[i]);
 					}
-//				}
-				a[i] = (isNumber(parseFloat(a[i])) ? parseFloat(a[i]) : a[i]);
+				}
 			}
 		}
-		if (a.length===1) {
+		if (a.length === 1) {
 			return a[0];
 		}
 	}
@@ -230,10 +215,12 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 var length = function(obj) { // Find the number of entries in an object (also works on arrays)
 	if (isArray(obj)) {
 		return obj.length;
-	} else if (typeof obj === 'object') {
+	} else if (isObject(obj)) {
 		var l = 0, i;
 		for(i in obj) {
-			l++;
+			if (obj.hasOwnProperty(i)) {
+				l++;
+			}
 		}
 		return l;
 	}
@@ -243,13 +230,15 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 var empty = function(x) { // Tests whether an object is empty (also useable for other types)
 	if (x === undefined || !x) {
 		return true;
-	} else if (typeof x === 'object') {
+	} else if (isObject(x)) {
 		for (var i in x) {
 			if (x.hasOwnProperty(i)) {
 				return false;
 			}
 		}
 		return true;
+	} else if (isArray(x)) {
+		return x.length === 0;
 	}
 	return false;
 };
@@ -278,16 +267,16 @@ var sum = function(a) { // Adds the values of all array entries together
 	if (isArray(a)) {
 		i = a.length;
 		while(i--) {
-			t += sum(a[i]);
+			t += arguments.callee(a[i]);
 		}
 	} else if (isObject(a)) {
 		for(i in a) {
-			t += sum(a[i]);
+			t += arguments.callee(a[i]);
 		}
 	} else if (isNumber(a)) {
-		t = a;
+		return a;
 	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d*$/) >= 0) {
-		t = parseFloat(a);
+		return parseFloat(a);
 	}
 	return t;
 };
@@ -310,8 +299,10 @@ var compare = function(left, right) {
 			}
 		}else {
 			for (i in left) {
-				if (!compare(left[i], right[i])) {
-					return false;
+				if (left.hasOwnProperty(i) && right.hasOwnProperty(i)) {
+					if (!compare(left[i], right[i])) {
+						return false;
+					}
 				}
 			}
 		}
@@ -346,7 +337,7 @@ var findInObject = function(list, value) {
 };
 
 var objectIndex = function(list, index) {
-	if (typeof list === 'object') {
+	if (isObject(list)) {
 		for (var i in list) {
 			if (index-- <= 0) {
 				return i;
@@ -362,7 +353,9 @@ var sortObject = function(obj, sortfunc, deep) {
 		deep = false;
 	}
 	for (i in obj) {
-		list.push(i);
+		if (obj.hasOwnProperty(i)) {
+			list.push(i);
+		}
 	}
 	list.sort(sortfunc ? sortfunc : function(a,b){return b-a;});
 	for (i=0; i<list.length; i++) {
@@ -549,10 +542,11 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	return JSON.stringify((function(o,d) {
 		var i, out;
 		if (o && typeof o === 'object') {
-			if ('length' in o && typeof o.length === 'number' && !o.propertyIsEnumerable('length')) {
+			if (isArray(o)) {
 				if (d > 0) {
 					out = [];
-					for (i=0; i<o.length; i++) {
+					i = o.length;
+					while (i--) {
 						out[i] = arguments.callee(o[i],d-1);
 					}
 				} else {
