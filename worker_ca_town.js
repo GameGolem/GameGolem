@@ -515,7 +515,7 @@ Town.update = function(event) {
 					}
 				}
 			} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-				need = bestValue(data[u].sell, have - (i = Math.max(need,want,keep[u] || 0)));
+				need = bestValue(data[u].sell, have - (i = Math.max(need,want,(keep && keep[u]) || 0)));
 				if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
 //					console.log(warn(), 'Sell: '+need);
 					best_sell = u;
