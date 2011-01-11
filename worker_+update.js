@@ -11,7 +11,7 @@
 * Checks if there's an update to the script, and lets the user update if there is.
 */
 var Update = new Worker('Update');
-Update.data = null;
+Update.data = Update.option = null;
 
 Update.settings = {
 	system:true

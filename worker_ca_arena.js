@@ -165,6 +165,8 @@ Arena.parse = function(change) {
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
+			} else if ($('input[src*="arena3_refillbutton.gif"]').length) {
+				this.set(['runtime','status'], 'fight');
 			} else if (this.runtime.status === 'collect') {
 				this.set(['runtime','status'], 'wait');
 			}

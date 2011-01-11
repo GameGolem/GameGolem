@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.954
+// @version		31.5.955
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 954;
+var revision = 955;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4465,7 +4465,7 @@ Title.alias = function(name,str) {
 * Checks if there's an update to the script, and lets the user update if there is.
 */
 var Update = new Worker('Update');
-Update.data = null;
+Update.data = Update.option = null;
 
 Update.settings = {
 	system:true
@@ -4889,6 +4889,8 @@ Arena.parse = function(change) {
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
+			} else if ($('input[src*="arena3_refillbutton.gif"]').length) {
+				this.set(['runtime','status'], 'fight');
 			} else if (this.runtime.status === 'collect') {
 				this.set(['runtime','status'], 'wait');
 			}
