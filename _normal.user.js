@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.945
+// @version		31.5.946
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 945;
+var revision = 946;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1232,21 +1232,16 @@ Worker.prototype._update = function(event) {
  Worker.prototype._watch = function(worker, path) {
 	worker = Worker.find(worker);
 	if (isWorker(worker)) {
-		var i;
-		if (!isString(path)) {
-			path = 'data';
-		}
+		var i, x = isArray(path) ? path.join('.') : (isString(path) ? path : 'data');
 		for (i in worker._datatypes) {
-			if (path.indexOf(i) === 0) {
-				worker._watching[path] = worker._watching[path] || [];
-				if (!findInArray(worker._watching[path],this.name)) {
-//					console.log(log('Watch(' + worker.name + ', "' + path + '")'));
-					worker._watching[path].push(this.name);
+			if (x.indexOf(i) === 0) {
+				worker._watching[x] = worker._watching[x] || [];
+				if (!findInArray(worker._watching[x],this.name)) {
+					worker._watching[x].push(this.name);
 				}
 				return true;
 			}
 		}
-//		console.log(warn('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
@@ -1590,6 +1585,8 @@ Config.option = {
 
 Config.temp = {
 	require:[],
+	require_show:[],
+	require_id:0,// Used for options without an id
 	menu:null
 };
 
@@ -1794,12 +1791,20 @@ Config.init = function() {
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
 	});
+	this._watch(this, 'option.advanced');
+	this._watch(this, 'option.exploit');
 };
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
 		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
-		if (id === '_sleep') {
+		if (worker === this && (id === 'advanced' || id === 'exploit')) {
+			for (i in Workers) {
+				if (Workers[i].settings.advanced || Workers[i].settings.exploit) {
+					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
+				}
+			}
+		} else if (id === '_sleep') {
 			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
 		} else {
 			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
@@ -1814,8 +1819,8 @@ Config.update = function(event) {
 					$el.val(worker.option[id]);
 				}
 			}
-			this.checkRequire();
 		}
+		this.checkRequire();
 	}
 };
 
@@ -1834,7 +1839,6 @@ Config.menu = function(worker, key) {
 					break;
 				case 'advanced':
 					this._set(['option','advanced'], !this.option.advanced);
-					$('.golem-advanced:not(".golem-require")').css('display', this.option.advanced ? '' : 'none');
 					this.checkRequire();
 					break;
 			}
@@ -1859,13 +1863,12 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + (worker.settings.advanced ? ' golem-advanced' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
 	}
 	this.addOption(worker, args);
-	this.checkRequire();
 };
 
 Config.makeID = function(worker, id) {
@@ -1927,7 +1930,7 @@ Config.makeOptions = function(worker, args) {
 };
 
 Config.makeOption = function(worker, args) {
-	var i, o, step, $option, txt = [], list = [];
+	var i, o, r, step, $option, txt = [], list = [];
 	o = $.extend(true, {}, {
 		before: '',
 		after: '',
@@ -2048,74 +2051,47 @@ Config.makeOption = function(worker, args) {
 		txt.push('</span>');
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
-	if (o.require) {
+	if (o.require || o.advanced || o.exploit) {
 		// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 		// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
 		try {
-			var outer = [,,o.require.trim()], inner, path, require = [];
-			while(outer[2]) {
-				outer = outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
-				inner = outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
-				path = inner[1].split('.');
-				if (!Worker.find(path[0])) {
-					if (isUndefined(worker._datatypes[path[0]])) {
-						path.unshift('option');
-					}
-					path.unshift(worker.name);
-				}
-				if (inner[0] === '!') {path.unshift(false);}
-				require.push(path);
-				if (inner[2]) {require.push(inner[2]);}
-				if (inner[3]) {require.push(inner[3]);}
-				if (outer[1] && outer[2]) {require.push(outer[1][0]);}
+			r = {};
+			r.id = 'golem_require_'+(this.temp.require_id++);
+			r.outer = [,,o.require ? o.require.trim() : null];
+			r.require = [];
+			if (o.advanced) {
+				r.require.push('advanced');
+				$option.css('background','#ffeeee');
 			}
-			$option.addClass('golem-require').attr('require', JSON.stringify(require));
+			if (o.exploit) {
+				r.require.push('exploit');
+				$option.css({border:'1px solid red', background:'#ffeeee'});
+			}
+			while(r.outer[2]) {
+				r.outer = r.outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
+				r.inner = r.outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
+				r.path = r.inner[1].split('.');
+				if (!Worker.find(r.path[0])) {
+					if (isUndefined(worker._datatypes[r.path[0]])) {
+						r.path.unshift('option');
+					}
+					r.path.unshift(worker.name);
+				}
+				if (r.inner[0] === '!') {r.path.unshift(false);}
+				r.require.push(r.path);
+				if (r.inner[2]) {r.require.push(r.inner[2]);}
+				if (r.inner[3]) {r.require.push(r.inner[3]);}
+				if (r.outer[1] && r.outer[2]) {r.require.push(r.outer[1][0]);}
+			}
+			this.temp.require[r.id] = r.require;
+			$option.attr('id', r.id).css('display', this.checkRequire(r.id) ? '' : 'none');
 		} catch(e) {
 			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
 		}
-		/*
-		if (typeof o.require === 'string') {
-			i = o.require;
-			o.require = {};
-			o.require[i] = true;
-		}
-		for (i in o.require) { // Make sure all paths are absolute, "worker.option.key" (option/runtime/data) and all values are in an array
-			if (typeof o.require[i] !== 'object') {
-				o.require[i] = [o.require[i]];
-			}
-			if (i.search(/\.(data|option|runtime)\./) === -1) {
-				o.require[worker.name + '.option.' + i] = o.require[i];
-				delete o.require[i];
-			} else if (i.search(/(data|option|runtime)\./) === 0) {
-				o.require[worker.name + '.' + i] = o.require[i];
-				delete o.require[i];
-			}
-		}
-		$option.addClass('golem-require').attr('require', JSON.stringify(o.require));
-		*/
 	}
-	if (o.group) {
-		$option.append(this.makeOptions(worker,o.group));
-	} else {
-		$option.append('<br>');
-	}
-	if (o.advanced) {
-		$option.addClass('golem-advanced');
-	}
+	$option.append(o.group ? this.makeOptions(worker,o.group) : '<br>');
 	if (o.help) {
 		$option.attr('title', o.help);
-	}
-	if (o.advanced || o.exploit) {
-		$option.css('background','#ffeeee');
-	}
-	if (o.advanced && !this.option.advanced) {
-		$option.css('display','none');
-	}
-	if (o.exploit && !this.option.exploit) {
-		$option.css('display','none');
-	}
-	if (o.exploit) {
-		$option.css('border','1px solid red');
 	}
 	return $option;
 };
@@ -2143,69 +2119,73 @@ Config.set = function(key, value) {
 	return false;
 };
 
-Config.checkRequire = function() {
+Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	$('.golem-require').each(function(a,el){
-		var i, j, worker, path, show = true, value = false, value2 = null, not = false, and = true, or = false, test = null, require = JSON.parse($(el).attr('require')), doTest;
-		doTest = function() {
-			if (test) {
-				switch (test) {
-					case '>':	value = (value > value2);	break;
-					case '>=':	value = (value >= value2);	break;
-					case '=':
-					case '==':	value = (value === value2);	break;
-					case '<=':	value = (value <= value2);	break;
-					case '<':	value = (value < value2);	break;
-					case '!=':	value = (value !== value2);	break;
-				}
-			}
-			if (and) {
-				show = show && value;
-			} if (or) {
-				show = show || value;
-			}
-			and = or = test = false;
+	var i, j, path, show = true, value = false, value2 = null, and = true, or = false, test = null, require = this.temp.require[id], doTest;
+	if (!id || !require) {
+		for (i in this.temp.require) {
+			arguments.callee.call(this, i);
 		}
-		if ($(el).hasClass('golem-advanced')) {
-			show = Config.option.advanced;
-		}
-		for (i=0; i<require.length; i++) {
-			if (isArray(require[i])) {
-				if (!require[i][0]) {
-					not = true;
-					path = require[i].slice(1);
-				} else {
-					not = false;
-					path = require[i].slice(0);
-				}
-				worker = Worker.find(path.shift());
-				value = worker.get(path, false);
-				if (not) {
-					value = !value;
-				}
-			} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
-				test = require[i];
-			} else if (require[i] === '&') {
-				doTest();
-				and = true;
-			} else if (require[i] === '&') {
-				doTest();
-				or = true;
-			} else {
-				value2 = require[i];
-			}
-		}
-		doTest();
-		if (show) {
-			$(el).show();
-		} else {
-			$(el).hide();
-		}
-	});
-	for (var i in Workers) {
-		Workers[i]._save('option');
+		return;
 	}
+	doTest = function() {
+		if (test) {
+			switch (test) {
+				case '>':	value = (value > value2);	break;
+				case '>=':	value = (value >= value2);	break;
+				case '=':
+				case '==':	value = (value === value2);	break;
+				case '<=':	value = (value <= value2);	break;
+				case '<':	value = (value < value2);	break;
+				case '!=':	value = (value !== value2);	break;
+			}
+		}
+		if (and) {
+			show = show && value;
+		} if (or) {
+			show = show || value;
+		}
+		and = or = test = false;
+	}
+	i = 0;
+	if (require[0] === 'advanced') {
+		show = show && Config.option.advanced;
+		i++;
+	}
+	if (require[0] === 'exploit') {
+		show = show && Config.option.exploit;
+		i++;
+	}
+	for (; i<require.length; i++) {
+		if (isArray(require[i])) {
+			path = require[i].slice(require[i][0] ? 0 : 1);
+			value = Workers[path.shift()]._get(path, false);
+			if (!require[i][0]) {
+				value = !value;
+			}
+		} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
+			test = require[i];
+		} else if (require[i] === '&') {
+			doTest();
+			and = true;
+		} else if (require[i] === '&') {
+			doTest();
+			or = true;
+		} else {
+			value2 = require[i];
+		}
+	}
+	doTest();
+	if (this.temp.require_show[id] !== show) {
+		this.temp.require_show[id] = show;
+		if (show) {
+			$('#'+id).show();
+		} else {
+			$('#'+id).hide();
+		}
+	}
+	return show;
 };
 
 Config.getOrder = function() {

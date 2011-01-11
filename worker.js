@@ -595,21 +595,16 @@ Worker.prototype._update = function(event) {
  Worker.prototype._watch = function(worker, path) {
 	worker = Worker.find(worker);
 	if (isWorker(worker)) {
-		var i;
-		if (!isString(path)) {
-			path = 'data';
-		}
+		var i, x = isArray(path) ? path.join('.') : (isString(path) ? path : 'data');
 		for (i in worker._datatypes) {
-			if (path.indexOf(i) === 0) {
-				worker._watching[path] = worker._watching[path] || [];
-				if (!findInArray(worker._watching[path],this.name)) {
-//					console.log(log('Watch(' + worker.name + ', "' + path + '")'));
-					worker._watching[path].push(this.name);
+			if (x.indexOf(i) === 0) {
+				worker._watching[x] = worker._watching[x] || [];
+				if (!findInArray(worker._watching[x],this.name)) {
+					worker._watching[x].push(this.name);
 				}
 				return true;
 			}
 		}
-//		console.log(warn('Attempting to watch bad value: ' + worker.name + ':' + path));
 	}
 	return false;
 };
