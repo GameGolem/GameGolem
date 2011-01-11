@@ -485,11 +485,11 @@ Town.update = function(event) {
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
-		this.runtime.cost = this.runtime.buy * data[best_buy].cost;
+		cost = (buy - data[best_buy].own) * data[best_buy].cost;
 		if (Bank.worth(this.runtime.cost)) {
-			Dashboard.status(this, 'Buying ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + (buy * data[best_buy].cost).SI());
+			Dashboard.status(this, 'Buying ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + (buy * data[best_buy].cost).SI());
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
 		}
 	} else {
 		if (this.option.maxcost === 'INCR'){

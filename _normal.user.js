@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.946
+// @version		31.5.947
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 946;
+var revision = 947;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -11742,11 +11742,11 @@ Town.update = function(event) {
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
-		this.runtime.cost = this.runtime.buy * data[best_buy].cost;
+		cost = (buy - data[best_buy].own) * data[best_buy].cost;
 		if (Bank.worth(this.runtime.cost)) {
-			Dashboard.status(this, 'Buying ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + (buy * data[best_buy].cost).SI());
+			Dashboard.status(this, 'Buying ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (this.runtime.cost - Bank.worth()).SI() + ' to buy ' + this.runtime.buy + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + (buy * data[best_buy].cost).SI());
+			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
 		}
 	} else {
 		if (this.option.maxcost === 'INCR'){
