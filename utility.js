@@ -542,11 +542,10 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	return JSON.stringify((function(o,d) {
 		var i, out;
 		if (o && typeof o === 'object') {
-			if (isArray(o)) {
+			if (isNumber(o.length) && !o.propertyIsEnumerable('length')) {
 				if (d > 0) {
 					out = [];
-					i = o.length;
-					while (i--) {
+					for (i=0; i<o.length; i++) {
 						out[i] = arguments.callee(o[i],d-1);
 					}
 				} else {

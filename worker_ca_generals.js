@@ -200,7 +200,7 @@ Generals.to = function(name) {
 		return true;
 	}
 	console.log(warn('General change: ' + Player.get('general') + ' to ' + name));
-	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null);
+	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null, true);
 	return false;
 };
 
