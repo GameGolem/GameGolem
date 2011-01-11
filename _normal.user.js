@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.953
+// @version		31.5.954
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 953;
+var revision = 954;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -153,7 +153,7 @@ String.prototype.regex = function(r) {
 				if (rx) {
 					a[i] = arguments.callee.call(a[i], rx);
 				} else {
-					if (a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
+					if (a[i].search(/^[-+]?\d*\.?\d+$/) >= 0) {
 						a[i] = parseFloat(a[i]);
 					}
 				}
@@ -320,7 +320,7 @@ var sum = function(a) { // Adds the values of all array entries together
 		}
 	} else if (isNumber(a)) {
 		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d*$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 		return parseFloat(a);
 	}
 	return t;
@@ -6272,7 +6272,7 @@ Generals.parse = function(change) {
 				data[name].img		= $('.imgButton', el).attr('src').filepart();
 				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/);
 				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/);
-				data[name].progress	= parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d*)%/i), 10);
+				data[name].progress	= parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10);
 				data[name].level	= level; // Might only be 4 so far, however...
 				data[name].skills	= $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
 				if (level >= 4 && data[name].priority){	// If we just leveled up to level 4, remove the priority

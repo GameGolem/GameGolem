@@ -108,7 +108,7 @@ String.prototype.regex = function(r) {
 				if (rx) {
 					a[i] = arguments.callee.call(a[i], rx);
 				} else {
-					if (a[i].search(/^[-+]?\d*\.?\d*$/) >= 0) {
+					if (a[i].search(/^[-+]?\d*\.?\d+$/) >= 0) {
 						a[i] = parseFloat(a[i]);
 					}
 				}
@@ -275,7 +275,7 @@ var sum = function(a) { // Adds the values of all array entries together
 		}
 	} else if (isNumber(a)) {
 		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d*$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 		return parseFloat(a);
 	}
 	return t;
