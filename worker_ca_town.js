@@ -379,11 +379,10 @@ Town.parse = function(change) {
 		if (changes) {
 			this._notify('data');
 		}
-		this.notify('data');
 	} else if (Page.page === 'town_blacksmith') {
 		$('.eq_buy_row,.eq_buy_row2').each(function(i,el) {
 			var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
-			if (Town.data[name].type) {
+			if (Town.data[name] && Town.data[name].type) {
 				$el.parent().append('<br>'+Town.data[name].type);
 			}
 		});
