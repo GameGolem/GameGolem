@@ -315,16 +315,6 @@ Town.parse = function(change) {
 			}
 		}
 		$('.eq_buy_row,.eq_buy_row2').each(function(a,el) {
-			// Fix for broken magic page!!
-			if (!$('div.eq_buy_costs_int', el).length) {
-				$('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
-			}
-			if (!$('div.eq_buy_stats_int', el).length) {
-				$('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
-			}
-			if (!$('div.eq_buy_txt_int', el).length) {
-				$('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
-			}
 			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/\D/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/\D/g, ''), match, maxlen = 0;
 			changes++;
 			if (purge[name]) {

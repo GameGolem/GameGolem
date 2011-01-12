@@ -244,7 +244,7 @@ Arena.work = function(state) {
 			} else {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
-						Page.to('battle_arena', {close_result:'global_bottom'});
+						Page.to('battle_arena');
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');

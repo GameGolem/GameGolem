@@ -117,9 +117,9 @@ Generals.update = function(event) {
 						}
 					}
 				}
-				if (num * cap && item) {
+				if (num && cap && item) {
 					Resources.set(['data', '_' + item, 'generals'], num * cap);
-					console.log(warn(), 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
+//					console.log(warn('Save ' + (num * cap) + ' x ' + item + ' for General ' + i));
 				}
 			}
 		}

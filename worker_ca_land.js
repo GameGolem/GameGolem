@@ -98,13 +98,6 @@ Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		var name = $('img', el).attr('alt'), data = {}, tmp;
 		if (!change) {
-			// Fix for broken land page!!
-			if (!$('.land_buy_image_int', el).length) {
-				$('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
-			}
-			if (!$('.land_buy_info_int', el).length) {
-				$('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
-			}
 			data.income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
 			data.max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
 			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
@@ -171,14 +164,6 @@ Land.update = function(event) {
 		Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
 	} else if (best) {
 		if (!buy) {
-	/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
-				buy = Math.min(this.data[best].max - this.data[best].own, 10);
-			} else if ((this.data[best].cost * 5) <= worth || (this.data[best].cost * 5 / income < this.option.wait)) {
-				buy = Math.min(this.data[best].max - this.data[best].own, 5);
-			} else {
-				buy = 1;
-			}*/
-			
 			//	This calculates the perfect time to switch the amounts to buy.
 			//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
 			//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
@@ -225,7 +210,7 @@ Land.work = function(state) {
 		} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
 			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
 		} else {
-			Dashboard.status(this, 'NothinG to do - buffer $' + (this.runtime.save_amount || 0).SI());
+			Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
 		}
 		return QUEUE_FINISH;
 	}

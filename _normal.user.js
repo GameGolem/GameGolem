@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.960
+// @version		31.5.961
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 960;
+var revision = 961;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2105,7 +2105,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, test = null, op = null, require = this.temp.require[id], doTest;
+	var i, j, path, show = true, value = false, value2 = null, test = null, op = '&', require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
@@ -4976,7 +4976,7 @@ Arena.work = function(state) {
 			} else {
 				if (this.runtime.status === 'collect') {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
-						Page.to('battle_arena', {close_result:'global_bottom'});
+						Page.to('battle_arena');
 					} else {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="arena3_collectbutton.gif"]');
@@ -6335,9 +6335,9 @@ Generals.update = function(event) {
 						}
 					}
 				}
-				if (num * cap && item) {
+				if (num && cap && item) {
 					Resources.set(['data', '_' + item, 'generals'], num * cap);
-					console.log(warn(), 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
+//					console.log(warn('Save ' + (num * cap) + ' x ' + item + ' for General ' + i));
 				}
 			}
 		}
@@ -7384,13 +7384,6 @@ Land.parse = function(change) {
 	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
 		var name = $('img', el).attr('alt'), data = {}, tmp;
 		if (!change) {
-			// Fix for broken land page!!
-			if (!$('.land_buy_image_int', el).length) {
-				$('.land_buy_image', el).prepend('<div class="land_buy_image_int"></div>').children('.land_buy_image_int').append($('.land_buy_image >[class!="land_buy_image_int"]', el));
-			}
-			if (!$('.land_buy_info_int', el).length) {
-				$('.land_buy_info, .land_buy_info2', el).prepend('<div class="land_buy_info_int"></div>').children('.land_buy_info_int').append($('.land_buy_info >[class!="land_buy_info_int"], .land_buy_info2 >[class!="land_buy_info_int"]', el));
-			}
 			data.income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
 			data.max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
 			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
@@ -7457,14 +7450,6 @@ Land.update = function(event) {
 		Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
 	} else if (best) {
 		if (!buy) {
-	/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
-				buy = Math.min(this.data[best].max - this.data[best].own, 10);
-			} else if ((this.data[best].cost * 5) <= worth || (this.data[best].cost * 5 / income < this.option.wait)) {
-				buy = Math.min(this.data[best].max - this.data[best].own, 5);
-			} else {
-				buy = 1;
-			}*/
-			
 			//	This calculates the perfect time to switch the amounts to buy.
 			//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
 			//	In other words, make the smallest purchase where the time to make the purchase is larger than the time to payoff the increased cost with the extra income.
@@ -7511,7 +7496,7 @@ Land.work = function(state) {
 		} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
 			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
 		} else {
-			Dashboard.status(this, 'NothinG to do - buffer $' + (this.runtime.save_amount || 0).SI());
+			Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
 		}
 		return QUEUE_FINISH;
 	}
@@ -11657,16 +11642,6 @@ Town.parse = function(change) {
 			}
 		}
 		$('.eq_buy_row,.eq_buy_row2').each(function(a,el) {
-			// Fix for broken magic page!!
-			if (!$('div.eq_buy_costs_int', el).length) {
-				$('div.eq_buy_costs', el).prepend('<div class="eq_buy_costs_int"></div>').children('div.eq_buy_costs_int').append($('div.eq_buy_costs >[class!="eq_buy_costs_int"]', el));
-			}
-			if (!$('div.eq_buy_stats_int', el).length) {
-				$('div.eq_buy_stats', el).prepend('<div class="eq_buy_stats_int"></div>').children('div.eq_buy_stats_int').append($('div.eq_buy_stats >[class!="eq_buy_stats_int"]', el));
-			}
-			if (!$('div.eq_buy_txt_int', el).length) {
-				$('div.eq_buy_txt', el).prepend('<div class="eq_buy_txt_int"></div>').children('div.eq_buy_txt_int').append($('div.eq_buy_txt >[class!="eq_buy_txt_int"]', el));
-			}
 			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/\D/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/\D/g, ''), match, maxlen = 0;
 			changes++;
 			if (purge[name]) {

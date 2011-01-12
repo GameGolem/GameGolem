@@ -563,7 +563,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, test = null, op = null, require = this.temp.require[id], doTest;
+	var i, j, path, show = true, value = false, value2 = null, test = null, op = '&', require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
