@@ -95,9 +95,9 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, num = 0, cap = 1, item, str = null;
+				var x, num = 0, cap = 541, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
-					num = x[0] || 1;
+					num = x[0];
 					str = x[1];
 				} else if ((x = data[i].skills.regex(/\bevery ([\w\s']*[\w])/i))) {
 					num = 1;
@@ -107,7 +107,7 @@ Generals.update = function(event) {
 					cap = Math.max(cap, data[i].stats.cap);
 				}
 				if ((x = data[i].skills.regex(/\bmax\.? (\d+)/i))) {
-					cap = Math.max(cap, x || 1);
+					cap = Math.max(cap, x);
 				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {

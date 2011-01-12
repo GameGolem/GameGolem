@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.959
+// @version		31.5.960
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 959;
+var revision = 960;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6313,9 +6313,9 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, num = 0, cap = 1, item, str = null;
+				var x, num = 0, cap = 541, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
-					num = x[0] || 1;
+					num = x[0];
 					str = x[1];
 				} else if ((x = data[i].skills.regex(/\bevery ([\w\s']*[\w])/i))) {
 					num = 1;
@@ -6325,7 +6325,7 @@ Generals.update = function(event) {
 					cap = Math.max(cap, data[i].stats.cap);
 				}
 				if ((x = data[i].skills.regex(/\bmax\.? (\d+)/i))) {
-					cap = Math.max(cap, x || 1);
+					cap = Math.max(cap, x);
 				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {
