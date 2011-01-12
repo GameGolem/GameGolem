@@ -27,8 +27,8 @@ Potions.data = {
 };
 
 Potions.option = {
-	energy:35,
-	stamina:35
+	Energy:35,
+	Stamina:35
 };
 
 Potions.runtime = {
@@ -42,13 +42,18 @@ Potions.display = function(){
 		if (i.charAt(0) !== '_') {
 			opts.push({
 				id:i,
-				label:'Maximum '+i.ucfirst()+' Potions',
+				label:'Maximum '+i+' Potions',
 				select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
 		}
 	}
 	return opts;
+};
+
+Potions.setup = function() {
+	this.set(['option','energy']); // Remove old data
+	this.set(['option','stamina']); // Remove old data
 };
 
 Potions.init = function() {
@@ -87,9 +92,9 @@ Potions.update = function(event) {
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
-			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[l] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
+			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[i] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
 		}
-		if (!levelup && isNumber(this.option[l]) && this.data[i] > this.option[l] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
+		if (!levelup && isNumber(this.option[i]) && this.data[i] > this.option[i] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
 			this.set(['runtime','amount'], 1);
 		}
