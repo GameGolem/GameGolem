@@ -267,7 +267,7 @@ Arena.work = function(state) {
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) Arena Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-						if (Arena.option.defeat && Arena.data[target[0]]) {
+						if (Arena.option.defeat && Arena.data && Arena.data[target[0]]) {
 							return;
 						}
 						if (isNumber(Arena.option.limit) && target[1] > Player.get('level',0) + Arena.option.limit) {
