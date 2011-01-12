@@ -125,6 +125,7 @@ Session.updateTimestamps = function() {
 		if (i !== this.name) {
 			for (j in Workers[i]._datatypes) {
 				if (Workers[i]._datatypes[j]) {
+					this.data._timestamps[j] = this.data._timestamps[j] || {};
 					_ts = this.data._timestamps[j][i] || 0;
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
@@ -137,7 +138,6 @@ Session.updateTimestamps = function() {
 						Workers[i]._replace(j, _new);
 						Workers[i]._timestamps[j] = _ts;
 					}
-					this.data._timestamps[j] = this.data._timestamps[j] || {};
 					this.data._timestamps[j][i] = Workers[i]._timestamps[j];
 				}
 			}

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.956
+// @version		31.5.957
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 956;
+var revision = 957;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -896,7 +896,6 @@ Worker.prototype._load = function(type, merge) {
 			i = JSON.parse(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
-//			i = eval(i); // We used to save our data in non-JSON format...
 		}
 		this[type] = merge ? $.extend(true, {}, this[type], i) : i;
 		this._taint[type] = false;
@@ -1071,7 +1070,7 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 			if (!compare(value, data[i])) {
 				this._notify(path);// Notify the watchers...
 				this._taint[path[0]] = true;
-				this._remind(0, '_update_'+path[0], {type:'save', id:path[0]});
+				this._remind(0, '_'+path[0], {type:'save', id:path[0]});
 				data[i] = value;
 				if (isUndefined(value)) {
 					return false;
@@ -1083,14 +1082,10 @@ Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array
 };
 
 Worker.prototype._set = function(what, value) {
-//	this._push();
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
-//	if (x.length <= 1) { // Return early if we're not setting a subvalue
-//		return null;
-//	}
 	try {
 		if (x[0] === 'data') {
 			this._unflush();
@@ -1099,7 +1094,6 @@ Worker.prototype._set = function(what, value) {
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
-//	this._pop();
 	return value;
 };
 
@@ -1187,7 +1181,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var flush = false;
+		var i, flush = false;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -1202,7 +1196,11 @@ Worker.prototype._update = function(event) {
 				this._unflush();
 			}
 			try {
-				this.update(event);
+				if (this.update(event)) {
+					for (i in this._datatypes) {
+						this._forget('_'+i);
+					}
+				}
 			}catch(e) {
 				console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 			}
@@ -4124,6 +4122,7 @@ Session.updateTimestamps = function() {
 		if (i !== this.name) {
 			for (j in Workers[i]._datatypes) {
 				if (Workers[i]._datatypes[j]) {
+					this.data._timestamps[j] = this.data._timestamps[j] || {};
 					_ts = this.data._timestamps[j][i] || 0;
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
@@ -4136,7 +4135,6 @@ Session.updateTimestamps = function() {
 						Workers[i]._replace(j, _new);
 						Workers[i]._timestamps[j] = _ts;
 					}
-					this.data._timestamps[j] = this.data._timestamps[j] || {};
 					this.data._timestamps[j][i] = Workers[i]._timestamps[j];
 				}
 			}
