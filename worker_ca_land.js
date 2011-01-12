@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
@@ -37,6 +37,10 @@ Land.display = [
 	{
 		id:'enabled',
 		label:'Auto-Buy Land',
+		checkbox:true
+	},{
+		id:'save_ahead',
+		label:'Save for future Land',
 		checkbox:true
 	},{
 		advanced:true,
@@ -75,6 +79,15 @@ Land.display = [
 
 Land.setup = function() {
 	Resources.use('Gold');
+
+	// one time pre-r959 fix for bad land name "name"
+	if ((this.runtime.revision || 0) < 959) {
+		if (this.data && this.data.name) {
+			delete this.data.name;
+		}
+	}
+
+	this.runtime.revision = revision; // started r959 for historic reference
 };
 
 Land.init = function() {
@@ -97,7 +110,7 @@ Land.parse = function(change) {
 			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
 			data.buy = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value') || undefined;
 			data.own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			Land.set(['data','name'], data);
+			Land.set(['data',name], data);
 		} else {
 			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
@@ -106,12 +119,36 @@ Land.parse = function(change) {
 };
 
 Land.update = function(event) {
-	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
+	var i, j, k, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), level = Player.get('level', 0), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
 	
 	if (event.type === 'option' && this.option.land_exp) {
 		this.set(['option','sell'], true);
 	}
 	
+	k = 0;
+	if (this.option.save_ahead) {
+		j = 1;
+
+		for (i in this.data) {
+			if (this.data[i].own < this.data[i].max) {
+				j = 0;
+				break;
+			}
+		}
+
+		// only save if we have this land maxed
+
+		if (j) {
+			for (i in this.data) {
+				if (this.data[i].own < this.data[i].max + 10) {
+					k += (this.data[i].max + 10 - this.data[i].own) * this.data[i].cost;
+				}
+			}
+
+		}
+	}
+	this.set(['runtime', 'save_amount'], k);
+
 	for (i in this.data) {
 		if (this.option.sell && this.data[i].max > 0 && this.data[i].own > this.data[i].max) {
 			best = i;
@@ -122,14 +159,17 @@ Land.update = function(event) {
 			break;
 		}
 		if (this.data[i].buy) {
-			b_cost = this.data[best].cost;
+			b_cost = best ? this.data[best].cost : 1e50;
 			i_cost = this.data[i].cost;
 			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;
 			}
 		}
 	}
-	if (best) {
+
+	if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
+		Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
+	} else if (best) {
 		if (!buy) {
 	/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
 				buy = Math.min(this.data[best].max - this.data[best].own, 10);
@@ -161,8 +201,11 @@ Land.update = function(event) {
 		this.set(['runtime','buy'], buy);
 		this.set(['runtime','cost'], buy * this.data[best].cost); // May be negative if we're making money by selling
 		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
+	} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
+		Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
+
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
 	}
 	this.set(['runtime','best'], best);
 };
@@ -175,10 +218,14 @@ Land.work = function(state) {
 			}
 			this.runtime.lastlevel = Player.get('level');
 		}
-		if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
+		if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
+			Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
+		} else if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
 			Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
+		} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
+			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
 		} else {
-			Dashboard.status(this);
+			Dashboard.status(this, 'NothinG to do - buffer $' + (this.runtime.save_amount || 0).SI());
 		}
 		return QUEUE_FINISH;
 	}

@@ -2,10 +2,10 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, bestObjValue,
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -39,6 +39,7 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
+	var i, j;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
@@ -53,10 +54,14 @@ Generals.parse = function(change) {
 					//console.log(warn("Found weapon: " + bonus[bonus.length]));
 				}
 			});
-			this.set(['data',this.data[current],'weaponbonus'], bonus.join(', '));
+			this.set(['data',current,'weaponbonus'], bonus.join(', '));
+			i = $('div.general_pic_div3 a img[title]').first().attr('title').trim();
+			if (i && (j = i.regex(/\bmax\.? (\d+)\b/i))) {
+				this.set(['data', current, 'stats', 'cap'], j);
+			}
 		}
 		$elements.each(function(i,el){
-			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10);
+			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
 				data[name] = $.extend(true, {}, Generals.get(['data',name], {}));
 				data[name].id		= $('input[name=item]', el).val();
@@ -89,6 +94,34 @@ Generals.update = function(event) {
 			if (!data[i].stats) { // Force an update if stats not yet calculated
 				this.set(['runtime','force'], true);
 			}
+			if (data[i].skills) {
+				var x, num = 0, cap = 1, item, str = null;
+				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
+					num = x[0] || 1;
+					str = x[1];
+				} else if ((x = data[i].skills.regex(/\bevery ([\w\s']*[\w])/i))) {
+					num = 1;
+					str = x;
+				}
+				if (data[i].stats && data[i].stats.cap) {
+					cap = Math.max(cap, data[i].stats.cap);
+				}
+				if ((x = data[i].skills.regex(/\bmax\.? (\d+)/i))) {
+					cap = Math.max(cap, x || 1);
+				}
+				if (str) {
+					for (x = str.split(' '); x.length > 0; x.pop()) {
+						if (Town.get(['data', (str = x.join(' '))])) {
+							item = str;
+							break;
+						}
+					}
+				}
+				if (num * cap && item) {
+					Resources.set(['data', '_' + item, 'generals'], num * cap);
+					console.log(warn(), 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
+				}
+			}
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
@@ -109,7 +142,7 @@ Generals.update = function(event) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
-			skillcombo = data[i].skills + (data[i].weaponbonus || '');
+			skillcombo = (data[i].skills || '') + ';' + (data[i].weaponbonus || '');
 			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.regex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
 				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3

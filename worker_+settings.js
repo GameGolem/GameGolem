@@ -128,14 +128,30 @@ Settings.dashboard = function() {
 	html += '</select>';
 //	html += '<input type="text" value="'+this.temp.worker+'.'+this.temp.edit+'" disabled>';
 	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
+	if (this.temp.worker && this.temp.edit) {
+		if (this.temp.edit === 'data') {
+			Workers[this.temp.worker]._unflush();
+		}
+	}
+	if (!this.temp.worker) {
+		html += ' No worker specified.';
+	} else if (!this.temp.edit) {
+		html += ' No ' + this.temp.worker + ' element specified.';
+	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {
+		html += ' The element is undefined.';
+	} else if (Workers[this.temp.worker][this.temp.edit] === null) {
+		html += ' The element is null.';
+	} else if (typeof Workers[this.temp.worker][this.temp.edit] !== 'object') {
+		html += ' The element is scalar.';
+	} else {
+		i = length(Workers[this.temp.worker][this.temp.edit]);
+		html += ' The element contains ' + i + ' element' + plural(i) + '.';
+	}
 	if (Config.option.advanced) {
 		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 	}
 	html += '<br>';
 	if (this.temp.worker && this.temp.edit) {
-		if (this.temp.edit === 'data') {
-			Workers[this.temp.worker]._unflush();
-		}
 		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);

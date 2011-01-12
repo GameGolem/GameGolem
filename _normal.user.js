@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.958
+// @version		31.5.959
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 958;
+var revision = 959;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4308,14 +4308,30 @@ Settings.dashboard = function() {
 	html += '</select>';
 //	html += '<input type="text" value="'+this.temp.worker+'.'+this.temp.edit+'" disabled>';
 	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
+	if (this.temp.worker && this.temp.edit) {
+		if (this.temp.edit === 'data') {
+			Workers[this.temp.worker]._unflush();
+		}
+	}
+	if (!this.temp.worker) {
+		html += ' No worker specified.';
+	} else if (!this.temp.edit) {
+		html += ' No ' + this.temp.worker + ' element specified.';
+	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {
+		html += ' The element is undefined.';
+	} else if (Workers[this.temp.worker][this.temp.edit] === null) {
+		html += ' The element is null.';
+	} else if (typeof Workers[this.temp.worker][this.temp.edit] !== 'object') {
+		html += ' The element is scalar.';
+	} else {
+		i = length(Workers[this.temp.worker][this.temp.edit]);
+		html += ' The element contains ' + i + ' element' + plural(i) + '.';
+	}
 	if (Config.option.advanced) {
 		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 	}
 	html += '<br>';
 	if (this.temp.worker && this.temp.edit) {
-		if (this.temp.edit === 'data') {
-			Workers[this.temp.worker]._unflush();
-		}
 		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);
@@ -6204,10 +6220,10 @@ Elite.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, bestObjValue,
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -6241,6 +6257,7 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
+	var i, j;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
@@ -6255,10 +6272,14 @@ Generals.parse = function(change) {
 					//console.log(warn("Found weapon: " + bonus[bonus.length]));
 				}
 			});
-			this.set(['data',this.data[current],'weaponbonus'], bonus.join(', '));
+			this.set(['data',current,'weaponbonus'], bonus.join(', '));
+			i = $('div.general_pic_div3 a img[title]').first().attr('title').trim();
+			if (i && (j = i.regex(/\bmax\.? (\d+)\b/i))) {
+				this.set(['data', current, 'stats', 'cap'], j);
+			}
 		}
 		$elements.each(function(i,el){
-			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10);
+			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
 				data[name] = $.extend(true, {}, Generals.get(['data',name], {}));
 				data[name].id		= $('input[name=item]', el).val();
@@ -6291,6 +6312,34 @@ Generals.update = function(event) {
 			if (!data[i].stats) { // Force an update if stats not yet calculated
 				this.set(['runtime','force'], true);
 			}
+			if (data[i].skills) {
+				var x, num = 0, cap = 1, item, str = null;
+				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
+					num = x[0] || 1;
+					str = x[1];
+				} else if ((x = data[i].skills.regex(/\bevery ([\w\s']*[\w])/i))) {
+					num = 1;
+					str = x;
+				}
+				if (data[i].stats && data[i].stats.cap) {
+					cap = Math.max(cap, data[i].stats.cap);
+				}
+				if ((x = data[i].skills.regex(/\bmax\.? (\d+)/i))) {
+					cap = Math.max(cap, x || 1);
+				}
+				if (str) {
+					for (x = str.split(' '); x.length > 0; x.pop()) {
+						if (Town.get(['data', (str = x.join(' '))])) {
+							item = str;
+							break;
+						}
+					}
+				}
+				if (num * cap && item) {
+					Resources.set(['data', '_' + item, 'generals'], num * cap);
+					console.log(warn(), 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
+				}
+			}
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
@@ -6311,7 +6360,7 @@ Generals.update = function(event) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
-			skillcombo = data[i].skills + (data[i].weaponbonus || '');
+			skillcombo = (data[i].skills || '') + ';' + (data[i].weaponbonus || '');
 			attack_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack|Increase Player Attack by (\d+)|Convert ([-+]?\d+\.?\d*) Attack/gi)) + (sum(data[i].skills.regex(/Increase ([-+]?\d+\.?\d*) Player Attack for every Hero Owned/gi)) * (length(data)-1)));
 			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
 				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
@@ -7239,7 +7288,7 @@ Income.work = function(state) {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
@@ -7274,6 +7323,10 @@ Land.display = [
 	{
 		id:'enabled',
 		label:'Auto-Buy Land',
+		checkbox:true
+	},{
+		id:'save_ahead',
+		label:'Save for future Land',
 		checkbox:true
 	},{
 		advanced:true,
@@ -7312,6 +7365,15 @@ Land.display = [
 
 Land.setup = function() {
 	Resources.use('Gold');
+
+	// one time pre-r959 fix for bad land name "name"
+	if ((this.runtime.revision || 0) < 959) {
+		if (this.data && this.data.name) {
+			delete this.data.name;
+		}
+	}
+
+	this.runtime.revision = revision; // started r959 for historic reference
 };
 
 Land.init = function() {
@@ -7334,7 +7396,7 @@ Land.parse = function(change) {
 			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
 			data.buy = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value') || undefined;
 			data.own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			Land.set(['data','name'], data);
+			Land.set(['data',name], data);
 		} else {
 			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 		}
@@ -7343,12 +7405,36 @@ Land.parse = function(change) {
 };
 
 Land.update = function(event) {
-	var i, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
+	var i, j, k, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), level = Player.get('level', 0), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
 	
 	if (event.type === 'option' && this.option.land_exp) {
 		this.set(['option','sell'], true);
 	}
 	
+	k = 0;
+	if (this.option.save_ahead) {
+		j = 1;
+
+		for (i in this.data) {
+			if (this.data[i].own < this.data[i].max) {
+				j = 0;
+				break;
+			}
+		}
+
+		// only save if we have this land maxed
+
+		if (j) {
+			for (i in this.data) {
+				if (this.data[i].own < this.data[i].max + 10) {
+					k += (this.data[i].max + 10 - this.data[i].own) * this.data[i].cost;
+				}
+			}
+
+		}
+	}
+	this.set(['runtime', 'save_amount'], k);
+
 	for (i in this.data) {
 		if (this.option.sell && this.data[i].max > 0 && this.data[i].own > this.data[i].max) {
 			best = i;
@@ -7359,14 +7445,17 @@ Land.update = function(event) {
 			break;
 		}
 		if (this.data[i].buy) {
-			b_cost = this.data[best].cost;
+			b_cost = best ? this.data[best].cost : 1e50;
 			i_cost = this.data[i].cost;
 			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;
 			}
 		}
 	}
-	if (best) {
+
+	if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
+		Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
+	} else if (best) {
 		if (!buy) {
 	/*		if (this.option.onlyten || (this.data[best].cost * 10) <= worth || (this.data[best].cost * 10 / income < this.option.wait)) {
 				buy = Math.min(this.data[best].max - this.data[best].own, 10);
@@ -7398,8 +7487,11 @@ Land.update = function(event) {
 		this.set(['runtime','buy'], buy);
 		this.set(['runtime','cost'], buy * this.data[best].cost); // May be negative if we're making money by selling
 		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
+	} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
+		Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
+
 	} else {
-		Dashboard.status(this);
+		Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
 	}
 	this.set(['runtime','best'], best);
 };
@@ -7412,10 +7504,14 @@ Land.work = function(state) {
 			}
 			this.runtime.lastlevel = Player.get('level');
 		}
-		if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
+		if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
+			Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
+		} else if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
 			Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
+		} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
+			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
 		} else {
-			Dashboard.status(this);
+			Dashboard.status(this, 'NothinG to do - buffer $' + (this.runtime.save_amount || 0).SI());
 		}
 		return QUEUE_FINISH;
 	}
@@ -11247,7 +11343,7 @@ Quest.rdata =			// #321
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, LevelUp, Player, Quest,
+	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
@@ -11289,6 +11385,10 @@ Town.display = [
 },{
 	id:'quest_buy',
 	label:'Buy Quest Items',
+	checkbox:true
+},{
+	id:'generals_buy',
+	label:'Buy Generals Items',
 	checkbox:true
 },{
 	id:'number',
@@ -11543,6 +11643,7 @@ Town.setup = function() {
 
 Town.init = function() {
 	this._watch(Player, 'data.worth');
+	this._watch(Land, 'runtime.save_amount');
 	this.runtime.cost_incr = 4;
 };
 
@@ -11568,6 +11669,9 @@ Town.parse = function(change) {
 			}
 			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/\D/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/\D/g, ''), match, maxlen = 0;
 			changes++;
+			if (purge[name]) {
+				purge[name] = false;
+			}
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
 			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
@@ -11616,10 +11720,14 @@ Town.parse = function(change) {
 				}
 			}
 		});
-		for (i in purge) {
-			if (purge[i]) {
-				delete unit[i];
-				changes++;
+		// if nothing at all changed above, something went wrong on the page download
+		if (changes > 0) {
+			for (i in purge) {
+				if (purge[i]) {
+					console.log(warn(), 'Purge: ' + i);
+					delete unit[i];
+					changes++;
+				}
 			}
 		}
 		if (changes) {
@@ -11669,42 +11777,56 @@ Town.getDuel = function() {
 };
 
 Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, quest_count = 0, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep,
+	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep,
+	land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
 	incr = (this.runtime.cost_incr || 4);
-        
+
 	switch (this.option.number) {
 		case 'Army':
-				max_buy = max_sell = army;
-				break;
+			max_buy = max_sell = army;
+			break;
 		case 'Army+':
-				max_buy = army;
-				max_sell = 541;
-				break;
+			max_buy = army;
+			max_sell = 541;
+			break;
 		case 'Max Army':
-				max_buy = max_sell = 541;
-				break;
+			max_buy = max_sell = 541;
+			break;
 		default:
-				max_buy = max_sell = 0;
+			max_buy = max_sell = 0;
 			break;
 	}
 	// These two fill in all the data we need for buying / sellings items
 	this.set(['runtime','duel'], this.getDuel());
+	keep = {};
 	if (this.option.sell && max_sell !== max_buy) {
-		this.set(['runtime','invade'], this.getInvade(max_sell));
-		keep = {};
+		this.getInvade(max_sell);
 		for (u in data) {
 			resource = Resources.data['_'+u] || {};
+			need = 0;
 			if (this.option.units !== 'Best Defense') {
-				need = Math.min(max_sell, Math.max(resource.invade_att || 0, resource.duel_att || 0));
+				need = Math.max(need, Math.min(max_sell, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
 			}
 			if (this.option.units !== 'Best Offense') {
-				need = Math.min(max_sell, Math.max(resource.invade_def || 0, resource.duel_def || 0));
+				need = Math.max(need, Math.min(max_sell, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
 			}
-			if (need > 0 && data[u].sell && data[u].sell.length) {
+			if ((keep[u] || 0) < need && data[u].sell && data[u].sell.length) {
 				keep[u] = need;
 //				console.log(warn(), 'Keep[' + u + '] = ' + keep[u]);
 			}
+			if (resource && (resource.invade_def || resource.invade_att)) {
+				if (resource.invade_def) {
+					delete resource.invade_def;
+				}
+				if (resource.invade_att) {
+					delete resource.invade_att;
+				}
+				if (!length(resource)) {
+					delete Resources.data['_'+u];
+				}
+			}
 		}
+		Resources._notify('data'); // reset the "what-if" tinkering
 	}
 	this.set(['runtime','invade'], this.getInvade(max_buy));
 	// For all items / units
@@ -11712,62 +11834,76 @@ Town.update = function(event) {
 	// 2. find the one with Resources.get(_item.invade_att) the highest (that's the number needed to hit 541 items in total)
 	// 3. buy enough to get there
 	// 4. profit (or something)...
-	if (this.option.quest_buy || max_buy){
-		for (u in data) {
-			resource = Resources.data['_'+u] || {};
-			want = resource.quest || 0;
-			need = this.option.quest_buy ? want : 0;
-			have = data[u].own;
-			// Sorry about the nested max/min/max -
-			// Max - 'need' can't get smaller
-			// Min - 'max_buy' is the most we want to buy
-			// Max - needs to accounts for invade and duel
-			if (this.option.units !== 'Best Defense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
+	for (u in data) {
+		resource = Resources.data['_'+u] || {};
+		want = 0;
+		if (resource.quest) {
+			if (this.option.quest_buy) {
+				want = Math.max(want, resource.quest);
 			}
-			if (this.option.units !== 'Best Offense') {
-				need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
+			if ((keep[u] || 0) < resource.quest) {
+				keep[u] = resource.quest;
 			}
-			if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
-				max_cost = Math.pow(10,30);
-				need = want;
-			} else {
-				max_cost = ({
-					'$10k':Math.pow(10,4),
-					'$100k':Math.pow(10,5),
-					'$1m':Math.pow(10,6),
-					'$10m':Math.pow(10,7),
-					'$100m':Math.pow(10,8),
-					'$1b':Math.pow(10,9),
-					'$10b':Math.pow(10,10),
-					'$100b':Math.pow(10,11),
-					'$1t':Math.pow(10,12),
-					'$10t':Math.pow(10,13),
-					'$100t':Math.pow(10,14),
-					'INCR':Math.pow(10,incr)
-				})[this.option.maxcost];
+		}
+		if (resource.generals) {
+			if (this.option.generals_buy) {
+				want = Math.max(want, resource.generals);
 			}
+			if ((keep[u] || 0) < resource.generals) {
+				keep[u] = resource.generals;
+			}
+		}
+		have = data[u].own;
+		// Sorry about the nested max/min/max -
+		// Max - 'need' can't get smaller
+		// Min - 'max_buy' is the most we want to buy
+		// Max - needs to accounts for invade and duel
+		need = 0;
+		if (this.option.units !== 'Best Defense') {
+			need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
+		}
+		if (this.option.units !== 'Best Offense') {
+			need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
+		}
+		if (want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+			max_cost = Math.pow(10,30);
+			need = want;
+		} else {
+			max_cost = ({
+				'$10k':Math.pow(10,4),
+				'$100k':Math.pow(10,5),
+				'$1m':Math.pow(10,6),
+				'$10m':Math.pow(10,7),
+				'$100m':Math.pow(10,8),
+				'$1b':Math.pow(10,9),
+				'$10b':Math.pow(10,10),
+				'$100b':Math.pow(10,11),
+				'$1t':Math.pow(10,12),
+				'$10t':Math.pow(10,13),
+				'$100t':Math.pow(10,14),
+				'INCR':Math.pow(10,incr)
+			})[this.option.maxcost];
+		}
 //			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
-			if (need > have) {// Want to buy more                                
-				if (!best_quest && data[u].buy && data[u].buy.length) {
-					if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = bestValue(data[u].buy, need - have)))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
+		if (need > have) {// Want to buy more                                
+			if (!best_quest && data[u].buy && data[u].buy.length) {
+				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = bestValue(data[u].buy, need - have)))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
 //						console.log(warn(), 'Buy: '+need);
-						best_buy = u;
-						buy = have + i; // this.buy() takes an absolute value
-						buy_pref = Math.max(need, want);
-						if (this.option.quest_buy && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
-							best_quest = true;
-						}
+					best_buy = u;
+					buy = have + i; // this.buy() takes an absolute value
+					buy_pref = Math.max(need, want);
+					if (want && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+						best_quest = true;
 					}
 				}
-			} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-				need = bestValue(data[u].sell, have - (i = Math.max(need,want,(keep && keep[u]) || 0)));
-				if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
+			}
+		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
+			need = bestValue(data[u].sell, have - (i = Math.max(need,want,keep[u] || 0)));
+			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
 //					console.log(warn(), 'Sell: '+need);
-					best_sell = u;
-					sell = need;
-					sell_pref = i;
-				}
+				best_sell = u;
+				sell = need;
+				sell_pref = i;
 			}
 		}
 	}
@@ -11776,14 +11912,17 @@ Town.update = function(event) {
 		best_buy = null;
 		buy = 0;
 		upkeep = sell * (data[best_sell].upkeep || 0);
-		Dashboard.status(this, 'Selling ' + sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
+		Dashboard.status(this, (this.option._disabled ? 'Would sell ' : 'Selling ') + sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
 		cost = (buy - data[best_buy].own) * data[best_buy].cost;
 		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
-		if (Bank.worth(this.runtime.cost)) {
-			Dashboard.status(this, 'Buying ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+		if (land_buffer && !Bank.worth(land_buffer)) {
+			Dashboard.status(this, '<i>Deferring to Land</i>');
+		}
+		else if (Bank.worth(this.runtime.cost - land_buffer)) {
+			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
 		}
