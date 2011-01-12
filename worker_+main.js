@@ -36,6 +36,17 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
+	if (event.id === 'kickstart') {
+		for (i in Workers) {
+			Workers[i]._setup();
+		}
+		for (i in Workers) {
+			Workers[i]._init();
+		}
+		for (i in Workers) {
+			Workers[i]._update({type:'init', self:true});
+		}
+	}
 	if (event.id !== 'startup') {
 		return;
 	}
@@ -138,21 +149,13 @@ Main.update = function(event) {
 	};
 	// Now we're rolling
 	if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
-		(function(){})(); // Handled by the extension itself
+		$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
 	} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
 		GM_addStyle(GM_getResourceText('stylesheet'));
 	} else {
-		$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
+		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	for (i in Workers) {
-		Workers[i]._setup();
-	}
-	for (i in Workers) {
-		Workers[i]._init();
-	}
-	for (i in Workers) {
-		Workers[i]._update({type:'init', self:true});
-	}
+	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
 Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it

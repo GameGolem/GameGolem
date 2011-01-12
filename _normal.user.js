@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.963
+// @version		31.5.964
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 963;
+var revision = 964;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2250,7 +2250,7 @@ Dashboard.init = function() {
 			this._watch(Workers[i], 'option._hide_dashboard');
 		}
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top+'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top + 'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
@@ -3051,6 +3051,17 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
+	if (event.id === 'kickstart') {
+		for (i in Workers) {
+			Workers[i]._setup();
+		}
+		for (i in Workers) {
+			Workers[i]._init();
+		}
+		for (i in Workers) {
+			Workers[i]._update({type:'init', self:true});
+		}
+	}
 	if (event.id !== 'startup') {
 		return;
 	}
@@ -3153,21 +3164,13 @@ Main.update = function(event) {
 	};
 	// Now we're rolling
 	if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
-		(function(){})(); // Handled by the extension itself
+		$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
 	} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
 		GM_addStyle(GM_getResourceText('stylesheet'));
 	} else {
-		$('head').append('<style type="text/css">@import url("http://game-golem.googlecode.com/svn/trunk/golem.css");</style>');
+		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	for (i in Workers) {
-		Workers[i]._setup();
-	}
-	for (i in Workers) {
-		Workers[i]._init();
-	}
-	for (i in Workers) {
-		Workers[i]._update({type:'init', self:true});
-	}
+	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
 Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
