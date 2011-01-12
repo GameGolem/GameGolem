@@ -81,7 +81,7 @@ Arena.display = [
 	},{
 		id:'safety',
 		label:'Safety Margin',
-		require:'tokens!=min',
+		require:'tokens!="min"',
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
 		id:'order',

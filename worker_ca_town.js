@@ -58,27 +58,27 @@ Town.display = [
 		+ ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
-	require:'number!=None & number!=Minimum',
+	require:'number!="None" & number!="Minimum"',
 	label:'Sell Surplus',
 	checkbox:true,
 	help:'Only keep the best items for selected sets.'
 },{
 	advanced:true,
 	id:'units',
-	require:'number!=None',
+	require:'number!="None"',
 	label:'Set Type',
 	select:['Best Offense', 'Best Defense', 'Best for Both'],
 	help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
 },{
 	advanced:true,
 	id:'maxcost',
-	require:'number!=None',
+	require:'number!="None"',
 	label:'Maximum Item Cost',
 	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
 	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
-	require:'number!=None',
+	require:'number!="None"',
 	id:'upkeep',
 	label:'Max Upkeep',
 	text:true,

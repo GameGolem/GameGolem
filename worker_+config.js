@@ -26,8 +26,6 @@ Config.option = {
 
 Config.temp = {
 	require:[],
-	require_show:[],
-	require_id:0,// Used for options without an id
 	menu:null
 };
 
@@ -371,7 +369,7 @@ Config.makeOptions = function(worker, args) {
 };
 
 Config.makeOption = function(worker, args) {
-	var i, o, r, step, $option, txt = [], list = [];
+	var i, j, o, r, step, $option, txt = [], list = [];
 	o = $.extend({}, {
 		before: '',
 		after: '',
@@ -493,39 +491,56 @@ Config.makeOption = function(worker, args) {
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
 	if (o.require || o.advanced || o.exploit) {
-		// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-		// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
 		try {
-			r = {};
-			r.id = 'golem_require_'+(this.temp.require_id++);
-			r.outer = [,,o.require ? o.require.trim() : null];
-			r.require = [];
+			r = {depth:0};
+			r.require = {};
 			if (o.advanced) {
-				r.require.push('advanced');
+				r.require.advanced = true;
 				$option.css('background','#ffeeee');
 			}
 			if (o.exploit) {
-				r.require.push('exploit');
+				r.require.exploit = true;
 				$option.css({border:'1px solid red', background:'#ffeeee'});
 			}
-			while(r.outer[2]) {
-				r.outer = r.outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
-				r.inner = r.outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
-				r.path = r.inner[1].split('.');
-				if (!Worker.find(r.path[0])) {
-					if (isUndefined(worker._datatypes[r.path[0]])) {
-						r.path.unshift('option');
+			// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+			// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
+			// values = option, path.to.option, number, "string"
+			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
+			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g))) {
+				r.require.x = (function(r, x) {
+					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
+						if (r.atom[0] === '(') {
+							r.atom[0] = '';
+							r.atoms.unshift(r.atom);
+							x.push(arguments.callee(r, []));
+						} else if (isNumber(r.atom[2])) {
+							x.push(r.atom[2]);
+						} else if (/^".*"$/.test(r.atom[2])) {
+							x.push(r.atom[2].replace(/^"|"$/g, ''));
+						} else { // option or path.to.option
+							var path = r.atom[2].split('.');
+							if (!Worker.find(path[0])) {
+								if (isUndefined(worker._datatypes[path[0]])) {
+									path.unshift('option');
+								}
+								path.unshift(worker.name);
+							}
+							path.unshift(r.atom[1] === '!' ? false : true);
+							x.push(path);
+						}
+						if (r.atom[3] === ')') {
+							break;
+						}
+						if (r.atom[4]) {
+							x.push(r.atom[4].replace(/([=|&])+/g, '$1'));
+						}
 					}
-					r.path.unshift(worker.name);
-				}
-				if (r.inner[0] === '!') {r.path.unshift(false);}
-				r.require.push(r.path);
-				if (r.inner[2]) {r.require.push(r.inner[2]);}
-				if (r.inner[3]) {r.require.push(r.inner[3]);}
-				if (r.outer[1] && r.outer[2]) {r.require.push(r.outer[1][0]);}
+					return x;
+				})(r, []);
 			}
-			this.temp.require[r.id] = r.require;
-			$option.attr('id', r.id).css('display', this.checkRequire(r.id) ? '' : 'none');
+			this.temp.require.push(r.require);
+			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
 		} catch(e) {
 			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
 		}
@@ -563,7 +578,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, test = null, op = '&', require = this.temp.require[id], doTest;
+	var i, show = true, value = [], test, op = '&', require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
@@ -572,53 +587,55 @@ Config.checkRequire = function(id) {
 	}
 	doTest = function() {
 		switch (test) {
-			case '>':	value = (value > value2);	break;
-			case '>=':	value = (value >= value2);	break;
-			case '=':
-			case '==':	value = (value === value2);	break;
-			case '<=':	value = (value <= value2);	break;
-			case '<':	value = (value < value2);	break;
-			case '!=':	value = (value !== value2);	break;
+			case '>':	value[0] = (value[0] > value[1]);	break;
+			case '>=':	value[0] = (value[0] >= value[1]);	break;
+			case '=':	value[0] = (value[0] === value[1]);	break;
+			case '<=':	value[0] = (value[0] <= value[1]);	break;
+			case '<':	value[0] = (value[0] < value[1]);	break;
+			case '!=':	value[0] = (value[0] !== value[1]);	break;
 		}
 		switch (op) {
-			case '&':	show = show && value;		break;
-			case '|':	show = show || value;		break;
+			case '&':	show = show && value[0];	break;
+			case '|':	show = show || value[0];	break;
 		}
-		op = test = null;
+		op = test = undefined;
+		value = [];
 	}
-	i = 0;
-	if (require[0] === 'advanced') {
+	if (require.advanced) {
 		show = show && Config.option.advanced;
-		i++;
 	}
-	if (require[0] === 'exploit') {
+	if (require.exploit) {
 		show = show && Config.option.exploit;
-		i++;
 	}
-	for (; i<require.length; i++) {
-		if (isArray(require[i])) {
-			path = require[i].slice(require[i][0] ? 0 : 1);
-			value = Workers[path.shift()]._get(path, false);
-			if (!require[i][0]) {
-				value = !value;
+	if (require.x) {
+		(function(x){
+			var i, path;
+			for (i=0; i<x.length; i++) {
+				if (isArray(x[i])) {
+					if (isBoolean(x[i][0])) {
+						path = x[i].slice(1);
+						value.push(Workers[path.shift()]._get(path, false));
+						if (!x[i][0]) {
+							value[value.length-1] = !value[value.length-1];
+						}
+					} else {
+						value.push(arguments.callee(x[i]));
+					}
+				} else if (/>|>=|={1,2}|<=|<|!={1,2}/.test(x[i])) {
+					test = x[i];
+				} else if (/&{1,2}|\|{1,2}/.test(x[i])) {
+					doTest();
+					op = x[i];
+				} else {
+					value.push(x[i]);
+				}
 			}
-		} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
-			test = require[i];
-		} else if (['&', '|'].indexOf(require[i]) >= 0) {
 			doTest();
-			op = require[i];
-		} else {
-			value2 = require[i];
-		}
+		})(require.x);
 	}
-	doTest();
-	if (this.temp.require_show[id] !== show) {
-		this.temp.require_show[id] = show;
-		if (show) {
-			$('#'+id).show();
-		} else {
-			$('#'+id).hide();
-		}
+	if (require.show !== show) {
+		require.show = show;
+		$('#golem_require_'+id).css('display', show ? '' : 'none');
 	}
 	return show;
 };

@@ -130,6 +130,7 @@ function Worker(name,pages,settings) {
 	this._loaded = false;
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
+	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
 	this._watching = {}; // Watching for changes, path:[workers]
@@ -248,7 +249,7 @@ Worker.prototype._init = function() {
 };
 
 Worker.prototype._load = function(type, merge) {
-	var i;
+	var i, n;
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (i in this._datatypes) {
@@ -260,9 +261,11 @@ Worker.prototype._load = function(type, merge) {
 		return;
 	}
 	this._push();
-	i = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
+	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
+	i = getItem(n);
 	if (i) {
 		try {
+			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
 			i = JSON.parse(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
@@ -413,7 +416,8 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
-		this._forget('_update_'+type);
+		this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+		this._forget('_'+type);
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();

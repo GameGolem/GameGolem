@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.961
+// @version		31.5.962
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 961;
+var revision = 962;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -64,6 +64,10 @@ var isArray = function(obj) {// Not an object
 
 var isObject = function(obj) {// Not an array
 	return obj && obj.constructor === Object;
+};
+
+var isBoolean = function(obj) {
+	return obj && obj.constructor === Boolean;
 };
 
 var isFunction = function(obj) {
@@ -760,6 +764,7 @@ function Worker(name,pages,settings) {
 	this._loaded = false;
 	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
+	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
 	this._watching = {}; // Watching for changes, path:[workers]
@@ -878,7 +883,7 @@ Worker.prototype._init = function() {
 };
 
 Worker.prototype._load = function(type, merge) {
-	var i;
+	var i, n;
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (i in this._datatypes) {
@@ -890,9 +895,11 @@ Worker.prototype._load = function(type, merge) {
 		return;
 	}
 	this._push();
-	i = getItem((this._rootpath ? userID + '.' : '') + type + '.' + this.name);
+	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
+	i = getItem(n);
 	if (i) {
 		try {
+			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
 			i = JSON.parse(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
@@ -1043,7 +1050,8 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
-		this._forget('_update_'+type);
+		this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+		this._forget('_'+type);
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();
@@ -1568,8 +1576,6 @@ Config.option = {
 
 Config.temp = {
 	require:[],
-	require_show:[],
-	require_id:0,// Used for options without an id
 	menu:null
 };
 
@@ -1913,7 +1919,7 @@ Config.makeOptions = function(worker, args) {
 };
 
 Config.makeOption = function(worker, args) {
-	var i, o, r, step, $option, txt = [], list = [];
+	var i, j, o, r, step, $option, txt = [], list = [];
 	o = $.extend({}, {
 		before: '',
 		after: '',
@@ -2035,39 +2041,56 @@ Config.makeOption = function(worker, args) {
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
 	if (o.require || o.advanced || o.exploit) {
-		// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-		// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
 		try {
-			r = {};
-			r.id = 'golem_require_'+(this.temp.require_id++);
-			r.outer = [,,o.require ? o.require.trim() : null];
-			r.require = [];
+			r = {depth:0};
+			r.require = {};
 			if (o.advanced) {
-				r.require.push('advanced');
+				r.require.advanced = true;
 				$option.css('background','#ffeeee');
 			}
 			if (o.exploit) {
-				r.require.push('exploit');
+				r.require.exploit = true;
 				$option.css({border:'1px solid red', background:'#ffeeee'});
 			}
-			while(r.outer[2]) {
-				r.outer = r.outer[2].regex(/^([^|&]+)([|&]*)\s*(.*)/);
-				r.inner = r.outer[0].trim().regex(/(!?)([^\s!=<>]+)\s*([!=<>]*)\s*(.*)/);
-				r.path = r.inner[1].split('.');
-				if (!Worker.find(r.path[0])) {
-					if (isUndefined(worker._datatypes[r.path[0]])) {
-						r.path.unshift('option');
+			// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+			// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
+			// values = option, path.to.option, number, "string"
+			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
+			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g))) {
+				r.require.x = (function(r, x) {
+					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
+						if (r.atom[0] === '(') {
+							r.atom[0] = '';
+							r.atoms.unshift(r.atom);
+							x.push(arguments.callee(r, []));
+						} else if (isNumber(r.atom[2])) {
+							x.push(r.atom[2]);
+						} else if (/^".*"$/.test(r.atom[2])) {
+							x.push(r.atom[2].replace(/^"|"$/g, ''));
+						} else { // option or path.to.option
+							var path = r.atom[2].split('.');
+							if (!Worker.find(path[0])) {
+								if (isUndefined(worker._datatypes[path[0]])) {
+									path.unshift('option');
+								}
+								path.unshift(worker.name);
+							}
+							path.unshift(r.atom[1] === '!' ? false : true);
+							x.push(path);
+						}
+						if (r.atom[3] === ')') {
+							break;
+						}
+						if (r.atom[4]) {
+							x.push(r.atom[4].replace(/([=|&])+/g, '$1'));
+						}
 					}
-					r.path.unshift(worker.name);
-				}
-				if (r.inner[0] === '!') {r.path.unshift(false);}
-				r.require.push(r.path);
-				if (r.inner[2]) {r.require.push(r.inner[2]);}
-				if (r.inner[3]) {r.require.push(r.inner[3]);}
-				if (r.outer[1] && r.outer[2]) {r.require.push(r.outer[1][0]);}
+					return x;
+				})(r, []);
 			}
-			this.temp.require[r.id] = r.require;
-			$option.attr('id', r.id).css('display', this.checkRequire(r.id) ? '' : 'none');
+			this.temp.require.push(r.require);
+			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
 		} catch(e) {
 			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
 		}
@@ -2105,7 +2128,7 @@ Config.set = function(key, value) {
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, j, path, show = true, value = false, value2 = null, test = null, op = '&', require = this.temp.require[id], doTest;
+	var i, show = true, value = [], test, op = '&', require = this.temp.require[id], doTest;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
@@ -2114,53 +2137,55 @@ Config.checkRequire = function(id) {
 	}
 	doTest = function() {
 		switch (test) {
-			case '>':	value = (value > value2);	break;
-			case '>=':	value = (value >= value2);	break;
-			case '=':
-			case '==':	value = (value === value2);	break;
-			case '<=':	value = (value <= value2);	break;
-			case '<':	value = (value < value2);	break;
-			case '!=':	value = (value !== value2);	break;
+			case '>':	value[0] = (value[0] > value[1]);	break;
+			case '>=':	value[0] = (value[0] >= value[1]);	break;
+			case '=':	value[0] = (value[0] === value[1]);	break;
+			case '<=':	value[0] = (value[0] <= value[1]);	break;
+			case '<':	value[0] = (value[0] < value[1]);	break;
+			case '!=':	value[0] = (value[0] !== value[1]);	break;
 		}
 		switch (op) {
-			case '&':	show = show && value;		break;
-			case '|':	show = show || value;		break;
+			case '&':	show = show && value[0];	break;
+			case '|':	show = show || value[0];	break;
 		}
-		op = test = null;
+		op = test = undefined;
+		value = [];
 	}
-	i = 0;
-	if (require[0] === 'advanced') {
+	if (require.advanced) {
 		show = show && Config.option.advanced;
-		i++;
 	}
-	if (require[0] === 'exploit') {
+	if (require.exploit) {
 		show = show && Config.option.exploit;
-		i++;
 	}
-	for (; i<require.length; i++) {
-		if (isArray(require[i])) {
-			path = require[i].slice(require[i][0] ? 0 : 1);
-			value = Workers[path.shift()]._get(path, false);
-			if (!require[i][0]) {
-				value = !value;
+	if (require.x) {
+		(function(x){
+			var i, path;
+			for (i=0; i<x.length; i++) {
+				if (isArray(x[i])) {
+					if (isBoolean(x[i][0])) {
+						path = x[i].slice(1);
+						value.push(Workers[path.shift()]._get(path, false));
+						if (!x[i][0]) {
+							value[value.length-1] = !value[value.length-1];
+						}
+					} else {
+						value.push(arguments.callee(x[i]));
+					}
+				} else if (/>|>=|={1,2}|<=|<|!={1,2}/.test(x[i])) {
+					test = x[i];
+				} else if (/&{1,2}|\|{1,2}/.test(x[i])) {
+					doTest();
+					op = x[i];
+				} else {
+					value.push(x[i]);
+				}
 			}
-		} else if (['>', '>=', '=', '==', '<=', '<', '!='].indexOf(require[i]) >= 0) {
-			test = require[i];
-		} else if (['&', '|'].indexOf(require[i]) >= 0) {
 			doTest();
-			op = require[i];
-		} else {
-			value2 = require[i];
-		}
+		})(require.x);
 	}
-	doTest();
-	if (this.temp.require_show[id] !== show) {
-		this.temp.require_show[id] = show;
-		if (show) {
-			$('#'+id).show();
-		} else {
-			$('#'+id).hide();
-		}
+	if (require.show !== show) {
+		require.show = show;
+		$('#golem_require_'+id).css('display', show ? '' : 'none');
 	}
 	return show;
 };
@@ -4300,7 +4325,7 @@ Settings.menu = function(worker, key) {
 };
 
 Settings.dashboard = function() {
-	var i, path = this.temp.worker+'.'+this.temp.edit, html = '';
+	var i, j, total, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
 	html = '<select id="golem_settings_path">';
 	for (i=0; i<this.temp.paths.length; i++) {
 		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
@@ -4314,7 +4339,17 @@ Settings.dashboard = function() {
 		}
 	}
 	if (!this.temp.worker) {
-		html += ' No worker specified.';
+		total = 0;
+		for (i in Workers) {
+			for (j in Workers[i]._storage) {
+				if (Workers[i]._storage[j]) {
+					total += Workers[i]._storage[j];
+					storage.push('<tr><th>' + i + '.' + j + '</th><td style="text-align:right;">' + Workers[i]._storage[j].addCommas() + ' bytes</td></tr>');
+				}
+			}
+		}
+		html += ' No worker specified (total ' + total.addCommas() +' bytes)';
+		html += '<br><table>' + storage.join('') + '</table>';
 	} else if (!this.temp.edit) {
 		html += ' No ' + this.temp.worker + ' element specified.';
 	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {
@@ -4325,14 +4360,17 @@ Settings.dashboard = function() {
 		html += ' The element is scalar.';
 	} else {
 		i = length(Workers[this.temp.worker][this.temp.edit]);
-		html += ' The element contains ' + i + ' element' + plural(i) + '.';
+		html += ' The element contains ' + i + ' element' + plural(i);
+		if (Workers[this.temp.worker]._storage[this.temp.edit]) {
+			html += ' (' + (Workers[this.temp.worker]._storage[this.temp.edit]).addCommas() + ' bytes)';
+		}
+		html += '.';
 	}
-	if (Config.option.advanced) {
-		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
-	}
-	html += '<br>';
 	if (this.temp.worker && this.temp.edit) {
-		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+		if (Config.option.advanced) {
+			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
+		}
+		html += '<br><textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
@@ -4813,7 +4851,7 @@ Arena.display = [
 	},{
 		id:'safety',
 		label:'Safety Margin',
-		require:'tokens!=min',
+		require:'tokens!="min"',
 		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
 	},{
 		id:'order',
@@ -5498,7 +5536,7 @@ Battle.display = [
 		advanced:true,
 		id:'limit',
 		before:'<center>Target Ranks</center>',
-		require:'bp=Always',
+		require:'bp="Always"',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -5538,13 +5576,13 @@ Battle.display = [
 		help:'The lowest health you can attack with is 10, but you can lose up to 12 health in an attack, so are you going to risk it???'
 	},{
 		id:'army',
-		require:'type=Invade',
+		require:'type="Invade"',
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'level',
-		require:'type!=Invade',
+		require:'type!="Invade"',
 		label:'Target Level Ratio<br>(Mainly used for Duel)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
@@ -7582,7 +7620,7 @@ LevelUp.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:'general=Manual',
+		require:'general="Manual"',
 		select:'generals'
 	},{
 		id:'order',
@@ -7597,13 +7635,13 @@ LevelUp.display = [
 	},{
 		id:'manual_exp_per_stamina',
 		label:'Exp per stamina',
-		require:'algorithm=Manual',
+		require:'algorithm="Manual"',
 		text:true,
 		help:'Experience per stamina point.  Defaults to Per Action if 0 or blank.'
 	},{
 		id:'manual_exp_per_energy',
 		label:'Exp per energy',
-		require:'algorithm=Manual',
+		require:'algorithm="Manual"',
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
 	},{
@@ -7975,7 +8013,7 @@ Monster.display = [
 		id:'hide',
 		label:'Use Raids and Monsters to Hide',
 		checkbox:true,
-		require:'stop!=Priority List',
+		require:'stop!="Priority List"',
 		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
 	},{
 		advanced:true,
@@ -8012,20 +8050,20 @@ Monster.display = [
 	},{
 		id:'priority',
 		label:'Priority List',
-		require:'stop=Priority List',
+		require:'stop="Priority List"',
 		textarea:true,
 		help:'Prioritized list of which monsters to attack'
 	},{
 		advanced:true,
 		id:'own',
 		label:'Never stop on Your Monsters',
-		require:'stop!=Priority List',
+		require:'stop!="Priority List"',
 		checkbox:true,
 		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 	},{
 		advanced:true,
 		id:'rescue',
-		require:'stop!=Priority List',
+		require:'stop!="Priority List"',
 		label:'Rescue failing monsters',
 		checkbox:true,
 		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -8033,7 +8071,7 @@ Monster.display = [
 		advanced:true,
 		id:'avoid_lost_cause',
 		label:'Avoid Lost-cause Monsters',
-		require:'stop!=Priority List',
+		require:'stop!="Priority List"',
 		checkbox:true,
 		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 	},{
@@ -8117,13 +8155,13 @@ Monster.display = [
 		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
 	},{
 		id:'armyratio',
-		require:'raid!=Duel & raid!=Duel x5',
+		require:'raid!="Duel" & raid!="Duel x5"',
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:'raid!=Invade & raid!=Invade x5',
+		require:'raid!="Invade" & raid!="Invade x5"',
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
@@ -10201,7 +10239,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:'what=Cartigan | what=Vampire Lord'
+		require:'what="Cartigan" | what="Vampire Lord"'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -11385,27 +11423,27 @@ Town.display = [
 		+ ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
-	require:'number!=None & number!=Minimum',
+	require:'number!="None" & number!="Minimum"',
 	label:'Sell Surplus',
 	checkbox:true,
 	help:'Only keep the best items for selected sets.'
 },{
 	advanced:true,
 	id:'units',
-	require:'number!=None',
+	require:'number!="None"',
 	label:'Set Type',
 	select:['Best Offense', 'Best Defense', 'Best for Both'],
 	help:'Select type of sets to keep. Best for Both will keep a Best Offense and a Best Defense set.'
 },{
 	advanced:true,
 	id:'maxcost',
-	require:'number!=None',
+	require:'number!="None"',
 	label:'Maximum Item Cost',
 	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
 	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
-	require:'number!=None',
+	require:'number!="None"',
 	id:'upkeep',
 	label:'Max Upkeep',
 	text:true,

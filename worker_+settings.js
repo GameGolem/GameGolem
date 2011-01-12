@@ -120,7 +120,7 @@ Settings.menu = function(worker, key) {
 };
 
 Settings.dashboard = function() {
-	var i, path = this.temp.worker+'.'+this.temp.edit, html = '';
+	var i, j, total, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
 	html = '<select id="golem_settings_path">';
 	for (i=0; i<this.temp.paths.length; i++) {
 		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
@@ -134,7 +134,17 @@ Settings.dashboard = function() {
 		}
 	}
 	if (!this.temp.worker) {
-		html += ' No worker specified.';
+		total = 0;
+		for (i in Workers) {
+			for (j in Workers[i]._storage) {
+				if (Workers[i]._storage[j]) {
+					total += Workers[i]._storage[j];
+					storage.push('<tr><th>' + i + '.' + j + '</th><td style="text-align:right;">' + Workers[i]._storage[j].addCommas() + ' bytes</td></tr>');
+				}
+			}
+		}
+		html += ' No worker specified (total ' + total.addCommas() +' bytes)';
+		html += '<br><table>' + storage.join('') + '</table>';
 	} else if (!this.temp.edit) {
 		html += ' No ' + this.temp.worker + ' element specified.';
 	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {
@@ -145,14 +155,17 @@ Settings.dashboard = function() {
 		html += ' The element is scalar.';
 	} else {
 		i = length(Workers[this.temp.worker][this.temp.edit]);
-		html += ' The element contains ' + i + ' element' + plural(i) + '.';
+		html += ' The element contains ' + i + ' element' + plural(i);
+		if (Workers[this.temp.worker]._storage[this.temp.edit]) {
+			html += ' (' + (Workers[this.temp.worker]._storage[this.temp.edit]).addCommas() + ' bytes)';
+		}
+		html += '.';
 	}
-	if (Config.option.advanced) {
-		html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
-	}
-	html += '<br>';
 	if (this.temp.worker && this.temp.edit) {
-		html += '<textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+		if (Config.option.advanced) {
+			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
+		}
+		html += '<br><textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});

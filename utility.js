@@ -21,6 +21,10 @@ var isObject = function(obj) {// Not an array
 	return obj && obj.constructor === Object;
 };
 
+var isBoolean = function(obj) {
+	return obj && obj.constructor === Boolean;
+};
+
 var isFunction = function(obj) {
 	return obj && obj.constructor === Function;
 };
