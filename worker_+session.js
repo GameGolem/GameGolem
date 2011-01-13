@@ -166,6 +166,13 @@ Session.update = function(event) {
 					Workers[i]._save(l);
 				}
 			}
+			for (l in Workers[i]._reminders) {
+				if (/^i/.test(l)) {
+					window.clearInterval(Workers[i]._reminders[l]);
+				} else if (/^t/.test(l)) {
+					window.clearTimeout(Workers[i]._reminders[l]);
+				}
+			}
 		}
 		this.data._sessions[this.temp._id] = 0;
 		if (this.data._active === this.temp._id) {
