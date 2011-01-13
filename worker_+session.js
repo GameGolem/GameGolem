@@ -111,6 +111,7 @@ Session.init = function() {
 		}
 		Session._save('data');
 	});
+	$(window).unload(function(){Session.update({type:'unload'});}); // Not going via _update
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Session, but good enough for half a dozen or more
 	Title.alias('disable', 'Session:temp.active::(Disabled) ');
 };
@@ -152,12 +153,28 @@ Session.updateTimestamps = function() {
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
 Session.update = function(event) {
-	if (event.type !== 'reminder') {
+	var i, l, now = Date.now();
+	if (event.type !== 'reminder' && event.type !== 'unload') {
 		return;
 	}
-	var i, l, now = Date.now();
 	this._load('data');
-	this.data._sessions[this.temp._id] = now;
+	if (event.type === 'unload') {
+		Queue._forget('run'); // Make sure we don't do anything else
+		for (i in Workers) { // Make sure anything that needs saving is saved
+			for (l in Workers[i]._taint) {
+				if (Workers[i]._taint[l]) {
+					Workers[i]._save(l);
+				}
+			}
+		}
+		this.data._sessions[this.temp._id] = 0;
+		if (this.data._active === this.temp._id) {
+			this.data._active = null;
+		}
+		this.temp.active = false;
+	} else {
+		this.data._sessions[this.temp._id] = now;
+	}
 	now -= Global.option.session.timeout;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < now) {

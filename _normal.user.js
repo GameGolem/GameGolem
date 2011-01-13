@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.965
+// @version		31.5.966
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 965;
+var revision = 966;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -145,7 +145,7 @@ String.prototype.regex = function(r) {
 	var a = this.match(r), i, rx;
 	if (a) {
 		if (r.global) {
-			if (/\(.*\)/.test(r.source)) {
+			if (/(^|[^\\]|[^\\](\\\\)*)\([^?]/.test(r.source)) { // Try to match '(blah' but not '\(blah' or '(?:blah' - ignore invalid regexp
 				rx = new RegExp(r.source, (r.ignoreCase ? 'i' : '') + (r.multiline ? 'm' : ''));
 			}
 		} else {
@@ -4136,6 +4136,7 @@ Session.init = function() {
 		}
 		Session._save('data');
 	});
+	$(window).unload(function(){Session.update({type:'unload'});}); // Not going via _update
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Session, but good enough for half a dozen or more
 	Title.alias('disable', 'Session:temp.active::(Disabled) ');
 };
@@ -4177,12 +4178,28 @@ Session.updateTimestamps = function() {
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
 Session.update = function(event) {
-	if (event.type !== 'reminder') {
+	var i, l, now = Date.now();
+	if (event.type !== 'reminder' && event.type !== 'unload') {
 		return;
 	}
-	var i, l, now = Date.now();
 	this._load('data');
-	this.data._sessions[this.temp._id] = now;
+	if (event.type === 'unload') {
+		Queue._forget('run'); // Make sure we don't do anything else
+		for (i in Workers) { // Make sure anything that needs saving is saved
+			for (l in Workers[i]._taint) {
+				if (Workers[i]._taint[l]) {
+					Workers[i]._save(l);
+				}
+			}
+		}
+		this.data._sessions[this.temp._id] = 0;
+		if (this.data._active === this.temp._id) {
+			this.data._active = null;
+		}
+		this.temp.active = false;
+	} else {
+		this.data._sessions[this.temp._id] = now;
+	}
 	now -= Global.option.session.timeout;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < now) {

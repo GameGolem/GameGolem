@@ -100,7 +100,7 @@ String.prototype.regex = function(r) {
 	var a = this.match(r), i, rx;
 	if (a) {
 		if (r.global) {
-			if (/\(.*\)/.test(r.source)) {
+			if (/(^|[^\\]|[^\\](\\\\)*)\([^?]/.test(r.source)) { // Try to match '(blah' but not '\(blah' or '(?:blah' - ignore invalid regexp
 				rx = new RegExp(r.source, (r.ignoreCase ? 'i' : '') + (r.multiline ? 'm' : ''));
 			}
 		} else {
