@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.967
+// @version		31.5.968
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 967;
+var revision = 968;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1189,7 +1189,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false;
+		var i, r, flush = false;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -1204,7 +1204,16 @@ Worker.prototype._update = function(event) {
 				this._unflush();
 			}
 			try {
-				if (this.update(event)) {
+				if (event.type && event.id && isFunction(this['update_'+event.type+'_'+event.id])) {
+					r = this['update_'+event.type+'_'+event.id](event);
+				} else if (event.type && isFunction(this['update_'+event.type])) {
+					r = this['update_'+event.type](event);
+				} else if (event.id && isFunction(this['update_'+event.id])) {
+					r = this['update_'+event.id](event);
+				} else {
+					r = this.update(event);
+				}
+				if (r) {
 					for (i in this._datatypes) {
 						this._forget('_'+i);
 					}
@@ -2281,32 +2290,33 @@ Dashboard.init = function() {
 	});
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
-	this._revive(1);// update() once every second to update any timers
+	this._revive(1, 'timers');// update() once every second to update any timers
 };
 
 Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
+Dashboard.update_reminder_timers = function(event) {
+	$('.golem-timer').each(function(i,el){
+		var $el = $(el), time = $el.text().parseTimer();
+		if (time && time > 0) {
+			$el.text(makeTimer(time - 1));
+		} else {
+			$el.removeClass('golem-timer').text('now?');
+		}
+	});
+	$('.golem-time').each(function(i,el){
+		var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
+		if (time && time > 0) {
+			$el.text(makeTimer(time / 1000));
+		} else {
+			$el.removeClass('golem-time').text('now?');
+		}
+	});
+}
+
 Dashboard.update = function(event) {
-	if (event.self && event.type === 'reminder') {
-		$('.golem-timer').each(function(i,el){
-			var time = $(el).text().parseTimer();
-			if (time && time > 0) {
-				$(el).text(makeTimer(time - 1));
-			} else {
-				$(el).removeClass('golem-timer').text('now?');
-			}
-		});
-		$('.golem-time').each(function(i,el){
-			var time = parseInt($(el).attr('name'), 10) - Date.now();
-			if (time && time > 0) {
-				$(el).text(makeTimer(time / 1000));
-			} else {
-				$(el).removeClass('golem-time').text('now?');
-			}
-		});
-	}
 	if (event.type === 'init') {
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)

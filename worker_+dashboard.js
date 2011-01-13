@@ -81,32 +81,33 @@ Dashboard.init = function() {
 	});
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
-	this._revive(1);// update() once every second to update any timers
+	this._revive(1, 'timers');// update() once every second to update any timers
 };
 
 Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
+Dashboard.update_reminder_timers = function(event) {
+	$('.golem-timer').each(function(i,el){
+		var $el = $(el), time = $el.text().parseTimer();
+		if (time && time > 0) {
+			$el.text(makeTimer(time - 1));
+		} else {
+			$el.removeClass('golem-timer').text('now?');
+		}
+	});
+	$('.golem-time').each(function(i,el){
+		var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
+		if (time && time > 0) {
+			$el.text(makeTimer(time / 1000));
+		} else {
+			$el.removeClass('golem-time').text('now?');
+		}
+	});
+}
+
 Dashboard.update = function(event) {
-	if (event.self && event.type === 'reminder') {
-		$('.golem-timer').each(function(i,el){
-			var time = $(el).text().parseTimer();
-			if (time && time > 0) {
-				$(el).text(makeTimer(time - 1));
-			} else {
-				$(el).removeClass('golem-timer').text('now?');
-			}
-		});
-		$('.golem-time').each(function(i,el){
-			var time = parseInt($(el).attr('name'), 10) - Date.now();
-			if (time && time > 0) {
-				$(el).text(makeTimer(time / 1000));
-			} else {
-				$(el).removeClass('golem-time').text('now?');
-			}
-		});
-	}
 	if (event.type === 'init') {
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)

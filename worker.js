@@ -555,7 +555,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event) {
 	if (this._loaded && this.update) {
 		this._push();
-		var i, flush = false;
+		var i, r, flush = false;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -570,7 +570,16 @@ Worker.prototype._update = function(event) {
 				this._unflush();
 			}
 			try {
-				if (this.update(event)) {
+				if (event.type && event.id && isFunction(this['update_'+event.type+'_'+event.id])) {
+					r = this['update_'+event.type+'_'+event.id](event);
+				} else if (event.type && isFunction(this['update_'+event.type])) {
+					r = this['update_'+event.type](event);
+				} else if (event.id && isFunction(this['update_'+event.id])) {
+					r = this['update_'+event.id](event);
+				} else {
+					r = this.update(event);
+				}
+				if (r) {
 					for (i in this._datatypes) {
 						this._forget('_'+i);
 					}
