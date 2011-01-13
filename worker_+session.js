@@ -51,8 +51,8 @@ Session.temp = {
 
 Session.setup = function() {
 	try {
-		if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
-			sessionStorage['golem.'+APP] = Session.temp._id = '#' + Date.now();
+		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
+			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
 		}
 	} catch(e) {// sessionStorage not available
 		Session.temp._id = '#' + Date.now();

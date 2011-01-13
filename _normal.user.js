@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.964
+// @version		31.5.965
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 964;
+var revision = 965;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4076,8 +4076,8 @@ Session.temp = {
 
 Session.setup = function() {
 	try {
-		if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
-			sessionStorage['golem.'+APP] = Session.temp._id = '#' + Date.now();
+		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
+			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
 		}
 	} catch(e) {// sessionStorage not available
 		Session.temp._id = '#' + Date.now();
