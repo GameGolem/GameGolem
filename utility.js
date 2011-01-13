@@ -118,7 +118,7 @@ String.prototype.regex = function(r) {
 				}
 			}
 		}
-		if (a.length === 1) {
+		if (!rx && a.length === 1) {
 			return a[0];
 		}
 	}

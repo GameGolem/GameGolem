@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.968
+// @version		31.5.969
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 968;
+var revision = 969;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -163,7 +163,7 @@ String.prototype.regex = function(r) {
 				}
 			}
 		}
-		if (a.length === 1) {
+		if (!rx && a.length === 1) {
 			return a[0];
 		}
 	}
@@ -2066,27 +2066,31 @@ Config.makeOption = function(worker, args) {
 			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
 			// values = option, path.to.option, number, "string"
 			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
-			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g))) {
+			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
 				r.require.x = (function(r, x) {
 					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
 						if (r.atom[0] === '(') {
 							r.atom[0] = '';
 							r.atoms.unshift(r.atom);
 							x.push(arguments.callee(r, []));
-						} else if (isNumber(r.atom[2])) {
-							x.push(r.atom[2]);
-						} else if (/^".*"$/.test(r.atom[2])) {
-							x.push(r.atom[2].replace(/^"|"$/g, ''));
-						} else { // option or path.to.option
-							var path = r.atom[2].split('.');
-							if (!Worker.find(path[0])) {
-								if (isUndefined(worker._datatypes[path[0]])) {
-									path.unshift('option');
-								}
-								path.unshift(worker.name);
+						} else {
+							if (r.atom[1] === '!') {
+								x.push(false);
 							}
-							path.unshift(r.atom[1] === '!' ? false : true);
-							x.push(path);
+							if (isNumber(r.atom[2])) {
+								x.push(r.atom[2]);
+							} else if (/^".*"$/.test(r.atom[2])) {
+								x.push(r.atom[2].replace(/^"|"$/g, ''));
+							} else { // option or path.to.option
+								var path = r.atom[2].split('.');
+								if (!Workers[path[0]]) {
+									if (isUndefined(worker._datatypes[path[0]])) {
+										path.unshift('option');
+									}
+									path.unshift(worker.name);
+								}
+								x.push(path.slice(0));
+							}
 						}
 						if (r.atom[3] === ')') {
 							break;
@@ -2136,29 +2140,43 @@ Config.set = function(key, value) {
 
 Config.checkRequire = function(id) {
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-	var i, show = true, value = [], test, op = '&', require = this.temp.require[id], doTest;
+// [[false,"testing","blah"],"=",1234,"&",[true,"yet","another","path"],"|",[false,"something"],"&",[true,"test","me"],">",5]
+	var i, show = true, value = [], test, math, op = '&', not, require = this.temp.require[id], doTest, doMath, doOp;
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
 		}
 		return;
 	}
+	doMath = function() {
+		var l, r;
+		if (not) {
+			value.push(!value.pop());
+		}
+		switch (math) {
+			case '+':	value.push(value.pop() + value.pop());	break;
+			case '*':	value.push(value.pop() * value.pop());	break;
+			case '-':	value.push(value.pop() - value.pop());	break;
+			case '/':	value.push(value.pop() / value.pop());	break;
+			case '%':	r = value.pop();l = value.pop();value.push(l % r);	break;
+		}
+		math = not = undefined;
+	}
 	doTest = function() {
+		var l, r;
 		switch (test) {
-			case '>':	value[0] = (value[0] > value[1]);	break;
-			case '>=':	value[0] = (value[0] >= value[1]);	break;
-			case '=':	value[0] = (value[0] === value[1]);	break;
-			case '<=':	value[0] = (value[0] <= value[1]);	break;
-			case '<':	value[0] = (value[0] < value[1]);	break;
-			case '!=':	value[0] = (value[0] !== value[1]);	break;
+			case '>':	r = value.pop();l = value.pop();value.push(l > r);		break;
+			case '>=':	r = value.pop();l = value.pop();value.push(l >= r);		break;
+			case '=':	r = value.pop();l = value.pop();value.push(l === r);	break;
+			case '<=':	r = value.pop();l = value.pop();value.push(l <= r);		break;
+			case '<':	r = value.pop();l = value.pop();value.push(l < r);		break;
+			case '!=':	r = value.pop();l = value.pop();value.push(l !== r);	break;
 		}
 		switch (op) {
-			case '&':	show = show && value[0];	break;
-			case '|':	show = show || value[0];	break;
+			case '&':	show = show && value.pop();	break;
+			case '|':	show = show || value.pop();	break;
 		}
 		op = test = undefined;
-		value = [];
 	}
 	if (require.advanced) {
 		show = show && Config.option.advanced;
@@ -2170,26 +2188,37 @@ Config.checkRequire = function(id) {
 		(function(x){
 			var i, path;
 			for (i=0; i<x.length; i++) {
+				if (x[i] === false) {
+					not = true;
+					continue;
+				}
 				if (isArray(x[i])) {
-					if (isBoolean(x[i][0])) {
-						path = x[i].slice(1);
+					if (Workers[x[i][0]]) {
+						path = x[i].slice(0);
 						value.push(Workers[path.shift()]._get(path, false));
-						if (!x[i][0]) {
-							value[value.length-1] = !value[value.length-1];
-						}
 					} else {
 						value.push(arguments.callee(x[i]));
 					}
-				} else if (/>|>=|={1,2}|<=|<|!={1,2}/.test(x[i])) {
+					doMath();
+				} else if (/\+|-|\*|\/|%/.test(x[i])) { // Math functions
+					doMath();
+					math = x[i];
+				} else if (/>|>=|=|<=|<|!=/.test(x[i])) { // Comparison functions
+					doMath();
 					test = x[i];
-				} else if (/&{1,2}|\|{1,2}/.test(x[i])) {
+				} else if (/&|\|/.test(x[i])) { // Operators
+					doMath();
 					doTest();
 					op = x[i];
 				} else {
 					value.push(x[i]);
+					doMath();
 				}
 			}
-			doTest();
+			if (value.length) {
+				doMath();
+				doTest();
+			}
 		})(require.x);
 	}
 	if (require.show !== show) {
