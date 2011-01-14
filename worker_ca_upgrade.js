@@ -64,17 +64,7 @@ Upgrade.work = function(state) {
 	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
 	if (!args) {
 		this.set(['runtime','run'], this.runtime.run + 1);
-	} else
-/*
-	switch (this.option.order[this.runtime.run]) {
-		case 'Energy':	args = 'energy_max';	break;
-		case 'Stamina':	args = 'stamina_max';	break;
-		case 'Attack':	args = 'attack';		break;
-		case 'Defense':	args = 'defense';		break;
-		case 'Health':	args = 'health_max';	break;
-		default:this.set(['runtime','run'], this.runtime.run + 1);	break; // Should never happen
-	}
-*/	if (state) {
+	} else if (state) {
 		this.set(['runtime','working'], true);
 		Page.to('keep_stats', {upgrade:args}, true);
 	}

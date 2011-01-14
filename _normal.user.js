@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.970
+// @version		31.5.971
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 970;
+var revision = 971;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -735,11 +735,11 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 var Workers = {};// 'name':worker
 
 /**
+ * Worker class
  * @constructor
  * @param {!string} name Name of the worker
- * @param {?object} settings Settings for the worker
-*/
-function Worker(name,settings) {
+ */
+function Worker(name) {
 	Workers[name] = this;
 
 	// User data
@@ -747,8 +747,7 @@ function Worker(name,settings) {
 	this.name = name;
 
 	this.defaults = {}; // {'APP':{data:{}, option:{}} - replaces with app-specific data, can be used for any this.* wanted...
-
-	this.settings = settings || {};
+	this.settings = {};
 
 	// Data storage
 	this['data'] = {};
@@ -775,14 +774,18 @@ function Worker(name,settings) {
 }
 
 // Static Functions
-Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
+/**
+ * @param {(Worker|string)} name Name or ID of the worker. Can also accept a Worker for easier code use.
+ * @return {Worker} The found worker
+ */
+Worker.find = function(name) {
 	if (!name) {
 		return null;
 	}
 	try {
 		var i;
 		if (isString(name)) {
-			if (name in Workers) {
+			if (Workers[name]) {
 				return Workers[name];
 			}
 			name = name.toLowerCase();
@@ -799,6 +802,11 @@ Worker.find = function(name) {// Get worker object by Worker.name or Worker.id
 };
 
 // Private status functions
+/**
+ * Clear out all pending _watch events, notify the workers watching that it has happened via _update()
+ * @param {string} worker Name of the worker that has notify events pending
+ * @protected
+ */
 Worker._notify_ = function(worker) {
 	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
 	Workers[worker]._watching_ = {};
@@ -810,9 +818,13 @@ Worker._notify_ = function(worker) {
 	}
 };
 
+/**
+ * Delete Worker.data from a worker. By the time this is called it has already been saved.
+ * @param {string} worker Name of the worker that is having it's data deleted.
+ */
 Worker._flush_ = function(worker) {
 	Workers[worker]._reminders._flush = undefined;
-	Workers[worker].data = undefined;
+	Workers[worker]['data'] = undefined;
 };
 
 // Static Data
@@ -820,6 +832,9 @@ Worker.stack = ['unknown'];// array of active workers, last at the start
 Worker._triggers_ = [];// Used for this._trigger
 
 // Private functions - only override if you know exactly what you're doing
+/**
+ * Save all changed datatypes then set a delay to delete this.data if possible
+ */
 Worker.prototype._flush = function() {
 	this._push();
 	this._save();
@@ -831,6 +846,11 @@ Worker.prototype._flush = function() {
 	this._pop();
 };
 
+/**
+ * Forget a _remind or _revive timer with a specific id
+ * @param {string} id The id to forget
+ * @return {boolean}
+ */
 Worker.prototype._forget = function(id) {
 	var forgot = false;
 	if (id) {
@@ -848,6 +868,12 @@ Worker.prototype._forget = function(id) {
 	return forgot;
 };
 
+/**
+ * Get a value from one of our _datatypes
+ * @param {(string|array)} what The path to the data we want
+ * @param {*} def The default value to return if the path we want doesn't exist
+ * @return {*} The value we want, or the default we passed in
+ */
 Worker.prototype._get = function(what, def) { // 'path.to.data'
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
@@ -868,6 +894,9 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 	return isUndefined(def) ? null : def;// Don't want to return "undefined" at this time...
 };
 
+/**
+ * This is called after _setup. All data exists and our worker is valid for this APP
+ */
 Worker.prototype._init = function() {
 	if (this._loaded) {
 		return;
@@ -884,6 +913,13 @@ Worker.prototype._init = function() {
 	this._pop();
 };
 
+/**
+ * Load _datatypes from storage, optionally merging wih current data
+ * Save the amount of storage space used
+ * Clear the _taint[type] value
+ * @param {?string} type The _datatype we wish to load. If null then load all _datatypes
+ * @param {?boolean} merge If we wish to merge with current data - normally only used in _setup
+ */
 Worker.prototype._load = function(type, merge) {
 	var i, n;
 	if (!this._datatypes[type]) {
@@ -899,20 +935,28 @@ Worker.prototype._load = function(type, merge) {
 	this._push();
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	i = getItem(n);
-	if (i) {
+	if (isString(i)) { // JSON encoded string
 		try {
 			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
 			i = JSON.parse(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 		}
-		this[type] = merge ? $.extend(true, {}, this[type], i) : i;
-		this._taint[type] = false;
+		if (merge && !compare(i, this[type])) {
+			this[type] = $.extend(true, {}, this[type], i);
+		} else {
+			this[type] = i;
+			this._taint[type] = false;
+		}
 	}
 	this._pop();
 };
 
-Worker.prototype._notify = function(path) {// Notify on a _watched path change
+/**
+ * Notify on a _watched path change. This can be called explicitely to force a notification, or automatically from _set
+ * @param {(array|string)} path The path we want to notify on
+ */
+Worker.prototype._notify = function(path) {
 	var i, txt = '', name = this.name;
 	path = isArray(path) ? path : path.split('.');
 	for (i=0; i < path.length; i++) {
@@ -926,6 +970,12 @@ Worker.prototype._notify = function(path) {// Notify on a _watched path change
 	}
 };
 
+/**
+ * Overload a function allowing the original function to still exist as this._parent() within the new function.
+ * @param {?string} app The APP we will work on, otherwise will be for any
+ * @param {string} name The function name that we are overloading
+ * @param {function()} fn The new function
+ */
 Worker.prototype._overload = function(app, name, fn) {
 	var newfn = function() {
 		var a = arguments, r, x = this._parent;
@@ -957,6 +1007,11 @@ Worker.prototype._overload = function(app, name, fn) {
 	}
 };
 
+/**
+ * Wrapper for a worker's .parse() function from Page
+ * @param {boolean} change Whether the worker is allowed to make changes to the html on the page
+ * return {boolean} If the worker wants to change the page
+ */
 Worker.prototype._parse = function(change) {
 	this._push();
 	var result = false;
@@ -970,14 +1025,27 @@ Worker.prototype._parse = function(change) {
 	return result;
 };
 
+/**
+ * Removes the current worker from the stack of "Active" workers
+ */
 Worker.prototype._pop = function() {
 	Worker.stack.shift();
 };
 
+/**
+ * Adds the current worker to the stack of "Active" workers
+ */
 Worker.prototype._push = function() {
 	Worker.stack.unshift(this.name);
 };
 
+/**
+ * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
+ * @param {number} seconds How long between events
+ * @param {?string} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
+ * @param {?(function()|object)} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setInterval result
+ */
 Worker.prototype._revive = function(seconds, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
@@ -993,6 +1061,13 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(0, seconds) * 1000));
 };
 
+/**
+ * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
+ * @param {number} seconds How long before reminding us
+ * @param {?string} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
+ * @param {?(function()|object)} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setTimeout result
+ */
 Worker.prototype._remind = function(seconds, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
@@ -1008,6 +1083,11 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(0, seconds) * 1000));
 };
 
+/**
+ * Replace _datatype with a completely new object, make sure any _watch notifications fire if the data changes
+ * @param {string} type The _datatype to replace
+ * @param {object} data The data to replace it with
+ */
 Worker.prototype._replace = function(type, data) {
 	if (type === 'data') {
 		this._unflush();
@@ -1028,6 +1108,14 @@ Worker.prototype._replace = function(type, data) {
 	this._save(type);
 };
 
+/**
+ * Save _datatypes to storage
+ * Save the amount of storage space used
+ * Clear the _taint[type] value
+ * Make sure we _update() if we are going to save
+ * @param {?string} type The _datatype we wish to save. If null then save all _datatypes
+ * @return {boolean} Did we save or not
+ */
 Worker.prototype._save = function(type) {
 	var i, n, v;
 	if (!this._datatypes[type]) {
@@ -1045,7 +1133,7 @@ Worker.prototype._save = function(type) {
 			this._taint[type] = false;
 		}
 	}
-	if (this[type] === undefined || !this[type] || this._saving[type]) {
+	if (this[type] === undefined || this[type] === null || this._saving[type] || (this.settings.taint && this._taint[type] === false)) {
 		return false;
 	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
@@ -1056,7 +1144,7 @@ Worker.prototype._save = function(type) {
 		// exit so we don't try to save mangled data over good data
 		return false;
 	}
-	if (this._taint[type] || (!this.settings.taint && getItem(n) !== v)) {
+	if ((!this.settings.taint || this._taint[type] !== false) && getItem(n) !== v) {
 		this._push();
 		this._saving[type] = true;
 		this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
@@ -1071,33 +1159,12 @@ Worker.prototype._save = function(type) {
 	return false;
 };
 
-Worker.prototype._set_ = function(data, path, value){ // data=Object, path=Array['data','etc','etc'], value, depth
-	var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
-	switch ((path.length - depth) > 1) { // Can we go deeper?
-		case true:
-			if (!isObject(data[i])) {
-				data[i] = {};
-			}
-			if (!this._set_(data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-				data[i] = undefined;
-				return false;
-			}
-			break;
-		case false:
-			if (!compare(value, data[i])) {
-				this._notify(path);// Notify the watchers...
-				this._taint[path[0]] = true;
-				this._remind(0, '_'+path[0], {type:'save', id:path[0]});
-				data[i] = value;
-				if (isUndefined(value)) {
-					return false;
-				}
-			}
-			break;
-	}
-	return true;
-};
-
+/*
+ * Set a value in one of our _datatypes
+ * @param {(string|array)} what The path to the data we want to set
+ * @param {?*} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @return {*} The value we passed in
+ */
 Worker.prototype._set = function(what, value) {
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
 	if (!x.length || !(x[0] in this._datatypes)) {
@@ -1107,13 +1174,42 @@ Worker.prototype._set = function(what, value) {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		this._set_(this, x, value);
+		(function(data, path, value, depth){
+			var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
+			switch ((path.length - depth) > 1) { // Can we go deeper?
+				case true:
+					if (!isObject(data[i])) {
+						data[i] = {};
+					}
+					if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+						data[i] = undefined;
+						return false;
+					}
+					break;
+				case false:
+					if (!compare(value, data[i])) {
+						this._notify(path);// Notify the watchers...
+						this._taint[path[0]] = true;
+						this._remind(0, '_'+path[0], {type:'save', id:path[0]});
+						data[i] = value;
+						if (isUndefined(value)) {
+							return false;
+						}
+					}
+					break;
+			}
+			return true;
+		}).call(this, this, x, value, 0);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
 	return value;
 };
 
+/**
+ * First function called in our worker. This is where we decide if we are to become an active worker, or should be deleted.
+ * Calls .setup() for worker-specific setup.
+ */
 Worker.prototype._setup = function() {
 	this._push();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
@@ -1147,6 +1243,12 @@ Worker.prototype._setup = function() {
 	this._pop();
 };
 
+/**
+ * Set up a notification on the content of a DOM node changing.
+ * Calls _update with the triggered event after short delay to prevent double-notifications
+ * @param {(jQuery|string)} selector The selector to notify on
+ * @param {?string} id The id we pass to _update, it will pass selector if not set
+ */
 Worker.prototype._trigger = function(selector, id) {
 	if (!Worker._triggers_.length) {
 		$('body').bind('DOMNodeInserted', function(event){
@@ -1161,6 +1263,9 @@ Worker.prototype._trigger = function(selector, id) {
 	Worker._triggers_.push([this, selector, id || selector]);
 };
 
+/**
+ * Make sure we have this.data in memory if needed
+ */
 Worker.prototype._unflush = function() {
 	this._push();
 	if (!this._loaded) {
@@ -1172,6 +1277,11 @@ Worker.prototype._unflush = function() {
 	this._pop();
 };
 
+/**
+ * Remove a _watch notification from a specific path
+ * @param {(Worker|string)} worker The worker we wish to remove the notification from
+ * @param {?string} path The path we wish to stop watching, or null for all from this
+ */
 Worker.prototype._unwatch = function(worker, path) {
 	if (typeof worker === 'string') {
 		worker = Worker.find(worker);
@@ -1195,8 +1305,15 @@ Worker.prototype._unwatch = function(worker, path) {
 	}
 };
 
+/**
+ * Wrapper function for .update()
+ * If event.type === save then we're a triggered save, no other work needed
+ * Make sure the event passed is "clean", and that event.worker is a worker instead of a string
+ * If .update() returns true then delete all pending _datatype update events
+ * @param {(object|string)} event The event that we will copy and pass on to .update(). If it is a string then parse out to event.type
+ */
 Worker.prototype._update = function(event) {
-	if (this._loaded && this.update) {
+	if (this._loaded) {
 		this._push();
 		var i, r, flush = false;
 		if (isString(event)) {
@@ -1206,7 +1323,7 @@ Worker.prototype._update = function(event) {
 		}
 		if (event.type === 'save') {
 			this._save(event.id);
-		} else {
+		} else if (this.update) {
 			event.worker = Worker.find(event.worker || this); // Can handle strings or workers
 			if (isUndefined(this.data) && this._datatypes.data) {
 				flush = true;
@@ -1238,7 +1355,12 @@ Worker.prototype._update = function(event) {
 	}
 };
 
- Worker.prototype._watch = function(worker, path) {
+/**
+ * Add a _watch notification to a specific path
+ * @param {(Worker|string)} worker The worker we wish to add the notification to
+ * @param {?string} path The path we wish to watch, or null for 'data'
+ */
+Worker.prototype._watch = function(worker, path) {
 	worker = Worker.find(worker);
 	if (isWorker(worker)) {
 		var i, x = isArray(path) ? path.join('.') : (isString(path) ? path : 'data');
@@ -1255,6 +1377,11 @@ Worker.prototype._update = function(event) {
 	return false;
 };
 
+/**
+ * Wrapper for a worker's .work() function from Queue
+ * @param {boolean} state Whether the worker is allowed to work or should just return if it wants to
+ * return {boolean} If the worker wants to work
+ */
 Worker.prototype._work = function(state) {
 	this._push();
 	var result = false;
@@ -6396,8 +6523,8 @@ Generals.parse = function(change) {
 		}
 		$('.generalSmallContainer2').each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
-			data[name] = true;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
+				data[name] = true;
 				Generals.set(['data',name,'id'], $('input[name=item]', el).val());
 				Generals.set(['data',name,'type'], $('input[name=itype]', el).val());
 				Generals.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart());
@@ -6461,17 +6588,17 @@ Generals.update = function(event) {
 				}
 			}
 		}
+		if ((i = priority_list.length)) {
+			priority_list.sort(function(a,b) {
+				return (a[1] - b[1]);
+			});
+			this.set(['runtime','max_priority'], i);
+			while (i--) {
+				this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
+			}
+		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
-	}
-	if ((i = priority_list.length)) {
-		priority_list.sort(function(a,b) {
-			return (a[1] - b[1]);
-		});
-		this.set(['runtime','max_priority'], i);
-		while (i--) {
-			this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
-		}
 	}
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
@@ -9877,9 +10004,9 @@ News.parse = function(change) {
 			list.push('');
 			user = sortObject(user, function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
 			for (i in user) {
-				list.push('<a class="golem-link" href="http://apps.facebook.com/castle_age/keep.php?casuser=' + i + '">' + user[i].name + '</a> <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '">' + makeImage('facebook') + '</a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
+				list.push(Page.makeLink('keep.php', {casuser:i}, user[i].name) + ' <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '">' + makeImage('facebook') + '</a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
 			}
-			$('#app46755028429_battleUpdateBox  .alertsContainer').prepend('<div style="padding: 0pt 0pt 10px;"><div class="alert_title">Summary:</div><div class="alert_content">' + list.join('<br>') + '</div></div>');
+			$('#app46755028429_battleUpdateBox .alertsContainer').prepend('<div style="padding: 0pt 0pt 10px;"><div class="alert_title">Summary:</div><div class="alert_content">' + list.join('<br>') + '</div></div>');
 		}
 	}
 	return true;
@@ -12233,17 +12360,7 @@ Upgrade.work = function(state) {
 	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
 	if (!args) {
 		this.set(['runtime','run'], this.runtime.run + 1);
-	} else
-/*
-	switch (this.option.order[this.runtime.run]) {
-		case 'Energy':	args = 'energy_max';	break;
-		case 'Stamina':	args = 'stamina_max';	break;
-		case 'Attack':	args = 'attack';		break;
-		case 'Defense':	args = 'defense';		break;
-		case 'Health':	args = 'health_max';	break;
-		default:this.set(['runtime','run'], this.runtime.run + 1);	break; // Should never happen
-	}
-*/	if (state) {
+	} else if (state) {
 		this.set(['runtime','working'], true);
 		Page.to('keep_stats', {upgrade:args}, true);
 	}

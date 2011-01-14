@@ -63,8 +63,8 @@ Generals.parse = function(change) {
 		}
 		$('.generalSmallContainer2').each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
-			data[name] = true;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
+				data[name] = true;
 				Generals.set(['data',name,'id'], $('input[name=item]', el).val());
 				Generals.set(['data',name,'type'], $('input[name=itype]', el).val());
 				Generals.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart());
@@ -128,17 +128,17 @@ Generals.update = function(event) {
 				}
 			}
 		}
+		if ((i = priority_list.length)) {
+			priority_list.sort(function(a,b) {
+				return (a[1] - b[1]);
+			});
+			this.set(['runtime','max_priority'], i);
+			while (i--) {
+				this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
+			}
+		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
 		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
-	}
-	if ((i = priority_list.length)) {
-		priority_list.sort(function(a,b) {
-			return (a[1] - b[1]);
-		});
-		this.set(['runtime','max_priority'], i);
-		while (i--) {
-			this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
-		}
 	}
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {

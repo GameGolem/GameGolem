@@ -177,6 +177,16 @@ FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO (
 	)
 )
 
+FOR %%F IN ("%firefox4%","%firefox5%","%firefox6%") DO (
+	IF NOT "%%~F"=="" (
+		IF EXIST "%%F" (
+			echo.Installing new version to Firefox 4 (%%F)
+			copy /Y %script% %%F\rycochetscastleagegolem@golem.user.js >nul 2>nul
+			copy /Y golem.css %%F\ >nul 2>nul
+		)
+	)
+)
+
 echo.Finished
 
 rem ----------------------------------------------------------------------
