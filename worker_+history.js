@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
 	makeImage
 */
 /********** Worker.History **********
@@ -221,7 +221,7 @@ History.get = function(what) {
 				if (value !== null && last !== null) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
-						console.log(warn(), 'NaN: '+value+' - '+last);
+						console.log(warn('NaN: '+value+' - '+last));
 					}
 				}
 				last = value;

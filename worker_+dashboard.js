@@ -88,23 +88,27 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
-Dashboard.update_reminder_timers = function(event) {
-	$('.golem-timer').each(function(i,el){
-		var $el = $(el), time = $el.text().parseTimer();
-		if (time && time > 0) {
-			$el.text(makeTimer(time - 1));
-		} else {
-			$el.removeClass('golem-timer').text('now?');
-		}
-	});
-	$('.golem-time').each(function(i,el){
-		var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
-		if (time && time > 0) {
-			$el.text(makeTimer(time / 1000));
-		} else {
-			$el.removeClass('golem-time').text('now?');
-		}
-	});
+Dashboard.update_reminder = function(event) {
+	if (event.id === 'timers') {
+		$('.golem-timer').each(function(i,el){
+			var $el = $(el), time = $el.text().parseTimer();
+			if (time && time > 0) {
+				$el.text(makeTimer(time - 1));
+			} else {
+				$el.removeClass('golem-timer').text('now?');
+			}
+		});
+		$('.golem-time').each(function(i,el){
+			var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
+			if (time && time > 0) {
+				$el.text(makeTimer(time / 1000));
+			} else {
+				$el.removeClass('golem-time').text('now?');
+			}
+		});
+	} else {
+		this.update(event);
+	}
 }
 
 Dashboard.update = function(event) {

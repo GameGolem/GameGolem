@@ -1,11 +1,11 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, log, warn, error
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -282,8 +282,8 @@ Page.reload = function() {
 };
 
 Page.clearFBpost = function(obj) {
-	var output = [];
-	for (var i=0; i<obj.length; i++) {
+	var i, output = [];
+	for (i=0; i<obj.length; i++) {
 		if (obj[i].name.indexOf('fb_') !== 0) {
 			output.push(obj[i]);
 		}

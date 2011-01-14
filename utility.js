@@ -181,8 +181,7 @@ Number.prototype.SI = function() {
 };
 
 Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
-	var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
-	var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+	var n = isNumber(digits) ? this.toFixed(digits) : this.toString(), rx = /^(.*\s)?(\d+)(\d{3}\b)/;
 	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 

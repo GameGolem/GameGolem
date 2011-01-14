@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.971
+// @version		31.5.972
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 971;
+var revision = 972;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -227,8 +227,7 @@ Number.prototype.SI = function() {
 };
 
 Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
-	var n = isNumber(digits) ? this.toFixed(digits) : this.toString();
-	var rx = /^(.*\s)?(\d+)(\d{3}\b)/;
+	var n = isNumber(digits) ? this.toFixed(digits) : this.toString(), rx = /^(.*\s)?(\d+)(\d{3}\b)/;
 	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
 
@@ -640,7 +639,7 @@ var makeImage = function(name, title) {
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	makeImage, getItem, setItem, empty, compare
+	makeImage, getItem, setItem, empty, compare, error
 */
 /* Worker Prototype
    ----------------
@@ -1166,7 +1165,32 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value) {
-	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
+		var i = path[depth];
+		switch ((path.length - depth) > 1) { // Can we go deeper?
+			case true:
+				if (!isObject(data[i])) {
+					data[i] = {};
+				}
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+					data[i] = undefined;
+					return false;
+				}
+				break;
+			case false:
+				if (!compare(value, data[i])) {
+					this._notify(path);// Notify the watchers...
+					this._taint[path[0]] = true;
+					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
+					data[i] = value;
+					if (isUndefined(value)) {
+						return false;
+					}
+				}
+				break;
+		}
+		return true;
+	};
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -1174,32 +1198,7 @@ Worker.prototype._set = function(what, value) {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		(function(data, path, value, depth){
-			var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
-			switch ((path.length - depth) > 1) { // Can we go deeper?
-				case true:
-					if (!isObject(data[i])) {
-						data[i] = {};
-					}
-					if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-						data[i] = undefined;
-						return false;
-					}
-					break;
-				case false:
-					if (!compare(value, data[i])) {
-						this._notify(path);// Notify the watchers...
-						this._taint[path[0]] = true;
-						this._remind(0, '_'+path[0], {type:'save', id:path[0]});
-						data[i] = value;
-						if (isUndefined(value)) {
-							return false;
-						}
-					}
-					break;
-			}
-			return true;
-		}).call(this, this, x, value, 0);
+		fn.call(this, this, x, value, 0);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
@@ -1330,12 +1329,8 @@ Worker.prototype._update = function(event) {
 				this._unflush();
 			}
 			try {
-				if (event.type && event.id && isFunction(this['update_'+event.type+'_'+event.id])) {
-					r = this['update_'+event.type+'_'+event.id](event);
-				} else if (event.type && isFunction(this['update_'+event.type])) {
+				if (event.type && isFunction(this['update_'+event.type])) {
 					r = this['update_'+event.type](event);
-				} else if (event.id && isFunction(this['update_'+event.id])) {
-					r = this['update_'+event.id](event);
 				} else {
 					r = this.update(event);
 				}
@@ -1700,7 +1695,7 @@ Army.dashboard = function(sort, rev) {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -1914,9 +1909,8 @@ Config.init = function() {
 		return false;
 	});
 	$('.golem-menu > div').live('click', function(event) {
-		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
+		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
-		var worker = Worker.find(key[0]);
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
 	});
@@ -1946,7 +1940,7 @@ Config.update = function(event) {
 					$el.attr('checked', worker.option[id]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>');});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[id]);
 				} else {
@@ -2202,7 +2196,7 @@ Config.makeOption = function(worker, args) {
 			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
 			// values = option, path.to.option, number, "string"
 			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
-			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
+			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*\^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
 				r.require.x = (function(r, x) {
 					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
 						if (r.atom[0] === '(') {
@@ -2236,7 +2230,7 @@ Config.makeOption = function(worker, args) {
 						}
 					}
 					return x;
-				})(r, []);
+				}(r, []));
 			}
 			this.temp.require.push(r.require);
 			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -2297,7 +2291,7 @@ Config.checkRequire = function(id) {
 			case '%':	r = value.pop();l = value.pop();value.push(l % r);	break;
 		}
 		math = not = undefined;
-	}
+	};
 	doTest = function() {
 		var l, r;
 		switch (test) {
@@ -2313,7 +2307,7 @@ Config.checkRequire = function(id) {
 			case '|':	show = show || value.pop();	break;
 		}
 		op = test = undefined;
-	}
+	};
 	if (require.advanced) {
 		show = show && Config.option.advanced;
 	}
@@ -2355,7 +2349,7 @@ Config.checkRequire = function(id) {
 				doMath();
 				doTest();
 			}
-		})(require.x);
+		}(require.x));
 	}
 	if (require.show !== show) {
 		require.show = show;
@@ -2462,23 +2456,27 @@ Dashboard.parse = function(change) {
 	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
 };
 
-Dashboard.update_reminder_timers = function(event) {
-	$('.golem-timer').each(function(i,el){
-		var $el = $(el), time = $el.text().parseTimer();
-		if (time && time > 0) {
-			$el.text(makeTimer(time - 1));
-		} else {
-			$el.removeClass('golem-timer').text('now?');
-		}
-	});
-	$('.golem-time').each(function(i,el){
-		var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
-		if (time && time > 0) {
-			$el.text(makeTimer(time / 1000));
-		} else {
-			$el.removeClass('golem-time').text('now?');
-		}
-	});
+Dashboard.update_reminder = function(event) {
+	if (event.id === 'timers') {
+		$('.golem-timer').each(function(i,el){
+			var $el = $(el), time = $el.text().parseTimer();
+			if (time && time > 0) {
+				$el.text(makeTimer(time - 1));
+			} else {
+				$el.removeClass('golem-timer').text('now?');
+			}
+		});
+		$('.golem-time').each(function(i,el){
+			var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
+			if (time && time > 0) {
+				$el.text(makeTimer(time / 1000));
+			} else {
+				$el.removeClass('golem-time').text('now?');
+			}
+		});
+	} else {
+		this.update(event);
+	}
 }
 
 Dashboard.update = function(event) {
@@ -2575,10 +2573,10 @@ Dashboard.menu = function(worker, key) {
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
+	Battle, Generals, LevelUp, Player, Config,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -2674,7 +2672,9 @@ Debug.setup = function() {
 							if (Debug.option._disabled) {
 								r = ac._orig.apply(this, arguments);
 							} else {
-								w && (l = [w+'.'+ac._name, w]);
+								if (w) {
+									l = [w+'.'+ac._name, w];
+								}
 								if (!ac._worker) {
 									l.push('_worker.'+ac._name);
 								}
@@ -2704,7 +2704,7 @@ Debug.setup = function() {
 						}
 						Debug.stack.shift();
 						return r;
-					}
+					};
 					wkr[j]._name = j;
 					wkr[j]._orig = fn;
 					if (i !== '__fake__') {
@@ -2755,7 +2755,7 @@ Debug.init = function() {
 Debug.update = function(event) {
 	if (event.type === 'option' || event.type === 'init') {
 		if (this.option.timer) {
-			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');})
+			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');});
 		} else {
 			this._forget('timer');
 		}
@@ -2866,7 +2866,7 @@ Global.display = [];
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
 	makeImage
 */
 /********** Worker.History **********
@@ -3083,7 +3083,7 @@ History.get = function(what) {
 				if (value !== null && last !== null) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
-						console.log(warn(), 'NaN: '+value+' - '+last);
+						console.log(warn('NaN: '+value+' - '+last));
 					}
 				}
 				last = value;
@@ -3189,13 +3189,13 @@ History.makeGraph = function(type, title, options) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*Main
-	$, Worker, Army, Main:true, History, Page:true, Queue, Resources,
+/*global
+	$:true, Worker, Army, Main:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -3226,6 +3226,7 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
+	var i;
 	if (event.id === 'kickstart') {
 		for (i in Workers) {
 			Workers[i]._setup();
@@ -3256,10 +3257,9 @@ Main.update = function(event) {
 			this._remind(0.1, 'startup');
 			return;
 		}
-		$ = jQuery = (window || unsafeWindow).jQuery.noConflict(true);
+		$ = (window || unsafeWindow).jQuery.noConflict(true);
 	}
 	// Identify Application
-	var i;
 	if (!APP) {
 		if (!length(this._apps_)) {
 			console.log('GameGolem: No applications known...');
@@ -3352,12 +3352,12 @@ Main._loaded = true;// Otherwise .update() will never fire - no init needed for 
 Main._remind(0, 'startup');
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, log, warn, error
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -3634,8 +3634,8 @@ Page.reload = function() {
 };
 
 Page.clearFBpost = function(obj) {
-	var output = [];
-	for (var i=0; i<obj.length; i++) {
+	var i, output = [];
+	for (i=0; i<obj.length; i++) {
 		if (obj[i].name.indexOf('fb_') !== 0) {
 			output.push(obj[i]);
 		}
@@ -4410,9 +4410,9 @@ Session.update = function(event) {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
+	GM_listValues, GM_deleteValue, localStorage
 */
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
@@ -4970,7 +4970,15 @@ Alchemy.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-/********** Worker.Arena() **********
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage, log, warn, error
+*//********** Worker.Arena() **********
 * Build your arena army
 * Auto-attack Arena targets
 */
@@ -4999,7 +5007,6 @@ Arena.option = {
 Arena.runtime = {
 	tokens:10,
 	status:'none',// none, wait, start, fight, collect
-	last:0,
 	start:0,
 	finish:0,
 	rank:0,
@@ -5044,6 +5051,11 @@ Arena.display = [
 		id:'start',
  		label:'Automatically Start',
 		checkbox:true
+	},{
+		id:'delay',
+		label:'Start Delay',
+		require:'start',
+		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
 	},{
 		id:'collect',
  		label:'Collect Rewards',
@@ -5131,7 +5143,7 @@ Arena.parse = function(change) {
 			tmp = $('img[src*="arena3_rank"]');
 			if (tmp.length) {
 				this.set(['runtime','rank'], tmp.attr('src').regex(/arena3_rank(\d+)\.gif/i));
-				this.set(['runtime','points'], parseInt(tmp.parent().next().next().text().regex(/Points: ([0-9,]+)/i).replace(/,/g,'')));
+				this.set(['runtime','points'], parseInt(tmp.parent().next().next().text().regex(/Points: ([0-9,]+)/i).replace(/,/g,''), 10));
 			}
 			break;
 		case 'battle_arena_battle':
@@ -5195,12 +5207,13 @@ Arena.update = function(event) {
 		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
+			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
 			&& (this.option.tokens === 'min'
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
 	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
-}
+};
 
 Arena.work = function(state) {
 	if (state) {
@@ -5311,7 +5324,7 @@ Arena.dashboard = function() {
 Army.defaults.castle_age = {
 	temp:null,
 
-	pages:'army_viewarmy',
+	pages:'keep_stats army_viewarmy',
 
 	// Careful not to hit any *real* army options
 	option:{
@@ -5401,7 +5414,13 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 });
 
 Army._overload('castle_age', 'parse', function(change) {
-	if (!change && Page.page === 'army_viewarmy') {
+	if (change && Page.page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
+		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
+		console.log('Not our keep, uid: '+uid);
+		if (uid && Army.get(['Army', uid], false)) {
+			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
+		}
+	} else if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
 		$tmp = $('table.layout table[width=740] div').first().children();
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
@@ -5459,7 +5478,7 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 //		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
-	return this._parent();
+	return this._parent() || true;
 });
 
 Army._overload('castle_age', 'update', function(event) {
@@ -10135,10 +10154,6 @@ Player.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	if (!('#app46755028429_main_bntp').length) {
-		Page.reload();
-		return;
-	}
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
 	if ($('#app46755028429_energy_current_value').length) {
 		this.set('energy', $('#app46755028429_energy_current_value').text().regex(/(\d+)/) || 0);
@@ -10859,8 +10874,7 @@ Quest.update = function(event) {
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best;
-	var useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
+	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;

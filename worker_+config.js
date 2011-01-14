@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -219,9 +219,8 @@ Config.init = function() {
 		return false;
 	});
 	$('.golem-menu > div').live('click', function(event) {
-		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/);
+		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
-		var worker = Worker.find(key[0]);
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
 	});
@@ -251,7 +250,7 @@ Config.update = function(event) {
 					$el.attr('checked', worker.option[id]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>')});
+					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>');});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[id]);
 				} else {
@@ -507,7 +506,7 @@ Config.makeOption = function(worker, args) {
 			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
 			// values = option, path.to.option, number, "string"
 			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
-			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
+			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*\^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
 				r.require.x = (function(r, x) {
 					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
 						if (r.atom[0] === '(') {
@@ -541,7 +540,7 @@ Config.makeOption = function(worker, args) {
 						}
 					}
 					return x;
-				})(r, []);
+				}(r, []));
 			}
 			this.temp.require.push(r.require);
 			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -602,7 +601,7 @@ Config.checkRequire = function(id) {
 			case '%':	r = value.pop();l = value.pop();value.push(l % r);	break;
 		}
 		math = not = undefined;
-	}
+	};
 	doTest = function() {
 		var l, r;
 		switch (test) {
@@ -618,7 +617,7 @@ Config.checkRequire = function(id) {
 			case '|':	show = show || value.pop();	break;
 		}
 		op = test = undefined;
-	}
+	};
 	if (require.advanced) {
 		show = show && Config.option.advanced;
 	}
@@ -660,7 +659,7 @@ Config.checkRequire = function(id) {
 				doMath();
 				doTest();
 			}
-		})(require.x);
+		}(require.x));
 	}
 	if (require.show !== show) {
 		require.show = show;

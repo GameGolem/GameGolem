@@ -3,9 +3,9 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
+	GM_listValues, GM_deleteValue, localStorage
 */
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()

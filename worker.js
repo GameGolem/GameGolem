@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	makeImage, getItem, setItem, empty, compare
+	makeImage, getItem, setItem, empty, compare, error
 */
 /* Worker Prototype
    ----------------
@@ -531,7 +531,32 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value) {
-	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
+		var i = path[depth];
+		switch ((path.length - depth) > 1) { // Can we go deeper?
+			case true:
+				if (!isObject(data[i])) {
+					data[i] = {};
+				}
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+					data[i] = undefined;
+					return false;
+				}
+				break;
+			case false:
+				if (!compare(value, data[i])) {
+					this._notify(path);// Notify the watchers...
+					this._taint[path[0]] = true;
+					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
+					data[i] = value;
+					if (isUndefined(value)) {
+						return false;
+					}
+				}
+				break;
+		}
+		return true;
+	};
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
 	}
@@ -539,32 +564,7 @@ Worker.prototype._set = function(what, value) {
 		if (x[0] === 'data') {
 			this._unflush();
 		}
-		(function(data, path, value, depth){
-			var depth = isNumber(arguments[3]) ? arguments[3] : 0, i = path[depth];
-			switch ((path.length - depth) > 1) { // Can we go deeper?
-				case true:
-					if (!isObject(data[i])) {
-						data[i] = {};
-					}
-					if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-						data[i] = undefined;
-						return false;
-					}
-					break;
-				case false:
-					if (!compare(value, data[i])) {
-						this._notify(path);// Notify the watchers...
-						this._taint[path[0]] = true;
-						this._remind(0, '_'+path[0], {type:'save', id:path[0]});
-						data[i] = value;
-						if (isUndefined(value)) {
-							return false;
-						}
-					}
-					break;
-			}
-			return true;
-		}).call(this, this, x, value, 0);
+		fn.call(this, this, x, value, 0);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
@@ -695,12 +695,8 @@ Worker.prototype._update = function(event) {
 				this._unflush();
 			}
 			try {
-				if (event.type && event.id && isFunction(this['update_'+event.type+'_'+event.id])) {
-					r = this['update_'+event.type+'_'+event.id](event);
-				} else if (event.type && isFunction(this['update_'+event.type])) {
+				if (event.type && isFunction(this['update_'+event.type])) {
 					r = this['update_'+event.type](event);
-				} else if (event.id && isFunction(this['update_'+event.id])) {
-					r = this['update_'+event.id](event);
 				} else {
 					r = this.update(event);
 				}

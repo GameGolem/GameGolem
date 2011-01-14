@@ -1,4 +1,12 @@
-/********** Worker.Arena() **********
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage, log, warn, error
+*//********** Worker.Arena() **********
 * Build your arena army
 * Auto-attack Arena targets
 */
@@ -27,7 +35,6 @@ Arena.option = {
 Arena.runtime = {
 	tokens:10,
 	status:'none',// none, wait, start, fight, collect
-	last:0,
 	start:0,
 	finish:0,
 	rank:0,
@@ -72,6 +79,11 @@ Arena.display = [
 		id:'start',
  		label:'Automatically Start',
 		checkbox:true
+	},{
+		id:'delay',
+		label:'Start Delay',
+		require:'start',
+		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
 	},{
 		id:'collect',
  		label:'Collect Rewards',
@@ -159,7 +171,7 @@ Arena.parse = function(change) {
 			tmp = $('img[src*="arena3_rank"]');
 			if (tmp.length) {
 				this.set(['runtime','rank'], tmp.attr('src').regex(/arena3_rank(\d+)\.gif/i));
-				this.set(['runtime','points'], parseInt(tmp.parent().next().next().text().regex(/Points: ([0-9,]+)/i).replace(/,/g,'')));
+				this.set(['runtime','points'], parseInt(tmp.parent().next().next().text().regex(/Points: ([0-9,]+)/i).replace(/,/g,''), 10));
 			}
 			break;
 		case 'battle_arena_battle':
@@ -223,12 +235,13 @@ Arena.update = function(event) {
 		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
+			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
 			&& (this.option.tokens === 'min'
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
 	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
-}
+};
 
 Arena.work = function(state) {
 	if (state) {

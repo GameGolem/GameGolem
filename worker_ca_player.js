@@ -53,10 +53,6 @@ Player.parse = function(change) {
 	if (change) {
 		return false;
 	}
-	if (!('#app46755028429_main_bntp').length) {
-		Page.reload();
-		return;
-	}
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
 	if ($('#app46755028429_energy_current_value').length) {
 		this.set('energy', $('#app46755028429_energy_current_value').text().regex(/(\d+)/) || 0);

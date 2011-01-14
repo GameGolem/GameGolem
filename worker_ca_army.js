@@ -15,7 +15,7 @@
 Army.defaults.castle_age = {
 	temp:null,
 
-	pages:'army_viewarmy',
+	pages:'keep_stats army_viewarmy',
 
 	// Careful not to hit any *real* army options
 	option:{
@@ -105,7 +105,13 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 });
 
 Army._overload('castle_age', 'parse', function(change) {
-	if (!change && Page.page === 'army_viewarmy') {
+	if (change && Page.page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
+		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
+		console.log('Not our keep, uid: '+uid);
+		if (uid && Army.get(['Army', uid], false)) {
+			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
+		}
+	} else if (!change && Page.page === 'army_viewarmy') {
 		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
 		$tmp = $('table.layout table[width=740] div').first().children();
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
@@ -163,7 +169,7 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 //		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
-	return this._parent();
+	return this._parent() || true;
 });
 
 Army._overload('castle_age', 'update', function(event) {

@@ -1,10 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
+	Battle, Generals, LevelUp, Player, Config,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -100,7 +100,9 @@ Debug.setup = function() {
 							if (Debug.option._disabled) {
 								r = ac._orig.apply(this, arguments);
 							} else {
-								w && (l = [w+'.'+ac._name, w]);
+								if (w) {
+									l = [w+'.'+ac._name, w];
+								}
 								if (!ac._worker) {
 									l.push('_worker.'+ac._name);
 								}
@@ -130,7 +132,7 @@ Debug.setup = function() {
 						}
 						Debug.stack.shift();
 						return r;
-					}
+					};
 					wkr[j]._name = j;
 					wkr[j]._orig = fn;
 					if (i !== '__fake__') {
@@ -181,7 +183,7 @@ Debug.init = function() {
 Debug.update = function(event) {
 	if (event.type === 'option' || event.type === 'init') {
 		if (this.option.timer) {
-			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');})
+			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');});
 		} else {
 			this._forget('timer');
 		}

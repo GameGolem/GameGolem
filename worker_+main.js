@@ -1,11 +1,11 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*Main
-	$, Worker, Army, Main:true, History, Page:true, Queue, Resources,
+/*global
+	$:true, Worker, Army, Main:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -36,6 +36,7 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
+	var i;
 	if (event.id === 'kickstart') {
 		for (i in Workers) {
 			Workers[i]._setup();
@@ -66,10 +67,9 @@ Main.update = function(event) {
 			this._remind(0.1, 'startup');
 			return;
 		}
-		$ = jQuery = (window || unsafeWindow).jQuery.noConflict(true);
+		$ = (window || unsafeWindow).jQuery.noConflict(true);
 	}
 	// Identify Application
-	var i;
 	if (!APP) {
 		if (!length(this._apps_)) {
 			console.log('GameGolem: No applications known...');
