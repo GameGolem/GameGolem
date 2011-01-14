@@ -2,13 +2,15 @@
 * Build your arena army
 * Auto-attack Arena targets
 */
-var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
+var Arena = new Worker('Arena');
 
 Arena.settings = {
 	taint:true
 };
 
-Arena.defaults['castle_age'] = {};
+Arena.defaults['castle_age'] = {
+	pages:'index battle_arena battle_arena_battle'
+};
 
 Arena.option = {
 	general:true,

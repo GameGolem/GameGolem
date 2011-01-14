@@ -9,7 +9,7 @@
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
-var Queue = new Worker('Queue', '*');
+var Queue = new Worker('Queue');
 Queue.data = null;
 
 // worker.work() return values for stateful - ie, only let other things interrupt when it's "safe"

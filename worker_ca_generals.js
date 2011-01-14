@@ -39,13 +39,14 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var i, j;
+	var i, j, data = {}, bonus = [], current;
 	if ($('div.results').text().match(/has gained a level!/i)) {
-		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
-		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
+		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+		}
 	}
 	if (Page.page === 'heroes_generals') {
-		var $elements = $('.generalSmallContainer2'), data = {}, bonus = [], current = $('div.general_name_div3').first().text().trim();
+		current = $('div.general_name_div3').first().text().trim();
 		if (this.data[current]){
 			$('div[style*="model_items.jpg"] img[title]').each(function(i){
 				var temp = $(this).attr('title');
@@ -60,24 +61,28 @@ Generals.parse = function(change) {
 				this.set(['data', current, 'stats', 'cap'], j);
 			}
 		}
-		$elements.each(function(i,el){
+		$('.generalSmallContainer2').each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
+			data[name] = true;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-				data[name] = $.extend(true, {}, Generals.get(['data',name], {}));
-				data[name].id		= $('input[name=item]', el).val();
-				data[name].type		= $('input[name=itype]', el).val();
-				data[name].img		= $('.imgButton', el).attr('src').filepart();
-				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/);
-				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/);
-				data[name].progress	= parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10);
-				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-				if (level >= 4 && data[name].priority){	// If we just leveled up to level 4, remove the priority
-					data[name].priority = undefined;
+				Generals.set(['data',name,'id'], $('input[name=item]', el).val());
+				Generals.set(['data',name,'type'], $('input[name=itype]', el).val());
+				Generals.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart());
+				Generals.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/));
+				Generals.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/));
+				Generals.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
+				Generals.set(['data',name,'level'], level); // Might only be 4 so far, however...
+				Generals.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+				if (level >= 4){	// If we just leveled up to level 4, remove the priority
+					Generals.set(['data',name,'priority']);
 				}
 			}
 		});
-		this.set(['data'], data);
+		for (i in this.data) {
+			if (!data[i]) {
+				this.set(['data',i]);
+			}
+		}
 	}
 	return false;
 };
@@ -86,7 +91,7 @@ Generals.update = function(event) {
 	var data = this.data, i, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
-		for (i in this.data) {
+		for (i in data) {
 			list.push(i);
 			if (data[i].level < 4) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
 				priority_list.push([i, data[i].priority]);
@@ -136,7 +141,7 @@ Generals.update = function(event) {
 		}
 	}
 	
-	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel) || this.runtime.force) {
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
 		this.set(['runtime','force'], false);
 		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
@@ -238,7 +243,7 @@ Generals.to = function(name) {
 };
 
 Generals.test = function(name) {
-	Generals._unflush(); // Can't use "this" because called out of context
+	Generals._unflush();
 	var next = isObject(name) ? name : Generals.data[name];
 	if (name === 'any') {
 		return true;
@@ -254,39 +259,38 @@ Generals.best = function(type) {
 	if (this.data[type]) {
 		return type;
 	}
-	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general'), first, second;
+	var rx, value, first, second;
 	switch(type.toLowerCase()) {
-	case 'cost':		rx = /Decrease Soldier Cost by (\d+)/gi; break;
-	case 'stamina':		rx = /Increase Max Stamina by (\d+)|\+(\d+) Max Stamina/gi; break;
-	case 'energy':		rx = /Increase Max Energy by (\d+)|\+(\d+) Max Energy/gi; break;
-	case 'income':		rx = /Increase Income by (\d+)/gi; break;
-	case 'item':		rx = /(\d+)% Drops for Quest/gi; break;
-	case 'influence':	rx = /Bonus Influence (\d+)/gi; break;
-	case 'defense':		rx = /([-+]?\d+) Player Defense/gi; break;
-	case 'cash':		rx = /Bonus (\d+) Gold/gi; break;
-	case 'bank':		return 'Aeris';
-	case 'war':			rx = /\+(\d+) Attack to your entire War Council|-(\d+) Attack to your opponents War Council/gi; break;
-	case 'raid-invade':		// Fall through
-	case 'invade':			first = 'invade';	second = 'att'; break;
-	case 'raid-duel':		// Fall through
-	case 'duel':			first = 'duel';		second = 'att'; break;
-	case 'monster_attack':	first = 'monster';	second = 'att'; break;
-	case 'dispel':			// Fall through
-	case 'monster_defend':	first = 'monster';	second = 'def'; break;
-	case 'defend':			first = 'duel';		second = 'def'; break;
-	case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
-	default:  return 'any';
+		case 'cost':			rx = /Decrease Soldier Cost by (\d+)/gi; break;
+		case 'stamina':			rx = /Increase Max Stamina by (\d+)|\+(\d+) Max Stamina/gi; break;
+		case 'energy':			rx = /Increase Max Energy by (\d+)|\+(\d+) Max Energy/gi; break;
+		case 'income':			rx = /Increase Income by (\d+)/gi; break;
+		case 'item':			rx = /(\d+)% Drops for Quest/gi; break;
+		case 'influence':		rx = /Bonus Influence (\d+)/gi; break;
+		case 'defense':			rx = /([-+]?\d+) Player Defense/gi; break;
+		case 'cash':			rx = /Bonus (\d+) Gold/gi; break;
+		case 'bank':			return 'Aeris';
+		case 'war':				rx = /\+(\d+) Attack to your entire War Council|-(\d+) Attack to your opponents War Council/gi; break;
+		case 'raid-invade':		// Fall through
+		case 'invade':			first = 'invade';	second = 'att'; break;
+		case 'raid-duel':		// Fall through
+		case 'duel':			first = 'duel';		second = 'att'; break;
+		case 'monster_attack':	first = 'monster';	second = 'att'; break;
+		case 'dispel':			// Fall through
+		case 'monster_defend':	first = 'monster';	second = 'def'; break;
+		case 'defend':			first = 'duel';		second = 'def'; break;
+		case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+		default:  				return 'any';
 	}
 	if (rx) {
 		value = function(g) { return sum(g.skills.regex(rx)); };
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {
-		console.log(warn('No definition for best general for ' + type));
+		console.log(warn('No definition for best general for ' + type)); // Should be caught by switch() above
 		return 'any';
 	}
-	best = bestObjValue(this.data, value, Generals.test);
-	return (best || 'any');
+	return (bestObjValue(this.data, value, Generals.test) || 'any');
 };
 
 Generals.order = [];

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.969
+// @version		31.5.970
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,6 +19,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
 // Shouldn't touch
@@ -26,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 969;
+var revision = 970;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -733,40 +734,41 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 */
 var Workers = {};// 'name':worker
 
-function Worker(name,pages,settings) {
+/**
+ * @constructor
+ * @param {!string} name Name of the worker
+ * @param {?object} settings Settings for the worker
+*/
+function Worker(name,settings) {
 	Workers[name] = this;
 
 	// User data
 	this.id = 'golem_panel_'+name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	this.name = name;
-	this.pages = pages;
 
 	this.defaults = {}; // {'APP':{data:{}, option:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 
-	this.data = {};
-	this.option = {};
-	this.runtime = null;// {} - set to default runtime values in your worker!
-	this.temp = {};// Temporary unsaved data for this instance only.
-	this.display = null;
-
-	// User functions
-	this.init = null; //function() {};
-	this.parse = null; //function(change) {return false;};
-	this.work = null; //function(state) {return false;};
-	this.update = null; //function(type,worker){};
-	this.get = this._get; // Overload if needed
-	this.set = this._set; // Overload if needed
-
-	// Private data
-	this._rootpath = true; // Override save path, replaces userID + '.' with ''
-	this._loaded = false;
-	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
+	// Data storage
+	this['data'] = {};
+	this['option'] = {};
+	this['runtime'] = null;// {} - set to default runtime values in your worker!
+	this['temp'] = {};// Temporary unsaved data for this instance only.
+	// Datatypes - one key for each type above
+	this._datatypes = {'data':true, 'option':true, 'runtime':true, 'temp':false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
+
+	// Default functions - overload if needed, by default calls prototype function
+	this.get = this._get;
+	this.set = this._set;
+
+	// Private data
+	this._rootpath = true; // Override save path, replaces userID + '.' with ''
+	this._loaded = false;
 	this._watching = {}; // Watching for changes, path:[workers]
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
@@ -936,15 +938,22 @@ Worker.prototype._overload = function(app, name, fn) {
 		return r;
 	};
 	newfn._old = (app && this.defaults && this.defaults[app] && this.defaults[app][name] ? this.defaults[app][name] : null) || this[name] || function(){};
+	newfn._old = newfn._old._orig || newfn._old; // Support Debug worker
 	newfn._new = fn;
 	if (app) {
 		this.defaults[app] = this.defaults[app] || {};
-		if (this.defaults[app][name] === this[name]) { // If we've already run _setup
+		if (this.defaults[app][name] && this.defaults[app][name]._orig) { // Support Debug worker
+			this.defaults[app][name]._orig = newfn;
+		} else {
+			this.defaults[app][name] = newfn;
+		}
+	}
+	if (!app || this.defaults[app][name] === this[name]) { // If we've already run _setup
+		if (this[name] && this[name]._orig) { // Support Debug worker
+			this[name]._orig = newfn;
+		} else {
 			this[name] = newfn;
 		}
-		this.defaults[app][name] = newfn;
-	} else {
-		this[name] = newfn;
 	}
 };
 
@@ -3550,7 +3559,7 @@ Page.clear = function() {
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
 */
-var Queue = new Worker('Queue', '*');
+var Queue = new Worker('Queue');
 Queue.data = null;
 
 // worker.work() return values for stateful - ie, only let other things interrupt when it's "safe"
@@ -4838,13 +4847,15 @@ Alchemy.work = function(state) {
 * Build your arena army
 * Auto-attack Arena targets
 */
-var Arena = new Worker('Arena', 'index battle_arena battle_arena_battle');
+var Arena = new Worker('Arena');
 
 Arena.settings = {
 	taint:true
 };
 
-Arena.defaults['castle_age'] = {};
+Arena.defaults['castle_age'] = {
+	pages:'index battle_arena battle_arena_battle'
+};
 
 Arena.option = {
 	general:true,
@@ -6361,13 +6372,14 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var i, j;
+	var i, j, data = {}, bonus = [], current;
 	if ($('div.results').text().match(/has gained a level!/i)) {
-		// Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
-		this.set(['data',Player.get('general'),'level'], this.get(['data',Player.get('general'),'level'], 0) + 1);
+		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
+			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+		}
 	}
 	if (Page.page === 'heroes_generals') {
-		var $elements = $('.generalSmallContainer2'), data = {}, bonus = [], current = $('div.general_name_div3').first().text().trim();
+		current = $('div.general_name_div3').first().text().trim();
 		if (this.data[current]){
 			$('div[style*="model_items.jpg"] img[title]').each(function(i){
 				var temp = $(this).attr('title');
@@ -6382,24 +6394,28 @@ Generals.parse = function(change) {
 				this.set(['data', current, 'stats', 'cap'], j);
 			}
 		}
-		$elements.each(function(i,el){
+		$('.generalSmallContainer2').each(function(i,el){
 			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
+			data[name] = true;
 			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-				data[name] = $.extend(true, {}, Generals.get(['data',name], {}));
-				data[name].id		= $('input[name=item]', el).val();
-				data[name].type		= $('input[name=itype]', el).val();
-				data[name].img		= $('.imgButton', el).attr('src').filepart();
-				data[name].att		= $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/);
-				data[name].def		= $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/);
-				data[name].progress	= parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10);
-				data[name].level	= level; // Might only be 4 so far, however...
-				data[name].skills	= $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim();
-				if (level >= 4 && data[name].priority){	// If we just leveled up to level 4, remove the priority
-					data[name].priority = undefined;
+				Generals.set(['data',name,'id'], $('input[name=item]', el).val());
+				Generals.set(['data',name,'type'], $('input[name=itype]', el).val());
+				Generals.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart());
+				Generals.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/));
+				Generals.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/));
+				Generals.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
+				Generals.set(['data',name,'level'], level); // Might only be 4 so far, however...
+				Generals.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+				if (level >= 4){	// If we just leveled up to level 4, remove the priority
+					Generals.set(['data',name,'priority']);
 				}
 			}
 		});
-		this.set(['data'], data);
+		for (i in this.data) {
+			if (!data[i]) {
+				this.set(['data',i]);
+			}
+		}
 	}
 	return false;
 };
@@ -6408,7 +6424,7 @@ Generals.update = function(event) {
 	var data = this.data, i, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
-		for (i in this.data) {
+		for (i in data) {
 			list.push(i);
 			if (data[i].level < 4) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
 				priority_list.push([i, data[i].priority]);
@@ -6458,7 +6474,7 @@ Generals.update = function(event) {
 		}
 	}
 	
-	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player') && invade && duel) || this.runtime.force) {
+	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
 		this.set(['runtime','force'], false);
 		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
 			this._unwatch(Player); // Only need them the first time...
@@ -6560,7 +6576,7 @@ Generals.to = function(name) {
 };
 
 Generals.test = function(name) {
-	Generals._unflush(); // Can't use "this" because called out of context
+	Generals._unflush();
 	var next = isObject(name) ? name : Generals.data[name];
 	if (name === 'any') {
 		return true;
@@ -6576,39 +6592,38 @@ Generals.best = function(type) {
 	if (this.data[type]) {
 		return type;
 	}
-	var rx = '', best = null, bestval = 0, i, value, current = Player.get('general'), first, second;
+	var rx, value, first, second;
 	switch(type.toLowerCase()) {
-	case 'cost':		rx = /Decrease Soldier Cost by (\d+)/gi; break;
-	case 'stamina':		rx = /Increase Max Stamina by (\d+)|\+(\d+) Max Stamina/gi; break;
-	case 'energy':		rx = /Increase Max Energy by (\d+)|\+(\d+) Max Energy/gi; break;
-	case 'income':		rx = /Increase Income by (\d+)/gi; break;
-	case 'item':		rx = /(\d+)% Drops for Quest/gi; break;
-	case 'influence':	rx = /Bonus Influence (\d+)/gi; break;
-	case 'defense':		rx = /([-+]?\d+) Player Defense/gi; break;
-	case 'cash':		rx = /Bonus (\d+) Gold/gi; break;
-	case 'bank':		return 'Aeris';
-	case 'war':			rx = /\+(\d+) Attack to your entire War Council|-(\d+) Attack to your opponents War Council/gi; break;
-	case 'raid-invade':		// Fall through
-	case 'invade':			first = 'invade';	second = 'att'; break;
-	case 'raid-duel':		// Fall through
-	case 'duel':			first = 'duel';		second = 'att'; break;
-	case 'monster_attack':	first = 'monster';	second = 'att'; break;
-	case 'dispel':			// Fall through
-	case 'monster_defend':	first = 'monster';	second = 'def'; break;
-	case 'defend':			first = 'duel';		second = 'def'; break;
-	case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
-	default:  return 'any';
+		case 'cost':			rx = /Decrease Soldier Cost by (\d+)/gi; break;
+		case 'stamina':			rx = /Increase Max Stamina by (\d+)|\+(\d+) Max Stamina/gi; break;
+		case 'energy':			rx = /Increase Max Energy by (\d+)|\+(\d+) Max Energy/gi; break;
+		case 'income':			rx = /Increase Income by (\d+)/gi; break;
+		case 'item':			rx = /(\d+)% Drops for Quest/gi; break;
+		case 'influence':		rx = /Bonus Influence (\d+)/gi; break;
+		case 'defense':			rx = /([-+]?\d+) Player Defense/gi; break;
+		case 'cash':			rx = /Bonus (\d+) Gold/gi; break;
+		case 'bank':			return 'Aeris';
+		case 'war':				rx = /\+(\d+) Attack to your entire War Council|-(\d+) Attack to your opponents War Council/gi; break;
+		case 'raid-invade':		// Fall through
+		case 'invade':			first = 'invade';	second = 'att'; break;
+		case 'raid-duel':		// Fall through
+		case 'duel':			first = 'duel';		second = 'att'; break;
+		case 'monster_attack':	first = 'monster';	second = 'att'; break;
+		case 'dispel':			// Fall through
+		case 'monster_defend':	first = 'monster';	second = 'def'; break;
+		case 'defend':			first = 'duel';		second = 'def'; break;
+		case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+		default:  				return 'any';
 	}
 	if (rx) {
 		value = function(g) { return sum(g.skills.regex(rx)); };
 	} else if (first && second) {
 		value = function(g) { return (g[first] ? g[first][second] : null); };
 	} else if (!value) {
-		console.log(warn('No definition for best general for ' + type));
+		console.log(warn('No definition for best general for ' + type)); // Should be caught by switch() above
 		return 'any';
 	}
-	best = bestObjValue(this.data, value, Generals.test);
-	return (best || 'any');
+	return (bestObjValue(this.data, value, Generals.test) || 'any');
 };
 
 Generals.order = [];
@@ -12235,3 +12250,4 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper

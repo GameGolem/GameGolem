@@ -101,9 +101,11 @@ rem ----------------------------------------------------------------------
 rem NORMAL VERSION - _normal.user.js
 echo.Joining files into _normal.user.js
 call:VReplace _head.tmpl >_normal.user.js
+type "_wrap_top.js" >>_normal.user.js 2>nul
 for /F "eol=#" %%a in (_manifest.txt) do (
 	type "%%a" >>_normal.user.js 2>nul
 )
+type "_wrap_bottom.js" >>_normal.user.js 2>nul
 set script=_normal.user.js
 
 rem --------------------------------------------------------------------------------------

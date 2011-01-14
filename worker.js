@@ -99,40 +99,41 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 */
 var Workers = {};// 'name':worker
 
-function Worker(name,pages,settings) {
+/**
+ * @constructor
+ * @param {!string} name Name of the worker
+ * @param {?object} settings Settings for the worker
+*/
+function Worker(name,settings) {
 	Workers[name] = this;
 
 	// User data
 	this.id = 'golem_panel_'+name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	this.name = name;
-	this.pages = pages;
 
 	this.defaults = {}; // {'APP':{data:{}, option:{}} - replaces with app-specific data, can be used for any this.* wanted...
 
 	this.settings = settings || {};
 
-	this.data = {};
-	this.option = {};
-	this.runtime = null;// {} - set to default runtime values in your worker!
-	this.temp = {};// Temporary unsaved data for this instance only.
-	this.display = null;
-
-	// User functions
-	this.init = null; //function() {};
-	this.parse = null; //function(change) {return false;};
-	this.work = null; //function(state) {return false;};
-	this.update = null; //function(type,worker){};
-	this.get = this._get; // Overload if needed
-	this.set = this._set; // Overload if needed
-
-	// Private data
-	this._rootpath = true; // Override save path, replaces userID + '.' with ''
-	this._loaded = false;
-	this._datatypes = {data:true, option:true, runtime:true, temp:false}; // Used for set/get/save/load. If false then can't save/load.
+	// Data storage
+	this['data'] = {};
+	this['option'] = {};
+	this['runtime'] = null;// {} - set to default runtime values in your worker!
+	this['temp'] = {};// Temporary unsaved data for this instance only.
+	// Datatypes - one key for each type above
+	this._datatypes = {'data':true, 'option':true, 'runtime':true, 'temp':false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
 	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
+
+	// Default functions - overload if needed, by default calls prototype function
+	this.get = this._get;
+	this.set = this._set;
+
+	// Private data
+	this._rootpath = true; // Override save path, replaces userID + '.' with ''
+	this._loaded = false;
 	this._watching = {}; // Watching for changes, path:[workers]
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
@@ -302,15 +303,22 @@ Worker.prototype._overload = function(app, name, fn) {
 		return r;
 	};
 	newfn._old = (app && this.defaults && this.defaults[app] && this.defaults[app][name] ? this.defaults[app][name] : null) || this[name] || function(){};
+	newfn._old = newfn._old._orig || newfn._old; // Support Debug worker
 	newfn._new = fn;
 	if (app) {
 		this.defaults[app] = this.defaults[app] || {};
-		if (this.defaults[app][name] === this[name]) { // If we've already run _setup
+		if (this.defaults[app][name] && this.defaults[app][name]._orig) { // Support Debug worker
+			this.defaults[app][name]._orig = newfn;
+		} else {
+			this.defaults[app][name] = newfn;
+		}
+	}
+	if (!app || this.defaults[app][name] === this[name]) { // If we've already run _setup
+		if (this[name] && this[name]._orig) { // Support Debug worker
+			this[name]._orig = newfn;
+		} else {
 			this[name] = newfn;
 		}
-		this.defaults[app][name] = newfn;
-	} else {
-		this[name] = newfn;
 	}
 };
 
