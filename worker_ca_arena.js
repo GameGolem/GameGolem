@@ -104,7 +104,7 @@ Arena.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		label:'Limit Level',
+		label:'Relative Level',
 		text:true,
 		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
 	},{
@@ -240,7 +240,7 @@ Arena.update = function(event) {
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('arena_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('arena_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Arena.work = function(state) {

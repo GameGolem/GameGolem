@@ -169,7 +169,7 @@ Elite.update = function(event) {
 			}
 		}
 		check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
-		tmp.push('Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in <span class="golem-time" name="' + ((check * 1000) + now) + '">' + makeTimer(check) + '</span>') + (next ? ', Next: '+Army.get(['_info', next, 'name']) : ''));
+		tmp.push('Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check * 1000, true)) + (next ? ', Next: '+Army.get(['_info', next, 'name']) : ''));
 		if (next && this.runtime.waitelite) {
 			this._remind(check, 'recheck');
 		}

@@ -377,11 +377,22 @@ Config.makeOption = function(worker, args) {
 		between: 'to',
 		size: 7,
 		min: 0,
-		max: 100
+		max: 100,
+		real_id: ''
 	}, args);
-	this._watch(worker, 'option.' + o.id);
-	o.real_id = o.id ? ' id="' + this.makeID(worker, o.id) + '"' : '';
-	o.value = worker.get('option.'+o.id, null);
+	if (isString(o.id) && Workers[o.id.substr(0,o.id.indexOf('.'))]) {
+		i = o.id.split('.');
+		worker = Workers[i.shift()];
+		o.path = i.join('.');
+		o.id = i.shift().join('.');
+	} else {
+		o.path = 'option.' + o.id;
+	}
+	if (o.id) {
+		this._watch(worker, o.path);
+		o.real_id = ' id="' + this.makeID(worker, o.id) + '"';
+		o.value = worker.get(o.path, null);
+	}
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
 		txt.push('<br><hr style="clear:both;margin:0;">');

@@ -18,12 +18,6 @@ Dashboard.settings = {
 //	keep:true
 };
 
-Dashboard.defaults = {
-	castle_age:{
-		pages:'*'
-	}
-};
-
 Dashboard.option = {
 	display:'block',
 	active:'Dashboard'
@@ -79,40 +73,18 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
+	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
-	this._revive(1, 'timers');// update() once every second to update any timers
 };
 
-Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
+Dashboard.update_trigger = function(event) {
+	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
 };
-
-Dashboard.update_reminder = function(event) {
-	if (event.id === 'timers') {
-		$('.golem-timer').each(function(i,el){
-			var $el = $(el), time = $el.text().parseTimer();
-			if (time && time > 0) {
-				$el.text(makeTimer(time - 1));
-			} else {
-				$el.removeClass('golem-timer').text('now?');
-			}
-		});
-		$('.golem-time').each(function(i,el){
-			var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
-			if (time && time > 0) {
-				$el.text(makeTimer(time / 1000));
-			} else {
-				$el.removeClass('golem-time').text('now?');
-			}
-		});
-	} else {
-		this.update(event);
-	}
-}
 
 Dashboard.update = function(event) {
 	if (event.type === 'init') {
+		this.update_trigger(event);
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;

@@ -30,7 +30,8 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0
+	count:0,
+	timers:{} // Tickers being displayed
 };
 
 Page.lastclick = null;
@@ -134,6 +135,19 @@ Page.init = function() {
 			return false;
 		}
 	});
+	this._revive(1, 'timers');// update() once every second to update any timers
+};
+
+Page.update_reminder = function(event) {
+	if (event.id === 'timers') {
+		var i, now = Date.now(), time;
+		for (i in this.temp.timers) {
+			time = this.temp.timers[i] - now;
+			$('#'+i).text(time > 0 ? makeTimer(time / 1000) : 'now?')
+		}
+	} else {
+		this.update(event);
+	}
 };
 
 Page.update = function(event) {
@@ -269,7 +283,7 @@ Page.retry = function() {
 		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : Global.option.page.timeout;
 		this._save('runtime');// Make sure it's saved for our next try
 		this.temp.reload = true;
-		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in <span class="golem-time" name="' + (Date.now() + (this.runtime.delay * 1000)) + '">' + makeTimer(this.runtime.delay) + '</span></div></div>');
+		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',this.runtime.delay * 1000, true) + '</div></div>');
 		this.set(['temp', 'loading'], true);
 		this._remind(this.runtime.delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
 		console.log(log('Unexpected retry event.'));
@@ -321,5 +335,13 @@ Page.clear = function() {
 	this.temp.reload = false;
 	this.set(['temp', 'loading'], false);
 	this.set(['runtime', 'delay'], 0);
+};
+
+Page.addTimer = function(id, time, relative) {
+	if (relative) {
+		time = Date.now() + time;
+	}
+	this.temp.timers['golem_timer_'+id] = time;
+	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
 };
 

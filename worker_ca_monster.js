@@ -1738,16 +1738,14 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: monster.timer
-					? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>'
+					? Page.addTimer('monster_finish', monster.finish)
 					: '?');
 
 		// etd
 		td(output,
 			blank
 				? ''
-				: '<span class="golem-timer">' + (monster.health === 100
-					? makeTimer((monster.finish - Date.now()) / 1000)
-					: makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
+				: Page.addTimer('monster_eta', monster.health === 100 ? monster.finish : monster.eta));
 		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
 		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
                 tr(list, output.join(''));

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.972
+// @version		31.5.973
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 972;
+var revision = 973;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1322,8 +1322,8 @@ Worker.prototype._update = function(event) {
 		}
 		if (event.type === 'save') {
 			this._save(event.id);
-		} else if (this.update) {
-			event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+		} else if (isFunction(this.update) || (event.type && isFunction(this['update_'+event.type]))) {
+			event.worker = Worker.find(event.worker || this);
 			if (isUndefined(this.data) && this._datatypes.data) {
 				flush = true;
 				this._unflush();
@@ -2067,11 +2067,22 @@ Config.makeOption = function(worker, args) {
 		between: 'to',
 		size: 7,
 		min: 0,
-		max: 100
+		max: 100,
+		real_id: ''
 	}, args);
-	this._watch(worker, 'option.' + o.id);
-	o.real_id = o.id ? ' id="' + this.makeID(worker, o.id) + '"' : '';
-	o.value = worker.get('option.'+o.id, null);
+	if (isString(o.id) && Workers[o.id.substr(0,o.id.indexOf('.'))]) {
+		i = o.id.split('.');
+		worker = Workers[i.shift()];
+		o.path = i.join('.');
+		o.id = i.shift().join('.');
+	} else {
+		o.path = 'option.' + o.id;
+	}
+	if (o.id) {
+		this._watch(worker, o.path);
+		o.real_id = ' id="' + this.makeID(worker, o.id) + '"';
+		o.value = worker.get(o.path, null);
+	}
 	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
 	if (o.hr) {
 		txt.push('<br><hr style="clear:both;margin:0;">');
@@ -2386,12 +2397,6 @@ Dashboard.settings = {
 //	keep:true
 };
 
-Dashboard.defaults = {
-	castle_age:{
-		pages:'*'
-	}
-};
-
 Dashboard.option = {
 	display:'block',
 	active:'Dashboard'
@@ -2447,40 +2452,18 @@ Dashboard.init = function() {
 		$('#golem-dashboard').toggle('drop');
 		Dashboard._save('option');
 	});
+	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
-	this._revive(1, 'timers');// update() once every second to update any timers
 };
 
-Dashboard.parse = function(change) {
-	$('#golem-dashboard').css('top', $('#app46755028429_main_bn').offset().top+'px'); // Make sure we're always in the right place
+Dashboard.update_trigger = function(event) {
+	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
 };
-
-Dashboard.update_reminder = function(event) {
-	if (event.id === 'timers') {
-		$('.golem-timer').each(function(i,el){
-			var $el = $(el), time = $el.text().parseTimer();
-			if (time && time > 0) {
-				$el.text(makeTimer(time - 1));
-			} else {
-				$el.removeClass('golem-timer').text('now?');
-			}
-		});
-		$('.golem-time').each(function(i,el){
-			var $el = $(el), time = parseInt($el.attr('name'), 10) - Date.now();
-			if (time && time > 0) {
-				$el.text(makeTimer(time / 1000));
-			} else {
-				$el.removeClass('golem-time').text('now?');
-			}
-		});
-	} else {
-		this.update(event);
-	}
-}
 
 Dashboard.update = function(event) {
 	if (event.type === 'init') {
+		this.update_trigger(event);
 		event.worker = Workers[this.option.active];
 	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
 		return;
@@ -3382,7 +3365,8 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0
+	count:0,
+	timers:{} // Tickers being displayed
 };
 
 Page.lastclick = null;
@@ -3486,6 +3470,19 @@ Page.init = function() {
 			return false;
 		}
 	});
+	this._revive(1, 'timers');// update() once every second to update any timers
+};
+
+Page.update_reminder = function(event) {
+	if (event.id === 'timers') {
+		var i, now = Date.now(), time;
+		for (i in this.temp.timers) {
+			time = this.temp.timers[i] - now;
+			$('#'+i).text(time > 0 ? makeTimer(time / 1000) : 'now?')
+		}
+	} else {
+		this.update(event);
+	}
 };
 
 Page.update = function(event) {
@@ -3621,7 +3618,7 @@ Page.retry = function() {
 		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : Global.option.page.timeout;
 		this._save('runtime');// Make sure it's saved for our next try
 		this.temp.reload = true;
-		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in <span class="golem-time" name="' + (Date.now() + (this.runtime.delay * 1000)) + '">' + makeTimer(this.runtime.delay) + '</span></div></div>');
+		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',this.runtime.delay * 1000, true) + '</div></div>');
 		this.set(['temp', 'loading'], true);
 		this._remind(this.runtime.delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
 		console.log(log('Unexpected retry event.'));
@@ -3673,6 +3670,14 @@ Page.clear = function() {
 	this.temp.reload = false;
 	this.set(['temp', 'loading'], false);
 	this.set(['runtime', 'delay'], 0);
+};
+
+Page.addTimer = function(id, time, relative) {
+	if (relative) {
+		time = Date.now() + time;
+	}
+	this.temp.timers['golem_timer_'+id] = time;
+	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -5076,7 +5081,7 @@ Arena.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		label:'Limit Level',
+		label:'Relative Level',
 		text:true,
 		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
 	},{
@@ -5212,7 +5217,7 @@ Arena.update = function(event) {
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (<span class="golem-time" name="' + this.runtime.start + '">' + makeTimer((this.runtime.start - now) / 1000) + '</span>)' : '') + (this.runtime.status === 'fight' ? ' (<span class="golem-time" name="' + this.runtime.finish + '">' + makeTimer((this.runtime.finish - now) / 1000) + '</span>)' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Rank: ' + this.temp.rank[this.runtime.rank] + (this.runtime.rank ? ' (' + this.runtime.points.addCommas() + ' points)' : '') + ', Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('arena_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('arena_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('arena', 'Arena Tokens') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Arena.work = function(state) {
@@ -6459,7 +6464,7 @@ Elite.update = function(event) {
 			}
 		}
 		check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
-		tmp.push('Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in <span class="golem-time" name="' + ((check * 1000) + now) + '">' + makeTimer(check) + '</span>') + (next ? ', Next: '+Army.get(['_info', next, 'name']) : ''));
+		tmp.push('Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check * 1000, true)) + (next ? ', Next: '+Army.get(['_info', next, 'name']) : ''));
 		if (next && this.runtime.waitelite) {
 			this._remind(check, 'recheck');
 		}
@@ -7942,7 +7947,7 @@ LevelUp.update = function(event) {
 	if (runtime.running) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
-		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after <span class="golem-timer">' + this.get('timer')+ '</span> (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' + Page.addTimer('levelup', this.get('level_time')) + ' (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
 	}
 };
 
@@ -9877,16 +9882,14 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: monster.timer
-					? '<span class="golem-timer">' + makeTimer((monster.finish - Date.now()) / 1000) + '</span>'
+					? Page.addTimer('monster_finish', monster.finish)
 					: '?');
 
 		// etd
 		td(output,
 			blank
 				? ''
-				: '<span class="golem-timer">' + (monster.health === 100
-					? makeTimer((monster.finish - Date.now()) / 1000)
-					: makeTimer((monster.eta - Date.now()) / 1000)) + '</span>');
+				: Page.addTimer('monster_eta', monster.health === 100 ? monster.finish : monster.eta));
 		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
 		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
                 tr(list, output.join(''));

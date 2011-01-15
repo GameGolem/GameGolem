@@ -688,8 +688,8 @@ Worker.prototype._update = function(event) {
 		}
 		if (event.type === 'save') {
 			this._save(event.id);
-		} else if (this.update) {
-			event.worker = Worker.find(event.worker || this); // Can handle strings or workers
+		} else if (isFunction(this.update) || (event.type && isFunction(this['update_'+event.type]))) {
+			event.worker = Worker.find(event.worker || this);
 			if (isUndefined(this.data) && this._datatypes.data) {
 				flush = true;
 				this._unflush();
