@@ -184,7 +184,7 @@ Settings.dashboard = function() {
 		}
 	});
 	$('#golem_settings_path').change(function(){
-		var path = $('#golem_settings_path').val().regex(/([^.]*)\.?(.*)/);
+		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
 		if (path[0] in Workers) {
 			Settings.temp.worker = path[0];
 			Settings.temp.edit = path[1];

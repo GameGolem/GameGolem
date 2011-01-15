@@ -11,6 +11,7 @@
 * Profiling information
 */
 var Debug = new Worker('Debug');
+Debug.data = null;
 
 Debug.settings = {
 //	system:true,
@@ -187,7 +188,7 @@ Debug.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		this._notify('data');// Any changes to options should force a dashboard update
+		Dashboard.update_watch({worker:this}); // Any changes to options should force a dashboard update
 	}
 };
 

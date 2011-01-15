@@ -21,7 +21,7 @@ Session.settings = {
 };
 
 Global.display.push({
-	advanced:true,
+//	advanced:true,
 	title:'Multiple Tabs / Windows',
 	group:[
 		{

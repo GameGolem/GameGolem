@@ -24,25 +24,30 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var i, tabs = [], divs = [], active = this.option.active, hide;
+	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide;
 	if (!Workers[this.option.active]) {
 		active = this.option.active = this.name;
 	}
 	for (i in Workers) {
-		if (Workers[i].dashboard) {
-			if (Workers[i] === this) { // Dashboard always comes first with the * tab
-				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
-			} else {
-				hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
-				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '"' + (hide ? ' style="display:none;"' : '') + '>' + i + '</h3>');
-				if (hide && this.option.active === i) {
-					this.set(['option','active'], this.name);
-				}
-			}
-			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
-			this._watch(Workers[i], 'data');
-			this._watch(Workers[i], 'option._hide_dashboard');
+		if (i !== this.name && Workers[i].dashboard) {
+			list.push(i);
 		}
+	}
+	list.sort();
+	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+	divs.push('<div id="golem-dashboard-' + this.name + '"' + (active === this.name ? '' : ' style="display:none;"') + '></div>');
+	this._watch(this, 'data');
+	this._watch(this, 'option._hide_dashboard');
+	for (j=0; j<list.length; j++) {
+		i = list[j];
+		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+		if (hide && this.option.active === i) {
+			this.set(['option','active'], this.name);
+		}
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ?'background:#ffeeee;' : '') + '">' + i + '</h3>');
+		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
+		this._watch(Workers[i], 'data');
+		this._watch(Workers[i], 'option._hide_dashboard');
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top + 'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){

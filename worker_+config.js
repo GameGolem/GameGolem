@@ -141,7 +141,7 @@ Config.init = function() {
 		for (i=0; i<values.length; i++) {
 			value = values[i].trim();
 			if (value) {
-				$multiple.append('<option>' + value + '</option>');
+				$multiple.append('<option>' + value + '</option>').change();
 			}
 		}
 		$multiple.change();
@@ -515,46 +515,8 @@ Config.makeOption = function(worker, args) {
 				r.require.exploit = true;
 				$option.css({border:'1px solid red', background:'#ffeeee'});
 			}
-			// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-			// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
-			// values = option, path.to.option, number, "string"
-			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
-			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*\^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
-				r.require.x = (function(r, x) {
-					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
-						if (r.atom[0] === '(') {
-							r.atom[0] = '';
-							r.atoms.unshift(r.atom);
-							x.push(arguments.callee(r, []));
-						} else {
-							if (r.atom[1] === '!') {
-								x.push(false);
-							}
-							if (isNumber(r.atom[2])) {
-								x.push(r.atom[2]);
-							} else if (/^".*"$/.test(r.atom[2])) {
-								x.push(r.atom[2].replace(/^"|"$/g, ''));
-							} else { // option or path.to.option
-								var path = r.atom[2].split('.');
-								if (!Workers[path[0]]) {
-									if (isUndefined(worker._datatypes[path[0]])) {
-										path.unshift('option');
-									}
-									path.unshift(worker.name);
-								}
-								x.push(path.slice(0));
-							}
-						}
-						if (r.atom[3] === ')') {
-							break;
-						}
-						if (r.atom[4]) {
-							x.push(r.atom[4].replace(/([=|&])+/g, '$1'));
-						}
-					}
-					return x;
-				}(r, []));
+			if (o.require) {
+				r.require.x = Script.parse(worker, 'option', o.require);
 			}
 			this.temp.require.push(r.require);
 			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -593,87 +555,21 @@ Config.set = function(key, value) {
 };
 
 Config.checkRequire = function(id) {
-// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-// [[false,"testing","blah"],"=",1234,"&",[true,"yet","another","path"],"|",[false,"something"],"&",[true,"test","me"],">",5]
-	var i, show = true, value = [], test, math, op = '&', not, require = this.temp.require[id], doTest, doMath, doOp;
+	var i, show = true, require = this.temp.require[id];
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
 		}
 		return;
 	}
-	doMath = function() {
-		var l, r;
-		if (not) {
-			value.push(!value.pop());
-		}
-		switch (math) {
-			case '+':	value.push(value.pop() + value.pop());	break;
-			case '*':	value.push(value.pop() * value.pop());	break;
-			case '-':	value.push(value.pop() - value.pop());	break;
-			case '/':	value.push(value.pop() / value.pop());	break;
-			case '%':	r = value.pop();l = value.pop();value.push(l % r);	break;
-		}
-		math = not = undefined;
-	};
-	doTest = function() {
-		var l, r;
-		switch (test) {
-			case '>':	r = value.pop();l = value.pop();value.push(l > r);		break;
-			case '>=':	r = value.pop();l = value.pop();value.push(l >= r);		break;
-			case '=':	r = value.pop();l = value.pop();value.push(l === r);	break;
-			case '<=':	r = value.pop();l = value.pop();value.push(l <= r);		break;
-			case '<':	r = value.pop();l = value.pop();value.push(l < r);		break;
-			case '!=':	r = value.pop();l = value.pop();value.push(l !== r);	break;
-		}
-		switch (op) {
-			case '&':	show = show && value.pop();	break;
-			case '|':	show = show || value.pop();	break;
-		}
-		op = test = undefined;
-	};
 	if (require.advanced) {
-		show = show && Config.option.advanced;
+		show = Config.option.advanced;
 	}
-	if (require.exploit) {
-		show = show && Config.option.exploit;
+	if (show && require.exploit) {
+		show = Config.option.exploit;
 	}
-	if (require.x) {
-		(function(x){
-			var i, path;
-			for (i=0; i<x.length; i++) {
-				if (x[i] === false) {
-					not = true;
-					continue;
-				}
-				if (isArray(x[i])) {
-					if (Workers[x[i][0]]) {
-						path = x[i].slice(0);
-						value.push(Workers[path.shift()]._get(path, false));
-					} else {
-						value.push(arguments.callee(x[i]));
-					}
-					doMath();
-				} else if (/\+|-|\*|\/|%/.test(x[i])) { // Math functions
-					doMath();
-					math = x[i];
-				} else if (/>|>=|=|<=|<|!=/.test(x[i])) { // Comparison functions
-					doMath();
-					test = x[i];
-				} else if (/&|\|/.test(x[i])) { // Operators
-					doMath();
-					doTest();
-					op = x[i];
-				} else {
-					value.push(x[i]);
-					doMath();
-				}
-			}
-			if (value.length) {
-				doMath();
-				doTest();
-			}
-		}(require.x));
+	if (show && require.x) {
+		show = Script.interpret(require.x);
 	}
 	if (require.show !== show) {
 		require.show = show;

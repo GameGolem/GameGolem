@@ -15,9 +15,7 @@ var Title = new Worker('Title');
 Title.data = null;
 
 Title.settings = {
-	system:true,
-	unsortable:true,
-	advanced:true
+	system:true
 };
 
 Title.option = {

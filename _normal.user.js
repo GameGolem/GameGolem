@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.975
+// @version		31.5.976
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 975;
+var revision = 976;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1831,7 +1831,7 @@ Config.init = function() {
 		for (i=0; i<values.length; i++) {
 			value = values[i].trim();
 			if (value) {
-				$multiple.append('<option>' + value + '</option>');
+				$multiple.append('<option>' + value + '</option>').change();
 			}
 		}
 		$multiple.change();
@@ -2205,46 +2205,8 @@ Config.makeOption = function(worker, args) {
 				r.require.exploit = true;
 				$option.css({border:'1px solid red', background:'#ffeeee'});
 			}
-			// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-			// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-			// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
-			// values = option, path.to.option, number, "string"
-			// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
-			if (o.require && (r.atoms = o.require.regex(/\s*(\(?)\s*(!?)\s*("[^"]*"|[\d]+|[^\s><=!*\^$+\-*\/%&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|\+|\-|\*|\/|%|&{1,2}|\|{1,2})?\s*/g))) {
-				r.require.x = (function(r, x) {
-					while ((r.atom = r.atoms.shift())) { // "(", "!", value, ")", operator
-						if (r.atom[0] === '(') {
-							r.atom[0] = '';
-							r.atoms.unshift(r.atom);
-							x.push(arguments.callee(r, []));
-						} else {
-							if (r.atom[1] === '!') {
-								x.push(false);
-							}
-							if (isNumber(r.atom[2])) {
-								x.push(r.atom[2]);
-							} else if (/^".*"$/.test(r.atom[2])) {
-								x.push(r.atom[2].replace(/^"|"$/g, ''));
-							} else { // option or path.to.option
-								var path = r.atom[2].split('.');
-								if (!Workers[path[0]]) {
-									if (isUndefined(worker._datatypes[path[0]])) {
-										path.unshift('option');
-									}
-									path.unshift(worker.name);
-								}
-								x.push(path.slice(0));
-							}
-						}
-						if (r.atom[3] === ')') {
-							break;
-						}
-						if (r.atom[4]) {
-							x.push(r.atom[4].replace(/([=|&])+/g, '$1'));
-						}
-					}
-					return x;
-				}(r, []));
+			if (o.require) {
+				r.require.x = Script.parse(worker, 'option', o.require);
 			}
 			this.temp.require.push(r.require);
 			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -2283,87 +2245,21 @@ Config.set = function(key, value) {
 };
 
 Config.checkRequire = function(id) {
-// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-// [[false,"testing","blah"],"=",1234,"&",[true,"yet","another","path"],"|",[false,"something"],"&",[true,"test","me"],">",5]
-	var i, show = true, value = [], test, math, op = '&', not, require = this.temp.require[id], doTest, doMath, doOp;
+	var i, show = true, require = this.temp.require[id];
 	if (!id || !require) {
 		for (i in this.temp.require) {
 			arguments.callee.call(this, i);
 		}
 		return;
 	}
-	doMath = function() {
-		var l, r;
-		if (not) {
-			value.push(!value.pop());
-		}
-		switch (math) {
-			case '+':	value.push(value.pop() + value.pop());	break;
-			case '*':	value.push(value.pop() * value.pop());	break;
-			case '-':	value.push(value.pop() - value.pop());	break;
-			case '/':	value.push(value.pop() / value.pop());	break;
-			case '%':	r = value.pop();l = value.pop();value.push(l % r);	break;
-		}
-		math = not = undefined;
-	};
-	doTest = function() {
-		var l, r;
-		switch (test) {
-			case '>':	r = value.pop();l = value.pop();value.push(l > r);		break;
-			case '>=':	r = value.pop();l = value.pop();value.push(l >= r);		break;
-			case '=':	r = value.pop();l = value.pop();value.push(l === r);	break;
-			case '<=':	r = value.pop();l = value.pop();value.push(l <= r);		break;
-			case '<':	r = value.pop();l = value.pop();value.push(l < r);		break;
-			case '!=':	r = value.pop();l = value.pop();value.push(l !== r);	break;
-		}
-		switch (op) {
-			case '&':	show = show && value.pop();	break;
-			case '|':	show = show || value.pop();	break;
-		}
-		op = test = undefined;
-	};
 	if (require.advanced) {
-		show = show && Config.option.advanced;
+		show = Config.option.advanced;
 	}
-	if (require.exploit) {
-		show = show && Config.option.exploit;
+	if (show && require.exploit) {
+		show = Config.option.exploit;
 	}
-	if (require.x) {
-		(function(x){
-			var i, path;
-			for (i=0; i<x.length; i++) {
-				if (x[i] === false) {
-					not = true;
-					continue;
-				}
-				if (isArray(x[i])) {
-					if (Workers[x[i][0]]) {
-						path = x[i].slice(0);
-						value.push(Workers[path.shift()]._get(path, false));
-					} else {
-						value.push(arguments.callee(x[i]));
-					}
-					doMath();
-				} else if (/\+|-|\*|\/|%/.test(x[i])) { // Math functions
-					doMath();
-					math = x[i];
-				} else if (/>|>=|=|<=|<|!=/.test(x[i])) { // Comparison functions
-					doMath();
-					test = x[i];
-				} else if (/&|\|/.test(x[i])) { // Operators
-					doMath();
-					doTest();
-					op = x[i];
-				} else {
-					value.push(x[i]);
-					doMath();
-				}
-			}
-			if (value.length) {
-				doMath();
-				doTest();
-			}
-		}(require.x));
+	if (show && require.x) {
+		show = Script.interpret(require.x);
 	}
 	if (require.show !== show) {
 		require.show = show;
@@ -2406,25 +2302,30 @@ Dashboard.option = {
 };
 
 Dashboard.init = function() {
-	var i, tabs = [], divs = [], active = this.option.active, hide;
+	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide;
 	if (!Workers[this.option.active]) {
 		active = this.option.active = this.name;
 	}
 	for (i in Workers) {
-		if (Workers[i].dashboard) {
-			if (Workers[i] === this) { // Dashboard always comes first with the * tab
-				tabs.unshift('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
-			} else {
-				hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
-				tabs.push('<h3 name="'+i+'" class="golem-tab-header' + (active===i ? ' golem-tab-header-active' : '') + '"' + (hide ? ' style="display:none;"' : '') + '>' + i + '</h3>');
-				if (hide && this.option.active === i) {
-					this.set(['option','active'], this.name);
-				}
-			}
-			divs.push('<div id="golem-dashboard-'+i+'"'+(active === i ? '' : ' style="display:none;"')+'></div>');
-			this._watch(Workers[i], 'data');
-			this._watch(Workers[i], 'option._hide_dashboard');
+		if (i !== this.name && Workers[i].dashboard) {
+			list.push(i);
 		}
+	}
+	list.sort();
+	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+	divs.push('<div id="golem-dashboard-' + this.name + '"' + (active === this.name ? '' : ' style="display:none;"') + '></div>');
+	this._watch(this, 'data');
+	this._watch(this, 'option._hide_dashboard');
+	for (j=0; j<list.length; j++) {
+		i = list[j];
+		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+		if (hide && this.option.active === i) {
+			this.set(['option','active'], this.name);
+		}
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ?'background:#ffeeee;' : '') + '">' + i + '</h3>');
+		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
+		this._watch(Workers[i], 'data');
+		this._watch(Workers[i], 'option._hide_dashboard');
 	}
 	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top + 'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('.golem-tab-header').click(function(){
@@ -2571,6 +2472,7 @@ Dashboard.menu = function(worker, key) {
 * Profiling information
 */
 var Debug = new Worker('Debug');
+Debug.data = null;
 
 Debug.settings = {
 //	system:true,
@@ -2747,7 +2649,7 @@ Debug.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		this._notify('data');// Any changes to options should force a dashboard update
+		Dashboard.update_watch({worker:this}); // Any changes to options should force a dashboard update
 	}
 };
 
@@ -4097,7 +3999,7 @@ Resources.display = function() {
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
-				require:'types.'+type+'=2'
+				require:'types.'+type+'==2'
 			});
 		}
 	}
@@ -4214,6 +4116,178 @@ Resources.has = function(type, amount) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global console, isArray, isNumber, isUndefined, Workers */
+// Internal scripting language - never give access to eval() etc.
+
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
+// values = option, path.to.option, number, "string"
+// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
+
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [["testing","blah"],"=",1234,"&",["yet","another","path"],"|",["something"],"&",["test","me"],">",5]
+
+var Script = new Worker('Script');
+Script.data = Script.runtime = Script.temp = null;
+
+Script.option = {
+	worker:'Player',
+	type:'data'
+};
+
+Script.settings = {
+	system:true,
+	advanced:true
+};
+
+Script.dashboard = function() {
+	var i, path = this.option.worker+'.'+this.option.type, html = '', list = [];
+//	html += '<input id="golem_script_test" type="button" value="Test">';
+	html += ' Using: <select id="golem_script_worker">';
+	for (i=1; i<Settings.temp.paths.length; i++) {
+		html += '<option value="' + Settings.temp.paths[i] + '"' + (Settings.temp.paths[i] === path ? ' selected' : '') + '>' + Settings.temp.paths[i] + '</option>';
+	}
+	html += '</select>';
+	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
+	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
+	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:570px;">';
+//	html += '<br>Script: <textarea id="golem_script_edit" style="width:570px;"></textarea>';
+	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:570px;" disabled></textarea>';
+	$('#golem-dashboard-Script').html(html);
+	$('#golem_script_worker').change(function(){
+		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
+		if (path[0] in Workers) {
+			Script.option.worker = path[0];
+			Script.option.type = path[1];
+		} else {
+			Script.option.worker = Script.option.type = null;
+		}
+	});
+	$('#golem_script_source').autoSize();
+	$('#golem_script_edit').autoSize().change(function(){
+		var script = Script.parse(Workers[Script.option.worker], Script.option.type, $('#golem_script_edit').val());
+		$('#golem_script_source').val(script.length ? JSON.stringify(script, null, '   ') : '').autoSize();
+		$('#golem_script_result').val(Script.interpret(script)).autoSize();
+	});
+	$('#golem_script_clear').click(function(){$('#golem_script_edit').val('');});
+};
+
+Script.find = function(op) {
+	var i, l = this.operate.length;
+	for (i=0; i < l; i++) {
+		if (Script.operate[i][0] === op) {
+			return i;
+		}
+	}
+	return -1;
+};
+
+Script.operate = [ // Order of precidence
+	// Unary
+	['!',	function(l) {return !l;}],
+	// Maths
+	['*',	function(l,r) {return l * r;}],
+	['/',	function(l,r) {return l / r;}],
+	['%',	function(l,r) {return l % r;}],
+	['+',	function(l,r) {return l + r;}],
+	['-',	function(l,r) {return l - r;}],
+	// Complex
+	['min',	function() {return Math.min.apply(Math, arguments);}],
+	['max',	function() {return Math.max.apply(Math, arguments);}],
+	['round',	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	function() {return Math.ceil.apply(Math, arguments);}],
+	// Equality
+	['>',	function(l,r) {return l > r;}],
+	['>=',	function(l,r) {return l >= r;}],
+	['<=',	function(l,r) {return l <= r;}],
+	['<',	function(l,r) {return l < r;}],
+	['==',	function(l,r) {return l == r;}],
+	['!=',	function(l,r) {return l != r;}],
+	// Logical
+	['&&',	function(l,r) {return l && r;}],
+	['||',	function(l,r) {return l || r;}]
+];
+
+// Interpret our script, return a single value
+Script.interpret = function(script) {
+	return (function(script){
+		var i, x, path, value = [], last = -1, op_list = [], fn = function(op) {
+			var i, tmp, args;
+			while (op_list.length && op_list[0][0] <= op) {
+				tmp = op_list.shift();
+				if ((i = Script.operate[tmp[0]][1].length)) { // function takes set args
+					args = value.splice(-i, i);
+				} else {
+					args = value.splice(tmp[1], value.length - tmp[1]); // Args from the end
+				}
+//				console.log(Script.operate[tmp[0]][0]+'('+args+')');
+				value.push(Script.operate[tmp[0]][1].apply(null, args));
+			}
+			if (Script.operate[op]) {
+				op_list.unshift([op, value.length]);
+			}
+			return -1;
+		};
+		while ((x = script.shift())) {
+			if (isArray(x)) {
+				if (Workers[x[0]]) {
+					path = x.slice(1);
+					value.push(Workers[x[0]]._get(path, false));
+				} else {
+					value = value.concat(arguments.callee(x));
+				}
+			} else if ((last = Script.find(x)) === -1) {
+				if (/^".*"$/.test(x)) {
+					value.push(x.replace(/^"|"$/g, ''));
+				} else {
+					value.push(x);
+				}
+			}
+			last = fn(last);
+		}
+		fn(Number.MAX_VALUE);
+		return value;
+	}(script.slice(0)))[0];
+};
+
+Script.parse = function(worker, datatype, text, map) {
+	var atoms = text.regex(/\s*("[^"]*"|[\d]+|[A-Za-z_][\w\.]*|[^\w\.\s"]+)[\s\n\r]*/g);
+	if (!atoms) {
+		return []; // Empty script
+	}
+	map = map || {};
+	return (function() {
+		var atom, path, script = [];
+		while ((atom = atoms.shift())) { // "(", value, ")", operator
+			if (atom === '(') {
+				script.push(arguments.callee());
+			} else if (atom === ')') {
+				break;
+			} else if (isNumber(atom) || /^".*"$/.test(atom) || Script.find(atom) !== -1) { // number, string or function
+				script.push(atom);
+			} else if (atom !== ',') { // if it's not a comma, then worker.datatype.key or path.to.key
+				if (map[atom]) {
+					path = map[atom].split('.');
+				} else {
+					path = atom.split('.');
+				}
+				if (!Workers[path[0]]) {
+					if (isUndefined(worker._datatypes[path[0]])) {
+						path.unshift(datatype);
+					}
+					path.unshift(worker.name);
+				}
+				script.push(path);
+			}
+		}
+//		console.log('Script section: '+JSON.stringify(script));
+		return script;
+	}());
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
@@ -4236,7 +4310,7 @@ Session.settings = {
 };
 
 Global.display.push({
-	advanced:true,
+//	advanced:true,
 	title:'Multiple Tabs / Windows',
 	group:[
 		{
@@ -4610,7 +4684,7 @@ Settings.dashboard = function() {
 		}
 	});
 	$('#golem_settings_path').change(function(){
-		var path = $('#golem_settings_path').val().regex(/([^.]*)\.?(.*)/);
+		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
 		if (path[0] in Workers) {
 			Settings.temp.worker = path[0];
 			Settings.temp.edit = path[1];
@@ -4639,9 +4713,7 @@ var Title = new Worker('Title');
 Title.data = null;
 
 Title.settings = {
-	system:true,
-	unsortable:true,
-	advanced:true
+	system:true
 };
 
 Title.option = {
@@ -5139,10 +5211,10 @@ Arena.parse = function(change) {
 	var now = Date.now(), tmp, i;
 	switch (Page.page) {
 		case 'index':
-			this.set(['runtime','tokens'], ($('#app46755028429_arena_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_arena_token_current_value').text() || '10').regex(/(\d+)/));
 			break;
 		case 'battle_arena':
-			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			tmp = $('#app46755028429_arena_banner').next().next().text();
 			if (tmp.indexOf('Collect') !== -1) {
@@ -5169,7 +5241,7 @@ Arena.parse = function(change) {
 			}
 			break;
 		case 'battle_arena_battle':
-			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
@@ -5781,7 +5853,7 @@ Battle.display = [
 		advanced:true,
 		id:'limit',
 		before:'<center>Target Ranks</center>',
-		require:'bp="Always"',
+		require:'bp=="Always"',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -5810,7 +5882,7 @@ Battle.display = [
 		advanced:true,
 		id:'chain',
 		label:'Chain after wins',
-		require:'between=0',
+		require:'between==0',
 		select:[1,2,3,4,5],
 		help:'How many times to chain before stopping'
 	},{
@@ -5821,7 +5893,7 @@ Battle.display = [
 		help:'The lowest health you can attack with is 10, but you can lose up to 12 health in an attack, so are you going to risk it???'
 	},{
 		id:'army',
-		require:'type="Invade"',
+		require:'type=="Invade"',
 		label:'Target Army Ratio<br>(Only needed for Invade)',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
@@ -7869,7 +7941,7 @@ LevelUp.display = [
 		advanced:true,
 		id:'general_choice',
 		label:'Use General',
-		require:'general="Manual"',
+		require:'general=="Manual"',
 		select:'generals'
 	},{
 		id:'order',
@@ -7884,13 +7956,13 @@ LevelUp.display = [
 	},{
 		id:'manual_exp_per_stamina',
 		label:'Exp per stamina',
-		require:'algorithm="Manual"',
+		require:'algorithm=="Manual"',
 		text:true,
 		help:'Experience per stamina point.  Defaults to Per Action if 0 or blank.'
 	},{
 		id:'manual_exp_per_energy',
 		label:'Exp per energy',
-		require:'algorithm="Manual"',
+		require:'algorithm=="Manual"',
 		text:true,
 		help:'Experience per energy point.  Defaults to Per Action if 0 or blank.'
 	},{
@@ -8299,7 +8371,7 @@ Monster.display = [
 	},{
 		id:'priority',
 		label:'Priority List',
-		require:'stop="Priority List"',
+		require:'stop=="Priority List"',
 		textarea:true,
 		help:'Prioritized list of which monsters to attack'
 	},{
@@ -10482,7 +10554,7 @@ Quest.display = [
 		label:'Only do incomplete quests',
 		checkbox:true,
 		help:'Will only do quests that aren\'t at 100% influence',
-		require:'what="Cartigan" | what="Vampire Lord"'
+		require:'what=="Cartigan" || what=="Vampire Lord"'
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -11665,7 +11737,7 @@ Town.display = [
 		+ ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
-	require:'number!="None" & number!="Minimum"',
+	require:'number!="None" && number!="Minimum"',
 	label:'Sell Surplus',
 	checkbox:true,
 	help:'Only keep the best items for selected sets.'

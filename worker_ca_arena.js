@@ -145,10 +145,10 @@ Arena.parse = function(change) {
 	var now = Date.now(), tmp, i;
 	switch (Page.page) {
 		case 'index':
-			this.set(['runtime','tokens'], ($('#app46755028429_arena_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_arena_token_current_value').text() || '10').regex(/(\d+)/));
 			break;
 		case 'battle_arena':
-			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			tmp = $('#app46755028429_arena_banner').next().next().text();
 			if (tmp.indexOf('Collect') !== -1) {
@@ -175,7 +175,7 @@ Arena.parse = function(change) {
 			}
 			break;
 		case 'battle_arena_battle':
-			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '0').regex(/(\d+)/));
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');
 			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');

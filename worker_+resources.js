@@ -92,7 +92,7 @@ Resources.display = function() {
 				select:{0:'None',1:'Shared',2:'Exclusive'}
 			},{
 				group:group,
-				require:'types.'+type+'=2'
+				require:'types.'+type+'==2'
 			});
 		}
 	}

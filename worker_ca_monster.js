@@ -138,7 +138,7 @@ Monster.display = [
 	},{
 		id:'priority',
 		label:'Priority List',
-		require:'stop="Priority List"',
+		require:'stop=="Priority List"',
 		textarea:true,
 		help:'Prioritized list of which monsters to attack'
 	},{

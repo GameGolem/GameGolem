@@ -58,7 +58,7 @@ Town.display = [
 		+ ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
-	require:'number!="None" & number!="Minimum"',
+	require:'number!="None" && number!="Minimum"',
 	label:'Sell Surplus',
 	checkbox:true,
 	help:'Only keep the best items for selected sets.'
