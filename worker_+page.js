@@ -21,8 +21,7 @@ Page.option = {
 	timeout:15,
 	reload:5,
 	nochat:false,
-	refresh:250,
-	timers:{} // Tickers being displayed
+	refresh:250
 };
 
 Page.temp = {
@@ -37,7 +36,8 @@ Page.temp = {
 Page.lastclick = null;
 
 Page.runtime = {
-	delay:0 // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
+	delay:0, // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
+	timers:{} // Tickers being displayed
 };
 
 Page.page = '';
