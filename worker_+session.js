@@ -25,7 +25,7 @@ Global.display.push({
 	title:'Multiple Tabs / Windows',
 	group:[
 		{
-			id:'session.timeout',
+			id:['Session','option','timeout'],
 			label:'Forget After',
 			select:{5000:'5 Seconds', 10000:'10 Seconds', 15000:'15 Seconds', 20000:'20 Seconds', 25000:'25 Seconds', 30000:'30 Seconds'},
 			help:'When you have multiple tabs open this is the length of time after closing all others that the Enabled/Disabled warning will remain.'
@@ -33,7 +33,7 @@ Global.display.push({
 	]
 });
 
-Global.option.session = {
+Session.option = {
 	timeout:15000 // How long to give a tab to update itself before deleting it (ms)
 };
 
@@ -50,6 +50,10 @@ Session.temp = {
 };
 
 Session.setup = function() {
+	if (Global.get(['option','session'], false)) {
+		this.set(['option','timeout'], Global.get(['option','session','timeout'], this.option.timeout));
+		Global.set(['option','session']);
+	}
 	try {
 		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
 			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
@@ -74,7 +78,7 @@ Session.init = function() {
 	var now = Date.now();
 	this.set(['data','_sessions',this.temp._id], now);
 	$('.golem-title').after('<div id="golem_session" class="golem-info golem-button green" style="display:none;">Enabled</div>');
-	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - Global.option.session.timeout || this.data._active === this.temp._id) {
+	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.option.timeout || this.data._active === this.temp._id) {
 		this._set(['temp','active'], true);
 		this._set(['data','_active'], this.temp._id);
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
@@ -87,7 +91,7 @@ Session.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green');
 			Session._set(['data','_active'], null);
 			Session._set(['temp','active'], false);
-		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Global.option.session.timeout) {
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - option.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Session._set(['data','_active'], Session.temp._id);
@@ -182,7 +186,7 @@ Session.update = function(event) {
 	} else {
 		this.data._sessions[this.temp._id] = now;
 	}
-	now -= Global.option.session.timeout;
+	now -= this.option.timeout;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < now) {
 			this.data._sessions[i] = undefined;

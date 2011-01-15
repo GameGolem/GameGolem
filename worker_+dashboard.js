@@ -82,13 +82,7 @@ Dashboard.update_trigger = function(event) {
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
 };
 
-Dashboard.update = function(event) {
-	if (event.type === 'init') {
-		this.update_trigger(event);
-		event.worker = Workers[this.option.active];
-	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
-		return;
-	}
+Dashboard.update_watch = function(event) {
 	if (event.id === 'option.advanced') {
 		for (var i in Workers) {
 			if (Workers[i].settings.advanced) {
@@ -134,6 +128,14 @@ Dashboard.update = function(event) {
 		}
 	} else {
 		$('#golem-dashboard-'+event.worker.name).empty();
+	}
+};
+
+Dashboard.update = function(event) {
+	if (event.type === 'init') {
+		event.worker = Workers[this.option.active];
+		this.update_trigger(event);
+		this.update_watch(event);
 	}
 };
 

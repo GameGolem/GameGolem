@@ -69,6 +69,7 @@ Settings.menu = function(worker, key) {
 				this.temp.worker = worker.name;
 				this.temp.edit = key;
 				this._notify('data');// Force dashboard update
+				Dashboard.set(['option','active'], this.name);
 			}
 		}
 	} else {

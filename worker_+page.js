@@ -17,11 +17,12 @@ Page.settings = {
 	keep:true
 };
 
-Global.option.page = {
+Page.option = {
 	timeout:15,
 	reload:5,
 	nochat:false,
-	refresh:250
+	refresh:250,
+	timers:{} // Tickers being displayed
 };
 
 Page.temp = {
@@ -30,8 +31,7 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0,
-	timers:{} // Tickers being displayed
+	count:0
 };
 
 Page.lastclick = null;
@@ -48,22 +48,22 @@ Global.display.push({
 	title:'Page Loading',
 	group:[
 		{
-			id:'page.timeout',
+			id:['Page','option','timeout'],
 			label:'Retry after',
 			select:[10, 15, 30, 60],
 			after:'seconds'
 		},{
-			id:'page.reload',
+			id:['Page','option','reload'],
 			label:'Reload after',
 			select:[3, 5, 7, 9, 11, 13, 15],
 			after:'tries'
 		},{
-			id:'page.nochat',
+			id:['Page','option','nochat'],
 			label:'Remove Facebook Chat',
 			checkbox:true,
 			help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in other facebook windows'
 		},{
-			id:'page.refresh',
+			id:['Page','option','refresh'],
 			label:'Refresh After',
 			select:{0:'Never', 50:'50 Pages', 100:'100 Pages', 150:'150 Pages', 200:'200 Pages', 250:'250 Pages', 500:'500 Pages'}
 		}
@@ -99,7 +99,7 @@ Global._overload(null, 'work', function(state) {
 	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
 		Page.temp.checked = true;
 	}
-	if (Global.option.page.refresh && Page.temp.count >= Global.option.page.refresh) {
+	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
@@ -125,9 +125,16 @@ Page.removeFacebookChat = function() {
 };
 
 Page.init = function() {
+	if (Global.get(['option','page'], false)) {
+		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
+		this.set(['option','reload'], Global.get(['option','page','reload'], this.option.reload));
+		this.set(['option','nochat'], Global.get(['option','page','nochat'], this.option.nochat));
+		this.set(['option','refresh'], Global.get(['option','page','refresh'], this.option.refresh));
+		Global.set(['option','page']);
+	}
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
-	if (Global.option.page.nochat) {
+	if (this.option.nochat) {
 		this.removeFacebookChat();
 	}
 	$('.golem-link').live('click', function(event){
@@ -141,8 +148,8 @@ Page.init = function() {
 Page.update_reminder = function(event) {
 	if (event.id === 'timers') {
 		var i, now = Date.now(), time;
-		for (i in this.temp.timers) {
-			time = this.temp.timers[i] - now;
+		for (i in this.runtime.timers) {
+			time = this.runtime.timers[i] - now;
 			$('#'+i).text(time > 0 ? makeTimer(time / 1000) : 'now?')
 		}
 	} else {
@@ -262,13 +269,13 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
-	this._remind(Global.option.page.timeout, 'retry');
+	this._remind(this.option.timeout, 'retry');
 	this.temp.count++;
 	return false;
 };
 
 Page.retry = function() {
-	if (this.temp.reload || ++this.temp.retry >= Global.option.page.reload) {
+	if (this.temp.reload || ++this.temp.retry >= this.option.reload) {
 		this.reload();
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
@@ -280,7 +287,7 @@ Page.retry = function() {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
 		this._load('runtime');// Just in case we've got multiple copies
-		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : Global.option.page.timeout;
+		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : this.option.timeout;
 		this._save('runtime');// Make sure it's saved for our next try
 		this.temp.reload = true;
 		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',this.runtime.delay * 1000, true) + '</div></div>');
@@ -324,7 +331,7 @@ Page.click = function(el) {
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
-	this._remind(Global.option.page.timeout, 'retry');
+	this._remind(this.option.timeout, 'retry');
 	this.temp.count++;
 	return true;
 };
@@ -341,7 +348,7 @@ Page.addTimer = function(id, time, relative) {
 	if (relative) {
 		time = Date.now() + time;
 	}
-	this.temp.timers['golem_timer_'+id] = time;
+	this.runtime.timers['golem_timer_'+id] = time;
 	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
 };
 

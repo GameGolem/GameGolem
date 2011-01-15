@@ -380,15 +380,18 @@ Config.makeOption = function(worker, args) {
 		max: 100,
 		real_id: ''
 	}, args);
-	if (isString(o.id) && Workers[o.id.substr(0,o.id.indexOf('.'))]) {
-		i = o.id.split('.');
-		worker = Workers[i.shift()];
-		o.path = i.join('.');
-		o.id = i.shift().join('.');
-	} else {
-		o.path = 'option.' + o.id;
-	}
 	if (o.id) {
+		if (!isArray(o.id)) {
+			o.id = o.id.split('.');
+		}
+		if (o.id.length > 0 && Workers[o.id[0]]) {
+			worker = Workers[o.id.shift()];
+		}
+		if (isUndefined(worker._datatypes[o.id[0]])) {
+			o.id.unshift('option');
+		}
+		o.path = o.id;
+		o.id = o.id.slice(1).join('.');
 		this._watch(worker, o.path);
 		o.real_id = ' id="' + this.makeID(worker, o.id) + '"';
 		o.value = worker.get(o.path, null);

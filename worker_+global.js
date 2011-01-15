@@ -12,15 +12,13 @@
 */
 var Global = new Worker('Global');
 Global.data = Global.runtime = Global.temp = null;
+Global.option = {}; // Left in for legacy options
 
 Global.settings = {
 	system:true,
 	unsortable:true,
 	no_disable:true
 };
-
-// Use _watch() to find our own options
-Global.option = {};
 
 // Use .push() to add our own panel groups
 Global.display = [];

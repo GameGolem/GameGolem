@@ -30,20 +30,22 @@ Title.temp = {
 	alias:{} // name:'worker:path.to.data[:txt if true[:txt if false]]' - fill via Title.alias()
 };
 
-Title.display = [
-	{
-		id:'enabled',
-		label:'Change Window Title',
-		checkbox:true
-	},{
-		id:'title',
-		text:true,
-		size:24
-	},{
-		title:'Useful Values',
-		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
-	}
-];
+Global.display.push({
+	title:'Window Title',
+	group:[
+		{
+			id:['Title','option','enabled'],
+			label:'Change Window Title',
+			checkbox:true
+		},{
+			id:['Title','option','title'],
+			text:true,
+			size:24
+		},{
+			info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
+		}
+	]
+});
 
 /***** Title.update() *****
 * 1. Split option.title into sections containing at most one bit of text and one {value}

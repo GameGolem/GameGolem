@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.973
+// @version		31.5.974
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 973;
+var revision = 974;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2070,15 +2070,18 @@ Config.makeOption = function(worker, args) {
 		max: 100,
 		real_id: ''
 	}, args);
-	if (isString(o.id) && Workers[o.id.substr(0,o.id.indexOf('.'))]) {
-		i = o.id.split('.');
-		worker = Workers[i.shift()];
-		o.path = i.join('.');
-		o.id = i.shift().join('.');
-	} else {
-		o.path = 'option.' + o.id;
-	}
 	if (o.id) {
+		if (!isArray(o.id)) {
+			o.id = o.id.split('.');
+		}
+		if (o.id.length > 0 && Workers[o.id[0]]) {
+			worker = Workers[o.id.shift()];
+		}
+		if (isUndefined(worker._datatypes[o.id[0]])) {
+			o.id.unshift('option');
+		}
+		o.path = o.id;
+		o.id = o.id.slice(1).join('.');
 		this._watch(worker, o.path);
 		o.real_id = ' id="' + this.makeID(worker, o.id) + '"';
 		o.value = worker.get(o.path, null);
@@ -2461,13 +2464,7 @@ Dashboard.update_trigger = function(event) {
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
 };
 
-Dashboard.update = function(event) {
-	if (event.type === 'init') {
-		this.update_trigger(event);
-		event.worker = Workers[this.option.active];
-	} else if (event.type !== 'watch') { // we only care about updating the dashboard when something we're *watching* changes (including ourselves)
-		return;
-	}
+Dashboard.update_watch = function(event) {
 	if (event.id === 'option.advanced') {
 		for (var i in Workers) {
 			if (Workers[i].settings.advanced) {
@@ -2513,6 +2510,14 @@ Dashboard.update = function(event) {
 		}
 	} else {
 		$('#golem-dashboard-'+event.worker.name).empty();
+	}
+};
+
+Dashboard.update = function(event) {
+	if (event.type === 'init') {
+		event.worker = Workers[this.option.active];
+		this.update_trigger(event);
+		this.update_watch(event);
 	}
 };
 
@@ -2831,15 +2836,13 @@ Debug.dashboard = function(sort, rev) {
 */
 var Global = new Worker('Global');
 Global.data = Global.runtime = Global.temp = null;
+Global.option = {}; // Left in for legacy options
 
 Global.settings = {
 	system:true,
 	unsortable:true,
 	no_disable:true
 };
-
-// Use _watch() to find our own options
-Global.option = {};
 
 // Use .push() to add our own panel groups
 Global.display = [];
@@ -3352,11 +3355,12 @@ Page.settings = {
 	keep:true
 };
 
-Global.option.page = {
+Page.option = {
 	timeout:15,
 	reload:5,
 	nochat:false,
-	refresh:250
+	refresh:250,
+	timers:{} // Tickers being displayed
 };
 
 Page.temp = {
@@ -3365,8 +3369,7 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0,
-	timers:{} // Tickers being displayed
+	count:0
 };
 
 Page.lastclick = null;
@@ -3383,22 +3386,22 @@ Global.display.push({
 	title:'Page Loading',
 	group:[
 		{
-			id:'page.timeout',
+			id:['Page','option','timeout'],
 			label:'Retry after',
 			select:[10, 15, 30, 60],
 			after:'seconds'
 		},{
-			id:'page.reload',
+			id:['Page','option','reload'],
 			label:'Reload after',
 			select:[3, 5, 7, 9, 11, 13, 15],
 			after:'tries'
 		},{
-			id:'page.nochat',
+			id:['Page','option','nochat'],
 			label:'Remove Facebook Chat',
 			checkbox:true,
 			help:'This does not log you out of chat, only hides it from display and attempts to stop it loading - you can still be online in other facebook windows'
 		},{
-			id:'page.refresh',
+			id:['Page','option','refresh'],
 			label:'Refresh After',
 			select:{0:'Never', 50:'50 Pages', 100:'100 Pages', 150:'150 Pages', 200:'200 Pages', 250:'250 Pages', 500:'500 Pages'}
 		}
@@ -3434,7 +3437,7 @@ Global._overload(null, 'work', function(state) {
 	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
 		Page.temp.checked = true;
 	}
-	if (Global.option.page.refresh && Page.temp.count >= Global.option.page.refresh) {
+	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
@@ -3460,9 +3463,16 @@ Page.removeFacebookChat = function() {
 };
 
 Page.init = function() {
+	if (Global.get(['option','page'], false)) {
+		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
+		this.set(['option','reload'], Global.get(['option','page','reload'], this.option.reload));
+		this.set(['option','nochat'], Global.get(['option','page','nochat'], this.option.nochat));
+		this.set(['option','refresh'], Global.get(['option','page','refresh'], this.option.refresh));
+		Global.set(['option','page']);
+	}
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
-	if (Global.option.page.nochat) {
+	if (this.option.nochat) {
 		this.removeFacebookChat();
 	}
 	$('.golem-link').live('click', function(event){
@@ -3476,8 +3486,8 @@ Page.init = function() {
 Page.update_reminder = function(event) {
 	if (event.id === 'timers') {
 		var i, now = Date.now(), time;
-		for (i in this.temp.timers) {
-			time = this.temp.timers[i] - now;
+		for (i in this.runtime.timers) {
+			time = this.runtime.timers[i] - now;
 			$('#'+i).text(time > 0 ? makeTimer(time / 1000) : 'now?')
 		}
 	} else {
@@ -3597,13 +3607,13 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
-	this._remind(Global.option.page.timeout, 'retry');
+	this._remind(this.option.timeout, 'retry');
 	this.temp.count++;
 	return false;
 };
 
 Page.retry = function() {
-	if (this.temp.reload || ++this.temp.retry >= Global.option.page.reload) {
+	if (this.temp.reload || ++this.temp.retry >= this.option.reload) {
 		this.reload();
 	} else if (this.temp.last) {
 		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
@@ -3615,7 +3625,7 @@ Page.retry = function() {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
 		this._load('runtime');// Just in case we've got multiple copies
-		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : Global.option.page.timeout;
+		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : this.option.timeout;
 		this._save('runtime');// Make sure it's saved for our next try
 		this.temp.reload = true;
 		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',this.runtime.delay * 1000, true) + '</div></div>');
@@ -3659,7 +3669,7 @@ Page.click = function(el) {
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
-	this._remind(Global.option.page.timeout, 'retry');
+	this._remind(this.option.timeout, 'retry');
 	this.temp.count++;
 	return true;
 };
@@ -3676,7 +3686,7 @@ Page.addTimer = function(id, time, relative) {
 	if (relative) {
 		time = Date.now() + time;
 	}
-	this.temp.timers['golem_timer_'+id] = time;
+	this.runtime.timers['golem_timer_'+id] = time;
 	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
 };
 
@@ -4230,7 +4240,7 @@ Global.display.push({
 	title:'Multiple Tabs / Windows',
 	group:[
 		{
-			id:'session.timeout',
+			id:['Session','option','timeout'],
 			label:'Forget After',
 			select:{5000:'5 Seconds', 10000:'10 Seconds', 15000:'15 Seconds', 20000:'20 Seconds', 25000:'25 Seconds', 30000:'30 Seconds'},
 			help:'When you have multiple tabs open this is the length of time after closing all others that the Enabled/Disabled warning will remain.'
@@ -4238,7 +4248,7 @@ Global.display.push({
 	]
 });
 
-Global.option.session = {
+Session.option = {
 	timeout:15000 // How long to give a tab to update itself before deleting it (ms)
 };
 
@@ -4255,6 +4265,10 @@ Session.temp = {
 };
 
 Session.setup = function() {
+	if (Global.get(['option','session'], false)) {
+		this.set(['option','timeout'], Global.get(['option','session','timeout'], this.option.timeout));
+		Global.set(['option','session']);
+	}
 	try {
 		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
 			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
@@ -4279,7 +4293,7 @@ Session.init = function() {
 	var now = Date.now();
 	this.set(['data','_sessions',this.temp._id], now);
 	$('.golem-title').after('<div id="golem_session" class="golem-info golem-button green" style="display:none;">Enabled</div>');
-	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - Global.option.session.timeout || this.data._active === this.temp._id) {
+	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.option.timeout || this.data._active === this.temp._id) {
 		this._set(['temp','active'], true);
 		this._set(['data','_active'], this.temp._id);
 		this._save('data');// Force it to save immediately - reduce the length of time it's waiting
@@ -4292,7 +4306,7 @@ Session.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green');
 			Session._set(['data','_active'], null);
 			Session._set(['temp','active'], false);
-		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Global.option.session.timeout) {
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - option.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			Queue.clearCurrent();// Make sure we deal with changed circumstances
 			Session._set(['data','_active'], Session.temp._id);
@@ -4387,7 +4401,7 @@ Session.update = function(event) {
 	} else {
 		this.data._sessions[this.temp._id] = now;
 	}
-	now -= Global.option.session.timeout;
+	now -= this.option.timeout;
 	for(i in this.data._sessions) {
 		if (this.data._sessions[i] < now) {
 			this.data._sessions[i] = undefined;
@@ -4481,6 +4495,7 @@ Settings.menu = function(worker, key) {
 				this.temp.worker = worker.name;
 				this.temp.edit = key;
 				this._notify('data');// Force dashboard update
+				Dashboard.set(['option','active'], this.name);
 			}
 		}
 	} else {
@@ -4639,20 +4654,22 @@ Title.temp = {
 	alias:{} // name:'worker:path.to.data[:txt if true[:txt if false]]' - fill via Title.alias()
 };
 
-Title.display = [
-	{
-		id:'enabled',
-		label:'Change Window Title',
-		checkbox:true
-	},{
-		id:'title',
-		text:true,
-		size:24
-	},{
-		title:'Useful Values',
-		info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
-	}
-];
+Global.display.push({
+	title:'Window Title',
+	group:[
+		{
+			id:['Title','option','enabled'],
+			label:'Change Window Title',
+			checkbox:true
+		},{
+			id:['Title','option','title'],
+			text:true,
+			size:24
+		},{
+			info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
+		}
+	]
+});
 
 /***** Title.update() *****
 * 1. Split option.title into sections containing at most one bit of text and one {value}
