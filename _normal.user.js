@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.977
+// @version		31.5.978
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,7 +19,6 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
 // Shouldn't touch
@@ -27,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 977;
+var revision = 978;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9956,8 +9955,9 @@ Monster.dashboard = function(sort, rev) {
         //th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
-		uid = this.order[o].replace(/_\d+/,'');
-		monster = this.data[this.order[o]];
+		mid = this.order[o];
+		uid = mid.replace(/_\d+/,'');
+		monster = this.data[mid];
 		type = this.types[monster.type];
 		if (!type) {
 			continue;
@@ -9985,7 +9985,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			vv = '{id:' + uid + '}';
 		}
-		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>' + vv + '</a>');
+		th(output, '<a class="golem-monster-ignore" name="'+mid+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>' + vv + '</a>');
 
 		// health
 		td(output,
@@ -10042,16 +10042,16 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: monster.timer
-					? Page.addTimer('monster_finish', monster.finish)
+					? Page.addTimer('monster_'+mid+'_finish', monster.finish)
 					: '?');
 
 		// etd
 		td(output,
 			blank
 				? ''
-				: Page.addTimer('monster_eta', monster.health === 100 ? monster.finish : monster.eta));
-		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
-		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
+				: Page.addTimer('monster_'+mid+'_eta', monster.health === 100 ? monster.finish : monster.eta));
+		th(output, '<a class="golem-monster-delete" name="'+mid+'" title="Delete this Monster from the dashboard">[x]</a>');
+		th(output, '<a class="golem-monster-override" name="'+mid+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
                 tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
@@ -10093,7 +10093,8 @@ Monster.conditions = function (type, conditions) {
 			value = parseFloat(value, 10) * 1000 * (first + second * 1000);
 		}
 		return parseInt(value, 10);
-};/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+};
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
@@ -11437,8 +11438,8 @@ Quest.rdata =			// #321
 	'ascent to the skies':				{ reps_8:  0 },
 	'attack from above':				{ reps_9: 17 },
 	'attack undead guardians':			{ reps_6: 24 },
-	'aurelius':							{ reps_11:  0 },
-	'aurelius outpost':					{ reps_11:  0 },
+	'aurelius':							{ reps_11:  11 },
+	'aurelius outpost':					{ reps_11:   9 },
 	'avoid ensnarements':				{ reps_3: 34 },
 	'avoid the guards':					{ reps_8:  0 },
 	'avoid the patrols':				{ reps_9: 17 },
@@ -11611,7 +11612,7 @@ Quest.rdata =			// #321
 	'kill gildamesh':					{ reps_3: 34 },
 	'kill vampire bats':				{ reps_demiquest: 12 },
 	'koralan coast town':				{ reps_11: 14 },
-	'koralan townspeople':				{ reps_11:  0 },
+	'koralan townspeople':				{ reps_11: 10 },
 	'learn about death knights':		{ reps_demiquest: 12 },
 	'learn aurelius intentions':		{ reps_11:  0 },
 	'learn counterspell':				{ reps_demiquest: 12 },
@@ -11624,7 +11625,7 @@ Quest.rdata =			// #321
 	'misty hills of boralis':			{ reps_3: 20 },
 	'mount aretop':						{ reps_demiquest: 25 },
 	'nightmare':						{ reps_6: 20 },
-	'outpost entrance':					{ reps_11:  0 },
+	'outpost entrance':					{ reps_11: 12 },
 	'path to heaven':					{ reps_8: 11 },
 	'pick up the orc trail':			{ reps_1:  6 },
 	'plan the attack':					{ reps_demiquest: 12 },
@@ -11853,7 +11854,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Thu Jan  6 20:13:20 2011 UTC
+  // as of Sun Jan 16 04:26:18 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -11865,7 +11866,7 @@ Town.blacksmith = {
       //   shield.19{Sword of Redemption}, weapon.5{Sword}
     Weapon: new RegExp('(' +
       '\\baxe\\b' +				// 12
-      '|\\bblades?\\b' +		// 24+1
+      '|\\bblades?\\b' +		// 25+1
       '|\\bbonecrusher\\b' +	// 1
       '|\\bbow\\b' +			// 7
       '|\\bcleaver\\b' +		// 1
@@ -11892,7 +11893,7 @@ Town.blacksmith = {
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
-      '|\\btrident\\b' +		// 1
+      '|\\btrident\\b' +		// 2
       '|\\bwand\\b' +			// 3
       '|^Atonement$' +
       '|^Avenger$' +
@@ -11916,11 +11917,14 @@ Town.blacksmith = {
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
       '|^Onslaught$' +
+      '|^Path of the Tower$' +
       '|^Punisher$' +
       '|^Righteousness$' +
       '|^Scytheblade$' +
+      '|^Soul Siphon$' +
       '|^Soulforge$' +
       '|^The Disemboweler$' +
+      '|^The Galvanizer$' +
       '|^The Reckoning$' +
       '|^Virtue of Justice$' +
       ')', 'i'),
@@ -11930,7 +11934,7 @@ Town.blacksmith = {
       '|\\bdeathshield\\b' +	// 1
       '|\\bdefender\\b' +		// 3
       '|\\bshield\\b' +			// 22
-      '|\\btome\\b' +			// 2
+      '|\\btome\\b' +			// 3
       '|^Absolution$' +
       '|^Dragon Scale$' +
       '|^Feral Staff$' +
@@ -11949,7 +11953,7 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 17
+      '|\\barmor\\b' +			// 18
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
@@ -11958,7 +11962,7 @@ Town.blacksmith = {
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 26
+      '|\\bplate\\b' +			// 27
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 4
       '|\\brobes?\\b' +			// 1+7
@@ -11972,9 +11976,9 @@ Town.blacksmith = {
       ')', 'i'),
     Helmet: new RegExp('(' +
       '\\bcowl\\b' +			// 1
-      '|\\bcrown\\b' +			// 12
+      '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 33
+      '|\\bhelm\\b' +			// 34
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmask\\b' +			// 1
@@ -11991,16 +11995,16 @@ Town.blacksmith = {
       '|\\bearrings\\b' +		// 1
       '|\\beye\\b' +			// 2
       '|\\bflask\\b' +			// 1
-      '|\\binsignia\\b' +		// 2
+      '|\\binsignia\\b' +		// 3
       '|\\bjewel\\b' +			// 3
       '|\\blantern\\b' +		// 1
       '|\\blocket\\b' +			// 1
       '|\\bmark\\b' +			// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 8
+      '|\\bpendant\\b' +		// 9
       '|\\brelic\\b' +			// 1
-      '|\\bring\\b' +			// 6
+      '|\\bring\\b' +			// 7
       '|\\bruby\\b' +			// 1
       '|\\bseal\\b' +			// 1
       '|\\bshard\\b' +			// 6
@@ -12544,4 +12548,3 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper

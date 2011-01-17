@@ -1652,8 +1652,9 @@ Monster.dashboard = function(sort, rev) {
         //th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
-		uid = this.order[o].replace(/_\d+/,'');
-		monster = this.data[this.order[o]];
+		mid = this.order[o];
+		uid = mid.replace(/_\d+/,'');
+		monster = this.data[mid];
 		type = this.types[monster.type];
 		if (!type) {
 			continue;
@@ -1681,7 +1682,7 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			vv = '{id:' + uid + '}';
 		}
-		th(output, '<a class="golem-monster-ignore" name="'+this.order[o]+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>' + vv + '</a>');
+		th(output, '<a class="golem-monster-ignore" name="'+mid+'" title="Toggle Active/Inactive"'+(monster.ignore ? ' style="text-decoration: line-through;"' : '')+'>' + vv + '</a>');
 
 		// health
 		td(output,
@@ -1738,16 +1739,16 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: monster.timer
-					? Page.addTimer('monster_finish', monster.finish)
+					? Page.addTimer('monster_'+mid+'_finish', monster.finish)
 					: '?');
 
 		// etd
 		td(output,
 			blank
 				? ''
-				: Page.addTimer('monster_eta', monster.health === 100 ? monster.finish : monster.eta));
-		th(output, '<a class="golem-monster-delete" name="'+this.order[o]+'" title="Delete this Monster from the dashboard">[x]</a>');
-		th(output, '<a class="golem-monster-override" name="'+this.order[o]+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
+				: Page.addTimer('monster_'+mid+'_eta', monster.health === 100 ? monster.finish : monster.eta));
+		th(output, '<a class="golem-monster-delete" name="'+mid+'" title="Delete this Monster from the dashboard">[x]</a>');
+		th(output, '<a class="golem-monster-override" name="'+mid+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
                 tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');

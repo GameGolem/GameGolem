@@ -103,7 +103,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Thu Jan  6 20:13:20 2011 UTC
+  // as of Sun Jan 16 04:26:18 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -115,7 +115,7 @@ Town.blacksmith = {
       //   shield.19{Sword of Redemption}, weapon.5{Sword}
     Weapon: new RegExp('(' +
       '\\baxe\\b' +				// 12
-      '|\\bblades?\\b' +		// 24+1
+      '|\\bblades?\\b' +		// 25+1
       '|\\bbonecrusher\\b' +	// 1
       '|\\bbow\\b' +			// 7
       '|\\bcleaver\\b' +		// 1
@@ -142,7 +142,7 @@ Town.blacksmith = {
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
-      '|\\btrident\\b' +		// 1
+      '|\\btrident\\b' +		// 2
       '|\\bwand\\b' +			// 3
       '|^Atonement$' +
       '|^Avenger$' +
@@ -166,11 +166,14 @@ Town.blacksmith = {
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
       '|^Onslaught$' +
+      '|^Path of the Tower$' +
       '|^Punisher$' +
       '|^Righteousness$' +
       '|^Scytheblade$' +
+      '|^Soul Siphon$' +
       '|^Soulforge$' +
       '|^The Disemboweler$' +
+      '|^The Galvanizer$' +
       '|^The Reckoning$' +
       '|^Virtue of Justice$' +
       ')', 'i'),
@@ -180,7 +183,7 @@ Town.blacksmith = {
       '|\\bdeathshield\\b' +	// 1
       '|\\bdefender\\b' +		// 3
       '|\\bshield\\b' +			// 22
-      '|\\btome\\b' +			// 2
+      '|\\btome\\b' +			// 3
       '|^Absolution$' +
       '|^Dragon Scale$' +
       '|^Feral Staff$' +
@@ -199,7 +202,7 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 17
+      '|\\barmor\\b' +			// 18
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
@@ -208,7 +211,7 @@ Town.blacksmith = {
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 26
+      '|\\bplate\\b' +			// 27
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 4
       '|\\brobes?\\b' +			// 1+7
@@ -222,9 +225,9 @@ Town.blacksmith = {
       ')', 'i'),
     Helmet: new RegExp('(' +
       '\\bcowl\\b' +			// 1
-      '|\\bcrown\\b' +			// 12
+      '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 33
+      '|\\bhelm\\b' +			// 34
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmask\\b' +			// 1
@@ -241,16 +244,16 @@ Town.blacksmith = {
       '|\\bearrings\\b' +		// 1
       '|\\beye\\b' +			// 2
       '|\\bflask\\b' +			// 1
-      '|\\binsignia\\b' +		// 2
+      '|\\binsignia\\b' +		// 3
       '|\\bjewel\\b' +			// 3
       '|\\blantern\\b' +		// 1
       '|\\blocket\\b' +			// 1
       '|\\bmark\\b' +			// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 8
+      '|\\bpendant\\b' +		// 9
       '|\\brelic\\b' +			// 1
-      '|\\bring\\b' +			// 6
+      '|\\bring\\b' +			// 7
       '|\\bruby\\b' +			// 1
       '|\\bseal\\b' +			// 1
       '|\\bshard\\b' +			// 6
