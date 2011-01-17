@@ -24,6 +24,8 @@ Script.settings = {
 	advanced:true
 };
 
+Script.temp = {}; // Used for variables only!!!
+
 Script.dashboard = function() {
 	var i, path = this.option.worker+'.'+this.option.type, html = '', list = [];
 	html += '<input id="golem_script_run" type="button" value="Run">';
@@ -67,42 +69,44 @@ Script._find = function(op, table) {
 	return -1;
 };
 
-Script._operators = [ // Order of precidence
+Script._operators = [ // Order of precidence, [name, expand_args, function]
 	// Unary
-	['!',	function(l) {return !this._expand(l);}],
+	['!',	true,	function(l) {return !l;}],
 	// Maths
-	['*',	function(l,r) {return this._expand(l) * this._expand(r);}],
-	['/',	function(l,r) {return this._expand(l) / this._expand(r);}],
-	['%',	function(l,r) {return this._expand(l) % this._expand(r);}],
-	['+',	function(l,r) {return this._expand(l) + this._expand(r);}],
-	['-',	function(l,r) {return this._expand(l) - this._expand(r);}],
+	['*',	true,	function(l,r) {return l * r;}],
+	['/',	true,	function(l,r) {return l / r;}],
+	['%',	true,	function(l,r) {return l % r;}],
+	['+',	true,	function(l,r) {return l + r;}],
+	['-',	true,	function(l,r) {return l - r;}],
 	// Equality
-	['>',	function(l,r) {return this._expand(l) > this._expand(r);}],
-	['>=',	function(l,r) {return this._expand(l) >= this._expand(r);}],
-	['<=',	function(l,r) {return this._expand(l) <= this._expand(r);}],
-	['<',	function(l,r) {return this._expand(l) < this._expand(r);}],/*jslint eqeqeq:false */
-	['==',	function(l,r) {return this._expand(l) == this._expand(r);}],
-	['!=',	function(l,r) {return this._expand(l) != this._expand(r);}],/*jslint eqeqeq:true */
-	['===',	function(l,r) {return this._expand(l) === this._expand(r);}],
-	['!==',	function(l,r) {return this._expand(l) !== this._expand(r);}],
+	['>',	true,	function(l,r) {return l > r;}],
+	['>=',	true,	function(l,r) {return l >= r;}],
+	['<=',	true,	function(l,r) {return l <= r;}],
+	['<',	true,	function(l,r) {return l < r;}],
+	['===',	true,	function(l,r) {return l === r;}],
+	['!==',	true,	function(l,r) {return l !== r;}],
+/*jslint eqeqeq:false */
+	['==',	true,	function(l,r) {return l == r;}],
+	['!=',	true,	function(l,r) {return l != r;}],
+/*jslint eqeqeq:true */
 	// Logical
-	['&&',	function(l,r) {return this._expand(l) && this._expand(r);}],
-	['||',	function(l,r) {return this._expand(l) || this._expand(r);}],
+	['&&',	true,	function(l,r) {return l && r;}],
+	['||',	true,	function(l,r) {return l || r;}],
 	// Assignment
-	['=',	function(l,r) {return (this._variables[l] = this._expand(r));}],
-	['*=',	function(l,r) {return (this._variables[l] *= this._expand(r));}],
-	['/=',	function(l,r) {return (this._variables[l] /= this._expand(r));}],
-	['%=',	function(l,r) {return (this._variables[l] %= this._expand(r));}],
-	['+=',	function(l,r) {return (this._variables[l] += this._expand(r));}],
-	['-=',	function(l,r) {return (this._variables[l] -= this._expand(r));}]
+	['=',	false,	function(l,r) {return (this.temp[l] = this._expand(r));}],
+	['*=',	false,	function(l,r) {return (this.temp[l] *= this._expand(r));}],
+	['/=',	false,	function(l,r) {return (this.temp[l] /= this._expand(r));}],
+	['%=',	false,	function(l,r) {return (this.temp[l] %= this._expand(r));}],
+	['+=',	false,	function(l,r) {return (this.temp[l] += this._expand(r));}],
+	['-=',	false,	function(l,r) {return (this.temp[l] -= this._expand(r));}]
 ];
 
-Script._functions = [
-	['min',		function() {return Math.min.apply(Math, this._expand(arguments));}],
-	['max',		function() {return Math.max.apply(Math, this._expand(arguments));}],
-	['round',	function() {return Math.round.apply(Math, this._expand(arguments));}],
-	['floor',	function() {return Math.floor.apply(Math, this._expand(arguments));}],
-	['ceil',	function() {return Math.ceil.apply(Math, this._expand(arguments));}]
+Script._functions = [ // [name, expand_args, function]
+	['min',		true,	function() {return Math.min.apply(Math, arguments);}],
+	['max',		true,	function() {return Math.max.apply(Math, arguments);}],
+	['round',	true,	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	true,	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	true,	function() {return Math.ceil.apply(Math, arguments);}]
 ];
 
 Script._expand = function(variable) { // Expand variables into values
@@ -113,13 +117,11 @@ Script._expand = function(variable) { // Expand variables into values
 				variable[i] = arguments.callee.call(this, variable[i]);
 			}
 		} else if (isString(variable) && variable[0] === '#') {
-			return this._variables[variable];
+			return this.temp[variable];
 		}
 	}
 	return variable;
 };
-
-Script._variables = {}; // Fill via scripts directly
 
 // Perform any operations of lower precedence than "op"
 // Both op_list and value_list are altered
@@ -127,11 +129,14 @@ Script._operate = function(op, op_list, value_list) {
 	var i, tmp, fn, args;
 	while (op_list.length && op_list[0][0] <= op) {
 		tmp = op_list.shift();
-		fn = this._operators[tmp[0]][1];
+		fn = this._operators[tmp[0]][2];
 		if ((i = fn.length)) { // function takes set args
 			args = value_list.splice(-i, i);
 		} else {
 			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
+		}
+		if (this._operators[tmp[0]][1]) {
+			args = this._expand(args);
 		}
 //		console.log(log('Perform: '+this._operators[tmp[0]][0]+'('+args+')'));
 		value_list.push(fn.apply(this, args));
@@ -179,7 +184,11 @@ Script._interpret = function(_script) {
 			} else if ((fn = Script._find(x, this._functions)) >= 0) {
 				x = script.shift();
 				// Should probably report some sort of error if not an array...
-				value_list.push(this._functions[fn][1].apply(this, arguments.callee.call(this, isArray(x) ? x : [x])));
+				x = arguments.callee.call(this, isArray(x) ? x : [x]);
+				if (this._functions[fn][1]) {
+					x = this._expand(x);
+				}
+				value_list.push(this._functions[fn][2].apply(this, x));
 			} else if (/^[A-Z][\w\.]+$/.test(x)) {
 				x = x.split('.');
 				value_list.push(Workers[x[0]]._get(x.slice(1), false));
@@ -200,7 +209,7 @@ Script._interpret = function(_script) {
 };
 
 Script.interpret = function(script) {
-	this._variables = {};
+	this.temp = {};
 	this._return = undefined;
 	return this._expand((this._interpret(script)).pop());
 };
@@ -216,7 +225,12 @@ Script.parse = function(worker, datatype, text, map) {
 		while ((atom = atoms.shift())) { // "(", value, ")", operator
 			if (atom === '(' || atom === '{') {
 				script.push(arguments.callee());
-			} else if (atom === ')' || atom === '}') {
+			} else if (atom === ')') {
+				break;
+			} else if (atom === '}') {
+				if (script.length && script[script.length-1] !== ';') {
+					script.push(';');
+				}
 				break;
 			} else if (atom === 'true') {
 				script.push(true);

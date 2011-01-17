@@ -133,8 +133,12 @@ Page.update_reminder = function(event) {
 	if (event.id === 'timers') {
 		var i, now = Date.now(), time;
 		for (i in this.runtime.timers) {
-			time = this.runtime.timers[i] - now;
-			$('#'+i).text(time > 0 ? makeTimer(time / 1000) : 'now?')
+			time = (this.runtime.timers[i] - now) / 1000;
+			if (time <= -604800) { // Delete old timers 1 week after "now?"
+				this.runtime.timers[i] = undefined;
+			} else {
+				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?')
+			}
 		}
 	} else {
 		this.update(event);
@@ -334,5 +338,9 @@ Page.addTimer = function(id, time, relative) {
 	}
 	this.runtime.timers['golem_timer_'+id] = time;
 	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
+};
+
+Page.delTimer = function(id) {
+	this.runtime.timers['golem_timer_'+id] = undefined;
 };
 
