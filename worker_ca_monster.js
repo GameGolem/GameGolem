@@ -243,13 +243,13 @@ Monster.display = [
 		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
 	},{
 		id:'armyratio',
-		require:'raid!="Duel" & raid!="Duel x5"',
+		require:'raid!="Duel" && raid!="Duel x5"',
 		label:'Target Army Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
 	},{
 		id:'levelratio',
-		require:'raid!="Invade" & raid!="Invade x5"',
+		require:'raid!="Invade" && raid!="Invade x5"',
 		label:'Target Level Ratio',
 		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'

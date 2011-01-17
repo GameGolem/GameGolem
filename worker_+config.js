@@ -161,7 +161,7 @@ Config.init = function() {
 				$this.children().each(function(i,el){ val.push($(el).text()); });
 			} else {
 				val = $this.attr('value') || $this.val() || null;
-				if (val && val.search(/[^-0-9.]/) === -1) {
+				if (val && val.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 					val = parseFloat(val);
 				}
 			}

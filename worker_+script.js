@@ -1,10 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global console, isArray, isNumber, isUndefined, Workers */
+/*global console, isString, isArray, isNumber, isUndefined, Workers, Worker, Settings, $ */
 // Internal scripting language - never give access to eval() etc.
 
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-// operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
+// _operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
 // values = option, path.to.option, number, "string"
 // /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
 
@@ -26,7 +26,7 @@ Script.settings = {
 
 Script.dashboard = function() {
 	var i, path = this.option.worker+'.'+this.option.type, html = '', list = [];
-//	html += '<input id="golem_script_test" type="button" value="Test">';
+	html += '<input id="golem_script_run" type="button" value="Run">';
 	html += ' Using: <select id="golem_script_worker">';
 	for (i=1; i<Settings.temp.paths.length; i++) {
 		html += '<option value="' + Settings.temp.paths[i] + '"' + (Settings.temp.paths[i] === path ? ' selected' : '') + '>' + Settings.temp.paths[i] + '</option>';
@@ -34,8 +34,8 @@ Script.dashboard = function() {
 	html += '</select>';
 	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
 	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
-	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:570px;">';
-//	html += '<br>Script: <textarea id="golem_script_edit" style="width:570px;"></textarea>';
+//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:570px;">';
+	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:570px;"></textarea>';
 	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:570px;" disabled></textarea>';
 	$('#golem-dashboard-Script').html(html);
 	$('#golem_script_worker').change(function(){
@@ -48,95 +48,165 @@ Script.dashboard = function() {
 		}
 	});
 	$('#golem_script_source').autoSize();
-	$('#golem_script_edit').autoSize().change(function(){
+	$('#golem_script_edit').autoSize();
+	$('#golem_script_run').click(function(){
 		var script = Script.parse(Workers[Script.option.worker], Script.option.type, $('#golem_script_edit').val());
 		$('#golem_script_source').val(script.length ? JSON.stringify(script, null, '   ') : '').autoSize();
 		$('#golem_script_result').val(Script.interpret(script)).autoSize();
 	});
-	$('#golem_script_clear').click(function(){$('#golem_script_edit').val('');});
+	$('#golem_script_clear').click(function(){$('#golem_script_edit,#golem_script_source,#golem_script_result').val('');});
 };
 
-Script.find = function(op) {
-	var i, l = this.operate.length;
-	for (i=0; i < l; i++) {
-		if (Script.operate[i][0] === op) {
+Script._find = function(op, table) {
+	var i = table.length;
+	while (i--) {
+		if (table[i][0] === op) {
 			return i;
 		}
 	}
 	return -1;
 };
 
-Script.operate = [ // Order of precidence
+Script._operators = [ // Order of precidence
 	// Unary
-	['!',	function(l) {return !l;}],
+	['!',	function(l) {return !this._expand(l);}],
 	// Maths
-	['*',	function(l,r) {return l * r;}],
-	['/',	function(l,r) {return l / r;}],
-	['%',	function(l,r) {return l % r;}],
-	['+',	function(l,r) {return l + r;}],
-	['-',	function(l,r) {return l - r;}],
-	// Complex
-	['min',	function() {return Math.min.apply(Math, arguments);}],
-	['max',	function() {return Math.max.apply(Math, arguments);}],
-	['round',	function() {return Math.round.apply(Math, arguments);}],
-	['floor',	function() {return Math.floor.apply(Math, arguments);}],
-	['ceil',	function() {return Math.ceil.apply(Math, arguments);}],
+	['*',	function(l,r) {return this._expand(l) * this._expand(r);}],
+	['/',	function(l,r) {return this._expand(l) / this._expand(r);}],
+	['%',	function(l,r) {return this._expand(l) % this._expand(r);}],
+	['+',	function(l,r) {return this._expand(l) + this._expand(r);}],
+	['-',	function(l,r) {return this._expand(l) - this._expand(r);}],
 	// Equality
-	['>',	function(l,r) {return l > r;}],
-	['>=',	function(l,r) {return l >= r;}],
-	['<=',	function(l,r) {return l <= r;}],
-	['<',	function(l,r) {return l < r;}],
-	['==',	function(l,r) {return l == r;}],
-	['!=',	function(l,r) {return l != r;}],
+	['>',	function(l,r) {return this._expand(l) > this._expand(r);}],
+	['>=',	function(l,r) {return this._expand(l) >= this._expand(r);}],
+	['<=',	function(l,r) {return this._expand(l) <= this._expand(r);}],
+	['<',	function(l,r) {return this._expand(l) < this._expand(r);}],/*jslint eqeqeq:false */
+	['==',	function(l,r) {return this._expand(l) == this._expand(r);}],
+	['!=',	function(l,r) {return this._expand(l) != this._expand(r);}],/*jslint eqeqeq:true */
+	['===',	function(l,r) {return this._expand(l) === this._expand(r);}],
+	['!==',	function(l,r) {return this._expand(l) !== this._expand(r);}],
 	// Logical
-	['&&',	function(l,r) {return l && r;}],
-	['||',	function(l,r) {return l || r;}]
+	['&&',	function(l,r) {return this._expand(l) && this._expand(r);}],
+	['||',	function(l,r) {return this._expand(l) || this._expand(r);}],
+	// Assignment
+	['=',	function(l,r) {return (this._variables[l] = this._expand(r));}],
+	['*=',	function(l,r) {return (this._variables[l] *= this._expand(r));}],
+	['/=',	function(l,r) {return (this._variables[l] /= this._expand(r));}],
+	['%=',	function(l,r) {return (this._variables[l] %= this._expand(r));}],
+	['+=',	function(l,r) {return (this._variables[l] += this._expand(r));}],
+	['-=',	function(l,r) {return (this._variables[l] -= this._expand(r));}]
 ];
 
-// Interpret our script, return a single value
-Script.interpret = function(script) {
-	return (function(script){
-		var i, x, path, value = [], last = -1, op_list = [], fn = function(op) {
-			var i, tmp, args;
-			while (op_list.length && op_list[0][0] <= op) {
-				tmp = op_list.shift();
-				if ((i = Script.operate[tmp[0]][1].length)) { // function takes set args
-					args = value.splice(-i, i);
-				} else {
-					args = value.splice(tmp[1], value.length - tmp[1]); // Args from the end
-				}
-//				console.log(Script.operate[tmp[0]][0]+'('+args+')');
-				value.push(Script.operate[tmp[0]][1].apply(null, args));
+Script._functions = [
+	['min',		function() {return Math.min.apply(Math, this._expand(arguments));}],
+	['max',		function() {return Math.max.apply(Math, this._expand(arguments));}],
+	['round',	function() {return Math.round.apply(Math, this._expand(arguments));}],
+	['floor',	function() {return Math.floor.apply(Math, this._expand(arguments));}],
+	['ceil',	function() {return Math.ceil.apply(Math, this._expand(arguments));}]
+];
+
+Script._expand = function(variable) { // Expand variables into values
+	if (variable) {
+		if (isArray(variable)) {
+			var i = variable.length;
+			while (i--) {
+				variable[i] = arguments.callee.call(this, variable[i]);
 			}
-			if (Script.operate[op]) {
-				op_list.unshift([op, value.length]);
-			}
-			return -1;
-		};
-		while ((x = script.shift())) {
-			if (isArray(x)) {
-				if (Workers[x[0]]) {
-					path = x.slice(1);
-					value.push(Workers[x[0]]._get(path, false));
-				} else {
-					value = value.concat(arguments.callee(x));
-				}
-			} else if ((last = Script.find(x)) === -1) {
-				if (/^".*"$/.test(x)) {
-					value.push(x.replace(/^"|"$/g, ''));
-				} else {
-					value.push(x);
-				}
-			}
-			last = fn(last);
+		} else if (isString(variable) && variable[0] === '#') {
+			return this._variables[variable];
 		}
-		fn(Number.MAX_VALUE);
-		return value;
-	}(script.slice(0)))[0];
+	}
+	return variable;
+};
+
+Script._variables = {}; // Fill via scripts directly
+
+// Perform any operations of lower precedence than "op"
+// Both op_list and value_list are altered
+Script._operate = function(op, op_list, value_list) {
+	var i, tmp, fn, args;
+	while (op_list.length && op_list[0][0] <= op) {
+		tmp = op_list.shift();
+		fn = this._operators[tmp[0]][1];
+		if ((i = fn.length)) { // function takes set args
+			args = value_list.splice(-i, i);
+		} else {
+			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
+		}
+//		console.log(log('Perform: '+this._operators[tmp[0]][0]+'('+args+')'));
+		value_list.push(fn.apply(this, args));
+	}
+	if (this._operators[op]) {
+		op_list.unshift([op, value_list.length]);
+	}
+};
+
+Script._return = undefined;
+
+// Interpret our script, return a single value
+Script._interpret = function(_script) {
+	var x, x2, fn, value_list = [], op_list = [], script = _script.slice(0), test;
+	while (!this._return && (x = script.shift())) {
+		if (isArray(x)) {
+			value_list = value_list.concat(arguments.callee.call(this, x));
+		} else if (isString(x)) {
+			if (x === ';') {
+				this._operate(Number.MAX_VALUE, op_list, value_list);
+				value_list = [];
+				op_list = [];
+			} else if (x === 'return') {
+				x = script.shift();
+				this._return = arguments.callee.call(this, isArray(x) && !Workers[x[0]] ? x : [x]);
+			} else if (x === 'if') { // if (test) {func} [else if (test) {func}]* [else {func}]?
+				test = false;
+				fn = 'if';
+				while (fn) {
+					x = fn === 'if' ? script.shift() : null;
+					fn = script.shift();
+					if (!test && (!x || (test = (arguments.callee.call(this, isArray(x) ? x : [x])[0])))) {
+						value_list = value_list.concat(arguments.callee.call(this, isArray(fn) ? fn : [fn]));
+					}
+					if (script[0] !== 'else') {
+						break;
+					}
+					fn = script.shift(); // 'else'
+					if (script[0] === 'if') {
+						fn = script.shift();
+					}
+				}
+			} else if ((fn = Script._find(x, this._operators)) >= 0) {
+				this._operate(fn, op_list, value_list);
+			} else if ((fn = Script._find(x, this._functions)) >= 0) {
+				x = script.shift();
+				// Should probably report some sort of error if not an array...
+				value_list.push(this._functions[fn][1].apply(this, arguments.callee.call(this, isArray(x) ? x : [x])));
+			} else if (/^[A-Z][\w\.]+$/.test(x)) {
+				x = x.split('.');
+				value_list.push(Workers[x[0]]._get(x.slice(1), false));
+			} else if (/^".*"$/.test(x)) {
+				value_list.push(x.replace(/^"|"$/g, ''));
+			} else if (x[0] === '#') {
+				value_list.push(x);
+			} else {
+				console.log(error('Bad string format: '+x));
+				value_list.push(x); // Should never hit this...
+			}
+		} else { // number or boolean
+			value_list.push(x);
+		}
+	}
+	this._operate(Number.MAX_VALUE, op_list, value_list);
+	return this._return || value_list;
+};
+
+Script.interpret = function(script) {
+	this._variables = {};
+	this._return = undefined;
+	return this._expand((this._interpret(script)).pop());
 };
 
 Script.parse = function(worker, datatype, text, map) {
-	var atoms = text.regex(/\s*("[^"]*"|[\d]+|[A-Za-z_][\w\.]*|[^\w\.\s"]+)[\s\n\r]*/g);
+	var atoms = text.regex(/\s*("[^"]*"|[\d]+|true|false|if|else|return|[#A-Za-z_][\w\.]*|\(|\)|\{|\}|;|[^#\w\.\s"]+)[\s\n\r]*/g);
 	if (!atoms) {
 		return []; // Empty script
 	}
@@ -144,11 +214,25 @@ Script.parse = function(worker, datatype, text, map) {
 	return (function() {
 		var atom, path, script = [];
 		while ((atom = atoms.shift())) { // "(", value, ")", operator
-			if (atom === '(') {
+			if (atom === '(' || atom === '{') {
 				script.push(arguments.callee());
-			} else if (atom === ')') {
+			} else if (atom === ')' || atom === '}') {
 				break;
-			} else if (isNumber(atom) || /^".*"$/.test(atom) || Script.find(atom) !== -1) { // number, string or function
+			} else if (atom === 'true') {
+				script.push(true);
+			} else if (atom === 'false') {
+				script.push(false);
+			} else if (atom === ';') { // newline (resets values)
+				if (script.length && script[script.length-1] !== ';') {
+					script.push(atom);
+				}
+			} else if (atom[0] === '#' // variable
+				|| atom === 'if' || atom === 'else' // flow control
+				|| atom === 'return' // return statement
+				|| isNumber(atom) // number
+				|| /^".*"$/.test(atom) // string
+				|| Script._find(atom, Script._operators) !== -1 // operator
+				|| Script._find(atom, Script._functions) !== -1) { // function
 				script.push(atom);
 			} else if (atom !== ',') { // if it's not a comma, then worker.datatype.key or path.to.key
 				if (map[atom]) {
@@ -162,10 +246,13 @@ Script.parse = function(worker, datatype, text, map) {
 					}
 					path.unshift(worker.name);
 				}
-				script.push(path);
+				script.push(path.join('.'));
 			}
 		}
 //		console.log('Script section: '+JSON.stringify(script));
+		if (script[script.length-1] === ';') {
+			script.pop();
+		}
 		return script;
 	}());
 };

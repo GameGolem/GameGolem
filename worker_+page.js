@@ -108,22 +108,6 @@ Global._overload(null, 'work', function(state) {
 	return this._parent();
 });
 
-Page.removeFacebookChat = function() {
-	$('script').each(function(i,el){
-		$(el).text($(el).text()
-		.replace(/\nonloadRegister.function \(\).*new ChatNotifications.*/g, '')
-		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_chat_home".*/g, '')
-		.replace(/\n<script>big_pipe.onPageletArrive.{2}"id":"pagelet_presence".*/g, '')
-		.replace(/|chat\\\//,''));
-	});
-	var b = document.getElementsByTagName('body')[0] || document.documentElement, a = document.createElement('script');
-	a.type = 'text/javascript';
-	a.appendChild(document.createTextNode('window.setTimeout(function(){delete window.presenceNotifications;},1000);'));
-	b.appendChild(a);
-	$('#pagelet_presence').remove();
-	$('#pagelet_chat_home').remove();
-};
-
 Page.init = function() {
 	if (Global.get(['option','page'], false)) {
 		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
@@ -135,7 +119,7 @@ Page.init = function() {
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
-		this.removeFacebookChat();
+		$('#fbDockChat').hide();
 	}
 	$('.golem-link').live('click', function(event){
 		if (!Page.to($(this).attr('href'), false)) {
