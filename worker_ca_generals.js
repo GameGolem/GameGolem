@@ -100,7 +100,7 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, num = 0, cap = 541, item, str = null;
+				var x, y, num = 0, cap = 541, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
 					num = x[0];
 					str = x[1];
@@ -116,7 +116,14 @@ Generals.update = function(event) {
 				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {
-						if (Town.get(['data', (str = x.join(' '))])) {
+						str = x.join(' ');
+						if ((y = str.regex(/^(.+)s$/i))) {
+							if (Town.get(['data', y])) {
+								item = y;
+								break;
+							}
+						}
+						if (Town.get(['data', str])) {
 							item = str;
 							break;
 						}

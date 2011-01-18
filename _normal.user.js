@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.979
+// @version		31.5.980
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,7 +19,6 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
 // Shouldn't touch
@@ -27,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 979;
+var revision = 980;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6766,7 +6765,7 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, num = 0, cap = 541, item, str = null;
+				var x, y, num = 0, cap = 541, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
 					num = x[0];
 					str = x[1];
@@ -6782,7 +6781,14 @@ Generals.update = function(event) {
 				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {
-						if (Town.get(['data', (str = x.join(' '))])) {
+						str = x.join(' ');
+						if ((y = str.regex(/^(.+)s$/i))) {
+							if (Town.get(['data', y])) {
+								item = y;
+								break;
+							}
+						}
+						if (Town.get(['data', str])) {
 							item = str;
 							break;
 						}
@@ -12571,4 +12577,3 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper
