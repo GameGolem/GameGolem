@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.980
+// @version		31.5.981
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,6 +19,7 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
 // Shouldn't touch
@@ -26,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 980;
+var revision = 981;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3144,11 +3145,11 @@ Main.update = function(event) {
 			this._remind(0.1, 'startup');
 			return;
 		}
-		$ = (window || unsafeWindow).jQuery.noConflict(true);
+		$ = (unsafeWindow || window).jQuery.noConflict(true);
 	}
 	// Identify Application
 	if (!APP) {
-		if (!length(this._apps_)) {
+		if (empty(this._apps_)) {
 			console.log('GameGolem: No applications known...');
 		}
 		for (i in this._apps_) {
@@ -3168,6 +3169,7 @@ Main.update = function(event) {
 	}
 	// Once we hit this point we have our APP and can start things rolling
 	try {
+		//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
 		userID = $('script').text().regex(/user:(\d+),/i);
 		imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
 	} catch(e) {
@@ -4209,12 +4211,59 @@ Script._operators = [ // Order of precidence, [name, expand_args, function]
 	['-=',	false,	function(l,r) {return (this.temp[l] -= this._expand(r));}]
 ];
 
+var FN_EXPAND = 0; // function(expand(args)), expanded variables -> values
+var FN_RAW = 1; // function(args), unexpanded (so variable names are not changed to their values)
+var FN_CUSTOM = 2; // function(script, value_list, op_list)
+
 Script._functions = [ // [name, expand_args, function]
-	['min',		true,	function() {return Math.min.apply(Math, arguments);}],
-	['max',		true,	function() {return Math.max.apply(Math, arguments);}],
-	['round',	true,	function() {return Math.round.apply(Math, arguments);}],
-	['floor',	true,	function() {return Math.floor.apply(Math, arguments);}],
-	['ceil',	true,	function() {return Math.ceil.apply(Math, arguments);}]
+	['min',		FN_EXPAND,	function() {return Math.min.apply(Math, arguments);}],
+	['max',		FN_EXPAND,	function() {return Math.max.apply(Math, arguments);}],
+	['round',	FN_EXPAND,	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	FN_EXPAND,	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	FN_EXPAND,	function() {return Math.ceil.apply(Math, arguments);}],
+	['if',		FN_CUSTOM,	function(script, value_list, op_list) { // if (test) {func} [else if (test) {func}]* [else {func}]?
+		var x, fn = 'if', test = false;
+		while (fn) {
+			x = fn === 'if' ? script.shift() : null; // Should probably report some sort of error if not an array...
+			fn = script.shift(); // Should probably report some sort of error if not an array...
+			if (!test && (!x || (test = Script._interpret(x).pop()))) {
+				value_list = value_list.concat(Script._interpret(fn));
+			}
+			if (script[0] !== 'else') {
+				break;
+			}
+			fn = script.shift(); // 'else'
+			if (script[0] === 'if') {
+				fn = script.shift();
+			}
+		}
+	}],
+	['for',	FN_CUSTOM,	function(script, value_list, op_list) {
+		var a, i = 0; x = [[],[],[]], tmp = script.shift(), fn = script.shift(), now = Date.now();
+		while ((a = tmp.shift())) {
+			if (a === ';') {
+				x[++i] = [];
+			} else {
+				x[i].push(a);
+			}
+		}
+		// Should probably report some sort of error if not an array...
+		Script._interpret(x[0]);
+		while (Script._interpret(x[1]).pop() && Date.now() - now < 3000) { // 3 second limit on loops
+			Script._interpret(fn);
+			Script._interpret(x[2]);
+		}
+	}],
+	['while',	FN_CUSTOM,	function(script, value_list, op_list) {
+		var x = script.shift(), fn = script.shift(), now = Date.now();
+		while (Script._interpret(x).pop() && Date.now() - now < 3000) { // 3 second limit on loops
+			Script._interpret(fn);
+		}
+	}],
+	['return',	FN_CUSTOM,	function(script, value_list, op_list) {
+		var x = script.shift();
+		Script._return = Script._interpret(isArray(x) ? x : [x]);
+	}]
 ];
 
 Script._expand = function(variable) { // Expand variables into values
@@ -4267,36 +4316,19 @@ Script._interpret = function(_script) {
 				this._operate(Number.MAX_VALUE, op_list, value_list);
 				value_list = [];
 				op_list = [];
-			} else if (x === 'return') {
-				x = script.shift();
-				this._return = arguments.callee.call(this, isArray(x) && !Workers[x[0]] ? x : [x]);
-			} else if (x === 'if') { // if (test) {func} [else if (test) {func}]* [else {func}]?
-				test = false;
-				fn = 'if';
-				while (fn) {
-					x = fn === 'if' ? script.shift() : null;
-					fn = script.shift();
-					if (!test && (!x || (test = (arguments.callee.call(this, isArray(x) ? x : [x])[0])))) {
-						value_list = value_list.concat(arguments.callee.call(this, isArray(fn) ? fn : [fn]));
-					}
-					if (script[0] !== 'else') {
-						break;
-					}
-					fn = script.shift(); // 'else'
-					if (script[0] === 'if') {
-						fn = script.shift();
-					}
-				}
 			} else if ((fn = Script._find(x, this._operators)) >= 0) {
 				this._operate(fn, op_list, value_list);
 			} else if ((fn = Script._find(x, this._functions)) >= 0) {
-				x = script.shift();
-				// Should probably report some sort of error if not an array...
-				x = arguments.callee.call(this, isArray(x) ? x : [x]);
-				if (this._functions[fn][1]) {
-					x = this._expand(x);
+				if (this._functions[fn][1] === FN_CUSTOM) {
+					value_list.push(this._functions[fn][2].call(this, script, value_list, op_list));
+				} else {
+					x = script.shift(); // Should probably report some sort of error if not an array...
+					x = arguments.callee.call(this, x);
+					if (this._functions[fn][1] === FN_EXPAND) {
+						x = this._expand(x);
+					}
+					value_list.push(this._functions[fn][2].apply(this, x));
 				}
-				value_list.push(this._functions[fn][2].apply(this, x));
 			} else if (/^[A-Z][\w\.]+$/.test(x)) {
 				x = x.split('.');
 				value_list.push(Workers[x[0]]._get(x.slice(1), false));
@@ -4323,20 +4355,20 @@ Script.interpret = function(script) {
 };
 
 Script.parse = function(worker, datatype, text, map) {
-	var atoms = text.regex(/\s*("[^"]*"|[\d]+|true|false|if|else|return|[#A-Za-z_][\w\.]*|\(|\)|\{|\}|;|[^#\w\.\s"]+)[\s\n\r]*/g);
+	var atoms = text.regex(/\s*("[^"]*"|[\d]+|true|false|[#A-Za-z_][\w\.]*|\(|\)|\{|\}|;|[^#\w\.\s"]+)[\s\n\r]*/g);
 	if (!atoms) {
 		return []; // Empty script
 	}
 	map = map || {};
 	return (function() {
 		var atom, path, script = [];
-		while ((atom = atoms.shift())) { // "(", value, ")", operator
+		while ((atom = atoms.shift())) {
 			if (atom === '(' || atom === '{') {
 				script.push(arguments.callee());
 			} else if (atom === ')') {
 				break;
 			} else if (atom === '}') {
-				if (script.length && script[script.length-1] !== ';') {
+				if (!script.length || script[script.length-1] !== ';') {
 					script.push(';');
 				}
 				break;
@@ -4349,8 +4381,6 @@ Script.parse = function(worker, datatype, text, map) {
 					script.push(atom);
 				}
 			} else if (atom[0] === '#' // variable
-				|| atom === 'if' || atom === 'else' // flow control
-				|| atom === 'return' // return statement
 				|| isNumber(atom) // number
 				|| /^".*"$/.test(atom) // string
 				|| Script._find(atom, Script._operators) !== -1 // operator
@@ -12577,3 +12607,4 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper

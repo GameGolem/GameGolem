@@ -67,11 +67,11 @@ Main.update = function(event) {
 			this._remind(0.1, 'startup');
 			return;
 		}
-		$ = (window || unsafeWindow).jQuery.noConflict(true);
+		$ = (unsafeWindow || window).jQuery.noConflict(true);
 	}
 	// Identify Application
 	if (!APP) {
-		if (!length(this._apps_)) {
+		if (empty(this._apps_)) {
 			console.log('GameGolem: No applications known...');
 		}
 		for (i in this._apps_) {
@@ -91,6 +91,7 @@ Main.update = function(event) {
 	}
 	// Once we hit this point we have our APP and can start things rolling
 	try {
+		//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
 		userID = $('script').text().regex(/user:(\d+),/i);
 		imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
 	} catch(e) {
