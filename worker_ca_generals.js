@@ -100,7 +100,7 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, y, num = 0, cap = 541, item, str = null;
+				var x, y, num = 0, cap = 0, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
 					num = x[0];
 					str = x[1];
@@ -129,7 +129,7 @@ Generals.update = function(event) {
 						}
 					}
 				}
-				if (num && cap && item) {
+				if (num && item) {
 					Resources.set(['data', '_' + item, 'generals'], num * cap);
 //					console.log(warn('Save ' + (num * cap) + ' x ' + item + ' for General ' + i));
 				}
@@ -186,6 +186,7 @@ Generals.update = function(event) {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			});
+			cap = this.get(['data', i, 'stats', 'cap']);
 			this.set(['data',i,'stats'], {
 				stamina: sum(skillcombo.regex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
 						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
@@ -194,6 +195,9 @@ Generals.update = function(event) {
 						- (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
 						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			});
+			if (cap) {
+				this.set(['data', i, 'stats', 'cap'], cap);
+			}
 			this.set(['data',i,'duel'], {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
 				def: Math.floor(duel.defend + current_def + (current_att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))

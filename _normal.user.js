@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.981
+// @version		31.5.982
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,7 +19,6 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
 // Shouldn't touch
@@ -27,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 981;
+var revision = 982;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6795,7 +6794,7 @@ Generals.update = function(event) {
 				this.set(['runtime','force'], true);
 			}
 			if (data[i].skills) {
-				var x, y, num = 0, cap = 541, item, str = null;
+				var x, y, num = 0, cap = 0, item, str = null;
 				if ((x = data[i].skills.regex(/\bevery (\d+) ([\w\s']*[\w])/i))) {
 					num = x[0];
 					str = x[1];
@@ -6824,7 +6823,7 @@ Generals.update = function(event) {
 						}
 					}
 				}
-				if (num && cap && item) {
+				if (num && item) {
 					Resources.set(['data', '_' + item, 'generals'], num * cap);
 //					console.log(warn('Save ' + (num * cap) + ' x ' + item + ' for General ' + i));
 				}
@@ -6881,6 +6880,7 @@ Generals.update = function(event) {
 				att: Math.floor(invade.attack + current_att + (current_def * 0.7) + ((attack + (defend * 0.7)) * army) + gen_att),
 				def: Math.floor(invade.defend + current_def + (current_att * 0.7) + ((defend + def_when_att + ((attack + att_when_att) * 0.7)) * army) + gen_def)
 			});
+			cap = this.get(['data', i, 'stats', 'cap']);
 			this.set(['data',i,'stats'], {
 				stamina: sum(skillcombo.regex(/Increase Max Stamina by (\d+)|([-+]?\d+) Max Stamina/gi)) 
 						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100/2).round(0)
@@ -6889,6 +6889,9 @@ Generals.update = function(event) {
 						- (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * Player.get('maxenergy') / 100).round(0)
 						+ (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			});
+			if (cap) {
+				this.set(['data', i, 'stats', 'cap'], cap);
+			}
 			this.set(['data',i,'duel'], {
 				att: Math.floor(duel.attack + current_att + (current_def * 0.7) + attack + (defend * 0.7)),
 				def: Math.floor(duel.defend + current_def + (current_att * 0.7) + defend + def_when_att + ((attack + att_when_att) * 0.7))
@@ -12306,12 +12309,12 @@ Town.update = function(event) {
 				keep[u] = resource.quest;
 			}
 		}
-		if (resource.generals) {
+		if (isNumber(resource.generals)) {
 			if (this.option.generals_buy) {
 				want = Math.max(want, resource.generals);
 			}
-			if ((keep[u] || 0) < resource.generals) {
-				keep[u] = resource.generals;
+			if ((keep[u] || 0) < (resource.generals || 1e50)) {
+				keep[u] = resource.generals || 1e50;
 			}
 		}
 		have = data[u].own;
@@ -12607,4 +12610,3 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper

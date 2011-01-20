@@ -496,12 +496,12 @@ Town.update = function(event) {
 				keep[u] = resource.quest;
 			}
 		}
-		if (resource.generals) {
+		if (isNumber(resource.generals)) {
 			if (this.option.generals_buy) {
 				want = Math.max(want, resource.generals);
 			}
-			if ((keep[u] || 0) < resource.generals) {
-				keep[u] = resource.generals;
+			if ((keep[u] || 0) < (resource.generals || 1e50)) {
+				keep[u] = resource.generals || 1e50;
 			}
 		}
 		have = data[u].own;
