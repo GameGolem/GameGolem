@@ -182,6 +182,7 @@ Town.blacksmith = {
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
       '|\\bdefender\\b' +		// 3
+      '|\\bprotector\\b' +		// 1
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
       '|^Absolution$' +
