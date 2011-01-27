@@ -597,6 +597,19 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
+	valhalla: {
+		name:'Valhalla, The Air Elemental',
+		list:'monster_valhalla_list.jpg',
+		image:'monster_valhalla.jpg',
+		dead:'monster_valhalla_dead.jpg',
+		achievement:1000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
 		list:'nm_volcanic_list.jpg',

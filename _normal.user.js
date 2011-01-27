@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.984
+// @version		31.5.985
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -26,7 +26,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 984;
+var revision = 985;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8961,6 +8961,19 @@ Monster.types = {
 		list:'nm_gehenna_list.jpg',
 		image:'nm_gehenna_large.jpg',
 		dead:'nm_gehenna_dead.jpg',
+		achievement:1000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	valhalla: {
+		name:'Valhalla, The Air Elemental',
+		list:'monster_valhalla_list.jpg',
+		image:'monster_valhalla.jpg',
+		dead:'monster_valhalla_dead.jpg',
 		achievement:1000000,
 		timer:604800, // 168 hours
 		mpool:3,
