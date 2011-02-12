@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.990
+// @version		31.5.991
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -28,7 +28,7 @@ var script_started = Date.now();
 
 // Version of the script
 var version = "31.5";
-var revision = 990;
+var revision = 991;
 
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
@@ -8727,7 +8727,7 @@ Monster.types = {
 	jahanna: {
 		name:'Jahanna, Priestess of Aurora',
 		list:'boss_jahanna_list.jpg',
-		image:'boss_jahanna.jpg',
+		image:'boss_jahanna_large.jpg',
 		dead:'boss_jahanna_dead.jpg',
 		achievement:5000000,
 		timer:604800, // 168 hours

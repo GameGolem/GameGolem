@@ -682,7 +682,7 @@ Monster.types = {
 	jahanna: {
 		name:'Jahanna, Priestess of Aurora',
 		list:'boss_jahanna_list.jpg',
-		image:'boss_jahanna.jpg',
+		image:'boss_jahanna_large.jpg',
 		dead:'boss_jahanna_dead.jpg',
 		achievement:5000000,
 		timer:604800, // 168 hours
