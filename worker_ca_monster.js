@@ -679,6 +679,20 @@ Monster.types = {
 		defend:[10,20,40,100],
 		orcs:true
 	},
+	jahanna: {
+		name:'Jahanna, Priestess of Aurora',
+		list:'boss_jahanna_list.jpg',
+		image:'boss_jahanna.jpg',
+		dead:'boss_jahanna_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
 	rebellion: {
 		name:'Aurelius, Lion\'s Rebellion',
 		list:'nm_aurelius_list.jpg',

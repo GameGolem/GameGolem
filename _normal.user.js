@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.988
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 988;
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -305,7 +305,7 @@ var unique = function(a) { // Return an array with no duplicates
 
 var deleteElement = function(list, value) { // Removes matching elements from an array
 	if (isArray(list)) {
-		while (value in list) {
+		while (list.indexOf(value) >= 0) {
 			list.splice(list.indexOf(value), 1);
 		}
 	}
@@ -7839,7 +7839,10 @@ LevelUp.update = function(event) {
 	if (runtime.running) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
-		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' + Page.addTimer('levelup', this.get('level_time')) + ' (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour)</span>');
+		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' 
+				+ Page.addTimer('levelup', this.get('level_time')) + ' (at ' + this.get('exp_average').round(1).addCommas() + ' exp per hour) minus ' 
+				+ Page.addTimer('refill_energy', this.get('refill_energy')) + ' per energy refill '
+				+ Page.addTimer('refill_stamina', this.get('refill_stamina')) + ' per stamina refill</span>');
 	}
 };
 
@@ -7877,6 +7880,8 @@ LevelUp.get = function(what,def) {
 	case 'time':		return (new Date(this.get('level_time'))).format('D g:i a');
 	case 'level_timer':	return Math.floor((this.get('level_time') - Date.now()) / 1000);
 	case 'level_time':	return Date.now() + Math.floor(3600000 * ((Player.get('exp_needed', 0) - this.get('exp_possible')) / (this.get('exp_average') || 10)));
+	case 'refill_energy':	return Date.now() + Math.floor(3600000 * ((Math.min(Player.get('maxenergy',0),2000) * this.get('exp_per_energy')) / (this.get('exp_average') || 10)));
+	case 'refill_stamina':	return Date.now() + Math.floor(3600000 * ((Math.min(Player.get('maxstamina',0),1000) * this.get('exp_per_stamina')) / (this.get('exp_average') || 10)));
 	case 'exp_average':
 		if (this.option.algorithm === 'Per Hour') {
 			return History.get('exp.average.change');
@@ -8706,6 +8711,20 @@ Monster.types = {
 		list:'corv_list.jpg',
 		image:'boss_corv.jpg',
 		dead:'boss_corv_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
+	jahanna: {
+		name:'Jahanna, Priestess of Aurora',
+		list:'boss_jahanna_list.jpg',
+		image:'boss_jahanna.jpg',
+		dead:'boss_jahanna_dead.jpg',
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,
@@ -9970,6 +9989,7 @@ Page.defaults.castle_age = {
 		quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
 		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
 		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
+		quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif'},
 		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
@@ -10316,7 +10336,7 @@ Potions.work = function(state) {
 var Quest = new Worker('Quest');
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
@@ -10342,7 +10362,7 @@ Quest.data = {
 Quest.temp = {
 };
 
-Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City', 'Earth II', 'Water II'];
+Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City', 'Earth II', 'Water II', 'Mist II'];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
 Quest.display = [
@@ -10862,6 +10882,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
+	console.log(warn(),'Quest ' + this.data.id[best].name + ' general ' + this.data.id[best].general + ' test ' + !Generals.test(this.data.id[best].general || 'any') + ' this.data || '+ (this.data.id[best].general || 'any') + ' queue ' + (Queue.runtime.general && this.data.id[best].general));
 	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];

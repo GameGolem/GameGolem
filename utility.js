@@ -259,7 +259,7 @@ var unique = function(a) { // Return an array with no duplicates
 
 var deleteElement = function(list, value) { // Removes matching elements from an array
 	if (isArray(list)) {
-		while (value in list) {
+		while (list.indexOf(value) >= 0) {
 			list.splice(list.indexOf(value), 1);
 		}
 	}
