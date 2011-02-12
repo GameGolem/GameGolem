@@ -103,7 +103,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Sun Jan 16 04:26:18 2011 UTC
+  // as of Fri Feb 11 03:56:22 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -114,25 +114,26 @@ Town.blacksmith = {
       // Sword of Redemption is a multi-pass match:
       //   shield.19{Sword of Redemption}, weapon.5{Sword}
     Weapon: new RegExp('(' +
-      '\\baxe\\b' +				// 12
+      '\\baxe\\b' +				// 13
       '|\\bblades?\\b' +		// 25+1
-      '|\\bbonecrusher\\b' +	// 1
       '|\\bbow\\b' +			// 7
+      '|\\bclaw\\b' +			// 1
       '|\\bcleaver\\b' +		// 1
       '|\\bcudgel\\b' +			// 1
       '|\\bdagger\\b' +			// 8 (mismatches 2)
       '|\\bedge\\b' +			// 1
       '|\\bfang\\b' +			// 1
-      '|\\bgreatsword\\b' +		// 1
+      '|\\bgreatsword\\b' +		// 2
       '|\\bgrinder\\b' +		// 1
       '|\\bhalberd\\b' +		// 1
       '|\\bhammer\\b' +			// 1
       '|\\bhellblade\\b' +		// 1
       '|\\bkatara\\b' +			// 1
-      '|\\blance\\b' +			// 1
+      '|\\blance\\b' +			// 2
       '|\\blongsword\\b' +		// 1
       '|\\bmace\\b' +			// 6
       '|\\bmorningstar\\b' +	// 1
+      '|\\brapier\\b' +			// 1
       '|\\brod\\b' +			// 2
       '|\\bsaber\\b' +			// 4
       '|\\bscepter\\b' +		// 1
@@ -144,9 +145,11 @@ Town.blacksmith = {
       '|\\btalon\\b' +			// 1
       '|\\btrident\\b' +		// 2
       '|\\bwand\\b' +			// 3
+      '|^Arachnid Slayer$' +
       '|^Atonement$' +
       '|^Avenger$' +
       '|^Bloodblade$' +
+      '|^Bonecrusher$' +
       '|^Celestas Devotion$' +
       '|^Daedalus$' +
       '|^Death Dealer$' +
@@ -165,6 +168,7 @@ Town.blacksmith = {
       '|^Lightbringer$' +
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
+      "|^Oberon's Might$" +
       '|^Onslaught$' +
       '|^Path of the Tower$' +
       '|^Punisher$' +
@@ -172,13 +176,14 @@ Town.blacksmith = {
       '|^Scytheblade$' +
       '|^Soul Siphon$' +
       '|^Soulforge$' +
+      '|^Stormcrusher$' +
       '|^The Disemboweler$' +
       '|^The Galvanizer$' +
       '|^The Reckoning$' +
       '|^Virtue of Justice$' +
       ')', 'i'),
     Shield: new RegExp('(' +
-      '\\baegis\\b' +			// 1
+      '\\baegis\\b' +			// 2
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
       '|\\bdefender\\b' +		// 3
@@ -186,6 +191,7 @@ Town.blacksmith = {
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
       '|^Absolution$' +
+      '|^Crest of the Griffin$' +
       '|^Dragon Scale$' +
       '|^Feral Staff$' +
       '|^Frost Tear Dagger$' +
@@ -203,32 +209,35 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 18
+      '|\\barmor\\b' +			// 20
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
+      '|\\bcarapace\\b' +		// 1
       '|\\bchainmail\\b' +		// 2
       '|\\bcloak\\b' +			// 7
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 27
+      '|\\bplate\\b' +			// 29
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 4
       '|\\brobes?\\b' +			// 1+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
+      '|^Braving the Storm$' +
       '|^Castle Rampart$' +
       '|^Death Ward$' +
       '|^Deathrune Hellplate$' +
       '|^Faerie Wings$' +
+      '|^Innocence$' +
       '|^Plated Earth$' +
       ')', 'i'),
     Helmet: new RegExp('(' +
       '\\bcowl\\b' +			// 1
       '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 34
+      '|\\bhelm\\b' +			// 36
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmask\\b' +			// 1
@@ -237,31 +246,33 @@ Town.blacksmith = {
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 14
+      '\\bamulet\\b' +			// 15
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
       '|\\bcross\\b' +			// 1
       '|\\bearrings\\b' +		// 1
-      '|\\beye\\b' +			// 2
+      '|\\beye\\b' +			// 3
       '|\\bflask\\b' +			// 1
+      '|\\bheirloom\\b' +		// 1
       '|\\binsignia\\b' +		// 3
       '|\\bjewel\\b' +			// 3
       '|\\blantern\\b' +		// 1
-      '|\\blocket\\b' +			// 1
+      '|\\blocket\\b' +			// 2
       '|\\bmark\\b' +			// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 9
+      '|\\bpendant\\b' +		// 10
       '|\\brelic\\b' +			// 1
       '|\\bring\\b' +			// 7
       '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 1
+      '|\\bseal\\b' +			// 2
       '|\\bshard\\b' +			// 6
-      '|\\bsignet\\b' +			// 7
+      '|\\bsignet\\b' +			// 8
       '|\\bsunstone\\b' +		// 1
       '|\\btalisman\\b' +		// 1
       '|\\btrinket\\b' +		// 2
+      '|^Air Orb$' +
       '|^Blue Lotus Petal$' +
       '|^Crystal of Lament$' +
       '|^Dragon Ashes$' +
@@ -290,10 +301,12 @@ Town.blacksmith = {
       '|\\bgauntlets?\\b' +		// 9+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 2+3
+      '|\\bhands?\\b' +			// 3+3
       "|^Slayer's Embrace$" +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +
+      '|^Stormbinder$' +
+      '|^Stormbringer$' +
       '|^Tempered Steel$' +
       '|^Virtue of Temperance$' +
       ')', 'i')

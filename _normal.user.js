@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.987
+// @version		31.5.988
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 987;
+var revision = 988;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -11173,327 +11173,327 @@ Quest.cost = function(id) {
 Quest.rts = 1292695942;	// Sat Dec 18 18:12:22 2010 UTC
 Quest.rdata =			// #321
 {
-	'a demonic transformation':			{ reps_4: 40 },
-	'a forest in peril':				{ reps_demiquest:  9 },
-	'a kidnapped princess':				{ reps_demiquest: 10 },
-	'across the sea':					{ reps_11:  8 },
-	'aid corvintheus':					{ reps_demiquest:  9 },
-	'aid the angels':					{ reps_9: 17 },
-	'approach the prayer chamber':		{ reps_demiquest: 12 },
-	'approach the tree of life':		{ reps_demiquest: 12 },
-	'ascent to the skies':				{ reps_8:  0 },
-	'attack from above':				{ reps_9: 17 },
-	'attack undead guardians':			{ reps_6: 24 },
-	'aurelius':							{ reps_11:  11 },
-	'aurelius outpost':					{ reps_11:   9 },
-	'avoid ensnarements':				{ reps_3: 34 },
-	'avoid the guards':					{ reps_8:  0 },
-	'avoid the patrols':				{ reps_9: 17 },
-	'banish the horde':					{ reps_9: 17 },
-	'battle a wraith':					{ reps_2: 16 },
-	'battle earth and fire demons':		{ reps_4: 16 },
-	'battle gang of bandits':			{ reps_1: 10 },
-	'battle orc captain':				{ reps_3: 15 },
-	'battle the black dragon':			{ reps_4: 14 },
-	'battle the ent':					{ reps_demiquest: 12 },
-	'battling the demons':				{ reps_9: 17 },
-	'being followed':					{ reps_7: 15 },
-	'blood wing king of the dragons':	{ reps_demiquest: 20 },
-	'breach the barrier':				{ reps_8:  0 },
-	'breach the keep entrance':			{ reps_demiquest: 12 },
-	'breaching the gates':				{ reps_7: 15 },
-	'break aurelius guard':				{ reps_11:  0 },
-	'break evil seal':					{ reps_7: 17 },
-	'break the lichs spell':			{ reps_demiquest: 12 },
-	'break the line':					{ reps_10:  0 },
-	'breaking through the guard':		{ reps_9: 17 },
-	'bridge of elim':					{ reps_8: 11 },
-	'burning gates':					{ reps_7:  0 },
-	'call of arms':						{ reps_6: 25 },
-	'cast aura of night':				{ reps_5: 32 },
-	'cast blizzard':					{ reps_10:  0 },
-	'cast fire aura':					{ reps_6: 24 },
-	'cast holy light':					{ reps_6: 24 },
-	'cast holy light spell':			{ reps_5: 24 },
-	'cast holy shield':					{ reps_demiquest: 12 },
-	'cast meteor':						{ reps_5: 32 },
-	'castle of the black lion':			{ reps_demiquest: 13 },
-	'castle of the damn':				{ reps_demiquest: 25 },
-	'channel excalibur':				{ reps_8:  0 },
-	'charge ahead':						{ reps_10:  0 },
-	'charge the castle':				{ reps_7: 15 },
-	'chasm of fire':					{ reps_10: 10 },
-	'city of clouds':					{ reps_8: 11 },
-	'clear the rocks':					{ reps_11:  0 },
-	'climb castle cliffs':				{ reps_11:  0 },
-	'climb the mountain':				{ reps_8:  0 },
-	'close the black portal':			{ reps_demiquest: 12 },
-	'confront the black lion':			{ reps_demiquest: 12 },
-	'confront the rebels':				{ reps_10: 10 },
-	'consult aurora':					{ reps_demiquest: 12 },
-	'corruption of nature':				{ reps_demiquest: 20 },
-	'cover tracks':						{ reps_7: 19 },
-	'cross lava river':					{ reps_7: 20 },
-	'cross the bridge':					{ reps_10:  0, reps_8:  0 },
-	'cross the moat':					{ reps_11:  0 },
-	'crossing the chasm':				{ reps_2: 13, reps_8:  0 },
-	'cure infested soldiers':			{ reps_6: 25 },
-	'deal final blow to bloodwing':		{ reps_demiquest: 12 },
-	'deathrune castle':					{ reps_7: 12 },
-	'decipher the clues':				{ reps_9: 17 },
-	'defeat and heal feral animals':	{ reps_demiquest: 12 },
-	'defeat angelic sentinels':			{ reps_8:  0 },
-	'defeat bear form':					{ reps_11:  0 },
-	'defeat bloodwing':					{ reps_demiquest: 12 },
-	'defeat chimerus':					{ reps_demiquest: 12 },
-	'defeat darien woesteel':			{ reps_demiquest:  9 },
-	'defeat demonic guards':			{ reps_7: 17 },
-	'defeat fire elementals':			{ reps_10:  0 },
-	'defeat frost minions':				{ reps_3: 40 },
-	'defeat lion defenders':			{ reps_11:  0 },
-	'defeat orc patrol':				{ reps_8:  0 },
-	'defeat rebels':					{ reps_10:  0 },
-	'defeat snow giants':				{ reps_3: 24 },
-	'defeat the bandit leader':			{ reps_1:  6 },
-	'defeat the banshees':				{ reps_5: 25 },
-	'defeat the black lion army':		{ reps_demiquest: 12 },
-	'defeat the demonic guards':		{ reps_demiquest: 12 },
-	'defeat the demons':				{ reps_9: 17 },
-	'defeat the kobolds':				{ reps_10:  0 },
-	'defeat the patrols':				{ reps_9: 17 },
-	'defeat the seraphims':				{ reps_8:  0 },
-	'defeat tiger form':				{ reps_11:  0 },
-	'defend the village':				{ reps_demiquest: 12 },
-	'desert temple':					{ reps_11: 12 },
-	'destroy black oozes':				{ reps_11:  0 },
-	'destroy fire dragon':				{ reps_4: 10 },
-	'destroy fire elemental':			{ reps_4: 16 },
-	'destroy horde of ghouls & trolls':	{ reps_4:  9 },
-	'destroy the black gate':			{ reps_demiquest: 12 },
-	'destroy the black portal':			{ reps_demiquest: 12 },
-	'destroy the bolted door':			{ reps_demiquest: 12 },
-	'destroy undead crypt':				{ reps_1:  5 },
-	'destruction abound':				{ reps_8: 11 },
-	'determine cause of corruption':	{ reps_demiquest: 12 },
-	'dig up star metal':				{ reps_demiquest: 12 },
-	'disarm townspeople':				{ reps_11:  0 },
-	'discover cause of corruption':		{ reps_demiquest: 12 },
-	'dismantle orc patrol':				{ reps_3: 32 },
-	'dispatch more cultist guards':		{ reps_demiquest: 12 },
-	'distract the demons':				{ reps_9: 17 },
-	'dragon slayer':					{ reps_demiquest: 14 },
-	'druidic prophecy':					{ reps_11:  9 },
-	"duel cefka's knight champion":		{ reps_4: 10 },
-	'dwarven stronghold':				{ reps_10: 10 },
-	'eastern corridor':					{ reps_11:  0 },
-	'elekin the dragon slayer':			{ reps_demiquest: 10 },
-	'end of the road':					{ reps_9: 17 },
-	'enlist captain morgan':			{ reps_11:  0 },
-	'entrance to terra':				{ reps_1:  9 },
-	'equip soldiers':					{ reps_6: 25 },
-	'escaping the chaos':				{ reps_9: 17 },
-	'escaping the stronghold':			{ reps_9: 10 },
-	'explore merchant plaza':			{ reps_11:  0 },
-	'explore the temple':				{ reps_11:  0 },
-	'extinguish desert basilisks':		{ reps_11:  0 },
-	'extinguish the fires':				{ reps_8:  0 },
-	'falls of jiraya':					{ reps_1: 10 },
-	'family ties':						{ reps_demiquest: 11 },
-	'fend off demons':					{ reps_7: 20 },
-	'fiery awakening':					{ reps_7: 12 },
-	"fight cefka's shadow guard":		{ reps_4: 10 },
-	'fight demonic worshippers':		{ reps_5: 24 },
-	'fight dragon welps':				{ reps_4: 10 },
-	'fight ghoul army':					{ reps_1:  5 },
-	'fight gildamesh':					{ reps_3: 32 },
-	'fight ice beast':					{ reps_3: 40 },
-	'fight infested soldiers':			{ reps_6: 25 },
-	'fight off demons':					{ reps_5: 32 },
-	'fight off zombie infestation':		{ reps_demiquest: 12 },
-	'fight snow king':					{ reps_3: 24 },
-	'fight the half-giant sephor':		{ reps_4:  9 },
-	'fight treants':					{ reps_2: 27 },
-	'fight undead zombies':				{ reps_2: 16 },
-	'fight water demon lord':			{ reps_2: 31 },
-	'fight water demons':				{ reps_2: 40 },
-	'fight water spirits':				{ reps_2: 40 },
-	'find evidence of dragon attack':	{ reps_demiquest:  8 },
-	'find hidden path':					{ reps_demiquest: 10 },
-	'find nezeals keep':				{ reps_demiquest: 12 },
-	'find rock worms weakness':			{ reps_demiquest: 10 },
-	'find source of the attacks':		{ reps_demiquest: 12 },
-	'find survivors':					{ reps_8:  0 },
-	'find the dark elves':				{ reps_demiquest: 12 },
-	'find the demonic army':			{ reps_demiquest: 12 },
-	'find the druids':					{ reps_demiquest: 12 },
-	'find the entrance':				{ reps_8:  0 },
-	'find the exit':					{ reps_9: 17 },
-	'find the safest path':				{ reps_10:  0 },
-	'find the source of corruption':	{ reps_demiquest: 12 },
-	'find the woman? father':			{ reps_demiquest: 12 },
-	'find troll weakness':				{ reps_2: 10 },
-	'find your way out':				{ reps_7: 15 },
-	'fire and brimstone':				{ reps_7: 12 },
-	'forest of ash':					{ reps_demiquest: 11 },
-	'furest hellblade':					{ reps_demiquest: 17 },
-	'gain access':						{ reps_10:  0 },
-	'gain entry':						{ reps_11:  0 },
-	'gates to the undead':				{ reps_6: 17 },
-	'gateway':							{ reps_8: 11 },
-	'get information from the druid':	{ reps_demiquest: 12 },
-	'get water for the druid':			{ reps_demiquest: 12 },
-	'grim outlook':						{ reps_9: 17 },
-	'guard against attack':				{ reps_demiquest: 12 },
-	'heal wounds':						{ reps_7: 20 },
-	'heat the villagers':				{ reps_1:  5 },
-	'holy fire':						{ reps_demiquest: 11 },
-	'impending battle':					{ reps_10: 10 },
-	'interrogate the prisoners':		{ reps_9: 17 },
-	'investigate the gateway':			{ reps_8:  0 },
-	'ironfist dwarves':					{ reps_10: 10 },
-	'join up with artanis':				{ reps_demiquest: 12 },
-	'judgement stronghold':				{ reps_8: 11 },
-	'juliean desert':					{ reps_11: 12 },
-	'kelp forest':						{ reps_atlantis: 20 },
-	'kill gildamesh':					{ reps_3: 34 },
-	'kill vampire bats':				{ reps_demiquest: 12 },
-	'koralan coast town':				{ reps_11: 14 },
-	'koralan townspeople':				{ reps_11: 10 },
-	'learn about death knights':		{ reps_demiquest: 12 },
-	'learn aurelius intentions':		{ reps_11:  0 },
-	'learn counterspell':				{ reps_demiquest: 12 },
-	'learn holy fire':					{ reps_demiquest: 12 },
-	'look for clues':					{ reps_8:  0 },
-	'marauders!':						{ reps_demiquest:  9 },
-	'march into the undead lands':		{ reps_6: 24 },
-	'march to the unholy war':			{ reps_6: 25 },
-	'mausoleum of triste':				{ reps_3: 17 },
-	'misty hills of boralis':			{ reps_3: 20 },
-	'mount aretop':						{ reps_demiquest: 25 },
-	'nightmare':						{ reps_6: 20 },
-	'outpost entrance':					{ reps_11: 12 },
-	'path to heaven':					{ reps_8: 11 },
-	'pick up the orc trail':			{ reps_1:  6 },
-	'plan the attack':					{ reps_demiquest: 12 },
-	'portal of atlantis':				{ reps_atlantis: 20 },
-	'power of excalibur':				{ reps_8: 11 },
-	'prepare for ambush':				{ reps_1:  6 },
-	'prepare for battle':				{ reps_5: 32, reps_demiquest: 12 },
-	'prepare for the trials':			{ reps_9: 17 },
-	'prepare tactics':					{ reps_10:  0 },
-	'prepare troops':					{ reps_10:  0 },
-	'prevent dragon? escape':			{ reps_demiquest: 12 },
-	'protect temple from raiders':		{ reps_2: 40 },
-	'purge forest of evil':				{ reps_2: 27 },
-	'pursuing orcs':					{ reps_1: 13 },
-	'put out the fires':				{ reps_demiquest:  8 },
-	'question dark elf prisoners':		{ reps_demiquest: 12 },
-	'question the druidic wolf':		{ reps_demiquest: 12 },
-	'question townspeople':				{ reps_11:  0 },
-	'question vulcan':					{ reps_8:  0 },
-	'ready the horses':					{ reps_1:  6 },
-	'recover the key':					{ reps_9: 17 },
-	'recruit allies':					{ reps_10:  0 },
-	'recruit elekin to join you':		{ reps_demiquest:  9 },
-	'recruit furest to join you':		{ reps_demiquest: 12 },
-	'repel gargoyle raid':				{ reps_4: 14 },
-	'request council':					{ reps_10:  0 },
-	'rescue survivors':					{ reps_8:  0 },
-	'resist the lost souls':			{ reps_5: 25 },
-	'retrieve dragon slayer':			{ reps_demiquest: 10 },
-	'retrieve the jeweled heart':		{ reps_demiquest: 12 },
-	'ride to aretop':					{ reps_demiquest: 12 },
-	'ride towards the palace':			{ reps_9: 17 },
-	'river of lava':					{ reps_10: 10 },
-	'river of light':					{ reps_1: 10 },
-	'save lost souls':					{ reps_5: 24 },
-	'save stranded soldiers':			{ reps_10:  0 },
-	'seek out elekin':					{ reps_demiquest:  9 },
-	'seek out furest hellblade':		{ reps_demiquest: 12 },
-	'seek out jeweled heart':			{ reps_demiquest: 12 },
-	'shield of the stars':				{ reps_demiquest: 20 },
-	'slaughter orcs':					{ reps_3: 15 },
-	'slay cave bats':					{ reps_demiquest: 10 },
-	'slay the black dragons':			{ reps_5: 32 },
-	'slay the guardian':				{ reps_9: 17 },
-	'slay the sea serpent':				{ reps_demiquest: 12 },
-	'sneak attack on dragon':			{ reps_demiquest: 12 },
-	'sneak into the city':				{ reps_8:  0 },
-	'sneak up on orcs':					{ reps_1:  7 },
-	'soldiers of the black lion':		{ reps_demiquest: 10 },
-	'spire of death':					{ reps_5: 20 },
-	'spring surprise attack':			{ reps_demiquest: 12 },
-	'stop the wolf from channeling':	{ reps_demiquest: 12 },
-	'storm the castle':					{ reps_demiquest: 12 },
-	'storm the ivory palace':			{ reps_9: 17 },
-	'sulfurous springs':				{ reps_11: 10 },
-	'summon legendary defenders':		{ reps_6: 25 },
-	'surround rebels':					{ reps_10:  0 },
-	'survey battlefield':				{ reps_10:  0 },
-	'survey the surroundings':			{ reps_8:  0 },
-	'survive the storm':				{ reps_11:  0 },
-	'survive troll ambush':				{ reps_2: 10 },
-	'surviving the onslaught':			{ reps_9: 17 },
-	'the belly of the demon':			{ reps_5: 20 },
-	'the betrayed lands':				{ reps_4: 16 },
-	'the black portal':					{ reps_demiquest: 15 },
-	'the cave of wonder':				{ reps_3: 20 },
-	'the crystal caverns':				{ reps_demiquest: 11 },
-	'the darkening skies':				{ reps_9: 17 },
-	'the deep':							{ reps_atlantis: 20 },
-	'the elven sorceress':				{ reps_demiquest: 11 },
-	'the fallen druids':				{ reps_demiquest: 12 },
-	'the final stretch':				{ reps_9: 17 },
-	'the forbidden forest':				{ reps_2: 20 },
-	'the forbidden ritual':				{ reps_5: 20 },
-	'the hidden lair':					{ reps_demiquest: 13 },
-	'the hollowing moon':				{ reps_6: 17 },
-	'the infestation of winterguard':	{ reps_demiquest: 10 },
-	'the invasion':						{ reps_8: 11 },
-	'the keep of corelan':				{ reps_3: 17 },
-	'the keep of isles':				{ reps_4: 16 },
-	'the kingdom of alarean':			{ reps_demiquest: 15 },
-	'the last gateway':					{ reps_9: 17 },
-	"the lich ne'zeal":					{ reps_demiquest: 13 },
-	"the lich's keep":					{ reps_demiquest: 15 },
-	'the living gates':					{ reps_5: 20 },
-	'the long path':					{ reps_7: 12 },
-	'the peaks of draneth':				{ reps_demiquest: 21 },
-	'the poison source':				{ reps_11:  0 },
-	'the rebellion':					{ reps_10: 10 },
-	'the return home':					{ reps_8: 11 },
-	'the return of the dragon':			{ reps_demiquest:  9 },
-	'the ride south':					{ reps_8:  0 },
-	'the river of blood':				{ reps_5: 20 },
-	'the sea temple':					{ reps_atlantis: 20 },
-	'the search for clues':				{ reps_demiquest: 12 },
-	'the second temple of water':		{ reps_4: 25 },
-	'the smouldering pit':				{ reps_4: 40 },
-	'the source of darkness':			{ reps_demiquest: 20 },
-	'the source of magic':				{ reps_demiquest: 15 },
-	'the stairs of terra':				{ reps_2: 10 },
-	'the stone lake':					{ reps_1: 12 },
-	'the sunken city':					{ reps_demiquest: 17 },
-	'the tree of life':					{ reps_demiquest: 21 },
-	'the vanguard of destruction':		{ reps_demiquest: 21 },
-	'the water temple':					{ reps_2: 17 },
-	'track down soldiers':				{ reps_demiquest: 12 },
-	'track sylvana':					{ reps_demiquest: 12 },
-	'train with ambrosia':				{ reps_demiquest: 12 },
-	'train with aurora':				{ reps_demiquest: 12 },
-	'travel to the tree of life':		{ reps_demiquest: 12 },
-	'travel to winterguard':			{ reps_demiquest: 12 },
-	'triste':							{ reps_3: 20 },
-	'undead crusade':					{ reps_6: 17 },
-	'underwater ruins':					{ reps_atlantis: 20 },
-	'unholy war':						{ reps_6: 20 },
-	'use battering ram':				{ reps_11:  0 },
-	'vengeance':						{ reps_demiquest: 17 },
-	'vesuv bridge':						{ reps_10: 10 },
-	'vesuv lookout':					{ reps_2: 17 },
-	'visit the blacksmith':				{ reps_1: 24 },
-	'vulcans secret':					{ reps_8: 11 },
-	'watch the skies':					{ reps_demiquest: 12 }
+	'a demonic transformation':			{ 'reps_4': 40 },
+	'a forest in peril':				{ 'reps_demiquest':  9 },
+	'a kidnapped princess':				{ 'reps_demiquest': 10 },
+	'across the sea':					{ 'reps_11':  8 },
+	'aid corvintheus':					{ 'reps_demiquest':  9 },
+	'aid the angels':					{ 'reps_9': 17 },
+	'approach the prayer chamber':		{ 'reps_demiquest': 12 },
+	'approach the tree of life':		{ 'reps_demiquest': 12 },
+	'ascent to the skies':				{ 'reps_8':  0 },
+	'attack from above':				{ 'reps_9': 17 },
+	'attack undead guardians':			{ 'reps_6': 24 },
+	'aurelius':							{ 'reps_11':  11 },
+	'aurelius outpost':					{ 'reps_11':   9 },
+	'avoid ensnarements':				{ 'reps_3': 34 },
+	'avoid the guards':					{ 'reps_8':  0 },
+	'avoid the patrols':				{ 'reps_9': 17 },
+	'banish the horde':					{ 'reps_9': 17 },
+	'battle a wraith':					{ 'reps_2': 16 },
+	'battle earth and fire demons':		{ 'reps_4': 16 },
+	'battle gang of bandits':			{ 'reps_1': 10 },
+	'battle orc captain':				{ 'reps_3': 15 },
+	'battle the black dragon':			{ 'reps_4': 14 },
+	'battle the ent':					{ 'reps_demiquest': 12 },
+	'battling the demons':				{ 'reps_9': 17 },
+	'being followed':					{ 'reps_7': 15 },
+	'blood wing king of the dragons':	{ 'reps_demiquest': 20 },
+	'breach the barrier':				{ 'reps_8':  0 },
+	'breach the keep entrance':			{ 'reps_demiquest': 12 },
+	'breaching the gates':				{ 'reps_7': 15 },
+	'break aurelius guard':				{ 'reps_11':  0 },
+	'break evil seal':					{ 'reps_7': 17 },
+	'break the lichs spell':			{ 'reps_demiquest': 12 },
+	'break the line':					{ 'reps_10':  0 },
+	'breaking through the guard':		{ 'reps_9': 17 },
+	'bridge of elim':					{ 'reps_8': 11 },
+	'burning gates':					{ 'reps_7':  0 },
+	'call of arms':						{ 'reps_6': 25 },
+	'cast aura of night':				{ 'reps_5': 32 },
+	'cast blizzard':					{ 'reps_10':  0 },
+	'cast fire aura':					{ 'reps_6': 24 },
+	'cast holy light':					{ 'reps_6': 24 },
+	'cast holy light spell':			{ 'reps_5': 24 },
+	'cast holy shield':					{ 'reps_demiquest': 12 },
+	'cast meteor':						{ 'reps_5': 32 },
+	'castle of the black lion':			{ 'reps_demiquest': 13 },
+	'castle of the damn':				{ 'reps_demiquest': 25 },
+	'channel excalibur':				{ 'reps_8':  0 },
+	'charge ahead':						{ 'reps_10':  0 },
+	'charge the castle':				{ 'reps_7': 15 },
+	'chasm of fire':					{ 'reps_10': 10 },
+	'city of clouds':					{ 'reps_8': 11 },
+	'clear the rocks':					{ 'reps_11':  0 },
+	'climb castle cliffs':				{ 'reps_11':  0 },
+	'climb the mountain':				{ 'reps_8':  0 },
+	'close the black portal':			{ 'reps_demiquest': 12 },
+	'confront the black lion':			{ 'reps_demiquest': 12 },
+	'confront the rebels':				{ 'reps_10': 10 },
+	'consult aurora':					{ 'reps_demiquest': 12 },
+	'corruption of nature':				{ 'reps_demiquest': 20 },
+	'cover tracks':						{ 'reps_7': 19 },
+	'cross lava river':					{ 'reps_7': 20 },
+	'cross the bridge':					{ 'reps_10':  0, 'reps_8':  0 },
+	'cross the moat':					{ 'reps_11':  0 },
+	'crossing the chasm':				{ 'reps_2': 13, 'reps_8':  0 },
+	'cure infested soldiers':			{ 'reps_6': 25 },
+	'deal final blow to bloodwing':		{ 'reps_demiquest': 12 },
+	'deathrune castle':					{ 'reps_7': 12 },
+	'decipher the clues':				{ 'reps_9': 17 },
+	'defeat and heal feral animals':	{ 'reps_demiquest': 12 },
+	'defeat angelic sentinels':			{ 'reps_8':  0 },
+	'defeat bear form':					{ 'reps_11':  0 },
+	'defeat bloodwing':					{ 'reps_demiquest': 12 },
+	'defeat chimerus':					{ 'reps_demiquest': 12 },
+	'defeat darien woesteel':			{ 'reps_demiquest':  9 },
+	'defeat demonic guards':			{ 'reps_7': 17 },
+	'defeat fire elementals':			{ 'reps_10':  0 },
+	'defeat frost minions':				{ 'reps_3': 40 },
+	'defeat lion defenders':			{ 'reps_11':  0 },
+	'defeat orc patrol':				{ 'reps_8':  0 },
+	'defeat rebels':					{ 'reps_10':  0 },
+	'defeat snow giants':				{ 'reps_3': 24 },
+	'defeat the bandit leader':			{ 'reps_1':  6 },
+	'defeat the banshees':				{ 'reps_5': 25 },
+	'defeat the black lion army':		{ 'reps_demiquest': 12 },
+	'defeat the demonic guards':		{ 'reps_demiquest': 12 },
+	'defeat the demons':				{ 'reps_9': 17 },
+	'defeat the kobolds':				{ 'reps_10':  0 },
+	'defeat the patrols':				{ 'reps_9': 17 },
+	'defeat the seraphims':				{ 'reps_8':  0 },
+	'defeat tiger form':				{ 'reps_11':  0 },
+	'defend the village':				{ 'reps_demiquest': 12 },
+	'desert temple':					{ 'reps_11': 12 },
+	'destroy black oozes':				{ 'reps_11':  0 },
+	'destroy fire dragon':				{ 'reps_4': 10 },
+	'destroy fire elemental':			{ 'reps_4': 16 },
+	'destroy horde of ghouls & trolls':	{ 'reps_4':  9 },
+	'destroy the black gate':			{ 'reps_demiquest': 12 },
+	'destroy the black portal':			{ 'reps_demiquest': 12 },
+	'destroy the bolted door':			{ 'reps_demiquest': 12 },
+	'destroy undead crypt':				{ 'reps_1':  5 },
+	'destruction abound':				{ 'reps_8': 11 },
+	'determine cause of corruption':	{ 'reps_demiquest': 12 },
+	'dig up star metal':				{ 'reps_demiquest': 12 },
+	'disarm townspeople':				{ 'reps_11':  0 },
+	'discover cause of corruption':		{ 'reps_demiquest': 12 },
+	'dismantle orc patrol':				{ 'reps_3': 32 },
+	'dispatch more cultist guards':		{ 'reps_demiquest': 12 },
+	'distract the demons':				{ 'reps_9': 17 },
+	'dragon slayer':					{ 'reps_demiquest': 14 },
+	'druidic prophecy':					{ 'reps_11':  9 },
+	"duel cefka's knight champion":		{ 'reps_4': 10 },
+	'dwarven stronghold':				{ 'reps_10': 10 },
+	'eastern corridor':					{ 'reps_11':  0 },
+	'elekin the dragon slayer':			{ 'reps_demiquest': 10 },
+	'end of the road':					{ 'reps_9': 17 },
+	'enlist captain morgan':			{ 'reps_11':  0 },
+	'entrance to terra':				{ 'reps_1':  9 },
+	'equip soldiers':					{ 'reps_6': 25 },
+	'escaping the chaos':				{ 'reps_9': 17 },
+	'escaping the stronghold':			{ 'reps_9': 10 },
+	'explore merchant plaza':			{ 'reps_11':  0 },
+	'explore the temple':				{ 'reps_11':  0 },
+	'extinguish desert basilisks':		{ 'reps_11':  0 },
+	'extinguish the fires':				{ 'reps_8':  0 },
+	'falls of jiraya':					{ 'reps_1': 10 },
+	'family ties':						{ 'reps_demiquest': 11 },
+	'fend off demons':					{ 'reps_7': 20 },
+	'fiery awakening':					{ 'reps_7': 12 },
+	"fight cefka's shadow guard":		{ 'reps_4': 10 },
+	'fight demonic worshippers':		{ 'reps_5': 24 },
+	'fight dragon welps':				{ 'reps_4': 10 },
+	'fight ghoul army':					{ 'reps_1':  5 },
+	'fight gildamesh':					{ 'reps_3': 32 },
+	'fight ice beast':					{ 'reps_3': 40 },
+	'fight infested soldiers':			{ 'reps_6': 25 },
+	'fight off demons':					{ 'reps_5': 32 },
+	'fight off zombie infestation':		{ 'reps_demiquest': 12 },
+	'fight snow king':					{ 'reps_3': 24 },
+	'fight the half-giant sephor':		{ 'reps_4':  9 },
+	'fight treants':					{ 'reps_2': 27 },
+	'fight undead zombies':				{ 'reps_2': 16 },
+	'fight water demon lord':			{ 'reps_2': 31 },
+	'fight water demons':				{ 'reps_2': 40 },
+	'fight water spirits':				{ 'reps_2': 40 },
+	'find evidence of dragon attack':	{ 'reps_demiquest':  8 },
+	'find hidden path':					{ 'reps_demiquest': 10 },
+	'find nezeals keep':				{ 'reps_demiquest': 12 },
+	'find rock worms weakness':			{ 'reps_demiquest': 10 },
+	'find source of the attacks':		{ 'reps_demiquest': 12 },
+	'find survivors':					{ 'reps_8':  0 },
+	'find the dark elves':				{ 'reps_demiquest': 12 },
+	'find the demonic army':			{ 'reps_demiquest': 12 },
+	'find the druids':					{ 'reps_demiquest': 12 },
+	'find the entrance':				{ 'reps_8':  0 },
+	'find the exit':					{ 'reps_9': 17 },
+	'find the safest path':				{ 'reps_10':  0 },
+	'find the source of corruption':	{ 'reps_demiquest': 12 },
+	'find the woman? father':			{ 'reps_demiquest': 12 },
+	'find troll weakness':				{ 'reps_2': 10 },
+	'find your way out':				{ 'reps_7': 15 },
+	'fire and brimstone':				{ 'reps_7': 12 },
+	'forest of ash':					{ 'reps_demiquest': 11 },
+	'furest hellblade':					{ 'reps_demiquest': 17 },
+	'gain access':						{ 'reps_10':  0 },
+	'gain entry':						{ 'reps_11':  0 },
+	'gates to the undead':				{ 'reps_6': 17 },
+	'gateway':							{ 'reps_8': 11 },
+	'get information from the druid':	{ 'reps_demiquest': 12 },
+	'get water for the druid':			{ 'reps_demiquest': 12 },
+	'grim outlook':						{ 'reps_9': 17 },
+	'guard against attack':				{ 'reps_demiquest': 12 },
+	'heal wounds':						{ 'reps_7': 20 },
+	'heat the villagers':				{ 'reps_1':  5 },
+	'holy fire':						{ 'reps_demiquest': 11 },
+	'impending battle':					{ 'reps_10': 10 },
+	'interrogate the prisoners':		{ 'reps_9': 17 },
+	'investigate the gateway':			{ 'reps_8':  0 },
+	'ironfist dwarves':					{ 'reps_10': 10 },
+	'join up with artanis':				{ 'reps_demiquest': 12 },
+	'judgement stronghold':				{ 'reps_8': 11 },
+	'juliean desert':					{ 'reps_11': 12 },
+	'kelp forest':						{ 'reps_atlantis': 20 },
+	'kill gildamesh':					{ 'reps_3': 34 },
+	'kill vampire bats':				{ 'reps_demiquest': 12 },
+	'koralan coast town':				{ 'reps_11': 14 },
+	'koralan townspeople':				{ 'reps_11': 10 },
+	'learn about death knights':		{ 'reps_demiquest': 12 },
+	'learn aurelius intentions':		{ 'reps_11':  0 },
+	'learn counterspell':				{ 'reps_demiquest': 12 },
+	'learn holy fire':					{ 'reps_demiquest': 12 },
+	'look for clues':					{ 'reps_8':  0 },
+	'marauders!':						{ 'reps_demiquest':  9 },
+	'march into the undead lands':		{ 'reps_6': 24 },
+	'march to the unholy war':			{ 'reps_6': 25 },
+	'mausoleum of triste':				{ 'reps_3': 17 },
+	'misty hills of boralis':			{ 'reps_3': 20 },
+	'mount aretop':						{ 'reps_demiquest': 25 },
+	'nightmare':						{ 'reps_6': 20 },
+	'outpost entrance':					{ 'reps_11': 12 },
+	'path to heaven':					{ 'reps_8': 11 },
+	'pick up the orc trail':			{ 'reps_1':  6 },
+	'plan the attack':					{ 'reps_demiquest': 12 },
+	'portal of atlantis':				{ 'reps_atlantis': 20 },
+	'power of excalibur':				{ 'reps_8': 11 },
+	'prepare for ambush':				{ 'reps_1':  6 },
+	'prepare for battle':				{ 'reps_5': 32, 'reps_demiquest': 12 },
+	'prepare for the trials':			{ 'reps_9': 17 },
+	'prepare tactics':					{ 'reps_10':  0 },
+	'prepare troops':					{ 'reps_10':  0 },
+	'prevent dragon? escape':			{ 'reps_demiquest': 12 },
+	'protect temple from raiders':		{ 'reps_2': 40 },
+	'purge forest of evil':				{ 'reps_2': 27 },
+	'pursuing orcs':					{ 'reps_1': 13 },
+	'put out the fires':				{ 'reps_demiquest':  8 },
+	'question dark elf prisoners':		{ 'reps_demiquest': 12 },
+	'question the druidic wolf':		{ 'reps_demiquest': 12 },
+	'question townspeople':				{ 'reps_11':  0 },
+	'question vulcan':					{ 'reps_8':  0 },
+	'ready the horses':					{ 'reps_1':  6 },
+	'recover the key':					{ 'reps_9': 17 },
+	'recruit allies':					{ 'reps_10':  0 },
+	'recruit elekin to join you':		{ 'reps_demiquest':  9 },
+	'recruit furest to join you':		{ 'reps_demiquest': 12 },
+	'repel gargoyle raid':				{ 'reps_4': 14 },
+	'request council':					{ 'reps_10':  0 },
+	'rescue survivors':					{ 'reps_8':  0 },
+	'resist the lost souls':			{ 'reps_5': 25 },
+	'retrieve dragon slayer':			{ 'reps_demiquest': 10 },
+	'retrieve the jeweled heart':		{ 'reps_demiquest': 12 },
+	'ride to aretop':					{ 'reps_demiquest': 12 },
+	'ride towards the palace':			{ 'reps_9': 17 },
+	'river of lava':					{ 'reps_10': 10 },
+	'river of light':					{ 'reps_1': 10 },
+	'save lost souls':					{ 'reps_5': 24 },
+	'save stranded soldiers':			{ 'reps_10':  0 },
+	'seek out elekin':					{ 'reps_demiquest':  9 },
+	'seek out furest hellblade':		{ 'reps_demiquest': 12 },
+	'seek out jeweled heart':			{ 'reps_demiquest': 12 },
+	'shield of the stars':				{ 'reps_demiquest': 20 },
+	'slaughter orcs':					{ 'reps_3': 15 },
+	'slay cave bats':					{ 'reps_demiquest': 10 },
+	'slay the black dragons':			{ 'reps_5': 32 },
+	'slay the guardian':				{ 'reps_9': 17 },
+	'slay the sea serpent':				{ 'reps_demiquest': 12 },
+	'sneak attack on dragon':			{ 'reps_demiquest': 12 },
+	'sneak into the city':				{ 'reps_8':  0 },
+	'sneak up on orcs':					{ 'reps_1':  7 },
+	'soldiers of the black lion':		{ 'reps_demiquest': 10 },
+	'spire of death':					{ 'reps_5': 20 },
+	'spring surprise attack':			{ 'reps_demiquest': 12 },
+	'stop the wolf from channeling':	{ 'reps_demiquest': 12 },
+	'storm the castle':					{ 'reps_demiquest': 12 },
+	'storm the ivory palace':			{ 'reps_9': 17 },
+	'sulfurous springs':				{ 'reps_11': 10 },
+	'summon legendary defenders':		{ 'reps_6': 25 },
+	'surround rebels':					{ 'reps_10':  0 },
+	'survey battlefield':				{ 'reps_10':  0 },
+	'survey the surroundings':			{ 'reps_8':  0 },
+	'survive the storm':				{ 'reps_11':  0 },
+	'survive troll ambush':				{ 'reps_2': 10 },
+	'surviving the onslaught':			{ 'reps_9': 17 },
+	'the belly of the demon':			{ 'reps_5': 20 },
+	'the betrayed lands':				{ 'reps_4': 16 },
+	'the black portal':					{ 'reps_demiquest': 15 },
+	'the cave of wonder':				{ 'reps_3': 20 },
+	'the crystal caverns':				{ 'reps_demiquest': 11 },
+	'the darkening skies':				{ 'reps_9': 17 },
+	'the deep':							{ 'reps_atlantis': 20 },
+	'the elven sorceress':				{ 'reps_demiquest': 11 },
+	'the fallen druids':				{ 'reps_demiquest': 12 },
+	'the final stretch':				{ 'reps_9': 17 },
+	'the forbidden forest':				{ 'reps_2': 20 },
+	'the forbidden ritual':				{ 'reps_5': 20 },
+	'the hidden lair':					{ 'reps_demiquest': 13 },
+	'the hollowing moon':				{ 'reps_6': 17 },
+	'the infestation of winterguard':	{ 'reps_demiquest': 10 },
+	'the invasion':						{ 'reps_8': 11 },
+	'the keep of corelan':				{ 'reps_3': 17 },
+	'the keep of isles':				{ 'reps_4': 16 },
+	'the kingdom of alarean':			{ 'reps_demiquest': 15 },
+	'the last gateway':					{ 'reps_9': 17 },
+	"the lich ne'zeal":					{ 'reps_demiquest': 13 },
+	"the lich's keep":					{ 'reps_demiquest': 15 },
+	'the living gates':					{ 'reps_5': 20 },
+	'the long path':					{ 'reps_7': 12 },
+	'the peaks of draneth':				{ 'reps_demiquest': 21 },
+	'the poison source':				{ 'reps_11':  0 },
+	'the rebellion':					{ 'reps_10': 10 },
+	'the return home':					{ 'reps_8': 11 },
+	'the return of the dragon':			{ 'reps_demiquest':  9 },
+	'the ride south':					{ 'reps_8':  0 },
+	'the river of blood':				{ 'reps_5': 20 },
+	'the sea temple':					{ 'reps_atlantis': 20 },
+	'the search for clues':				{ 'reps_demiquest': 12 },
+	'the second temple of water':		{ 'reps_4': 25 },
+	'the smouldering pit':				{ 'reps_4': 40 },
+	'the source of darkness':			{ 'reps_demiquest': 20 },
+	'the source of magic':				{ 'reps_demiquest': 15 },
+	'the stairs of terra':				{ 'reps_2': 10 },
+	'the stone lake':					{ 'reps_1': 12 },
+	'the sunken city':					{ 'reps_demiquest': 17 },
+	'the tree of life':					{ 'reps_demiquest': 21 },
+	'the vanguard of destruction':		{ 'reps_demiquest': 21 },
+	'the water temple':					{ 'reps_2': 17 },
+	'track down soldiers':				{ 'reps_demiquest': 12 },
+	'track sylvana':					{ 'reps_demiquest': 12 },
+	'train with ambrosia':				{ 'reps_demiquest': 12 },
+	'train with aurora':				{ 'reps_demiquest': 12 },
+	'travel to the tree of life':		{ 'reps_demiquest': 12 },
+	'travel to winterguard':			{ 'reps_demiquest': 12 },
+	'triste':							{ 'reps_3': 20 },
+	'undead crusade':					{ 'reps_6': 17 },
+	'underwater ruins':					{ 'reps_atlantis': 20 },
+	'unholy war':						{ 'reps_6': 20 },
+	'use battering ram':				{ 'reps_11':  0 },
+	'vengeance':						{ 'reps_demiquest': 17 },
+	'vesuv bridge':						{ 'reps_10': 10 },
+	'vesuv lookout':					{ 'reps_2': 17 },
+	'visit the blacksmith':				{ 'reps_1': 24 },
+	'vulcans secret':					{ 'reps_8': 11 },
+	'watch the skies':					{ 'reps_demiquest': 12 }
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -11600,7 +11600,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Sun Jan 16 04:26:18 2011 UTC
+  // as of Fri Feb 11 03:56:22 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -11611,25 +11611,26 @@ Town.blacksmith = {
       // Sword of Redemption is a multi-pass match:
       //   shield.19{Sword of Redemption}, weapon.5{Sword}
     Weapon: new RegExp('(' +
-      '\\baxe\\b' +				// 12
+      '\\baxe\\b' +				// 13
       '|\\bblades?\\b' +		// 25+1
-      '|\\bbonecrusher\\b' +	// 1
       '|\\bbow\\b' +			// 7
+      '|\\bclaw\\b' +			// 1
       '|\\bcleaver\\b' +		// 1
       '|\\bcudgel\\b' +			// 1
       '|\\bdagger\\b' +			// 8 (mismatches 2)
       '|\\bedge\\b' +			// 1
       '|\\bfang\\b' +			// 1
-      '|\\bgreatsword\\b' +		// 1
+      '|\\bgreatsword\\b' +		// 2
       '|\\bgrinder\\b' +		// 1
       '|\\bhalberd\\b' +		// 1
       '|\\bhammer\\b' +			// 1
       '|\\bhellblade\\b' +		// 1
       '|\\bkatara\\b' +			// 1
-      '|\\blance\\b' +			// 1
+      '|\\blance\\b' +			// 2
       '|\\blongsword\\b' +		// 1
       '|\\bmace\\b' +			// 6
       '|\\bmorningstar\\b' +	// 1
+      '|\\brapier\\b' +			// 1
       '|\\brod\\b' +			// 2
       '|\\bsaber\\b' +			// 4
       '|\\bscepter\\b' +		// 1
@@ -11641,9 +11642,11 @@ Town.blacksmith = {
       '|\\btalon\\b' +			// 1
       '|\\btrident\\b' +		// 2
       '|\\bwand\\b' +			// 3
+      '|^Arachnid Slayer$' +
       '|^Atonement$' +
       '|^Avenger$' +
       '|^Bloodblade$' +
+      '|^Bonecrusher$' +
       '|^Celestas Devotion$' +
       '|^Daedalus$' +
       '|^Death Dealer$' +
@@ -11662,6 +11665,7 @@ Town.blacksmith = {
       '|^Lightbringer$' +
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
+      "|^Oberon's Might$" +
       '|^Onslaught$' +
       '|^Path of the Tower$' +
       '|^Punisher$' +
@@ -11669,13 +11673,14 @@ Town.blacksmith = {
       '|^Scytheblade$' +
       '|^Soul Siphon$' +
       '|^Soulforge$' +
+      '|^Stormcrusher$' +
       '|^The Disemboweler$' +
       '|^The Galvanizer$' +
       '|^The Reckoning$' +
       '|^Virtue of Justice$' +
       ')', 'i'),
     Shield: new RegExp('(' +
-      '\\baegis\\b' +			// 1
+      '\\baegis\\b' +			// 2
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
       '|\\bdefender\\b' +		// 3
@@ -11683,6 +11688,7 @@ Town.blacksmith = {
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
       '|^Absolution$' +
+      '|^Crest of the Griffin$' +
       '|^Dragon Scale$' +
       '|^Feral Staff$' +
       '|^Frost Tear Dagger$' +
@@ -11700,32 +11706,35 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 18
+      '|\\barmor\\b' +			// 20
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
+      '|\\bcarapace\\b' +		// 1
       '|\\bchainmail\\b' +		// 2
       '|\\bcloak\\b' +			// 7
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 27
+      '|\\bplate\\b' +			// 29
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 4
       '|\\brobes?\\b' +			// 1+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
+      '|^Braving the Storm$' +
       '|^Castle Rampart$' +
       '|^Death Ward$' +
       '|^Deathrune Hellplate$' +
       '|^Faerie Wings$' +
+      '|^Innocence$' +
       '|^Plated Earth$' +
       ')', 'i'),
     Helmet: new RegExp('(' +
       '\\bcowl\\b' +			// 1
       '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 34
+      '|\\bhelm\\b' +			// 36
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmask\\b' +			// 1
@@ -11734,31 +11743,33 @@ Town.blacksmith = {
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 14
+      '\\bamulet\\b' +			// 15
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
       '|\\bcross\\b' +			// 1
       '|\\bearrings\\b' +		// 1
-      '|\\beye\\b' +			// 2
+      '|\\beye\\b' +			// 3
       '|\\bflask\\b' +			// 1
+      '|\\bheirloom\\b' +		// 1
       '|\\binsignia\\b' +		// 3
       '|\\bjewel\\b' +			// 3
       '|\\blantern\\b' +		// 1
-      '|\\blocket\\b' +			// 1
+      '|\\blocket\\b' +			// 2
       '|\\bmark\\b' +			// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 9
+      '|\\bpendant\\b' +		// 10
       '|\\brelic\\b' +			// 1
       '|\\bring\\b' +			// 7
       '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 1
+      '|\\bseal\\b' +			// 2
       '|\\bshard\\b' +			// 6
-      '|\\bsignet\\b' +			// 7
+      '|\\bsignet\\b' +			// 8
       '|\\bsunstone\\b' +		// 1
       '|\\btalisman\\b' +		// 1
       '|\\btrinket\\b' +		// 2
+      '|^Air Orb$' +
       '|^Blue Lotus Petal$' +
       '|^Crystal of Lament$' +
       '|^Dragon Ashes$' +
@@ -11787,10 +11798,12 @@ Town.blacksmith = {
       '|\\bgauntlets?\\b' +		// 9+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 2+3
+      '|\\bhands?\\b' +			// 3+3
       "|^Slayer's Embrace$" +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +
+      '|^Stormbinder$' +
+      '|^Stormbringer$' +
       '|^Tempered Steel$' +
       '|^Virtue of Temperance$' +
       ')', 'i')
