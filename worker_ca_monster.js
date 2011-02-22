@@ -173,12 +173,12 @@ Monster.display = [
 	},{
 		id:'attack_min',
 		label:'Min Stamina Cost',
-		select:[1,5,10,20,50],
+		select:[1,5,10,20,50,100,200],
 		help:'Select the minimum stamina for a single attack'
 	},{
 		id:'attack_max',
 		label:'Max Stamina Cost',
-		select:[1,5,10,20,50],
+		select:[1,5,10,20,50,100,200],
 		help:'Select the maximum stamina for a single attack'
 	},{
 		title:'Defend'
@@ -210,12 +210,12 @@ Monster.display = [
 			},{
 				id:'defend_min',
 				label:'Min Energy Cost',
-				select:[10,20,40,100],
+				select:[10,20,40,100,200],
 				help:'Select the minimum energy for a single energy action'
 			},{
 				id:'defend_max',
 				label:'Max Energy Cost',
-				select:[10,20,40,100],
+				select:[10,20,40,100,200],
 				help:'Select the maximum energy for a single energy action'
 			}
 		]
@@ -433,7 +433,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_frost: {
 		name:'Frost Dragon',
@@ -445,7 +445,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_gold: {
 		name:'Gold Dragon',
@@ -457,7 +457,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_red: {
 		name:'Ancient Red Dragon',
@@ -469,7 +469,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	serpent_amethyst: { // DEAD image Verified and enabled.
 		name:'Amethyst Sea Serpent',
@@ -482,7 +482,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -497,7 +497,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -512,7 +512,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -527,7 +527,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -541,7 +541,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[1,5,10,20,50]
+		attack:[5,10,20,50,100,200]
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
@@ -688,9 +688,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
+		defend:[20,40,100,200],
 		orcs:true
 	},
 	rebellion: {

@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.991
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,20 +19,17 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
-
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-
 // Version of the script
 var version = "31.5";
-var revision = 991;
-
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
-
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -47,7 +44,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -8218,12 +8214,12 @@ Monster.display = [
 	},{
 		id:'attack_min',
 		label:'Min Stamina Cost',
-		select:[1,5,10,20,50],
+		select:[1,5,10,20,50,100,200],
 		help:'Select the minimum stamina for a single attack'
 	},{
 		id:'attack_max',
 		label:'Max Stamina Cost',
-		select:[1,5,10,20,50],
+		select:[1,5,10,20,50,100,200],
 		help:'Select the maximum stamina for a single attack'
 	},{
 		title:'Defend'
@@ -8255,12 +8251,12 @@ Monster.display = [
 			},{
 				id:'defend_min',
 				label:'Min Energy Cost',
-				select:[10,20,40,100],
+				select:[10,20,40,100,200],
 				help:'Select the minimum energy for a single energy action'
 			},{
 				id:'defend_max',
 				label:'Max Energy Cost',
-				select:[10,20,40,100],
+				select:[10,20,40,100,200],
 				help:'Select the maximum energy for a single energy action'
 			}
 		]
@@ -8478,7 +8474,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_frost: {
 		name:'Frost Dragon',
@@ -8490,7 +8486,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_gold: {
 		name:'Gold Dragon',
@@ -8502,7 +8498,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	dragon_red: {
 		name:'Ancient Red Dragon',
@@ -8514,7 +8510,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[5,10]
 	},
 	serpent_amethyst: { // DEAD image Verified and enabled.
 		name:'Amethyst Sea Serpent',
@@ -8527,7 +8523,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -8542,7 +8538,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -8557,7 +8553,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -8572,7 +8568,7 @@ Monster.types = {
 		mpool:2,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5],
+		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10]
 	},
@@ -8586,7 +8582,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[1,5,10,20,50]
+		attack:[5,10,20,50,100,200]
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
@@ -8733,9 +8729,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
+		defend:[20,40,100,200],
 		orcs:true
 	},
 	rebellion: {
@@ -12333,3 +12329,4 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper
