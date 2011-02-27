@@ -14,6 +14,7 @@ var FP = new Worker('FP');
 FP.temp = null;
 
 FP.settings = {
+	advanced:true,
 	taint:true
 };
 
