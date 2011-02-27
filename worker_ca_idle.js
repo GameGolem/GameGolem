@@ -101,7 +101,7 @@ Idle.pages = {
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
 	battle:['battle_battle'],
-	monsters:['monster_monster_list', 'battle_raid'],
+	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list'],
 	collect:['apprentice_collect']
 };
 
