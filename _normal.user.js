@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 901;
+var revision = 995;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8509,6 +8509,7 @@ Monster.types = {
 		name:'Ancient Red Dragon',
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
+		image2:'dragon_red.jpg',
 		dead:'dead_dragon_image_red.jpg',
 		achievement:100000,
 		timer:259200, // 72 hours
@@ -8583,7 +8584,7 @@ Monster.types = {
 		festival: 'seamonster_blue'
 	},
 	// Epic World
-	hydra: {
+	cronus: {
 		name:'Cronus, The World Hydra',
 		list:'hydra_head.jpg',
 		image:'hydra_large.jpg',
@@ -8847,7 +8848,10 @@ Monster.parse = function(change) {
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
+			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length 
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
+						|| $('#app46755028429_app_body div[style*="'+types[i].image+'"]').length)) {
+//			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = types[i].timer;
@@ -10049,7 +10053,6 @@ Page.defaults.castle_age = {
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},
 		festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},
-		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
 		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
 		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},

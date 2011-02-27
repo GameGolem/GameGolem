@@ -467,6 +467,7 @@ Monster.types = {
 		name:'Ancient Red Dragon',
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
+		image2:'dragon_red.jpg',
 		dead:'dead_dragon_image_red.jpg',
 		achievement:100000,
 		timer:259200, // 72 hours
@@ -805,7 +806,10 @@ Monster.parse = function(change) {
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length && (!types[i].title || $('div[style*="'+types[i].title+'"]').length)) {
+			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length 
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
+						|| $('#app46755028429_app_body div[style*="'+types[i].image+'"]').length)) {
+//			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = types[i].timer;
