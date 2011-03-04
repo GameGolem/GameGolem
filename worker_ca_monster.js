@@ -347,7 +347,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 345600, // 96 hours
+		festival: 'stonegiant'
 	},
 	gildamesh: {
 		name:'Gildamesh, the Orc King',
@@ -359,7 +361,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 345600, // 96 hours
+		festival: 'orcking'
 	},
 	keira: {
 		name:'Keira the Dread Knight',
@@ -395,7 +399,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 320400, // 89 hours
+		festival: 'mephistopheles'
 	},
 	skaar: {
 		name:'Skaar Deathrune',
@@ -409,7 +415,9 @@ Monster.types = {
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
 		defend:[10,10,20,40,100],
-		defense_img:'shield_img'
+		defense_img:'shield_img',
+		festival_timer: 432000, // 120 hours
+		festival: 'skaar_boss'
 	},
 	sylvanus: {
 		name:'Sylvana the Sorceress Queen',
@@ -421,6 +429,7 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[1,5],
+		festival_timer: 259200, // 72 hours
 		festival: 'sylvanus'
 	},
 	// Epic Team
@@ -448,6 +457,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_blue'
 	},
 	dragon_gold: {
@@ -461,6 +471,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_yellow'
 	},
 	dragon_red: {
@@ -475,6 +486,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_red'
 	},
 	serpent_amethyst: { // DEAD image Verified and enabled.
@@ -491,6 +503,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_purple'
 	},
 	serpent_ancient: { // DEAD image Verified and enabled.
@@ -507,6 +520,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_red'
 	},
 	serpent_emerald: { // DEAD image Verified and enabled.
@@ -523,6 +537,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_green'
 	},
 	serpent_sapphire: {
@@ -539,6 +554,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_blue'
 	},
 	// Epic World
@@ -551,7 +567,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[5,10,20,50,100,200]
+		attack:[5,10,20,50,100,200],
+		festival_timer: 518400, // 144 hours
+		festival: 'hydra'
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
@@ -578,7 +596,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="attack"]',
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="fortify"]',
-		defend:[10,10,20,40,100]
+		defend:[10,10,20,40,100],
+		festival_timer: 518400, // 144 hours
+		festival: 'earth_element'
 	},
 	ragnarok: {
 		name:'Ragnarok, The Ice Elemental',
@@ -592,7 +612,9 @@ Monster.types = {
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
 		defend:[10,10,20,40,100],
-		defense_img:'shield_img'
+		defense_img:'shield_img',
+		festival_timer: 518400, // 144 hours
+		festival: 'water_element'
 	},
 	gehenna: {
 		name:'Gehenna',
@@ -605,7 +627,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'fire_element'
 	},
 	valhalla: {
 		name:'Valhalla, The Air Elemental',
@@ -618,7 +642,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'air_element'
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
@@ -631,7 +657,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'volcanic_new'
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
@@ -657,7 +685,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200 // 192 hours
+		//festival: '?'
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -700,6 +730,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100],
+		festival_timer: 691200, // 192 hours
 		festival : 'agamemnon'
 	},
 	jahanna: {
@@ -742,7 +773,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200 // 192 hours
+		//festival: '?'
 	}
 };
 
@@ -803,6 +836,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
+		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
@@ -812,19 +846,19 @@ Monster.parse = function(change) {
 //			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
-				timer = types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				dead = true;
 				break;
 			} else if (types[i].image && $('#app46755028429_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
-				timer = types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				break;
 			} else if (types[i].image2 && $('#app46755028429_app_body img[src$="'+types[i].image2+'"],div[style*="'+
 			types[i].image2+'"]').length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
-				timer = types[i].timer2 || types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer2 || types[i].timer;
 				break;
 			}
 		}
@@ -1107,7 +1141,7 @@ Monster.update = function(event) {
 	if (event.type === 'runtime' && event.worker.name !== 'Queue') {
 		return;
 	}
-	var i, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
+	var i, j, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
 	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
 	limit = this.runtime.limit;
 	if(!LevelUp.runtime.running && limit === 100){
@@ -1185,8 +1219,54 @@ Monster.update = function(event) {
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
 					monster.ach = this.conditions('ach',condition) || type.achievement;
+					// check for min/max stamina/energy overrides
+					if ((i = this.conditions('smin',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.smin = i;
+					} else if (monster.smin) {
+						delete monster.smin;
+					}
+					if ((i = this.conditions('smax',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.smax = i;
+					} else if (monster.smax) {
+						delete monster.smax;
+					}
+					if ((i = this.conditions('emin',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.emin = i;
+					} else if (monster.emin) {
+						delete monster.emin;
+					}
+					if ((i = this.conditions('emax',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.emax = i;
+					} else if (monster.emax) {
+						delete monster.emax;
+					}
+
+					// check for pa ach/max overrides
+					if ((i = this.conditions('achpa',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.achpa = i;
+						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
+							monster.ach = Math.ceil(i * 5 * j);
+						}
+					} else if (monster.achpa) {
+						delete monster.achpa;
+					}
+					if ((i = this.conditions('maxpa',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.maxpa = i;
+						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
+							monster.max = Math.ceil(i * 5 * j);
+						}
+					} else if (monster.maxpa) {
+						delete monster.maxpa;
+					}
+
 					monster.attack_min = this.conditions('a%',condition) || this.option.min_to_attack;
-					if (monster.max !== false) {
+					if (isNumber(monster.ach) && !isNaN(monster.ach) && (!isNumber(monster.max) || isNaN(monster.max))) {
+						monster.max = monster.ach;
+					}
+					if (isNumber(monster.max) && !isNaN(monster.max) && (!isNumber(monster.ach) || isNaN(monster.ach))) {
+						monster.ach = monster.max;
+					}
+					if (isNumber(monster.max) && !isNaN(monster.max)) {
 						monster.ach=Math.min(monster.ach, monster.max);
 					}
 					if (type.defend) {
@@ -1204,7 +1284,7 @@ Monster.update = function(event) {
 						button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
 					}
 					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-							: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || this.option.attack_min)) * this.runtime.multiplier.attack;
+							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
 					//console.log(warn(), 'monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
@@ -1307,7 +1387,7 @@ Monster.update = function(event) {
                                 button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
                         }
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || this.option.attack_min)) * this.runtime.multiplier.attack;
+					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : (this.option.stop === 'Continuous') ? type.achievement :0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.runtime.limit :0;
@@ -1666,7 +1746,7 @@ Monster.dashboard = function(sort, rev) {
 		assist:1,
 		reward:2,
 		complete:3
-	}, blank, image_url, color, mid, uid, title, vv;
+	}, blank, image_url, color, mid, uid, title, v, vv, tt, cc;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (mid in this.data) {
@@ -1731,6 +1811,7 @@ Monster.dashboard = function(sort, rev) {
 		mid = this.order[o];
 		uid = mid.replace(/_.+/,'');
 		monster = this.data[mid];
+		festival = monster.page === 'festival';
 		type = this.types[monster.type];
 		if (!type) {
 			continue;
@@ -1747,7 +1828,24 @@ Monster.dashboard = function(sort, rev) {
 			args += '&action=doObjective';
 		}
 		// link icon
-		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + (monster.ach || type.achievement).addCommas() + (monster.max?' | Max: ' + monster.max.addCommas():'') + '"');
+		tt = type.name;
+		if (isNumber(v = monster.ach || type.achievement)) {
+		    tt += ' | Achievement: ';
+			if (isNumber(monster.achpa)) {
+				tt += monster.achpa + ' PA' + plural(monster.achpa) + ' (~' + v.SI() + ')';
+			} else {
+				tt += v.addCommas();
+			}
+		}
+		if (isNumber(v = monster.max)) {
+		    tt += ' | Max: ';
+			if (isNumber(monster.maxpa)) {
+				tt += monster.maxpa + ' PA' + plural(monster.maxpa) + ' (~' + v.SI() + ')';
+			} else {
+				tt += v.addCommas();
+			}
+		}
+		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + tt + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 
@@ -1769,24 +1867,29 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: 'title="' + (monster.total - sum(monster.damage)).addCommas() + '"');
-		title = (isNumber(monster.strength)
-					? 'Max: '+ monster.strength.round(1) +'% '
-					: '')
-				+ (isNumber(monster.defense)
-						? 'Attack Bonus: ' + (monster.defense.round(1) - 50)+'%'
-						: '');
 
 		// defense
-		td(output,
-			blank
-				? ''
-				: isNumber(monster.defense)
-					? (monster.defense.round(1))+'%'
-					: '',
-			(title
-				? 'title="' + title + '"'
-				: '')
-				);
+		vv = tt = cc = '';
+		if (!blank && isNumber(monster.defense)) {
+			vv = monster.defense.round(1) + '%';
+			if (isNumber(monster.strength)) {
+				tt = 'Max: ' + monster.strength.round(1) + '% | ';
+			}
+			tt += 'Attack Bonus: ' + (monster.defense - 50).round(1) + '%';
+			if (this.option.defend_active && this.option.defend > monster.defense) {
+				cc = 'green';
+			} else if (this.option.min_to_attack >= monster.defense) {
+				cc = 'blue';
+			}
+		}
+		if (cc !== '') {
+			vv = '<span style="color:' + cc + ';">' + vv + '</span>';
+		}
+		if (tt !== '') {
+			tt = 'title="' + tt + '"';
+		}
+		td(output, vv, tt);
+
 		var activity = (monster.damage ? sum(monster.damage.user) : 0) + sum(monster.defend);
 		if (monster.ach > 0 || monster.max > 0) {
 			if (monster.max > 0 && activity >= monster.max) {

@@ -526,6 +526,16 @@ var bestValue = function(list, value) {// pass a list of numbers, return the hig
 	return best;
 };
 
+var bestValueHi = function(list, value) {// pass a list of numbers, return the highest entry greater or equal to value, return -1 on failure
+	var i, best = Number.POSITIVE_INFINITY;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] >= value && list[i] < best) {
+			best = list[i];
+		}
+	}
+	return best === Number.POSITIVE_INFINITY ? -1 : best;
+};
+
 var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
 	var i, best = null, bestval, val;
 	for (i in obj) {

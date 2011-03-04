@@ -11,6 +11,11 @@
 * Battling other players (NOT raid or Arena)
 */
 var Battle = new Worker('Battle');
+
+Battle.settings = {
+	//taint: true
+};
+
 Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
@@ -190,6 +195,7 @@ Battle.init = function() {
         var i, list, rank;
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
+	this._watch(this, 'option.prefer');
 	if (typeof this.option.points === 'boolean') {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
@@ -214,6 +220,36 @@ Battle.init = function() {
 	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
 		this.set('option.limit', i);
 	}
+
+	$('.Battle-prefer-on').live('click', function(event) {
+		Battle._unflush();
+		var uid = $(this).attr('name');
+		var prefs = Battle.get('option.prefer');
+		if (uid && findInArray(prefs, uid)) {
+			deleteElement(prefs, uid);
+			Battle._taint['option'] = true;
+			Battle._notify('option.prefer');
+		}
+		$(this).removeClass('Battle-prefer-on');
+		$(this).attr('title', 'Click to remove from preferred list.');
+		$(this).attr('src', getImage('star_off'));
+		$(this).addClass('Battle-prefer-off');
+	});
+
+	$('.Battle-prefer-off').live('click', function(event) {
+		Battle._unflush();
+		var uid = $(this).attr('name');
+		var prefs = Battle.get('option.prefer');
+		if (uid && !findInArray(prefs, uid)) {
+			prefs.push(uid);
+			Battle._taint['option'] = true;
+			Battle._notify('option.prefer');
+		}
+		$(this).removeClass('Battle-prefer-off');
+		$(this).attr('title', 'Click to add to preferred list.');
+		$(this).attr('src', getImage('star_on'));
+		$(this).addClass('Battle-prefer-on');
+	});
 };
 
 /***** Battle.parse() *****
@@ -312,6 +348,10 @@ Battle.parse = function(change) {
 Battle.update = function(event) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
 	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	if (event.type === 'watch' && event.id === 'option.prefer') {
+		this.dashboard();
+		return;
+	}
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
@@ -482,10 +522,17 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
 	for (i in data) {
 		points[data[i].align]++;
 	}
+	var prefs = {};
+	for (i = 0; i < this.option.prefer.length; i++) {
+		prefs[this.option.prefer[i]] = 1;
+	}
+	var pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
+	var pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
+	var pref_img_end = '">';
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in data) {
@@ -501,8 +548,18 @@ Battle.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
+		var str = '';
 		this.order.sort(function(a,b) {
-			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
+			var aa, bb;
+			if (sorttype[sort] === '*pref') {
+				aa = prefs[a] || 0;
+				bb = prefs[b] || 0;
+				str += '\n' + a + ' = ' + aa;
+				str += ', ' + b + ' = ' + bb;
+			} else {
+				aa = data[a][sorttype[sort]] || 0;
+				bb = data[b][sorttype[sort]] || 0;
+			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
@@ -519,6 +576,7 @@ Battle.dashboard = function(sort, rev) {
 	th(output, 'Level');
 	th(output, 'Rank');
 	th(output, 'Army');
+	th(output, 'Pref');
 	th(output, 'Wins');
 	th(output, 'Losses');
 	th(output, 'Hides');
@@ -531,6 +589,7 @@ Battle.dashboard = function(sort, rev) {
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
 		td(output, data.win || '');
 		td(output, data.loss || '');
 		td(output, data.hide || '');

@@ -108,10 +108,36 @@ Player.parse = function(change) {
 				this.set(['data','artifact'], artifacts);
 			}
 		}
-	}
-	if (Page.page==='town_land') {
-		stats = $('.mContTMainback div:last-child');
-		this.set('income', stats.eq(stats.length - 4).text().replace(/\D/g,'').regex(/(\d+)/));
+	} else if (Page.page === 'town_land') {
+		$tmp = $('.layout div[style*="town_header_land."]');
+		if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
+			var o = {};
+			$('div', $tmp.last().parent()).each(function(a, el) {
+				if (!o[a]) o[a] = {};
+				o[a].label = ($(el).text() || '').trim();
+			});
+			$('div', $tmp.last().parent().next()).each(function(a, el) {
+				if (!o[a]) o[a] = {};
+				o[a].value = ($(el).text() || '').trim();
+			});
+			for (i in o) {
+				if (o[i].label && o[i].value) {
+					if (o[i].label.match(/Land Income:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('maxincome', tmp);
+						}
+					} else if (o[i].label.match(/Upkeep:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('upkeep', tmp);
+						}
+					} else if (o[i].label.match(/Income per Hour:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('income', tmp);
+						}
+					}
+				}
+			}
+		}
 	}
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
@@ -134,7 +160,29 @@ Player.update = function(event) {
 			for (i=0; i<=this.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
-			Config.set(types[j], list);
+			if (types[j] === 'stamina') {
+				step = this.data['max' + types[j]] || 10;
+				for (i in { 1:1, 5:1, 10:1, 20:1, 50:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			} else if (types[j] === 'energy') {
+				step = this.data['max' + types[j]] || 15;
+				for (i in { 10:1, 20:1, 40:1, 100:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			} else if (types[j] === 'health') {
+				step = this.data['max' + types[j]] || 100;
+				for (i in { 1:1, 9:1, 10:1, 11:1, 12:1, 13:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			}
+			Config.set(types[j], unique(list.sort(function(a,b){return a-b;})));
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);

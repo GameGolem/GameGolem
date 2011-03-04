@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.997
+// @version		31.5.998
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 997;
+var revision = 998;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -570,6 +570,16 @@ var bestValue = function(list, value) {// pass a list of numbers, return the hig
 		}
 	}
 	return best;
+};
+
+var bestValueHi = function(list, value) {// pass a list of numbers, return the highest entry greater or equal to value, return -1 on failure
+	var i, best = Number.POSITIVE_INFINITY;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] >= value && list[i] < best) {
+			best = list[i];
+		}
+	}
+	return best === Number.POSITIVE_INFINITY ? -1 : best;
 };
 
 var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
@@ -1826,6 +1836,17 @@ Config.init = function() {
 			}
 		}
 	}
+
+	var multi_change_fn = function(el) {
+		var $this = $(el), tmp, worker, val;
+		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
+			val = [];
+			$this.children().each(function(a,el){ val.push($(el).text()); });
+			worker.get(['option', tmp[1]]);
+			worker.set(['option', tmp[1]], val);
+		}
+	};
+
 	$('input.golem_addselect').live('click', function(){
 		var i, value, values = $(this).prev().val().split(','), $multiple = $(this).parent().children().first();
 		for (i=0; i<values.length; i++) {
@@ -1834,28 +1855,30 @@ Config.init = function() {
 				$multiple.append('<option>' + value + '</option>').change();
 			}
 		}
-		$multiple.change();
+		multi_change_fn($multiple[0]);
 	});
 	$('input.golem_delselect').live('click', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
-		$multiple.change();
+		multi_change_fn($multiple[0]);
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
-		var $this = $(this), tmp, worker, val;
+		var $this = $(this), tmp, worker, val, handled = false;
 		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			if ($this.attr('type') === 'checkbox') {
 				val = $this.attr('checked');
 			} else if ($this.attr('multiple')) {
-				val = [];
-				$this.children().each(function(i,el){ val.push($(el).text()); });
+				multi_change_fn($this[0]);
+				handled = true;
 			} else {
 				val = $this.attr('value') || $this.val() || null;
 				if (val && val.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 					val = parseFloat(val);
 				}
 			}
-			worker.set('option.'+tmp[1], val);
+			if (!handled) {
+				worker.set('option.'+tmp[1], val);
+			}
 		}
 	});
 	$('.golem-panel-header input').click(function(event){
@@ -5085,8 +5108,12 @@ Main.add('castle_age', '46755028429', 'Castle Age');
 var Alchemy = new Worker('Alchemy');
 Alchemy.temp = null;
 
+Alchemy.settings = {
+	//taint:true
+};
+
 Alchemy.defaults['castle_age'] = {
-	pages:'keep_alchemy'
+	pages:'keep_alchemy keep_stats'
 };
 
 Alchemy.data = {
@@ -5118,42 +5145,63 @@ Alchemy.display = [
 ];
 
 Alchemy.parse = function(change) {
-	this.data.ingredients = {};
-	this.data.recipe = {};
-	this.data.summons = {};
-	var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
-	if (!$elements.length) {
-		console.log(warn(), 'Can\'t find any alchemy ingredients...');
-//		Page.to('keep_alchemy', false); // Force reload
-		return false;
-	}
-	$elements.each(function(i,el){
-		var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
-		if (title.indexOf(' (')>0) {
-			title = title.substr(0, title.indexOf(' ('));
+	if (Page.page === 'keep_alchemy') {
+		this.data.ingredients = {};
+		this.data.recipe = {};
+		this.data.summons = {};
+		var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
+		if (!$elements.length) {
+			console.log(warn(), 'Can\'t find any alchemy ingredients...');
+	//		Page.to('keep_alchemy', false); // Force reload
+			return false;
 		}
-		if ($(el).hasClass('alchemyQuestBack')) {
-			recipe.type = 'Quest';
-		} else if ($(el).hasClass('alchemyRecipeBack')) {
-			recipe.type = 'Recipe';
-		} else if ($(el).hasClass('alchemyRecipeBackMonster')) {
-			recipe.type = 'Summons';
-		}
-		recipe.ingredients = {};
-		$('div.recipeImgContainer', el).parent().each(function(i,el){
-			var name = $('img', el).attr('src').filepart();
-			recipe.ingredients[name] = ($(el).text().regex(/x(\d+)/) || 1);
-			Alchemy.data.ingredients[name] = 0;// Make sure we know an ingredient exists
-			if (recipe.type === 'Summons') {
-				Alchemy.data.summons[name] = true;// Make sure we know an ingredient exists
+		$elements.each(function(i,el){
+			var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
+			if (title.indexOf(' (')>0) {
+				title = title.substr(0, title.indexOf(' ('));
 			}
+			if ($(el).hasClass('alchemyQuestBack')) {
+				recipe.type = 'Quest';
+			} else if ($(el).hasClass('alchemyRecipeBack')) {
+				recipe.type = 'Recipe';
+			} else if ($(el).hasClass('alchemyRecipeBackMonster')) {
+				recipe.type = 'Summons';
+			}
+			recipe.ingredients = {};
+			$('div.recipeImgContainer', el).parent().each(function(i,el){
+				var name = $('img', el).attr('src').filepart();
+				recipe.ingredients[name] = ($(el).text().regex(/x(\d+)/) || 1);
+				Alchemy.data.ingredients[name] = 0;// Make sure we know an ingredient exists
+				if (recipe.type === 'Summons') {
+					Alchemy.data.summons[name] = true;// Make sure we know an ingredient exists
+				}
+			});
+			Alchemy.data.recipe[title] = recipe;
 		});
-		Alchemy.data.recipe[title] = recipe;
-	});
-	$('div.ingredientUnit').each(function(i,el){
-		var name = $('img', el).attr('src').filepart();
-		Alchemy.data.ingredients[name] = $(el).text().regex(/x(\d+)/);
-	});
+		$('div.ingredientUnit').each(function(i,el){
+			var name = $('img', el).attr('src').filepart();
+			Alchemy.data.ingredients[name] = $(el).text().regex(/x(\d+)/);
+		});
+		this._notify('data.ingredients');
+		this._notify('data.recipe');
+		this._notify('data.summons');
+	} else if (Page.page === 'keep_stats') {
+		// Only when it's our own keep and not someone elses
+		if ($('.keep_attribute_section').length) {
+			var tmp = $('.statsTTitle:contains("ALCHEMY INGREDIENTS") + .statsTMain .statUnit');
+			if (tmp.length) {
+				tmp.each(function(a, el) {
+					var b = $('a img[src]', el);
+					var i = $(b).attr('src').filepart();
+					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
+					if (i) {
+						Alchemy.set(['data', i], c || 0);
+					}
+				});
+			}
+		}
+	}
 };
 
 Alchemy.update = function(event) {
@@ -5537,6 +5585,11 @@ Bank.menu = function(worker, key) {
 * Battling other players (NOT raid or Arena)
 */
 var Battle = new Worker('Battle');
+
+Battle.settings = {
+	//taint: true
+};
+
 Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
@@ -5716,6 +5769,7 @@ Battle.init = function() {
         var i, list, rank;
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
+	this._watch(this, 'option.prefer');
 	if (typeof this.option.points === 'boolean') {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
@@ -5740,6 +5794,36 @@ Battle.init = function() {
 	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
 		this.set('option.limit', i);
 	}
+
+	$('.Battle-prefer-on').live('click', function(event) {
+		Battle._unflush();
+		var uid = $(this).attr('name');
+		var prefs = Battle.get('option.prefer');
+		if (uid && findInArray(prefs, uid)) {
+			deleteElement(prefs, uid);
+			Battle._taint['option'] = true;
+			Battle._notify('option.prefer');
+		}
+		$(this).removeClass('Battle-prefer-on');
+		$(this).attr('title', 'Click to remove from preferred list.');
+		$(this).attr('src', getImage('star_off'));
+		$(this).addClass('Battle-prefer-off');
+	});
+
+	$('.Battle-prefer-off').live('click', function(event) {
+		Battle._unflush();
+		var uid = $(this).attr('name');
+		var prefs = Battle.get('option.prefer');
+		if (uid && !findInArray(prefs, uid)) {
+			prefs.push(uid);
+			Battle._taint['option'] = true;
+			Battle._notify('option.prefer');
+		}
+		$(this).removeClass('Battle-prefer-off');
+		$(this).attr('title', 'Click to add to preferred list.');
+		$(this).attr('src', getImage('star_on'));
+		$(this).addClass('Battle-prefer-on');
+	});
 };
 
 /***** Battle.parse() *****
@@ -5838,6 +5922,10 @@ Battle.parse = function(change) {
 Battle.update = function(event) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
 	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	if (event.type === 'watch' && event.id === 'option.prefer') {
+		this.dashboard();
+		return;
+	}
 	if (this.option.points !== 'Never') {
 		status.push('Demi Points Earned Today: '
 		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
@@ -6008,10 +6096,17 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
 	for (i in data) {
 		points[data[i].align]++;
 	}
+	var prefs = {};
+	for (i = 0; i < this.option.prefer.length; i++) {
+		prefs[this.option.prefer[i]] = 1;
+	}
+	var pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
+	var pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
+	var pref_img_end = '">';
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in data) {
@@ -6027,8 +6122,18 @@ Battle.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
+		var str = '';
 		this.order.sort(function(a,b) {
-			var aa = (data[a][sorttype[sort]] || 0), bb = (data[b][sorttype[sort]] || 0);
+			var aa, bb;
+			if (sorttype[sort] === '*pref') {
+				aa = prefs[a] || 0;
+				bb = prefs[b] || 0;
+				str += '\n' + a + ' = ' + aa;
+				str += ', ' + b + ' = ' + bb;
+			} else {
+				aa = data[a][sorttype[sort]] || 0;
+				bb = data[b][sorttype[sort]] || 0;
+			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
@@ -6045,6 +6150,7 @@ Battle.dashboard = function(sort, rev) {
 	th(output, 'Level');
 	th(output, 'Rank');
 	th(output, 'Army');
+	th(output, 'Pref');
 	th(output, 'Wins');
 	th(output, 'Losses');
 	th(output, 'Hides');
@@ -6057,6 +6163,7 @@ Battle.dashboard = function(sort, rev) {
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
 		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
+		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
 		td(output, data.win || '');
 		td(output, data.loss || '');
 		td(output, data.hide || '');
@@ -6386,7 +6493,7 @@ Generals.settings = {
 };
 
 Generals.defaults['castle_age'] = {
-	pages:'* heroes_generals'
+	pages:'* heroes_generals keep_stats'
 };
 
 Generals.runtime = {
@@ -6405,10 +6512,11 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var i, j, data = {}, bonus = [], current;
+	var i, j, data = {}, bonus = [], current, stale = false;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+			stale = true;
 		}
 	}
 	if (Page.page === 'heroes_generals') {
@@ -6449,6 +6557,24 @@ Generals.parse = function(change) {
 				this.set(['data',i]);
 			}
 		}
+	} else if (Page.page === 'keep_stats') {
+		// Only when it's our own keep and not someone elses
+		if ($('.keep_attribute_section').length) {
+			var tmp = $('.statsTTitle:contains("HEROES") + .statsTMain .statUnit');
+			if (tmp.length) {
+				tmp.each(function(a, el) {
+					var b = $('a img[src]', el);
+					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+					if (n && !Generals.data[n]) {
+						stale = true;
+						return false;
+					}
+				});
+			}
+		}
+	}
+	if (stale) {
+		Page.set(['data', 'heroes_generals'], 0);
 	}
 	return false;
 };
@@ -7462,8 +7588,12 @@ Income.work = function(state) {
 var Land = new Worker('Land');
 Land.temp = null;
 
+Land.settings = {
+	taint: true
+};
+
 Land.defaults['castle_age'] = {
-	pages:'town_land'
+	pages:'town_land keep_stats'
 };
 
 Land.option = {
@@ -7479,7 +7609,8 @@ Land.runtime = {
 	lastlevel:0,
 	best:null,
 	buy:0,
-	cost:0
+	cost:0,
+	snooze:0
 };
 
 Land.display = [
@@ -7540,24 +7671,89 @@ Land.setup = function() {
 };
 
 Land.init = function() {
-	this._watch(Player, 'data.worth');
+	for (var i in this.data) {
+		if (!this.data[i].id || !this.data[i].cost || isNumber(this.data[i].buy) || isNumber(this.data[i].sell)) {
+			// force an initial visit if anything important is missing
+			Page.set('town_land', 0);
+			break;
+		}
+	}
+
+	this._watch(Player, 'data.level');		// watch for level ups
+	this._watch(Player, 'data.worth');		// watch for bank increases
+	this._watch(Page, 'data.town_land');	// watch for land triggers
 };
 
 Land.parse = function(change) {
-	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
-		var name = $('img', el).attr('alt'), data = {}, tmp;
-		if (!change) {
-			data.income = $('.land_buy_info .gold, .land_buy_info2 .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			data.max = $('.land_buy_info, .land_buy_info2', el).text().regex(/Max Allowed For your level: (\d+)/i);
-			data.cost = $('.land_buy_costs .gold', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			data.buy = $('option', $('.land_buy_costs .gold', el).parent().next()).last().attr('value') || undefined;
-			data.own = $('.land_buy_costs span', el).text().replace(/\D/g,'').regex(/(\d+)/);
-			Land.set(['data',name], data);
-		} else {
-			$('.land_buy_info strong:first, .land_buy_info2 strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
+	var modify = false, tmp;
+
+	if (Page.page === 'town_land') {
+		// land data
+		$('div[style*="town_land_bar."],div[style*="town_land_bar_special."]').each(function(a, el) {
+			var name = $('div img[alt]', el).attr('alt').trim(), data, s, v;
+			if (name) {
+				if (!change) {
+					data = {};
+					if ((s = $('div div:contains("Max Allowed For your level:")', el).text()) && isNumber(v = s.replace(/,/g, '').regex(/Max Allowed For your level: (\d+)/i))) {
+						data.max = v;
+					}
+					if ((s = $('div div:contains("Income:") strong', el).text()) && isNumber(v = s.replace(/\D/g, '').regex(/(\d+)/))) {
+						data.income = v;
+					}
+					if ((s = $('div div:contains("Owned:") strong.gold', el).text()) && isNumber(v = s.replace(/\D/g, '').regex(/(\d+)/))) {
+						data.cost = v;
+					}
+					if ((s = $('div div:contains("Owned:")', el).text()) && isNumber(v = s.replace(/\s+/g, ' ').replace(/,/g, '').regex(/Owned: (\d+)/i))) {
+						data.own = v;
+					}
+					if ((s = $('form[id*="_prop_"]', el)).length) {
+						if (isNumber(v = s.attr('id').regex(/_prop_(\d+)/i))) {
+							data.id = v;
+						}
+						data.buy = [];
+						$('select[name="amount"] option', s).each(function(b, el) {
+							var v = parseFloat($(el).val());
+							if (v && isNumber(v)) {
+								data.buy.push(v);
+							}
+						})
+					}
+					if ((s = $('form[id*="_propsell_"]', el)).length) {
+						if (isNumber(v = s.attr('id').regex(/_propsell_(\d+)/i))) {
+							data.id = v;
+						}
+						data.sell = [];
+						$('select[name="amount"] option', s).each(function(b, el) {
+							var v = parseFloat($(el).val());
+							if (v && isNumber(v)) {
+								data.sell.push(v);
+							}
+						})
+					}
+					Land.set(['data',name], data);
+				} else if (Land.data[name]) {
+					$('strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
+				}
+			}
+			modify = true;
+		});
+	} else if (Page.page === 'keep_stats') {
+		// Only when it's our own keep and not someone elses
+		if ($('.keep_attribute_section').length) {
+			$('.statsTTitle:contains("LAND") + .statsTMain .statUnit').each(function(a, el) {
+				var b = $('a img[src]', el);
+				var n = ($(b).attr('alt') || '').trim();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
+				if (!Land.data[n]) {
+					Page.set('data.town_land', 0);
+				} else if (Land.data[n].own != c) {
+					Land.set(['data', n, 'own'], c);
+				}
+			});
 		}
-	});
-	return true;
+	}
+
+	return modify;
 };
 
 Land.update = function(event) {
@@ -7568,50 +7764,45 @@ Land.update = function(event) {
 	}
 	
 	k = 0;
-	if (this.option.save_ahead) {
-		j = 1;
-
+	if (this.option.save_ahead && this.option.enabled) {
 		for (i in this.data) {
-			if (this.data[i].own < this.data[i].max) {
-				j = 0;
-				break;
+			if ((this.data[i].max || 0) > 0 && (this.data[i].own || 0) >= this.data[i].max) {
+				j = Math.min(10, Math.max(0, this.data[i].max + 10 - this.data[i].own));
+				k += j * (this.data[i].cost || 0);
 			}
-		}
-
-		// only save if we have this land maxed
-
-		if (j) {
-			for (i in this.data) {
-				if (this.data[i].own < this.data[i].max + 10) {
-					k += (this.data[i].max + 10 - this.data[i].own) * this.data[i].cost;
-				}
-			}
-
 		}
 	}
 	this.set(['runtime', 'save_amount'], k);
 
+	// don't sell into future buffer if save ahead is enabled
+	k = this.option.save_ahead && !this.option.land_exp ? 10 : 0;
 	for (i in this.data) {
-		if (this.option.sell && this.data[i].max > 0 && this.data[i].own > this.data[i].max) {
+		if (this.option.sell && this.data[i].sell.length && (this.data[i].max || 0) > 0 && (this.data[i].own || 0) > this.data[i].max + k) {
 			best = i;
-			buy = this.data[i].max - this.data[i].own;// Negative number means sell
+			buy = this.data[i].max + k - this.data[i].own;// Negative number means sell
 			if (this.option.land_exp) {
-				buy = -10;
+				buy = -this.data[i].sell[this.data[i].sell.length - 1];
 			}
 			break;
 		}
-		if (this.data[i].buy) {
-			b_cost = best ? this.data[best].cost : 1e50;
-			i_cost = this.data[i].cost;
+
+		if (this.data[i].buy && this.data[i].buy.length) {
+			b_cost = best ? (this.data[best].cost || 0) : 1e50;
+			i_cost = (this.data[i].cost || 0);
 			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;
+				if (!income) {
+					break;
+				}
 			}
 		}
 	}
 
-	if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
-		Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
-	} else if (best) {
+	this.set(['runtime','best'], null);
+	this.set(['runtime','buy'], 0);
+	this.set(['runtime','cost'], 0);
+
+	if (best) {
 		if (!buy) {
 			//	This calculates the perfect time to switch the amounts to buy.
 			//	If the added income from a smaller purchase will pay for the increase in price before you can afford to buy again, buy small.
@@ -7621,7 +7812,7 @@ Land.update = function(event) {
 			cost_increase = this.data[best].cost / (10 + this.data[best].own);		// Increased cost per purchased land.  (Calculated from the current price and the quantity owned, knowing that the price increases by 10% of the original price per purchase.)
 			time_limit = cost_increase / this.data[best].income;		// How long it will take to payoff the increased cost with only the extra income from the purchase.  (This is constant per property no matter how many are owned.)
 			time_limit = time_limit * 1.5;		// fudge factor to take into account that most of the time we won't be buying the same property twice in a row, so we will have a bit more time to recoup the extra costs.
-//			if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
+//			if (this.option.onlyten || (this.data[best].cost * 10) <= worth) {}			// If we can afford 10, buy 10.  (Or if people want to only buy 10.)
 			if ((this.data[best].cost * 10) <= worth) {			// If we can afford 10, buy 10.
 				buy = Math.min(this.data[best].max - this.data[best].own, 10);
 			} else if (this.data[best].cost / income > time_limit){		// If it will take longer to save for 1 land than it will take to payoff the increased cost, buy 1.
@@ -7632,52 +7823,77 @@ Land.update = function(event) {
 				buy = Math.min(this.data[best].max - this.data[best].own, 10);
 			}
 		}
-		this.set(['runtime','buy'], buy);
-		this.set(['runtime','cost'], buy * this.data[best].cost); // May be negative if we're making money by selling
-		Dashboard.status(this, (buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
-	} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
-		Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
 
-	} else {
-		Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
+		k = buy * this.data[best].cost; // May be negative if we're making money by selling
+		if ((buy > 0 && this.option.enabled) || (buy < 0 && this.option.sell)) {
+			this.set(['runtime','best'], best);
+			this.set(['runtime','buy'], buy);
+			this.set(['runtime','cost'], k);
+		}
 	}
-	this.set(['runtime','best'], best);
+
+	if (best && buy) {
+		Dashboard.status(this, (buy > 0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(buy) + 'x ' + best + ' for $' + Math.abs(k).SI() + ' (Available Cash: $' + worth.SI() + ')');
+	} else if (this.option.save_ahead && this.runtime.save_amount) {
+		if (worth >= this.runtime.save_amount) {
+			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
+		} else {
+			Dashboard.status(this, 'Saved $' + worth.SI() + ' of $' + this.runtime.save_amount.SI() + ' for future land.');
+		}
+	} else {
+		Dashboard.status(this, 'Nothing to do.');
+	}
+
+	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && (Page.get('town_land') || 0) > 0);
 };
 
 Land.work = function(state) {
-	if (!this.option.enabled || !this.runtime.best || !this.runtime.buy || !Bank.worth(this.runtime.cost)) {
-		if (!this.runtime.best && this.runtime.lastlevel < Player.get('level')) {
-			if (!state || !Page.to('town_land')) {
+	var o, q;
+	if (!state) {
+		return QUEUE_CONTINUE;
+	} else if (this.runtime.cost > 0 && !Bank.retrieve(this.runtime.cost)) {
+		return QUEUE_CONTINUE;
+	} else if (!Page.to('town_land')) {
+		return QUEUE_CONTINUE;
+	} else {
+		this.set('runtime.lastlevel', Player.get('level'));
+		if (this.runtime.buy < 0) {
+			if (!(o = $('form#app'+APPID+'_propsell_'+this.data[this.runtime.best].id)).length) {
+				console.log(warn(), 'Can\'t find Land sell form for',
+				  this.runtime.best,
+				  'id[' + this.data[this.runtime.best].id + ']');
+				this.set('runtime.snooze', Date.now() + 60000);
+				this._remind(60.1, 'sell_land');
+				return QUEUE_RELEASE;
+			} else {
+				q = bestValue(this.data[this.runtime.best].sell, Math.abs(this.runtime.buy));
+				console.log(warn(), 'Selling ' + q + '/' + Math.abs(this.runtime.buy) + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
+
+				$('select[name="amount"]', o).val(q);
+				console.log(warn(), 'Land.sell:', q, 'x', this.runtime.best);
+				Page.click($('input[name="Sell"]', o));
 				return QUEUE_CONTINUE;
 			}
-			this.runtime.lastlevel = Player.get('level');
-		}
-		if (this.runtime.save_amount && !Bank.worth(this.runtime.save_amount)) {
-			Dashboard.status(this, 'Saving $' + this.runtime.save_amount.SI() + ' for future land.');
-		} else if (this.runtime.best && typeof this.runtime.best !== 'undefined'){
-			Dashboard.status(this, (this.runtime.buy>0 ? (this.runtime.buy ? 'Buying ' : 'Want to buy ') : (this.runtime.buy ? 'Selling ' : 'Want to sell ')) + Math.abs(this.runtime.buy) + 'x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI() + ' (Available Cash: $' + Bank.worth().SI() + ')');
-		} else if (this.runtime.save_amount && Bank.worth(this.runtime.save_amount)) {
-			Dashboard.status(this, 'Saved $' + this.runtime.save_amount.SI() + ' for future land.');
-		} else {
-			Dashboard.status(this, 'Nothing to do - buffer $' + (this.runtime.save_amount || 0).SI());
-		}
-		return QUEUE_FINISH;
-	}
-	if (!state || !Bank.retrieve(this.runtime.cost) || !Page.to('town_land')) {
-		return QUEUE_CONTINUE;
-	}
-//	var el = $('tr.land_buy_row:contains("'+this.runtime.best+'"),tr.land_buy_row_unique:contains("'+this.runtime.best+'")');
-	$('tr.land_buy_row,tr.land_buy_row_unique').each(function(i,el){
-		if ($('img', el).attr('alt') === Land.runtime.best) {
-			if (Land.runtime.buy > 0) {
-				$('select', $('.land_buy_costs .gold', el).parent().next()).val(Land.runtime.buy > 5 ? 10 : (Land.runtime.buy > 1 ? 5 : 1));
+		} else if (this.runtime.buy > 0) {
+			if (!(o = $('form#app'+APPID+'_prop_'+this.data[this.runtime.best].id)).length) {
+				console.log(warn(), 'Can\'t find Land buy form for',
+				  this.runtime.best,
+				  'id[' + this.data[this.runtime.best].id + ']');
+				this.set('runtime.snooze', Date.now() + 60000);
+				this._remind(60.1, 'buy_land');
+				return QUEUE_RELEASE;
 			} else {
-				$('select', $('.land_buy_costs .gold', el).parent().parent().next()).val(Land.runtime.buy <= -10 ? 10 : (Land.runtime.buy <= -5 ? 5 : 1));
+				q = bestValueHi(this.data[this.runtime.best].buy, this.runtime.buy);
+				console.log(warn(), 'Buying ' + q + '/' + this.runtime.buy + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
+
+				$('select[name="amount"]', o).val(q);
+				console.log(warn(), 'Land.buy:', q, 'x', this.runtime.best);
+				Page.click($('input[name="Buy"]', o));
+				return QUEUE_CONTINUE;
 			}
-			console.log(warn(), (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + 'ing ' + Math.abs(Land.runtime.buy) + ' x ' + Land.runtime.best + ' for $' + Math.abs(Land.runtime.cost).SI());
-			Page.click($('.land_buy_costs input[name="' + (Land.runtime.buy > 0 ? 'Buy' : 'Sell') + '"]', el));
 		}
-	});
+	}
+
 	return QUEUE_RELEASE;
 };
 
@@ -8389,7 +8605,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 345600, // 96 hours
+		festival: 'stonegiant'
 	},
 	gildamesh: {
 		name:'Gildamesh, the Orc King',
@@ -8401,7 +8619,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 345600, // 96 hours
+		festival: 'orcking'
 	},
 	keira: {
 		name:'Keira the Dread Knight',
@@ -8437,7 +8657,9 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
-		attack:[1,5]
+		attack:[1,5],
+		festival_timer: 320400, // 89 hours
+		festival: 'mephistopheles'
 	},
 	skaar: {
 		name:'Skaar Deathrune',
@@ -8451,7 +8673,9 @@ Monster.types = {
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
 		defend:[10,10,20,40,100],
-		defense_img:'shield_img'
+		defense_img:'shield_img',
+		festival_timer: 432000, // 120 hours
+		festival: 'skaar_boss'
 	},
 	sylvanus: {
 		name:'Sylvana the Sorceress Queen',
@@ -8463,6 +8687,7 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[1,5],
+		festival_timer: 259200, // 72 hours
 		festival: 'sylvanus'
 	},
 	// Epic Team
@@ -8490,6 +8715,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_blue'
 	},
 	dragon_gold: {
@@ -8503,6 +8729,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_yellow'
 	},
 	dragon_red: {
@@ -8517,6 +8744,7 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[5,10],
+		festival_timer: 345600, // 96 hours
 		festival: 'dragon_red'
 	},
 	serpent_amethyst: { // DEAD image Verified and enabled.
@@ -8533,6 +8761,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_purple'
 	},
 	serpent_ancient: { // DEAD image Verified and enabled.
@@ -8549,6 +8778,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_red'
 	},
 	serpent_emerald: { // DEAD image Verified and enabled.
@@ -8565,6 +8795,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_green'
 	},
 	serpent_sapphire: {
@@ -8581,6 +8812,7 @@ Monster.types = {
 		attack:[10,20],
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
+		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_blue'
 	},
 	// Epic World
@@ -8593,7 +8825,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[5,10,20,50,100,200]
+		attack:[5,10,20,50,100,200],
+		festival_timer: 518400, // 144 hours
+		festival: 'hydra'
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
@@ -8620,7 +8854,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="attack"]',
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="fortify"]',
-		defend:[10,10,20,40,100]
+		defend:[10,10,20,40,100],
+		festival_timer: 518400, // 144 hours
+		festival: 'earth_element'
 	},
 	ragnarok: {
 		name:'Ragnarok, The Ice Elemental',
@@ -8634,7 +8870,9 @@ Monster.types = {
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
 		defend:[10,10,20,40,100],
-		defense_img:'shield_img'
+		defense_img:'shield_img',
+		festival_timer: 518400, // 144 hours
+		festival: 'water_element'
 	},
 	gehenna: {
 		name:'Gehenna',
@@ -8647,7 +8885,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'fire_element'
 	},
 	valhalla: {
 		name:'Valhalla, The Air Elemental',
@@ -8660,7 +8900,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'air_element'
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
@@ -8673,7 +8915,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'volcanic_new'
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
@@ -8699,7 +8943,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200 // 192 hours
+		//festival: '?'
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -8742,6 +8988,7 @@ Monster.types = {
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100],
+		festival_timer: 691200, // 192 hours
 		festival : 'agamemnon'
 	},
 	jahanna: {
@@ -8784,7 +9031,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival_timer: 691200 // 192 hours
+		//festival: '?'
 	}
 };
 
@@ -8845,6 +9094,7 @@ Monster.init = function() {
 Monster.parse = function(change) {
 	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
+		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
@@ -8854,19 +9104,19 @@ Monster.parse = function(change) {
 //			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
-				timer = types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				dead = true;
 				break;
 			} else if (types[i].image && $('#app46755028429_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
 				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
-				timer = types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				break;
 			} else if (types[i].image2 && $('#app46755028429_app_body img[src$="'+types[i].image2+'"],div[style*="'+
 			types[i].image2+'"]').length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
-				timer = types[i].timer2 || types[i].timer;
+				timer = (festival ? types[i].festival_timer : 0) || types[i].timer2 || types[i].timer;
 				break;
 			}
 		}
@@ -9149,7 +9399,7 @@ Monster.update = function(event) {
 	if (event.type === 'runtime' && event.worker.name !== 'Queue') {
 		return;
 	}
-	var i, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
+	var i, j, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
 	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
 	limit = this.runtime.limit;
 	if(!LevelUp.runtime.running && limit === 100){
@@ -9227,8 +9477,54 @@ Monster.update = function(event) {
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
 					monster.ach = this.conditions('ach',condition) || type.achievement;
+					// check for min/max stamina/energy overrides
+					if ((i = this.conditions('smin',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.smin = i;
+					} else if (monster.smin) {
+						delete monster.smin;
+					}
+					if ((i = this.conditions('smax',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.smax = i;
+					} else if (monster.smax) {
+						delete monster.smax;
+					}
+					if ((i = this.conditions('emin',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.emin = i;
+					} else if (monster.emin) {
+						delete monster.emin;
+					}
+					if ((i = this.conditions('emax',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.emax = i;
+					} else if (monster.emax) {
+						delete monster.emax;
+					}
+
+					// check for pa ach/max overrides
+					if ((i = this.conditions('achpa',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.achpa = i;
+						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
+							monster.ach = Math.ceil(i * 5 * j);
+						}
+					} else if (monster.achpa) {
+						delete monster.achpa;
+					}
+					if ((i = this.conditions('maxpa',condition)) && isNumber(i) && !isNaN(i)) {
+						monster.maxpa = i;
+						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
+							monster.max = Math.ceil(i * 5 * j);
+						}
+					} else if (monster.maxpa) {
+						delete monster.maxpa;
+					}
+
 					monster.attack_min = this.conditions('a%',condition) || this.option.min_to_attack;
-					if (monster.max !== false) {
+					if (isNumber(monster.ach) && !isNaN(monster.ach) && (!isNumber(monster.max) || isNaN(monster.max))) {
+						monster.max = monster.ach;
+					}
+					if (isNumber(monster.max) && !isNaN(monster.max) && (!isNumber(monster.ach) || isNaN(monster.ach))) {
+						monster.ach = monster.max;
+					}
+					if (isNumber(monster.max) && !isNaN(monster.max)) {
 						monster.ach=Math.min(monster.ach, monster.max);
 					}
 					if (type.defend) {
@@ -9246,7 +9542,7 @@ Monster.update = function(event) {
 						button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
 					}
 					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-							: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || this.option.attack_min)) * this.runtime.multiplier.attack;
+							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
 					//console.log(warn(), 'monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
@@ -9349,7 +9645,7 @@ Monster.update = function(event) {
                                 button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
                         }
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || this.option.attack_min)) * this.runtime.multiplier.attack;
+					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : (this.option.stop === 'Continuous') ? type.achievement :0;
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.runtime.limit :0;
@@ -9708,7 +10004,7 @@ Monster.dashboard = function(sort, rev) {
 		assist:1,
 		reward:2,
 		complete:3
-	}, blank, image_url, color, mid, uid, title, vv;
+	}, blank, image_url, color, mid, uid, title, v, vv, tt, cc;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (mid in this.data) {
@@ -9773,6 +10069,7 @@ Monster.dashboard = function(sort, rev) {
 		mid = this.order[o];
 		uid = mid.replace(/_.+/,'');
 		monster = this.data[mid];
+		festival = monster.page === 'festival';
 		type = this.types[monster.type];
 		if (!type) {
 			continue;
@@ -9789,7 +10086,24 @@ Monster.dashboard = function(sort, rev) {
 			args += '&action=doObjective';
 		}
 		// link icon
-		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + type.name + ' | Achievement: ' + (monster.ach || type.achievement).addCommas() + (monster.max?' | Max: ' + monster.max.addCommas():'') + '"');
+		tt = type.name;
+		if (isNumber(v = monster.ach || type.achievement)) {
+		    tt += ' | Achievement: ';
+			if (isNumber(monster.achpa)) {
+				tt += monster.achpa + ' PA' + plural(monster.achpa) + ' (~' + v.SI() + ')';
+			} else {
+				tt += v.addCommas();
+			}
+		}
+		if (isNumber(v = monster.max)) {
+		    tt += ' | Max: ';
+			if (isNumber(monster.maxpa)) {
+				tt += monster.maxpa + ' PA' + plural(monster.maxpa) + ' (~' + v.SI() + ')';
+			} else {
+				tt += v.addCommas();
+			}
+		}
+		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + tt + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 
@@ -9811,24 +10125,29 @@ Monster.dashboard = function(sort, rev) {
 			blank
 				? ''
 				: 'title="' + (monster.total - sum(monster.damage)).addCommas() + '"');
-		title = (isNumber(monster.strength)
-					? 'Max: '+ monster.strength.round(1) +'% '
-					: '')
-				+ (isNumber(monster.defense)
-						? 'Attack Bonus: ' + (monster.defense.round(1) - 50)+'%'
-						: '');
 
 		// defense
-		td(output,
-			blank
-				? ''
-				: isNumber(monster.defense)
-					? (monster.defense.round(1))+'%'
-					: '',
-			(title
-				? 'title="' + title + '"'
-				: '')
-				);
+		vv = tt = cc = '';
+		if (!blank && isNumber(monster.defense)) {
+			vv = monster.defense.round(1) + '%';
+			if (isNumber(monster.strength)) {
+				tt = 'Max: ' + monster.strength.round(1) + '% | ';
+			}
+			tt += 'Attack Bonus: ' + (monster.defense - 50).round(1) + '%';
+			if (this.option.defend_active && this.option.defend > monster.defense) {
+				cc = 'green';
+			} else if (this.option.min_to_attack >= monster.defense) {
+				cc = 'blue';
+			}
+		}
+		if (cc !== '') {
+			vv = '<span style="color:' + cc + ';">' + vv + '</span>';
+		}
+		if (tt !== '') {
+			tt = 'title="' + tt + '"';
+		}
+		td(output, vv, tt);
+
 		var activity = (monster.damage ? sum(monster.damage.user) : 0) + sum(monster.defend);
 		if (monster.ach > 0 || monster.max > 0) {
 			if (monster.max > 0 && activity >= monster.max) {
@@ -10190,10 +10509,36 @@ Player.parse = function(change) {
 				this.set(['data','artifact'], artifacts);
 			}
 		}
-	}
-	if (Page.page==='town_land') {
-		stats = $('.mContTMainback div:last-child');
-		this.set('income', stats.eq(stats.length - 4).text().replace(/\D/g,'').regex(/(\d+)/));
+	} else if (Page.page === 'town_land') {
+		$tmp = $('.layout div[style*="town_header_land."]');
+		if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
+			var o = {};
+			$('div', $tmp.last().parent()).each(function(a, el) {
+				if (!o[a]) o[a] = {};
+				o[a].label = ($(el).text() || '').trim();
+			});
+			$('div', $tmp.last().parent().next()).each(function(a, el) {
+				if (!o[a]) o[a] = {};
+				o[a].value = ($(el).text() || '').trim();
+			});
+			for (i in o) {
+				if (o[i].label && o[i].value) {
+					if (o[i].label.match(/Land Income:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('maxincome', tmp);
+						}
+					} else if (o[i].label.match(/Upkeep:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('upkeep', tmp);
+						}
+					} else if (o[i].label.match(/Income per Hour:/i)) {
+						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+							this.set('income', tmp);
+						}
+					}
+				}
+			}
+		}
 	}
 	$('span.result_body').each(function(i,el){
 		var txt = $(el).text().replace(/,|\s+|\n/g, '');
@@ -10216,7 +10561,29 @@ Player.update = function(event) {
 			for (i=0; i<=this.data['max'+types[j]]; i+=step) {
 				list.push(i);
 			}
-			Config.set(types[j], list);
+			if (types[j] === 'stamina') {
+				step = this.data['max' + types[j]] || 10;
+				for (i in { 1:1, 5:1, 10:1, 20:1, 50:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			} else if (types[j] === 'energy') {
+				step = this.data['max' + types[j]] || 15;
+				for (i in { 10:1, 20:1, 40:1, 100:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			} else if (types[j] === 'health') {
+				step = this.data['max' + types[j]] || 100;
+				for (i in { 1:1, 9:1, 10:1, 11:1, 12:1, 13:1 }) {
+					if (step >= i) {
+						list.push(parseInt(i));
+					}
+				}
+			}
+			Config.set(types[j], unique(list.sort(function(a,b){return a-b;})));
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
@@ -10321,6 +10688,12 @@ Potions.init = function() {
 			Potions.set(['runtime','amount'], 1);
 		}
 	});
+
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Player, 'data.maxstamina');
+	this._watch(LevelUp, 'runtime.running');
 };
 
 Potions.parse = function(change) {
@@ -10331,13 +10704,16 @@ Potions.parse = function(change) {
 	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		var potions = {};
 		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
-			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x (\d+)/i);
-			if (info && info[0] && info[1]) {
+			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
+			if (info && info[0]) {
 				potions[info[0]] = info[1];
-				Potions.set(['option',info[0]], Potions.option[info[0]] || 35); // Always pick up on new potion types
+				// Default only newly discovered potion types to 35
+				if (isUndefined(Potions.option[info[0]]) || isNull(Potions.option[info[0]])) {
+					Potions.set(['option',info[0]], Potions.option[info[0]] || 35);
+				}
 			}
 		});
-		this.set(['data'], potions);
+		this._replace(['data'], potions);
 	}
 	return false;
 };
@@ -10386,6 +10762,10 @@ Potions.work = function(state) {
 // Should also look for quests_quest but that should never be used unless there's a new area
 var Quest = new Worker('Quest');
 
+Quest.settings = {
+	//taint:true
+};
+
 Quest.defaults['castle_age'] = {
 	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_demiquests quests_atlantis'
 };
@@ -10411,6 +10791,7 @@ Quest.data = {
 };
 
 Quest.temp = {
+	order: []
 };
 
 Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City', 'Earth II', 'Water II', 'Mist II'];
@@ -10476,13 +10857,34 @@ Quest.init = function() {
 		this.option.monster = 'Never';
 	}
 
+	r = this.rdmap = {};
+	for (i in this.rdata) {
+		for (j in this.rdata[i]) {
+			if ((x = j.regex(/^reps_q(\d+)$/i))) {
+				r[i + ';' + x] = this.rdata[i][j];
+			} else if (j.match(/^reps_d\d+$/i)) {
+				x = i + ';demiquest';
+				if (!r[x]) {
+					r[x] = this.rdata[i][j];
+				} else {
+					console.log(warn(), 'rdata demiquest dup on ' + x);
+				}
+			} else if (j.match(/^reps_a\d+$/i)) {
+				x = i + ';atlantis';
+				if (!r[x]) {
+					r[x] = this.rdata[i][j];
+				} else {
+					console.log(warn(), 'rdata demiquest dup on ' + x);
+				}
+			}
+		}
+	}
+
 	// one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if ((runtime.revision || 0) < 845) {
 		for (i in data) {
 			if (data[i].reps) {
-				r = 'reps_' + (isNumber(data[i].land) ? (data[i].land + 1) : data[i].area);
-				j = i.toLowerCase();
-				x = (this.rdata[j] && this.rdata[j][r]) || 16;
+				x = this.wiki_reps(data[i], true);
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
 					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
 					delete data[i].m_c;
@@ -10538,6 +10940,9 @@ Quest.init = function() {
 	}
 
 	runtime.revision = revision; // started r845 for historic reference
+
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
 };
 
 Quest.parse = function(change) {
@@ -10685,12 +11090,17 @@ Quest.parse = function(change) {
 	return false;
 };
 
+  // watch specific Generals if doing an alchemy quest giving a general
+  // watch specific Town if doing an alchemy quest giving an item/unit
+  // watch Generals if we passed up a preferred quest due to a missing req.
+  // watch Town if we passed up a preferred quest due to a missing req.
+
 Quest.update = function(event) {
 	if (event.worker.name === 'Town' && event.type !== 'data') {
 		return; // Missing quest requirements
 	}
 	// First let's update the Quest dropdown list(s)...
-	var i, j, r, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, data = this.data, maxenergy = Player.get('maxenergy',999), eff, best_sub_eff = 1e10, best_adv_eff = 1e10, best_inf_eff = 1e10;
+	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, data = this.data, maxenergy = Player.get('maxenergy',999), eff, best_adv_eff = 1e10, best_inf_eff = 1e10, cmp, oi, ob;
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data.id) {
 			if (data.id[i].item && data.id[i].type !== 3) {
@@ -10732,18 +11142,18 @@ Quest.update = function(event) {
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
 			// Skip quests we can't afford or can't equip the general for
-			//console.log(warn(),'Quest ' + data.id[i].name + ' general ' + data.id[i].general + ' test ' + !Generals.test(data.id[i].general || 'any') + ' data || '+ (data.id[i].general || 'any') + ' queue ' + (Queue.runtime.general && data.id[i].general));
-			if (data.id[i].energy > maxenergy 
-					|| !Generals.test(data.id[i].general || 'any')
-					|| (Queue.runtime.general && data.id[i].general)) {
+			oi = data.id[i];
+			if (oi.energy > maxenergy 
+					|| !Generals.test(oi.general || 'any')
+					|| (Queue.runtime.general && oi.general)) {
 				continue;
 			}
-			if (data.id[i].units) {
+			if (oi.units) {
 				own = 0;
 				need = 0;
 				noCanDo = false;
-				for (unit in data.id[i].units) {
-					need = data.id[i].units[unit];
+				for (unit in oi.units) {
+					need = oi.units[unit];
 					if (!Player.get(['artifact', i]) || need !== 1) {
 						own = Town.get([unit, 'own'], 0);
 						if (need > own) {	// Need more than we own, skip this quest.
@@ -10756,75 +11166,115 @@ Quest.update = function(event) {
 					continue;	// Skip to the next quest in the list
 				}
 			}
-			r = 'reps_' + (isNumber(data.id[i].land) ? (data.id[i].land + 1) : data.id[i].area);
-			j = data.id[i].name.toLowerCase();
-			eff = data.id[i].eff || (data.id[i].energy * (!isNumber(data.id[i].level) ? 1 : ((this.rdata[j] && this.rdata[j][r]) || 16)));
-			if (0 < (data.id[i].influence || 0) && (data.id[i].influence || 0) < 100) {
-				eff = Math.ceil(eff * (100 - data.id[i].influence) / 100);
+			eff = oi.eff || (oi.energy * this.wiki_reps(oi));
+			if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
+				eff = Math.ceil(eff * (100 - oi.influence) / 100);
 			}
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
-					if (!has_vampire && isNumber(data.id[i].land)
-					&& data.id[i].land === 5
-					&& data.id[i].type === 1
-					&& (!best_vampire || data.id[i].energy < data.id[best_vampire].energy)
-					&& (this.option.ignorecomplete === false || (isNumber(data.id[i].influence) && data.id[i].influence < 100))) {
+					ob = data.id[best_vampire];
+					// order: inf<100, <energy, >exp, >cash
+					if (!has_vampire && isNumber(oi.land) &&
+					  oi.land === 5 && oi.type === 1 &&
+					  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
+					  (!best_vampire ||
+					  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
 						best_vampire = i;
 					}// Deliberate fallthrough
 				case 'Cartigan': // Random Encounters in various Underworld Quests
-					if (!has_cartigan && isNumber(data.id[i].land)
-					&& data.id[i].land === 6
-					&& (((data.id[data.id[i].main || i].name === 'The Long Path' || data.id[data.id[i].main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3)
-						|| ((data.id[data.id[i].main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3)
-						|| ((data.id[data.id[i].main || i].name === 'Fire and Brimstone' || data.id[data.id[i].main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3))
-					&& (!best_cartigan || data.id[i].energy < data.id[best_cartigan].energy)
-					&& (this.option.ignorecomplete === false || (isNumber(data.id[i].influence) && data.id[i].influence < 100))) {
+					ob = data.id[best_cartigan];
+					// order: inf<100, <energy, >exp, >cash
+					if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6 &&
+					  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
+					  (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3) ||
+					  ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3) ||
+					  ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3)) &&
+					  (!best_cartigan ||
+					  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
 						best_cartigan = i;
 					}// Deliberate fallthrough
 				case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
-					if (data.id[i].type === 2
-					&& isNumber(data.id[i].influence) 
-					&& data.id[i].influence < 100
-					&& (!best_subquest || eff < best_sub_eff)) {
+					ob = data.id[best_subquest];
+					// order: <energy, >exp, >cash
+					if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100 &&
+					  (!best_subquest ||
+					  (cmp = oi.energy - ob.energy) < 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
 						best_subquest = i;
-						best_sub_eff = eff;
 					}// Deliberate fallthrough
 				case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-					if (isNumber(data.id[i].land) && data.id[i].land > best_land) { // No need to revisit old lands - leave them to Influence
-						best_land = data.id[i].land;
+					if (isNumber(oi.land) && oi.land > best_land) { // No need to revisit old lands - leave them to Influence
+						best_land = oi.land;
 						best_advancement = null;
 						best_adv_eff = 1e10;
 					}
-					if (data.id[i].type !== 2
-					&& isNumber(data.id[i].land)
-					//&& data.id[i].level === 1  // Need to check if necessary to do boss to unlock next land without requiring orb
-					&& data.id[i].land >= best_land
-					&& ((isNumber(data.id[i].influence) && Generals.test(data.id[i].general) && data.id[i].level <= 1 && data.id[i].influence < 100) || (data.id[i].type === 3 && !Alchemy.get(['ingredients', data.id[i].itemimg], 0)))
-					&& (!best_advancement || (data.id[i].land === best_land && eff < best_adv_eff))) {
-						best_land = Math.max(best_land, data.id[i].land);
+					ob = data.id[best_advancement];
+					// order: <effort, >exp, >cash, <energy
+					if (oi.type !== 2 && isNumber(oi.land) &&
+					  //oi.level === 1 &&  // Need to check if necessary to do boss to unlock next land without requiring orb
+					  oi.land >= best_land &&
+					  ((isNumber(oi.influence) && Generals.test(oi.general) && oi.level <= 1 && oi.influence < 100) || (oi.type === 3 && !Alchemy.get(['ingredients', oi.itemimg], 0))) &&
+					  (!best_advancement ||
+					  (cmp = eff - best_adv_eff) < 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
+						best_land = Math.max(best_land, oi.land);
 						best_advancement = i;
 						best_adv_eff = eff;
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-					if (isNumber(data.id[i].influence) 
-							&& (!data.id[i].general || Generals.test(data.id[i].general))
-							&& data.id[i].influence < 100
-							&& (!best_influence || eff < best_inf_eff)) {
+					ob = data.id[best_influence];
+					// order: <effort, >exp, >cash, <energy
+					if (isNumber(oi.influence) &&
+					  (!oi.general || Generals.test(oi.general)) &&
+					  oi.influence < 100 &&
+					  (!best_influence ||
+					  (cmp = eff - best_inf_eff) < 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
 						best_influence = i;
 						best_inf_eff = eff;
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
-					if (!best_experience || (data.id[i].energy / data.id[i].exp) < (data.id[best_experience].energy / data.id[best_experience].exp)) {
+					ob = data.id[best_experience];
+					// order: >exp, >cash, <energy, inf<100
+					if (!best_experience ||
+					  (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0 ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)) {
 						best_experience = i;
 					}
 					break;
 				case 'Cash': // Find the best (average) cash per energy quest
-					if (!best || (data.id[i].energy / data.id[i].reward) < (data.id[best].energy / data.id[best].reward)) {
+					ob = data.id[best];
+					// order: >cash, <energy, >exp, inf<100
+					if (!best ||
+					  (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)) {
 						best = i;
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...
-					if (data.id[i].item === this.option.what && (!best || data.id[i].energy < data.id[best].energy)) {
+					ob = data.id[best];
+					// order: <energy, >exp, >cash, inf<100
+					if (oi.item === this.option.what &&
+					  (!best ||
+					  (cmp = oi.energy - ob.energy) < 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0))) {
 						best = i;
 					}
 					break;
@@ -10952,13 +11402,12 @@ Quest.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
-Quest.order = [];
 Quest.dashboard = function(sort, rev) {
 	var self = this, i, j, k, o, r, quest, list = [], output = [], vv, tt, cc, span, v, eff;
 	if (typeof sort === 'undefined') {
-		this.order = [];
+		this.temp.order = [];
 		for (i in this.data.id) {
-			this.order.push(i);
+			this.temp.order.push(i);
 		}
 	}
 	if (typeof sort === 'undefined') {
@@ -10983,10 +11432,7 @@ Quest.dashboard = function(sort, rev) {
 			case 4: // energy
 				return o.energy;
 			case 5: // effort
-				r = 'reps_' + (isNumber(o.land) ? (o.land + 1) : o.area);
-				n = o.name.toLowerCase();
-				return o.eff || (o.energy * (!isNumber(o.level) ? 1 :
-				  ((self.rdata[n] && self.rdata[n][r]) || 16)));
+				return o.eff || (o.energy * this.wiki_reps(o));
 			case 6: // exp
 				return o.exp / o.energy;
 			case 7: // reward
@@ -10996,7 +11442,7 @@ Quest.dashboard = function(sort, rev) {
 		}
 		return 0; // unknown
 	}
-	this.order.sort(function(a,b) {
+	this.temp.order.sort(function(a,b) {
 		var aa = getValue(a), bb = getValue(b);
 		if (isString(aa) || isString(bb)) {
 			return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -11013,8 +11459,8 @@ Quest.dashboard = function(sort, rev) {
 	th(output, '@&nbsp;Reward');
 	th(output, 'Item');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
-	for (o=0; o<this.order.length; o++) {
-		i = this.order[o];
+	for (o=0; o<this.temp.order.length; o++) {
+		i = this.temp.order[o];
 		quest = this.data.id[i];
 		output = [];
 
@@ -11054,7 +11500,7 @@ Quest.dashboard = function(sort, rev) {
 		span = vv = tt = cc = '';
 		if (isNumber(v = quest.level)) {
 			vv = v + '&nbsp;(' + quest.influence + '%)';
-			if (v >= 4) {
+			if (v >= 4 && quest.influence >= 100) {
 				cc = 'red';
 			} else if (this.cost(i)) {
 				cc = 'blue';
@@ -11094,7 +11540,7 @@ Quest.dashboard = function(sort, rev) {
 		} else {
 			r = 'reps_' + (isNumber(quest.land) ? (quest.land + 1) : quest.area);
 			j = quest.name.toLowerCase();
-			vv = quest.eff || (quest.energy * ((this.rdata[j] && this.rdata[j][r]) || 16));
+			vv = quest.eff || (quest.energy * this.wiki_reps(quest));
 			tt = 'effort ' + vv;
 			if (0 < quest.influence && quest.influence < 100) {
 				v = Math.round(vv * (100 - quest.influence) / 100);
@@ -11105,12 +11551,29 @@ Quest.dashboard = function(sort, rev) {
 					tt += ', ';
 				}
 				tt += 'reps ' + v;
-				cc = 'green';
-			} else if (this.rdata[j] && this.rdata[j][r]) {
+				if (quest.m_d && quest.m_c) {
+					var v1 = 100 * quest.m_c / quest.m_d;
+					var v2 = 2 / quest.m_c;
+					var lo = Math.ceil(v1 - v2);
+					var hi = Math.ceil(v1 + v2);
+					if (lo < hi) {
+						tt += ' [' + lo + ',' + hi + ']';
+					}
+					v = this.wiki_reps(quest, true);
+					if (!v || Math.ceil(lo) > v || Math.ceil(hi) < v) {
+						tt += ' wiki[' + (v || '?') + ']';
+						if (lo + 1 >= hi) {
+							cc = 'purple';
+						}
+					} else if (lo + 1 >= hi) {
+						cc = 'green';
+					}
+				}
+			} else if ((v = this.wiki_reps(quest, true))) {
 				if (tt !== '') {
 					tt += ', ';
 				}
-				tt += 'wiki reps ' + this.rdata[j][r];
+				tt += 'wiki reps ' + v;
 			} else {
 				if (tt !== '') {
 					tt += ', ';
@@ -11190,10 +11653,12 @@ Quest.cost = function(id) {
 				n = quest[id].units[i];
 				c = j = 0;
 				k = 1e50;
-				if (town && town[i] && town[i].buy && town[i].buy.length) {
+				if (town && town[i]) {
 					c = town[i].own || 0;
-					j = town[i].upkeep || 0;
-					k = town[i].cost || 0;
+					if (town[i].buy && town[i].buy.length) {
+						j = town[i].upkeep || 0;
+						k = town[i].cost || 0;
+					}
 				} else if (artifact && artifact[i]) {
 					c = 1;
 					j = k = 0;
@@ -11241,331 +11706,373 @@ Quest.cost = function(id) {
 	return this.temp.cost;
 };
 
+Quest.wiki_reps = function(quest, pure) {
+	var reps = 0, n, q, v;
 
-Quest.rts = 1292695942;	// Sat Dec 18 18:12:22 2010 UTC
-Quest.rdata =			// #321
+	if (isObject(quest)) {
+		if (!isNumber(quest.level)) {
+			reps = 1;
+		} else {
+			n = (quest.name || '?').toLowerCase();
+			q = (isNumber(quest.land) ? (quest.land + 1) : quest.area) || '?';
+			if ((v = this.rdmap[n + ';' + q])) {
+				reps = v;
+			}
+		}
+	}
+
+	if (!reps && !pure) {
+		reps = 16;
+	}
+
+	return reps;
+};
+
+
+Quest.rts = 1299004023;	// Tue Mar  1 18:27:03 2011 UTC
+Quest.rdata =			// #341
 {
-	'a demonic transformation':			{ 'reps_4': 40 },
-	'a forest in peril':				{ 'reps_demiquest':  9 },
-	'a kidnapped princess':				{ 'reps_demiquest': 10 },
-	'across the sea':					{ 'reps_11':  8 },
-	'aid corvintheus':					{ 'reps_demiquest':  9 },
-	'aid the angels':					{ 'reps_9': 17 },
-	'approach the prayer chamber':		{ 'reps_demiquest': 12 },
-	'approach the tree of life':		{ 'reps_demiquest': 12 },
-	'ascent to the skies':				{ 'reps_8':  0 },
-	'attack from above':				{ 'reps_9': 17 },
-	'attack undead guardians':			{ 'reps_6': 24 },
-	'aurelius':							{ 'reps_11':  11 },
-	'aurelius outpost':					{ 'reps_11':   9 },
-	'avoid ensnarements':				{ 'reps_3': 34 },
-	'avoid the guards':					{ 'reps_8':  0 },
-	'avoid the patrols':				{ 'reps_9': 17 },
-	'banish the horde':					{ 'reps_9': 17 },
-	'battle a wraith':					{ 'reps_2': 16 },
-	'battle earth and fire demons':		{ 'reps_4': 16 },
-	'battle gang of bandits':			{ 'reps_1': 10 },
-	'battle orc captain':				{ 'reps_3': 15 },
-	'battle the black dragon':			{ 'reps_4': 14 },
-	'battle the ent':					{ 'reps_demiquest': 12 },
-	'battling the demons':				{ 'reps_9': 17 },
-	'being followed':					{ 'reps_7': 15 },
-	'blood wing king of the dragons':	{ 'reps_demiquest': 20 },
-	'breach the barrier':				{ 'reps_8':  0 },
-	'breach the keep entrance':			{ 'reps_demiquest': 12 },
-	'breaching the gates':				{ 'reps_7': 15 },
-	'break aurelius guard':				{ 'reps_11':  0 },
-	'break evil seal':					{ 'reps_7': 17 },
-	'break the lichs spell':			{ 'reps_demiquest': 12 },
-	'break the line':					{ 'reps_10':  0 },
-	'breaking through the guard':		{ 'reps_9': 17 },
-	'bridge of elim':					{ 'reps_8': 11 },
-	'burning gates':					{ 'reps_7':  0 },
-	'call of arms':						{ 'reps_6': 25 },
-	'cast aura of night':				{ 'reps_5': 32 },
-	'cast blizzard':					{ 'reps_10':  0 },
-	'cast fire aura':					{ 'reps_6': 24 },
-	'cast holy light':					{ 'reps_6': 24 },
-	'cast holy light spell':			{ 'reps_5': 24 },
-	'cast holy shield':					{ 'reps_demiquest': 12 },
-	'cast meteor':						{ 'reps_5': 32 },
-	'castle of the black lion':			{ 'reps_demiquest': 13 },
-	'castle of the damn':				{ 'reps_demiquest': 25 },
-	'channel excalibur':				{ 'reps_8':  0 },
-	'charge ahead':						{ 'reps_10':  0 },
-	'charge the castle':				{ 'reps_7': 15 },
-	'chasm of fire':					{ 'reps_10': 10 },
-	'city of clouds':					{ 'reps_8': 11 },
-	'clear the rocks':					{ 'reps_11':  0 },
-	'climb castle cliffs':				{ 'reps_11':  0 },
-	'climb the mountain':				{ 'reps_8':  0 },
-	'close the black portal':			{ 'reps_demiquest': 12 },
-	'confront the black lion':			{ 'reps_demiquest': 12 },
-	'confront the rebels':				{ 'reps_10': 10 },
-	'consult aurora':					{ 'reps_demiquest': 12 },
-	'corruption of nature':				{ 'reps_demiquest': 20 },
-	'cover tracks':						{ 'reps_7': 19 },
-	'cross lava river':					{ 'reps_7': 20 },
-	'cross the bridge':					{ 'reps_10':  0, 'reps_8':  0 },
-	'cross the moat':					{ 'reps_11':  0 },
-	'crossing the chasm':				{ 'reps_2': 13, 'reps_8':  0 },
-	'cure infested soldiers':			{ 'reps_6': 25 },
-	'deal final blow to bloodwing':		{ 'reps_demiquest': 12 },
-	'deathrune castle':					{ 'reps_7': 12 },
-	'decipher the clues':				{ 'reps_9': 17 },
-	'defeat and heal feral animals':	{ 'reps_demiquest': 12 },
-	'defeat angelic sentinels':			{ 'reps_8':  0 },
-	'defeat bear form':					{ 'reps_11':  0 },
-	'defeat bloodwing':					{ 'reps_demiquest': 12 },
-	'defeat chimerus':					{ 'reps_demiquest': 12 },
-	'defeat darien woesteel':			{ 'reps_demiquest':  9 },
-	'defeat demonic guards':			{ 'reps_7': 17 },
-	'defeat fire elementals':			{ 'reps_10':  0 },
-	'defeat frost minions':				{ 'reps_3': 40 },
-	'defeat lion defenders':			{ 'reps_11':  0 },
-	'defeat orc patrol':				{ 'reps_8':  0 },
-	'defeat rebels':					{ 'reps_10':  0 },
-	'defeat snow giants':				{ 'reps_3': 24 },
-	'defeat the bandit leader':			{ 'reps_1':  6 },
-	'defeat the banshees':				{ 'reps_5': 25 },
-	'defeat the black lion army':		{ 'reps_demiquest': 12 },
-	'defeat the demonic guards':		{ 'reps_demiquest': 12 },
-	'defeat the demons':				{ 'reps_9': 17 },
-	'defeat the kobolds':				{ 'reps_10':  0 },
-	'defeat the patrols':				{ 'reps_9': 17 },
-	'defeat the seraphims':				{ 'reps_8':  0 },
-	'defeat tiger form':				{ 'reps_11':  0 },
-	'defend the village':				{ 'reps_demiquest': 12 },
-	'desert temple':					{ 'reps_11': 12 },
-	'destroy black oozes':				{ 'reps_11':  0 },
-	'destroy fire dragon':				{ 'reps_4': 10 },
-	'destroy fire elemental':			{ 'reps_4': 16 },
-	'destroy horde of ghouls & trolls':	{ 'reps_4':  9 },
-	'destroy the black gate':			{ 'reps_demiquest': 12 },
-	'destroy the black portal':			{ 'reps_demiquest': 12 },
-	'destroy the bolted door':			{ 'reps_demiquest': 12 },
-	'destroy undead crypt':				{ 'reps_1':  5 },
-	'destruction abound':				{ 'reps_8': 11 },
-	'determine cause of corruption':	{ 'reps_demiquest': 12 },
-	'dig up star metal':				{ 'reps_demiquest': 12 },
-	'disarm townspeople':				{ 'reps_11':  0 },
-	'discover cause of corruption':		{ 'reps_demiquest': 12 },
-	'dismantle orc patrol':				{ 'reps_3': 32 },
-	'dispatch more cultist guards':		{ 'reps_demiquest': 12 },
-	'distract the demons':				{ 'reps_9': 17 },
-	'dragon slayer':					{ 'reps_demiquest': 14 },
-	'druidic prophecy':					{ 'reps_11':  9 },
-	"duel cefka's knight champion":		{ 'reps_4': 10 },
-	'dwarven stronghold':				{ 'reps_10': 10 },
-	'eastern corridor':					{ 'reps_11':  0 },
-	'elekin the dragon slayer':			{ 'reps_demiquest': 10 },
-	'end of the road':					{ 'reps_9': 17 },
-	'enlist captain morgan':			{ 'reps_11':  0 },
-	'entrance to terra':				{ 'reps_1':  9 },
-	'equip soldiers':					{ 'reps_6': 25 },
-	'escaping the chaos':				{ 'reps_9': 17 },
-	'escaping the stronghold':			{ 'reps_9': 10 },
-	'explore merchant plaza':			{ 'reps_11':  0 },
-	'explore the temple':				{ 'reps_11':  0 },
-	'extinguish desert basilisks':		{ 'reps_11':  0 },
-	'extinguish the fires':				{ 'reps_8':  0 },
-	'falls of jiraya':					{ 'reps_1': 10 },
-	'family ties':						{ 'reps_demiquest': 11 },
-	'fend off demons':					{ 'reps_7': 20 },
-	'fiery awakening':					{ 'reps_7': 12 },
-	"fight cefka's shadow guard":		{ 'reps_4': 10 },
-	'fight demonic worshippers':		{ 'reps_5': 24 },
-	'fight dragon welps':				{ 'reps_4': 10 },
-	'fight ghoul army':					{ 'reps_1':  5 },
-	'fight gildamesh':					{ 'reps_3': 32 },
-	'fight ice beast':					{ 'reps_3': 40 },
-	'fight infested soldiers':			{ 'reps_6': 25 },
-	'fight off demons':					{ 'reps_5': 32 },
-	'fight off zombie infestation':		{ 'reps_demiquest': 12 },
-	'fight snow king':					{ 'reps_3': 24 },
-	'fight the half-giant sephor':		{ 'reps_4':  9 },
-	'fight treants':					{ 'reps_2': 27 },
-	'fight undead zombies':				{ 'reps_2': 16 },
-	'fight water demon lord':			{ 'reps_2': 31 },
-	'fight water demons':				{ 'reps_2': 40 },
-	'fight water spirits':				{ 'reps_2': 40 },
-	'find evidence of dragon attack':	{ 'reps_demiquest':  8 },
-	'find hidden path':					{ 'reps_demiquest': 10 },
-	'find nezeals keep':				{ 'reps_demiquest': 12 },
-	'find rock worms weakness':			{ 'reps_demiquest': 10 },
-	'find source of the attacks':		{ 'reps_demiquest': 12 },
-	'find survivors':					{ 'reps_8':  0 },
-	'find the dark elves':				{ 'reps_demiquest': 12 },
-	'find the demonic army':			{ 'reps_demiquest': 12 },
-	'find the druids':					{ 'reps_demiquest': 12 },
-	'find the entrance':				{ 'reps_8':  0 },
-	'find the exit':					{ 'reps_9': 17 },
-	'find the safest path':				{ 'reps_10':  0 },
-	'find the source of corruption':	{ 'reps_demiquest': 12 },
-	'find the woman? father':			{ 'reps_demiquest': 12 },
-	'find troll weakness':				{ 'reps_2': 10 },
-	'find your way out':				{ 'reps_7': 15 },
-	'fire and brimstone':				{ 'reps_7': 12 },
-	'forest of ash':					{ 'reps_demiquest': 11 },
-	'furest hellblade':					{ 'reps_demiquest': 17 },
-	'gain access':						{ 'reps_10':  0 },
-	'gain entry':						{ 'reps_11':  0 },
-	'gates to the undead':				{ 'reps_6': 17 },
-	'gateway':							{ 'reps_8': 11 },
-	'get information from the druid':	{ 'reps_demiquest': 12 },
-	'get water for the druid':			{ 'reps_demiquest': 12 },
-	'grim outlook':						{ 'reps_9': 17 },
-	'guard against attack':				{ 'reps_demiquest': 12 },
-	'heal wounds':						{ 'reps_7': 20 },
-	'heat the villagers':				{ 'reps_1':  5 },
-	'holy fire':						{ 'reps_demiquest': 11 },
-	'impending battle':					{ 'reps_10': 10 },
-	'interrogate the prisoners':		{ 'reps_9': 17 },
-	'investigate the gateway':			{ 'reps_8':  0 },
-	'ironfist dwarves':					{ 'reps_10': 10 },
-	'join up with artanis':				{ 'reps_demiquest': 12 },
-	'judgement stronghold':				{ 'reps_8': 11 },
-	'juliean desert':					{ 'reps_11': 12 },
-	'kelp forest':						{ 'reps_atlantis': 20 },
-	'kill gildamesh':					{ 'reps_3': 34 },
-	'kill vampire bats':				{ 'reps_demiquest': 12 },
-	'koralan coast town':				{ 'reps_11': 14 },
-	'koralan townspeople':				{ 'reps_11': 10 },
-	'learn about death knights':		{ 'reps_demiquest': 12 },
-	'learn aurelius intentions':		{ 'reps_11':  0 },
-	'learn counterspell':				{ 'reps_demiquest': 12 },
-	'learn holy fire':					{ 'reps_demiquest': 12 },
-	'look for clues':					{ 'reps_8':  0 },
-	'marauders!':						{ 'reps_demiquest':  9 },
-	'march into the undead lands':		{ 'reps_6': 24 },
-	'march to the unholy war':			{ 'reps_6': 25 },
-	'mausoleum of triste':				{ 'reps_3': 17 },
-	'misty hills of boralis':			{ 'reps_3': 20 },
-	'mount aretop':						{ 'reps_demiquest': 25 },
-	'nightmare':						{ 'reps_6': 20 },
-	'outpost entrance':					{ 'reps_11': 12 },
-	'path to heaven':					{ 'reps_8': 11 },
-	'pick up the orc trail':			{ 'reps_1':  6 },
-	'plan the attack':					{ 'reps_demiquest': 12 },
-	'portal of atlantis':				{ 'reps_atlantis': 20 },
-	'power of excalibur':				{ 'reps_8': 11 },
-	'prepare for ambush':				{ 'reps_1':  6 },
-	'prepare for battle':				{ 'reps_5': 32, 'reps_demiquest': 12 },
-	'prepare for the trials':			{ 'reps_9': 17 },
-	'prepare tactics':					{ 'reps_10':  0 },
-	'prepare troops':					{ 'reps_10':  0 },
-	'prevent dragon? escape':			{ 'reps_demiquest': 12 },
-	'protect temple from raiders':		{ 'reps_2': 40 },
-	'purge forest of evil':				{ 'reps_2': 27 },
-	'pursuing orcs':					{ 'reps_1': 13 },
-	'put out the fires':				{ 'reps_demiquest':  8 },
-	'question dark elf prisoners':		{ 'reps_demiquest': 12 },
-	'question the druidic wolf':		{ 'reps_demiquest': 12 },
-	'question townspeople':				{ 'reps_11':  0 },
-	'question vulcan':					{ 'reps_8':  0 },
-	'ready the horses':					{ 'reps_1':  6 },
-	'recover the key':					{ 'reps_9': 17 },
-	'recruit allies':					{ 'reps_10':  0 },
-	'recruit elekin to join you':		{ 'reps_demiquest':  9 },
-	'recruit furest to join you':		{ 'reps_demiquest': 12 },
-	'repel gargoyle raid':				{ 'reps_4': 14 },
-	'request council':					{ 'reps_10':  0 },
-	'rescue survivors':					{ 'reps_8':  0 },
-	'resist the lost souls':			{ 'reps_5': 25 },
-	'retrieve dragon slayer':			{ 'reps_demiquest': 10 },
-	'retrieve the jeweled heart':		{ 'reps_demiquest': 12 },
-	'ride to aretop':					{ 'reps_demiquest': 12 },
-	'ride towards the palace':			{ 'reps_9': 17 },
-	'river of lava':					{ 'reps_10': 10 },
-	'river of light':					{ 'reps_1': 10 },
-	'save lost souls':					{ 'reps_5': 24 },
-	'save stranded soldiers':			{ 'reps_10':  0 },
-	'seek out elekin':					{ 'reps_demiquest':  9 },
-	'seek out furest hellblade':		{ 'reps_demiquest': 12 },
-	'seek out jeweled heart':			{ 'reps_demiquest': 12 },
-	'shield of the stars':				{ 'reps_demiquest': 20 },
-	'slaughter orcs':					{ 'reps_3': 15 },
-	'slay cave bats':					{ 'reps_demiquest': 10 },
-	'slay the black dragons':			{ 'reps_5': 32 },
-	'slay the guardian':				{ 'reps_9': 17 },
-	'slay the sea serpent':				{ 'reps_demiquest': 12 },
-	'sneak attack on dragon':			{ 'reps_demiquest': 12 },
-	'sneak into the city':				{ 'reps_8':  0 },
-	'sneak up on orcs':					{ 'reps_1':  7 },
-	'soldiers of the black lion':		{ 'reps_demiquest': 10 },
-	'spire of death':					{ 'reps_5': 20 },
-	'spring surprise attack':			{ 'reps_demiquest': 12 },
-	'stop the wolf from channeling':	{ 'reps_demiquest': 12 },
-	'storm the castle':					{ 'reps_demiquest': 12 },
-	'storm the ivory palace':			{ 'reps_9': 17 },
-	'sulfurous springs':				{ 'reps_11': 10 },
-	'summon legendary defenders':		{ 'reps_6': 25 },
-	'surround rebels':					{ 'reps_10':  0 },
-	'survey battlefield':				{ 'reps_10':  0 },
-	'survey the surroundings':			{ 'reps_8':  0 },
-	'survive the storm':				{ 'reps_11':  0 },
-	'survive troll ambush':				{ 'reps_2': 10 },
-	'surviving the onslaught':			{ 'reps_9': 17 },
-	'the belly of the demon':			{ 'reps_5': 20 },
-	'the betrayed lands':				{ 'reps_4': 16 },
-	'the black portal':					{ 'reps_demiquest': 15 },
-	'the cave of wonder':				{ 'reps_3': 20 },
-	'the crystal caverns':				{ 'reps_demiquest': 11 },
-	'the darkening skies':				{ 'reps_9': 17 },
-	'the deep':							{ 'reps_atlantis': 20 },
-	'the elven sorceress':				{ 'reps_demiquest': 11 },
-	'the fallen druids':				{ 'reps_demiquest': 12 },
-	'the final stretch':				{ 'reps_9': 17 },
-	'the forbidden forest':				{ 'reps_2': 20 },
-	'the forbidden ritual':				{ 'reps_5': 20 },
-	'the hidden lair':					{ 'reps_demiquest': 13 },
-	'the hollowing moon':				{ 'reps_6': 17 },
-	'the infestation of winterguard':	{ 'reps_demiquest': 10 },
-	'the invasion':						{ 'reps_8': 11 },
-	'the keep of corelan':				{ 'reps_3': 17 },
-	'the keep of isles':				{ 'reps_4': 16 },
-	'the kingdom of alarean':			{ 'reps_demiquest': 15 },
-	'the last gateway':					{ 'reps_9': 17 },
-	"the lich ne'zeal":					{ 'reps_demiquest': 13 },
-	"the lich's keep":					{ 'reps_demiquest': 15 },
-	'the living gates':					{ 'reps_5': 20 },
-	'the long path':					{ 'reps_7': 12 },
-	'the peaks of draneth':				{ 'reps_demiquest': 21 },
-	'the poison source':				{ 'reps_11':  0 },
-	'the rebellion':					{ 'reps_10': 10 },
-	'the return home':					{ 'reps_8': 11 },
-	'the return of the dragon':			{ 'reps_demiquest':  9 },
-	'the ride south':					{ 'reps_8':  0 },
-	'the river of blood':				{ 'reps_5': 20 },
-	'the sea temple':					{ 'reps_atlantis': 20 },
-	'the search for clues':				{ 'reps_demiquest': 12 },
-	'the second temple of water':		{ 'reps_4': 25 },
-	'the smouldering pit':				{ 'reps_4': 40 },
-	'the source of darkness':			{ 'reps_demiquest': 20 },
-	'the source of magic':				{ 'reps_demiquest': 15 },
-	'the stairs of terra':				{ 'reps_2': 10 },
-	'the stone lake':					{ 'reps_1': 12 },
-	'the sunken city':					{ 'reps_demiquest': 17 },
-	'the tree of life':					{ 'reps_demiquest': 21 },
-	'the vanguard of destruction':		{ 'reps_demiquest': 21 },
-	'the water temple':					{ 'reps_2': 17 },
-	'track down soldiers':				{ 'reps_demiquest': 12 },
-	'track sylvana':					{ 'reps_demiquest': 12 },
-	'train with ambrosia':				{ 'reps_demiquest': 12 },
-	'train with aurora':				{ 'reps_demiquest': 12 },
-	'travel to the tree of life':		{ 'reps_demiquest': 12 },
-	'travel to winterguard':			{ 'reps_demiquest': 12 },
-	'triste':							{ 'reps_3': 20 },
-	'undead crusade':					{ 'reps_6': 17 },
-	'underwater ruins':					{ 'reps_atlantis': 20 },
-	'unholy war':						{ 'reps_6': 20 },
-	'use battering ram':				{ 'reps_11':  0 },
-	'vengeance':						{ 'reps_demiquest': 17 },
-	'vesuv bridge':						{ 'reps_10': 10 },
-	'vesuv lookout':					{ 'reps_2': 17 },
-	'visit the blacksmith':				{ 'reps_1': 24 },
-	'vulcans secret':					{ 'reps_8': 11 },
-	'watch the skies':					{ 'reps_demiquest': 12 }
+	'a demonic transformation':			{ 'reps_q4': 40 },
+	'a forest in peril':				{ 'reps_d4':  9 },
+	'a kidnapped princess':				{ 'reps_d1': 10 },
+	'a new dawn':						{ 'reps_q12': 11 },
+	'a surprise from terra':			{ 'reps_q12':  0 },
+	'across the sea':					{ 'reps_q11':  8 },
+	'aid corvintheus':					{ 'reps_d3':  9 },
+	'aid the angels':					{ 'reps_q9': 17 },
+	'approach the prayer chamber':		{ 'reps_d1': 12 },
+	'approach the tree of life':		{ 'reps_d4': 12 },
+	'ascent to the skies':				{ 'reps_q8':  0 },
+	'attack from above':				{ 'reps_q9': 17 },
+	'attack undead guardians':			{ 'reps_q6': 24 },
+	'aurelius':							{ 'reps_q11': 11 },
+	'aurelius outpost':					{ 'reps_q11':  9 },
+	'avoid ensnarements':				{ 'reps_q3': 34 },
+	'avoid the guards':					{ 'reps_q8':  0 },
+	'avoid the patrols':				{ 'reps_q9': 17 },
+	'banish the horde':					{ 'reps_q9': 17 },
+	'battle a wraith':					{ 'reps_q2': 16 },
+	'battle earth and fire demons':		{ 'reps_q4': 16 },
+	'battle gang of bandits':			{ 'reps_q1': 10 },
+	'battle orc captain':				{ 'reps_q3': 15 },
+	'battle the black dragon':			{ 'reps_q4': 14 },
+	'battle the ent':					{ 'reps_d4': 12 },
+	'battling the demons':				{ 'reps_q9': 17 },
+	'being followed':					{ 'reps_q7': 15 },
+	'blood wing king of the dragons':	{ 'reps_d2': 20 },
+	'breach the barrier':				{ 'reps_q8': 14 },
+	'breach the keep entrance':			{ 'reps_d3': 12 },
+	'breaching the gates':				{ 'reps_q7': 15 },
+	'break aurelius guard':				{ 'reps_q11':  0 },
+	'break evil seal':					{ 'reps_q7': 17 },
+	'break the lichs spell':			{ 'reps_d3': 12 },
+	'break the line':					{ 'reps_q10':  0 },
+	'breaking through the guard':		{ 'reps_q9': 17 },
+	'bridge of elim':					{ 'reps_q8': 11 },
+	'burning gates':					{ 'reps_q7':  0 },
+	'call of arms':						{ 'reps_q6': 25 },
+	'cast aura of night':				{ 'reps_q5': 32 },
+	'cast blizzard':					{ 'reps_q10':  0 },
+	'cast fire aura':					{ 'reps_q6': 24 },
+	'cast holy light':					{ 'reps_q6': 24 },
+	'cast holy light spell':			{ 'reps_q5': 24 },
+	'cast holy shield':					{ 'reps_d3': 12 },
+	'cast meteor':						{ 'reps_q5': 32 },
+	'castle of the black lion':			{ 'reps_d5': 13 },
+	'castle of the damn':				{ 'reps_d3': 21 },
+	'channel excalibur':				{ 'reps_q8':  0 },
+	'charge ahead':						{ 'reps_q10':  0 },
+	'charge the castle':				{ 'reps_q7': 15 },
+	'chasm of fire':					{ 'reps_q10': 10 },
+	'city of clouds':					{ 'reps_q8': 11 },
+	'clear the rocks':					{ 'reps_q11':  0 },
+	'climb castle cliffs':				{ 'reps_q11':  0 },
+	'climb the mountain':				{ 'reps_q8':  0 },
+	'close the black portal':			{ 'reps_d1': 12 },
+	'confront the black lion':			{ 'reps_d5': 12 },
+	'confront the rebels':				{ 'reps_q10': 10 },
+	'consult aurora':					{ 'reps_d4': 12 },
+	'corruption of nature':				{ 'reps_d4': 20 },
+	'cover tracks':						{ 'reps_q7': 19 },
+	'cross lava river':					{ 'reps_q7': 20 },
+	'cross the bridge':					{ 'reps_q10':  0, 'reps_q8':  0 },
+	'cross the moat':					{ 'reps_q11':  0 },
+	'crossing the chasm':				{ 'reps_q2': 13, 'reps_q8':  0 },
+	'cure infested soldiers':			{ 'reps_q6': 25 },
+	'dark heart of the woods':			{ 'reps_q12': 11 },
+	'deal final blow to bloodwing':		{ 'reps_d2': 12 },
+	'deathrune castle':					{ 'reps_q7': 12 },
+	'decipher the clues':				{ 'reps_q9': 17 },
+	'defeat and heal feral animals':	{ 'reps_d4': 12 },
+	'defeat angelic sentinels':			{ 'reps_q8': 14 },
+	'defeat bear form':					{ 'reps_q11':  0 },
+	'defeat bloodwing':					{ 'reps_d2': 12 },
+	'defeat chimerus':					{ 'reps_d1': 12 },
+	'defeat darien woesteel':			{ 'reps_d5':  9 },
+	'defeat demonic guards':			{ 'reps_q7': 17 },
+	'defeat fire elementals':			{ 'reps_q10':  0 },
+	'defeat frost minions':				{ 'reps_q3': 40 },
+	'defeat lion defenders':			{ 'reps_q11':  0 },
+	'defeat orc patrol':				{ 'reps_q8':  0 },
+	'defeat rebels':					{ 'reps_q10':  0 },
+	'defeat snow giants':				{ 'reps_q3': 24 },
+	'defeat the bandit leader':			{ 'reps_q1':  6 },
+	'defeat the banshees':				{ 'reps_q5': 25 },
+	'defeat the black lion army':		{ 'reps_d5': 12 },
+	'defeat the demonic guards':		{ 'reps_d1': 12 },
+	'defeat the demons':				{ 'reps_q9': 17 },
+	'defeat the kobolds':				{ 'reps_q10':  0 },
+	'defeat the patrols':				{ 'reps_q9': 17 },
+	'defeat the seraphims':				{ 'reps_q8':  0 },
+	'defeat tiger form':				{ 'reps_q11':  0 },
+	'defend the village':				{ 'reps_d3': 12 },
+	'desert temple':					{ 'reps_q11': 12 },
+	'destroy black oozes':				{ 'reps_q11':  0 },
+	'destroy fire dragon':				{ 'reps_q4': 10 },
+	'destroy fire elemental':			{ 'reps_q4': 16 },
+	'destroy horde of ghouls & trolls':	{ 'reps_q4':  9 },
+	'destroy the black gate':			{ 'reps_d1': 12 },
+	'destroy the black portal':			{ 'reps_d1': 12 },
+	'destroy the bolted door':			{ 'reps_d3': 12 },
+	'destroy undead crypt':				{ 'reps_q1':  5 },
+	'destruction abound':				{ 'reps_q8': 11 },
+	'determine cause of corruption':	{ 'reps_d5': 12 },
+	'dig up star metal':				{ 'reps_d3': 12 },
+	'disarm townspeople':				{ 'reps_q11':  0 },
+	'discover cause of corruption':		{ 'reps_d4': 12 },
+	'dismantle orc patrol':				{ 'reps_q3': 32 },
+	'dispatch more cultist guards':		{ 'reps_d1': 12 },
+	'distract the demons':				{ 'reps_q9': 17 },
+	'dragon slayer':					{ 'reps_d2': 14 },
+	'druidic prophecy':					{ 'reps_q11':  9 },
+	"duel cefka's knight champion":		{ 'reps_q4': 10 },
+	'dwarven stronghold':				{ 'reps_q10': 10 },
+	'eastern corridor':					{ 'reps_q11':  0 },
+	'elekin the dragon slayer':			{ 'reps_d2': 10 },
+	'end of the road':					{ 'reps_q9': 17 },
+	'enlist captain morgan':			{ 'reps_q11':  0 },
+	'entrance denied':					{ 'reps_q12':  0 },
+	'entrance to terra':				{ 'reps_q1':  9 },
+	'equip soldiers':					{ 'reps_q6': 25 },
+	'escape from trakan':				{ 'reps_q12': 11 },
+	'escaping the chaos':				{ 'reps_q9': 17 },
+	'escaping the stronghold':			{ 'reps_q9': 10 },
+	'explore merchant plaza':			{ 'reps_q11':  0 },
+	'explore the temple':				{ 'reps_q11':  0 },
+	'extinguish desert basilisks':		{ 'reps_q11':  0 },
+	'extinguish the fires':				{ 'reps_q8':  0 },
+	'falls of jiraya':					{ 'reps_q1': 10 },
+	'family ties':						{ 'reps_d5': 11 },
+	'felthias fields':					{ 'reps_q12': 14 },
+	'fend off demons':					{ 'reps_q7': 20 },
+	'fiery awakening':					{ 'reps_q7': 12 },
+	"fight cefka's shadow guard":		{ 'reps_q4': 10 },
+	'fight demonic worshippers':		{ 'reps_q5': 24 },
+	'fight dragon welps':				{ 'reps_q4': 10 },
+	'fight ghoul army':					{ 'reps_q1':  5 },
+	'fight gildamesh':					{ 'reps_q3': 32 },
+	'fight ice beast':					{ 'reps_q3': 40 },
+	'fight infested soldiers':			{ 'reps_q6': 25 },
+	'fight off demons':					{ 'reps_q5': 21 },
+	'fight off zombie infestation':		{ 'reps_d3': 12 },
+	'fight snow king':					{ 'reps_q3': 24 },
+	'fight the half-giant sephor':		{ 'reps_q4':  9 },
+	'fight treants':					{ 'reps_q2': 27 },
+	'fight undead zombies':				{ 'reps_q2': 16 },
+	'fight water demon lord':			{ 'reps_q2': 31 },
+	'fight water demons':				{ 'reps_q2': 30 },
+	'fight water spirits':				{ 'reps_q2': 40 },
+	'find evidence of dragon attack':	{ 'reps_d2':  8 },
+	'find hidden path':					{ 'reps_d2': 10 },
+	'find nezeals keep':				{ 'reps_d3': 12 },
+	'find rock worms weakness':			{ 'reps_d2': 10 },
+	'find source of the attacks':		{ 'reps_d3': 12 },
+	'find survivors':					{ 'reps_q8': 14 },
+	'find the dark elves':				{ 'reps_d1': 12 },
+	'find the demonic army':			{ 'reps_d1': 12 },
+	'find the druids':					{ 'reps_d4': 12 },
+	'find the entrance':				{ 'reps_q8':  0 },
+	'find the exit':					{ 'reps_q9': 17 },
+	'find the safest path':				{ 'reps_q10':  0 },
+	'find the source of corruption':	{ 'reps_d4': 12 },
+	'find the woman? father':			{ 'reps_d5': 12 },
+	'find troll weakness':				{ 'reps_q2': 10 },
+	'find your way out':				{ 'reps_q7': 15 },
+	'fire and brimstone':				{ 'reps_q7': 12 },
+	'forest of ash':					{ 'reps_d4': 11 },
+	'freeing arielle':					{ 'reps_q12': 11 },
+	'furest hellblade':					{ 'reps_d3': 17 },
+	'gain access':						{ 'reps_q10':  0 },
+	'gain entry':						{ 'reps_q11':  0 },
+	'gates to the undead':				{ 'reps_q6': 17 },
+	'gateway':							{ 'reps_q8': 11 },
+	'get information from the druid':	{ 'reps_d4': 12 },
+	'get water for the druid':			{ 'reps_d4': 12 },
+	'grim outlook':						{ 'reps_q9': 17 },
+	'guard against attack':				{ 'reps_d5': 12 },
+	'heal wounds':						{ 'reps_q7': 20 },
+	'heat the villagers':				{ 'reps_q1':  5 },
+	'holy fire':						{ 'reps_d4': 11 },
+	'impending battle':					{ 'reps_q10': 10 },
+	'interrogate the prisoners':		{ 'reps_q9': 17 },
+	'investigate the gateway':			{ 'reps_q8':  0 },
+	'ironfist dwarves':					{ 'reps_q10': 10 },
+	'join up with artanis':				{ 'reps_d1': 12 },
+	'judgement stronghold':				{ 'reps_q8': 11 },
+	'juliean desert':					{ 'reps_q11': 12 },
+	'kelp forest':						{ 'reps_a1': 20 },
+	'kill gildamesh':					{ 'reps_q3': 34 },
+	'kill vampire bats':				{ 'reps_d3': 10 },
+	'koralan coast town':				{ 'reps_q11': 14 },
+	'koralan townspeople':				{ 'reps_q11': 10 },
+	'learn about death knights':		{ 'reps_d5': 12 },
+	'learn aurelius intentions':		{ 'reps_q11':  0 },
+	'learn counterspell':				{ 'reps_d1': 12 },
+	'learn holy fire':					{ 'reps_d4': 12 },
+	'look for clues':					{ 'reps_q8': 14 },
+	'lothar the ranger':				{ 'reps_q12': 11 },
+	'marauders!':						{ 'reps_d5':  9 },
+	'march into the undead lands':		{ 'reps_q6': 24 },
+	'march to the unholy war':			{ 'reps_q6': 25 },
+	'mausoleum of triste':				{ 'reps_q3': 17 },
+	'misty hills of boralis':			{ 'reps_q3': 20 },
+	'mount aretop':						{ 'reps_d2': 25 },
+	'nightfall':						{ 'reps_q12':  9 },
+	'nightmare':						{ 'reps_q6': 20 },
+	'outpost entrance':					{ 'reps_q11': 12 },
+	'path to heaven':					{ 'reps_q8': 11 },
+	'pick up the orc trail':			{ 'reps_q1':  6 },
+	'plan the attack':					{ 'reps_d5': 12 },
+	'portal of atlantis':				{ 'reps_a1': 20 },
+	'power of excalibur':				{ 'reps_q8': 11 },
+	'prepare for ambush':				{ 'reps_q1':  6 },
+	'prepare for battle':				{ 'reps_d2': 12, 'reps_q5': 21 },
+	'prepare for the trials':			{ 'reps_q9': 17 },
+	'prepare tactics':					{ 'reps_q10':  0 },
+	'prepare troops':					{ 'reps_q10':  0 },
+	'prevent dragon? escape':			{ 'reps_d2': 12 },
+	'protect temple from raiders':		{ 'reps_q2': 40 },
+	'purge forest of evil':				{ 'reps_q2': 27 },
+	'pursuing orcs':					{ 'reps_q1': 13 },
+	'put out the fires':				{ 'reps_d2':  8 },
+	'question dark elf prisoners':		{ 'reps_d1': 12 },
+	'question the druidic wolf':		{ 'reps_d4': 12 },
+	'question townspeople':				{ 'reps_q11':  0 },
+	'question vulcan':					{ 'reps_q8':  0 },
+	'ready the horses':					{ 'reps_q1':  6 },
+	'recover the key':					{ 'reps_q9': 17 },
+	'recruit allies':					{ 'reps_q10':  0 },
+	'recruit elekin to join you':		{ 'reps_d2':  9 },
+	'recruit furest to join you':		{ 'reps_d3': 12 },
+	'repel gargoyle raid':				{ 'reps_q4': 14 },
+	'request council':					{ 'reps_q10':  0 },
+	'rescue survivors':					{ 'reps_q8': 14 },
+	'resist the lost souls':			{ 'reps_q5': 25 },
+	'retrieve dragon slayer':			{ 'reps_d2': 10 },
+	'retrieve the jeweled heart':		{ 'reps_d5': 12 },
+	'ride to aretop':					{ 'reps_d2': 12 },
+	'ride towards the palace':			{ 'reps_q9': 17 },
+	'river of lava':					{ 'reps_q10': 10 },
+	'river of light':					{ 'reps_q1': 10 },
+	'save lost souls':					{ 'reps_q5': 24 },
+	'save stranded soldiers':			{ 'reps_q10':  0 },
+	'seek out elekin':					{ 'reps_d2':  9 },
+	'seek out furest hellblade':		{ 'reps_d3': 12 },
+	'seek out jeweled heart':			{ 'reps_d5': 12 },
+	'shield of the stars':				{ 'reps_d3': 20 },
+	'slaughter orcs':					{ 'reps_q3': 15 },
+	'slay cave bats':					{ 'reps_d2': 10 },
+	'slay the black dragons':			{ 'reps_q5': 32 },
+	'slay the guardian':				{ 'reps_q9': 17 },
+	'slay the sea serpent':				{ 'reps_d5': 12 },
+	'sneak attack on dragon':			{ 'reps_d2': 12 },
+	'sneak into the city':				{ 'reps_q8': 14 },
+	'sneak up on orcs':					{ 'reps_q1':  7 },
+	'soldiers of the black lion':		{ 'reps_d5': 10 },
+	'spire of death':					{ 'reps_q5': 20 },
+	'sporeguard forest':				{ 'reps_q12': 10 },
+	'spring surprise attack':			{ 'reps_d5': 12 },
+	'stop the wolf from channeling':	{ 'reps_d4': 12 },
+	'storm the castle':					{ 'reps_d5': 12 },
+	'storm the ivory palace':			{ 'reps_q9': 17 },
+	'sulfurous springs':				{ 'reps_q11': 10 },
+	'summon legendary defenders':		{ 'reps_q6': 25 },
+	'surround rebels':					{ 'reps_q10':  0 },
+	'survey battlefield':				{ 'reps_q10':  0 },
+	'survey the surroundings':			{ 'reps_q8': 14 },
+	'survive the storm':				{ 'reps_q11':  0 },
+	'survive troll ambush':				{ 'reps_q2': 10 },
+	'surviving the onslaught':			{ 'reps_q9': 17 },
+	'tezzari village':					{ 'reps_q12': 12 },
+	'the belly of the demon':			{ 'reps_q5': 16 },
+	'the betrayed lands':				{ 'reps_q4': 16 },
+	'the black portal':					{ 'reps_d1': 15 },
+	'the cave of wonder':				{ 'reps_q3': 20 },
+	'the crystal caverns':				{ 'reps_d2': 11 },
+	'the darkening skies':				{ 'reps_q9': 17 },
+	'the dead forests':					{ 'reps_q12': 11 },
+	'the deep':							{ 'reps_a1': 20 },
+	'the elven sorceress':				{ 'reps_d1': 11 },
+	'the fallen druids':				{ 'reps_d4': 12 },
+	'the final stretch':				{ 'reps_q9': 17 },
+	'the forbidden forest':				{ 'reps_q2': 20 },
+	'the forbidden ritual':				{ 'reps_q5': 20 },
+	'the gateway':						{ 'reps_q12': 10 },
+	'the hidden lair':					{ 'reps_d1': 13 },
+	'the hollowing moon':				{ 'reps_q6': 17 },
+	'the infestation of winterguard':	{ 'reps_d3': 10 },
+	'the invasion':						{ 'reps_q8': 11 },
+	'the keep of corelan':				{ 'reps_q3': 17 },
+	'the keep of isles':				{ 'reps_q4': 16 },
+	'the kingdom of alarean':			{ 'reps_d5': 15 },
+	'the last gateway':					{ 'reps_q9': 17 },
+	"the lich ne'zeal":					{ 'reps_d3': 13 },
+	"the lich's keep":					{ 'reps_d3': 15 },
+	'the living gates':					{ 'reps_q5': 20 },
+	'the long path':					{ 'reps_q7': 12 },
+	'the peaks of draneth':				{ 'reps_d5': 21 },
+	'the poison source':				{ 'reps_q11':  0 },
+	'the rebellion':					{ 'reps_q10': 10 },
+	'the return home':					{ 'reps_q8': 11 },
+	'the return of the dragon':			{ 'reps_d2':  9 },
+	'the ride south':					{ 'reps_q8':  0 },
+	'the river of blood':				{ 'reps_q5': 20 },
+	'the scourge':						{ 'reps_q12': 11 },
+	'the sea temple':					{ 'reps_a1': 20 },
+	'the search for clues':				{ 'reps_d1': 12 },
+	'the second temple of water':		{ 'reps_q4': 25 },
+	'the smouldering pit':				{ 'reps_q4': 40 },
+	'the source of darkness':			{ 'reps_d1': 20 },
+	'the source of magic':				{ 'reps_d4': 15 },
+	'the southern entrance':			{ 'reps_q12':  9 },
+	'the stairs of terra':				{ 'reps_q2': 10 },
+	'the stone lake':					{ 'reps_q1': 12 },
+	'the sunken city':					{ 'reps_d5': 17 },
+	'the tree of life':					{ 'reps_d4': 21 },
+	'the vanguard of destruction':		{ 'reps_d1': 21 },
+	'the water temple':					{ 'reps_q2': 17 },
+	'til morning comes':				{ 'reps_q12': 11 },
+	'track down soldiers':				{ 'reps_d5': 12 },
+	'track sylvana':					{ 'reps_d1': 12 },
+	'train with ambrosia':				{ 'reps_d1': 12 },
+	'train with aurora':				{ 'reps_d4': 12 },
+	'trakan prison':					{ 'reps_q12': 11 },
+	'trakan sky bridge':				{ 'reps_q12': 11 },
+	'trakan village':					{ 'reps_q12': 11 },
+	'travel to the tree of life':		{ 'reps_d4': 12 },
+	'travel to winterguard':			{ 'reps_d3': 12 },
+	'triste':							{ 'reps_q3': 20 },
+	'undead crusade':					{ 'reps_q6': 17 },
+	'underground path':					{ 'reps_q12':  8 },
+	'underwater ruins':					{ 'reps_a1': 20 },
+	'unholy war':						{ 'reps_q6': 20 },
+	'use battering ram':				{ 'reps_q11':  0 },
+	'vengeance':						{ 'reps_d2': 17 },
+	'vesuv bridge':						{ 'reps_q10': 10 },
+	'vesuv lookout':					{ 'reps_q2': 17 },
+	'visit the blacksmith':				{ 'reps_q1': 24 },
+	'vulcans secret':					{ 'reps_q8': 11 },
+	'watch the skies':					{ 'reps_d3': 12 }
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -11583,7 +12090,7 @@ var Town = new Worker('Town');
 Town.temp = null;
 
 Town.defaults['castle_age'] = {
-	pages:'town_soldiers town_blacksmith town_magic'
+	pages:'town_soldiers town_blacksmith town_magic keep_stats'
 };
 
 Town.option = {
@@ -11672,7 +12179,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Fri Feb 11 03:56:22 2011 UTC
+  // as of Fri Mar  4 01:38:45 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -11684,8 +12191,8 @@ Town.blacksmith = {
       //   shield.19{Sword of Redemption}, weapon.5{Sword}
     Weapon: new RegExp('(' +
       '\\baxe\\b' +				// 13
-      '|\\bblades?\\b' +		// 25+1
-      '|\\bbow\\b' +			// 7
+      '|\\bblades?\\b' +		// 27+1
+      '|\\bbow\\b' +			// 8
       '|\\bclaw\\b' +			// 1
       '|\\bcleaver\\b' +		// 1
       '|\\bcudgel\\b' +			// 1
@@ -11698,6 +12205,7 @@ Town.blacksmith = {
       '|\\bhammer\\b' +			// 1
       '|\\bhellblade\\b' +		// 1
       '|\\bkatara\\b' +			// 1
+      '|\\bkingblade\\b' +		// 1
       '|\\blance\\b' +			// 2
       '|\\blongsword\\b' +		// 1
       '|\\bmace\\b' +			// 6
@@ -11708,7 +12216,7 @@ Town.blacksmith = {
       '|\\bscepter\\b' +		// 1
       '|\\bshortsword\\b' +		// 1
       '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 6 (mismatches 1)
+      '|\\bstaff\\b' +			// 7 (mismatches 1)
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
@@ -11752,10 +12260,10 @@ Town.blacksmith = {
       '|^Virtue of Justice$' +
       ')', 'i'),
     Shield: new RegExp('(' +
-      '\\baegis\\b' +			// 2
+      '\\baegis\\b' +			// 4
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
-      '|\\bdefender\\b' +		// 3
+      '|\\bdefender\\b' +		// 4
       '|\\bprotector\\b' +		// 1
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
@@ -11778,7 +12286,7 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 20
+      '|\\barmor\\b' +			// 21
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
@@ -11788,9 +12296,9 @@ Town.blacksmith = {
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 29
+      '|\\bplate\\b' +			// 31
       '|\\bplatemail\\b' +		// 2
-      '|\\braiments\\b' +		// 4
+      '|\\braiments\\b' +		// 5
       '|\\brobes?\\b' +			// 1+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
@@ -11806,16 +12314,17 @@ Town.blacksmith = {
       '\\bcowl\\b' +			// 1
       '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 36
+      '|\\bhelm\\b' +			// 37
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
-      '|\\bmask\\b' +			// 1
+      '|\\bmane\\b' +			// 1
+      '|\\bmask\\b' +			// 2
       '|\\btiara\\b' +			// 1
       '|\\bveil\\b' +			// 1
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 15
+      '\\bamulet\\b' +			// 16
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
@@ -11833,9 +12342,9 @@ Town.blacksmith = {
       '|\\bnecklace\\b' +		// 4
       '|\\bpendant\\b' +		// 10
       '|\\brelic\\b' +			// 1
-      '|\\bring\\b' +			// 7
+      '|\\bring\\b' +			// 8
       '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 2
+      '|\\bseal\\b' +			// 3
       '|\\bshard\\b' +			// 6
       '|\\bsignet\\b' +			// 8
       '|\\bsunstone\\b' +		// 1
@@ -11846,6 +12355,7 @@ Town.blacksmith = {
       '|^Crystal of Lament$' +
       '|^Dragon Ashes$' +
       '|^Earth Orb$' +
+      '|^Force of Nature$' +
       '|^Gold Bar$' +
       '|^Heart of Elos$' +
       '|^Ice Orb$' +
@@ -11870,7 +12380,8 @@ Town.blacksmith = {
       '|\\bgauntlets?\\b' +		// 9+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 3+3
+      '|\\bhands?\\b' +			// 4+3
+      '|^Natures Reach$' +
       "|^Slayer's Embrace$" +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +
@@ -11891,8 +12402,64 @@ Town.init = function() {
 	this.runtime.cost_incr = 4;
 };
 
+  // .layout td >div:contains("Owned Items:")
+  // .layout td >div div[style*="town_unit_bar."]
+  // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	if (!change) {
+	var modify = false;
+	if (change && Page.page === 'town_blacksmith') {
+		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
+			var name = $('div img[alt]', el).attr('alt').trim(),
+				icon = $('div img[src]', el).attr('src').filepart();
+			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
+				name = Town.dup_map[name][icon];
+			}
+			if (Town.data[name] && Town.data[name].type) {
+				$('div strong:first', el).parent().append('<br>'+Town.data[name].type);
+			}
+		});
+	} else if (Page.page === 'keep_stats') {
+		var keep = $('.keep_attribute_section').first();
+		// Only when it's our own keep and not someone elses
+		if (keep.length) {
+			var tmp = $('.statsTTitle:contains("UNITS") + .statsTMain .statUnit');
+			if (tmp.length) {
+				tmp.each(function(a, el) {
+					var b = $('a img[src]', el);
+					var i = $(b).attr('src').filepart();
+					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
+					if (!Town.data[n]) {
+						Page.set('data.town_soldiers', 0);
+						return false;
+					} else if (Town.data[n].own != c) {
+						Town.set(['data', n, 'own'], c);
+					}
+				});
+			}
+
+			tmp = $('.statsTTitle:contains("ITEMS") + .statsTMain .statUnit');
+			if (tmp.length) {
+				tmp.each(function(a, el) {
+					var b = $('a img[src]', el);
+					var i = $(b).attr('src').filepart();
+					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
+					// names aren't unique for items
+					if (n && Town.dup_map[n] && Town.dup_map[n][i]) {
+						n = Town.dup_map[n][i];
+					}
+					if (!Town.data[n] || Town.data[n].img !== i) {
+						Page.set('data.town_blacksmith', 0);
+						Page.set('data.town_magic', 0);
+						return false;
+					} else if (Town.data[n].own != c) {
+						Town.set(['data', n, 'own'], c);
+					}
+				});
+			}
+		}
+	} else if (!change) {
 		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i;
 		purge = {};
 		for (i in unit) {
@@ -11900,47 +12467,76 @@ Town.parse = function(change) {
 				purge[i] = true;
 			}
 		}
-		$('.eq_buy_row,.eq_buy_row2').each(function(a,el) {
-			var i, j, stats = $('div.eq_buy_stats', el), name = $('div.eq_buy_txt strong:first', el).text().trim(), costs = $('div.eq_buy_costs', el), cost = $('strong:first-child', costs).text().replace(/\D/g, ''),upkeep = $('div.eq_buy_txt_int:first',el).children('span.negative').text().replace(/\D/g, ''), match, maxlen = 0;
+		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
+			var i, j,
+				name = $('div img[alt]', el).attr('alt').trim(),
+				icon = $('div img[src]', el).attr('src').filepart(),
+				cost = $('div strong.gold', el).text().replace(/\D/g, ''),
+				own = $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i),
+				atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/),
+				def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i),
+				upkeep = $('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, ''),
+				match, maxlen = 0;
 			changes++;
+			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
+				name = Town.dup_map[name][icon];
+			}
 			if (purge[name]) {
 				purge[name] = false;
 			}
 			unit[name] = unit[name] || {};
 			unit[name].page = page;
-			unit[name].img = $('div.eq_buy_image img', el).attr('src').filepart();
-			unit[name].own = $(costs).text().regex(/Owned: (\d+)/i);
+			unit[name].img = icon;
+			unit[name].own = own || 0;
 			Resources.add('_'+name, unit[name].own, true);
-			unit[name].att = $('div.eq_buy_stats_int div:eq(0)', stats).text().regex(/(\d+)\s*Attack/);
-			unit[name].def = $('div.eq_buy_stats_int div:eq(1)', stats).text().regex(/(\d+)\s*Defense/);
+			unit[name].att = atk || 0;
+			unit[name].def = def || 0;
 			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
 			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
 			if (cost) {
-				unit[name].cost = parseInt(cost, 10);
-				if (upkeep){
-					unit[name].upkeep = parseInt(upkeep, 10);
-				}
-				i = 0;
-				if ($('input[name="buy"]', costs).length) {
+				unit[name].cost = parseInt(cost, 10) || 0;
+			} else if ('cost' in unit[name]) {
+				delete unit[name].cost;
+			}
+			if (upkeep) {
+				unit[name].upkeep = parseInt(upkeep, 10) || 0;
+			} else if ('upkeep' in unit[name]) {
+				delete unit[name].upkeep;
+			}
+			if (cost) {
+				unit[name].id = null;
+				if ((i = $('form .imgButton input[name="Buy"]', el)).length) {
+					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemBuy_(\d+)$/)))) {
+						unit[name].id = j;
+					}
 					unit[name].buy = [];
-					$('select[name="amount"]:eq('+i+') option', costs).each(function(b,el) {
+					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
 						unit[name].buy.push(parseInt($(el).val(), 10));
 					});
-					i++;
 				} else {
-					unit[name].buy = undefined;
+					unit[name].buy = null;
 				}
-				if ($('input[name="sell"]', costs).length) {
+				if ((i = $('form .imgButton input[name="Sell"]', el)).length) {
+					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemSell_(\d+)$/)))) {
+						unit[name].id = j;
+					}
 					unit[name].sell = [];
-					$('select[name="amount"]:eq('+i+') option', costs).each(function(b,el) {
+					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
 						unit[name].sell.push(parseInt($(el).val(), 10));
 					});
 				} else {
-					unit[name].sell = undefined;
+					unit[name].sell = null;
+				}
+			} else {
+				if ('buy' in unit[name]) {
+					delete unit[name].buy;
+				}
+				if ('sell' in unit[name]) {
+					delete unit[name].sell;
 				}
 			}
 			if (page === 'blacksmith') {
-				unit[name].type = undefined;
+				unit[name].type = null;
 				for (i in Town.blacksmith) {
 					if ((match = name.match(Town.blacksmith[i]))) {
 						j = 1;
@@ -11967,15 +12563,9 @@ Town.parse = function(change) {
 		if (changes) {
 			this._notify('data');
 		}
-	} else if (Page.page === 'town_blacksmith') {
-		$('.eq_buy_row,.eq_buy_row2').each(function(i,el) {
-			var $el = $('div.eq_buy_txt strong:first-child', el), name = $el.text().trim();
-			if (Town.data[name] && Town.data[name].type) {
-				$el.parent().append('<br>'+Town.data[name].type);
-			}
-		});
+		modify = true;
 	}
-	return true;
+	return modify;
 };
 
 Town.getInvade = function(army) {
@@ -12013,7 +12603,10 @@ Town.getDuel = function() {
 Town.update = function(event) {
 	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep,
 	land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
-	incr = (this.runtime.cost_incr || 4);
+	incr = (this.runtime.cost_incr || 4), visit = false;
+	if (!Page.data['town_soldiers'] || !Page.data['town_blacksmith'] || !Page.data['town_magic']) {
+		visit = true;
+	}
 
 	switch (this.option.number) {
 		case 'Army':
@@ -12175,15 +12768,18 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell);
+	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit);
 };
 
 Town.work = function(state) {
+	var i;
 	if (state) {
 		if (this.runtime.best_sell){
 			this.sell(this.runtime.best_sell, this.runtime.sell);
 		} else if (this.runtime.best_buy){
 			this.buy(this.runtime.best_buy, this.runtime.buy);
+		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
+			Page.to(i);
 		}
 	}
 	return QUEUE_CONTINUE;
@@ -12191,40 +12787,38 @@ Town.work = function(state) {
 
 Town.buy = function(item, number) { // number is absolute including already owned
 	this._unflush();
-	if (!this.data[item] || !this.data[item].buy || !this.data[item].buy.length || !Bank.worth(this.runtime.cost)) {
+	if (!this.data[item] || !this.data[item].id || !this.data[item].buy || !this.data[item].buy.length || !Bank.worth(this.runtime.cost)) {
 		return true; // We (pretend?) we own them
 	}
 	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
 	var qty = bestValue(this.data[item].buy, number);
-	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
-		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-			console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
-			$('div.eq_buy_costs select[name="amount"]:eq(0)', el).val(qty);
-			Page.click($('div.eq_buy_costs input[name="Buy"]', el));
-		}
-	});
+	var $form = $('form#app46755028429_itemBuy_' + this.data[item].id);
+	if ($form.length) {
+		console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
+		$('select[name="amount"]', $form).val(qty);
+		Page.click($('input[name="Buy"]', $form));
+	}
 	this.set(['runtime','cost_incr'], 4);
 	return false;
 };
 
 Town.sell = function(item, number) { // number is absolute including already owned
 	this._unflush();
-	if (!this.data[item] || !this.data[item].sell || !this.data[item].sell.length) {
+	if (!this.data[item] || !this.data[item].id || !this.data[item].sell || !this.data[item].sell.length) {
 		return true;
 	}
 	if (!Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
 	var qty = bestValue(this.data[item].sell, number);
-	$('.eq_buy_row,.eq_buy_row2').each(function(i,el){
-		if ($('div.eq_buy_txt strong:first', el).text().trim() === item) {
-			console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
-			$('div.eq_buy_costs select[name="amount"]:eq(1)', el).val(qty);
-			Page.click($('div.eq_buy_costs input[name="Sell"]', el));
-		}
-	});
+	var $form = $('form#app46755028429_itemSell_' + this.data[item].id);
+	if ($form.length) {
+		console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
+		$('select[name="amount"]', $form).val(qty);
+		Page.click($('input[name="Sell"]', $form));
+	}
 	this.set(['runtime','cost_incr'], 4);
 	return false;
 };
@@ -12307,6 +12901,22 @@ Town.dashboard = function() {
 	$('#golem-dashboard-Town').html(left+right);
 };
 
+Town.dup_map = {
+	'Earth Shard': {
+		'gift_earth_1.jpg':	'Earth Shard (1)',
+		'gift_earth_2.jpg':	'Earth Shard (2)',
+		'gift_earth_3.jpg':	'Earth Shard (3)',
+		'gift_earth_4.jpg':	'Earth Shard (4)'
+	},
+	'Elven Crown': {
+		'gift_aeris_complete.jpg':	'Elven Crown (Aeris)',
+		'eq_sylvanus_crown.jpg':	'Elven Crown (Sylvanas)'
+	},
+	'Green Emerald Shard': {
+		'mystery_armor_emerald_1.jpg': 'Green Emerald Shard (1)',
+		'mystery_armor_emerald_2.jpg': 'Green Emerald Shard (2)'
+	}
+};
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,

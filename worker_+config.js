@@ -136,6 +136,17 @@ Config.init = function() {
 			}
 		}
 	}
+
+	var multi_change_fn = function(el) {
+		var $this = $(el), tmp, worker, val;
+		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
+			val = [];
+			$this.children().each(function(a,el){ val.push($(el).text()); });
+			worker.get(['option', tmp[1]]);
+			worker.set(['option', tmp[1]], val);
+		}
+	};
+
 	$('input.golem_addselect').live('click', function(){
 		var i, value, values = $(this).prev().val().split(','), $multiple = $(this).parent().children().first();
 		for (i=0; i<values.length; i++) {
@@ -144,28 +155,30 @@ Config.init = function() {
 				$multiple.append('<option>' + value + '</option>').change();
 			}
 		}
-		$multiple.change();
+		multi_change_fn($multiple[0]);
 	});
 	$('input.golem_delselect').live('click', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
-		$multiple.change();
+		multi_change_fn($multiple[0]);
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
-		var $this = $(this), tmp, worker, val;
+		var $this = $(this), tmp, worker, val, handled = false;
 		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			if ($this.attr('type') === 'checkbox') {
 				val = $this.attr('checked');
 			} else if ($this.attr('multiple')) {
-				val = [];
-				$this.children().each(function(i,el){ val.push($(el).text()); });
+				multi_change_fn($this[0]);
+				handled = true;
 			} else {
 				val = $this.attr('value') || $this.val() || null;
 				if (val && val.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 					val = parseFloat(val);
 				}
 			}
-			worker.set('option.'+tmp[1], val);
+			if (!handled) {
+				worker.set('option.'+tmp[1], val);
+			}
 		}
 	});
 	$('.golem-panel-header input').click(function(event){

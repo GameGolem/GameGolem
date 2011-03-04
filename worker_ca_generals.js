@@ -20,7 +20,7 @@ Generals.settings = {
 };
 
 Generals.defaults['castle_age'] = {
-	pages:'* heroes_generals'
+	pages:'* heroes_generals keep_stats'
 };
 
 Generals.runtime = {
@@ -39,10 +39,11 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var i, j, data = {}, bonus = [], current;
+	var i, j, data = {}, bonus = [], current, stale = false;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+			stale = true;
 		}
 	}
 	if (Page.page === 'heroes_generals') {
@@ -83,6 +84,24 @@ Generals.parse = function(change) {
 				this.set(['data',i]);
 			}
 		}
+	} else if (Page.page === 'keep_stats') {
+		// Only when it's our own keep and not someone elses
+		if ($('.keep_attribute_section').length) {
+			var tmp = $('.statsTTitle:contains("HEROES") + .statsTMain .statUnit');
+			if (tmp.length) {
+				tmp.each(function(a, el) {
+					var b = $('a img[src]', el);
+					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+					if (n && !Generals.data[n]) {
+						stale = true;
+						return false;
+					}
+				});
+			}
+		}
+	}
+	if (stale) {
+		Page.set(['data', 'heroes_generals'], 0);
 	}
 	return false;
 };

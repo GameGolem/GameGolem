@@ -66,6 +66,12 @@ Potions.init = function() {
 			Potions.set(['runtime','amount'], 1);
 		}
 	});
+
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Player, 'data.maxstamina');
+	this._watch(LevelUp, 'runtime.running');
 };
 
 Potions.parse = function(change) {
@@ -76,13 +82,16 @@ Potions.parse = function(change) {
 	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		var potions = {};
 		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
-			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(.*) Potion x (\d+)/i);
-			if (info && info[0] && info[1]) {
+			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
+			if (info && info[0]) {
 				potions[info[0]] = info[1];
-				Potions.set(['option',info[0]], Potions.option[info[0]] || 35); // Always pick up on new potion types
+				// Default only newly discovered potion types to 35
+				if (isUndefined(Potions.option[info[0]]) || isNull(Potions.option[info[0]])) {
+					Potions.set(['option',info[0]], Potions.option[info[0]] || 35);
+				}
 			}
 		});
-		this.set(['data'], potions);
+		this._replace(['data'], potions);
 	}
 	return false;
 };
