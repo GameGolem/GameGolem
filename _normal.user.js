@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.999
+// @version		31.5.1000
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 999;
+var revision = 1000;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -7844,7 +7844,13 @@ Land.update = function(event) {
 		Dashboard.status(this, 'Nothing to do.');
 	}
 
-	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && worth >= this.runtime.cost && (Page.get('town_land') || 0) > 0);
+	this.set(['option','_sleep'],
+	  level === this.runtime.lastlevel &&
+	  (Page.get('town_land') || 0) > 0 &&
+	  (!this.runtime.best ||
+	  !this.runtime.buy ||
+	  worth < this.runtime.cost ||
+	  this.runtime.snooze > Date.now()));
 };
 
 Land.work = function(state) {
@@ -8944,8 +8950,8 @@ Monster.types = {
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
-		festival_timer: 691200 // 192 hours
-		//festival: '?'
+		festival_timer: 691200, // 192 hours
+		festival: 'azriel'
 	},
 	red_plains: {
 		name:'War of the Red Plains',

@@ -686,8 +686,8 @@ Monster.types = {
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
-		festival_timer: 691200 // 192 hours
-		//festival: '?'
+		festival_timer: 691200, // 192 hours
+		festival: 'azriel'
 	},
 	red_plains: {
 		name:'War of the Red Plains',
