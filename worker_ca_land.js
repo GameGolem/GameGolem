@@ -269,7 +269,7 @@ Land.update = function(event) {
 		Dashboard.status(this, 'Nothing to do.');
 	}
 
-	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && (Page.get('town_land') || 0) > 0);
+	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && worth < this.runtime.cost && (Page.get('town_land') || 0) > 0);
 };
 
 Land.work = function(state) {

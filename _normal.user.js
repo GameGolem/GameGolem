@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.998
+// @version		31.5.999
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 998;
+var revision = 999;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -7844,7 +7844,7 @@ Land.update = function(event) {
 		Dashboard.status(this, 'Nothing to do.');
 	}
 
-	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && (Page.get('town_land') || 0) > 0);
+	this.set(['option','_sleep'], level === this.runtime.lastlevel && (!this.runtime.best || !this.runtime.buy || this.runtime.snooze > Date.now()) && worth >= this.runtime.cost && (Page.get('town_land') || 0) > 0);
 };
 
 Land.work = function(state) {
@@ -11432,7 +11432,7 @@ Quest.dashboard = function(sort, rev) {
 			case 4: // energy
 				return o.energy;
 			case 5: // effort
-				return o.eff || (o.energy * this.wiki_reps(o));
+				return o.eff || (o.energy * self.wiki_reps(o));
 			case 6: // exp
 				return o.exp / o.energy;
 			case 7: // reward

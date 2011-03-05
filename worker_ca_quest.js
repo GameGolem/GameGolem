@@ -683,7 +683,7 @@ Quest.dashboard = function(sort, rev) {
 			case 4: // energy
 				return o.energy;
 			case 5: // effort
-				return o.eff || (o.energy * this.wiki_reps(o));
+				return o.eff || (o.energy * self.wiki_reps(o));
 			case 6: // exp
 				return o.exp / o.energy;
 			case 7: // reward
