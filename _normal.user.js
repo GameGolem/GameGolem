@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1000
+// @version		31.5.1001
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1000;
+var revision = 1001;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -7786,14 +7786,11 @@ Land.update = function(event) {
 			break;
 		}
 
-		if (this.data[i].buy && this.data[i].buy.length) {
+		if ((income || 0) > 0 && this.data[i].buy && this.data[i].buy.length) {
 			b_cost = best ? (this.data[best].cost || 0) : 1e50;
 			i_cost = (this.data[i].cost || 0);
 			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;
-				if (!income) {
-					break;
-				}
 			}
 		}
 	}
@@ -8276,6 +8273,10 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
  */
 var Monster = new Worker('Monster');
 Monster.temp = null;
+
+Monster.settings = {
+	//taint:true
+};
 
 Monster.defaults['castle_age'] = {
 	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster'
@@ -9867,7 +9868,7 @@ Monster.update = function(event) {
 				} else if (monster.remove && this.option.remove && parseFloat(uid) !== userID) {
 					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
-				} else if (monster.last < Date.now() - this.option.check_interval) {
+				} else if (!monster.remove && monster.last < Date.now() - this.option.check_interval) {
 					this.page(mid, 'Reviewing ', 'casuser','');
 				}
 				if (this.runtime.message) {
@@ -10527,6 +10528,7 @@ Player.parse = function(change) {
 				if (!o[a]) o[a] = {};
 				o[a].value = ($(el).text() || '').trim();
 			});
+			console.log(warn(), 'Land.income: ' + JSON.shallow(o, 2));
 			for (i in o) {
 				if (o[i].label && o[i].value) {
 					if (o[i].label.match(/Land Income:/i)) {

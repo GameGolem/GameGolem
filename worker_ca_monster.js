@@ -1603,7 +1603,7 @@ Monster.update = function(event) {
 				} else if (monster.remove && this.option.remove && parseFloat(uid) !== userID) {
 					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
-				} else if (monster.last < Date.now() - this.option.check_interval) {
+				} else if (!monster.remove && monster.last < Date.now() - this.option.check_interval) {
 					this.page(mid, 'Reviewing ', 'casuser','');
 				}
 				if (this.runtime.message) {
