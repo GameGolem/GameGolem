@@ -237,9 +237,10 @@ Worker.prototype._forget = function(id) {
  * Get a value from one of our _datatypes
  * @param {(string|array)} what The path to the data we want
  * @param {*} def The default value to return if the path we want doesn't exist
+ * @param {string} type The typeof of data required (or return def)
  * @return {*} The value we want, or the default we passed in
  */
-Worker.prototype._get = function(what, def) { // 'path.to.data'
+Worker.prototype._get = function(what, def, type) { // 'path.to.data'
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
@@ -252,7 +253,13 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		return isUndefined(data) ? def : isNull(data) ? null : data.valueOf();
+		if (isUndefined(data) || (type && typeof data !== type)) {
+//			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
+//				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//			}
+			return def;
+		}
+		return isNull(data) ? null : data.valueOf();
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}

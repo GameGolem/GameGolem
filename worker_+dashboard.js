@@ -49,7 +49,8 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top + 'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
@@ -73,6 +74,7 @@ Dashboard.init = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
 		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+			Dashboard.update_trigger();
 			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
@@ -84,7 +86,8 @@ Dashboard.init = function() {
 };
 
 Dashboard.update_trigger = function(event) {
-	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
+	var offset = $('#app46755028429_app_body_container').offset();
+	$('#golem-dashboard').css({'top':offset.top, 'left':offset.left}); // Make sure we're always in the right place
 };
 
 Dashboard.update_watch = function(event) {

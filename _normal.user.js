@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1001
+// @version		31.5.1002
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1001;
+var revision = 1002;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -881,9 +881,10 @@ Worker.prototype._forget = function(id) {
  * Get a value from one of our _datatypes
  * @param {(string|array)} what The path to the data we want
  * @param {*} def The default value to return if the path we want doesn't exist
+ * @param {string} type The typeof of data required (or return def)
  * @return {*} The value we want, or the default we passed in
  */
-Worker.prototype._get = function(what, def) { // 'path.to.data'
+Worker.prototype._get = function(what, def, type) { // 'path.to.data'
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
 	if (!x.length || !(x[0] in this._datatypes)) {
 		x.unshift('data');
@@ -896,7 +897,13 @@ Worker.prototype._get = function(what, def) { // 'path.to.data'
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		return isUndefined(data) ? def : isNull(data) ? null : data.valueOf();
+		if (isUndefined(data) || (type && typeof data !== type)) {
+//			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
+//				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//			}
+			return def;
+		}
+		return isNull(data) ? null : data.valueOf();
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
@@ -2350,7 +2357,8 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="top:' + $('#app46755028429_main_bn').offset().top + 'px;display:' + this.option.display + ';">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
@@ -2374,6 +2382,7 @@ Dashboard.init = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
 		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+			Dashboard.update_trigger();
 			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
@@ -2385,7 +2394,8 @@ Dashboard.init = function() {
 };
 
 Dashboard.update_trigger = function(event) {
-	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()); // Make sure we're always in the right place
+	var offset = $('#app46755028429_app_body_container').offset();
+	$('#golem-dashboard').css({'top':offset.top, 'left':offset.left}); // Make sure we're always in the right place
 };
 
 Dashboard.update_watch = function(event) {
@@ -8274,10 +8284,6 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 var Monster = new Worker('Monster');
 Monster.temp = null;
 
-Monster.settings = {
-	//taint:true
-};
-
 Monster.defaults['castle_age'] = {
 	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster'
 };
@@ -10528,7 +10534,7 @@ Player.parse = function(change) {
 				if (!o[a]) o[a] = {};
 				o[a].value = ($(el).text() || '').trim();
 			});
-			console.log(warn(), 'Land.income: ' + JSON.shallow(o, 2));
+			//console.log(warn(), 'Land.income: ' + JSON.shallow(o, 2));
 			for (i in o) {
 				if (o[i].label && o[i].value) {
 					if (o[i].label.match(/Land Income:/i)) {
