@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1002
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1002;
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8839,7 +8839,7 @@ Monster.types = {
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[5,10,20,50,100,200],
-		festival_timer: 518400, // 144 hours
+		festival_timer: 691200, // 192 hours
 		festival: 'hydra'
 	},
 	legion: {
@@ -8868,7 +8868,7 @@ Monster.types = {
 		attack:[1,5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="fortify"]',
 		defend:[10,10,20,40,100],
-		festival_timer: 518400, // 144 hours
+		festival_timer: 691200, // 192 hours
 		festival: 'earth_element'
 	},
 	ragnarok: {
@@ -8884,7 +8884,7 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="dispel"]',
 		defend:[10,10,20,40,100],
 		defense_img:'shield_img',
-		festival_timer: 518400, // 144 hours
+		festival_timer: 691200, // 192 hours
 		festival: 'water_element'
 	},
 	gehenna: {
@@ -9414,6 +9414,7 @@ Monster.update = function(event) {
 	}
 	var i, j, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
 	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
+	this.runtime.values.big = [];
 	limit = this.runtime.limit;
 	if(!LevelUp.runtime.running && limit === 100){
 		limit = 0;
@@ -9609,6 +9610,7 @@ Monster.update = function(event) {
 							defense_kind = type.defend_button;
 						}
 						if (!monster.no_heal 
+								&& type.defend
 								&& (/:big\b/.test(condition) 
 									|| ((monster.defense || 100) < monster.defend_max
 										&& (monster.defense || 100) > 1))) {
@@ -9871,7 +9873,8 @@ Monster.update = function(event) {
 				type = this.types[monster.type];
 				if (monster.state === 'reward' && monster.ac) {
 					this.page(mid, 'Collecting Reward from ', 'casuser','&action=collectReward');
-				} else if (monster.remove && this.option.remove && parseFloat(uid) !== userID) {
+				} else if (monster.remove && this.option.remove && parseFloat(uid) !== userID
+						&& monster.page !== 'festival') {
 					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
 				} else if (!monster.remove && monster.last < Date.now() - this.option.check_interval) {
@@ -9919,7 +9922,7 @@ Monster.work = function(state) {
 	if (this.runtime[stat]>Queue.runtime[stat] 
 			&& (!Queue.runtime.basehit 
 				|| this.runtime[stat] === Queue.runtime.basehit * this.runtime.multiplier[mode])) {
-		console.log(warn(), 'Waiting for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
+			console.log(warn(), 'Check for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
 		return QUEUE_RELEASE;
 	}
 	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
