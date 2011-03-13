@@ -106,22 +106,14 @@ Idle.pages = {
 };
 
 Idle.work = function(state) {
-	if (!state) {
+	if (!state || !Generals.to(this.option.general)) {
 		return true;
 	}
-	var i, p, time, now = Date.now();
-	if (!Generals.to(this.option.general)) {
-		return true;
-	}
+	var i, p;
 	for (i in this.pages) {
-		if (!this.option[i]) {
-			continue;
-		}
-		time = now - this.option[i];
-		for (p=0; p<this.pages[i].length; p++) {
-			if (!Page.get(this.pages[i][p]) || Page.get(this.pages[i][p]) < time) {
-				if (!Page.to(this.pages[i][p])) {
-					Page.set(this.pages[i][p], now);
+		if (this.option[i]) {
+			for (p=0; p<this.pages[i].length; p++) {
+				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
 					return true;
 				}
 			}

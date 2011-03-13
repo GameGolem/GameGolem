@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.901
+// @version		31.5.1004
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 901;
+var revision = 1004;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -879,9 +879,9 @@ Worker.prototype._forget = function(id) {
 
 /**
  * Get a value from one of our _datatypes
- * @param {(string|array)} what The path to the data we want
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
  * @param {*} def The default value to return if the path we want doesn't exist
- * @param {string} type The typeof of data required (or return def)
+ * @param {string=} type The typeof of data required (or return def)
  * @return {*} The value we want, or the default we passed in
  */
 Worker.prototype._get = function(what, def, type) { // 'path.to.data'
@@ -897,7 +897,7 @@ Worker.prototype._get = function(what, def, type) { // 'path.to.data'
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (isUndefined(data) || (type && typeof data !== type)) {
+		if (isUndefined(data) || (type && (isFunction(type) && type(data)) || (isString(type) && jQuery.type(data) !== type))) {
 //			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
 //				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 //			}
@@ -933,8 +933,8 @@ Worker.prototype._init = function() {
  * Load _datatypes from storage, optionally merging wih current data
  * Save the amount of storage space used
  * Clear the _taint[type] value
- * @param {?string} type The _datatype we wish to load. If null then load all _datatypes
- * @param {?boolean} merge If we wish to merge with current data - normally only used in _setup
+ * @param {string=} type The _datatype we wish to load. If null then load all _datatypes
+ * @param {boolean=} merge If we wish to merge with current data - normally only used in _setup
  */
 Worker.prototype._load = function(type, merge) {
 	var i, n;
@@ -988,7 +988,7 @@ Worker.prototype._notify = function(path) {
 
 /**
  * Overload a function allowing the original function to still exist as this._parent() within the new function.
- * @param {?string} app The APP we will work on, otherwise will be for any
+ * @param {string} app The APP we will work on, otherwise will be for any
  * @param {string} name The function name that we are overloading
  * @param {function()} fn The new function
  */
@@ -1058,8 +1058,8 @@ Worker.prototype._push = function() {
 /**
  * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
  * @param {number} seconds How long between events
- * @param {?string} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
- * @param {?(function()|object)} callback A function to call, or an event object to pass to _update
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setInterval result
  */
 Worker.prototype._revive = function(seconds, id, callback) {
@@ -1080,8 +1080,8 @@ Worker.prototype._revive = function(seconds, id, callback) {
 /**
  * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
  * @param {number} seconds How long before reminding us
- * @param {?string} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
- * @param {?(function()|object)} callback A function to call, or an event object to pass to _update
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setTimeout result
  */
 Worker.prototype._remind = function(seconds, id, callback) {
@@ -1129,7 +1129,7 @@ Worker.prototype._replace = function(type, data) {
  * Save the amount of storage space used
  * Clear the _taint[type] value
  * Make sure we _update() if we are going to save
- * @param {?string} type The _datatype we wish to save. If null then save all _datatypes
+ * @param {string=} type The _datatype we wish to save. If null then save all _datatypes
  * @return {boolean} Did we save or not
  */
 Worker.prototype._save = function(type) {
@@ -1177,11 +1177,16 @@ Worker.prototype._save = function(type) {
 
 /*
  * Set a value in one of our _datatypes
- * @param {(string|array)} what The path to the data we want to set
- * @param {?*} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
  * @return {*} The value we passed in
  */
-Worker.prototype._set = function(what, value) {
+Worker.prototype._set = function(what, value, type) {
+	if (type && (isFunction(type) && type(value)) || (isString(type) && jQuery.type(value) !== type)) {
+		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
 		switch ((path.length - depth) > 1) { // Can we go deeper?
@@ -1263,7 +1268,7 @@ Worker.prototype._setup = function() {
  * Set up a notification on the content of a DOM node changing.
  * Calls _update with the triggered event after short delay to prevent double-notifications
  * @param {(jQuery|string)} selector The selector to notify on
- * @param {?string} id The id we pass to _update, it will pass selector if not set
+ * @param {string=} id The id we pass to _update, it will pass selector if not set
  */
 Worker.prototype._trigger = function(selector, id) {
 	if (!Worker._triggers_.length) {
@@ -1296,7 +1301,7 @@ Worker.prototype._unflush = function() {
 /**
  * Remove a _watch notification from a specific path
  * @param {(Worker|string)} worker The worker we wish to remove the notification from
- * @param {?string} path The path we wish to stop watching, or null for all from this
+ * @param {string=} path The path we wish to stop watching, or null for all from this
  */
 Worker.prototype._unwatch = function(worker, path) {
 	if (typeof worker === 'string') {
@@ -1370,7 +1375,7 @@ Worker.prototype._update = function(event) {
 /**
  * Add a _watch notification to a specific path
  * @param {(Worker|string)} worker The worker we wish to add the notification to
- * @param {?string} path The path we wish to watch, or null for 'data'
+ * @param {string=} path The path we wish to watch, or null for 'data'
  */
 Worker.prototype._watch = function(worker, path) {
 	worker = Worker.find(worker);
@@ -3619,6 +3624,25 @@ Page.delTimer = function(id) {
 	this.runtime.timers['golem_timer_'+id] = undefined;
 };
 
+/*
+ * Set a value in one of our _datatypes
+ * @param {string} page The page we need to visit
+ * @param {number} age How long is it allowed to be stale before we need to visit it again (in seconds), use -1 for "now"
+ * @param {boolean} go Automatically call Page.to(page)
+ * @return {boolean} True if we don't need to visit the page, false if we do
+ */
+Page.stale = function(page, age, go) {
+	if (age && (page in this.pageNames)) {
+		var now = Date.now();
+		if (this.data[page] < now - (age * 1000)) {
+			if (go && !this.to(page)) {
+				this.set(page, now);
+			}
+			return false;
+		}
+	}
+	return true;
+};
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
@@ -7475,22 +7499,14 @@ Idle.pages = {
 };
 
 Idle.work = function(state) {
-	if (!state) {
+	if (!state || !Generals.to(this.option.general)) {
 		return true;
 	}
-	var i, p, time, now = Date.now();
-	if (!Generals.to(this.option.general)) {
-		return true;
-	}
+	var i, p;
 	for (i in this.pages) {
-		if (!this.option[i]) {
-			continue;
-		}
-		time = now - this.option[i];
-		for (p=0; p<this.pages[i].length; p++) {
-			if (!Page.get(this.pages[i][p]) || Page.get(this.pages[i][p]) < time) {
-				if (!Page.to(this.pages[i][p])) {
-					Page.set(this.pages[i][p], now);
+		if (this.option[i]) {
+			for (p=0; p<this.pages[i].length; p++) {
+				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
 					return true;
 				}
 			}
@@ -12125,7 +12141,10 @@ Town.runtime = {
 	best_sell:null,
 	buy:0,
 	sell:0,
-	cost:0
+	cost:0,
+	soldiers:0,
+	blacksmith:0,
+	magic:0
 };
 
 Town.display = [
@@ -12447,7 +12466,7 @@ Town.parse = function(change) {
 					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 					if (!Town.data[n]) {
-						Page.set('data.town_soldiers', 0);
+						this.set('runtime.soldiers', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -12467,8 +12486,8 @@ Town.parse = function(change) {
 						n = Town.dup_map[n][i];
 					}
 					if (!Town.data[n] || Town.data[n].img !== i) {
-						Page.set('data.town_blacksmith', 0);
-						Page.set('data.town_magic', 0);
+						this.set('runtime.blacksmith', -1);
+						this.set('runtime.magic', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -12785,7 +12804,7 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit);
+	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.runtime.soldiers) && Page.stale('town_blacksmith', this.runtime.blacksmith) && Page.stale('town_magic', this.runtime.magic));
 };
 
 Town.work = function(state) {
@@ -12797,6 +12816,10 @@ Town.work = function(state) {
 			this.buy(this.runtime.best_buy, this.runtime.buy);
 		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
 			Page.to(i);
+		} else if (Page.stale('town_soldiers', this.runtime.soldiers, true)) {
+			if (Page.stale('town_blacksmith', this.runtime.blacksmith, true)) {
+				Page.stale('town_magic', this.runtime.magic, true);
+			}
 		}
 	}
 	return QUEUE_CONTINUE;

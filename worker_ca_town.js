@@ -32,7 +32,10 @@ Town.runtime = {
 	best_sell:null,
 	buy:0,
 	sell:0,
-	cost:0
+	cost:0,
+	soldiers:0,
+	blacksmith:0,
+	magic:0
 };
 
 Town.display = [
@@ -354,7 +357,7 @@ Town.parse = function(change) {
 					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 					if (!Town.data[n]) {
-						Page.set('data.town_soldiers', 0);
+						this.set('runtime.soldiers', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -374,8 +377,8 @@ Town.parse = function(change) {
 						n = Town.dup_map[n][i];
 					}
 					if (!Town.data[n] || Town.data[n].img !== i) {
-						Page.set('data.town_blacksmith', 0);
-						Page.set('data.town_magic', 0);
+						this.set('runtime.blacksmith', -1);
+						this.set('runtime.magic', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -692,7 +695,7 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit);
+	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.runtime.soldiers) && Page.stale('town_blacksmith', this.runtime.blacksmith) && Page.stale('town_magic', this.runtime.magic));
 };
 
 Town.work = function(state) {
@@ -704,6 +707,10 @@ Town.work = function(state) {
 			this.buy(this.runtime.best_buy, this.runtime.buy);
 		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
 			Page.to(i);
+		} else if (Page.stale('town_soldiers', this.runtime.soldiers, true)) {
+			if (Page.stale('town_blacksmith', this.runtime.blacksmith, true)) {
+				Page.stale('town_magic', this.runtime.magic, true);
+			}
 		}
 	}
 	return QUEUE_CONTINUE;

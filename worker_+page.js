@@ -344,3 +344,22 @@ Page.delTimer = function(id) {
 	this.runtime.timers['golem_timer_'+id] = undefined;
 };
 
+/*
+ * Set a value in one of our _datatypes
+ * @param {string} page The page we need to visit
+ * @param {number} age How long is it allowed to be stale before we need to visit it again (in seconds), use -1 for "now"
+ * @param {boolean} go Automatically call Page.to(page)
+ * @return {boolean} True if we don't need to visit the page, false if we do
+ */
+Page.stale = function(page, age, go) {
+	if (age && (page in this.pageNames)) {
+		var now = Date.now();
+		if (this.data[page] < now - (age * 1000)) {
+			if (go && !this.to(page)) {
+				this.set(page, now);
+			}
+			return false;
+		}
+	}
+	return true;
+};
