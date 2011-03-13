@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1006
+// @version		31.5.1007
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1006;
+var revision = 1007;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -897,7 +897,7 @@ Worker.prototype._get = function(what, def, type) { // 'path.to.data'
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (isUndefined(data) || (type && (isFunction(type) && type(data)) || (isString(type) && jQuery.type(data) !== type))) {
+		if (isUndefined(data) || (type && (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
 //			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
 //				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 //			}
@@ -1183,7 +1183,7 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value, type) {
-	if (type && (isFunction(type) && type(value)) || (isString(type) && jQuery.type(value) !== type)) {
+	if (type && (isFunction(type) && type(value)) || (isString(type) && typeof value !== type)) {
 		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
