@@ -327,6 +327,7 @@ Town.init = function() {
 	this._watch(Player, 'data.worth');
 	this._watch(Land, 'runtime.save_amount');
 	this.runtime.cost_incr = 4;
+	this.runtime.soldiers = this.runtime.blacksmith = this.runtime.magic = 0;
 };
 
   // .layout td >div:contains("Owned Items:")
@@ -695,7 +696,7 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.runtime.soldiers) && Page.stale('town_blacksmith', this.runtime.blacksmith) && Page.stale('town_magic', this.runtime.magic));
+	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.get('runtime.soldiers', 0)) && Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0)) && Page.stale('town_magic', this.get('runtime.magic', 0)));
 };
 
 Town.work = function(state) {
@@ -707,10 +708,12 @@ Town.work = function(state) {
 			this.buy(this.runtime.best_buy, this.runtime.buy);
 		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
 			Page.to(i);
-		} else if (Page.stale('town_soldiers', this.runtime.soldiers, true)) {
-			if (Page.stale('town_blacksmith', this.runtime.blacksmith, true)) {
-				Page.stale('town_magic', this.runtime.magic, true);
-			}
+		} else if (!Page.stale('town_soldiers', this.get('runtime.soldiers', 0), true)) {
+			this.set('runtime.soldiers', 0);
+		} else if (!Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0), true)) {
+			this.set('runtime.blacksmith', 0);
+		} else if (!Page.stale('town_magic', this.get('runtime.magic', 0), true)) {
+			this.set('runtime.magic', 0);
 		}
 	}
 	return QUEUE_CONTINUE;
