@@ -357,7 +357,7 @@ Town.parse = function(change) {
 					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 					if (!Town.data[n]) {
-						this.set('runtime.soldiers', -1);
+						Town.set('runtime.soldiers', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -377,8 +377,8 @@ Town.parse = function(change) {
 						n = Town.dup_map[n][i];
 					}
 					if (!Town.data[n] || Town.data[n].img !== i) {
-						this.set('runtime.blacksmith', -1);
-						this.set('runtime.magic', -1);
+						Town.set('runtime.blacksmith', -1);
+						Town.set('runtime.magic', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);

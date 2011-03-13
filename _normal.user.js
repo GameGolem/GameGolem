@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1004
+// @version		31.5.1005
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1004;
+var revision = 1005;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -12466,7 +12466,7 @@ Town.parse = function(change) {
 					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 					if (!Town.data[n]) {
-						this.set('runtime.soldiers', -1);
+						Town.set('runtime.soldiers', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
@@ -12486,8 +12486,8 @@ Town.parse = function(change) {
 						n = Town.dup_map[n][i];
 					}
 					if (!Town.data[n] || Town.data[n].img !== i) {
-						this.set('runtime.blacksmith', -1);
-						this.set('runtime.magic', -1);
+						Town.set('runtime.blacksmith', -1);
+						Town.set('runtime.magic', -1);
 						return false;
 					} else if (Town.data[n].own != c) {
 						Town.set(['data', n, 'own'], c);
