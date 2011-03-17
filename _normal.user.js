@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1007
+// @version		31.5.1008
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1007;
+var revision = 1008;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -10850,7 +10850,15 @@ Quest.display = [
 		id:'what',
 		label:'Quest for',
 		select:'quest_reward',
-		help:'Once you have unlocked all areas (Advancement) it will switch to Influence. Once you have 100% Influence it will switch to Experience. Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then will fall back to Advancement. Vampire Lord will try to collect 24, then fall back to Advancement. Subquests will only run subquests under 100% then fall back to Advancement (quick general levelling)'
+		help:'Cartigan will try to collect all items needed to summon Cartigan (via Alchemy), then cascades to Advancement.' +
+		  ' Vampire Lord will try to collect 24 (for Calista), then cascades to Advancement.' +
+		  ' Subquests (quick general levelling) will only run subquests under 100% influence, then cascades to Advancement.' +
+		  ' Advancement will run viable quests to unlock all areas, then cascades to Influence.' +
+		  ' Influence will run all viable influence gaining quests, then cascade to Experience.' +
+		  ' Inf+Exp will run the best viable experience quests under 100% influence, then cascade to Experience.' +
+		  ' Inf+Cash will run the best viable cash quests under 100% influence, then cascade to Cash.' +
+		  ' Experience runs only the best experience quests.' +
+		  ' Cash runs only the best cash quests.'
 	},{
 		advanced:true,
 		id:'ignorecomplete',
@@ -10980,21 +10988,6 @@ Quest.init = function() {
 
 Quest.parse = function(change) {
 	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge, changes = 0;
-/*
-<div style="float: left; height: 75px; width: 431px;">
-	<div style="clear: both;"></div>
-	<div class="title_tab">
-		<a href="http://apps.facebook.com/castle_age/quests.php?land=9"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image9" src="http://image2.castleagegame.com/2189/graphics/tab_ivory_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
-	<div class="title_tab">
-		<a href="http://apps.facebook.com/castle_age/quests.php?land=10"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image10" src="http://image2.castleagegame.com/2189/graphics/tab_earth2_small.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
-	<div class="title_tab_selected">
-		<a href="http://apps.facebook.com/castle_age/quests.php?land=11"><div class="imgButton"><img title="click to go to this land" id="app46755028429_land_image11" src="http://image2.castleagegame.com/2189/graphics/tab_water2_big.gif" fbcontext="a8949d231744"></div></a>							                    			</div>
-	<div class="title_tab">
-		<div><img title="More land coming soon!" src="http://image2.castleagegame.com/2189/graphics/land_coming_soon.gif"></div>
-	</div>
-	<div style="clear: both;"></div>
-</div>
-*/
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -11016,31 +11009,51 @@ Quest.parse = function(change) {
 		return false;
 	}
 	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-		var id, name, level, influence, reward, units, energy, tmp, type = 0;
+		var id, name, level, influence, reward, units, energy, exp, tmp, type = 0;
 		if ((tmp = $('input[name="quest"]', el)).length) {
 		    id = $(tmp).val().regex(/(\d+)/);
 		}
 		if ($(el).hasClass('quests_background_sub')) { // Subquest
 			name = $('.quest_sub_title', el).text().trim();
-			reward = $('.qd_2_sub', el).text().replace(/mil/g, '000000').replace(/[^0-9$]/g, '').regex(/^(\d+)\$(\d+)\$(\d+)$/);
-			energy = $('.qd_3_sub', el).text().regex(/(\d+)/);
-			level = $('.quest_sub_progress', el).text().regex(/LEVEL (\d+)/i);
-			influence = $('.quest_sub_progress', el).text().regex(/INFLUENCE: (\d+)%/i);
+			if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+			}
+			energy = $('.quest_req_sub', el).text().regex(/\b(\d+)\s*Energy\b/im);
+			level = $('.quest_sub_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
+			influence = $('.quest_sub_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
 			type = 2;
 		} else {
 			name = $('.qd_1 b', el).text().trim();
-			reward = $('.qd_2', el).text().replace(/[^0-9$]/g, '').regex(/^(\d+)\$(\d+)\$(\d+)$/);
-			energy = $('.quest_req b', el).text().regex(/(\d+)/);
+			if ((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+			}
+			energy = $('.quest_req', el).text().regex(/\b(\d+)\s*Energy\b/im);
 			if ($(el).hasClass('quests_background')) { // Main quest
 				last_main = id;
-				level = $('.quest_progress', el).text().regex(/LEVEL (\d+)/i);
-				influence = $('.quest_progress', el).text().regex(/INFLUENCE: (\d+)%/i);
+				level = $('.quest_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
+				influence = $('.quest_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
 				type = 1;
 			} else { // Special / boss Quest
 				type = 3;
 			}
 		}
-		if (!name || name.indexOf('\t') !== -1) { // Hopefully stop it finding broken page load quests
+		if (!id || !name || name.indexOf('\t') !== -1 || !type || !energy || !exp || !reward || !reward[0] || !reward[1]) {
+			// Hopefully stop it finding broken page load quests...
+			// but most times if some of this is wrong, a layout change has
+			// happened to the quest pages, and we want some kind of warning.
+			/*
+			console.log(warn(), 'Bad quest data:' +
+			  ' id:' + JSON.shallow(id, 2) +
+			  ' name:' + JSON.shallow(name, 2) +
+			  ' type:' + JSON.shallow(type, 2) +
+			  ' energy:' + JSON.shallow(energy, 2) +
+			  ' exp:' + JSON.shallow(exp, 2) +
+			  ' reward:' + JSON.shallow(reward, 2) +
+			  ' level:' + JSON.shallow(level, 2) +
+			  ' influence:' + JSON.shallow(influence, 2));
+			*/
 			return;
 		}
 		m_c = 0; // percentage count metric
@@ -11074,8 +11087,8 @@ Quest.parse = function(change) {
 				m_c++;
 			}
 		}
-		data.id[id].exp = reward[0];
-		data.id[id].reward = (reward[1] + reward[2]) / 2;
+		data.id[id].exp = exp;
+		data.id[id].reward = (reward[0] + reward[1]) / 2;
 		data.id[id].energy = energy;
 		if (isNumber(m_c) && m_c && isNumber(m_d) && m_d) {
 			data.id[id].m_c = m_c;
@@ -11143,7 +11156,7 @@ Quest.update = function(event) {
 				items[unit] = Math.max(items[unit] || 0, data.id[i].units[unit]);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Experience', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(unique(list).sort()));
 		for (unit in items) {
 			if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
 				Resources.set(['data','_'+unit,'quest'], items[unit]);
@@ -11156,16 +11169,16 @@ Quest.update = function(event) {
 			if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
 				continue;
 			}
-			if (data.id[i].type === 3 && !Alchemy.get(['ingredients', data.id[i].itemimg], 0) && (!best || data.id[i].energy < data.id[best].energy)) {
+			if (data.id[i].type === 3 && !Alchemy.get(['ingredients', data.id[i].itemimg], 0, 'number') && (!best || data.id[i].energy < data.id[best].energy)) {
 				best = i;
 			}
 		}
 	}
 	if (!best && this.option.what !== 'Nothing') {
-		if (this.option.what === 'Vampire Lord' && Town.get('Vampire Lord', 0) >= 24) {
+		if (this.option.what !== 'Vampire Lord' || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24) {
 			has_vampire = true; // Stop trying once we've got the required number of Vampire Lords
 		}
-		if (this.option.what === 'Cartigan' && (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) >= 3))) {
+		if (this.option.what !== 'Cartigan' || (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3))) {
 			// Sword of the Faithless x3 - The Long Path, Burning Gates
 			// Crystal of Lament x3 - Fiery Awakening
 			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
@@ -11188,7 +11201,7 @@ Quest.update = function(event) {
 				for (unit in oi.units) {
 					need = oi.units[unit];
 					if (!Player.get(['artifact', i]) || need !== 1) {
-						own = Town.get([unit, 'own'], 0);
+						own = Town.get([unit, 'own'], 0, 'number');
 						if (need > own) {	// Need more than we own, skip this quest.
 							noCanDo = true;	// set flag
 							break;	// no need to check more prerequisites.
@@ -11206,7 +11219,7 @@ Quest.update = function(event) {
 			switch(this.option.what) { // Automatically fallback on type - but without changing option
 				case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
 					ob = data.id[best_vampire];
-					// order: inf<100, <energy, >exp, >cash
+					// order: inf<100, <energy, >exp, >cash (vampire)
 					if (!has_vampire && isNumber(oi.land) &&
 					  oi.land === 5 && oi.type === 1 &&
 					  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
@@ -11219,12 +11232,12 @@ Quest.update = function(event) {
 					}// Deliberate fallthrough
 				case 'Cartigan': // Random Encounters in various Underworld Quests
 					ob = data.id[best_cartigan];
-					// order: inf<100, <energy, >exp, >cash
+					// order: inf<100, <energy, >exp, >cash (cartigan)
 					if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6 &&
 					  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
-					  (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0) < 3) ||
-					  ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0) < 3) ||
-					  ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0) < 3)) &&
+					  (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3) ||
+					  ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3) ||
+					  ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3)) &&
 					  (!best_cartigan ||
 					  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
 					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
@@ -11234,7 +11247,7 @@ Quest.update = function(event) {
 					}// Deliberate fallthrough
 				case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
 					ob = data.id[best_subquest];
-					// order: <energy, >exp, >cash
+					// order: <energy, >exp, >cash (subquests)
 					if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100 &&
 					  (!best_subquest ||
 					  (cmp = oi.energy - ob.energy) < 0 ||
@@ -11249,11 +11262,11 @@ Quest.update = function(event) {
 						best_adv_eff = 1e10;
 					}
 					ob = data.id[best_advancement];
-					// order: <effort, >exp, >cash, <energy
+					// order: <effort, >exp, >cash, <energy (advancement)
 					if (oi.type !== 2 && isNumber(oi.land) &&
 					  //oi.level === 1 &&  // Need to check if necessary to do boss to unlock next land without requiring orb
 					  oi.land >= best_land &&
-					  ((isNumber(oi.influence) && Generals.test(oi.general) && oi.level <= 1 && oi.influence < 100) || (oi.type === 3 && !Alchemy.get(['ingredients', oi.itemimg], 0))) &&
+					  ((isNumber(oi.influence) && Generals.test(oi.general) && oi.level <= 1 && oi.influence < 100) || (oi.type === 3 && !Alchemy.get(['ingredients', oi.itemimg], 0, 'number'))) &&
 					  (!best_advancement ||
 					  (cmp = eff - best_adv_eff) < 0 ||
 					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
@@ -11265,7 +11278,7 @@ Quest.update = function(event) {
 					}// Deliberate fallthrough
 				case 'Influence': // Find the cheapest energy cost quest with influence under 100%
 					ob = data.id[best_influence];
-					// order: <effort, >exp, >cash, <energy
+					// order: <effort, >exp, >cash, <energy (influence)
 					if (isNumber(oi.influence) &&
 					  (!oi.general || Generals.test(oi.general)) &&
 					  oi.influence < 100 &&
@@ -11279,35 +11292,57 @@ Quest.update = function(event) {
 					}// Deliberate fallthrough
 				case 'Experience': // Find the best exp per energy quest
 					ob = data.id[best_experience];
-					// order: >exp, >cash, <energy, inf<100
+					// order: >exp, inf<100, >cash, <energy (experience)
 					if (!best_experience ||
 					  (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0 ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
 					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)) {
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
 						best_experience = i;
+					}
+					break;
+				case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
+					ob = data.id[best_experience];
+					// order: inf<100, >exp, >cash, <energy (inf+exp)
+					if (!best_experience ||
+					  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
+						best_experience = i;
+					}
+					break;
+				case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
+					ob = data.id[best];
+					// order: inf<100, >cash, >exp, <energy (inf+cash)
+					if (!best ||
+					  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
+					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
+						best = i;
 					}
 					break;
 				case 'Cash': // Find the best (average) cash per energy quest
 					ob = data.id[best];
-					// order: >cash, <energy, >exp, inf<100
+					// order: >cash, inf<100, >exp, <energy (cash)
 					if (!best ||
 					  (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0 ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
 					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-					  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)) {
+					  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
 						best = i;
 					}
 					break;
 				default: // For everything else, there's (cheap energy) items...
 					ob = data.id[best];
-					// order: <energy, >exp, >cash, inf<100
+					// order: <energy, inf<100, >exp, >cash (item)
 					if (oi.item === this.option.what &&
 					  (!best ||
 					  (cmp = oi.energy - ob.energy) < 0 ||
+					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
 					  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-					  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0))) {
+					  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
 						best = i;
 					}
 					break;
@@ -11319,6 +11354,7 @@ Quest.update = function(event) {
 			case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
 			case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
 			case 'Influence':	best = best_influence || best_experience;break;
+			case 'Inf+Exp':		best = best_experience;break;
 			case 'Experience':	best = best_experience;break;
 			default:break;
 		}
@@ -11360,33 +11396,51 @@ Quest.work = function(state) {
 		if (this.data.id[best].general && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
 			general = this.data.id[best].general;
 		} else {
+			general = Generals.best('under level 4');
 			switch(this.option.what) {
 				case 'Vampire Lord':
 				case 'Cartigan':
 					if (this.data.id[best].general) {
 						general = this.data.id[best].general;
 					} else {
-//						general = Generals.best('item');
-						general = Generals.best('under level 4');
-					}
-					if (general !== 'any') {
-						break;
-					}
-					// Deliberate fallthrough
-				case 'Influence':
-				case 'Advancement':
-				case 'Experience':
-					general = Generals.best('under level 4');
-					if (general === 'any' && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-						general = 'influence';
+						if (general === 'any' && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
+							general = Generals.best('influence');
+						}
+						if (general === 'any') {
+							general = Generals.best('item');
+						}
 					}
 					break;
+				case 'Subquest':
+				case 'Advancement':
+				case 'Influence':
+				case 'Inf+Exp':
+				case 'Experience':
+				case 'Inf+Cash':
 				case 'Cash':
-					general = 'cash';
+					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
+						if (this.data.id[best].general) {
+							general = this.data.id[best].general;
+						} else if (general === 'any') {
+							general = Generals.best('influence');
+						}
+					}
 					break;
 				default:
-					general = 'item';
+					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
+						if (this.data.id[best].general) {
+							general = this.data.id[best].general;
+						} else if (general === 'any') {
+							general = Generals.best('influence');
+						}
+					}
+					if (general === 'any') {
+						general = Generals.best('item');
+					}
 					break;
+			}
+			if (general === 'any') {
+				general = 'cash';
 			}
 		}
 	} else {
@@ -11416,7 +11470,7 @@ Quest.work = function(state) {
 			return QUEUE_FINISH;
 	}
 	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
-	console.log(warn(),'Quest ' + this.data.id[best].name + ' general ' + this.data.id[best].general + ' test ' + !Generals.test(this.data.id[best].general || 'any') + ' this.data || '+ (this.data.id[best].general || 'any') + ' queue ' + (Queue.runtime.general && this.data.id[best].general));
+	//console.log(warn(),'Quest ' + this.data.id[best].name + ' general ' + this.data.id[best].general + ' test ' + !Generals.test(this.data.id[best].general || 'any') + ' this.data || '+ (this.data.id[best].general || 'any') + ' queue ' + (Queue.runtime.general && this.data.id[best].general));
 	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
 		delete this.data.id[best];
@@ -11425,7 +11479,7 @@ Quest.work = function(state) {
 	}
 	Queue.runtime.quest = false;
 	if (this.data.id[best].type === 3) {// Just completed a boss quest
-		if (!Alchemy.get(['ingredients', this.data.id[best].itemimg], 0)) {// Add one as we've just gained it...
+		if (!Alchemy.get(['ingredients', this.data.id[best].itemimg], 0, 'number')) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', this.data.id[best].itemimg], 1);
 		}
 		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (this.data.id[best].land + 2)]) {// If we just completed a boss quest, check for a new quest land.
@@ -11762,350 +11816,356 @@ Quest.wiki_reps = function(quest, pure) {
 };
 
 
-Quest.rts = 1299004023;	// Tue Mar  1 18:27:03 2011 UTC
-Quest.rdata =			// #341
+Quest.rts = 1300071247;	// Mon Mar 14 02:54:07 2011 UTC
+Quest.rdata =			// #347
 {
-	'a demonic transformation':			{ 'reps_q4': 40 },
-	'a forest in peril':				{ 'reps_d4':  9 },
-	'a kidnapped princess':				{ 'reps_d1': 10 },
-	'a new dawn':						{ 'reps_q12': 11 },
-	'a surprise from terra':			{ 'reps_q12':  0 },
+	'a demonic transformation':			{ 'reps_q4':  40 },
+	'a forest in peril':				{ 'reps_d4':   9 },
+	'a kidnapped princess':				{ 'reps_d1':  10 },
+	'a new dawn':						{ 'reps_q12':  7 },
+	'a surprise from terra':			{ 'reps_q12': 12 },
 	'across the sea':					{ 'reps_q11':  8 },
-	'aid corvintheus':					{ 'reps_d3':  9 },
-	'aid the angels':					{ 'reps_q9': 17 },
-	'approach the prayer chamber':		{ 'reps_d1': 12 },
-	'approach the tree of life':		{ 'reps_d4': 12 },
-	'ascent to the skies':				{ 'reps_q8':  0 },
-	'attack from above':				{ 'reps_q9': 17 },
-	'attack undead guardians':			{ 'reps_q6': 24 },
+	'aid corvintheus':					{ 'reps_d3':   9 },
+	'aid the angels':					{ 'reps_q9':  17 },
+	'approach the prayer chamber':		{ 'reps_d1':  12 },
+	'approach the tree of life':		{ 'reps_d4':  12 },
+	'ascent to the skies':				{ 'reps_q8':   0 },
+	'attack from above':				{ 'reps_q9':  17 },
+	'attack undead guardians':			{ 'reps_q6':  24 },
 	'aurelius':							{ 'reps_q11': 11 },
 	'aurelius outpost':					{ 'reps_q11':  9 },
-	'avoid ensnarements':				{ 'reps_q3': 34 },
-	'avoid the guards':					{ 'reps_q8':  0 },
-	'avoid the patrols':				{ 'reps_q9': 17 },
-	'banish the horde':					{ 'reps_q9': 17 },
-	'battle a wraith':					{ 'reps_q2': 16 },
-	'battle earth and fire demons':		{ 'reps_q4': 16 },
-	'battle gang of bandits':			{ 'reps_q1': 10 },
-	'battle orc captain':				{ 'reps_q3': 15 },
-	'battle the black dragon':			{ 'reps_q4': 14 },
-	'battle the ent':					{ 'reps_d4': 12 },
-	'battling the demons':				{ 'reps_q9': 17 },
-	'being followed':					{ 'reps_q7': 15 },
-	'blood wing king of the dragons':	{ 'reps_d2': 20 },
-	'breach the barrier':				{ 'reps_q8': 14 },
-	'breach the keep entrance':			{ 'reps_d3': 12 },
-	'breaching the gates':				{ 'reps_q7': 15 },
+	'avoid ensnarements':				{ 'reps_q3':  34 },
+	'avoid the guards':					{ 'reps_q8':   0 },
+	'avoid the patrols':				{ 'reps_q9':  17 },
+	'banish the horde':					{ 'reps_q9':  17 },
+	'battle a wraith':					{ 'reps_q2':  16 },
+	'battle earth and fire demons':		{ 'reps_q4':  16 },
+	'battle gang of bandits':			{ 'reps_q1':  10 },
+	'battle orc captain':				{ 'reps_q3':  15 },
+	'battle the black dragon':			{ 'reps_q4':  14 },
+	'battle the ent':					{ 'reps_d4':  12 },
+	'battling the demons':				{ 'reps_q9':  17 },
+	'being followed':					{ 'reps_q7':  15 },
+	'blood wing king of the dragons':	{ 'reps_d2':  20 },
+	'breach the barrier':				{ 'reps_q8':  14 },
+	'breach the keep entrance':			{ 'reps_d3':  12 },
+	'breaching the gates':				{ 'reps_q7':  15 },
 	'break aurelius guard':				{ 'reps_q11':  0 },
-	'break evil seal':					{ 'reps_q7': 17 },
-	'break the lichs spell':			{ 'reps_d3': 12 },
+	'break evil seal':					{ 'reps_q7':  17 },
+	'break the lichs spell':			{ 'reps_d3':  12 },
 	'break the line':					{ 'reps_q10':  0 },
-	'breaking through the guard':		{ 'reps_q9': 17 },
-	'bridge of elim':					{ 'reps_q8': 11 },
-	'burning gates':					{ 'reps_q7':  0 },
-	'call of arms':						{ 'reps_q6': 25 },
-	'cast aura of night':				{ 'reps_q5': 32 },
+	'breaking through the guard':		{ 'reps_q9':  17 },
+	'bridge of elim':					{ 'reps_q8':  11 },
+	'burning gates':					{ 'reps_q7':   0 },
+	'call of arms':						{ 'reps_q6':  25 },
+	'cast aura of night':				{ 'reps_q5':  32 },
 	'cast blizzard':					{ 'reps_q10':  0 },
-	'cast fire aura':					{ 'reps_q6': 24 },
-	'cast holy light':					{ 'reps_q6': 24 },
-	'cast holy light spell':			{ 'reps_q5': 24 },
-	'cast holy shield':					{ 'reps_d3': 12 },
-	'cast meteor':						{ 'reps_q5': 32 },
-	'castle of the black lion':			{ 'reps_d5': 13 },
-	'castle of the damn':				{ 'reps_d3': 21 },
-	'channel excalibur':				{ 'reps_q8':  0 },
+	'cast fire aura':					{ 'reps_q6':  24 },
+	'cast holy light':					{ 'reps_q6':  24 },
+	'cast holy light spell':			{ 'reps_q5':  24 },
+	'cast holy shield':					{ 'reps_d3':  12 },
+	'cast meteor':						{ 'reps_q5':  32 },
+	'castle of the black lion':			{ 'reps_d5':  13 },
+	'castle of the damn':				{ 'reps_d3':  21 },
+	'channel excalibur':				{ 'reps_q8':   0 },
 	'charge ahead':						{ 'reps_q10':  0 },
-	'charge the castle':				{ 'reps_q7': 15 },
+	'charge the castle':				{ 'reps_q7':  15 },
 	'chasm of fire':					{ 'reps_q10': 10 },
-	'city of clouds':					{ 'reps_q8': 11 },
+	'city of clouds':					{ 'reps_q8':  11 },
 	'clear the rocks':					{ 'reps_q11':  0 },
 	'climb castle cliffs':				{ 'reps_q11':  0 },
-	'climb the mountain':				{ 'reps_q8':  0 },
-	'close the black portal':			{ 'reps_d1': 12 },
-	'confront the black lion':			{ 'reps_d5': 12 },
+	'climb the mountain':				{ 'reps_q8':   0 },
+	'close the black portal':			{ 'reps_d1':  12 },
+	'collect astral souls':				{ 'reps_q12':  0 },
+	'confront the black lion':			{ 'reps_d5':  12 },
 	'confront the rebels':				{ 'reps_q10': 10 },
-	'consult aurora':					{ 'reps_d4': 12 },
-	'corruption of nature':				{ 'reps_d4': 20 },
-	'cover tracks':						{ 'reps_q7': 19 },
-	'cross lava river':					{ 'reps_q7': 20 },
-	'cross the bridge':					{ 'reps_q10':  0, 'reps_q8':  0 },
+	'consult aurora':					{ 'reps_d4':  12 },
+	'corruption of nature':				{ 'reps_d4':  20 },
+	'cover tracks':						{ 'reps_q7':  19 },
+	'cross lava river':					{ 'reps_q7':  20 },
+	'cross the bridge':					{ 'reps_q8':   0, 'reps_q10':  0 },
 	'cross the moat':					{ 'reps_q11':  0 },
-	'crossing the chasm':				{ 'reps_q2': 13, 'reps_q8':  0 },
-	'cure infested soldiers':			{ 'reps_q6': 25 },
-	'dark heart of the woods':			{ 'reps_q12': 11 },
-	'deal final blow to bloodwing':		{ 'reps_d2': 12 },
-	'deathrune castle':					{ 'reps_q7': 12 },
-	'decipher the clues':				{ 'reps_q9': 17 },
-	'defeat and heal feral animals':	{ 'reps_d4': 12 },
-	'defeat angelic sentinels':			{ 'reps_q8': 14 },
+	'crossing the chasm':				{ 'reps_q2':  13, 'reps_q8':   0 },
+	'cure infested soldiers':			{ 'reps_q6':  25 },
+	'dark heart of the woods':			{ 'reps_q12':  9 },
+	'deal final blow to bloodwing':		{ 'reps_d2':  12 },
+	'deathrune castle':					{ 'reps_q7':  12 },
+	'decipher the clues':				{ 'reps_q9':  17 },
+	'defeat and heal feral animals':	{ 'reps_d4':  12 },
+	'defeat angelic sentinels':			{ 'reps_q8':  14 },
+	'defeat astral wolves':				{ 'reps_q12':  0 },
 	'defeat bear form':					{ 'reps_q11':  0 },
-	'defeat bloodwing':					{ 'reps_d2': 12 },
-	'defeat chimerus':					{ 'reps_d1': 12 },
-	'defeat darien woesteel':			{ 'reps_d5':  9 },
-	'defeat demonic guards':			{ 'reps_q7': 17 },
+	'defeat bloodwing':					{ 'reps_d2':  12 },
+	'defeat chimerus':					{ 'reps_d1':  12 },
+	'defeat darien woesteel':			{ 'reps_d5':   9 },
+	'defeat demonic guards':			{ 'reps_q7':  17 },
 	'defeat fire elementals':			{ 'reps_q10':  0 },
-	'defeat frost minions':				{ 'reps_q3': 40 },
+	'defeat frost minions':				{ 'reps_q3':  40 },
 	'defeat lion defenders':			{ 'reps_q11':  0 },
-	'defeat orc patrol':				{ 'reps_q8':  0 },
+	'defeat orc patrol':				{ 'reps_q8':   0 },
 	'defeat rebels':					{ 'reps_q10':  0 },
-	'defeat snow giants':				{ 'reps_q3': 24 },
-	'defeat the bandit leader':			{ 'reps_q1':  6 },
-	'defeat the banshees':				{ 'reps_q5': 25 },
-	'defeat the black lion army':		{ 'reps_d5': 12 },
-	'defeat the demonic guards':		{ 'reps_d1': 12 },
-	'defeat the demons':				{ 'reps_q9': 17 },
+	'defeat snow giants':				{ 'reps_q3':  24 },
+	'defeat the bandit leader':			{ 'reps_q1':   6 },
+	'defeat the banshees':				{ 'reps_q5':  25 },
+	'defeat the black lion army':		{ 'reps_d5':  12 },
+	'defeat the demonic guards':		{ 'reps_d1':  12 },
+	'defeat the demons':				{ 'reps_q9':  17 },
 	'defeat the kobolds':				{ 'reps_q10':  0 },
-	'defeat the patrols':				{ 'reps_q9': 17 },
-	'defeat the seraphims':				{ 'reps_q8':  0 },
+	'defeat the patrols':				{ 'reps_q9':  17 },
+	'defeat the seraphims':				{ 'reps_q8':   0 },
 	'defeat tiger form':				{ 'reps_q11':  0 },
-	'defend the village':				{ 'reps_d3': 12 },
+	'defend the village':				{ 'reps_d3':  12 },
 	'desert temple':					{ 'reps_q11': 12 },
 	'destroy black oozes':				{ 'reps_q11':  0 },
-	'destroy fire dragon':				{ 'reps_q4': 10 },
-	'destroy fire elemental':			{ 'reps_q4': 16 },
-	'destroy horde of ghouls & trolls':	{ 'reps_q4':  9 },
-	'destroy the black gate':			{ 'reps_d1': 12 },
-	'destroy the black portal':			{ 'reps_d1': 12 },
-	'destroy the bolted door':			{ 'reps_d3': 12 },
-	'destroy undead crypt':				{ 'reps_q1':  5 },
-	'destruction abound':				{ 'reps_q8': 11 },
-	'determine cause of corruption':	{ 'reps_d5': 12 },
-	'dig up star metal':				{ 'reps_d3': 12 },
+	'destroy fire dragon':				{ 'reps_q4':  10 },
+	'destroy fire elemental':			{ 'reps_q4':  16 },
+	'destroy horde of ghouls & trolls':	{ 'reps_q4':   9 },
+	'destroy the black gate':			{ 'reps_d1':  12 },
+	'destroy the black portal':			{ 'reps_d1':  12 },
+	'destroy the bolted door':			{ 'reps_d3':  12 },
+	'destroy undead crypt':				{ 'reps_q1':   5 },
+	'destruction abound':				{ 'reps_q8':  11 },
+	'determine cause of corruption':	{ 'reps_d5':  12 },
+	'dig up star metal':				{ 'reps_d3':  12 },
 	'disarm townspeople':				{ 'reps_q11':  0 },
-	'discover cause of corruption':		{ 'reps_d4': 12 },
-	'dismantle orc patrol':				{ 'reps_q3': 32 },
-	'dispatch more cultist guards':		{ 'reps_d1': 12 },
-	'distract the demons':				{ 'reps_q9': 17 },
-	'dragon slayer':					{ 'reps_d2': 14 },
+	'discover cause of corruption':		{ 'reps_d4':  12 },
+	'dismantle orc patrol':				{ 'reps_q3':  32 },
+	'dispatch more cultist guards':		{ 'reps_d1':  12 },
+	'distract the demons':				{ 'reps_q9':  17 },
+	'dragon slayer':					{ 'reps_d2':  14 },
 	'druidic prophecy':					{ 'reps_q11':  9 },
-	"duel cefka's knight champion":		{ 'reps_q4': 10 },
+	"duel cefka's knight champion":		{ 'reps_q4':  10 },
+	'duel with guards':					{ 'reps_q12':  0 },
 	'dwarven stronghold':				{ 'reps_q10': 10 },
 	'eastern corridor':					{ 'reps_q11':  0 },
-	'elekin the dragon slayer':			{ 'reps_d2': 10 },
-	'end of the road':					{ 'reps_q9': 17 },
+	'elekin the dragon slayer':			{ 'reps_d2':  10 },
+	'end of the road':					{ 'reps_q9':  17 },
 	'enlist captain morgan':			{ 'reps_q11':  0 },
-	'entrance denied':					{ 'reps_q12':  0 },
-	'entrance to terra':				{ 'reps_q1':  9 },
-	'equip soldiers':					{ 'reps_q6': 25 },
-	'escape from trakan':				{ 'reps_q12': 11 },
-	'escaping the chaos':				{ 'reps_q9': 17 },
-	'escaping the stronghold':			{ 'reps_q9': 10 },
+	'entrance denied':					{ 'reps_q12': 12 },
+	'entrance to terra':				{ 'reps_q1':   9 },
+	'equip soldiers':					{ 'reps_q6':  25 },
+	'escape from trakan':				{ 'reps_q12':  7 },
+	'escaping the chaos':				{ 'reps_q9':  17 },
+	'escaping the stronghold':			{ 'reps_q9':  10 },
 	'explore merchant plaza':			{ 'reps_q11':  0 },
 	'explore the temple':				{ 'reps_q11':  0 },
 	'extinguish desert basilisks':		{ 'reps_q11':  0 },
-	'extinguish the fires':				{ 'reps_q8':  0 },
-	'falls of jiraya':					{ 'reps_q1': 10 },
-	'family ties':						{ 'reps_d5': 11 },
+	'extinguish the fires':				{ 'reps_q8':   0 },
+	'falls of jiraya':					{ 'reps_q1':  10 },
+	'family ties':						{ 'reps_d5':  11 },
 	'felthias fields':					{ 'reps_q12': 14 },
-	'fend off demons':					{ 'reps_q7': 20 },
-	'fiery awakening':					{ 'reps_q7': 12 },
-	"fight cefka's shadow guard":		{ 'reps_q4': 10 },
-	'fight demonic worshippers':		{ 'reps_q5': 24 },
-	'fight dragon welps':				{ 'reps_q4': 10 },
-	'fight ghoul army':					{ 'reps_q1':  5 },
-	'fight gildamesh':					{ 'reps_q3': 32 },
-	'fight ice beast':					{ 'reps_q3': 40 },
-	'fight infested soldiers':			{ 'reps_q6': 25 },
-	'fight off demons':					{ 'reps_q5': 21 },
-	'fight off zombie infestation':		{ 'reps_d3': 12 },
-	'fight snow king':					{ 'reps_q3': 24 },
-	'fight the half-giant sephor':		{ 'reps_q4':  9 },
-	'fight treants':					{ 'reps_q2': 27 },
-	'fight undead zombies':				{ 'reps_q2': 16 },
-	'fight water demon lord':			{ 'reps_q2': 31 },
-	'fight water demons':				{ 'reps_q2': 30 },
-	'fight water spirits':				{ 'reps_q2': 40 },
-	'find evidence of dragon attack':	{ 'reps_d2':  8 },
-	'find hidden path':					{ 'reps_d2': 10 },
-	'find nezeals keep':				{ 'reps_d3': 12 },
-	'find rock worms weakness':			{ 'reps_d2': 10 },
-	'find source of the attacks':		{ 'reps_d3': 12 },
-	'find survivors':					{ 'reps_q8': 14 },
-	'find the dark elves':				{ 'reps_d1': 12 },
-	'find the demonic army':			{ 'reps_d1': 12 },
-	'find the druids':					{ 'reps_d4': 12 },
-	'find the entrance':				{ 'reps_q8':  0 },
-	'find the exit':					{ 'reps_q9': 17 },
+	'fend off demons':					{ 'reps_q7':  20 },
+	'fiery awakening':					{ 'reps_q7':  12 },
+	"fight cefka's shadow guard":		{ 'reps_q4':  10 },
+	'fight demonic worshippers':		{ 'reps_q5':  24 },
+	'fight dragon welps':				{ 'reps_q4':  10 },
+	'fight ghoul army':					{ 'reps_q1':   5 },
+	'fight gildamesh':					{ 'reps_q3':  32 },
+	'fight ice beast':					{ 'reps_q3':  40 },
+	'fight infested soldiers':			{ 'reps_q6':  25 },
+	'fight off demons':					{ 'reps_q5':  21 },
+	'fight off zombie infestation':		{ 'reps_d3':  12 },
+	'fight snow king':					{ 'reps_q3':  24 },
+	'fight the half-giant sephor':		{ 'reps_q4':   9 },
+	'fight treants':					{ 'reps_q2':  27 },
+	'fight undead zombies':				{ 'reps_q2':  16 },
+	'fight water demon lord':			{ 'reps_q2':  31 },
+	'fight water demons':				{ 'reps_q2':  30 },
+	'fight water spirits':				{ 'reps_q2':  40 },
+	'find evidence of dragon attack':	{ 'reps_d2':   8 },
+	'find hidden path':					{ 'reps_d2':  10 },
+	'find nezeals keep':				{ 'reps_d3':  12 },
+	'find rock worms weakness':			{ 'reps_d2':  10 },
+	'find source of the attacks':		{ 'reps_d3':  12 },
+	'find survivors':					{ 'reps_q8':  14 },
+	'find the dark elves':				{ 'reps_d1':  12 },
+	'find the demonic army':			{ 'reps_d1':  12 },
+	'find the druids':					{ 'reps_d4':  12 },
+	'find the entrance':				{ 'reps_q8':   0 },
+	'find the exit':					{ 'reps_q9':  17 },
 	'find the safest path':				{ 'reps_q10':  0 },
-	'find the source of corruption':	{ 'reps_d4': 12 },
-	'find the woman? father':			{ 'reps_d5': 12 },
-	'find troll weakness':				{ 'reps_q2': 10 },
-	'find your way out':				{ 'reps_q7': 15 },
-	'fire and brimstone':				{ 'reps_q7': 12 },
-	'forest of ash':					{ 'reps_d4': 11 },
-	'freeing arielle':					{ 'reps_q12': 11 },
-	'furest hellblade':					{ 'reps_d3': 17 },
+	'find the source of corruption':	{ 'reps_d4':  12 },
+	'find the woman? father':			{ 'reps_d5':  12 },
+	'find troll weakness':				{ 'reps_q2':  10 },
+	'find your way out':				{ 'reps_q7':  15 },
+	'fire and brimstone':				{ 'reps_q7':  12 },
+	'forest of ash':					{ 'reps_d4':  11 },
+	'freeing arielle':					{ 'reps_q12': 10 },
+	'furest hellblade':					{ 'reps_d3':  17 },
 	'gain access':						{ 'reps_q10':  0 },
 	'gain entry':						{ 'reps_q11':  0 },
-	'gates to the undead':				{ 'reps_q6': 17 },
-	'gateway':							{ 'reps_q8': 11 },
-	'get information from the druid':	{ 'reps_d4': 12 },
-	'get water for the druid':			{ 'reps_d4': 12 },
-	'grim outlook':						{ 'reps_q9': 17 },
-	'guard against attack':				{ 'reps_d5': 12 },
-	'heal wounds':						{ 'reps_q7': 20 },
-	'heat the villagers':				{ 'reps_q1':  5 },
-	'holy fire':						{ 'reps_d4': 11 },
+	'gates to the undead':				{ 'reps_q6':  17 },
+	'gateway':							{ 'reps_q8':  11 },
+	'get information from the druid':	{ 'reps_d4':  12 },
+	'get water for the druid':			{ 'reps_d4':  12 },
+	'grim outlook':						{ 'reps_q9':  17 },
+	'guard against attack':				{ 'reps_d5':  12 },
+	'heal wounds':						{ 'reps_q7':  20 },
+	'heat the villagers':				{ 'reps_q1':   5 },
+	'holy fire':						{ 'reps_d4':  11 },
 	'impending battle':					{ 'reps_q10': 10 },
-	'interrogate the prisoners':		{ 'reps_q9': 17 },
-	'investigate the gateway':			{ 'reps_q8':  0 },
+	'interrogate the prisoners':		{ 'reps_q9':  17 },
+	'investigate the gateway':			{ 'reps_q8':   0 },
 	'ironfist dwarves':					{ 'reps_q10': 10 },
-	'join up with artanis':				{ 'reps_d1': 12 },
-	'judgement stronghold':				{ 'reps_q8': 11 },
+	'join up with artanis':				{ 'reps_d1':  12 },
+	'judgement stronghold':				{ 'reps_q8':  11 },
 	'juliean desert':					{ 'reps_q11': 12 },
-	'kelp forest':						{ 'reps_a1': 20 },
-	'kill gildamesh':					{ 'reps_q3': 34 },
-	'kill vampire bats':				{ 'reps_d3': 10 },
+	'kelp forest':						{ 'reps_a1':  20 },
+	'kill gildamesh':					{ 'reps_q3':  34 },
+	'kill vampire bats':				{ 'reps_d3':  10 },
 	'koralan coast town':				{ 'reps_q11': 14 },
 	'koralan townspeople':				{ 'reps_q11': 10 },
-	'learn about death knights':		{ 'reps_d5': 12 },
+	'learn about death knights':		{ 'reps_d5':  12 },
 	'learn aurelius intentions':		{ 'reps_q11':  0 },
-	'learn counterspell':				{ 'reps_d1': 12 },
-	'learn holy fire':					{ 'reps_d4': 12 },
-	'look for clues':					{ 'reps_q8': 14 },
-	'lothar the ranger':				{ 'reps_q12': 11 },
-	'marauders!':						{ 'reps_d5':  9 },
-	'march into the undead lands':		{ 'reps_q6': 24 },
-	'march to the unholy war':			{ 'reps_q6': 25 },
-	'mausoleum of triste':				{ 'reps_q3': 17 },
-	'misty hills of boralis':			{ 'reps_q3': 20 },
-	'mount aretop':						{ 'reps_d2': 25 },
+	'learn counterspell':				{ 'reps_d1':  12 },
+	'learn holy fire':					{ 'reps_d4':  12 },
+	'look for clues':					{ 'reps_q8':  14 },
+	'lothar the ranger':				{ 'reps_q12':  9 },
+	'marauders!':						{ 'reps_d5':   9 },
+	'march into the undead lands':		{ 'reps_q6':  24 },
+	'march to the unholy war':			{ 'reps_q6':  25 },
+	'mausoleum of triste':				{ 'reps_q3':  17 },
+	'misty hills of boralis':			{ 'reps_q3':  20 },
+	'mount aretop':						{ 'reps_d2':  25 },
 	'nightfall':						{ 'reps_q12':  9 },
-	'nightmare':						{ 'reps_q6': 20 },
+	'nightmare':						{ 'reps_q6':  20 },
 	'outpost entrance':					{ 'reps_q11': 12 },
-	'path to heaven':					{ 'reps_q8': 11 },
-	'pick up the orc trail':			{ 'reps_q1':  6 },
-	'plan the attack':					{ 'reps_d5': 12 },
-	'portal of atlantis':				{ 'reps_a1': 20 },
-	'power of excalibur':				{ 'reps_q8': 11 },
-	'prepare for ambush':				{ 'reps_q1':  6 },
-	'prepare for battle':				{ 'reps_d2': 12, 'reps_q5': 21 },
-	'prepare for the trials':			{ 'reps_q9': 17 },
+	'path to heaven':					{ 'reps_q8':  11 },
+	'persuade terra':					{ 'reps_q12':  0 },
+	'pick up the orc trail':			{ 'reps_q1':   6 },
+	'plan the attack':					{ 'reps_d5':  12 },
+	'portal of atlantis':				{ 'reps_a1':  20 },
+	'power of excalibur':				{ 'reps_q8':  11 },
+	'prepare for ambush':				{ 'reps_q1':   6 },
+	'prepare for battle':				{ 'reps_d2':  12, 'reps_q5':  21 },
+	'prepare for the trials':			{ 'reps_q9':  17 },
 	'prepare tactics':					{ 'reps_q10':  0 },
 	'prepare troops':					{ 'reps_q10':  0 },
-	'prevent dragon? escape':			{ 'reps_d2': 12 },
-	'protect temple from raiders':		{ 'reps_q2': 40 },
-	'purge forest of evil':				{ 'reps_q2': 27 },
-	'pursuing orcs':					{ 'reps_q1': 13 },
-	'put out the fires':				{ 'reps_d2':  8 },
-	'question dark elf prisoners':		{ 'reps_d1': 12 },
-	'question the druidic wolf':		{ 'reps_d4': 12 },
+	'prevent dragon? escape':			{ 'reps_d2':  12 },
+	'protect temple from raiders':		{ 'reps_q2':  40 },
+	'purge forest of evil':				{ 'reps_q2':  27 },
+	'pursuing orcs':					{ 'reps_q1':  13 },
+	'put out the fires':				{ 'reps_d2':   8 },
+	'question dark elf prisoners':		{ 'reps_d1':  12 },
+	'question the druidic wolf':		{ 'reps_d4':  12 },
 	'question townspeople':				{ 'reps_q11':  0 },
-	'question vulcan':					{ 'reps_q8':  0 },
-	'ready the horses':					{ 'reps_q1':  6 },
-	'recover the key':					{ 'reps_q9': 17 },
+	'question vulcan':					{ 'reps_q8':   0 },
+	'ready the horses':					{ 'reps_q1':   6 },
+	'reason with guards':				{ 'reps_q12':  0 },
+	'recover the key':					{ 'reps_q9':  17 },
 	'recruit allies':					{ 'reps_q10':  0 },
-	'recruit elekin to join you':		{ 'reps_d2':  9 },
-	'recruit furest to join you':		{ 'reps_d3': 12 },
-	'repel gargoyle raid':				{ 'reps_q4': 14 },
+	'recruit elekin to join you':		{ 'reps_d2':   9 },
+	'recruit furest to join you':		{ 'reps_d3':  12 },
+	'repel gargoyle raid':				{ 'reps_q4':  14 },
 	'request council':					{ 'reps_q10':  0 },
-	'rescue survivors':					{ 'reps_q8': 14 },
-	'resist the lost souls':			{ 'reps_q5': 25 },
-	'retrieve dragon slayer':			{ 'reps_d2': 10 },
-	'retrieve the jeweled heart':		{ 'reps_d5': 12 },
-	'ride to aretop':					{ 'reps_d2': 12 },
-	'ride towards the palace':			{ 'reps_q9': 17 },
+	'request entrance':					{ 'reps_q12':  0 },
+	'rescue survivors':					{ 'reps_q8':  14 },
+	'resist the lost souls':			{ 'reps_q5':  25 },
+	'retrieve dragon slayer':			{ 'reps_d2':  10 },
+	'retrieve the jeweled heart':		{ 'reps_d5':  12 },
+	'ride to aretop':					{ 'reps_d2':  12 },
+	'ride towards the palace':			{ 'reps_q9':  17 },
 	'river of lava':					{ 'reps_q10': 10 },
-	'river of light':					{ 'reps_q1': 10 },
-	'save lost souls':					{ 'reps_q5': 24 },
+	'river of light':					{ 'reps_q1':  10 },
+	'save lost souls':					{ 'reps_q5':  24 },
 	'save stranded soldiers':			{ 'reps_q10':  0 },
-	'seek out elekin':					{ 'reps_d2':  9 },
-	'seek out furest hellblade':		{ 'reps_d3': 12 },
-	'seek out jeweled heart':			{ 'reps_d5': 12 },
-	'shield of the stars':				{ 'reps_d3': 20 },
-	'slaughter orcs':					{ 'reps_q3': 15 },
-	'slay cave bats':					{ 'reps_d2': 10 },
-	'slay the black dragons':			{ 'reps_q5': 32 },
-	'slay the guardian':				{ 'reps_q9': 17 },
-	'slay the sea serpent':				{ 'reps_d5': 12 },
-	'sneak attack on dragon':			{ 'reps_d2': 12 },
-	'sneak into the city':				{ 'reps_q8': 14 },
-	'sneak up on orcs':					{ 'reps_q1':  7 },
-	'soldiers of the black lion':		{ 'reps_d5': 10 },
-	'spire of death':					{ 'reps_q5': 20 },
+	'seek out elekin':					{ 'reps_d2':   9 },
+	'seek out furest hellblade':		{ 'reps_d3':  12 },
+	'seek out jeweled heart':			{ 'reps_d5':  12 },
+	'shield of the stars':				{ 'reps_d3':  20 },
+	'slaughter orcs':					{ 'reps_q3':  15 },
+	'slay cave bats':					{ 'reps_d2':  10 },
+	'slay the black dragons':			{ 'reps_q5':  32 },
+	'slay the guardian':				{ 'reps_q9':  17 },
+	'slay the sea serpent':				{ 'reps_d5':  12 },
+	'sneak attack on dragon':			{ 'reps_d2':  12 },
+	'sneak into the city':				{ 'reps_q8':  14 },
+	'sneak up on orcs':					{ 'reps_q1':   7 },
+	'soldiers of the black lion':		{ 'reps_d5':  10 },
+	'spire of death':					{ 'reps_q5':  20 },
 	'sporeguard forest':				{ 'reps_q12': 10 },
-	'spring surprise attack':			{ 'reps_d5': 12 },
-	'stop the wolf from channeling':	{ 'reps_d4': 12 },
-	'storm the castle':					{ 'reps_d5': 12 },
-	'storm the ivory palace':			{ 'reps_q9': 17 },
+	'spring surprise attack':			{ 'reps_d5':  12 },
+	'stop the wolf from channeling':	{ 'reps_d4':  12 },
+	'storm the castle':					{ 'reps_d5':  12 },
+	'storm the ivory palace':			{ 'reps_q9':  17 },
 	'sulfurous springs':				{ 'reps_q11': 10 },
-	'summon legendary defenders':		{ 'reps_q6': 25 },
+	'summon legendary defenders':		{ 'reps_q6':  25 },
 	'surround rebels':					{ 'reps_q10':  0 },
 	'survey battlefield':				{ 'reps_q10':  0 },
-	'survey the surroundings':			{ 'reps_q8': 14 },
+	'survey the surroundings':			{ 'reps_q8':  14 },
 	'survive the storm':				{ 'reps_q11':  0 },
-	'survive troll ambush':				{ 'reps_q2': 10 },
-	'surviving the onslaught':			{ 'reps_q9': 17 },
+	'survive troll ambush':				{ 'reps_q2':  10 },
+	'surviving the onslaught':			{ 'reps_q9':  17 },
 	'tezzari village':					{ 'reps_q12': 12 },
-	'the belly of the demon':			{ 'reps_q5': 16 },
-	'the betrayed lands':				{ 'reps_q4': 16 },
-	'the black portal':					{ 'reps_d1': 15 },
-	'the cave of wonder':				{ 'reps_q3': 20 },
-	'the crystal caverns':				{ 'reps_d2': 11 },
-	'the darkening skies':				{ 'reps_q9': 17 },
+	'the belly of the demon':			{ 'reps_q5':  16 },
+	'the betrayed lands':				{ 'reps_q4':  16 },
+	'the black portal':					{ 'reps_d1':  15 },
+	'the cave of wonder':				{ 'reps_q3':  20 },
+	'the crystal caverns':				{ 'reps_d2':  11 },
+	'the darkening skies':				{ 'reps_q9':  17 },
 	'the dead forests':					{ 'reps_q12': 11 },
-	'the deep':							{ 'reps_a1': 20 },
-	'the elven sorceress':				{ 'reps_d1': 11 },
-	'the fallen druids':				{ 'reps_d4': 12 },
-	'the final stretch':				{ 'reps_q9': 17 },
-	'the forbidden forest':				{ 'reps_q2': 20 },
-	'the forbidden ritual':				{ 'reps_q5': 20 },
+	'the deep':							{ 'reps_a1':  20 },
+	'the elven sorceress':				{ 'reps_d1':  11 },
+	'the fallen druids':				{ 'reps_d4':  12 },
+	'the final stretch':				{ 'reps_q9':  17 },
+	'the forbidden forest':				{ 'reps_q2':  20 },
+	'the forbidden ritual':				{ 'reps_q5':  20 },
 	'the gateway':						{ 'reps_q12': 10 },
-	'the hidden lair':					{ 'reps_d1': 13 },
-	'the hollowing moon':				{ 'reps_q6': 17 },
-	'the infestation of winterguard':	{ 'reps_d3': 10 },
-	'the invasion':						{ 'reps_q8': 11 },
-	'the keep of corelan':				{ 'reps_q3': 17 },
-	'the keep of isles':				{ 'reps_q4': 16 },
-	'the kingdom of alarean':			{ 'reps_d5': 15 },
-	'the last gateway':					{ 'reps_q9': 17 },
-	"the lich ne'zeal":					{ 'reps_d3': 13 },
-	"the lich's keep":					{ 'reps_d3': 15 },
-	'the living gates':					{ 'reps_q5': 20 },
-	'the long path':					{ 'reps_q7': 12 },
-	'the peaks of draneth':				{ 'reps_d5': 21 },
+	'the hidden lair':					{ 'reps_d1':  13 },
+	'the hollowing moon':				{ 'reps_q6':  17 },
+	'the infestation of winterguard':	{ 'reps_d3':  10 },
+	'the invasion':						{ 'reps_q8':  11 },
+	'the keep of corelan':				{ 'reps_q3':  17 },
+	'the keep of isles':				{ 'reps_q4':  16 },
+	'the kingdom of alarean':			{ 'reps_d5':  15 },
+	'the last gateway':					{ 'reps_q9':  17 },
+	"the lich ne'zeal":					{ 'reps_d3':  13 },
+	"the lich's keep":					{ 'reps_d3':  15 },
+	'the living gates':					{ 'reps_q5':  20 },
+	'the long path':					{ 'reps_q7':  12 },
+	'the peaks of draneth':				{ 'reps_d5':  21 },
 	'the poison source':				{ 'reps_q11':  0 },
 	'the rebellion':					{ 'reps_q10': 10 },
-	'the return home':					{ 'reps_q8': 11 },
-	'the return of the dragon':			{ 'reps_d2':  9 },
-	'the ride south':					{ 'reps_q8':  0 },
-	'the river of blood':				{ 'reps_q5': 20 },
-	'the scourge':						{ 'reps_q12': 11 },
-	'the sea temple':					{ 'reps_a1': 20 },
-	'the search for clues':				{ 'reps_d1': 12 },
-	'the second temple of water':		{ 'reps_q4': 25 },
-	'the smouldering pit':				{ 'reps_q4': 40 },
-	'the source of darkness':			{ 'reps_d1': 20 },
-	'the source of magic':				{ 'reps_d4': 15 },
+	'the return home':					{ 'reps_q8':  11 },
+	'the return of the dragon':			{ 'reps_d2':   9 },
+	'the ride south':					{ 'reps_q8':   0 },
+	'the river of blood':				{ 'reps_q5':  20 },
+	'the scourge':						{ 'reps_q12':  8 },
+	'the sea temple':					{ 'reps_a1':  20 },
+	'the search for clues':				{ 'reps_d1':  12 },
+	'the second temple of water':		{ 'reps_q4':  25 },
+	'the smouldering pit':				{ 'reps_q4':  40 },
+	'the source of darkness':			{ 'reps_d1':  20 },
+	'the source of magic':				{ 'reps_d4':  15 },
 	'the southern entrance':			{ 'reps_q12':  9 },
-	'the stairs of terra':				{ 'reps_q2': 10 },
-	'the stone lake':					{ 'reps_q1': 12 },
-	'the sunken city':					{ 'reps_d5': 17 },
-	'the tree of life':					{ 'reps_d4': 21 },
-	'the vanguard of destruction':		{ 'reps_d1': 21 },
-	'the water temple':					{ 'reps_q2': 17 },
+	'the stairs of terra':				{ 'reps_q2':  10 },
+	'the stone lake':					{ 'reps_q1':  12 },
+	'the sunken city':					{ 'reps_d5':  17 },
+	'the tree of life':					{ 'reps_d4':  21 },
+	'the vanguard of destruction':		{ 'reps_d1':  21 },
+	'the water temple':					{ 'reps_q2':  17 },
 	'til morning comes':				{ 'reps_q12': 11 },
-	'track down soldiers':				{ 'reps_d5': 12 },
-	'track sylvana':					{ 'reps_d1': 12 },
-	'train with ambrosia':				{ 'reps_d1': 12 },
-	'train with aurora':				{ 'reps_d4': 12 },
-	'trakan prison':					{ 'reps_q12': 11 },
+	'track down soldiers':				{ 'reps_d5':  12 },
+	'track sylvana':					{ 'reps_d1':  12 },
+	'train with ambrosia':				{ 'reps_d1':  12 },
+	'train with aurora':				{ 'reps_d4':  12 },
+	'trakan prison':					{ 'reps_q12':  9 },
 	'trakan sky bridge':				{ 'reps_q12': 11 },
-	'trakan village':					{ 'reps_q12': 11 },
-	'travel to the tree of life':		{ 'reps_d4': 12 },
-	'travel to winterguard':			{ 'reps_d3': 12 },
-	'triste':							{ 'reps_q3': 20 },
-	'undead crusade':					{ 'reps_q6': 17 },
+	'trakan village':					{ 'reps_q12':  7 },
+	'travel to the tree of life':		{ 'reps_d4':  12 },
+	'travel to winterguard':			{ 'reps_d3':  12 },
+	'triste':							{ 'reps_q3':  20 },
+	'undead crusade':					{ 'reps_q6':  17 },
 	'underground path':					{ 'reps_q12':  8 },
-	'underwater ruins':					{ 'reps_a1': 20 },
-	'unholy war':						{ 'reps_q6': 20 },
+	'underwater ruins':					{ 'reps_a1':  20 },
+	'unholy war':						{ 'reps_q6':  20 },
 	'use battering ram':				{ 'reps_q11':  0 },
-	'vengeance':						{ 'reps_d2': 17 },
+	'vengeance':						{ 'reps_d2':  17 },
 	'vesuv bridge':						{ 'reps_q10': 10 },
-	'vesuv lookout':					{ 'reps_q2': 17 },
-	'visit the blacksmith':				{ 'reps_q1': 24 },
-	'vulcans secret':					{ 'reps_q8': 11 },
-	'watch the skies':					{ 'reps_d3': 12 }
+	'vesuv lookout':					{ 'reps_q2':  17 },
+	'visit the blacksmith':				{ 'reps_q1':  24 },
+	'vulcans secret':					{ 'reps_q8':  11 },
+	'watch the skies':					{ 'reps_d3':  12 }
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -12215,7 +12275,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Fri Mar  4 01:38:45 2011 UTC
+  // as of Wed Mar 16 22:02:43 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -12252,7 +12312,7 @@ Town.blacksmith = {
       '|\\bscepter\\b' +		// 1
       '|\\bshortsword\\b' +		// 1
       '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 7 (mismatches 1)
+      '|\\bstaff\\b' +			// 8 (mismatches 1)
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
@@ -12322,7 +12382,7 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 21
+      '|\\barmor\\b' +			// 22
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
@@ -12360,7 +12420,7 @@ Town.blacksmith = {
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 16
+      '\\bamulet\\b' +			// 17
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
@@ -12374,6 +12434,7 @@ Town.blacksmith = {
       '|\\blantern\\b' +		// 1
       '|\\blocket\\b' +			// 2
       '|\\bmark\\b' +			// 1
+      '|\\bmedallion\\b' +		// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
       '|\\bpendant\\b' +		// 10
@@ -12413,7 +12474,7 @@ Town.blacksmith = {
     Gloves: new RegExp('(' +
       '\\bbracer\\b' +			// 1
       '|\\bfists?\\b' +			// 1+1
-      '|\\bgauntlets?\\b' +		// 9+4
+      '|\\bgauntlets?\\b' +		// 10+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
       '|\\bhands?\\b' +			// 4+3

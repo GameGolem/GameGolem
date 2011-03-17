@@ -106,7 +106,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Fri Mar  4 01:38:45 2011 UTC
+  // as of Wed Mar 16 22:02:43 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -143,7 +143,7 @@ Town.blacksmith = {
       '|\\bscepter\\b' +		// 1
       '|\\bshortsword\\b' +		// 1
       '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 7 (mismatches 1)
+      '|\\bstaff\\b' +			// 8 (mismatches 1)
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
@@ -213,7 +213,7 @@ Town.blacksmith = {
       ')', 'i'),
     Armor: new RegExp('(' +
       '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 21
+      '|\\barmor\\b' +			// 22
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 3
       '|\\bbelt\\b' +			// 1
@@ -251,7 +251,7 @@ Town.blacksmith = {
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 16
+      '\\bamulet\\b' +			// 17
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
@@ -265,6 +265,7 @@ Town.blacksmith = {
       '|\\blantern\\b' +		// 1
       '|\\blocket\\b' +			// 2
       '|\\bmark\\b' +			// 1
+      '|\\bmedallion\\b' +		// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
       '|\\bpendant\\b' +		// 10
@@ -304,7 +305,7 @@ Town.blacksmith = {
     Gloves: new RegExp('(' +
       '\\bbracer\\b' +			// 1
       '|\\bfists?\\b' +			// 1+1
-      '|\\bgauntlets?\\b' +		// 9+4
+      '|\\bgauntlets?\\b' +		// 10+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
       '|\\bhands?\\b' +			// 4+3
