@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1009
+// @version		31.5.1010
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1009;
+var revision = 1010;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -10771,7 +10771,7 @@ Potions.update = function(event) {
 };
 
 Potions.work = function(state) {
-	if (state && Page.to('keep_stats') && this.runtime.type && this.runtime.amount) {
+	if (state && this.runtime.type && this.runtime.amount && Page.to('keep_stats')) {
 		console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
 		this.set(['runtime','type'], null);
