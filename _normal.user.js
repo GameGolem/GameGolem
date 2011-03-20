@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1010
+// @version		31.5.1011
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1010;
+var revision = 1011;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -328,6 +328,56 @@ var sum = function(a) { // Adds the values of all array entries together
 		return parseFloat(a);
 	}
 	return t;
+};
+
+// Maximum numeric value in a tree of objects/arrays
+var nmax = function(a) {
+	var i, v = Number.NEGATIVE_INFINITY;
+	if (arguments.length !== 1) {
+		i = arguments.length;
+		while (i--) {
+			v = Math.max(v, arguments.callee(arguments[i]));
+		}
+	} else if (isArray(a)) {
+		i = a.length;
+		while (i--) {
+			v = Math.max(v, arguments.callee(a[i]));
+		}
+	} else if (isObject(a)) {
+		for(i in a) {
+			v = Math.max(v, arguments.callee(a[i]));
+		}
+	} else if (isNumber(a)) {
+		v = a;
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+		v = parseFloat(a);
+	}
+	return v;
+};
+
+// Minimum numeric value in a tree of objects/arrays
+var nmin = function(a) {
+	var i, v = Number.POSITIVE_INFINITY;
+	if (arguments.length !== 1) {
+		i = arguments.length;
+		while (i--) {
+			v = Math.min(v, arguments.callee(arguments[i]));
+		}
+	} else if (isArray(a)) {
+		i = a.length;
+		while (i--) {
+			v = Math.min(v, arguments.callee(a[i]));
+		}
+	} else if (isObject(a)) {
+		for(i in a) {
+			v = Math.min(v, arguments.callee(a[i]));
+		}
+	} else if (isNumber(a)) {
+		v = a;
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+		v = parseFloat(a);
+	}
+	return v;
 };
 
 var compare = function(left, right) {
@@ -12558,11 +12608,20 @@ Town.parse = function(change) {
 			}
 		}
 	} else if (!change) {
-		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i;
+		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
 		purge = {};
 		for (i in unit) {
 			if (unit[i].page === page) {
 				purge[i] = true;
+			}
+		}
+		// undo cost reduction general values on the magic page
+		if (page === 'magic' && (i = Generals.get(Player.get('general')))) {
+			j = Math.max(nmax(((i.skills || '') + ';' + (i.weaponbonus || '')).regex(/\bDecrease Soldier Cost by (\d+)\b/ig)),
+			  (i.stats && i.stats.cost) || 0,
+			  (i.potential && i.potential.cost) || 0);
+			if (j) {
+				cost_adj = 100 / (100 - j);
 			}
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
@@ -12592,7 +12651,7 @@ Town.parse = function(change) {
 			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
 			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
 			if (cost) {
-				unit[name].cost = parseInt(cost, 10) || 0;
+				unit[name].cost = Math.round(cost_adj * (parseInt(cost, 10) || 0));
 			} else if ('cost' in unit[name]) {
 				delete unit[name].cost;
 			}

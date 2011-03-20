@@ -284,6 +284,56 @@ var sum = function(a) { // Adds the values of all array entries together
 	return t;
 };
 
+// Maximum numeric value in a tree of objects/arrays
+var nmax = function(a) {
+	var i, v = Number.NEGATIVE_INFINITY;
+	if (arguments.length !== 1) {
+		i = arguments.length;
+		while (i--) {
+			v = Math.max(v, arguments.callee(arguments[i]));
+		}
+	} else if (isArray(a)) {
+		i = a.length;
+		while (i--) {
+			v = Math.max(v, arguments.callee(a[i]));
+		}
+	} else if (isObject(a)) {
+		for(i in a) {
+			v = Math.max(v, arguments.callee(a[i]));
+		}
+	} else if (isNumber(a)) {
+		v = a;
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+		v = parseFloat(a);
+	}
+	return v;
+};
+
+// Minimum numeric value in a tree of objects/arrays
+var nmin = function(a) {
+	var i, v = Number.POSITIVE_INFINITY;
+	if (arguments.length !== 1) {
+		i = arguments.length;
+		while (i--) {
+			v = Math.min(v, arguments.callee(arguments[i]));
+		}
+	} else if (isArray(a)) {
+		i = a.length;
+		while (i--) {
+			v = Math.min(v, arguments.callee(a[i]));
+		}
+	} else if (isObject(a)) {
+		for(i in a) {
+			v = Math.min(v, arguments.callee(a[i]));
+		}
+	} else if (isNumber(a)) {
+		v = a;
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+		v = parseFloat(a);
+	}
+	return v;
+};
+
 var compare = function(left, right) {
 	var i;
 	if (typeof left !== typeof right) {

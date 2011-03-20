@@ -389,11 +389,20 @@ Town.parse = function(change) {
 			}
 		}
 	} else if (!change) {
-		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i;
+		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
 		purge = {};
 		for (i in unit) {
 			if (unit[i].page === page) {
 				purge[i] = true;
+			}
+		}
+		// undo cost reduction general values on the magic page
+		if (page === 'magic' && (i = Generals.get(Player.get('general')))) {
+			j = Math.max(nmax(((i.skills || '') + ';' + (i.weaponbonus || '')).regex(/\bDecrease Soldier Cost by (\d+)\b/ig)),
+			  (i.stats && i.stats.cost) || 0,
+			  (i.potential && i.potential.cost) || 0);
+			if (j) {
+				cost_adj = 100 / (100 - j);
 			}
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
@@ -423,7 +432,7 @@ Town.parse = function(change) {
 			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
 			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
 			if (cost) {
-				unit[name].cost = parseInt(cost, 10) || 0;
+				unit[name].cost = Math.round(cost_adj * (parseInt(cost, 10) || 0));
 			} else if ('cost' in unit[name]) {
 				delete unit[name].cost;
 			}
