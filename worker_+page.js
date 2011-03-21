@@ -168,6 +168,7 @@ Page.update = function(event) {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
 						Page.page = i;
+						//console.log(log('Page:' + Page.page));
 						return;
 					}
 				}
@@ -175,6 +176,7 @@ Page.update = function(event) {
 			if (this.page === '') {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
+						//console.log(log('Page:' + Page.page));
 						Page.page = i;
 					}
 				}

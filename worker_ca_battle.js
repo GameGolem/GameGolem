@@ -19,13 +19,15 @@ Battle.settings = {
 Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
-	pages:'battle_rank battle_battle'
+	pages:'battle_rank battle_battle battle_war'
 };
 
 Battle.data = {
 	user: {},
 	rank: {},
-	points: {}
+	points: {},
+	battle: {},
+	war: {}
 };
 
 Battle.option = {
@@ -147,8 +149,7 @@ Battle.display = [
 		advanced:true,
 		id:'chain',
 		label:'Chain after wins',
-		require:'between==0',
-		select:[1,2,3,4,5],
+		select:[1,2,3,4,5,6,7,8,9,10],
 		help:'How many times to chain before stopping'
 	},{
 		advanced:true,
@@ -192,7 +193,7 @@ Battle.setup = function() {
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-        var i, list, rank;
+        var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
@@ -200,18 +201,32 @@ Battle.init = function() {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
 	}
-//	this.option.arena = false;// ARENA!!!!!!
-
-	// make a custom Config type of for rank, based on number so it carries forward on level ups
-	list = {};
-	rank = Player.get('rank',0);
-	if (rank < 4) {
-		for (i = rank - 4; i < 0; i++) {
-			list[i] = '(' + i + ') ' + this.data.rank[0];
+	for (i in data) {
+		if (data[i].rank) {
+			this.set(['data','user',i,'battle','rank'], data[i].rank);
+			this.set(['data','user',i,'battle','win'], data[i].win);
+			this.set(['data','user',i,'battle','loss'], data[i].loss);
+			this.set(['data','user',i,'war','rank'], data[i].war);
+			delete data[i].rank;
+			delete data[i].win;
+			delete data[i].loss;
 		}
 	}
-	for (i in this.data.rank){
-		list[i - rank] = '(' + (i - rank) + ') ' + this.data.rank[i].name;
+	if (this.data.rank) {
+		this.data.battle.rank = this.data.rank;
+		delete this.data.rank;
+	}
+//	this.option.arena = false;// ARENA!!!!!!
+	// make a custom Config type of for rank, based on number so it carries forward on level ups
+	list = {};
+	rank = Player.get(mode,0);
+	if (rank < 4) {
+		for (i = rank - 4; i < 0; i++) {
+			list[i] = '(' + i + ') ' + this.data[mode].rank[0];
+		}
+	}
+	for (i in this.data[mode].rank){
+		list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
 	}
 	Config.set('limit_list', list);
 
@@ -260,15 +275,23 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid, tmp, myrank;
+	var data, uid, tmp, myrank, mode = this.option.type === 'War' ? 'war' : 'battle';
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		this.data.rank = data;
-		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
+		this.data.battle.rank = data;
+		this.data.battle.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
+	} else if (Page.page === 'battle_war') {
+		data = {0:{name:'Newbie',points:0}};
+		$('tr[height="23"]').each(function(i,el){
+			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
+			data[info[0]] = {name:info[1], points:info[2]};
+		});
+		this.data.war.rank = data;
+		this.data.war.bp = $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -290,17 +313,17 @@ Battle.parse = function(change) {
 //				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
-				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i);
-				data[uid].win = (data[uid].win || 0) + 1;
+				this.data[mode].bp = $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i);
+				data[uid][mode].win = (data[uid][mode].win || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+win',1);
-				if (this.option.chain && (data[uid].win % this.option.chain)) {
+				if (this.option.chain && (data[uid][mode].win % this.option.chain)) {
 					this.runtime.attacking = uid;
 				}
 				data[uid].last = Date.now();
 				//console.log(warn(), 'win');
 			} else if ($('img[src*="battle_defeat"]').length) {
-				data[uid].loss = (data[uid].loss || 0) + 1;
+				data[uid][mode].loss = (data[uid][mode].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
 				//console.log(warn(), 'loss');
@@ -312,17 +335,20 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
-		myrank = Player.get('rank',0);
+		myrank = Player.get(mode,0);
 		$('#app46755028429_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i);
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), battle_rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i), war_rank = info.regex(/War:[^(]+\(Rank (\d+)\)/i), rank;
+			rank = mode === 'War' ? war_rank : battle_rank;
 			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
 			data[uid] = data[uid] || {};
 			data[uid].name = $('a', el).text().trim();
 			data[uid].level = info.regex(/\(Level (\d+)\)/i);
-			data[uid].rank = rank;
-			data[uid].war = info.regex(/War:[^(]+\(Rank (\d+)\)/i);
+			data[uid].battle = data[uid].battle || {};
+			data[uid].war = data[uid].war || {};
+			data[uid].battle.rank = battle_rank;
+			data[uid].war.rank = war_rank;
 			data[uid].army = $('td.bluelink', el).next().text().regex(/(\d+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_(\d)/i);
 		});
@@ -346,8 +372,8 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
+	status.push('Rank ' + rank + ' ' + (rank && this.data[mode].rank[rank] && this.data[mode].rank[rank].name) + ' with ' + (this.data[mode].bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
@@ -366,7 +392,7 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && (data[i].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && (data[i][mode].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i][mode].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -374,9 +400,9 @@ Battle.update = function(event) {
 //		console.log(warn(), 'Pruning target cache');
 		list = [];
 		for (i in data) {
-/*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
-			if (Battle.option.bp === 'Always') { weight += ((data[i].rank || 0) - rank) / 2; }
-			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i].rank || 0)) / 2; }
+/*			weight = Math.range(-10, (data[i][mode].win || 0) - (data[i][mode].loss || 0), 20) / 2;
+			if (Battle.option.bp === 'Always') { weight += ((data[i][mode].rank || 0) - rank) / 2; }
+			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i][mode].rank || 0)) / 2; }
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
 			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
 			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
@@ -411,8 +437,10 @@ Battle.update = function(event) {
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
+				|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
+				|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
+				|| (this.option.type === 'War' 
+					&& data[i].last && data[i].last + 300000 >= Date.now())) {
 			this.runtime.attacking = null;
 		}
 		skip = {};
@@ -427,7 +455,7 @@ Battle.update = function(event) {
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i][mode].loss || 0) - (data[i][mode].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
 					continue;
 				}
@@ -440,14 +468,14 @@ Battle.update = function(event) {
 				if (skip[i] // If filtered out in preferred list
 				|| (data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i][mode].loss || 0) - (data[i][mode].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) * (data[i].level || 0) / level > this.option.army && this.option.type === 'Invade')
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level && this.option.type !== 'Invade')
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				if (Battle.option.bp === 'Always') {
-					for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+					for (j=Math.range(1,(data[i][mode].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
 						list.push(i);
 					}
 				} else {
@@ -466,7 +494,7 @@ Battle.update = function(event) {
 			} else {
 				j = '<i>id:</i> ' + i;
 			}
-			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i][mode].rank && this.data[mode].rank[data[i][mode].rank] ? ' ' + this.data[mode].rank[data[i][mode].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found.');
@@ -512,8 +540,9 @@ Battle.work = function(state) {
 };
 
 Battle.rank = function(name) {
-	for (var i in Battle.data.rank) {
-		if (Battle.data.rank[i].name === name) {
+	var mode = this.option.type === 'War' ? 'war' : 'battle';
+	for (var i in Battle.data[mode].rank) {
+		if (Battle.data[mode].rank[i].name === name) {
 			return parseInt(i, 10);
 		}
 	}
@@ -522,7 +551,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle';
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -557,8 +586,8 @@ Battle.dashboard = function(sort, rev) {
 				str += '\n' + a + ' = ' + aa;
 				str += ', ' + b + ' = ' + bb;
 			} else {
-				aa = data[a][sorttype[sort]] || 0;
-				bb = data[b][sorttype[sort]] || 0;
+				aa = data[a][mode][sorttype[sort]] || data[a][sorttype[sort]] || 0;
+				bb = data[b][mode][sorttype[sort]] || data[b][sorttype[sort]] || 0;
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -566,7 +595,7 @@ Battle.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data.rank && this.data.rank[Player.get('rank',0)] ? this.data.rank[Player.get('rank',0)].name : 'unknown') + ' (' + Player.get('rank',0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data[mode].rank && this.data[mode].rank[Player.get(mode,0)] ? this.data[mode].rank[Player.get(mode,0)].name : 'unknown') + ' (' + Player.get(mode,0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
 		list.push(' <img class="golem-image" src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
@@ -587,11 +616,11 @@ Battle.dashboard = function(sort, rev) {
 		td(output, isNumber(data.align) ? '<img class="golem-image" src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
-		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
+		td(output, this.data[mode].rank[data[mode].rank] ? this.data[mode].rank[data[mode].rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
-		td(output, data.win || '');
-		td(output, data.loss || '');
+		td(output, data[mode].win || '');
+		td(output, data[mode].loss || '');
 		td(output, data.hide || '');
 		tr(list, output.join(''));
 	}

@@ -14,7 +14,7 @@ var Monster = new Worker('Monster');
 Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
-	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster'
+	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster monster_dead'
 };
 
 Monster.option = {
@@ -53,6 +53,7 @@ Monster.option = {
 };
 
 Monster.runtime = {
+	clicked:false, // Last monster clicked, for checking if timed out
 	check:false, // id of monster to check if needed, otherwise false
 	attack:false, // id of monster if we have an attack target, otherwise false
 	defend:false, // id of monster if we have a defend target, otherwise false
@@ -640,9 +641,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
+		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
 		festival: 'air_element'
 	},
@@ -687,7 +688,7 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'azriel'
+		festival: 'boss_azriel'
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -769,13 +770,13 @@ Monster.types = {
 		dead:'nm_mephistopheles2_dead.jpg',
 		achievement:6000000,
 		timer:604800, // 168 hours
-		mpool:3,
+		mpool:1, // For fest
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
-		festival_timer: 691200 // 192 hours
-		//festival: '?'
+		festival_timer: 691200, // 192 hours
+		festival: 'alpha_mephistopheles'
 	}
 };
 
@@ -834,7 +835,8 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival;
+	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked;
+	this.runtime.clicked = false;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
@@ -1049,19 +1051,19 @@ Monster.parse = function(change) {
 	} else {
 		this.runtime.used.stamina = 0;
 		this.runtime.used.energy = 0;
+		if (Page.page === 'monster_dead') {
+			console.log(warn(), 'Found a timed out monster.');
+			if (clicked) {
+				console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
+				delete data[this.runtime.mid];
+			} else {
+				console.log(warn(), 'Unknown monster (timed out)');
+			}
+			this.runtime.check = false;
+			return false;
+		}
 		if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
 			festival = (Page.page === 'festival_monster_list');
-			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
-				console.log(warn(), 'Found a timed out monster.');
-				if (this.runtime.mid) {
-					console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
-					delete data[this.runtime.mid];
-				} else {
-					console.log(warn(), 'Unknown monster (timed out)');
-				}
-				this.runtime.check = false;
-				return false;
-			}
 			this.runtime.check = false;
 
 			if (!$('#app46755028429_app_body div.imgButton').length) {
@@ -1069,7 +1071,8 @@ Monster.parse = function(change) {
 			}
 			for (mid in data) {
 				if (	((types[data[mid].type].raid && Page.page === 'battle_raid')
-							|| festival === (data[mid].page === 'festival'))
+							|| (Page.page !== 'battle_raid' 
+								&& festival === (data[mid].page === 'festival')))
 						&& (data[mid].state === 'complete'
 							|| data[mid].state === 'reward'
 							|| (data[mid].state === 'assist'
@@ -1212,11 +1215,11 @@ Monster.update = function(event) {
 							|| monster.ignore) {
 						continue;
 					}
+					matched_mids.push(mid);
 					monster.ac = /:ac\b/.test(condition);
 					if (monster.state !== 'engage') {
 						continue;
 					}
-					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
 					monster.ach = this.conditions('ach',condition) || type.achievement;
@@ -1606,7 +1609,7 @@ Monster.update = function(event) {
 						&& monster.page !== 'festival') {
 					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
-				} else if (!monster.remove && monster.last < Date.now() - this.option.check_interval) {
+				} else if (monster.last < Date.now() - this.option.check_interval * (monster.remove ? 5 : 1)) {
 					this.page(mid, 'Reviewing ', 'casuser','');
 				}
 				if (this.runtime.message) {
@@ -1639,6 +1642,7 @@ Monster.work = function(state) {
 	if (this.runtime.check) {
 		console.log(warn(), this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
+		this.runtime.clicked = this.runtime.mid;
 		this.runtime.check = this.runtime.limit = this.runtime.message = this.runtime.dead = false;
 		return QUEUE_RELEASE;
 	}

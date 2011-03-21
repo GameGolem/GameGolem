@@ -3498,6 +3498,7 @@ Page.update = function(event) {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
 						Page.page = i;
+						//console.log(log('Page:' + Page.page));
 						return;
 					}
 				}
@@ -3505,6 +3506,7 @@ Page.update = function(event) {
 			if (this.page === '') {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
+						//console.log(log('Page:' + Page.page));
 						Page.page = i;
 					}
 				}
@@ -5677,13 +5679,15 @@ Battle.settings = {
 Battle.temp = null;
 
 Battle.defaults['castle_age'] = {
-	pages:'battle_rank battle_battle'
+	pages:'battle_rank battle_battle battle_war'
 };
 
 Battle.data = {
 	user: {},
 	rank: {},
-	points: {}
+	points: {},
+	battle: {},
+	war: {}
 };
 
 Battle.option = {
@@ -5805,8 +5809,7 @@ Battle.display = [
 		advanced:true,
 		id:'chain',
 		label:'Chain after wins',
-		require:'between==0',
-		select:[1,2,3,4,5],
+		select:[1,2,3,4,5,6,7,8,9,10],
 		help:'How many times to chain before stopping'
 	},{
 		advanced:true,
@@ -5850,7 +5853,7 @@ Battle.setup = function() {
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-        var i, list, rank;
+        var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
@@ -5858,18 +5861,32 @@ Battle.init = function() {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
 	}
-//	this.option.arena = false;// ARENA!!!!!!
-
-	// make a custom Config type of for rank, based on number so it carries forward on level ups
-	list = {};
-	rank = Player.get('rank',0);
-	if (rank < 4) {
-		for (i = rank - 4; i < 0; i++) {
-			list[i] = '(' + i + ') ' + this.data.rank[0];
+	for (i in data) {
+		if (data[i].rank) {
+			this.set(['data','user',i,'battle','rank'], data[i].rank);
+			this.set(['data','user',i,'battle','win'], data[i].win);
+			this.set(['data','user',i,'battle','loss'], data[i].loss);
+			this.set(['data','user',i,'war','rank'], data[i].war);
+			delete data[i].rank;
+			delete data[i].win;
+			delete data[i].loss;
 		}
 	}
-	for (i in this.data.rank){
-		list[i - rank] = '(' + (i - rank) + ') ' + this.data.rank[i].name;
+	if (this.data.rank) {
+		this.data.battle.rank = this.data.rank;
+		delete this.data.rank;
+	}
+//	this.option.arena = false;// ARENA!!!!!!
+	// make a custom Config type of for rank, based on number so it carries forward on level ups
+	list = {};
+	rank = Player.get(mode,0);
+	if (rank < 4) {
+		for (i = rank - 4; i < 0; i++) {
+			list[i] = '(' + i + ') ' + this.data[mode].rank[0];
+		}
+	}
+	for (i in this.data[mode].rank){
+		list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
 	}
 	Config.set('limit_list', list);
 
@@ -5918,15 +5935,23 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid, tmp, myrank;
+	var data, uid, tmp, myrank, mode = this.option.type === 'War' ? 'war' : 'battle';
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		this.data.rank = data;
-		this.data.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
+		this.data.battle.rank = data;
+		this.data.battle.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
+	} else if (Page.page === 'battle_war') {
+		data = {0:{name:'Newbie',points:0}};
+		$('tr[height="23"]').each(function(i,el){
+			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
+			data[info[0]] = {name:info[1], points:info[2]};
+		});
+		this.data.war.rank = data;
+		this.data.war.bp = $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -5948,17 +5973,17 @@ Battle.parse = function(change) {
 //				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
-				this.data.bp = $('span.result_body:contains("Battle Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i);
-				data[uid].win = (data[uid].win || 0) + 1;
+				this.data[mode].bp = $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i);
+				data[uid][mode].win = (data[uid][mode].win || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+win',1);
-				if (this.option.chain && (data[uid].win % this.option.chain)) {
+				if (this.option.chain && (data[uid][mode].win % this.option.chain)) {
 					this.runtime.attacking = uid;
 				}
 				data[uid].last = Date.now();
 				//console.log(warn(), 'win');
 			} else if ($('img[src*="battle_defeat"]').length) {
-				data[uid].loss = (data[uid].loss || 0) + 1;
+				data[uid][mode].loss = (data[uid][mode].loss || 0) + 1;
 				data[uid].last = Date.now();
 				History.add('battle+loss',-1);
 				//console.log(warn(), 'loss');
@@ -5970,17 +5995,20 @@ Battle.parse = function(change) {
 		if (tmp) {
 			this.data.points = tmp;
 		}
-		myrank = Player.get('rank',0);
+		myrank = Player.get(mode,0);
 		$('#app46755028429_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i);
+			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), battle_rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i), war_rank = info.regex(/War:[^(]+\(Rank (\d+)\)/i), rank;
+			rank = mode === 'War' ? war_rank : battle_rank;
 			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
 				return;
 			}
 			data[uid] = data[uid] || {};
 			data[uid].name = $('a', el).text().trim();
 			data[uid].level = info.regex(/\(Level (\d+)\)/i);
-			data[uid].rank = rank;
-			data[uid].war = info.regex(/War:[^(]+\(Rank (\d+)\)/i);
+			data[uid].battle = data[uid].battle || {};
+			data[uid].war = data[uid].war || {};
+			data[uid].battle.rank = battle_rank;
+			data[uid].war.rank = war_rank;
 			data[uid].army = $('td.bluelink', el).next().text().regex(/(\d+)/);
 			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_(\d)/i);
 		});
@@ -6004,8 +6032,8 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), rank = Player.get('rank',0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + rank + ' ' + (rank && this.data.rank[rank] && this.data.rank[rank].name) + ' with ' + (this.data.bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
+	status.push('Rank ' + rank + ' ' + (rank && this.data[mode].rank[rank] && this.data[mode].rank[rank].name) + ' with ' + (this.data[mode].bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
@@ -6024,7 +6052,7 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && (data[i].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i].rank || 6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && (data[i][mode].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i][mode].rank || 6) <= 5)) { // unknown rank never deleted
 			delete data[i];
 		}
 	}
@@ -6032,9 +6060,9 @@ Battle.update = function(event) {
 //		console.log(warn(), 'Pruning target cache');
 		list = [];
 		for (i in data) {
-/*			weight = Math.range(-10, (data[i].win || 0) - (data[i].loss || 0), 20) / 2;
-			if (Battle.option.bp === 'Always') { weight += ((data[i].rank || 0) - rank) / 2; }
-			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i].rank || 0)) / 2; }
+/*			weight = Math.range(-10, (data[i][mode].win || 0) - (data[i][mode].loss || 0), 20) / 2;
+			if (Battle.option.bp === 'Always') { weight += ((data[i][mode].rank || 0) - rank) / 2; }
+			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i][mode].rank || 0)) / 2; }
 			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
 			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
 			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
@@ -6069,8 +6097,10 @@ Battle.update = function(event) {
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
-		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
-		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)) {
+				|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
+				|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
+				|| (this.option.type === 'War' 
+					&& data[i].last && data[i].last + 300000 >= Date.now())) {
 			this.runtime.attacking = null;
 		}
 		skip = {};
@@ -6085,7 +6115,7 @@ Battle.update = function(event) {
 				data[i] = data[i] || {};
 				if ((data[i].dead && data[i].dead + 300000 >= Date.now()) // If they're dead ignore them for 1hp = 5 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i][mode].loss || 0) - (data[i][mode].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (points && data[i].align && this.data.points[data[i].align - 1] >= 10)) {
 					continue;
 				}
@@ -6098,14 +6128,14 @@ Battle.update = function(event) {
 				if (skip[i] // If filtered out in preferred list
 				|| (data[i].dead && data[i].dead + 1800000 >= Date.now()) // If they're dead ignore them for 3m * 10hp = 30 mins
 				|| (data[i].last && data[i].last + this.option.between >= Date.now()) // If we're spacing our attacks
-				|| (typeof this.option.losses === 'number' && (data[i].loss || 0) - (data[i].win || 0) >= this.option.losses) // Don't attack someone who wins more often
+				|| (typeof this.option.losses === 'number' && (data[i][mode].loss || 0) - (data[i][mode].win || 0) >= this.option.losses) // Don't attack someone who wins more often
 				|| (this.option.army !== 'Any' && ((data[i].army || 0) / army) * (data[i].level || 0) / level > this.option.army && this.option.type === 'Invade')
 				|| (this.option.level !== 'Any' && ((data[i].level || 0) / level) > this.option.level && this.option.type !== 'Invade')
 				|| (points && (!data[i].align || this.data.points[data[i].align - 1] >= 10))) {
 					continue;
 				}
 				if (Battle.option.bp === 'Always') {
-					for (j=Math.range(1,(data[i].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
+					for (j=Math.range(1,(data[i][mode].rank || 0)-rank+1,5); j>0; j--) { // more than 1 time if it's more than 1 difference
 						list.push(i);
 					}
 				} else {
@@ -6124,7 +6154,7 @@ Battle.update = function(event) {
 			} else {
 				j = '<i>id:</i> ' + i;
 			}
-			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i].rank && this.data.rank[data[i].rank] ? ' ' + this.data.rank[data[i].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
+			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i][mode].rank && this.data[mode].rank[data[i][mode].rank] ? ' ' + this.data[mode].rank[data[i][mode].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
 			this.runtime.attacking = null;
 			status.push('No valid targets found.');
@@ -6170,8 +6200,9 @@ Battle.work = function(state) {
 };
 
 Battle.rank = function(name) {
-	for (var i in Battle.data.rank) {
-		if (Battle.data.rank[i].name === name) {
+	var mode = this.option.type === 'War' ? 'war' : 'battle';
+	for (var i in Battle.data[mode].rank) {
+		if (Battle.data[mode].rank[i].name === name) {
 			return parseInt(i, 10);
 		}
 	}
@@ -6180,7 +6211,7 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0);
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle';
 	for (i in data) {
 		points[data[i].align]++;
 	}
@@ -6215,8 +6246,8 @@ Battle.dashboard = function(sort, rev) {
 				str += '\n' + a + ' = ' + aa;
 				str += ', ' + b + ' = ' + bb;
 			} else {
-				aa = data[a][sorttype[sort]] || 0;
-				bb = data[b][sorttype[sort]] || 0;
+				aa = data[a][mode][sorttype[sort]] || data[a][sorttype[sort]] || 0;
+				bb = data[b][mode][sorttype[sort]] || data[b][sorttype[sort]] || 0;
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -6224,7 +6255,7 @@ Battle.dashboard = function(sort, rev) {
 			return (rev ? aa - bb : bb - aa);
 		});
 	}
-	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data.rank && this.data.rank[Player.get('rank',0)] ? this.data.rank[Player.get('rank',0)].name : 'unknown') + ' (' + Player.get('rank',0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
+	list.push('<div style="text-align:center;"><strong>Rank:</strong> ' + (this.data[mode].rank && this.data[mode].rank[Player.get(mode,0)] ? this.data[mode].rank[Player.get(mode,0)].name : 'unknown') + ' (' + Player.get(mode,0) + '), <strong>Targets:</strong> ' + length(data) + ' / ' + this.option.cache + ', <strong>By Alignment:</strong>');
 	for (i=1; i<6; i++ ) {
 		list.push(' <img class="golem-image" src="' + this.symbol[i] +'" alt="'+this.demi[i]+'" title="'+this.demi[i]+'"> ' + points[i]);
 	}
@@ -6245,11 +6276,11 @@ Battle.dashboard = function(sort, rev) {
 		td(output, isNumber(data.align) ? '<img class="golem-image" src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
-		td(output, this.data.rank[data.rank] ? this.data.rank[data.rank].name : '');
+		td(output, this.data[mode].rank[data[mode].rank] ? this.data[mode].rank[data[mode].rank].name : '');
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
-		td(output, data.win || '');
-		td(output, data.loss || '');
+		td(output, data[mode].win || '');
+		td(output, data[mode].loss || '');
 		td(output, data.hide || '');
 		tr(list, output.join(''));
 	}
@@ -8351,7 +8382,7 @@ var Monster = new Worker('Monster');
 Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
-	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster'
+	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster monster_dead'
 };
 
 Monster.option = {
@@ -8390,6 +8421,7 @@ Monster.option = {
 };
 
 Monster.runtime = {
+	clicked:false, // Last monster clicked, for checking if timed out
 	check:false, // id of monster to check if needed, otherwise false
 	attack:false, // id of monster if we have an attack target, otherwise false
 	defend:false, // id of monster if we have a defend target, otherwise false
@@ -8977,9 +9009,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
+		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
 		festival: 'air_element'
 	},
@@ -9024,7 +9056,7 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'azriel'
+		festival: 'boss_azriel'
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -9106,13 +9138,13 @@ Monster.types = {
 		dead:'nm_mephistopheles2_dead.jpg',
 		achievement:6000000,
 		timer:604800, // 168 hours
-		mpool:3,
+		mpool:1, // For fest
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
-		festival_timer: 691200 // 192 hours
-		//festival: '?'
+		festival_timer: 691200, // 192 hours
+		festival: 'alpha_mephistopheles'
 	}
 };
 
@@ -9171,7 +9203,8 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival;
+	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked;
+	this.runtime.clicked = false;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
@@ -9233,6 +9266,7 @@ Monster.parse = function(change) {
 			if ($('input[src*="collect_reward_button.jpg"]').length) {
 				monster.state = 'reward';
 			} else if (monster.state === 'assist') {
+				monster.state = null;
 				monster.state = null;
 			} else if (monster.state === 'reward' || monster.state === 'engage') {
 				if (!monster.dead) {
@@ -9386,27 +9420,29 @@ Monster.parse = function(change) {
 	} else {
 		this.runtime.used.stamina = 0;
 		this.runtime.used.energy = 0;
+		if (Page.page === 'monster_dead') {
+			console.log(warn(), 'Found a timed out monster.');
+			if (clicked) {
+				console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
+				delete data[this.runtime.mid];
+			} else {
+				console.log(warn(), 'Unknown monster (timed out)');
+			}
+			this.runtime.check = false;
+			return false;
+		}
 		if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
 			festival = (Page.page === 'festival_monster_list');
-			if ($('div[style*="no_monster_back.jpg"]').attr('style')){
-				console.log(warn(), 'Found a timed out monster.');
-				if (this.runtime.mid) {
-					console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
-					delete data[this.runtime.mid];
-				} else {
-					console.log(warn(), 'Unknown monster (timed out)');
-				}
-				this.runtime.check = false;
-				return false;
-			}
 			this.runtime.check = false;
 
 			if (!$('#app46755028429_app_body div.imgButton').length) {
 				return false;
 			}
+			//console.log(warn(), 'Festival '+ festival);
 			for (mid in data) {
 				if (	((types[data[mid].type].raid && Page.page === 'battle_raid')
-							|| festival === (data[mid].page === 'festival'))
+							|| (Page.page !== 'battle_raid' 
+								&& festival === (data[mid].page === 'festival')))
 						&& (data[mid].state === 'complete'
 							|| data[mid].state === 'reward'
 							|| (data[mid].state === 'assist'
@@ -9549,11 +9585,11 @@ Monster.update = function(event) {
 							|| monster.ignore) {
 						continue;
 					}
+					matched_mids.push(mid);
 					monster.ac = /:ac\b/.test(condition);
 					if (monster.state !== 'engage') {
 						continue;
 					}
-					matched_mids.push(mid);
 					//Monster is a match so we set the conditions
 					monster.max = this.conditions('max',condition);
 					monster.ach = this.conditions('ach',condition) || type.achievement;
@@ -9943,7 +9979,7 @@ Monster.update = function(event) {
 						&& monster.page !== 'festival') {
 					//console.log(warn(), 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.page(mid, 'Removing ', 'remove_list','');
-				} else if (!monster.remove && monster.last < Date.now() - this.option.check_interval) {
+				} else if (monster.last < Date.now() - this.option.check_interval * (monster.remove ? 5 : 1)) {
 					this.page(mid, 'Reviewing ', 'casuser','');
 				}
 				if (this.runtime.message) {
@@ -9976,6 +10012,7 @@ Monster.work = function(state) {
 	if (this.runtime.check) {
 		console.log(warn(), this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
+		this.runtime.clicked = this.runtime.mid;
 		this.runtime.check = this.runtime.limit = this.runtime.message = this.runtime.dead = false;
 		return QUEUE_RELEASE;
 	}
@@ -10445,10 +10482,17 @@ Page.defaults.castle_age = {
 		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
 		battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
 		battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
+		battle_war:				{url:'war_rank.php', image:'tab_war_on.gif'},
 		battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
 		battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg'},
+
 		battle_arena_battle:	{url:'arena_battle.php', selector:'#app46755028429_arena_battle_banner_section', skip:true},
+		festival_guild:			{url:'festival_battle_home.php', selector:'div[style*="festival_arena_home_background.jpg"]'},
+		festival_guild_battle:	{url:'festival_guild_battle.php', selector:'#app46755028429_guild_battle_section', skip:true},
+		battle_guild:	{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
+		battle_guild_battle:	{url:'guild_battle.php', selector:'#app46755028429_guild_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
+		monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
@@ -10566,7 +10610,8 @@ Player.parse = function(change) {
 		keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
 			this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
-			this.set('rank', $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/(\d+)/));
+			this.set('battle', $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/(\d+)/));
+			this.set('war', $('td.statsTMainback img[src*=rank_medals_war]').attr('src').filepart().regex(/(\d+)/));
 			stats = $('div.attribute_stat_container', keep);
 			this.set('maxenergy', $(stats).eq(0).text().regex(/(\d+)/));
 			this.set('maxstamina', $(stats).eq(1).text().regex(/(\d+)/));
@@ -13262,4 +13307,612 @@ FP.work = function(state) {
 	return QUEUE_CONTINUE;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage, log, warn, error
+*//********** Worker.Guild() **********
+* Build your guild army
+* Auto-attack Guild targets
+*/
+var Guild = new Worker('Guild');
+
+Guild.settings = {
+	taint:true
+};
+
+Guild.defaults['castle_age'] = {
+	pages:'battle_guild battle_guild_battle'
+};
+
+Guild.option = {
+	general:true,
+	general_choice:'any',
+	start:false,
+	collect:true,
+	tokens:'min',
+	safety:60000,
+	ignore:'',
+	limit:'',
+	cleric:false
+};
+
+Guild.runtime = {
+	tokens:10,
+	status:'none',// none, wait, start, fight, collect
+	start:0,
+	finish:0,
+	rank:0,
+	points:0,
+	burn:false,
+	last:null, // name of last target, .data[last] then we've lost so skip them
+	stunned:false
+};
+
+Guild.temp = {
+	status:{
+		none:'Unknown',
+		wait:'Waiting for Next Battle',
+		start:'Entering Battle',
+		fight:'In Battle',
+		collect:'Collecting Reward'
+	}
+};
+
+Guild.display = [
+	{
+		id:'general',
+ 		label:'Use Best General',
+		checkbox:true
+	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:'!general',
+		select:'generals'
+	},{
+		id:'start',
+ 		label:'Automatically Start',
+		checkbox:true
+	},{
+		id:'delay',
+		label:'Start Delay',
+		require:'start',
+		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
+	},{
+		id:'collect',
+ 		label:'Collect Rewards',
+		checkbox:true
+	},{
+		id:'tokens',
+		label:'Use Tokens',
+		select:{min:'Immediately', healthy:'Save if Stunned', max:'Save Up'}
+	},{
+		id:'safety',
+		label:'Safety Margin',
+		require:'tokens!="min"',
+		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+	},{
+		id:'order',
+		label:'Attack',
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
+		advanced:true,
+		id:'limit',
+		label:'Relative Level',
+		text:true,
+		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
+	},{
+		id:'cleric',
+ 		label:'Attack Clerics First',
+		checkbox:true,
+		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
+	},{
+		id:'defeat',
+ 		label:'Avoid Defeat',
+		checkbox:true,
+		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		advanced:true,
+		id:'ignore',
+		label:'Ignore Targets',
+		text:true,
+		help:'Ignore any targets with names containing these tags - use | to separate multiple tags'
+	}
+];
+
+Guild.init = function() {
+	var now = Date.now();
+	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	if (this.runtime.start && this.runtime.start > now) {
+		this._remind((this.runtime.start - now) / 1000, 'start');
+	}
+	if (this.runtime.finish && this.runtime.finish > now) {
+		this._remind((this.runtime.finish - now) / 1000, 'finish');
+	}
+	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
+		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+	}
+	this._trigger('#app46755028429_guild_token_current_value', 'tokens'); //fix
+};
+
+Guild.parse = function(change) {
+	var now = Date.now(), tmp, i;
+	switch (Page.page) {
+		case 'battle_guild':
+			if ($('input[src*="dragon_list_btn_2.jpg"]').length) {//fix
+				this.set(['runtime','status'], 'collect');
+				this._forget('finish');
+				this.set(['runtime','start'], 1800000 + now);
+				this._remind(1800, 'start');
+			} else if ($('input[src*="dragon_list_btn_3.jpg"]').length) {
+				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+					this.set(['runtime','status'], 'start');
+				}
+			}
+			break;
+		case 'battle_guild_battle':
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+			i = $('#app46755028429_monsterTicker').text().parseTimer();
+			if ($('input[src*="collect_reward_button2.jpg"]').length) {
+				this.set(['runtime','status'], 'collect');
+			} else if (i === 9999) {
+				this._forget('finish');
+				this.set(['runtime','start'], 1800000 + now);
+				this._remind(1800, 'start');
+				this.set(['runtime','status'], 'wait');
+			} else {
+				this.set(['runtime','status'], 'fight');
+				this.set(['runtime','finish'], (i * 1000) + now);
+				this._remind(i, 'finish');
+			}
+			tmp = $('#app46755028429_results_main_wrapper');
+			if (tmp.length) {
+				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
+				if (isNumber(i)) {
+					History.add('guild', i);
+					History.add('guild_count', 1);
+					this._notify('data');// Force dashboard update
+				}
+			}
+			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
+				this.set(['data',this.runtime.last], true);
+			}
+			this.set(['runtime','stunned'], !!$('#app46755028429_guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+			break;
+	}
+};
+
+Guild.update = function(event) {
+	var now = Date.now();
+	if (event.type === 'reminder') {
+		if (event.id === 'tokens') {
+			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+			if (this.runtime.tokens < 10) {
+				this._remind(180, 'tokens');
+			}
+		} else if (event.id === 'start') {
+			this.set(['runtime','status'], 'start');
+		} else if (event.id === 'finish') {
+			this.set(['runtime','status'], 'collect');
+		}
+	}
+	if (event.type === 'trigger' && event.id === 'tokens') {
+		if ($('#app46755028429_guild_token_current_value').length) {//fix
+			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
+		}
+	}
+	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
+		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+	}
+	if (!this.runtime.tokens) {
+		this.set(['runtime','burn'], false);
+	} else if (this.runtime.tokens >= 10 || (this.runtime.finish || 0) - this.option.safety <= now) {
+		this.set(['runtime','burn'], true);
+	}
+	this.set(['option','_sleep'],
+		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
+		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
+		&& !(this.runtime.status === 'fight' && this.runtime.tokens
+			&& (!this.option.delay || this.runtime.finish - 3600000  >= now - this.option.delay)
+				&& (this.option.tokens === 'min'
+					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
+					|| (this.option.tokens === 'max' && this.runtime.burn)))
+		&& !(this.runtime.status === 'collect' && this.option.collect));
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('guild', 'Guild Tokens') + ' ' + this.runtime.tokens + ' / 10');
+};
+
+Guild.work = function(state) {
+	if (state) {
+		if (this.runtime.status === 'wait') {
+			if (!Page.to('battle_guild')) {
+				return QUEUE_FINISH;
+			}
+		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+			if (Page.page !== 'battle_guild_battle') {
+				if (Page.page !== 'battle_guild') {
+					Page.to('battle_guild');
+				} else {
+					Page.click('input[src*="dragon_list_btn"]');
+				}
+			} else {
+				if (this.runtime.status === 'collect') {
+					if (!$('input[src*="collect_reward_button2.jpg"]').length) {
+						Page.to('battle_guild');
+					} else {
+						console.log(log('Collecting Reward'));
+						Page.click('input[src*="collect_reward_button2.jpg"]');
+					}
+				} else if (this.runtime.status === 'start') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
+					this.set(['data'], {}); // Forget old "lose" list
+					//Add in attack button here.
+				} else if (this.runtime.status === 'fight') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
+					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
+					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
+					
+						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
+						if (Guild.option.defeat && Guild.data && Guild.data[target[0]]) {
+							return;
+						}
+						if (isNumber(Guild.option.limit) && target[1] > Player.get('level',0) + Guild.option.limit) {
+							return;
+						}
+						while (i--) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
+								return;
+							}
+						}
+						if (besttarget) {
+							switch(Guild.option.order) {
+								case 'level':		test = target[1] < besttarget[1];	break;
+								case 'health':		test = target[3] < besttarget[3];	break;
+								case 'maxhealth':	test = target[4] < besttarget[4];	break;
+								case 'activity':	test = target[6] < besttarget[6];	break;
+								case 'level2':		test = target[1] > besttarget[1];	break;
+								case 'health2':		test = target[3] > besttarget[3];	break;
+								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+								case 'activity2':	test = target[6] > besttarget[6];	break;
+							}
+						}
+						if (Guild.option.cleric) {
+							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
+						}
+						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+							best = el;
+							besttarget = target;
+						}
+					});
+					if (best) {
+						this.set(['runtime','last'], besttarget[0]);
+						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
+						Page.click($('input[src*="monster_duel_button.gif"]', best));
+					} else {
+						this.set(['runtime','last'], null);
+					}
+				}
+			}
+		}
+	}
+	return QUEUE_CONTINUE;
+};
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage, log, warn, error
+*//********** Worker.Festival() **********
+* Build your festival army
+* Auto-attack Festival targets
+*/
+var Festival = new Worker('Festival');
+
+Festival.settings = {
+	taint:true
+};
+
+Festival.defaults['castle_age'] = {
+	pages:'festival_guild festival_guild_battle'
+};
+
+Festival.option = {
+	general:true,
+	general_choice:'any',
+	start:false,
+	collect:true,
+	tokens:'min',
+	safety:60000,
+	ignore:'',
+	limit:'',
+	cleric:false
+};
+
+Festival.runtime = {
+	tokens:10,
+	status:'start',// wait, start, fight, collect
+	start:0,
+	finish:0,
+	rank:0,
+	points:0,
+	burn:false,
+	last:null, // name of last target, .data[last] then we've lost so skip them
+	stunned:false
+};
+
+Festival.temp = {
+	status:{
+		none:'Unknown',
+		wait:'Waiting for Next Battle',
+		start:'Entering Battle',
+		fight:'In Battle',
+		collect:'Collecting Reward'
+	}
+};
+
+Festival.display = [
+	{
+		id:'general',
+ 		label:'Use Best General',
+		checkbox:true
+	},{
+		advanced:true,
+		id:'general_choice',
+		label:'Use General',
+		require:'!general',
+		select:'generals'
+	},{
+		id:'start',
+ 		label:'Automatically Start',
+		checkbox:true
+	},{
+		id:'delay',
+		label:'Start Delay',
+		require:'start',
+		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
+	},{
+		id:'collect',
+ 		label:'Collect Rewards',
+		checkbox:true
+	},{
+		id:'tokens',
+		label:'Use Tokens',
+		select:{min:'Immediately', healthy:'Save if Stunned', max:'Save Up'}
+	},{
+		id:'safety',
+		label:'Safety Margin',
+		require:'tokens!="min"',
+		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+	},{
+		id:'order',
+		label:'Attack',
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+	},{
+		advanced:true,
+		id:'limit',
+		label:'Relative Level',
+		text:true,
+		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
+	},{
+		id:'cleric',
+ 		label:'Attack Clerics First',
+		checkbox:true,
+		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
+	},{
+		id:'defeat',
+ 		label:'Avoid Defeat',
+		checkbox:true,
+		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		advanced:true,
+		id:'ignore',
+		label:'Ignore Targets',
+		text:true,
+		help:'Ignore any targets with names containing these tags - use | to separate multiple tags'
+	}
+];
+
+Festival.init = function() {
+	var now = Date.now();
+	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	if (this.runtime.start && this.runtime.start > now) {
+		this._remind((this.runtime.start - now) / 1000, 'start');
+	}
+	if (this.runtime.finish && this.runtime.finish > now) {
+		this._remind((this.runtime.finish - now) / 1000, 'finish');
+	}
+	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
+		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+	}
+	this._trigger('#app46755028429_guild_token_current_value', 'tokens'); //fix
+};
+
+Festival.parse = function(change) {
+	var now = Date.now(), tmp, i;
+	switch (Page.page) {
+		case 'festival_guild':
+			tmp = $('#app46755028429_current_battle_info').text();
+			if (tmp.indexOf('BATTLE NOW!') > -1) {
+				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+					this.set(['runtime','status'], 'start');
+				}
+			} else {
+				this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
+				this._forget('finish');
+				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600 
+						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 180;
+				this._forget('finish');
+				this.set(['runtime','start'], i*1000 + now);
+				this._remind(i , 'start');
+			}
+			break;
+		case 'festival_guild_battle':
+			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+			i = $('#app46755028429_monsterTicker').text().parseTimer();
+			if ($('input[src*="arena3_collectbutton.gif"]').length) {//fix
+http://image4.castleagegame.com/2745/graphics/arena3_collectbutton.gif			
+				this.set(['runtime','status'], 'collect');
+			} else if (i === 9999) {
+				this.set(['runtime','status'], 'wait');
+				this.set(['runtime','start'], 3600000 + now);
+				this._remind(3600 , 'start');
+			} else {
+				this.set(['runtime','status'], 'fight');
+				this.set(['runtime','finish'], (i * 1000) + now);
+				this._remind(i, 'finish');
+			}
+			tmp = $('#app46755028429_results_main_wrapper');
+			if (tmp.length) {
+				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
+				if (isNumber(i)) {
+					History.add('festival', i);
+					History.add('festival_count', 1);
+					this._notify('data');// Force dashboard update
+				}
+			}
+			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
+				this.set(['data',this.runtime.last], true);
+			}
+			this.set(['runtime','stunned'], !!$('#app46755028429_guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+			break;
+	}
+};
+
+Festival.update = function(event) {
+	var now = Date.now();
+	if (event.type === 'reminder') {
+		if (event.id === 'tokens') {
+			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+			if (this.runtime.tokens < 10) {
+				this._remind(180, 'tokens');
+			}
+		} else if (event.id === 'start') {
+			this.set(['runtime','status'], 'start');
+		} else if (event.id === 'finish') {
+			this.set(['runtime','status'], 'collect');
+		}
+	}
+	if (event.type === 'trigger' && event.id === 'tokens') {
+		if ($('#app46755028429_guild_token_current_value').length) {//fix
+			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
+		}
+	}
+	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
+		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+	}
+	if (!this.runtime.tokens) {
+		this.set(['runtime','burn'], false);
+	} else if (this.runtime.tokens >= 10 || (this.runtime.finish || 0) - this.option.safety <= now) {
+		this.set(['runtime','burn'], true);
+	}
+	this.set(['option','_sleep'],
+		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
+		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
+		&& !(this.runtime.status === 'fight' && this.runtime.tokens
+			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
+			&& (this.option.tokens === 'min'
+			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
+			|| (this.option.tokens === 'max' && this.runtime.burn)))
+		&& !(this.runtime.status === 'collect' && this.option.collect));
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
+};
+
+Festival.work = function(state) {
+	if (state) {
+		if (this.runtime.status === 'wait') {
+			if (!Page.to('festival_guild')) {
+				return QUEUE_FINISH;
+			}
+		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+			if (Page.page !== 'festival_guild_battle') {
+				if (Page.page !== 'festival_guild') {
+					Page.to('festival_guild');
+				} else {
+					Page.click('img.imgButton[src*="festival_arena_enter.jpg"]');
+				}
+			} else {
+				if (this.runtime.status === 'collect') {
+					if (!$('input[src*="arena3_collectbutton.gif"]').length) {//fix
+						Page.to('festival_guild');
+					} else {
+						console.log(log('Collecting Reward'));
+						Page.click('input[src*="arena3_collectbutton.gif"]');//fix
+					}
+				} else if (this.runtime.status === 'start') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
+					this.set(['data'], {}); // Forget old "lose" list
+				} else if (this.runtime.status === 'fight') {
+					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+						console.log(log('Entering Battle'));
+						Page.click('input[src*="guild_enter_battle_button.gif"]');
+					}
+					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
+					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
+					
+						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
+						if (Festival.option.defeat && Festival.data && Festival.data[target[0]]) {
+							return;
+						}
+						if (isNumber(Festival.option.limit) && target[1] > Player.get('level',0) + Festival.option.limit) {
+							return;
+						}
+						while (i--) {
+							if (target[0].indexOf(ignore[i]) >= 0) {
+								return;
+							}
+						}
+						if (besttarget) {
+							switch(Festival.option.order) {
+								case 'level':		test = target[1] < besttarget[1];	break;
+								case 'health':		test = target[3] < besttarget[3];	break;
+								case 'maxhealth':	test = target[4] < besttarget[4];	break;
+								case 'activity':	test = target[6] < besttarget[6];	break;
+								case 'level2':		test = target[1] > besttarget[1];	break;
+								case 'health2':		test = target[3] > besttarget[3];	break;
+								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+								case 'activity2':	test = target[6] > besttarget[6];	break;
+							}
+						}
+						if (Festival.option.cleric) {
+							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
+						}
+						//console.log(log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]));
+						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+							best = el;
+							besttarget = target;
+						}
+					});
+					if (best) {
+						this.set(['runtime','last'], besttarget[0]);
+						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
+						Page.click($('input[src*="monster_duel_button.gif"]', best));
+					} else {
+						this.set(['runtime','last'], null);
+					}
+				}
+			}
+		}
+	}
+	return QUEUE_CONTINUE;
+};
 })(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper

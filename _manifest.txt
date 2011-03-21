@@ -49,3 +49,5 @@ worker_ca_quest.js
 worker_ca_town.js
 worker_ca_upgrade.js
 worker_ca_fp.js
+worker_ca_guild.js
+worker_ca_festival.js
