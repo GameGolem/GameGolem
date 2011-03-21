@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1011
+// @version		31.5.1014
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,17 +19,20 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
-(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
+
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
+
 // Version of the script
 var version = "31.5";
-var revision = 1011;
+var revision = 1014;
+
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
+
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -44,6 +47,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -2388,8 +2392,8 @@ Dashboard.option = {
 
 Dashboard.init = function() {
 	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide;
-	if (!Workers[this.option.active]) {
-		active = this.option.active = this.name;
+	if (!Workers[active]) {
+		this.set('option.active', active = this.name);
 	}
 	for (i in Workers) {
 		if (i !== this.name && Workers[i].dashboard) {
@@ -2482,7 +2486,7 @@ Dashboard.update_watch = function(event) {
 	}
 	if (event.id === 'option.active') {
 		if (!Workers[this.option.active]) {
-			this.option.active = this.name;
+			this.set('option.active', this.name);
 		}
 		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
 		$('#golem-dashboard > div > div').hide();
@@ -2522,7 +2526,11 @@ Dashboard.dashboard = function() {
 };
 
 Dashboard.status = function(worker, value) {
-	this.set(['data', isString(worker) ? worker : worker.name], value);
+	var w = Worker.find(worker);
+	if (w) {
+		this._unflush();
+		this.set(['data', w.name], value);
+	}
 };
 
 Dashboard.menu = function(worker, key) {
@@ -9267,7 +9275,6 @@ Monster.parse = function(change) {
 				monster.state = 'reward';
 			} else if (monster.state === 'assist') {
 				monster.state = null;
-				monster.state = null;
 			} else if (monster.state === 'reward' || monster.state === 'engage') {
 				if (!monster.dead) {
 					History.add(type_label,1);
@@ -9438,7 +9445,6 @@ Monster.parse = function(change) {
 			if (!$('#app46755028429_app_body div.imgButton').length) {
 				return false;
 			}
-			//console.log(warn(), 'Festival '+ festival);
 			for (mid in data) {
 				if (	((types[data[mid].type].raid && Page.page === 'battle_raid')
 							|| (Page.page !== 'battle_raid' 
@@ -13915,4 +13921,3 @@ Festival.work = function(state) {
 	}
 	return QUEUE_CONTINUE;
 };
-})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper
