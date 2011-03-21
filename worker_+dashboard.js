@@ -25,8 +25,8 @@ Dashboard.option = {
 
 Dashboard.init = function() {
 	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide;
-	if (!Workers[this.option.active]) {
-		active = this.option.active = this.name;
+	if (!Workers[active]) {
+		this.set('option.active', active = this.name);
 	}
 	for (i in Workers) {
 		if (i !== this.name && Workers[i].dashboard) {
@@ -119,7 +119,7 @@ Dashboard.update_watch = function(event) {
 	}
 	if (event.id === 'option.active') {
 		if (!Workers[this.option.active]) {
-			this.option.active = this.name;
+			this.set('option.active', this.name);
 		}
 		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
 		$('#golem-dashboard > div > div').hide();
@@ -159,7 +159,11 @@ Dashboard.dashboard = function() {
 };
 
 Dashboard.status = function(worker, value) {
-	this.set(['data', isString(worker) ? worker : worker.name], value);
+	var w = Worker.find(worker);
+	if (w) {
+		this._unflush();
+		this.set(['data', w.name], value);
+	}
 };
 
 Dashboard.menu = function(worker, key) {
