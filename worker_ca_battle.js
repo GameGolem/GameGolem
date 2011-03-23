@@ -291,7 +291,6 @@ Battle.parse = function(change) {
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
 		this.data.war.rank = data;
-		this.data.war.bp = $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -432,7 +431,7 @@ Battle.update = function(event) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && !Queue.runtime.levelup && Monster.get('runtime.attack',false)) {
+	if (!points && (this.option.monster || !Queue.runtime.big) && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -440,9 +439,11 @@ Battle.update = function(event) {
 				|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
 				|| (this.option.type === 'War' 
-					&& data[i].last && data[i].last + 300000 >= Date.now())) {
+					&& data[this.runtime.attacking].last 
+					&& data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.runtime.attacking = null;
 		}
+		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 >= Date.now()));
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {

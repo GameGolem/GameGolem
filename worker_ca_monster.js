@@ -1051,7 +1051,7 @@ Monster.parse = function(change) {
 	} else {
 		this.runtime.used.stamina = 0;
 		this.runtime.used.energy = 0;
-		if (Page.page === 'monster_dead') {
+		if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
 			console.log(warn(), 'Found a timed out monster.');
 			if (clicked) {
 				console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);

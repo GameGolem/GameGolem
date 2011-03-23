@@ -154,8 +154,7 @@ Festival.parse = function(change) {
 			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#app46755028429_monsterTicker').text().parseTimer();
-			if ($('input[src*="arena3_collectbutton.gif"]').length) {//fix
-http://image4.castleagegame.com/2745/graphics/arena3_collectbutton.gif			
+			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this.set(['runtime','status'], 'wait');
@@ -199,7 +198,7 @@ Festival.update = function(event) {
 	}
 	if (event.type === 'trigger' && event.id === 'tokens') {
 		if ($('#app46755028429_guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
+			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);
 		}
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {

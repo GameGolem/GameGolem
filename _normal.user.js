@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1014
+// @version		31.5.901
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -19,20 +19,17 @@
 // 
 // For the unshrunk Work In Progress version (which may introduce new bugs)
 // - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+(function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
-
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-
 // Version of the script
 var version = "31.5";
-var revision = 1014;
-
+var revision = 901;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
-
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -47,7 +44,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -5959,7 +5955,6 @@ Battle.parse = function(change) {
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
 		this.data.war.rank = data;
-		this.data.war.bp = $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if (this.runtime.attacking) {
@@ -6100,7 +6095,7 @@ Battle.update = function(event) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && this.option.monster && !Queue.runtime.levelup && Monster.get('runtime.attack',false)) {
+	if (!points && (this.option.monster || !Queue.runtime.big) && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
@@ -6108,9 +6103,11 @@ Battle.update = function(event) {
 				|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 				|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
 				|| (this.option.type === 'War' 
-					&& data[i].last && data[i].last + 300000 >= Date.now())) {
+					&& data[this.runtime.attacking].last 
+					&& data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.runtime.attacking = null;
 		}
+		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 >= Date.now()));
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
@@ -9427,7 +9424,7 @@ Monster.parse = function(change) {
 	} else {
 		this.runtime.used.stamina = 0;
 		this.runtime.used.energy = 0;
-		if (Page.page === 'monster_dead') {
+		if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
 			console.log(warn(), 'Found a timed out monster.');
 			if (clicked) {
 				console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
@@ -10498,12 +10495,12 @@ Page.defaults.castle_age = {
 		battle_guild:	{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
 		battle_guild_battle:	{url:'guild_battle.php', selector:'#app46755028429_guild_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-		monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
 		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},
 		festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},
+		monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
 		monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
 		monster_class:			{url:'view_class_progress.php', selector:'#app46755028429_choose_class_header'},
 		heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
@@ -13771,8 +13768,7 @@ Festival.parse = function(change) {
 			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#app46755028429_monsterTicker').text().parseTimer();
-			if ($('input[src*="arena3_collectbutton.gif"]').length) {//fix
-http://image4.castleagegame.com/2745/graphics/arena3_collectbutton.gif			
+			if ($('input[src*="arena3_collectbutton.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this.set(['runtime','status'], 'wait');
@@ -13816,7 +13812,7 @@ Festival.update = function(event) {
 	}
 	if (event.type === 'trigger' && event.id === 'tokens') {
 		if ($('#app46755028429_guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
+			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);
 		}
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
@@ -13921,3 +13917,4 @@ Festival.work = function(state) {
 	}
 	return QUEUE_CONTINUE;
 };
+})(window.jQuery?window.jQuery.noConflict(true):$);// Bottom wrapper
