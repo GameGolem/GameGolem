@@ -431,7 +431,7 @@ Battle.update = function(event) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && (this.option.monster || !Queue.runtime.big) && Monster.get('runtime.attack',false)) {
+	if (!points && (this.option.monster || Queue.runtime.big) && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {

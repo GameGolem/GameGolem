@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 901;
+var revision = 1016;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6095,7 +6095,7 @@ Battle.update = function(event) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && (this.option.monster || !Queue.runtime.big) && Monster.get('runtime.attack',false)) {
+	if (!points && (this.option.monster || Queue.runtime.big) && Monster.get('runtime.attack',false)) {
 		this.runtime.attacking = null;
 		status.push('Attacking Monsters');
 	} else {
