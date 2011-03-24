@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, log, warn, error
 */
 /********** Worker.Page() **********
@@ -185,17 +185,17 @@ Page.update = function(event) {
 				this.data[this.page] = Date.now();
 			}
 //			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
-			list = [];
+			list = {};
 			for (i in Workers) {
 				if (Workers[i].parse
 				 && Workers[i].pages
 				 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
 				 && Workers[i]._parse(false)) {
-					list.push(Workers[i]);
+					list[i] = true;
 				}
 			}
 			for (i in list) {
-				list[i]._parse(true);
+				Workers[i]._parse(true);
 			}
 			for (i in Workers) {
 				Workers[i]._flush();

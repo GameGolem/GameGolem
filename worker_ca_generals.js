@@ -4,7 +4,7 @@
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, bestObjValue,
 */
 /********** Worker.Generals **********
@@ -285,6 +285,9 @@ Generals.test = function(name) {
 };
 
 Generals.best = function(type) {
+	if (!type) {
+		return 'any';
+	}
 	this._unflush();
 	if (this.data[type]) {
 		return type;

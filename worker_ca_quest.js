@@ -4,7 +4,7 @@
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -374,7 +374,7 @@ Quest.update = function(event) {
 				items[unit] = Math.max(items[unit] || 0, data.id[i].units[unit]);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(list.unique().sort()));
 		for (unit in items) {
 			if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
 				Resources.set(['data','_'+unit,'quest'], items[unit]);

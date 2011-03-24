@@ -3,7 +3,7 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Queue() **********
@@ -103,11 +103,11 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.init = function() {
 	var i, $btn, worker;
 //	this._watch(Player);
-	this.option.queue = unique(this.option.queue);
+	this.option.queue = this.option.queue.unique();
 	for (i in Workers) {
 		if (Workers[i].work && Workers[i].display) {
 			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
-			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
+			if (!this.option.queue.find(i)) {// Add any new workers that have a display (ie, sortable)
 				console.log(log('Adding '+i+' to Queue'));
 				if (Workers[i].settings.unsortable) {
 					this.option.queue.unshift(i);

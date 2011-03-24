@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.901
+// @version		31.5.1017
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1016;
+var revision = 1017;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -235,7 +235,29 @@ Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
 };
 
-//Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
+Array.prototype.unique = function() { // Returns an array with only unique *values*, does not alter original array
+	var o = {}, i, l = this.length, r = [];
+	for (i = 0; i < l; i++) {
+		o[this[i]] = this[i];
+	}
+	for (i in o) {
+		r.push(o[i]);
+	}
+	return r;
+};
+
+Array.prototype.remove = function(value) { // Removes matching elements from an array, alters original
+	var i = 0;
+	while ((i = this.indexOf(value, i)) >= 0) {
+		this.splice(i, 1);
+	}
+	return this;
+};
+
+Array.prototype.find = function(value) { // Returns if a value is found in an array
+	return this.indexOf(value) >= 0;
+};
+
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {
@@ -292,25 +314,6 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 	return false;
 };
 
-var unique = function(a) { // Return an array with no duplicates
-	var o = {}, i, l = a.length, r = [];
-	for(i = 0; i < l; i++) {
-		o[a[i]] = a[i];
-	}
-	for(i in o) {
-		r.push(o[i]);
-	}
-	return r;
-};
-
-var deleteElement = function(list, value) { // Removes matching elements from an array
-	if (isArray(list)) {
-		while (list.indexOf(value) >= 0) {
-			list.splice(list.indexOf(value), 1);
-		}
-	}
-};
-			
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
@@ -409,19 +412,6 @@ var compare = function(left, right) {
 		return left === right;
 	}
 	return true;
-};
-
-var findInArray = function(list, value) {
-	if (isArray(list)) {
-		return list.indexOf(value) !== -1;
-	} else if (isObject(list)) {
-		for (var i in list) {
-			if (list[i] === value) {
-				return true;
-			}
-		}
-	}
-	return false;
 };
 
 var findInObject = function(list, value) {
@@ -698,7 +688,7 @@ var makeImage = function(name, title) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
 	makeImage, getItem, setItem, empty, compare, error
 */
 /* Worker Prototype
@@ -1245,7 +1235,7 @@ Worker.prototype._set = function(what, value, type) {
 					data[i] = {};
 				}
 				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-					data[i] = undefined;
+					delete data[i];
 					return false;
 				}
 				break;
@@ -1254,9 +1244,11 @@ Worker.prototype._set = function(what, value, type) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
 					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
-					data[i] = value;
 					if (isUndefined(value)) {
+						delete data[i];
 						return false;
+					} else {
+						data[i] = value;
 					}
 				}
 				break;
@@ -1361,11 +1353,11 @@ Worker.prototype._unwatch = function(worker, path) {
 		var i;
 		if (isString(path)) {
 			if (path in worker._watching) {
-				deleteElement(worker._watching[path],this.name);
+				worker._watching[path].remove(this.name);
 			}
 		} else {
 			for (i in worker._watching) {
-				deleteElement(worker._watching[i],this.name);
+				worker._watching[i].remove(this.name);
 			}
 		}
 		for (i in worker._watching) {
@@ -1434,7 +1426,7 @@ Worker.prototype._watch = function(worker, path) {
 		for (i in worker._datatypes) {
 			if (x.indexOf(i) === 0) {
 				worker._watching[x] = worker._watching[x] || [];
-				if (!findInArray(worker._watching[x],this.name)) {
+				if (worker._watching[x].indexOf(this.name) === -1) {
 					worker._watching[x].push(this.name);
 				}
 				return true;
@@ -1467,7 +1459,7 @@ Worker.prototype._work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Army **********
@@ -1766,7 +1758,7 @@ Army.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
@@ -1782,6 +1774,7 @@ Config.settings = {
 Config.option = {
 	display:'block',
 	fixed:false,
+	active:[],
 	advanced:false,
 	exploit:false
 };
@@ -1881,7 +1874,7 @@ Config.init = function() {
 				if (k) {
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
-					k.settings.after = unique(k.settings.after);
+					k.settings.after = k.settings.after.unique();
 //					console.log(warn(), 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
 				}
 			}
@@ -1892,7 +1885,7 @@ Config.init = function() {
 				if (k) {
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
-					k.settings.before = unique(k.settings.before);
+					k.settings.before = k.settings.before.unique();
 //					console.log(warn(), 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
 				}
 			}
@@ -2025,7 +2018,7 @@ Config.update = function(event) {
 					$el.attr('checked', worker.option[id]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>');});
+					(worker.option[id] || []).forEach(function(val,i,arr){if(arr.hasOwnProperty(i)){$el.append('<option>'+val+'</option>');}});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[id]);
 				} else {
@@ -2076,7 +2069,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (this.option.active.find(worker.id) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
@@ -2237,7 +2230,11 @@ Config.makeOption = function(worker, args) {
 		}
 		txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
 	} else if (o.multiple) {
-		if (typeof o.value === 'array' || typeof o.value === 'object') {
+		if (isArray(o.value)) {
+			for (i = 0; i < o.value.length; i++) {
+				list.push('<option>'+o.value[i]+'</option>');
+			}
+		} else if (isObject(o.value)) {
 			for (i in o.value) {
 				list.push('<option>'+o.value[i]+'</option>');
 			}
@@ -2358,7 +2355,7 @@ Config.getOrder = function() {
 	$('#golem_config > div').each(function(i,el){
 		order.push($(el).attr('name'));
 	});
-	return unique(order);
+	return order.unique();
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -2367,7 +2364,7 @@ Config.getOrder = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Dashboard **********
@@ -2557,7 +2554,7 @@ Dashboard.menu = function(worker, key) {
 	Battle, Generals, LevelUp, Player, Config,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -2728,7 +2725,7 @@ Debug.init = function() {
 	for (i in Workers) {
 		list.push(i);
 	}
-	Config.set('worker_list', ['All', '_worker'].concat(unique(list).sort()));
+	Config.set('worker_list', ['All', '_worker'].concat(list.unique().sort()));
 	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
 	}).appendTo('#golem_buttons');
@@ -2822,7 +2819,7 @@ Debug.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Global **********
@@ -2846,7 +2843,7 @@ Global.display = [];
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
 	makeImage
 */
 /********** Worker.History **********
@@ -2937,16 +2934,16 @@ History.add = function(what, value) {
 
 History.math = {
 	stddev: function(list) {
-		var i, listsum = 0, mean = this.mean(list);
-		for (i in list) {
+		var i, l, listsum = 0, mean = this.mean(list);
+		for (i = 0, l = list.length; i < l; i++) {
 			listsum += Math.pow(list[i] - mean, 2);
 		}
 		listsum /= list.length;
 		return Math.sqrt(listsum);
 	},
 	average: function(list) {
-		var i, mean = this.mean(list), stddev = this.stddev(list);
-		for (i in list) {
+		var i, l, mean = this.mean(list), stddev = this.stddev(list);
+		for (i = 0, l = list.length; i < l; i++) {
 			if (Math.abs(list[i] - mean) > stddev * 2) { // The difference between the mean and the entry needs to be in there.
 				delete list[i];
 			}
@@ -2957,8 +2954,8 @@ History.math = {
 		return sum(list) / list.length;
 	},
 	harmonic: function(list) {
-		var i, num = [];
-		for (i in list) {
+		var i, l, num = [];
+		for (i = 0, l = list.length; i < l; i++) {
 			if (list[i]) {
 				num.push(1/list[i]);
 			}
@@ -2966,8 +2963,8 @@ History.math = {
 		return num.length / sum(num);
 	},
 	geometric: function(list) {
-		var i, num = 1;
-		for (i in list) {
+		var i, l, num = 1;
+		for (i = 0, l = list.length; i < l; i++) {
 			num *= list[i] || 1;
 		}
 		return Math.pow(num, 1 / list.length);
@@ -2980,8 +2977,8 @@ History.math = {
 		return list[Math.floor(list.length / 2)];
 	},
 	mode: function(list) {
-		var i, j = 0, count = 0, num = {};
-		for (i in list) {
+		var i, l, j = 0, count = 0, num = {};
+		for (i = 0, l = list.length; i < l; i++) {
 			num[list[i]] = (num[list[i]] || 0) + 1;
 		}
 		num = sortObject(num, function(a,b){return num[b]-num[a];});
@@ -3105,8 +3102,10 @@ History.makeGraph = function(type, title, options) {
 	}
 	if (goal && length(goal)) {
 		for (i in goal) {
-			min = Math.min(min, goal[i]);
-			max = Math.max(max, goal[i]);
+			if (goal.hasOwnProperty(i)) {
+				min = Math.min(min, goal[i]);
+				max = Math.max(max, goal[i]);
+			}
 		}
 	}
 	if (isString(type)) {
@@ -3116,7 +3115,9 @@ History.makeGraph = function(type, title, options) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + type[j]);
+				if (type.hasOwnProperty(j)) {
+					value[i][j] = this.get(i + '.' + type[j]);
+				}
 			}
 			if ((j = sum(value[i]))) {
 				min = Math.min(min, j);
@@ -3140,8 +3141,10 @@ History.makeGraph = function(type, title, options) {
 	min_s = prefix + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
-			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			if (goal.hasOwnProperty(i)) {
+				bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
+				goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			}
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -3154,10 +3157,12 @@ History.makeGraph = function(type, title, options) {
 		title = (hour - i) + ' hour' + ((hour - i)===1 ? '' : 's') +' ago';
 		count = 0;
 		for (j in value[i]) {
-			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
-			count++;
-			if (value[i][j]) {
-				numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
+			if (value[i].hasOwnProperty(j)) {
+				bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
+				count++;
+				if (value[i][j]) {
+					numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
+				}
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);
@@ -3175,7 +3180,7 @@ History.makeGraph = function(type, title, options) {
 	Battle, Generals, LevelUp, Player,
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Main **********
@@ -3338,7 +3343,7 @@ Main._remind(0, 'startup');
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, log, warn, error
 */
 /********** Worker.Page() **********
@@ -3519,17 +3524,17 @@ Page.update = function(event) {
 				this.data[this.page] = Date.now();
 			}
 //			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
-			list = [];
+			list = {};
 			for (i in Workers) {
 				if (Workers[i].parse
 				 && Workers[i].pages
 				 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
 				 && Workers[i]._parse(false)) {
-					list.push(Workers[i]);
+					list[i] = true;
 				}
 			}
 			for (i in list) {
-				list[i]._parse(true);
+				Workers[i]._parse(true);
 			}
 			for (i in Workers) {
 				Workers[i]._flush();
@@ -3704,7 +3709,7 @@ Page.stale = function(page, age, go) {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Queue() **********
@@ -3804,11 +3809,11 @@ Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 Queue.init = function() {
 	var i, $btn, worker;
 //	this._watch(Player);
-	this.option.queue = unique(this.option.queue);
+	this.option.queue = this.option.queue.unique();
 	for (i in Workers) {
 		if (Workers[i].work && Workers[i].display) {
 			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
-			if (!findInArray(this.option.queue, i)) {// Add any new workers that have a display (ie, sortable)
+			if (!this.option.queue.find(i)) {// Add any new workers that have a display (ie, sortable)
 				console.log(log('Adding '+i+' to Queue'));
 				if (Workers[i].settings.unsortable) {
 					this.option.queue.unshift(i);
@@ -4018,7 +4023,7 @@ Queue.menu = function(worker, key) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Resources **********
@@ -4529,7 +4534,7 @@ Script.parse = function(worker, datatype, text, map) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Session **********
@@ -4740,7 +4745,7 @@ Session.update = function(event) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
 	GM_listValues, GM_deleteValue, localStorage
 */
 /********** Worker.Settings **********
@@ -4938,7 +4943,7 @@ Settings.dashboard = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Title **********
@@ -5036,7 +5041,7 @@ Title.alias = function(name,str) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, window, browser, GM_xmlhttpRequest,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Update **********
@@ -5189,7 +5194,7 @@ Main.add('castle_age', '46755028429', 'Castle Age');
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Alchemy **********
@@ -5331,7 +5336,7 @@ Alchemy.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker Army Extension **********
@@ -5434,7 +5439,7 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 Army._overload('castle_age', 'parse', function(change) {
 	if (change && Page.page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
 		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
-		console.log('Not our keep, uid: '+uid);
+//		console.log('Not our keep, uid: '+uid);
 		if (uid && Army.get(['Army', uid], false)) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
@@ -5541,7 +5546,7 @@ Army._overload('castle_age', 'work', function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Bank **********
@@ -5668,7 +5673,7 @@ Bank.menu = function(worker, key) {
 	Battle:true, Generals, LevelUp, Monster, Player,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, getImage
 */
 /********** Worker.Battle **********
@@ -5857,7 +5862,7 @@ Battle.setup = function() {
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-        var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
@@ -5865,8 +5870,9 @@ Battle.init = function() {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
 	}
+/* Old fix for users stored directly in .data - breaks data.battle.rank
 	for (i in data) {
-		if (data[i].rank) {
+		if (!/[^\d]/.test(i) && data[i].rank) {
 			this.set(['data','user',i,'battle','rank'], data[i].rank);
 			this.set(['data','user',i,'battle','win'], data[i].win);
 			this.set(['data','user',i,'battle','loss'], data[i].loss);
@@ -5880,6 +5886,7 @@ Battle.init = function() {
 		this.data.battle.rank = this.data.rank;
 		delete this.data.rank;
 	}
+*/
 //	this.option.arena = false;// ARENA!!!!!!
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
@@ -5904,8 +5911,8 @@ Battle.init = function() {
 		Battle._unflush();
 		var uid = $(this).attr('name');
 		var prefs = Battle.get('option.prefer');
-		if (uid && findInArray(prefs, uid)) {
-			deleteElement(prefs, uid);
+		if (uid && prefs.find(uid)) {
+			prefs.remove(uid);
 			Battle._taint['option'] = true;
 			Battle._notify('option.prefer');
 		}
@@ -5919,7 +5926,7 @@ Battle.init = function() {
 		Battle._unflush();
 		var uid = $(this).attr('name');
 		var prefs = Battle.get('option.prefer');
-		if (uid && !findInArray(prefs, uid)) {
+		if (uid && !prefs.find(uid)) {
 			prefs.push(uid);
 			Battle._taint['option'] = true;
 			Battle._notify('option.prefer');
@@ -6303,7 +6310,7 @@ Battle.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Blessing **********
@@ -6408,7 +6415,7 @@ Blessing.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Elite() **********
@@ -6597,7 +6604,7 @@ Elite.work = function(state) {
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, bestObjValue,
 */
 /********** Worker.Generals **********
@@ -6878,6 +6885,9 @@ Generals.test = function(name) {
 };
 
 Generals.best = function(type) {
+	if (!type) {
+		return 'any';
+	}
 	this._unflush();
 	if (this.data[type]) {
 		return type;
@@ -7035,7 +7045,7 @@ Generals.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Gift() **********
@@ -7410,7 +7420,7 @@ Gift.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Heal **********
@@ -7483,7 +7493,7 @@ Heal.me = function() {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Idle **********
@@ -7607,7 +7617,7 @@ Idle.work = function(state) {
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Income **********
@@ -7691,7 +7701,7 @@ Income.work = function(state) {
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Land **********
@@ -8018,7 +8028,7 @@ Land.work = function(state) {
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestValue, bestObjValue
 */
 /********** Worker.LevelUp **********
@@ -8335,7 +8345,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 		options = Monster.get('runtime.values.'+mode);
 		if (mode === 'defend' && !exp) {
-			options = unique(options.concat(Monster.get('runtime.values.big',[])));
+			options = options.concat(Monster.get('runtime.values.big',[])).unique();
 		}
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
@@ -8377,7 +8387,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
@@ -9668,12 +9678,12 @@ Monster.update = function(event) {
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5));
+							this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 						} else if (type.defend && type.attack.indexOf(1) > -1) {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)));
+							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 						} else {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
+							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
 						}
 						if ((attack_found || o) === o
 								&& (waiting_ok || (Player.get('health', 0) >= req_health
@@ -9719,7 +9729,7 @@ Monster.update = function(event) {
 								&& (/:big\b/.test(condition) 
 									|| ((monster.defense || 100) < monster.defend_max
 										&& (monster.defense || 100) > 1))) {
-							this.runtime.values.big = unique(this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)));
+							this.runtime.values.big = this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 						}
 						if (monster.secondary === 100
 								&& (monster.max === false
@@ -9728,7 +9738,7 @@ Monster.update = function(event) {
 							this.runtime.secondary = true;
 						}
 						if (defense_kind) {
-							this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+							this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 							if ((defend_found || o) === o
 								&& (!Queue.runtime.basehit 
 									|| type.defend.indexOf(Queue.runtime.basehit)>= 0 )) {
@@ -9824,12 +9834,12 @@ Monster.update = function(event) {
 						&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
 					if (type.raid) {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5));
+						this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 					} else if (type.defend && type.attack.indexOf(1) > -1) {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)));
+						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 					} else {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
+						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
 					}
 					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
@@ -9840,7 +9850,7 @@ Monster.update = function(event) {
 				// Possible defend target?
 				if (this.option.defend_active) {
 					if(type.defend) {
-						this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+						this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 					}
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
@@ -10355,7 +10365,7 @@ Monster.conditions = function (type, conditions) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.News **********
@@ -10456,7 +10466,7 @@ News.parse = function(change) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Page for Castle Age **********
@@ -10534,7 +10544,7 @@ Page.defaults.castle_age = {
 	Bank, Battle, Generals, LevelUp, Player:true, Title,
 	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Player **********
@@ -10714,7 +10724,7 @@ Player.update = function(event) {
 					}
 				}
 			}
-			Config.set(types[j], unique(list.sort(function(a,b){return a-b;})));
+			Config.set(types[j], list.sort(function(a,b){return a-b;}).unique());
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
@@ -10757,7 +10767,7 @@ Player.get = function(what, def) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Potions **********
@@ -10884,7 +10894,7 @@ Potions.work = function(state) {
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Quest **********
@@ -11254,7 +11264,7 @@ Quest.update = function(event) {
 				items[unit] = Math.max(items[unit] || 0, data.id[i].units[unit]);
 			}
 		}
-		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(unique(list).sort()));
+		Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(list.unique().sort()));
 		for (unit in items) {
 			if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
 				Resources.set(['data','_'+unit,'quest'], items[unit]);
@@ -12271,7 +12281,7 @@ Quest.rdata =			// #347
 	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, bestValue
 */
 /********** Worker.Town **********
@@ -13134,7 +13144,7 @@ Town.dup_map = {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Upgrade **********
@@ -13207,7 +13217,7 @@ Upgrade.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.FP **********
@@ -13316,7 +13326,7 @@ FP.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, log, warn, error
 *//********** Worker.Guild() **********
 * Build your guild army
@@ -13618,7 +13628,7 @@ Guild.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, log, warn, error
 *//********** Worker.Festival() **********
 * Build your festival army

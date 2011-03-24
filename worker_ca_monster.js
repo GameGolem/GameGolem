@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
@@ -1295,12 +1295,12 @@ Monster.update = function(event) {
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5));
+							this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 						} else if (type.defend && type.attack.indexOf(1) > -1) {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)));
+							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 						} else {
-							this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
+							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
 						}
 						if ((attack_found || o) === o
 								&& (waiting_ok || (Player.get('health', 0) >= req_health
@@ -1346,7 +1346,7 @@ Monster.update = function(event) {
 								&& (/:big\b/.test(condition) 
 									|| ((monster.defense || 100) < monster.defend_max
 										&& (monster.defense || 100) > 1))) {
-							this.runtime.values.big = unique(this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)));
+							this.runtime.values.big = this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 						}
 						if (monster.secondary === 100
 								&& (monster.max === false
@@ -1355,7 +1355,7 @@ Monster.update = function(event) {
 							this.runtime.secondary = true;
 						}
 						if (defense_kind) {
-							this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+							this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 							if ((defend_found || o) === o
 								&& (!Queue.runtime.basehit 
 									|| type.defend.indexOf(Queue.runtime.basehit)>= 0 )) {
@@ -1451,12 +1451,12 @@ Monster.update = function(event) {
 						&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
 					if (type.raid) {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5));
+						this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 					} else if (type.defend && type.attack.indexOf(1) > -1) {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)));
+						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 					} else {
-						this.runtime.values.attack = unique(this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)));
+						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
 					}
 					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
@@ -1467,7 +1467,7 @@ Monster.update = function(event) {
 				// Possible defend target?
 				if (this.option.defend_active) {
 					if(type.defend) {
-						this.runtime.values.defend = unique(this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)));
+						this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 					}
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);

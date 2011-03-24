@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player, Config,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
 	makeImage
 */
 /********** Worker.Debug **********
@@ -175,7 +175,7 @@ Debug.init = function() {
 	for (i in Workers) {
 		list.push(i);
 	}
-	Config.set('worker_list', ['All', '_worker'].concat(unique(list).sort()));
+	Config.set('worker_list', ['All', '_worker'].concat(list.unique().sort()));
 	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
 	}).appendTo('#golem_buttons');

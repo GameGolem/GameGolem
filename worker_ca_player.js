@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, LevelUp, Player:true, Title,
 	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Player **********
@@ -184,7 +184,7 @@ Player.update = function(event) {
 					}
 				}
 			}
-			Config.set(types[j], unique(list.sort(function(a,b){return a-b;})));
+			Config.set(types[j], list.sort(function(a,b){return a-b;}).unique());
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);

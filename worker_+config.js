@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
@@ -20,6 +20,7 @@ Config.settings = {
 Config.option = {
 	display:'block',
 	fixed:false,
+	active:[],
 	advanced:false,
 	exploit:false
 };
@@ -119,7 +120,7 @@ Config.init = function() {
 				if (k) {
 					k.settings.after = k.settings.after || [];
 					k.settings.after.push(Workers[i].name);
-					k.settings.after = unique(k.settings.after);
+					k.settings.after = k.settings.after.unique();
 //					console.log(warn(), 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
 				}
 			}
@@ -130,7 +131,7 @@ Config.init = function() {
 				if (k) {
 					k.settings.before = k.settings.before || [];
 					k.settings.before.push(Workers[i].name);
-					k.settings.before = unique(k.settings.before);
+					k.settings.before = k.settings.before.unique();
 //					console.log(warn(), 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
 				}
 			}
@@ -263,7 +264,7 @@ Config.update = function(event) {
 					$el.attr('checked', worker.option[id]);
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val){$el.append('<option>'+val+'</option>');});
+					(worker.option[id] || []).forEach(function(val,i,arr){if(arr.hasOwnProperty(i)){$el.append('<option>'+val+'</option>');}});
 				} else if ($el.attr('value')) {
 					$el.attr('value', worker.option[id]);
 				} else {
@@ -314,7 +315,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (findInArray(this.option.active, worker.id)?' golem-panel-show':'') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (this.option.active.find(worker.id) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
@@ -475,7 +476,11 @@ Config.makeOption = function(worker, args) {
 		}
 		txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
 	} else if (o.multiple) {
-		if (typeof o.value === 'array' || typeof o.value === 'object') {
+		if (isArray(o.value)) {
+			for (i = 0; i < o.value.length; i++) {
+				list.push('<option>'+o.value[i]+'</option>');
+			}
+		} else if (isObject(o.value)) {
 			for (i in o.value) {
 				list.push('<option>'+o.value[i]+'</option>');
 			}
@@ -596,6 +601,6 @@ Config.getOrder = function() {
 	$('#golem_config > div').each(function(i,el){
 		order.push($(el).attr('name'));
 	});
-	return unique(order);
+	return order.unique();
 };
 

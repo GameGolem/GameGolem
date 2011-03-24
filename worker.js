@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
 	makeImage, getItem, setItem, empty, compare, error
 */
 /* Worker Prototype
@@ -551,7 +551,7 @@ Worker.prototype._set = function(what, value, type) {
 					data[i] = {};
 				}
 				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
-					data[i] = undefined;
+					delete data[i];
 					return false;
 				}
 				break;
@@ -560,9 +560,11 @@ Worker.prototype._set = function(what, value, type) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
 					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
-					data[i] = value;
 					if (isUndefined(value)) {
+						delete data[i];
 						return false;
+					} else {
+						data[i] = value;
 					}
 				}
 				break;
@@ -667,11 +669,11 @@ Worker.prototype._unwatch = function(worker, path) {
 		var i;
 		if (isString(path)) {
 			if (path in worker._watching) {
-				deleteElement(worker._watching[path],this.name);
+				worker._watching[path].remove(this.name);
 			}
 		} else {
 			for (i in worker._watching) {
-				deleteElement(worker._watching[i],this.name);
+				worker._watching[i].remove(this.name);
 			}
 		}
 		for (i in worker._watching) {
@@ -740,7 +742,7 @@ Worker.prototype._watch = function(worker, path) {
 		for (i in worker._datatypes) {
 			if (x.indexOf(i) === 0) {
 				worker._watching[x] = worker._watching[x] || [];
-				if (!findInArray(worker._watching[x],this.name)) {
+				if (worker._watching[x].indexOf(this.name) === -1) {
 					worker._watching[x].push(this.name);
 				}
 				return true;

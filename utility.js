@@ -189,7 +189,29 @@ Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
 };
 
-//Array.prototype.unique = function() { var o = {}, i, l = this.length, r = []; for(i=0; i<l;i++) o[this[i]] = this[i]; for(i in o) r.push(o[i]); return r; };
+Array.prototype.unique = function() { // Returns an array with only unique *values*, does not alter original array
+	var o = {}, i, l = this.length, r = [];
+	for (i = 0; i < l; i++) {
+		o[this[i]] = this[i];
+	}
+	for (i in o) {
+		r.push(o[i]);
+	}
+	return r;
+};
+
+Array.prototype.remove = function(value) { // Removes matching elements from an array, alters original
+	var i = 0;
+	while ((i = this.indexOf(value, i)) >= 0) {
+		this.splice(i, 1);
+	}
+	return this;
+};
+
+Array.prototype.find = function(value) { // Returns if a value is found in an array
+	return this.indexOf(value) >= 0;
+};
+
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {
@@ -246,25 +268,6 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 	return false;
 };
 
-var unique = function(a) { // Return an array with no duplicates
-	var o = {}, i, l = a.length, r = [];
-	for(i = 0; i < l; i++) {
-		o[a[i]] = a[i];
-	}
-	for(i in o) {
-		r.push(o[i]);
-	}
-	return r;
-};
-
-var deleteElement = function(list, value) { // Removes matching elements from an array
-	if (isArray(list)) {
-		while (list.indexOf(value) >= 0) {
-			list.splice(list.indexOf(value), 1);
-		}
-	}
-};
-			
 var sum = function(a) { // Adds the values of all array entries together
 	var i, t = 0;
 	if (isArray(a)) {
@@ -363,19 +366,6 @@ var compare = function(left, right) {
 		return left === right;
 	}
 	return true;
-};
-
-var findInArray = function(list, value) {
-	if (isArray(list)) {
-		return list.indexOf(value) !== -1;
-	} else if (isObject(list)) {
-		for (var i in list) {
-			if (list[i] === value) {
-				return true;
-			}
-		}
-	}
-	return false;
 };
 
 var findInObject = function(list, value) {

@@ -4,7 +4,7 @@
 	Battle:true, Generals, LevelUp, Monster, Player,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, getImage
 */
 /********** Worker.Battle **********
@@ -193,7 +193,7 @@ Battle.setup = function() {
 1. Watch Arena and Monster for changes so we can update our target if needed
 */
 Battle.init = function() {
-        var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, list, rank, data = this.data.user, mode = this.option.type === 'War' ? 'war' : 'battle';
 //	this._watch(Arena);
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
@@ -201,8 +201,9 @@ Battle.init = function() {
 		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
 		$(':golem(Battle,points)').val(this.option.points);
 	}
+/* Old fix for users stored directly in .data - breaks data.battle.rank
 	for (i in data) {
-		if (data[i].rank) {
+		if (!/[^\d]/.test(i) && data[i].rank) {
 			this.set(['data','user',i,'battle','rank'], data[i].rank);
 			this.set(['data','user',i,'battle','win'], data[i].win);
 			this.set(['data','user',i,'battle','loss'], data[i].loss);
@@ -216,6 +217,7 @@ Battle.init = function() {
 		this.data.battle.rank = this.data.rank;
 		delete this.data.rank;
 	}
+*/
 //	this.option.arena = false;// ARENA!!!!!!
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
@@ -240,8 +242,8 @@ Battle.init = function() {
 		Battle._unflush();
 		var uid = $(this).attr('name');
 		var prefs = Battle.get('option.prefer');
-		if (uid && findInArray(prefs, uid)) {
-			deleteElement(prefs, uid);
+		if (uid && prefs.find(uid)) {
+			prefs.remove(uid);
 			Battle._taint['option'] = true;
 			Battle._notify('option.prefer');
 		}
@@ -255,7 +257,7 @@ Battle.init = function() {
 		Battle._unflush();
 		var uid = $(this).attr('name');
 		var prefs = Battle.get('option.prefer');
-		if (uid && !findInArray(prefs, uid)) {
+		if (uid && !prefs.find(uid)) {
 			prefs.push(uid);
 			Battle._taint['option'] = true;
 			Battle._notify('option.prefer');

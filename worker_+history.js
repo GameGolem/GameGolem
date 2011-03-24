@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
 	makeImage
 */
 /********** Worker.History **********
@@ -95,16 +95,16 @@ History.add = function(what, value) {
 
 History.math = {
 	stddev: function(list) {
-		var i, listsum = 0, mean = this.mean(list);
-		for (i in list) {
+		var i, l, listsum = 0, mean = this.mean(list);
+		for (i = 0, l = list.length; i < l; i++) {
 			listsum += Math.pow(list[i] - mean, 2);
 		}
 		listsum /= list.length;
 		return Math.sqrt(listsum);
 	},
 	average: function(list) {
-		var i, mean = this.mean(list), stddev = this.stddev(list);
-		for (i in list) {
+		var i, l, mean = this.mean(list), stddev = this.stddev(list);
+		for (i = 0, l = list.length; i < l; i++) {
 			if (Math.abs(list[i] - mean) > stddev * 2) { // The difference between the mean and the entry needs to be in there.
 				delete list[i];
 			}
@@ -115,8 +115,8 @@ History.math = {
 		return sum(list) / list.length;
 	},
 	harmonic: function(list) {
-		var i, num = [];
-		for (i in list) {
+		var i, l, num = [];
+		for (i = 0, l = list.length; i < l; i++) {
 			if (list[i]) {
 				num.push(1/list[i]);
 			}
@@ -124,8 +124,8 @@ History.math = {
 		return num.length / sum(num);
 	},
 	geometric: function(list) {
-		var i, num = 1;
-		for (i in list) {
+		var i, l, num = 1;
+		for (i = 0, l = list.length; i < l; i++) {
 			num *= list[i] || 1;
 		}
 		return Math.pow(num, 1 / list.length);
@@ -138,8 +138,8 @@ History.math = {
 		return list[Math.floor(list.length / 2)];
 	},
 	mode: function(list) {
-		var i, j = 0, count = 0, num = {};
-		for (i in list) {
+		var i, l, j = 0, count = 0, num = {};
+		for (i = 0, l = list.length; i < l; i++) {
 			num[list[i]] = (num[list[i]] || 0) + 1;
 		}
 		num = sortObject(num, function(a,b){return num[b]-num[a];});
@@ -263,8 +263,10 @@ History.makeGraph = function(type, title, options) {
 	}
 	if (goal && length(goal)) {
 		for (i in goal) {
-			min = Math.min(min, goal[i]);
-			max = Math.max(max, goal[i]);
+			if (goal.hasOwnProperty(i)) {
+				min = Math.min(min, goal[i]);
+				max = Math.max(max, goal[i]);
+			}
 		}
 	}
 	if (isString(type)) {
@@ -274,7 +276,9 @@ History.makeGraph = function(type, title, options) {
 		value[i] = [0];
 		if (this.data[i]) {
 			for (j in type) {
-				value[i][j] = this.get(i + '.' + type[j]);
+				if (type.hasOwnProperty(j)) {
+					value[i][j] = this.get(i + '.' + type[j]);
+				}
 			}
 			if ((j = sum(value[i]))) {
 				min = Math.min(min, j);
@@ -298,8 +302,10 @@ History.makeGraph = function(type, title, options) {
 	min_s = prefix + (min / divide).addCommas() + suffix;
 	if (goal && length(goal)) {
 		for (i in goal) {
-			bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
-			goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			if (goal.hasOwnProperty(i)) {
+				bars.push('<div style="bottom:' + Math.max(Math.floor((goal[i] - min) / (max - min) * 100), 0) + 'px;"></div>');
+				goal_s.push('<div' + (typeof i !== 'number' ? ' title="'+i+'"' : '') + ' style="bottom:' + Math.range(2, Math.ceil((goal[i] - min) / (max - min) * 100)-2, 92) + 'px;">' + prefix + (goal[i] / divide).addCommas(1) + suffix + '</div>');
+			}
 		}
 		goalbars = '<div class="goal">' + bars.reverse().join('') + '</div>';
 		goal_s.reverse();
@@ -312,10 +318,12 @@ History.makeGraph = function(type, title, options) {
 		title = (hour - i) + ' hour' + ((hour - i)===1 ? '' : 's') +' ago';
 		count = 0;
 		for (j in value[i]) {
-			bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
-			count++;
-			if (value[i][j]) {
-				numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
+			if (value[i].hasOwnProperty(j)) {
+				bars.push('<div style="height:' + Math.max(Math.ceil(100 * (value[i][j] - (!count ? min : 0)) / (max - min)), 0) + 'px;"></div>');
+				count++;
+				if (value[i][j]) {
+					numbers.push((value[i][j] ? prefix + value[i][j].addCommas() : ''));
+				}
 			}
 		}
 		output.push('<div class="bars">' + bars.reverse().join('') + '</div>' + goalbars);

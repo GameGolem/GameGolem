@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, unique, deleteElement, sum, findInArray, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, calc_rolling_weighted_average, bestValue, bestObjValue
 */
 /********** Worker.LevelUp **********
@@ -321,7 +321,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 		options = Monster.get('runtime.values.'+mode);
 		if (mode === 'defend' && !exp) {
-			options = unique(options.concat(Monster.get('runtime.values.big',[])));
+			options = options.concat(Monster.get('runtime.values.big',[])).unique();
 		}
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
