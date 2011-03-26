@@ -393,8 +393,8 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && (data[i][mode].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i][mode].rank || 6) <= 5)) { // unknown rank never deleted
-			delete data[i];
+		if ((this.option.bp === 'Always' && this.get(['data','user',i,mode,'rank'],0) - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get(['data','user',i,mode,'rank'],6) <= 5)) { // unknown rank never deleted
+			this.set(['data','user',i]);
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache

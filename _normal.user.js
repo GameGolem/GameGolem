@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1019
+// @version		31.5.1020
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1019;
+var revision = 1020;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6062,8 +6062,8 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && (data[i][mode].rank|| 0) - rank  <= limit) || (this.option.bp === 'Never' && rank - (data[i][mode].rank || 6) <= 5)) { // unknown rank never deleted
-			delete data[i];
+		if ((this.option.bp === 'Always' && this.get(['data','user',i,mode,'rank'],0) - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get(['data','user',i,mode,'rank'],6) <= 5)) { // unknown rank never deleted
+			this.set(['data','user',i]);
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache
