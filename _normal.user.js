@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1017
+// @version		31.5.1018
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1017;
+var revision = 1018;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9564,7 +9564,7 @@ Monster.update = function(event) {
 			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
 		}
 		order.push('your ','\'s'); // Catch all at end in case no other match
-		for (o in order) {
+		for (o=0; o<order.length; o++) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
 				continue;
@@ -9579,13 +9579,13 @@ Monster.update = function(event) {
 				}
 			}
 			suborder = order[o].split('|');
-			for (p in suborder) {
+			for (p=0; p<suborder.length; p++) {
 				suborder[p] = suborder[p].trim();
 				if (!suborder[p]) {
 					continue;
 				}
-				searchterm = $.trim(suborder[p].match(new RegExp("^[^:]+")).toString());
-				condition = $.trim(suborder[p].replace(new RegExp("^[^:]+"), '').toString());
+				searchterm = suborder[p].match(new RegExp("^[^:]+")).toString().trim();
+				condition = suborder[p].replace(new RegExp("^[^:]+"), '').toString().trim();
 				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition);
 				for (mid in this.data) {
 					monster = this.data[mid];
