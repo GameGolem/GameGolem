@@ -1178,7 +1178,7 @@ Monster.update = function(event) {
 	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, o, suborder, p, defense_kind, button, order = [];
 		if (this.option.priority) {
-			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/,*\|,*/g,'|').split(',');
+			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/[, ]*\|[, ]*/g,'|').split(',');
 		}
 		order.push('your ','\'s'); // Catch all at end in case no other match
 		for (o=0; o<order.length; o++) {
