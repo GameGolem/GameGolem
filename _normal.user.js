@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1020
+// @version		31.5.1021
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1020;
+var revision = 1021;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -158,7 +158,7 @@ String.prototype.regex = function(r) {
 				if (rx) {
 					a[i] = arguments.callee.call(a[i], rx);
 				} else {
-					if (a[i].search(/^[-+]?\d*\.?\d+$/) >= 0) {
+					if (a[i].search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 						a[i] = parseFloat(a[i]);
 					}
 				}
@@ -327,7 +327,7 @@ var sum = function(a) { // Adds the values of all array entries together
 		}
 	} else if (isNumber(a)) {
 		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		return parseFloat(a);
 	}
 	return t;
@@ -352,7 +352,7 @@ var nmax = function(a) {
 		}
 	} else if (isNumber(a)) {
 		v = a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		v = parseFloat(a);
 	}
 	return v;
@@ -377,7 +377,7 @@ var nmin = function(a) {
 		}
 	} else if (isNumber(a)) {
 		v = a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		v = parseFloat(a);
 	}
 	return v;
@@ -399,12 +399,19 @@ var compare = function(left, right) {
 					return false;
 				}
 			}
-		}else {
+		} else {
 			for (i in left) {
-				if (left.hasOwnProperty(i) && right.hasOwnProperty(i)) {
-					if (!compare(left[i], right[i])) {
+				if (left.hasOwnProperty(i)) {
+					if (!right.hasOwnProperty(i)) {
+						return false;
+					} else if (!compare(left[i], right[i])) {
 						return false;
 					}
+				}
+			}
+			for (i in right) {
+				if (right.hasOwnProperty(i) && !left.hasOwnProperty(i)) {
+					return false;
 				}
 			}
 		}
@@ -663,7 +670,8 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
+			//out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
+			out = o;
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
@@ -1208,7 +1216,11 @@ Worker.prototype._save = function(type) {
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();
-		setItem(n, v);
+		try {
+			setItem(n, JSON.stringify(this[type]));
+		} catch (e2) {
+			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+		}
 		this._pop();
 		return true;
 	}
@@ -1234,7 +1246,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!isObject(data[i])) {
 					data[i] = {};
 				}
-				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i]) && i > 1) {// Can clear out empty trees completely...
 					delete data[i];
 					return false;
 				}
@@ -2521,7 +2533,6 @@ Dashboard.dashboard = function() {
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
-		this._unflush();
 		this.set(['data', w.name], value);
 	}
 };
@@ -4235,7 +4246,17 @@ Resources.has = function(type, amount) {
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
 // _operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
 // values = option, path.to.option, number, "string"
-// /(\(?)\s*("[^"]*"|[\d]+|[^\s><=!*^$&|]+)\s*(\)?)\s*(>|>=|={1,2}|<=|<|!={1,2}|&{1,2}|\|{1,2})?\s*/g
+// components:
+//	"[^"]*"								- string
+//	'[^']*'								- string
+//	\d*\.?\d+(?:[eE][-+]?\d+)?			- number
+//	true|false							- boolean constants
+//	[#A-Za-z_]\w*(?:\.\w+)*				- variable
+//	[!=]==								- 3-char operators (comparators)
+//	[-+*/%<>!=]=						- 2-char operators (comparators)
+//	\|\|								- 2-char or operator
+//	&&									- 2-char and operator
+//	[-+*/%<>!=(){},;]					- 1-char operators
 
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [["testing","blah"],"=",1234,"&",["yet","another","path"],"|",["something"],"&",["test","me"],">",5]
@@ -4283,7 +4304,7 @@ Script.dashboard = function() {
 	$('#golem_script_run').click(function(){
 		var script = Script.parse(Workers[Script.option.worker], Script.option.type, $('#golem_script_edit').val());
 		$('#golem_script_source').val(script.length ? JSON.stringify(script, null, '   ') : '').autoSize();
-		$('#golem_script_result').val(Script.interpret(script)).autoSize();
+		$('#golem_script_result').val(Script.interpret(script));
 	});
 	$('#golem_script_clear').click(function(){$('#golem_script_edit,#golem_script_source,#golem_script_result').val('');});
 };
@@ -4299,8 +4320,18 @@ Script._find = function(op, table) {
 };
 
 Script._operators = [ // Order of precidence, [name, expand_args, function]
-	// Unary
-	['!',	true,	function(l) {return !l;}],
+	// Unary/Prefix
+	//['u++',	false,	function(l,r) {return this.temp[r] += 1;}],
+	//['u--',	false,	function(l,r) {return this.temp[r] -= 1;}],
+	['u+',	true,	function(l,r) {return r;}],
+	['u-',	true,	function(l,r) {return -r;}],
+	['u!',	true,	function(l,r) {return !r;}],
+	['!',	true,	false],		// placeholder
+	// Postfix
+	//['p++',	false,	function(l) {var v = this.temp[l]; this.temp[l] += 1; return v;}],
+	//['++',	false,	false],	// placeholder
+	//['p--',	false,	function(l) {var v = this.temp[l]; this.temp[l] -= 1; return v;}],
+	//['--',	false,	false],	// placeholder
 	// Maths
 	['*',	true,	function(l,r) {return l * r;}],
 	['/',	true,	function(l,r) {return l / r;}],
@@ -4408,6 +4439,10 @@ Script._operate = function(op, op_list, value_list) {
 		fn = this._operators[tmp[0]][2];
 		if ((i = fn.length)) { // function takes set args
 			args = value_list.splice(-i, i);
+			// pad out values to the left, if missing
+			while (args.length < i) {
+				args.unshift(null);
+			}
 		} else {
 			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
 		}
@@ -4426,8 +4461,8 @@ Script._return = undefined;
 
 // Interpret our script, return a single value
 Script._interpret = function(_script) {
-	var x, x2, fn, value_list = [], op_list = [], script = _script.slice(0), test;
-	while (!this._return && (x = script.shift())) {
+	var x, y, z, fn, value_list = [], op_list = [], script = _script.slice(0), test;
+	while (!this._return && (x = script.shift()) !== null && !isUndefined(x)) {
 		if (isArray(x)) {
 			value_list = value_list.concat(arguments.callee.call(this, x));
 		} else if (isString(x)) {
@@ -4448,11 +4483,27 @@ Script._interpret = function(_script) {
 					}
 					value_list.push(this._functions[fn][2].apply(this, x));
 				}
-			} else if (/^[A-Z][\w\.]+$/.test(x)) {
+			} else if (/^[A-Z]\w*(?:\.\w+)*$/.test(x)) {
 				x = x.split('.');
 				value_list.push(Workers[x[0]]._get(x.slice(1), false));
 			} else if (/^".*"$/.test(x)) {
-				value_list.push(x.replace(/^"|"$/g, ''));
+				x = x.replace(/^"|"$/g, '');
+				z = '';
+				while (y = x.match(/^(.*)\\(.)(.*)$/)) {
+					z = y[1] + y[2];
+					x = y[3];
+				}
+				z += x;
+				value_list.push(z);
+			} else if (/^'.*'$/.test(x)) {
+				x = x.replace(/^'|'$/g, '');
+				z = '';
+				while (y = x.match(/^(.*)\\(.)(.*)$/)) {
+					z = y[1] + y[2];
+					x = y[3];
+				}
+				z += x;
+				value_list.push(z);
 			} else if (x[0] === '#') {
 				value_list.push(x);
 			} else {
@@ -4474,14 +4525,30 @@ Script.interpret = function(script) {
 };
 
 Script.parse = function(worker, datatype, text, map) {
-	var atoms = text.regex(/\s*("[^"]*"|[\d]+|true|false|[#A-Za-z_][\w\.]*|\(|\)|\{|\}|;|[^#\w\.\s"]+)[\s\n\r]*/g);
-	if (!atoms) {
+	var atoms = (text + ';').regex(new RegExp('\\s*(' +
+	  '"(?:\\\\.|[^"])*"' +					// string quoted with "
+	  "|'(?:\\\\.|[^'])*'" +				// string quoted with '
+	  '|\\d*\\.?\\d+(?:[eE][-+]?\\d+)?' +	// number
+	  '|\\btrue\\b|\\bfalse\\b' +			// boolean
+	  '|[#A-Za-z_]\\w*(?:\\.\\w+)*\\b' +	// variable
+	  '|[!=]==' +							// 3-char operator
+	  '|[-+*/%<>!=]=' +						// 2-char operator
+	  '|\\+\\+(?=\\s*[#A-Za-z_,;}])' +		// increment
+	  '|--(?=\\s*[#A-Za-z_,;}])' +			// decrement
+	  '|&&' +								// boolean and
+	  '|\\|\\|' +							// boolean or
+	  '|[-+*/%<>!=]' +						// 1-char operator
+	  '|[(){};]' +							// grouping, separator, terminator
+	  '|\\s+' +								// spaces
+	  '|[^#\\w\\.\\s"]+' +					// other ?
+	  ')', 'gm'));
+	if (atoms === null || isUndefined(atoms)) {
 		return []; // Empty script
 	}
 	map = map || {};
 	return (function() {
-		var atom, path, script = [];
-		while ((atom = atoms.shift())) {
+		var atom, path, script = [], i;
+		while ((atom = atoms.shift()) !== null && !isUndefined(atom)) {
 			if (atom === '(' || atom === '{') {
 				script.push(arguments.callee());
 			} else if (atom === ')') {
@@ -4499,10 +4566,29 @@ Script.parse = function(worker, datatype, text, map) {
 				if (script.length && script[script.length-1] !== ';') {
 					script.push(atom);
 				}
+			} else if ((i = Script._find(atom, Script._operators)) !== -1) { // operator
+				// unary op
+				if (!script.length || Script._find(script[script.length-1], Script._operators) !== -1) {
+					if (Script._find('u' + atom, Script._operators) !== -1) {
+						//console.log(warn(), 'unary/prefix [' + atom + ']');
+						atom = 'u' + atom;
+					} else {
+						console.log(warn(), 'unary/prefix [' + atom + '] is not supported');
+					}
+				} else if (Script._operators[i][2] === false) {
+					if (Script._find('p' + atom, Script._operators) !== -1) {
+						//console.log(warn(), 'postifx [' + atom + ']');
+						atom = 'p' + atom;
+					} else {
+						console.log(warn(), 'postifx [' + atom + '] is not supported');
+					}
+				}
+				script.push(atom);
 			} else if (atom[0] === '#' // variable
 				|| isNumber(atom) // number
 				|| /^".*"$/.test(atom) // string
-				|| Script._find(atom, Script._operators) !== -1 // operator
+				|| /^'.*'$/.test(atom) // string
+				//|| Script._find(atom, Script._operators) !== -1 // operator
 				|| Script._find(atom, Script._functions) !== -1) { // function
 				script.push(atom);
 			} else if (atom !== ',') { // if it's not a comma, then worker.datatype.key or path.to.key

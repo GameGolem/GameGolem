@@ -161,7 +161,6 @@ Dashboard.dashboard = function() {
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
-		this._unflush();
 		this.set(['data', w.name], value);
 	}
 };

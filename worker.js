@@ -524,7 +524,11 @@ Worker.prototype._save = function(type) {
 		this._update({type:type, self:true});
 		this._saving[type] = this._taint[type] = false;
 		this._timestamps[type] = Date.now();
-		setItem(n, v);
+		try {
+			setItem(n, JSON.stringify(this[type]));
+		} catch (e2) {
+			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+		}
 		this._pop();
 		return true;
 	}
@@ -550,7 +554,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!isObject(data[i])) {
 					data[i] = {};
 				}
-				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i])) {// Can clear out empty trees completely...
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i]) && i > 1) {// Can clear out empty trees completely...
 					delete data[i];
 					return false;
 				}

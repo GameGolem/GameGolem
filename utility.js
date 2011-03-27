@@ -112,7 +112,7 @@ String.prototype.regex = function(r) {
 				if (rx) {
 					a[i] = arguments.callee.call(a[i], rx);
 				} else {
-					if (a[i].search(/^[-+]?\d*\.?\d+$/) >= 0) {
+					if (a[i].search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 						a[i] = parseFloat(a[i]);
 					}
 				}
@@ -281,7 +281,7 @@ var sum = function(a) { // Adds the values of all array entries together
 		}
 	} else if (isNumber(a)) {
 		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		return parseFloat(a);
 	}
 	return t;
@@ -306,7 +306,7 @@ var nmax = function(a) {
 		}
 	} else if (isNumber(a)) {
 		v = a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		v = parseFloat(a);
 	}
 	return v;
@@ -331,7 +331,7 @@ var nmin = function(a) {
 		}
 	} else if (isNumber(a)) {
 		v = a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/) >= 0) {
+	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
 		v = parseFloat(a);
 	}
 	return v;
@@ -353,12 +353,19 @@ var compare = function(left, right) {
 					return false;
 				}
 			}
-		}else {
+		} else {
 			for (i in left) {
-				if (left.hasOwnProperty(i) && right.hasOwnProperty(i)) {
-					if (!compare(left[i], right[i])) {
+				if (left.hasOwnProperty(i)) {
+					if (!right.hasOwnProperty(i)) {
+						return false;
+					} else if (!compare(left[i], right[i])) {
 						return false;
 					}
+				}
+			}
+			for (i in right) {
+				if (right.hasOwnProperty(i) && !left.hasOwnProperty(i)) {
+					return false;
 				}
 			}
 		}
@@ -617,7 +624,8 @@ JSON.shallow = function(obj, depth, replacer, space) {
 				}
 			}
 		} else {
-			out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
+			//out = o === undefined ? 'undefined' : o === null ? 'null' : o.toString();
+			out = o;
 		}
 		return out;
 	})(obj, depth || 1), replacer, space);
