@@ -770,13 +770,14 @@ Monster.types = {
 		dead:'nm_mephistopheles2_dead.jpg',
 		achievement:6000000,
 		timer:604800, // 168 hours
-		mpool:1, // For fest
+		mpool:3,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'alpha_mephistopheles'
+		festival: 'alpha_mephistopheles',
+		festival_mpool: 1
 	}
 };
 
@@ -1720,7 +1721,7 @@ Monster.work = function(state) {
 };
 
 Monster.page = function(mid, message, prefix, suffix) {
-	var uid, type, monster;
+	var uid, type, monster, mpool, mmid;
 	monster = this.data[mid];
 	this.runtime.mid = mid;
 	uid = mid.replace(/_.+/,'');
@@ -1733,15 +1734,24 @@ Monster.page = function(mid, message, prefix, suffix) {
 	this.runtime.page = type.raid ? 'battle_raid' 
 			: monster.page === 'festival' ? 'festival_battle_monster' 
 			: 'monster_battle_monster';
+	if (monster.page === 'festival') {
+		mpool = type.festival_mpool || type.mpool;
+		if (type.festival) {
+			mmid = '&mid=' + type.festival;
+			if (prefix.indexOf('remove_list') >= 0) {
+				mmid += '&remove_monsterKey=' + type.festival;
+			}
+		}
+	} else {
+		mpool = type.mpool;
+	}
 	this.runtime.check = prefix + '=' + uid
 			+ ((monster.phase && this.option.assist
 				&& !Queue.runtime.levelup
 				&& (monster.state === 'engage' || monster.state === 'assist'))
 					? '&action=doObjective' : '')
-			+ (type.mpool ? '&mpool=' + type.mpool : '') 
-			+ (monster.page === 'festival' ? ('&mid=' + type.festival 
-				+ (prefix.indexOf('remove_list') >= 0 ? ('&remove_monsterKey=' + type.festival) :'')) 
-			: '')
+			+ (mpool ? '&mpool=' + mpool : '')
+			+ (mmid ? mmid : '')
 			+ suffix;
 };
 
