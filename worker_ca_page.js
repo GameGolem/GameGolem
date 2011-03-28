@@ -28,6 +28,7 @@ Page.defaults.castle_age = {
 		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
 		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
 		quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif'},
+		quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif'},
 		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 		battle_battle:			{url:'battle.php', image:'battle_on.gif'},

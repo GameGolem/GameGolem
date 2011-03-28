@@ -106,7 +106,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Wed Mar 16 22:02:43 2011 UTC
+  // as of Fri Mar 25 22:00:26 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -125,7 +125,6 @@ Town.blacksmith = {
       '|\\bcudgel\\b' +			// 1
       '|\\bdagger\\b' +			// 8 (mismatches 2)
       '|\\bedge\\b' +			// 1
-      '|\\bfang\\b' +			// 1
       '|\\bgreatsword\\b' +		// 2
       '|\\bgrinder\\b' +		// 1
       '|\\bhalberd\\b' +		// 1
@@ -143,7 +142,7 @@ Town.blacksmith = {
       '|\\bscepter\\b' +		// 1
       '|\\bshortsword\\b' +		// 1
       '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 8 (mismatches 1)
+      '|\\bstaff\\b' +			// 9 (mismatches 1)
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
@@ -163,13 +162,16 @@ Town.blacksmith = {
       '|^Dragonbane$' +
       '|^Excalibur$' +
       '|^Exsanguinator$' +
+      '|^Heart of the Woods$' +
       '|^Holy Avenger$' +
       '|^Incarnation$' +
+      '|^Inoculator$' +
       "|^Ironhart's Might$" +
       '|^Judgement$' +
       '|^Justice$' +
       '|^Lifebane$' +
       '|^Lightbringer$' +
+      '|^Lion Fang$' +
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
       "|^Oberon's Might$" +
@@ -190,7 +192,7 @@ Town.blacksmith = {
       '\\baegis\\b' +			// 4
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
-      '|\\bdefender\\b' +		// 4
+      '|\\bdefender\\b' +		// 5
       '|\\bprotector\\b' +		// 1
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
@@ -223,10 +225,10 @@ Town.blacksmith = {
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 31
+      '|\\bplate\\b' +			// 32
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 5
-      '|\\brobes?\\b' +			// 1+7
+      '|\\brobes?\\b' +			// 3+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
       '|^Braving the Storm$' +
@@ -241,7 +243,7 @@ Town.blacksmith = {
       '\\bcowl\\b' +			// 1
       '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 37
+      '|\\bhelm\\b' +			// 38
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmane\\b' +			// 1
@@ -268,11 +270,11 @@ Town.blacksmith = {
       '|\\bmedallion\\b' +		// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 10
+      '|\\bpendant\\b' +		// 11
       '|\\brelic\\b' +			// 1
       '|\\bring\\b' +			// 8
       '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 3
+      '|\\bseal\\b' +			// 4
       '|\\bshard\\b' +			// 6
       '|\\bsignet\\b' +			// 8
       '|\\bsunstone\\b' +		// 1
@@ -308,8 +310,9 @@ Town.blacksmith = {
       '|\\bgauntlets?\\b' +		// 10+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 4+3
+      '|\\bhands?\\b' +			// 5+3
       '|^Natures Reach$' +
+      '|^Poisons Touch$' +
       "|^Slayer's Embrace$" +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +

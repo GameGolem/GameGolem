@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1021
+// @version		31.5.1022
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1021;
+var revision = 1022;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -10576,6 +10576,7 @@ Page.defaults.castle_age = {
 		quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
 		quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
 		quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif'},
+		quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif'},
 		quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
 		quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
 		battle_battle:			{url:'battle.php', image:'battle_on.gif'},
@@ -11021,7 +11022,21 @@ Quest.temp = {
 	order: []
 };
 
-Quest.land = ['Land of Fire', 'Land of Earth', 'Land of Mist', 'Land of Water', 'Demon Realm', 'Undead Realm', 'Underworld', 'Kingdom of Heaven', 'Ivory City', 'Earth II', 'Water II', 'Mist II'];
+Quest.land = [
+	'Land of Fire',
+	'Land of Earth',
+	'Land of Mist',
+	'Land of Water',
+	'Demon Realm',
+	'Undead Realm',
+	'Underworld',
+	'Kingdom of Heaven',
+	'Ivory City',
+	'Earth II',
+	'Water II',
+	'Mist II',
+	'Mist III'
+];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
 Quest.display = [
@@ -11605,7 +11620,7 @@ Quest.work = function(state) {
 						}
 					}
 					break;
-				case 'Subquest':
+				case 'Subquests':
 				case 'Advancement':
 				case 'Influence':
 				case 'Inf+Exp':
@@ -12010,8 +12025,8 @@ Quest.wiki_reps = function(quest, pure) {
 };
 
 
-Quest.rts = 1300071247;	// Mon Mar 14 02:54:07 2011 UTC
-Quest.rdata =			// #347
+Quest.rts = 1301195384;	// Sun Mar 27 03:09:44 2011 UTC
+Quest.rdata =			// #391
 {
 	'a demonic transformation':			{ 'reps_q4':  40 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -12023,12 +12038,16 @@ Quest.rdata =			// #347
 	'aid the angels':					{ 'reps_q9':  17 },
 	'approach the prayer chamber':		{ 'reps_d1':  12 },
 	'approach the tree of life':		{ 'reps_d4':  12 },
-	'ascent to the skies':				{ 'reps_q8':   0 },
+	'ascent to the skies':				{ 'reps_q8':  14 },
 	'attack from above':				{ 'reps_q9':  17 },
 	'attack undead guardians':			{ 'reps_q6':  24 },
 	'aurelius':							{ 'reps_q11': 11 },
 	'aurelius outpost':					{ 'reps_q11':  9 },
+	'avoid detection':					{ 'reps_q12':  0 },
 	'avoid ensnarements':				{ 'reps_q3':  34 },
+	'avoid fungal poison':				{ 'reps_q12':  0 },
+	'avoid poison':						{ 'reps_q12':  0 },
+	'avoid shades':						{ 'reps_q12':  0 },
 	'avoid the guards':					{ 'reps_q8':   0 },
 	'avoid the patrols':				{ 'reps_q9':  17 },
 	'banish the horde':					{ 'reps_q9':  17 },
@@ -12041,6 +12060,7 @@ Quest.rdata =			// #347
 	'battling the demons':				{ 'reps_q9':  17 },
 	'being followed':					{ 'reps_q7':  15 },
 	'blood wing king of the dragons':	{ 'reps_d2':  20 },
+	'breach prison':					{ 'reps_q12':  0 },
 	'breach the barrier':				{ 'reps_q8':  14 },
 	'breach the keep entrance':			{ 'reps_d3':  12 },
 	'breaching the gates':				{ 'reps_q7':  15 },
@@ -12052,6 +12072,7 @@ Quest.rdata =			// #347
 	'bridge of elim':					{ 'reps_q8':  11 },
 	'burning gates':					{ 'reps_q7':   0 },
 	'call of arms':						{ 'reps_q6':  25 },
+	'calm before the storm':			{ 'reps_q13':  0 },
 	'cast aura of night':				{ 'reps_q5':  32 },
 	'cast blizzard':					{ 'reps_q10':  0 },
 	'cast fire aura':					{ 'reps_q6':  24 },
@@ -12062,6 +12083,7 @@ Quest.rdata =			// #347
 	'castle of the black lion':			{ 'reps_d5':  13 },
 	'castle of the damn':				{ 'reps_d3':  21 },
 	'channel excalibur':				{ 'reps_q8':   0 },
+	'channel runestones':				{ 'reps_q12':  0 },
 	'charge ahead':						{ 'reps_q10':  0 },
 	'charge the castle':				{ 'reps_q7':  15 },
 	'chasm of fire':					{ 'reps_q10': 10 },
@@ -12071,11 +12093,13 @@ Quest.rdata =			// #347
 	'climb the mountain':				{ 'reps_q8':   0 },
 	'close the black portal':			{ 'reps_d1':  12 },
 	'collect astral souls':				{ 'reps_q12':  0 },
+	'collect runestones':				{ 'reps_q12':  0 },
 	'confront the black lion':			{ 'reps_d5':  12 },
 	'confront the rebels':				{ 'reps_q10': 10 },
 	'consult aurora':					{ 'reps_d4':  12 },
 	'corruption of nature':				{ 'reps_d4':  20 },
 	'cover tracks':						{ 'reps_q7':  19 },
+	'create wall':						{ 'reps_q12':  0 },
 	'cross lava river':					{ 'reps_q7':  20 },
 	'cross the bridge':					{ 'reps_q8':   0, 'reps_q10':  0 },
 	'cross the moat':					{ 'reps_q11':  0 },
@@ -12083,6 +12107,7 @@ Quest.rdata =			// #347
 	'cure infested soldiers':			{ 'reps_q6':  25 },
 	'dark heart of the woods':			{ 'reps_q12':  9 },
 	'deal final blow to bloodwing':		{ 'reps_d2':  12 },
+	'death of a forest':				{ 'reps_q13':  0 },
 	'deathrune castle':					{ 'reps_q7':  12 },
 	'decipher the clues':				{ 'reps_q9':  17 },
 	'defeat and heal feral animals':	{ 'reps_d4':  12 },
@@ -12095,10 +12120,14 @@ Quest.rdata =			// #347
 	'defeat demonic guards':			{ 'reps_q7':  17 },
 	'defeat fire elementals':			{ 'reps_q10':  0 },
 	'defeat frost minions':				{ 'reps_q3':  40 },
+	'defeat guardian':					{ 'reps_q12':  0 },
+	'defeat guards':					{ 'reps_q12':  0 },
 	'defeat lion defenders':			{ 'reps_q11':  0 },
+	'defeat lothar':					{ 'reps_q12':  0 },
 	'defeat orc patrol':				{ 'reps_q8':   0 },
 	'defeat rebels':					{ 'reps_q10':  0 },
 	'defeat snow giants':				{ 'reps_q3':  24 },
+	'defeat spirits':					{ 'reps_q12':  0 },
 	'defeat the bandit leader':			{ 'reps_q1':   6 },
 	'defeat the banshees':				{ 'reps_q5':  25 },
 	'defeat the black lion army':		{ 'reps_d5':  12 },
@@ -12108,12 +12137,14 @@ Quest.rdata =			// #347
 	'defeat the patrols':				{ 'reps_q9':  17 },
 	'defeat the seraphims':				{ 'reps_q8':   0 },
 	'defeat tiger form':				{ 'reps_q11':  0 },
+	'defeat treants':					{ 'reps_q12':  0 },
 	'defend the village':				{ 'reps_d3':  12 },
 	'desert temple':					{ 'reps_q11': 12 },
 	'destroy black oozes':				{ 'reps_q11':  0 },
 	'destroy fire dragon':				{ 'reps_q4':  10 },
 	'destroy fire elemental':			{ 'reps_q4':  16 },
 	'destroy horde of ghouls & trolls':	{ 'reps_q4':   9 },
+	'destroy spores':					{ 'reps_q12':  0 },
 	'destroy the black gate':			{ 'reps_d1':  12 },
 	'destroy the black portal':			{ 'reps_d1':  12 },
 	'destroy the bolted door':			{ 'reps_d3':  12 },
@@ -12124,6 +12155,7 @@ Quest.rdata =			// #347
 	'disarm townspeople':				{ 'reps_q11':  0 },
 	'discover cause of corruption':		{ 'reps_d4':  12 },
 	'dismantle orc patrol':				{ 'reps_q3':  32 },
+	'dispatch lothar':					{ 'reps_q12':  0 },
 	'dispatch more cultist guards':		{ 'reps_d1':  12 },
 	'distract the demons':				{ 'reps_q9':  17 },
 	'dragon slayer':					{ 'reps_d2':  14 },
@@ -12139,9 +12171,14 @@ Quest.rdata =			// #347
 	'entrance to terra':				{ 'reps_q1':   9 },
 	'equip soldiers':					{ 'reps_q6':  25 },
 	'escape from trakan':				{ 'reps_q12':  7 },
+	'escape trakan':					{ 'reps_q12':  0 },
+	'escape woods':						{ 'reps_q12':  0 },
 	'escaping the chaos':				{ 'reps_q9':  17 },
 	'escaping the stronghold':			{ 'reps_q9':  10 },
+	'explore dead forests':				{ 'reps_q12':  0 },
 	'explore merchant plaza':			{ 'reps_q11':  0 },
+	'explore mist expanse':				{ 'reps_q12':  0 },
+	'explore mist ruins':				{ 'reps_q12':  0 },
 	'explore the temple':				{ 'reps_q11':  0 },
 	'extinguish desert basilisks':		{ 'reps_q11':  0 },
 	'extinguish the fires':				{ 'reps_q8':   0 },
@@ -12166,9 +12203,12 @@ Quest.rdata =			// #347
 	'fight water demon lord':			{ 'reps_q2':  31 },
 	'fight water demons':				{ 'reps_q2':  30 },
 	'fight water spirits':				{ 'reps_q2':  40 },
+	'find answers':						{ 'reps_q12':  0 },
+	'find escape route':				{ 'reps_q12':  0 },
 	'find evidence of dragon attack':	{ 'reps_d2':   8 },
 	'find hidden path':					{ 'reps_d2':  10 },
 	'find nezeals keep':				{ 'reps_d3':  12 },
+	'find prison key':					{ 'reps_q12':  0 },
 	'find rock worms weakness':			{ 'reps_d2':  10 },
 	'find source of the attacks':		{ 'reps_d3':  12 },
 	'find survivors':					{ 'reps_q8':  14 },
@@ -12177,7 +12217,7 @@ Quest.rdata =			// #347
 	'find the druids':					{ 'reps_d4':  12 },
 	'find the entrance':				{ 'reps_q8':   0 },
 	'find the exit':					{ 'reps_q9':  17 },
-	'find the safest path':				{ 'reps_q10':  0 },
+	'find the safest path':				{ 'reps_q10': 14 },
 	'find the source of corruption':	{ 'reps_d4':  12 },
 	'find the woman? father':			{ 'reps_d5':  12 },
 	'find troll weakness':				{ 'reps_q2':  10 },
@@ -12190,14 +12230,19 @@ Quest.rdata =			// #347
 	'gain entry':						{ 'reps_q11':  0 },
 	'gates to the undead':				{ 'reps_q6':  17 },
 	'gateway':							{ 'reps_q8':  11 },
+	'gather supplies':					{ 'reps_q12':  0 },
 	'get information from the druid':	{ 'reps_d4':  12 },
 	'get water for the druid':			{ 'reps_d4':  12 },
 	'grim outlook':						{ 'reps_q9':  17 },
 	'guard against attack':				{ 'reps_d5':  12 },
+	'hakkal woods':						{ 'reps_q13':  0 },
+	'heal arielle':						{ 'reps_q12':  0 },
 	'heal wounds':						{ 'reps_q7':  20 },
 	'heat the villagers':				{ 'reps_q1':   5 },
 	'holy fire':						{ 'reps_d4':  11 },
 	'impending battle':					{ 'reps_q10': 10 },
+	'infiltrate trakan':				{ 'reps_q12':  0 },
+	'inspire soldiers':					{ 'reps_q12':  0 },
 	'interrogate the prisoners':		{ 'reps_q9':  17 },
 	'investigate the gateway':			{ 'reps_q8':   0 },
 	'ironfist dwarves':					{ 'reps_q10': 10 },
@@ -12206,6 +12251,7 @@ Quest.rdata =			// #347
 	'juliean desert':					{ 'reps_q11': 12 },
 	'kelp forest':						{ 'reps_a1':  20 },
 	'kill gildamesh':					{ 'reps_q3':  34 },
+	'kill shades':						{ 'reps_q12':  0 },
 	'kill vampire bats':				{ 'reps_d3':  10 },
 	'koralan coast town':				{ 'reps_q11': 14 },
 	'koralan townspeople':				{ 'reps_q11': 10 },
@@ -12223,6 +12269,7 @@ Quest.rdata =			// #347
 	'mount aretop':						{ 'reps_d2':  25 },
 	'nightfall':						{ 'reps_q12':  9 },
 	'nightmare':						{ 'reps_q6':  20 },
+	'outmaneuver lothar':				{ 'reps_q12':  0 },
 	'outpost entrance':					{ 'reps_q11': 12 },
 	'path to heaven':					{ 'reps_q8':  11 },
 	'persuade terra':					{ 'reps_q12':  0 },
@@ -12242,8 +12289,10 @@ Quest.rdata =			// #347
 	'put out the fires':				{ 'reps_d2':   8 },
 	'question dark elf prisoners':		{ 'reps_d1':  12 },
 	'question the druidic wolf':		{ 'reps_d4':  12 },
-	'question townspeople':				{ 'reps_q11':  0 },
+	'question townspeople':				{ 'reps_q11': 17 },
 	'question vulcan':					{ 'reps_q8':   0 },
+	'ready defenses':					{ 'reps_q12':  0 },
+	'ready soldiers':					{ 'reps_q12':  0 },
 	'ready the horses':					{ 'reps_q1':   6 },
 	'reason with guards':				{ 'reps_q12':  0 },
 	'recover the key':					{ 'reps_q9':  17 },
@@ -12261,12 +12310,14 @@ Quest.rdata =			// #347
 	'ride towards the palace':			{ 'reps_q9':  17 },
 	'river of lava':					{ 'reps_q10': 10 },
 	'river of light':					{ 'reps_q1':  10 },
+	'save dying creatures':				{ 'reps_q12':  0 },
 	'save lost souls':					{ 'reps_q5':  24 },
 	'save stranded soldiers':			{ 'reps_q10':  0 },
 	'seek out elekin':					{ 'reps_d2':   9 },
 	'seek out furest hellblade':		{ 'reps_d3':  12 },
 	'seek out jeweled heart':			{ 'reps_d5':  12 },
 	'shield of the stars':				{ 'reps_d3':  20 },
+	'signs of the scourge':				{ 'reps_q13':  0 },
 	'slaughter orcs':					{ 'reps_q3':  15 },
 	'slay cave bats':					{ 'reps_d2':  10 },
 	'slay the black dragons':			{ 'reps_q5':  32 },
@@ -12278,7 +12329,9 @@ Quest.rdata =			// #347
 	'soldiers of the black lion':		{ 'reps_d5':  10 },
 	'spire of death':					{ 'reps_q5':  20 },
 	'sporeguard forest':				{ 'reps_q12': 10 },
+	'sporeguard revisited':				{ 'reps_q13':  0 },
 	'spring surprise attack':			{ 'reps_d5':  12 },
+	'stall for time':					{ 'reps_q12':  0 },
 	'stop the wolf from channeling':	{ 'reps_d4':  12 },
 	'storm the castle':					{ 'reps_d5':  12 },
 	'storm the ivory palace':			{ 'reps_q9':  17 },
@@ -12290,6 +12343,8 @@ Quest.rdata =			// #347
 	'survive the storm':				{ 'reps_q11':  0 },
 	'survive troll ambush':				{ 'reps_q2':  10 },
 	'surviving the onslaught':			{ 'reps_q9':  17 },
+	'taubourne falls':					{ 'reps_q13':  0 },
+	'tenvir summit':					{ 'reps_q13':  0 },
 	'tezzari village':					{ 'reps_q12': 12 },
 	'the belly of the demon':			{ 'reps_q5':  16 },
 	'the betrayed lands':				{ 'reps_q4':  16 },
@@ -12305,6 +12360,7 @@ Quest.rdata =			// #347
 	'the forbidden forest':				{ 'reps_q2':  20 },
 	'the forbidden ritual':				{ 'reps_q5':  20 },
 	'the gateway':						{ 'reps_q12': 10 },
+	'the green haze':					{ 'reps_q13':  0 },
 	'the hidden lair':					{ 'reps_d1':  13 },
 	'the hollowing moon':				{ 'reps_q6':  17 },
 	'the infestation of winterguard':	{ 'reps_d3':  10 },
@@ -12315,6 +12371,8 @@ Quest.rdata =			// #347
 	'the last gateway':					{ 'reps_q9':  17 },
 	"the lich ne'zeal":					{ 'reps_d3':  13 },
 	"the lich's keep":					{ 'reps_d3':  15 },
+	'the life altar':					{ 'reps_q13':  0 },
+	'the life temple':					{ 'reps_q13':  0 },
 	'the living gates':					{ 'reps_q5':  20 },
 	'the long path':					{ 'reps_q7':  12 },
 	'the peaks of draneth':				{ 'reps_d5':  21 },
@@ -12340,6 +12398,7 @@ Quest.rdata =			// #347
 	'the water temple':					{ 'reps_q2':  17 },
 	'til morning comes':				{ 'reps_q12': 11 },
 	'track down soldiers':				{ 'reps_d5':  12 },
+	'track lothar':						{ 'reps_q12':  0 },
 	'track sylvana':					{ 'reps_d1':  12 },
 	'train with ambrosia':				{ 'reps_d1':  12 },
 	'train with aurora':				{ 'reps_d4':  12 },
@@ -12469,7 +12528,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Wed Mar 16 22:02:43 2011 UTC
+  // as of Fri Mar 25 22:00:26 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -12488,7 +12547,6 @@ Town.blacksmith = {
       '|\\bcudgel\\b' +			// 1
       '|\\bdagger\\b' +			// 8 (mismatches 2)
       '|\\bedge\\b' +			// 1
-      '|\\bfang\\b' +			// 1
       '|\\bgreatsword\\b' +		// 2
       '|\\bgrinder\\b' +		// 1
       '|\\bhalberd\\b' +		// 1
@@ -12506,7 +12564,7 @@ Town.blacksmith = {
       '|\\bscepter\\b' +		// 1
       '|\\bshortsword\\b' +		// 1
       '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 8 (mismatches 1)
+      '|\\bstaff\\b' +			// 9 (mismatches 1)
       '|\\bstaves\\b' +			// 1
       '|\\bsword\\b' +			// 16 (mismatches 1)
       '|\\btalon\\b' +			// 1
@@ -12526,13 +12584,16 @@ Town.blacksmith = {
       '|^Dragonbane$' +
       '|^Excalibur$' +
       '|^Exsanguinator$' +
+      '|^Heart of the Woods$' +
       '|^Holy Avenger$' +
       '|^Incarnation$' +
+      '|^Inoculator$' +
       "|^Ironhart's Might$" +
       '|^Judgement$' +
       '|^Justice$' +
       '|^Lifebane$' +
       '|^Lightbringer$' +
+      '|^Lion Fang$' +
       '|^Moonclaw$' +
       '|^Oathkeeper$' +
       "|^Oberon's Might$" +
@@ -12553,7 +12614,7 @@ Town.blacksmith = {
       '\\baegis\\b' +			// 4
       '|\\bbuckler\\b' +		// 1
       '|\\bdeathshield\\b' +	// 1
-      '|\\bdefender\\b' +		// 4
+      '|\\bdefender\\b' +		// 5
       '|\\bprotector\\b' +		// 1
       '|\\bshield\\b' +			// 22
       '|\\btome\\b' +			// 3
@@ -12586,10 +12647,10 @@ Town.blacksmith = {
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
       '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 31
+      '|\\bplate\\b' +			// 32
       '|\\bplatemail\\b' +		// 2
       '|\\braiments\\b' +		// 5
-      '|\\brobes?\\b' +			// 1+7
+      '|\\brobes?\\b' +			// 3+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
       '|^Braving the Storm$' +
@@ -12604,7 +12665,7 @@ Town.blacksmith = {
       '\\bcowl\\b' +			// 1
       '|\\bcrown\\b' +			// 13
       '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 37
+      '|\\bhelm\\b' +			// 38
       '|\\bhelmet\\b' +			// 2
       '|\\bhorns\\b' +			// 1
       '|\\bmane\\b' +			// 1
@@ -12631,11 +12692,11 @@ Town.blacksmith = {
       '|\\bmedallion\\b' +		// 1
       '|\\bmemento\\b' +		// 1
       '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 10
+      '|\\bpendant\\b' +		// 11
       '|\\brelic\\b' +			// 1
       '|\\bring\\b' +			// 8
       '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 3
+      '|\\bseal\\b' +			// 4
       '|\\bshard\\b' +			// 6
       '|\\bsignet\\b' +			// 8
       '|\\bsunstone\\b' +		// 1
@@ -12671,8 +12732,9 @@ Town.blacksmith = {
       '|\\bgauntlets?\\b' +		// 10+4
       '|\\bgloves?\\b' +		// 2+2
       '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 4+3
+      '|\\bhands?\\b' +			// 5+3
       '|^Natures Reach$' +
+      '|^Poisons Touch$' +
       "|^Slayer's Embrace$" +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +
