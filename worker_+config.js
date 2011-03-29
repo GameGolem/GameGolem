@@ -20,7 +20,6 @@ Config.settings = {
 Config.option = {
 	display:'block',
 	fixed:false,
-	active:[],
 	advanced:false,
 	exploit:false
 };
@@ -42,6 +41,17 @@ Config.init = function() {
 		}
 	}
 	// END
+	// START: Move active (unfolded) workers into individual worker.option._config._show
+	if (this.option.active) {
+		for (i=0; i<this.option.active.length; i++) {
+			var worker = Worker.find(this.option.active[i]);
+			if (worker) {
+				worker.set(['option','_config','_show'], true);
+			}
+		}
+		this.set(['option','active']);
+	}
+	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
@@ -54,20 +64,16 @@ Config.init = function() {
 	for (i in Workers) {
 		this.makePanel(Workers[i]);
 	}
-	$('.golem-config .golem-panel > h3').click(function(event){
-		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){
-				$(this).parent().toggleClass('golem-panel-show');
-				Config.option.active = [];
-				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Config._save('option');
-			});
-		} else {
-			$(this).parent().toggleClass('golem-panel-show');
-			$(this).next().show('blind');
-			Config.option.active = [];
-			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Config._save('option');
+	$('.golem-config .golem-panel > h3').click(function(event){ // Toggle display of config panels
+		var worker = Worker.find($(this).parent().attr('id'));
+		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
+	});
+	$('.golem-config .golem-panel h4').click(function(event){ // Toggle display of config groups
+		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
+		if ($next.length && worker && id) {
+			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
+			$this.toggleClass('golem-group-show');
+			$next.stop(true,true).toggle('blind');
 		}
 	});
 	$('#golem_config .golem-panel-sortable')
@@ -249,14 +255,26 @@ Config.init = function() {
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
-		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length);
 		if (worker === this && (id === 'advanced' || id === 'exploit')) {
 			for (i in Workers) {
 				if (Workers[i].settings.advanced || Workers[i].settings.exploit) {
 					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
-		} else if (id === '_sleep') {
+		} else if (id === '_config._show') { // Fold / unfold a config panel or group panel
+			i = worker.get(['option','_config','_show'], false);
+			$el = $('#' + worker.id);
+			$el2 = $el.children('div').stop(true,true);
+			if (i) {
+				$el2.show('blind');
+				$el.addClass('golem-panel-show');
+			} else {
+				$el2.hide('blind',function(){
+					$el.removeClass('golem-panel-show');
+				});
+			}
+		} else if (id === '_sleep') { // Show the ZZZ icon
 			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
 		} else {
 			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
@@ -315,7 +333,8 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (this.option.active.find(worker.id) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		this._watch(worker, 'option._config._show');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
@@ -389,7 +408,7 @@ Config.makeOption = function(worker, args) {
 		suffix: '',
 		className: '',
 		between: 'to',
-		size: 7,
+		size: 18,
 		min: 0,
 		max: 100,
 		real_id: ''
@@ -415,7 +434,7 @@ Config.makeOption = function(worker, args) {
 		txt.push('<br><hr style="clear:both;margin:0;">');
 	}
 	if (o.title) {
-		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
+		txt.push('<h4 class="golem-group-title' + (o.group ? ' golem-group' + (worker.get(['option','_config',o.title.replace(' ','').toLowerCase()], false) ? '' : ' golem-group-show') : '') + '">' + (o.group ? '<img class="golem-icon" src="' + getImage('blank') + '">' : '') + o.title.replace(' ','&nbsp;') + '</h4>');
 	}
 	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
@@ -436,7 +455,7 @@ Config.makeOption = function(worker, args) {
 			txt.push(o.info);
 		}
 	} else if (o.text) {
-		txt.push('<input type="text"' + o.real_id + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+		txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 	} else if (o.textarea) {
 		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
@@ -542,7 +561,11 @@ Config.makeOption = function(worker, args) {
 			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
 		}
 	}
-	$option.append(o.group ? this.makeOptions(worker,o.group) : '<br>');
+	if (o.group) {
+		$option.append($('<div' + o.real_id + (o.title ? ' style="padding-left:16px;' + (worker.get(['option','_config',o.title.toLowerCase().replace(/[^a-z]/g,'')], false) ? 'display:none;' : '') + '"' : '') + '></div>').append(this.makeOptions(worker,o.group)));
+	} else {
+		$option.append('<br>');
+	}
 	if (o.help) {
 		$option.attr('title', o.help);
 	}

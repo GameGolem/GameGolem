@@ -36,20 +36,15 @@ Elite.runtime = {
 
 Elite.display = [
 	{
-		title:'Fill Elite Guard',
-		group:[
-			{
-				id:'friends',
-				label:'Facebook Friends Only',
-				checkbox:true
-			},{
-				id:'every',
-				label:'Every',
-				select:[1, 2, 3, 6, 12, 24],
-				after:'hours',
-				help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-			}
-		]
+		id:'friends',
+		label:'Facebook Friends Only',
+		checkbox:true
+	},{
+		id:'every',
+		label:'Check Every',
+		select:[1, 2, 3, 6, 12, 24],
+		after:'hours',
+		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
 	}
 ];
 

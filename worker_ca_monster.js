@@ -86,204 +86,216 @@ Monster.display = [
 		checkbox:true,
 		help:'Check to have script remove completed monsters with rewards collected from the monster list.'
 	},{
-		title:'Attack'
-	},{
-		id:'best_attack',
-		label:'Use Best General',
-		checkbox:true
-	},{
-		advanced:true,
-		id:'general_attack',
-		label:'Attack General',
-		require:'!best_attack',
-		select:'generals'
-	},{
-		advanced:true,
-		id:'hide',
-		label:'Use Raids and Monsters to Hide',
-		checkbox:true,
-		require:'stop!="Priority List"',
-		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
-	},{
-		advanced:true,
-		id:'points',
-		label:'Get Demi Points First',
-		checkbox:true,
-		help:'Use Battle to get Demi Points prior to attacking Monsters.'
-	},{
-		id:'min_to_attack',
-		label:'Attack Over',
-		text:1,
-		help:'Attack if defense is over this value. Range of 0% to 100%.',
-		after:'%'
-	},{
-		id:'use_tactics',
-		label:'Use tactics',
-		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
-	},{
-		id:'choice',
-		label:'Attack',
-		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
-		help:'Any selects a random monster.' +
-			'\nStrongest and Weakest pick by monster health.' +
-			'\nShortest and Longest ETD pick by estimated time the monster will die.' +
-			'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
-			'\nETD Maintain picks based on the longest monster expiry time.' +
-			'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
-	},{
-		id:'stop',
-		label:'Stop',
-		select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
-		help:'Select when to stop attacking a target.'
-	},{
-		id:'priority',
-		label:'Priority List',
-		require:'stop=="Priority List"',
-		textarea:true,
-		help:'Prioritized list of which monsters to attack'
-	},{
-		advanced:true,
-		id:'own',
-		label:'Never stop on Your Monsters',
-		require:'stop!="Priority List"',
-		checkbox:true,
-		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
-	},{
-		advanced:true,
-		id:'rescue',
-		require:'stop!="Priority List"',
-		label:'Rescue failing monsters',
-		checkbox:true,
-		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
-	},{
-		advanced:true,
-		id:'avoid_lost_cause',
-		label:'Avoid Lost-cause Monsters',
-		require:'stop!="Priority List"',
-		checkbox:true,
-		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
-	},{
-		advanced:true,
-		id:'lost_cause_hours',
-		label:'Lost-cause if ETD is',
-		require:'avoid_lost_cause',
-		after:'hours after timer',
-		text:true,
-		help:'# of Hours Monster must be behind before preventing attacks.'
-	},{
-		id:'attack_min',
-		label:'Min Stamina Cost',
-		select:[1,5,10,20,50,100,200],
-		help:'Select the minimum stamina for a single attack'
-	},{
-		id:'attack_max',
-		label:'Max Stamina Cost',
-		select:[1,5,10,20,50,100,200],
-		help:'Select the maximum stamina for a single attack'
-	},{
-		title:'Defend'
-	},{
-		id:'defend_active',
-		label:'Defend Active',
-		checkbox:true,
-		help:'Must be checked to defend.'
-	},{
-//		id:'defend_group',
-		require:'defend_active',
+		title:'Attack',
 		group:[
 			{
-				id:'best_defend',
+				id:'best_attack',
 				label:'Use Best General',
 				checkbox:true
 			},{
 				advanced:true,
-				id:'general_defend',
-				require:'!best_defend',
-				label:'Defend General',
+				id:'general_attack',
+				label:'Attack General',
+				require:'!best_attack',
 				select:'generals'
 			},{
-				id:'defend',
-				label:'Defend Below',
-				text:30,
-				help:'Defend if defense is under this value. Range of 0% to 100%.',
+				advanced:true,
+				id:'hide',
+				label:'Use Raids and Monsters to Hide',
+				checkbox:true,
+				require:'stop!="Priority List"',
+				help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
+			},{
+				advanced:true,
+				id:'points',
+				label:'Get Demi Points First',
+				checkbox:true,
+				help:'Use Battle to get Demi Points prior to attacking Monsters.'
+			},{
+				id:'min_to_attack',
+				label:'Attack Over',
+				text:1,
+				help:'Attack if defense is over this value. Range of 0% to 100%.',
 				after:'%'
 			},{
-				id:'defend_min',
-				label:'Min Energy Cost',
-				select:[10,20,40,100,200],
-				help:'Select the minimum energy for a single energy action'
+				id:'use_tactics',
+				label:'Use tactics',
+				checkbox:true,
+				help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
 			},{
-				id:'defend_max',
-				label:'Max Energy Cost',
-				select:[10,20,40,100,200],
-				help:'Select the maximum energy for a single energy action'
+				id:'choice',
+				label:'Attack',
+				select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
+				help:'Any selects a random monster.' +
+					'\nStrongest and Weakest pick by monster health.' +
+					'\nShortest and Longest ETD pick by estimated time the monster will die.' +
+					'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
+					'\nETD Maintain picks based on the longest monster expiry time.' +
+					'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
+			},{
+				id:'stop',
+				label:'Stop',
+				select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
+				help:'Select when to stop attacking a target.'
+			},{
+				id:'priority',
+				label:'Priority List',
+				require:'stop=="Priority List"',
+				textarea:true,
+				help:'Prioritized list of which monsters to attack'
+			},{
+				advanced:true,
+				id:'own',
+				label:'Never stop on Your Monsters',
+				require:'stop!="Priority List"',
+				checkbox:true,
+				help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
+			},{
+				advanced:true,
+				id:'rescue',
+				require:'stop!="Priority List"',
+				label:'Rescue failing monsters',
+				checkbox:true,
+				help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
+			},{
+				advanced:true,
+				id:'avoid_lost_cause',
+				label:'Avoid Lost-cause Monsters',
+				require:'stop!="Priority List"',
+				checkbox:true,
+				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
+			},{
+				advanced:true,
+				id:'lost_cause_hours',
+				label:'Lost-cause if ETD is',
+				require:'avoid_lost_cause',
+				after:'hours after timer',
+				text:true,
+				help:'# of Hours Monster must be behind before preventing attacks.'
+			},{
+				id:'attack_min',
+				label:'Min Stamina Cost',
+				select:[1,5,10,20,50,100,200],
+				help:'Select the minimum stamina for a single attack'
+			},{
+				id:'attack_max',
+				label:'Max Stamina Cost',
+				select:[1,5,10,20,50,100,200],
+				help:'Select the maximum stamina for a single attack'
 			}
 		]
 	},{
-		title:'Raids'
+		title:'Defend',
+		group:[
+			{
+				id:'defend_active',
+				label:'Defend Active',
+				checkbox:true,
+				help:'Must be checked to defend.'
+			},{
+		//		id:'defend_group',
+				require:'defend_active',
+				group:[
+					{
+						id:'best_defend',
+						label:'Use Best General',
+						checkbox:true
+					},{
+						advanced:true,
+						id:'general_defend',
+						require:'!best_defend',
+						label:'Defend General',
+						select:'generals'
+					},{
+						id:'defend',
+						label:'Defend Below',
+						text:30,
+						help:'Defend if defense is under this value. Range of 0% to 100%.',
+						after:'%'
+					},{
+						id:'defend_min',
+						label:'Min Energy Cost',
+						select:[10,20,40,100,200],
+						help:'Select the minimum energy for a single energy action'
+					},{
+						id:'defend_max',
+						label:'Max Energy Cost',
+						select:[10,20,40,100,200],
+						help:'Select the maximum energy for a single energy action'
+					}
+				]
+			}
+		]
 	},{
-		id:'best_raid',
-		label:'Use Best General',
-		checkbox:true
+		title:'Raids',
+		group:[
+			{
+				id:'best_raid',
+				label:'Use Best General',
+				checkbox:true
+			},{
+				advanced:true,
+				id:'general_raid',
+				label:'Raid General',
+				require:'!best_raid',
+				select:'generals'
+			},{
+				id:'raid',
+				label:'Raid',
+				select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+			},{
+				advanced:true,
+				id:'risk',
+				label:'Risk Death',
+				checkbox:true,
+				help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
+			},{
+				id:'armyratio',
+				require:'raid!="Duel" && raid!="Duel x5"',
+				label:'Target Army Ratio',
+				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+				help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+			},{
+				id:'levelratio',
+				require:'raid!="Invade" && raid!="Invade x5"',
+				label:'Target Level Ratio',
+				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+				help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+			},{
+				id:'force1',
+				label:'Force +1',
+				checkbox:true,
+				help:'Force the first player in the list to aid.'
+			}
+		]
 	},{
-		advanced:true,
-		id:'general_raid',
-		label:'Raid General',
-		require:'!best_raid',
-		select:'generals'
-	},{
-		id:'raid',
-		label:'Raid',
-		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
-	},{
-		advanced:true,
-		id:'risk',
-		label:'Risk Death',
-		checkbox:true,
-		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
-	},{
-		id:'armyratio',
-		require:'raid!="Duel" && raid!="Duel x5"',
-		label:'Target Army Ratio',
-		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
-	},{
-		id:'levelratio',
-		require:'raid!="Invade" && raid!="Invade x5"',
-		label:'Target Level Ratio',
-		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
-	},{
-		id:'force1',
-		label:'Force +1',
-		checkbox:true,
-		help:'Force the first player in the list to aid.'
-	},{
-		title:'Siege Assist Options'
-	},{
-		id:'assist',
-		label:'Assist with Sieges',
-		help:'Spend stamina to assist with sieges.',
-		checkbox:true
-	},{
-		id:'assist_links',
-		label:'Use Assist Links in Dashboard',
-		checkbox:true
-	},{
-		advanced:true,
-		id:'check_interval',//monster_check
-		label:'Monster Review',
-		select:{
-			900000:'15 Minutes',
-			1800000:'30 Minutes',
-			3600000:'Hourly',
-			7200000:'2 Hours',
-			21600000:'6 Hours',
-			43200000:'12 Hours',
-			86400000:'Daily',
-			604800000:'Weekly'},
-		help:'Sets how often to check Monster Stats.'
+		title:'Siege Assist Options',
+		group:[
+			{
+				id:'assist',
+				label:'Assist with Sieges',
+				help:'Spend stamina to assist with sieges.',
+				checkbox:true
+			},{
+				id:'assist_links',
+				label:'Use Assist Links in Dashboard',
+				checkbox:true
+			},{
+				advanced:true,
+				id:'check_interval',//monster_check
+				label:'Monster Review',
+				select:{
+					900000:'15 Minutes',
+					1800000:'30 Minutes',
+					3600000:'Hourly',
+					7200000:'2 Hours',
+					21600000:'6 Hours',
+					43200000:'12 Hours',
+					86400000:'Daily',
+					604800000:'Weekly'},
+				help:'Sets how often to check Monster Stats.'
+			}
+		]
 	}
 ];
 

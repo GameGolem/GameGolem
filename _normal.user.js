@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1023
+// @version		31.5.1024
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1023;
+var revision = 1024;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1786,7 +1786,6 @@ Config.settings = {
 Config.option = {
 	display:'block',
 	fixed:false,
-	active:[],
 	advanced:false,
 	exploit:false
 };
@@ -1808,6 +1807,17 @@ Config.init = function() {
 		}
 	}
 	// END
+	// START: Move active (unfolded) workers into individual worker.option._config._show
+	if (this.option.active) {
+		for (i=0; i<this.option.active.length; i++) {
+			var worker = Worker.find(this.option.active[i]);
+			if (worker) {
+				worker.set(['option','_config','_show'], true);
+			}
+		}
+		this.set(['option','active']);
+	}
+	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
@@ -1820,20 +1830,16 @@ Config.init = function() {
 	for (i in Workers) {
 		this.makePanel(Workers[i]);
 	}
-	$('.golem-config .golem-panel > h3').click(function(event){
-		if ($(this).parent().hasClass('golem-panel-show')) {
-			$(this).next().hide('blind',function(){
-				$(this).parent().toggleClass('golem-panel-show');
-				Config.option.active = [];
-				$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-				Config._save('option');
-			});
-		} else {
-			$(this).parent().toggleClass('golem-panel-show');
-			$(this).next().show('blind');
-			Config.option.active = [];
-			$('.golem-panel-show').each(function(i,el){Config.option.active.push($(this).attr('id'));});
-			Config._save('option');
+	$('.golem-config .golem-panel > h3').click(function(event){ // Toggle display of config panels
+		var worker = Worker.find($(this).parent().attr('id'));
+		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
+	});
+	$('.golem-config .golem-panel h4').click(function(event){ // Toggle display of config groups
+		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
+		if ($next.length && worker && id) {
+			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
+			$this.toggleClass('golem-group-show');
+			$next.stop(true,true).toggle('blind');
 		}
 	});
 	$('#golem_config .golem-panel-sortable')
@@ -2015,14 +2021,26 @@ Config.init = function() {
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
-		var i, $el, worker = event.worker, id = event.id.slice('option.'.length);
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length);
 		if (worker === this && (id === 'advanced' || id === 'exploit')) {
 			for (i in Workers) {
 				if (Workers[i].settings.advanced || Workers[i].settings.exploit) {
 					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
-		} else if (id === '_sleep') {
+		} else if (id === '_config._show') { // Fold / unfold a config panel or group panel
+			i = worker.get(['option','_config','_show'], false);
+			$el = $('#' + worker.id);
+			$el2 = $el.children('div').stop(true,true);
+			if (i) {
+				$el2.show('blind');
+				$el.addClass('golem-panel-show');
+			} else {
+				$el2.hide('blind',function(){
+					$el.removeClass('golem-panel-show');
+				});
+			}
+		} else if (id === '_sleep') { // Show the ZZZ icon
 			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
 		} else {
 			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
@@ -2081,7 +2099,8 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (this.option.active.find(worker.id) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		this._watch(worker, 'option._config._show');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
@@ -2155,7 +2174,7 @@ Config.makeOption = function(worker, args) {
 		suffix: '',
 		className: '',
 		between: 'to',
-		size: 7,
+		size: 18,
 		min: 0,
 		max: 100,
 		real_id: ''
@@ -2181,7 +2200,7 @@ Config.makeOption = function(worker, args) {
 		txt.push('<br><hr style="clear:both;margin:0;">');
 	}
 	if (o.title) {
-		txt.push('<div style="text-align:center;font-size:larger;font-weight:bold;">'+o.title.replace(' ','&nbsp;')+'</div>');
+		txt.push('<h4 class="golem-group-title' + (o.group ? ' golem-group' + (worker.get(['option','_config',o.title.replace(' ','').toLowerCase()], false) ? '' : ' golem-group-show') : '') + '">' + (o.group ? '<img class="golem-icon" src="' + getImage('blank') + '">' : '') + o.title.replace(' ','&nbsp;') + '</h4>');
 	}
 	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
@@ -2202,7 +2221,7 @@ Config.makeOption = function(worker, args) {
 			txt.push(o.info);
 		}
 	} else if (o.text) {
-		txt.push('<input type="text"' + o.real_id + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+		txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 	} else if (o.textarea) {
 		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
@@ -2308,7 +2327,11 @@ Config.makeOption = function(worker, args) {
 			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
 		}
 	}
-	$option.append(o.group ? this.makeOptions(worker,o.group) : '<br>');
+	if (o.group) {
+		$option.append($('<div' + o.real_id + (o.title ? ' style="padding-left:16px;' + (worker.get(['option','_config',o.title.toLowerCase().replace(/[^a-z]/g,'')], false) ? 'display:none;' : '') + '"' : '') + '></div>').append(this.makeOptions(worker,o.group)));
+	} else {
+		$option.append('<br>');
+	}
 	if (o.help) {
 		$option.attr('title', o.help);
 	}
@@ -2634,9 +2657,13 @@ Debug.display = [
 		]
 	},{
 		title:'Stack Trace',
-		id:'trace',
-		label:'Full Stack Trace',
-		checkbox:true
+		group:[
+			{
+				id:'trace',
+				label:'Full Stack Trace',
+				checkbox:true
+			}
+		]
 	}
 ];
 
@@ -5063,7 +5090,7 @@ Global.display.push({
 		},{
 			id:['Title','option','title'],
 			text:true,
-			size:24
+			size:30
 		},{
 			info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
 		}
@@ -5926,17 +5953,17 @@ Battle.display = [
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
 		advanced:true,
-		hr:true,
-		title:'Preferred Targets'
-	},{
-		advanced:true,
-		id:'preferonly',
-		label:'Fight Preferred',
-		select:['Never', 'Sometimes', 'Only', 'Until Dead']
-	},{
-		advanced:true,
-		id:'prefer',
-		multiple:'userid'
+		title:'Preferred Targets',
+		group:[
+			{
+				id:'preferonly',
+				label:'Fight Preferred',
+				select:['Never', 'Sometimes', 'Only', 'Until Dead']
+			},{
+				id:'prefer',
+				multiple:'userid'
+			}
+		]
 	}
 ];
 
@@ -6533,20 +6560,15 @@ Elite.runtime = {
 
 Elite.display = [
 	{
-		title:'Fill Elite Guard',
-		group:[
-			{
-				id:'friends',
-				label:'Facebook Friends Only',
-				checkbox:true
-			},{
-				id:'every',
-				label:'Every',
-				select:[1, 2, 3, 6, 12, 24],
-				after:'hours',
-				help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
-			}
-		]
+		id:'friends',
+		label:'Facebook Friends Only',
+		checkbox:true
+	},{
+		id:'every',
+		label:'Check Every',
+		select:[1, 2, 3, 6, 12, 24],
+		after:'hours',
+		help:'Although people can leave your Elite Guard after 24 hours, after 12 hours you can re-confirm them'
 	}
 ];
 
@@ -7628,43 +7650,46 @@ Idle.display = [
 		label:'Idle General',
 		select:'generals'
 	},{
-		label:'Check Pages:'
-	},{
-		id:'index',
-		label:'Home Page',
-		select:Idle.when
-	},{
-		id:'alchemy',
-		label:'Alchemy',
-		select:Idle.when
-	},{
-		id:'quests',
-		label:'Quests',
-		select:Idle.when
-	},{
-		id:'town',
-		label:'Town',
-		select:Idle.when
-	},{
-		id:'keep',
-		label:'Keep',
-		select:Idle.when
-//	},{
-//		id:'arena',
-//		label:'Arena',
-//		select:Idle.when
-	},{
-		id:'battle',
-		label:'Battle',
-		select:Idle.when
-	},{
-		id:'monsters',
-		label:'Monsters',
-		select:Idle.when
-	},{
-		id:'collect',
-		label:'Apprentice Reward',
-		select:Idle.when
+		title:'Check Pages',
+		group:[
+			{
+				id:'index',
+				label:'Home Page',
+				select:Idle.when
+			},{
+				id:'alchemy',
+				label:'Alchemy',
+				select:Idle.when
+			},{
+				id:'quests',
+				label:'Quests',
+				select:Idle.when
+			},{
+				id:'town',
+				label:'Town',
+				select:Idle.when
+			},{
+				id:'keep',
+				label:'Keep',
+				select:Idle.when
+		//	},{
+		//		id:'arena',
+		//		label:'Arena',
+		//		select:Idle.when
+			},{
+				id:'battle',
+				label:'Battle',
+				select:Idle.when
+			},{
+				id:'monsters',
+				label:'Monsters',
+				select:Idle.when
+			},{
+				id:'collect',
+				label:'Apprentice Reward',
+				select:Idle.when
+			}
+		]
 	}
 ];
 
@@ -8555,204 +8580,216 @@ Monster.display = [
 		checkbox:true,
 		help:'Check to have script remove completed monsters with rewards collected from the monster list.'
 	},{
-		title:'Attack'
-	},{
-		id:'best_attack',
-		label:'Use Best General',
-		checkbox:true
-	},{
-		advanced:true,
-		id:'general_attack',
-		label:'Attack General',
-		require:'!best_attack',
-		select:'generals'
-	},{
-		advanced:true,
-		id:'hide',
-		label:'Use Raids and Monsters to Hide',
-		checkbox:true,
-		require:'stop!="Priority List"',
-		help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
-	},{
-		advanced:true,
-		id:'points',
-		label:'Get Demi Points First',
-		checkbox:true,
-		help:'Use Battle to get Demi Points prior to attacking Monsters.'
-	},{
-		id:'min_to_attack',
-		label:'Attack Over',
-		text:1,
-		help:'Attack if defense is over this value. Range of 0% to 100%.',
-		after:'%'
-	},{
-		id:'use_tactics',
-		label:'Use tactics',
-		checkbox:true,
-		help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
-	},{
-		id:'choice',
-		label:'Attack',
-		select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
-		help:'Any selects a random monster.' +
-			'\nStrongest and Weakest pick by monster health.' +
-			'\nShortest and Longest ETD pick by estimated time the monster will die.' +
-			'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
-			'\nETD Maintain picks based on the longest monster expiry time.' +
-			'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
-	},{
-		id:'stop',
-		label:'Stop',
-		select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
-		help:'Select when to stop attacking a target.'
-	},{
-		id:'priority',
-		label:'Priority List',
-		require:'stop=="Priority List"',
-		textarea:true,
-		help:'Prioritized list of which monsters to attack'
-	},{
-		advanced:true,
-		id:'own',
-		label:'Never stop on Your Monsters',
-		require:'stop!="Priority List"',
-		checkbox:true,
-		help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
-	},{
-		advanced:true,
-		id:'rescue',
-		require:'stop!="Priority List"',
-		label:'Rescue failing monsters',
-		checkbox:true,
-		help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
-	},{
-		advanced:true,
-		id:'avoid_lost_cause',
-		label:'Avoid Lost-cause Monsters',
-		require:'stop!="Priority List"',
-		checkbox:true,
-		help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
-	},{
-		advanced:true,
-		id:'lost_cause_hours',
-		label:'Lost-cause if ETD is',
-		require:'avoid_lost_cause',
-		after:'hours after timer',
-		text:true,
-		help:'# of Hours Monster must be behind before preventing attacks.'
-	},{
-		id:'attack_min',
-		label:'Min Stamina Cost',
-		select:[1,5,10,20,50,100,200],
-		help:'Select the minimum stamina for a single attack'
-	},{
-		id:'attack_max',
-		label:'Max Stamina Cost',
-		select:[1,5,10,20,50,100,200],
-		help:'Select the maximum stamina for a single attack'
-	},{
-		title:'Defend'
-	},{
-		id:'defend_active',
-		label:'Defend Active',
-		checkbox:true,
-		help:'Must be checked to defend.'
-	},{
-//		id:'defend_group',
-		require:'defend_active',
+		title:'Attack',
 		group:[
 			{
-				id:'best_defend',
+				id:'best_attack',
 				label:'Use Best General',
 				checkbox:true
 			},{
 				advanced:true,
-				id:'general_defend',
-				require:'!best_defend',
-				label:'Defend General',
+				id:'general_attack',
+				label:'Attack General',
+				require:'!best_attack',
 				select:'generals'
 			},{
-				id:'defend',
-				label:'Defend Below',
-				text:30,
-				help:'Defend if defense is under this value. Range of 0% to 100%.',
+				advanced:true,
+				id:'hide',
+				label:'Use Raids and Monsters to Hide',
+				checkbox:true,
+				require:'stop!="Priority List"',
+				help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
+			},{
+				advanced:true,
+				id:'points',
+				label:'Get Demi Points First',
+				checkbox:true,
+				help:'Use Battle to get Demi Points prior to attacking Monsters.'
+			},{
+				id:'min_to_attack',
+				label:'Attack Over',
+				text:1,
+				help:'Attack if defense is over this value. Range of 0% to 100%.',
 				after:'%'
 			},{
-				id:'defend_min',
-				label:'Min Energy Cost',
-				select:[10,20,40,100,200],
-				help:'Select the minimum energy for a single energy action'
+				id:'use_tactics',
+				label:'Use tactics',
+				checkbox:true,
+				help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
 			},{
-				id:'defend_max',
-				label:'Max Energy Cost',
-				select:[10,20,40,100,200],
-				help:'Select the maximum energy for a single energy action'
+				id:'choice',
+				label:'Attack',
+				select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
+				help:'Any selects a random monster.' +
+					'\nStrongest and Weakest pick by monster health.' +
+					'\nShortest and Longest ETD pick by estimated time the monster will die.' +
+					'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
+					'\nETD Maintain picks based on the longest monster expiry time.' +
+					'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
+			},{
+				id:'stop',
+				label:'Stop',
+				select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
+				help:'Select when to stop attacking a target.'
+			},{
+				id:'priority',
+				label:'Priority List',
+				require:'stop=="Priority List"',
+				textarea:true,
+				help:'Prioritized list of which monsters to attack'
+			},{
+				advanced:true,
+				id:'own',
+				label:'Never stop on Your Monsters',
+				require:'stop!="Priority List"',
+				checkbox:true,
+				help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
+			},{
+				advanced:true,
+				id:'rescue',
+				require:'stop!="Priority List"',
+				label:'Rescue failing monsters',
+				checkbox:true,
+				help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
+			},{
+				advanced:true,
+				id:'avoid_lost_cause',
+				label:'Avoid Lost-cause Monsters',
+				require:'stop!="Priority List"',
+				checkbox:true,
+				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
+			},{
+				advanced:true,
+				id:'lost_cause_hours',
+				label:'Lost-cause if ETD is',
+				require:'avoid_lost_cause',
+				after:'hours after timer',
+				text:true,
+				help:'# of Hours Monster must be behind before preventing attacks.'
+			},{
+				id:'attack_min',
+				label:'Min Stamina Cost',
+				select:[1,5,10,20,50,100,200],
+				help:'Select the minimum stamina for a single attack'
+			},{
+				id:'attack_max',
+				label:'Max Stamina Cost',
+				select:[1,5,10,20,50,100,200],
+				help:'Select the maximum stamina for a single attack'
 			}
 		]
 	},{
-		title:'Raids'
+		title:'Defend',
+		group:[
+			{
+				id:'defend_active',
+				label:'Defend Active',
+				checkbox:true,
+				help:'Must be checked to defend.'
+			},{
+		//		id:'defend_group',
+				require:'defend_active',
+				group:[
+					{
+						id:'best_defend',
+						label:'Use Best General',
+						checkbox:true
+					},{
+						advanced:true,
+						id:'general_defend',
+						require:'!best_defend',
+						label:'Defend General',
+						select:'generals'
+					},{
+						id:'defend',
+						label:'Defend Below',
+						text:30,
+						help:'Defend if defense is under this value. Range of 0% to 100%.',
+						after:'%'
+					},{
+						id:'defend_min',
+						label:'Min Energy Cost',
+						select:[10,20,40,100,200],
+						help:'Select the minimum energy for a single energy action'
+					},{
+						id:'defend_max',
+						label:'Max Energy Cost',
+						select:[10,20,40,100,200],
+						help:'Select the maximum energy for a single energy action'
+					}
+				]
+			}
+		]
 	},{
-		id:'best_raid',
-		label:'Use Best General',
-		checkbox:true
+		title:'Raids',
+		group:[
+			{
+				id:'best_raid',
+				label:'Use Best General',
+				checkbox:true
+			},{
+				advanced:true,
+				id:'general_raid',
+				label:'Raid General',
+				require:'!best_raid',
+				select:'generals'
+			},{
+				id:'raid',
+				label:'Raid',
+				select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
+			},{
+				advanced:true,
+				id:'risk',
+				label:'Risk Death',
+				checkbox:true,
+				help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
+			},{
+				id:'armyratio',
+				require:'raid!="Duel" && raid!="Duel x5"',
+				label:'Target Army Ratio',
+				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+				help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+			},{
+				id:'levelratio',
+				require:'raid!="Invade" && raid!="Invade x5"',
+				label:'Target Level Ratio',
+				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+				help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+			},{
+				id:'force1',
+				label:'Force +1',
+				checkbox:true,
+				help:'Force the first player in the list to aid.'
+			}
+		]
 	},{
-		advanced:true,
-		id:'general_raid',
-		label:'Raid General',
-		require:'!best_raid',
-		select:'generals'
-	},{
-		id:'raid',
-		label:'Raid',
-		select:['Invade', 'Invade x5', 'Duel', 'Duel x5']
-	},{
-		advanced:true,
-		id:'risk',
-		label:'Risk Death',
-		checkbox:true,
-		help:'The lowest health you can raid with is 10, but you can lose up to 12 health in a raid, so are you going to risk it???'
-	},{
-		id:'armyratio',
-		require:'raid!="Duel" && raid!="Duel x5"',
-		label:'Target Army Ratio',
-		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-		help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
-	},{
-		id:'levelratio',
-		require:'raid!="Invade" && raid!="Invade x5"',
-		label:'Target Level Ratio',
-		select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
-	},{
-		id:'force1',
-		label:'Force +1',
-		checkbox:true,
-		help:'Force the first player in the list to aid.'
-	},{
-		title:'Siege Assist Options'
-	},{
-		id:'assist',
-		label:'Assist with Sieges',
-		help:'Spend stamina to assist with sieges.',
-		checkbox:true
-	},{
-		id:'assist_links',
-		label:'Use Assist Links in Dashboard',
-		checkbox:true
-	},{
-		advanced:true,
-		id:'check_interval',//monster_check
-		label:'Monster Review',
-		select:{
-			900000:'15 Minutes',
-			1800000:'30 Minutes',
-			3600000:'Hourly',
-			7200000:'2 Hours',
-			21600000:'6 Hours',
-			43200000:'12 Hours',
-			86400000:'Daily',
-			604800000:'Weekly'},
-		help:'Sets how often to check Monster Stats.'
+		title:'Siege Assist Options',
+		group:[
+			{
+				id:'assist',
+				label:'Assist with Sieges',
+				help:'Spend stamina to assist with sieges.',
+				checkbox:true
+			},{
+				id:'assist_links',
+				label:'Use Assist Links in Dashboard',
+				checkbox:true
+			},{
+				advanced:true,
+				id:'check_interval',//monster_check
+				label:'Monster Review',
+				select:{
+					900000:'15 Minutes',
+					1800000:'30 Minutes',
+					3600000:'Hourly',
+					7200000:'2 Hours',
+					21600000:'6 Hours',
+					43200000:'12 Hours',
+					86400000:'Daily',
+					604800000:'Weekly'},
+				help:'Sets how often to check Monster Stats.'
+			}
+		]
 	}
 ];
 

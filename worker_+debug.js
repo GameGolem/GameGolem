@@ -73,9 +73,13 @@ Debug.display = [
 		]
 	},{
 		title:'Stack Trace',
-		id:'trace',
-		label:'Full Stack Trace',
-		checkbox:true
+		group:[
+			{
+				id:'trace',
+				label:'Full Stack Trace',
+				checkbox:true
+			}
+		]
 	}
 ];
 

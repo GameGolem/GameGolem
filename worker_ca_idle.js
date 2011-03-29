@@ -53,43 +53,46 @@ Idle.display = [
 		label:'Idle General',
 		select:'generals'
 	},{
-		label:'Check Pages:'
-	},{
-		id:'index',
-		label:'Home Page',
-		select:Idle.when
-	},{
-		id:'alchemy',
-		label:'Alchemy',
-		select:Idle.when
-	},{
-		id:'quests',
-		label:'Quests',
-		select:Idle.when
-	},{
-		id:'town',
-		label:'Town',
-		select:Idle.when
-	},{
-		id:'keep',
-		label:'Keep',
-		select:Idle.when
-//	},{
-//		id:'arena',
-//		label:'Arena',
-//		select:Idle.when
-	},{
-		id:'battle',
-		label:'Battle',
-		select:Idle.when
-	},{
-		id:'monsters',
-		label:'Monsters',
-		select:Idle.when
-	},{
-		id:'collect',
-		label:'Apprentice Reward',
-		select:Idle.when
+		title:'Check Pages',
+		group:[
+			{
+				id:'index',
+				label:'Home Page',
+				select:Idle.when
+			},{
+				id:'alchemy',
+				label:'Alchemy',
+				select:Idle.when
+			},{
+				id:'quests',
+				label:'Quests',
+				select:Idle.when
+			},{
+				id:'town',
+				label:'Town',
+				select:Idle.when
+			},{
+				id:'keep',
+				label:'Keep',
+				select:Idle.when
+		//	},{
+		//		id:'arena',
+		//		label:'Arena',
+		//		select:Idle.when
+			},{
+				id:'battle',
+				label:'Battle',
+				select:Idle.when
+			},{
+				id:'monsters',
+				label:'Monsters',
+				select:Idle.when
+			},{
+				id:'collect',
+				label:'Apprentice Reward',
+				select:Idle.when
+			}
+		]
 	}
 ];
 

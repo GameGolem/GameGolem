@@ -58,7 +58,7 @@
 
 .golem-config {
 	position: static;
-	width: 190px;
+	width: 245px;
 	padding: 4px;
 	margin-bottom: 17px;
 	overflow: hidden;
@@ -71,7 +71,7 @@
 	margin-top: 4px;
 }
 
-.golem_config h3 {
+.golem_config h3, .golem_config h4 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 }
@@ -328,15 +328,20 @@ img.golem-button, img.golem-button-active {
 	font-weight: bold;
 }
 
+.golem-group-title {
+	height: 16px;
+	padding: 2px;
+	cursor: pointer;
+}
+
 .golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header {
 	border: 1px solid #d3d3d3;
 	cursor: pointer;
 	margin-top: 1px;
-	width: 184px;
 	background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
 	font-weight: normal;
 	color: #555555;
-	padding: 2px 2px 2px 2px;
+	padding: 2px;
 	-moz-border-radius: 3px;
 	-webkit-border-radius: 3px;
 	border-radius: 3px;
@@ -387,14 +392,20 @@ img.golem-button, img.golem-button-active {
 	clear: both;
 }
 
-.golem-panel .golem-panel-header .golem-icon {
+.golem-panel-content h4 {
+	text-align: center;
+	font-size: larger;
+	font-weight: bold;
+}
+
+.golem-panel .golem-panel-header .golem-icon, .golem-group .golem-icon {
 	float: left;
 	width: 16px;
 	height: 16px;
 	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAwzUE2DAEGDAEGDAEGAgpIKQLRQ5HSDAAIEOAPHeJZW+AAAAAElFTkSuQmCC') no-repeat;
 }
 
-.golem-panel-show .golem-panel-header .golem-icon {
+.golem-panel-show .golem-panel-header .golem-icon, .golem-group-show .golem-icon {
 	float: left;
 	width: 16px;
 	height: 16px;

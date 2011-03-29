@@ -171,17 +171,17 @@ Battle.display = [
 		help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
 	},{
 		advanced:true,
-		hr:true,
-		title:'Preferred Targets'
-	},{
-		advanced:true,
-		id:'preferonly',
-		label:'Fight Preferred',
-		select:['Never', 'Sometimes', 'Only', 'Until Dead']
-	},{
-		advanced:true,
-		id:'prefer',
-		multiple:'userid'
+		title:'Preferred Targets',
+		group:[
+			{
+				id:'preferonly',
+				label:'Fight Preferred',
+				select:['Never', 'Sometimes', 'Only', 'Until Dead']
+			},{
+				id:'prefer',
+				multiple:'userid'
+			}
+		]
 	}
 ];
 

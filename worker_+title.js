@@ -38,7 +38,7 @@ Global.display.push({
 		},{
 			id:['Title','option','title'],
 			text:true,
-			size:24
+			size:30
 		},{
 			info:'{myname}<br>{energy} / {maxenergy}<br>{health} / {maxhealth}<br>{stamina} / {maxstamina}<br>{level}<br>{pause} - "(Paused) " when paused<br>{LevelUp:time} - Next level time<br>{worker} - Current worker<br>{bsi} / {lsi} / {csi}'
 		}
