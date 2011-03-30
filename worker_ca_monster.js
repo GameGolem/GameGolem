@@ -1791,24 +1791,24 @@ Monster.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	this.order.sort(function(a,b) {
-		var aa, bb;
-		if (state[Monster.data[a].state] > state[Monster.data[b].state]) {
+		var aa, bb, data = Monster.data;
+		if (state[data[a].state] > state[data[b].state]) {
 			return 1;
 		}
-		if (state[Monster.data[a].state] < state[Monster.data[b].state]) {
+		if (state[data[a].state] < state[data[b].state]) {
 			return -1;
 		}
 		if (typeof sorttype[sort] === 'string') {
-			aa = Monster.data[a][sorttype[sort]];
-			bb = Monster.data[b][sorttype[sort]];
+			aa = data[a][sorttype[sort]];
+			bb = data[b][sorttype[sort]];
 		} else if (sort === 4) { // damage
-			//			aa = Monster.data[a].damage ? Monster.data[a].damage[userID] : 0;
-			//			bb = Monster.data[b].damage ? Monster.data[b].damage[userID] : 0;
-			if (Monster.data[a].damage && Monster.data[a].damage.user) {
-				aa = sum(Monster.data[a].damage.user) / sum(Monster.data[a].damage);
+//			aa = data[a].damage ? data[a].damage[userID] : 0;
+//			bb = data[b].damage ? data[b].damage[userID] : 0;
+			if (data[a].damage && data[a].damage.user) {
+				aa = sum(data[a].damage.user) / sum(data[a].damage);
 			}
-			if (Monster.data[b].damage && Monster.data[b].damage.user) {
-				bb = sum(Monster.data[b].damage.user) / sum(Monster.data[b].damage);
+			if (data[b].damage && data[b].damage.user) {
+				bb = sum(data[b].damage.user) / sum(data[b].damage);
 			}
 		}
 		if (typeof aa === 'undefined') {
@@ -1822,19 +1822,19 @@ Monster.dashboard = function(sort, rev) {
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
 	if (this.option.stop === 'Continuous'){
-                th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
-        } else {
-                th(output, '');
-        }
+		th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
+	} else {
+		th(output, '');
+	}
 	th(output, 'User');
 	th(output, 'Health', 'title="(estimated)"');
 	th(output, 'Defense', 'title="Composite of Fortification or Dispel (0%...100%)."');
-	//	th(output, 'Shield');
+//	th(output, 'Shield');
 	th(output, 'Activity');
 	th(output, 'Time Left');
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
-	//th(output, '');
-        //th(output, '');
+//	th(output, '');
+//	th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		mid = this.order[o];
@@ -1851,9 +1851,8 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') 
-				+ (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
-		if (Monster.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
+		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
+		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
 		// link icon
@@ -1961,24 +1960,17 @@ Monster.dashboard = function(sort, rev) {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
 	$('a.golem-monster-delete').live('click', function(event){
-		var x = $(this).attr('name');
-		Monster._unflush();
-		delete Monster.data[x];
-		Monster.dashboard();
+		Monster.set(['data',$(this).attr('name')]);
 		return false;
 	});
 	$('a.golem-monster-ignore').live('click', function(event){
 		var x = $(this).attr('name');
-		Monster._unflush();
-		Monster.data[x].ignore = !Monster.data[x].ignore;
-		Monster.dashboard();
+		Monster.set(['data',x,'ignore'], !Monster.get(['data',x,'ignore'], false));
 		return false;
 	});
-        $('a.golem-monster-override').live('click', function(event){
-		var y = $(this).attr('name');
-                Monster._unflush();
-		Monster.data[y].override = !Monster.data[y].override;
-		Monster.dashboard();
+	$('a.golem-monster-override').live('click', function(event){
+		var x = $(this).attr('name');
+		Monster.set(['data',x,'override'], !Monster.get(['data',x,'override'], false));
 		return false;
 	});
 	if (typeof sort !== 'undefined') {
@@ -1987,14 +1979,14 @@ Monster.dashboard = function(sort, rev) {
 };
 
 Monster.conditions = function (type, conditions) {
-		if (!conditions || conditions.toLowerCase().indexOf(':' + type) < 0) {
-			return false;
-		}
-		var value = conditions.substring(conditions.indexOf(':' + type) + type.length + 1).replace(new RegExp(":.+"), ''), first, second;
-		if (/k$/i.test(value) || /m$/i.test(value)) {
-			first = /\d+k/i.test(value);
-			second = /\d+m/i.test(value);
-			value = parseFloat(value, 10) * 1000 * (first + second * 1000);
-		}
-		return parseInt(value, 10);
+	if (!conditions || conditions.toLowerCase().indexOf(':' + type) < 0) {
+		return false;
+	}
+	var value = conditions.substring(conditions.indexOf(':' + type) + type.length + 1).replace(new RegExp(":.+"), ''), first, second;
+	if (/k$/i.test(value) || /m$/i.test(value)) {
+		first = /\d+k/i.test(value);
+		second = /\d+m/i.test(value);
+		value = parseFloat(value, 10) * 1000 * (first + second * 1000);
+	}
+	return parseInt(value, 10);
 };

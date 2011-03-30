@@ -235,35 +235,38 @@ Worker.prototype._forget = function(id) {
 
 /**
  * Get a value from one of our _datatypes
- * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want - (optionally [Object DATA, subpath, to, data] relative to DATA)
  * @param {*} def The default value to return if the path we want doesn't exist
  * @param {string=} type The typeof of data required (or return def)
  * @return {*} The value we want, or the default we passed in
  */
-Worker.prototype._get = function(what, def, type) { // 'path.to.data'
-	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
-	if (!x.length || !(x[0] in this._datatypes)) {
-		x.unshift('data');
-	}
+Worker.prototype._get = function(what, def, type) {
 	try {
-		if (x[0] === 'data') {
-			this._unflush();
+		var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		if (typeof x[0] === 'object') { // Object or Array
+			data = x.shift();
+		} else { // String, Number or Undefined etc
+			if (!x.length || !(x[0] in this._datatypes)) {
+				x.unshift('data');
+			}
+			if (x[0] === 'data') {
+				this._unflush();
+			}
+			data = this;
 		}
-		data = this;
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (isUndefined(data) || (type && (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
-//			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
-//				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
-//			}
-			return def;
+		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
+			return isNull(data) ? null : data.valueOf();
 		}
-		return isNull(data) ? null : data.valueOf();
+//		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
+//			console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		}
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
-	return isUndefined(def) ? null : def;// Don't want to return "undefined" at this time...
+	return def;
 };
 
 /**
@@ -464,18 +467,14 @@ Worker.prototype._replace = function(type, data) {
 	if (type === 'data') {
 		this._unflush();
 	}
-	var i, val, old = this[type];
+	var i, x, val, old = this[type];
+	this[type] = data;
 	for (i in this._watching) {
-		if (i.indexOf(type) === 0) {
-			this[type] = old;
-			val = this._get(i, 123);
-			this[type] = data;
-			if (val !== this._get(i, 456)) {
-				this._notify(i);
-			}
+		x = i.split('.');
+		if (x[0] === type && this._get(x, 123) !== this._get([old].concat(x), 456)) {
+			this._notify(i);
 		}
 	}
-	this[type] = data;
 	this._taint[type] = true;
 	this._save(type);
 };
@@ -554,7 +553,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!isObject(data[i])) {
 					data[i] = {};
 				}
-				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i]) && i > 1) {// Can clear out empty trees completely...
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && depth >= 1 && empty(data[i])) {// Can clear out empty trees completely...
 					delete data[i];
 					return false;
 				}

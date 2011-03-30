@@ -373,19 +373,21 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + rank + ' ' + (rank && this.data[mode].rank[rank] && this.data[mode].rank[rank].name) + ' with ' + (this.data[mode].bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false), tmp;
+	tmp = this.get(['data',mode], {});
+	status.push('Rank ' + rank + ' ' + this.get([tmp,'rank',rank,'name'], 'unknown', 'string') + ' with ' + this.get([tmp,'bp'], 0, 'number').addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
 	}
 	if (this.option.points !== 'Never') {
+		tmp = this.get(['data','points'],[]);
 		status.push('Demi Points Earned Today: '
-		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'"> ' + (this.data.points[1] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'"> ' + (this.data.points[2] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'"> ' + (this.data.points[3] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + (this.data.points[4] || 0) + '/10');
+		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + this.get([tmp,0], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'"> ' + this.get([tmp,1], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'"> ' + this.get([tmp,2], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'"> ' + this.get([tmp,3], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + this.get([tmp,4], 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
         limit = this.option.limit;
@@ -393,7 +395,7 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && this.get(['data','user',i,mode,'rank'],0) - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get(['data','user',i,mode,'rank'],6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && this.get([data,i,mode,'rank'],0,'number') - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get([data,i,mode,'rank'],6,'number') <= 5)) { // unknown rank never deleted
 			this.set(['data','user',i]);
 		}
 	}
@@ -422,7 +424,7 @@ Battle.update = function(event) {
 			return weight;
 		});
 		while (list.length > this.option.cache) {
-			delete data[list.pop()];
+			this.set(['data','user',list.pop()]);
 		}
 	}
 	// Check if we need Demi-points
@@ -543,9 +545,9 @@ Battle.work = function(state) {
 };
 
 Battle.rank = function(name) {
-	var mode = this.option.type === 'War' ? 'war' : 'battle';
-	for (var i in Battle.data[mode].rank) {
-		if (Battle.data[mode].rank[i].name === name) {
+	var i, mode = this.get(['data',this.option.type === 'War' ? 'war' : 'battle','rank'],{});
+	for (i in mode) {
+		if (this.get([mode,i,'name']) === name) {
 			return parseInt(i, 10);
 		}
 	}

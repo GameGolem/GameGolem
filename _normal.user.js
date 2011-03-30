@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1024
+// @version		31.5.1025
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1024;
+var revision = 1025;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -927,35 +927,38 @@ Worker.prototype._forget = function(id) {
 
 /**
  * Get a value from one of our _datatypes
- * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want - (optionally [Object DATA, subpath, to, data] relative to DATA)
  * @param {*} def The default value to return if the path we want doesn't exist
  * @param {string=} type The typeof of data required (or return def)
  * @return {*} The value we want, or the default we passed in
  */
-Worker.prototype._get = function(what, def, type) { // 'path.to.data'
-	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), data;
-	if (!x.length || !(x[0] in this._datatypes)) {
-		x.unshift('data');
-	}
+Worker.prototype._get = function(what, def, type) {
 	try {
-		if (x[0] === 'data') {
-			this._unflush();
+		var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		if (typeof x[0] === 'object') { // Object or Array
+			data = x.shift();
+		} else { // String, Number or Undefined etc
+			if (!x.length || !(x[0] in this._datatypes)) {
+				x.unshift('data');
+			}
+			if (x[0] === 'data') {
+				this._unflush();
+			}
+			data = this;
 		}
-		data = this;
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (isUndefined(data) || (type && (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
-//			if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
-//				console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
-//			}
-			return def;
+		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
+			return isNull(data) ? null : data.valueOf();
 		}
-		return isNull(data) ? null : data.valueOf();
+//		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
+//			console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		}
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
 	}
-	return isUndefined(def) ? null : def;// Don't want to return "undefined" at this time...
+	return def;
 };
 
 /**
@@ -1156,18 +1159,14 @@ Worker.prototype._replace = function(type, data) {
 	if (type === 'data') {
 		this._unflush();
 	}
-	var i, val, old = this[type];
+	var i, x, val, old = this[type];
+	this[type] = data;
 	for (i in this._watching) {
-		if (i.indexOf(type) === 0) {
-			this[type] = old;
-			val = this._get(i, 123);
-			this[type] = data;
-			if (val !== this._get(i, 456)) {
-				this._notify(i);
-			}
+		x = i.split('.');
+		if (x[0] === type && this._get(x, 123) !== this._get([old].concat(x), 456)) {
+			this._notify(i);
 		}
 	}
-	this[type] = data;
 	this._taint[type] = true;
 	this._save(type);
 };
@@ -1246,7 +1245,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!isObject(data[i])) {
 					data[i] = {};
 				}
-				if (!arguments.callee.call(this, data[i], path, value, depth+1) && empty(data[i]) && i > 1) {// Can clear out empty trees completely...
+				if (!arguments.callee.call(this, data[i], path, value, depth+1) && depth >= 1 && empty(data[i])) {// Can clear out empty trees completely...
 					delete data[i];
 					return false;
 				}
@@ -2917,8 +2916,8 @@ History.dashboard = function() {
 	list.push(this.makeGraph(['land', 'income'], 'Income', {prefix:'$', goal:{'Average Income':this.get('land.mean') + this.get('income.mean')}}));
 	list.push(this.makeGraph('bank', 'Bank', {prefix:'$', goal:Land.runtime.best ? {'Next Land':Land.runtime.cost} : null})); // <-- probably not the best way to do this, but is there a function to get options like there is for data?
 	list.push(this.makeGraph('exp', 'Experience', {goal:{'Next Level':Player.get('maxexp')}}));
-	list.push(this.makeGraph('favor points', 'Favor Points',{}));
-	list.push(this.makeGraph('exp.change', 'Exp Gain', {goal:{'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change'), 'Ignore entries above':(this.get('exp.mean.change') + (2 * this.get('exp.stddev.change')))}} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
+	list.push(this.makeGraph('favor points', 'Favor Points',{min:0}));
+	list.push(this.makeGraph('exp.change', 'Exp Gain', {min:0, goal:{'Average':this.get('exp.average.change'), 'Standard Deviation':this.get('exp.stddev.change')}} )); // , 'Harmonic Average':this.get('exp.harmonic.change') ,'Median Average':this.get('exp.median.change') ,'Mean Average':this.get('exp.mean.change')
 	list.push('</tbody></table>');
 	$('#golem-dashboard-History').html(list.join(''));
 };
@@ -6155,19 +6154,21 @@ Battle.parse = function(change) {
 5. Update the Status line
 */
 Battle.update = function(event) {
-	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false);
-	status.push('Rank ' + rank + ' ' + (rank && this.data[mode].rank[rank] && this.data[mode].rank[rank].name) + ' with ' + (this.data[mode].bp || 0).addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false), tmp;
+	tmp = this.get(['data',mode], {});
+	status.push('Rank ' + rank + ' ' + this.get([tmp,'rank',rank,'name'], 'unknown', 'string') + ' with ' + this.get([tmp,'bp'], 0, 'number').addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
 	}
 	if (this.option.points !== 'Never') {
+		tmp = this.get(['data','points'],[]);
 		status.push('Demi Points Earned Today: '
-		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + (this.data.points[0] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'"> ' + (this.data.points[1] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'"> ' + (this.data.points[2] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'"> ' + (this.data.points[3] || 0) + '/10 '
-		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + (this.data.points[4] || 0) + '/10');
+		+ '<img class="golem-image" src="' + this.symbol[1] +'" alt=" " title="'+this.demi[1]+'"> ' + this.get([tmp,0], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[2] +'" alt=" " title="'+this.demi[2]+'"> ' + this.get([tmp,1], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[3] +'" alt=" " title="'+this.demi[3]+'"> ' + this.get([tmp,2], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[4] +'" alt=" " title="'+this.demi[4]+'"> ' + this.get([tmp,3], 0) + '/10 '
+		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + this.get([tmp,4], 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
         limit = this.option.limit;
@@ -6175,7 +6176,7 @@ Battle.update = function(event) {
 		limit = -4;
 	}
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && this.get(['data','user',i,mode,'rank'],0) - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get(['data','user',i,mode,'rank'],6) <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && this.get([data,i,mode,'rank'],0,'number') - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get([data,i,mode,'rank'],6,'number') <= 5)) { // unknown rank never deleted
 			this.set(['data','user',i]);
 		}
 	}
@@ -6204,7 +6205,7 @@ Battle.update = function(event) {
 			return weight;
 		});
 		while (list.length > this.option.cache) {
-			delete data[list.pop()];
+			this.set(['data','user',list.pop()]);
 		}
 	}
 	// Check if we need Demi-points
@@ -6325,9 +6326,9 @@ Battle.work = function(state) {
 };
 
 Battle.rank = function(name) {
-	var mode = this.option.type === 'War' ? 'war' : 'battle';
-	for (var i in Battle.data[mode].rank) {
-		if (Battle.data[mode].rank[i].name === name) {
+	var i, mode = this.get(['data',this.option.type === 'War' ? 'war' : 'battle','rank'],{});
+	for (i in mode) {
+		if (this.get([mode,i,'name']) === name) {
 			return parseInt(i, 10);
 		}
 	}
@@ -10285,24 +10286,24 @@ Monster.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	this.order.sort(function(a,b) {
-		var aa, bb;
-		if (state[Monster.data[a].state] > state[Monster.data[b].state]) {
+		var aa, bb, data = Monster.data;
+		if (state[data[a].state] > state[data[b].state]) {
 			return 1;
 		}
-		if (state[Monster.data[a].state] < state[Monster.data[b].state]) {
+		if (state[data[a].state] < state[data[b].state]) {
 			return -1;
 		}
 		if (typeof sorttype[sort] === 'string') {
-			aa = Monster.data[a][sorttype[sort]];
-			bb = Monster.data[b][sorttype[sort]];
+			aa = data[a][sorttype[sort]];
+			bb = data[b][sorttype[sort]];
 		} else if (sort === 4) { // damage
-			//			aa = Monster.data[a].damage ? Monster.data[a].damage[userID] : 0;
-			//			bb = Monster.data[b].damage ? Monster.data[b].damage[userID] : 0;
-			if (Monster.data[a].damage && Monster.data[a].damage.user) {
-				aa = sum(Monster.data[a].damage.user) / sum(Monster.data[a].damage);
+//			aa = data[a].damage ? data[a].damage[userID] : 0;
+//			bb = data[b].damage ? data[b].damage[userID] : 0;
+			if (data[a].damage && data[a].damage.user) {
+				aa = sum(data[a].damage.user) / sum(data[a].damage);
 			}
-			if (Monster.data[b].damage && Monster.data[b].damage.user) {
-				bb = sum(Monster.data[b].damage.user) / sum(Monster.data[b].damage);
+			if (data[b].damage && data[b].damage.user) {
+				bb = sum(data[b].damage.user) / sum(data[b].damage);
 			}
 		}
 		if (typeof aa === 'undefined') {
@@ -10316,19 +10317,19 @@ Monster.dashboard = function(sort, rev) {
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
 	if (this.option.stop === 'Continuous'){
-                th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
-        } else {
-                th(output, '');
-        }
+		th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
+	} else {
+		th(output, '');
+	}
 	th(output, 'User');
 	th(output, 'Health', 'title="(estimated)"');
 	th(output, 'Defense', 'title="Composite of Fortification or Dispel (0%...100%)."');
-	//	th(output, 'Shield');
+//	th(output, 'Shield');
 	th(output, 'Activity');
 	th(output, 'Time Left');
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
-	//th(output, '');
-        //th(output, '');
+//	th(output, '');
+//	th(output, '');
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		mid = this.order[o];
@@ -10345,9 +10346,8 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') 
-				+ (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
-		if (Monster.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
+		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
+		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
 		// link icon
@@ -10455,24 +10455,17 @@ Monster.dashboard = function(sort, rev) {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Monster').html(list.join(''));
 	$('a.golem-monster-delete').live('click', function(event){
-		var x = $(this).attr('name');
-		Monster._unflush();
-		delete Monster.data[x];
-		Monster.dashboard();
+		Monster.set(['data',$(this).attr('name')]);
 		return false;
 	});
 	$('a.golem-monster-ignore').live('click', function(event){
 		var x = $(this).attr('name');
-		Monster._unflush();
-		Monster.data[x].ignore = !Monster.data[x].ignore;
-		Monster.dashboard();
+		Monster.set(['data',x,'ignore'], !Monster.get(['data',x,'ignore'], false));
 		return false;
 	});
-        $('a.golem-monster-override').live('click', function(event){
-		var y = $(this).attr('name');
-                Monster._unflush();
-		Monster.data[y].override = !Monster.data[y].override;
-		Monster.dashboard();
+	$('a.golem-monster-override').live('click', function(event){
+		var x = $(this).attr('name');
+		Monster.set(['data',x,'override'], !Monster.get(['data',x,'override'], false));
 		return false;
 	});
 	if (typeof sort !== 'undefined') {
@@ -10481,16 +10474,16 @@ Monster.dashboard = function(sort, rev) {
 };
 
 Monster.conditions = function (type, conditions) {
-		if (!conditions || conditions.toLowerCase().indexOf(':' + type) < 0) {
-			return false;
-		}
-		var value = conditions.substring(conditions.indexOf(':' + type) + type.length + 1).replace(new RegExp(":.+"), ''), first, second;
-		if (/k$/i.test(value) || /m$/i.test(value)) {
-			first = /\d+k/i.test(value);
-			second = /\d+m/i.test(value);
-			value = parseFloat(value, 10) * 1000 * (first + second * 1000);
-		}
-		return parseInt(value, 10);
+	if (!conditions || conditions.toLowerCase().indexOf(':' + type) < 0) {
+		return false;
+	}
+	var value = conditions.substring(conditions.indexOf(':' + type) + type.length + 1).replace(new RegExp(":.+"), ''), first, second;
+	if (/k$/i.test(value) || /m$/i.test(value)) {
+		first = /\d+k/i.test(value);
+		second = /\d+m/i.test(value);
+		value = parseFloat(value, 10) * 1000 * (first + second * 1000);
+	}
+	return parseInt(value, 10);
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
