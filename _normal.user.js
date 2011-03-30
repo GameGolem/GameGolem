@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1027
+// @version		31.5.1029
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1027;
+var revision = 1029;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -949,7 +949,7 @@ Worker.prototype._get = function(what, def, type) {
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
+		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
 			return isNull(data) ? null : data.valueOf();
 		}
 //		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
@@ -1234,7 +1234,7 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value, type) {
-	if (type && (isFunction(type) && type(value)) || (isString(type) && typeof value !== type)) {
+	if (type && (isFunction(type) && !type(value)) || (isString(type) && typeof value !== type)) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
@@ -7601,14 +7601,15 @@ Heal.me = function() {
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
-Idle.temp = null;
+Idle.temp = Idle.data = null;
 
 Idle.defaults['castle_age'] = {};
+
 Idle.settings ={
-    after:['LevelUp']
+	after:['LevelUp'],
+	taint:true
 };
 
-Idle.data = null;
 Idle.option = {
 	general:'any',
 	index:86400000,
@@ -7636,7 +7637,7 @@ Idle.when = {
 
 Idle.display = [
 	{
-		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
+		label:'<strong>NOTE:</strong> This worker will <strong>not</strong> release control!<br>Use this for disabling workers you do not use.'
 	},{
 		id:'general',
 		label:'Idle General',
@@ -10491,6 +10492,10 @@ Monster.conditions = function (type, conditions) {
 var News = new Worker('News');
 News.data = News.temp = null;
 
+News.settings = {
+	taint:true
+};
+
 News.defaults['castle_age'] = {
 	pages:'index'
 };
@@ -10501,8 +10506,8 @@ News.runtime = {
 
 News.parse = function(change) {
 	if (change) {
-		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.runtime.last, killed = false;
-		this.runtime.last = Date.now();
+		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.get(['runtime','last'], 0), killed = false;
+		this.set(['runtime','last'], Date.now());
 		$('#app46755028429_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
 			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/(\d+) days/i), hours = title.regex(/(\d+) hours/i), minutes = title.regex(/(\d+) minutes/i), seconds = title.regex(/(\d+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);

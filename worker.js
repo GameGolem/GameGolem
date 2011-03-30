@@ -257,7 +257,7 @@ Worker.prototype._get = function(what, def, type) {
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
-		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data !== type))) {
+		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
 			return isNull(data) ? null : data.valueOf();
 		}
 //		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
@@ -542,7 +542,7 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value, type) {
-	if (type && (isFunction(type) && type(value)) || (isString(type) && typeof value !== type)) {
+	if (type && (isFunction(type) && !type(value)) || (isString(type) && typeof value !== type)) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}

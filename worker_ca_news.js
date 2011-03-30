@@ -13,6 +13,10 @@
 var News = new Worker('News');
 News.data = News.temp = null;
 
+News.settings = {
+	taint:true
+};
+
 News.defaults['castle_age'] = {
 	pages:'index'
 };
@@ -23,8 +27,8 @@ News.runtime = {
 
 News.parse = function(change) {
 	if (change) {
-		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.runtime.last, killed = false;
-		this.runtime.last = Date.now();
+		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, list = [], user = {}, last_time = this.get(['runtime','last'], 0), killed = false;
+		this.set(['runtime','last'], Date.now());
 		$('#app46755028429_battleUpdateBox .alertsContainer .alert_content').each(function(i,el) {
 			var uid, txt = $(el).text().replace(/,/g, ''), title = $(el).prev().text(), days = title.regex(/(\d+) days/i), hours = title.regex(/(\d+) hours/i), minutes = title.regex(/(\d+) minutes/i), seconds = title.regex(/(\d+) seconds/i), time, my_xp = 0, my_bp = 0, my_wp = 0, my_cash = 0, result;
 			time = Date.now() - ((((((((days || 0) * 24) + (hours || 0)) * 60) + (minutes || 59)) * 60) + (seconds || 59)) * 1000);

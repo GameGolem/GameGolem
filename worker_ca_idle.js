@@ -12,14 +12,15 @@
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
-Idle.temp = null;
+Idle.temp = Idle.data = null;
 
 Idle.defaults['castle_age'] = {};
+
 Idle.settings ={
-    after:['LevelUp']
+	after:['LevelUp'],
+	taint:true
 };
 
-Idle.data = null;
 Idle.option = {
 	general:'any',
 	index:86400000,
@@ -47,7 +48,7 @@ Idle.when = {
 
 Idle.display = [
 	{
-		label:'<strong>NOTE:</strong> Any workers below this will <strong>not</strong> run!<br>Use this for disabling workers you do not use.'
+		label:'<strong>NOTE:</strong> This worker will <strong>not</strong> release control!<br>Use this for disabling workers you do not use.'
 	},{
 		id:'general',
 		label:'Idle General',
