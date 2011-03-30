@@ -80,13 +80,12 @@ FP.parse = function(change) {
 	$('.title_action:contains("favor points")').each(function(i,el){
 		FP.set(['runtime','points'], $(el).text().regex(/You have (\d+) favor points/i));
 	});
-	Dashboard.status(this, 'You have ' + this.runtime.points + ' favor points.');
 	History.set('favor points',this.runtime.points);
 	return false;
 };
 
 FP.update = function(event) {
-	Dashboard.status(this, 'You have ' + this.runtime.points + ' favor points.');
+	Dashboard.status(this, 'You have ' + makeImage('favor') + this.runtime.points + ' favor points.');
 	this.set(['option','_sleep'], Player.get(this.option.type,0) >= this.option.stat 
 			|| Player.get('exp_needed', 0) < this.option.xp 
 			|| (this.data[Player.get('level',0)] || 0) >= this.option.times 

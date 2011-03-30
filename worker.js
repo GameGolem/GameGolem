@@ -543,7 +543,7 @@ Worker.prototype._save = function(type) {
  */
 Worker.prototype._set = function(what, value, type) {
 	if (type && (isFunction(type) && type(value)) || (isString(type) && typeof value !== type)) {
-		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){

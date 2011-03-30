@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1026
+// @version		31.5.1027
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1026;
+var revision = 1027;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1235,7 +1235,7 @@ Worker.prototype._save = function(type) {
  */
 Worker.prototype._set = function(what, value, type) {
 	if (type && (isFunction(type) && type(value)) || (isString(type) && typeof value !== type)) {
-		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
@@ -2968,7 +2968,7 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
+	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -2981,7 +2981,7 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
+	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -3059,75 +3059,50 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = isObject(what) ? what : isString(what) ? what.split('.') : [], hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
+	var i, j, value, last, list = [], data = this.data, x = isArray(what) ? what : isString(what) ? what.split('.') : [], hour, past, change = false;
 	if (x.length && (isNumber(x[0]) || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
+	} else {
+		hour = Math.floor(Date.now() / 3600000);
 	}
 	if (x.length && (isNumber(x[x.length-1]) || !x[x.length-1].regex(/\D/gi))) {
 		past = Math.range(1, parseInt(x.pop(), 10), 168);
+	} else {
+		past = 168;
+	}
+	if (x.length && x[x.length-1] === 'change') {
+		x.pop();
+		change = true;
 	}
 	if (!x.length) {
 		return data;
 	}
-	for (i in data) {
-		if (isNumber(data[i][x[0]])) {
-			exact = true;
-			break;
-		}
-	}
-	if (x.length === 1) { // only the current value
-		if (exact) {
-			return data[hour][x[0]];
-		}
-		for (j in data[hour]) {
-			if (j.indexOf(x[0] + '+') === 0 && isNumber(data[hour][j])) {
-				value = (value || 0) + data[hour][j];
-			}
-		}
-		return value;
-	}
-	if (x.length === 2 && x[1] === 'change') {
-		if (data[hour] && data[hour-1]) {
-			i = this.get([hour, x[0]]);
-			j = this.get([hour - 1, x[0]]);
-			if (isNumber(i) && isNumber(j)) {
-				return i - j;
-			}
-			return 0;
-		}
-		return 0;
-	}
-	if (x.length > 2 && x[2] === 'change') {
-		change = true;
+	if (x.length === 1) { // We want a single hourly value only
+		past = change ? 1 : 0;
 	}
 	for (i=hour-past; i<=hour; i++) {
 		if (data[i]) {
+			last = value;
 			value = null;
-			if (exact) {
-				if (isNumber(data[i][x[0]])) {
-					value = data[i][x[0]];
-				}
-			} else {
-				for (j in data[i]) {
-					if (j.indexOf(x[0] + '+') === 0 && isNumber(data[i][j])) {
-						value = (value || 0) + data[i][j];
-					}
+			for (j in data[i]) {
+				if ((j === x[0] || j.indexOf(x[0] + '+') === 0) && isNumber(data[i][j])) {
+					value = (value || 0) + data[i][j];
 				}
 			}
-			if (change) {
-				if (value !== null && last !== null) {
+			if (x.length > 1 && isNumber(value)) {
+				if (!change) {
+					list.push(value);
+				} else if (isNumber(last)) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
 						console.log(warn('NaN: '+value+' - '+last));
 					}
 				}
-				last = value;
-			} else {
-				if (value !== null) {
-					list.push(value);
-				}
 			}
 		}
+	}
+	if (x.length === 1) {
+		return change ? value - last : value;
 	}
 	if (History.math[x[1]]) {
 		return History.math[x[1]](list);
@@ -3149,7 +3124,7 @@ History.getTypes = function(what) {
 };
 
 History.makeGraph = function(type, title, options) {
-	var i, j, count, min = options.min || Number.POSITIVE_INFINITY, max = options.max || Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
+	var i, j, count, min = isNumber(options.min) ? options.min : Number.POSITIVE_INFINITY, max = isNumber(options.max) ? options.max : Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
 	if (isNumber(options.goal)) {
 		goal = [options.goal];
 	} else if (!isArray(options.goal) && !isObject(options.goal)) {
@@ -6078,82 +6053,80 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var data, uid, tmp, myrank, mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, data, uid, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
-		$('tr[height="23"]').each(function(i,el){
+		$('tr[height="23"]').each(function(i,el) {
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		this.data.battle.rank = data;
-		this.data.battle.bp = $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i);
+		this.set(['data','battle','rank'], data);
+		this.set(['data','battle','bp'], $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i));
 	} else if (Page.page === 'battle_war') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
-		this.data.war.rank = data;
+		this.set(['data','war','rank'], data);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
-		if (this.runtime.attacking) {
-			uid = this.runtime.attacking;
-			this.runtime.attacking = null;
-			if ($('div.results').text().match(/You cannot battle someone in your army/i)) {
-				delete data[uid];
-			} else if ($('div.results').text().match(/This trainee is too weak. Challenge someone closer to your level/i)) {
-				delete data[uid];
-			} else if ($('div.results').text().match(/They are too high level for you to attack right now/i)) {
-				delete data[uid];
-			} else if ($('div.results').text().match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
-				delete data[uid];
-			} else if ($('div.results').text().match(/Your opponent is dead or too weak/i)) {
-				data[uid].hide = (data[uid].hide || 0) + 1;
-				data[uid].dead = Date.now();
+		if ((uid = this.get(['runtime','attacking']))) {
+			tmp = $('div.results').text();
+			if (tmp.match(/You cannot battle someone in your army/i)
+			 || tmp.match(/This trainee is too weak. Challenge someone closer to your level/i)
+			 || tmp.match(/They are too high level for you to attack right now/i)
+			 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
+				this.set(['data','user',uid]);
+			} else if (tmp.match(/Your opponent is dead or too weak/i)) {
+				this.set(['data','user',uid,'hide'], this.get(['data','user',uid,'hide'], 0) + 1);
+				this.set(['data','user',uid,'dead'], Date.now());
 //			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of (\d+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
-//				this.runtime.attacking = uid; // Don't remove target as we've hit someone else...
+//				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_victory"]').length) {
-				this.data[mode].bp = $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i);
-				data[uid][mode].win = (data[uid][mode].win || 0) + 1;
-				data[uid].last = Date.now();
+				this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i));
+				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
+				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+win',1);
-				if (this.option.chain && (data[uid][mode].win % this.option.chain)) {
-					this.runtime.attacking = uid;
+				if (this.option.chain && (data[uid][mode].win % this.option.chain)) { // NOTE: Bad - should be chaining in order - this might chain a smaller number due to death etc
+					this.set(['runtime','attacking'], uid);
 				}
-				data[uid].last = Date.now();
-				//console.log(warn(), 'win');
 			} else if ($('img[src*="battle_defeat"]').length) {
-				data[uid][mode].loss = (data[uid][mode].loss || 0) + 1;
-				data[uid].last = Date.now();
+				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
+				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+loss',-1);
-				//console.log(warn(), 'loss');
 			} else {
-				this.runtime.attacking = uid; // Don't remove target as we've not hit them...
+				uid = null; // Don't remove target as we've not hit them...
+			}
+			if (uid) { // Delete them
+				this.set(['runtime','attacking'], null);
 			}
 		}
-		tmp = $('#app46755028429_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/);
-		if (tmp) {
-			this.data.points = tmp;
+		this.set(['data','points'], $('#app46755028429_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/), isArray);
+		rank = {
+			battle: Player.get('battle',0),
+			war: Player.get('war',0)
 		}
-		myrank = Player.get(mode,0);
-		$('#app46755028429_app_body table.layout table table tr:even').each(function(i,el){
-			var uid = $('img[uid!==""]', el).attr('uid'), info = $('td.bluelink', el).text().replace(/[ \t\n]+/g, ' '), battle_rank = info.regex(/Battle:[^(]+\(Rank (\d+)\)/i), war_rank = info.regex(/War:[^(]+\(Rank (\d+)\)/i), rank;
-			rank = mode === 'War' ? war_rank : battle_rank;
-			if (!uid || !info || (Battle.option.bp === 'Always' && myrank - rank > 5) || (Battle.option.bp === 'Never' && myrank - rank <= 5)) {
-				return;
+		$list = $('#app46755028429_app_body table.layout table table tr:even');
+		for (i=0; i<$list.length; i++) {
+			$el = $list[i];
+			uid = $('img[uid!==""]', $el).attr('uid');
+			info = $('td.bluelink', $el).text().replace(/[ \t\n]+/g, ' ');
+			rank2 = {
+				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
+				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			data[uid] = data[uid] || {};
-			data[uid].name = $('a', el).text().trim();
-			data[uid].level = info.regex(/\(Level (\d+)\)/i);
-			data[uid].battle = data[uid].battle || {};
-			data[uid].war = data[uid].war || {};
-			data[uid].battle.rank = battle_rank;
-			data[uid].war.rank = war_rank;
-			data[uid].army = $('td.bluelink', el).next().text().regex(/(\d+)/);
-			data[uid].align = $('img[src*="graphics/symbol_"]', el).attr('src').regex(/symbol_(\d)/i);
-		});
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5))) {
+				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
+				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
+				this.set(['data','user',uid,'battle','rank'], rank2.battle);
+				this.set(['data','user',uid,'war','rank'], rank2.war);
+				this.set(['data','user',uid,'army'], $('td.bluelink', $el).next().text().regex(/(\d+)/));
+				this.set(['data','user',uid,'align'], $('img[src*="graphics/symbol_"]', $el).attr('src').regex(/symbol_(\d)/i));
+			}
+		}
 	}
 	return false;
 };
@@ -6191,37 +6164,35 @@ Battle.update = function(event) {
 		+ '<img class="golem-image" src="' + this.symbol[5] +'" alt=" " title="'+this.demi[5]+'"> ' + this.get([tmp,4], 0) + '/10');
 	}
 	// First make check our target list doesn't need reducing
-        limit = this.option.limit;
-	if (!isNumber(limit)) {
-		limit = -4;
-	}
+	limit = this.get(['option','limit'], -4, isNumber);
 	for (i in data) { // Forget low or high rank - no points or too many points
-		if ((this.option.bp === 'Always' && this.get([data,i,mode,'rank'],0,'number') - rank  <= limit) || (this.option.bp === 'Never' && rank - this.get([data,i,mode,'rank'],6,'number') <= 5)) { // unknown rank never deleted
-			this.set(['data','user',i]);
+		tmp = this.get([data,i,mode,'rank'],0);
+		if ((this.option.bp === 'Always' && tmp - rank <= limit) || (this.option.bp === 'Never' && rank - tmp <= 5)) { // unknown rank never deleted
+			this.set(['data','user',i]); // Would be nicer to just ignore "bad" targets until they're naturally pruned...
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache
 //		console.log(warn(), 'Pruning target cache');
 		list = [];
 		for (i in data) {
-/*			weight = Math.range(-10, (data[i][mode].win || 0) - (data[i][mode].loss || 0), 20) / 2;
-			if (Battle.option.bp === 'Always') { weight += ((data[i][mode].rank || 0) - rank) / 2; }
-			else if (Battle.option.bp === 'Never') { weight += (rank - (data[i][mode].rank || 0)) / 2; }
-			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
-			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
-			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
-*/
 			list.push(i);
 		}
 		list.sort(function(a,b) {
-			var weight = 0;
-				 if (((data[a].win || 0) - (data[a].loss || 0)) < ((data[b].win || 0) - (data[b].loss || 0))) { weight += 10; }
-			else if (((data[a].win || 0) - (data[a].loss || 0)) > ((data[b].win || 0) - (data[b].loss || 0))) { weight -= 10; }
-			if (Battle.option.bp === 'Always') { weight += ((data[b].rank || 0) - (data[a].rank || 0)) / 2; }
-			if (Battle.option.bp === 'Never') { weight += ((data[a].rank || 0) - (data[b].rank || 0)) / 2; }
-			weight += Math.range(-1, (data[b].hide || 0) - (data[a].hide || 0), 1);
-			weight += Math.range(-10, (((data[a].army || 0) - (data[b].army || 0)) / 10), 10);
-			weight += Math.range(-10, (((data[a].level || 0) - (data[b].level || 0)) / 10), 10);
+			var weight = 0, aa = data[a], bb = data[b];
+			if (((aa.win || 0) - (aa.loss || 0)) < ((bb.win || 0) - (bb.loss || 0))) {
+				weight += 10;
+			} else if (((aa.win || 0) - (aa.loss || 0)) > ((bb.win || 0) - (bb.loss || 0))) {
+				weight -= 10;
+			}
+			if (Battle.option.bp === 'Always') {
+				weight += ((bb.rank || 0) - (aa.rank || 0)) / 2;
+			}
+			if (Battle.option.bp === 'Never') {
+				weight += ((aa.rank || 0) - (bb.rank || 0)) / 2;
+			}
+			weight += Math.range(-1, (bb.hide || 0) - (aa.hide || 0), 1);
+			weight += Math.range(-10, (((aa.army || 0) - (bb.army || 0)) / 10), 10);
+			weight += Math.range(-10, (((aa.level || 0) - (bb.level || 0)) / 10), 10);
 			return weight;
 		});
 		while (list.length > this.option.cache) {
@@ -6241,11 +6212,11 @@ Battle.update = function(event) {
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
-				|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
-				|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
-				|| (this.option.type === 'War' 
-					&& data[this.runtime.attacking].last 
-					&& data[this.runtime.attacking].last + 300000 < Date.now())) {
+		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
+		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
+		|| (this.option.type === 'War' 
+			&& data[this.runtime.attacking].last 
+			&& data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.runtime.attacking = null;
 		}
 		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 >= Date.now()));
@@ -13501,13 +13472,12 @@ FP.parse = function(change) {
 	$('.title_action:contains("favor points")').each(function(i,el){
 		FP.set(['runtime','points'], $(el).text().regex(/You have (\d+) favor points/i));
 	});
-	Dashboard.status(this, 'You have ' + this.runtime.points + ' favor points.');
 	History.set('favor points',this.runtime.points);
 	return false;
 };
 
 FP.update = function(event) {
-	Dashboard.status(this, 'You have ' + this.runtime.points + ' favor points.');
+	Dashboard.status(this, 'You have ' + makeImage('favor') + this.runtime.points + ' favor points.');
 	this.set(['option','_sleep'], Player.get(this.option.type,0) >= this.option.stat 
 			|| Player.get('exp_needed', 0) < this.option.xp 
 			|| (this.data[Player.get('level',0)] || 0) >= this.option.times 

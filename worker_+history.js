@@ -72,7 +72,7 @@ History.set = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
+	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -85,7 +85,7 @@ History.add = function(what, value) {
 		return;
 	}
 	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isObject(what) ? what : isString(what) ? what.split('.') : [];
+	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
@@ -163,75 +163,50 @@ History.math = {
 
 History.get = function(what) {
 	this._unflush();
-	var i, j, value, last = null, list = [], data = this.data, x = isObject(what) ? what : isString(what) ? what.split('.') : [], hour = Math.floor(Date.now() / 3600000), exact = false, past = 168, change = false;
+	var i, j, value, last, list = [], data = this.data, x = isArray(what) ? what : isString(what) ? what.split('.') : [], hour, past, change = false;
 	if (x.length && (isNumber(x[0]) || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
+	} else {
+		hour = Math.floor(Date.now() / 3600000);
 	}
 	if (x.length && (isNumber(x[x.length-1]) || !x[x.length-1].regex(/\D/gi))) {
 		past = Math.range(1, parseInt(x.pop(), 10), 168);
+	} else {
+		past = 168;
+	}
+	if (x.length && x[x.length-1] === 'change') {
+		x.pop();
+		change = true;
 	}
 	if (!x.length) {
 		return data;
 	}
-	for (i in data) {
-		if (isNumber(data[i][x[0]])) {
-			exact = true;
-			break;
-		}
-	}
-	if (x.length === 1) { // only the current value
-		if (exact) {
-			return data[hour][x[0]];
-		}
-		for (j in data[hour]) {
-			if (j.indexOf(x[0] + '+') === 0 && isNumber(data[hour][j])) {
-				value = (value || 0) + data[hour][j];
-			}
-		}
-		return value;
-	}
-	if (x.length === 2 && x[1] === 'change') {
-		if (data[hour] && data[hour-1]) {
-			i = this.get([hour, x[0]]);
-			j = this.get([hour - 1, x[0]]);
-			if (isNumber(i) && isNumber(j)) {
-				return i - j;
-			}
-			return 0;
-		}
-		return 0;
-	}
-	if (x.length > 2 && x[2] === 'change') {
-		change = true;
+	if (x.length === 1) { // We want a single hourly value only
+		past = change ? 1 : 0;
 	}
 	for (i=hour-past; i<=hour; i++) {
 		if (data[i]) {
+			last = value;
 			value = null;
-			if (exact) {
-				if (isNumber(data[i][x[0]])) {
-					value = data[i][x[0]];
-				}
-			} else {
-				for (j in data[i]) {
-					if (j.indexOf(x[0] + '+') === 0 && isNumber(data[i][j])) {
-						value = (value || 0) + data[i][j];
-					}
+			for (j in data[i]) {
+				if ((j === x[0] || j.indexOf(x[0] + '+') === 0) && isNumber(data[i][j])) {
+					value = (value || 0) + data[i][j];
 				}
 			}
-			if (change) {
-				if (value !== null && last !== null) {
+			if (x.length > 1 && isNumber(value)) {
+				if (!change) {
+					list.push(value);
+				} else if (isNumber(last)) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
 						console.log(warn('NaN: '+value+' - '+last));
 					}
 				}
-				last = value;
-			} else {
-				if (value !== null) {
-					list.push(value);
-				}
 			}
 		}
+	}
+	if (x.length === 1) {
+		return change ? value - last : value;
 	}
 	if (History.math[x[1]]) {
 		return History.math[x[1]](list);
@@ -253,7 +228,7 @@ History.getTypes = function(what) {
 };
 
 History.makeGraph = function(type, title, options) {
-	var i, j, count, min = options.min || Number.POSITIVE_INFINITY, max = options.max || Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
+	var i, j, count, min = isNumber(options.min) ? options.min : Number.POSITIVE_INFINITY, max = isNumber(options.max) ? options.max : Number.NEGATIVE_INFINITY, max_s, min_s, goal_s = [], list = [], bars = [], output = [], value = {}, goalbars = '', divide = 1, suffix = '', hour = Math.floor(Date.now() / 3600000), numbers, prefix = options.prefix || '', goal;
 	if (isNumber(options.goal)) {
 		goal = [options.goal];
 	} else if (!isArray(options.goal) && !isObject(options.goal)) {
