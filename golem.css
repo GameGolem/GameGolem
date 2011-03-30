@@ -84,10 +84,9 @@
 #golem-dashboard {
 	position: absolute;
 	width: 600px;
-	height: 185px;
+	height: 183px;
 	margin: 0;
-	border-left: 1px solid black;
-	border-right:1px solid black;
+	border:1px solid black;
 	overflow: hidden;
 	background: white;
 	z-index: 1;
@@ -121,7 +120,11 @@
 }
 
 #golem-dashboard > div {
-	height: 163px;
+	position: absolute;
+	top: 21px;
+	bottom: 0;
+	width: 100%;
+	z-index: -1;
 	overflow: hidden;
 	overflow-y: scroll;
 	border-top: 1px solid #d3d3d3;

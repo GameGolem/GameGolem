@@ -53,7 +53,7 @@ Config.init = function() {
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+this.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -275,18 +275,20 @@ Config.update = function(event) {
 				});
 			}
 		} else if (id === '_sleep') { // Show the ZZZ icon
-			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
+			$('#golem_sleep_' + worker.name).css('display', worker.get(['option','_sleep'],false) ? '' : 'none');
 		} else {
 			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
 				if ($el.attr('type') === 'checkbox') {
-					$el.attr('checked', worker.option[id]);
+					$el.attr('checked', worker.get('option.'+id, false));
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val,i,arr){if(arr.hasOwnProperty(i)){$el.append('<option>'+val+'</option>');}});
+					worker.get('option.'+id, [], isArray).forEach(function(val){
+						$el.append('<option>'+val+'</option>');
+					});
 				} else if ($el.attr('value')) {
-					$el.attr('value', worker.option[id]);
+					$el.attr('value', worker.get('option.'+id));
 				} else {
-					$el.val(worker.option[id]);
+					$el.val(worker.get('option.'+id));
 				}
 			}
 		}

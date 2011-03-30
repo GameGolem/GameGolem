@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1025
+// @version		31.5.1026
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1025;
+var revision = 1026;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -935,7 +935,7 @@ Worker.prototype._forget = function(id) {
 Worker.prototype._get = function(what, def, type) {
 	try {
 		var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
-		if (typeof x[0] === 'object') { // Object or Array
+		if (x.length && isObject(x[0]) || isArray(x[0])) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
 			if (!x.length || !(x[0] in this._datatypes)) {
@@ -1818,7 +1818,7 @@ Config.init = function() {
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (Config.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (Config.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+Config.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
+	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+this.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
@@ -2040,18 +2040,20 @@ Config.update = function(event) {
 				});
 			}
 		} else if (id === '_sleep') { // Show the ZZZ icon
-			$('#golem_sleep_' + worker.name).css('display', worker.option._sleep ? '' : 'none');
+			$('#golem_sleep_' + worker.name).css('display', worker.get(['option','_sleep'],false) ? '' : 'none');
 		} else {
 			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
 				if ($el.attr('type') === 'checkbox') {
-					$el.attr('checked', worker.option[id]);
+					$el.attr('checked', worker.get('option.'+id, false));
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					(worker.option[id] || []).forEach(function(val,i,arr){if(arr.hasOwnProperty(i)){$el.append('<option>'+val+'</option>');}});
+					worker.get('option.'+id, [], isArray).forEach(function(val){
+						$el.append('<option>'+val+'</option>');
+					});
 				} else if ($el.attr('value')) {
-					$el.attr('value', worker.option[id]);
+					$el.attr('value', worker.get('option.'+id));
 				} else {
-					$el.val(worker.option[id]);
+					$el.val(worker.get('option.'+id));
 				}
 			}
 		}
@@ -2414,7 +2416,10 @@ Dashboard.settings = {
 
 Dashboard.option = {
 	display:'block',
-	active:'Dashboard'
+	active:'Dashboard',
+	expand:false,
+	width:600,
+	height:183
 };
 
 Dashboard.init = function() {
@@ -2443,12 +2448,16 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
 		}
+	});
+	$('#golem_dashboard_expand').click(function(event){
+		Dashboard.set(['option','expand'], !Dashboard.get(['option','expand'], false));
+		Dashboard.update_trigger(event);
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -2480,8 +2489,19 @@ Dashboard.init = function() {
 };
 
 Dashboard.update_trigger = function(event) {
-	var offset = $('#app46755028429_app_body_container').offset();
-	$('#golem-dashboard').css({'top':offset.top, 'left':offset.left}); // Make sure we're always in the right place
+	var expand = this.get(['option','expand'], false), $el, offset, width, height, margin = 0;
+	if (expand) {
+		$el = $('#app46755028429_globalContainer');
+		width = $el.width();
+		height = $el.height();
+		margin = 10;
+	} else {
+		$el = $('#app46755028429_app_body_container');
+		width = this.get(['option','width'], 0);
+		height = this.get(['option','height'], 0);
+	}
+	offset = $el.offset();
+	$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)}); // Make sure we're always in the right place
 };
 
 Dashboard.update_watch = function(event) {
@@ -4312,9 +4332,9 @@ Script.dashboard = function() {
 	html += '</select>';
 	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
 	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
-//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:570px;">';
-	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:570px;"></textarea>';
-	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:570px;" disabled></textarea>';
+//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:99%;">';
+	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:99%;"></textarea>';
+	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:99%;" disabled></textarea>';
 	$('#golem-dashboard-Script').html(html);
 	$('#golem_script_worker').change(function(){
 		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
@@ -5019,7 +5039,7 @@ Settings.dashboard = function() {
 		if (Config.option.advanced) {
 			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 		}
-		html += '<br><textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+		html += '<br><textarea id="golem_settings_edit" style="width:99%;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
@@ -13271,7 +13291,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
 		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
-			output.push('<p><div style="height:25px;margin:1px;"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+list[units[i]].cost.SI():'') + '</div></p>');
+			output.push('<div style="height:25px;margin:1px;' + (list[units[i]].cost ? 'font-weight:bold;' : '') + '"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+list[units[i]].cost.SI():'') + '</div>');
 		}
 	}
 	if (name) {

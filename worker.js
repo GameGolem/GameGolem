@@ -243,7 +243,7 @@ Worker.prototype._forget = function(id) {
 Worker.prototype._get = function(what, def, type) {
 	try {
 		var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
-		if (typeof x[0] === 'object') { // Object or Array
+		if (x.length && isObject(x[0]) || isArray(x[0])) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
 			if (!x.length || !(x[0] in this._datatypes)) {

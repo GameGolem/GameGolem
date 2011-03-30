@@ -20,7 +20,10 @@ Dashboard.settings = {
 
 Dashboard.option = {
 	display:'block',
-	active:'Dashboard'
+	active:'Dashboard',
+	expand:false,
+	width:600,
+	height:183
 };
 
 Dashboard.init = function() {
@@ -49,12 +52,16 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="float:right;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
 		}
+	});
+	$('#golem_dashboard_expand').click(function(event){
+		Dashboard.set(['option','expand'], !Dashboard.get(['option','expand'], false));
+		Dashboard.update_trigger(event);
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -86,8 +93,19 @@ Dashboard.init = function() {
 };
 
 Dashboard.update_trigger = function(event) {
-	var offset = $('#app46755028429_app_body_container').offset();
-	$('#golem-dashboard').css({'top':offset.top, 'left':offset.left}); // Make sure we're always in the right place
+	var expand = this.get(['option','expand'], false), $el, offset, width, height, margin = 0;
+	if (expand) {
+		$el = $('#app46755028429_globalContainer');
+		width = $el.width();
+		height = $el.height();
+		margin = 10;
+	} else {
+		$el = $('#app46755028429_app_body_container');
+		width = this.get(['option','width'], 0);
+		height = this.get(['option','height'], 0);
+	}
+	offset = $el.offset();
+	$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)}); // Make sure we're always in the right place
 };
 
 Dashboard.update_watch = function(event) {

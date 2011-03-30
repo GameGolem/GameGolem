@@ -46,9 +46,9 @@ Script.dashboard = function() {
 	html += '</select>';
 	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
 	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
-//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:570px;">';
-	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:570px;"></textarea>';
-	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:570px;" disabled></textarea>';
+//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:99%;">';
+	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:99%;"></textarea>';
+	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:99%;" disabled></textarea>';
 	$('#golem-dashboard-Script').html(html);
 	$('#golem_script_worker').change(function(){
 		var path = $(this).val().regex(/([^.]*)\.?(.*)/);

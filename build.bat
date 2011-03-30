@@ -4,9 +4,10 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 
 goto ENDINI
 
-rem ----------------------------------------------------------------------
 rem Please copy this section as "build.ini"
 rem Edit to put in the correct paths for your system, and set options to 0 (disabled) or 1 (enabled) at need
+rem Do not copy the "rem ..." lines
+rem ----------------------------------------------------------------------
 [Golem]
 ; golem: absolute path to this development branch, include trailing \
 golem:".\"
@@ -40,8 +41,8 @@ firefox2=""
 [Wait]
 ; wait: wait for a keypress to quit
 wait=1
-rem   End "build.ini" section
 rem ----------------------------------------------------------------------
+rem   End "build.ini" section
 
 :ENDINI
 

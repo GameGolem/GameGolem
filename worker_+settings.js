@@ -166,7 +166,7 @@ Settings.dashboard = function() {
 		if (Config.option.advanced) {
 			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 		}
-		html += '<br><textarea id="golem_settings_edit" style="width:570px;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
+		html += '<br><textarea id="golem_settings_edit" style="width:99%;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
