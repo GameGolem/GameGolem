@@ -688,8 +688,7 @@ Town.update = function(event) {
 		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
-		}
-		else if (Bank.worth(this.runtime.cost - land_buffer)) {
+		} else if (Bank.worth(this.runtime.cost - land_buffer)) {
 			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
@@ -709,7 +708,7 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.get('runtime.soldiers', 0)) && Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0)) && Page.stale('town_magic', this.get('runtime.magic', 0)));
+	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost - land_buffer)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.get('runtime.soldiers', 0)) && Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0)) && Page.stale('town_magic', this.get('runtime.magic', 0)));
 };
 
 Town.work = function(state) {
@@ -717,7 +716,7 @@ Town.work = function(state) {
 	if (state) {
 		if (this.runtime.best_sell){
 			this.sell(this.runtime.best_sell, this.runtime.sell);
-		} else if (this.runtime.best_buy){
+		} else if (this.runtime.best_buy && Bank.worth(this.runtime.cost - ((Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0))){
 			this.buy(this.runtime.best_buy, this.runtime.buy);
 		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
 			Page.to(i);
