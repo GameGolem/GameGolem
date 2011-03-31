@@ -67,8 +67,9 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._reminders		- List of reminders in 'i...':interval or 't...':timeout format
 
 *** Private functions - only overload if you're sure exactly what you're doing ***
-._get(what,def)			- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
-._set(what,val)			- Sets this.data[what] to value, auto-loading if needed. Deletes "empty" data sets (if you don't pass a value)
+._get(what,def,type)	- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
+._set(what,val,type)	- Sets this.data[what] to value, auto-loading if needed. Deletes "empty" data sets (if you don't pass a value)
+._transaction(commit)	- Starts a transaction (no args) to allow multilpe _set calls to effectively queue and only write (or clear) with a true (or false) call.
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
 ._init(keep)			- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
@@ -136,6 +137,7 @@ function Worker(name) {
 	this._watching = {}; // Watching for changes, path:[workers]
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
+	this._transactions_ = null; // Will only be inside a transaction when this is an array of arrays - [[[path,to,data], value], ...]
 }
 
 // Static Functions
@@ -242,7 +244,7 @@ Worker.prototype._forget = function(id) {
  */
 Worker.prototype._get = function(what, def, type) {
 	try {
-		var x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		var i, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
 		if (x.length && isObject(x[0]) || isArray(x[0])) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
@@ -253,6 +255,17 @@ Worker.prototype._get = function(what, def, type) {
 				this._unflush();
 			}
 			data = this;
+			if (isArray(this._transactions_)) {
+				for (i=0; i<this._transactions_.length; i++) {
+					if (compare(this._transactions_[i][0], x)) {
+						break;
+					}
+				}
+				if (i<this._transactions_.length) {
+					data = this._transactions_[i][1];
+					x = [];
+				}
+			}
 		}
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
@@ -546,7 +559,7 @@ Worker.prototype._set = function(what, value, type) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
-	var x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
+	var i, x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
 		switch ((path.length - depth) > 1) { // Can we go deeper?
 			case true:
@@ -578,10 +591,19 @@ Worker.prototype._set = function(what, value, type) {
 		x.unshift('data');
 	}
 	try {
-		if (x[0] === 'data') {
-			this._unflush();
+		if (isArray(this._transactions_)) { // *Cannot* set data directly while in a transaction
+			for (i=0; i<this._transactions_.length; i++) {
+				if (compare(this._transactions_[i][0], x)) {
+					break;
+				}
+			}
+			this._transactions_[i] = [x, value];
+		} else {
+			if (x[0] === 'data') {
+				this._unflush();
+			}
+			fn.call(this, this, x, value, 0);
 		}
-		fn.call(this, this, x, value, 0);
 	} catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
 	}
@@ -623,6 +645,31 @@ Worker.prototype._setup = function() {
 		delete Workers[this.name];
 	}
 	this._pop();
+};
+
+/**
+ * Defer _set changes to allow them to be flushed. While inside a transaction all _set and _get works as normal, however direct access returns pre-transaction data until committed.
+ * this._transaction() - BEGIN
+ * this._transaction(true) - COMMIT
+ * this._transaction(false) - ROLLBACK
+ * @param {boolean=} commit Whether to commit changes or not - undefined to begin
+ */
+Worker.prototype._transaction = function(commit) {
+	if (isUndefined(commit)) { // Begin transaction
+//		console.log(warn('Begin Transaction:'));
+		this._transactions_ = [];
+	} else {
+		var i, list = this._transactions_;
+		this._transactions_ = null; // Both rollback and commit clear current status
+		if (commit && isArray(list)) { // Commit transaction
+//			console.log(warn('Commit Transaction:'));
+			for (i=0; i<list.length; i++) {
+//				console.log(warn('...'+JSON.shallow(list[i],2)));
+				this._set(list[i][0], list[i][1]);
+			}
+		}
+//		else console.log(warn('Rollback Transaction:'));
+	}
 };
 
 /**
