@@ -721,11 +721,11 @@ Town.work = function(state) {
 		} else if (!Page.data[i = 'town_soldiers'] || !Page.data[i = 'town_blacksmith'] || !Page.data[i = 'town_magic']) {
 			Page.to(i);
 		} else if (!Page.stale('town_soldiers', this.get('runtime.soldiers', 0), true)) {
-			this.set('runtime.soldiers', 0);
+			this.set('runtime.soldiers', 86400);
 		} else if (!Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0), true)) {
-			this.set('runtime.blacksmith', 0);
+			this.set('runtime.blacksmith', 86400);
 		} else if (!Page.stale('town_magic', this.get('runtime.magic', 0), true)) {
-			this.set('runtime.magic', 0);
+			this.set('runtime.magic', 86400);
 		}
 	}
 	return QUEUE_CONTINUE;
