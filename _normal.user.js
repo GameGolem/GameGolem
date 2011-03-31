@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1031
+// @version		31.5.1034
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1031;
+var revision = 1034;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6078,6 +6078,7 @@ Battle.parse = function(change) {
 			 || tmp.match(/They are too high level for you to attack right now/i)
 			 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
 				this.set(['data','user',uid]);
+				this.set(['runtime','attacking'], null);
 			} else if (tmp.match(/Your opponent is dead or too weak/i)) {
 				this.set(['data','user',uid,'hide'], this.get(['data','user',uid,'hide'], 0) + 1);
 				this.set(['data','user',uid,'dead'], Date.now());
@@ -6085,6 +6086,7 @@ Battle.parse = function(change) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
+				this.set(['runtime','attacking'], null);
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i));
 				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
@@ -6097,11 +6099,6 @@ Battle.parse = function(change) {
 				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
 				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+loss',-1);
-			} else {
-				uid = null; // Don't remove target as we've not hit them...
-			}
-			if (uid) { // Delete them
-				this.set(['runtime','attacking'], null);
 			}
 		}
 		this.set(['data','points'], $('#app46755028429_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/), isArray);
@@ -6219,7 +6216,9 @@ Battle.update = function(event) {
 			&& data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.runtime.attacking = null;
 		}
-		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 >= Date.now()));
+		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
+		//console.log(log('level ' +(this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level) + 'L'));
+		//console.log(log('level ' +(this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)));
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
@@ -13652,6 +13651,11 @@ Guild.parse = function(change) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
+			} else {
+				this._forget('finish');
+				this.set(['runtime','start'], 1800000 + now);
+				this._remind(1800, 'start');
+				this.set(['runtime','status'], 'wait');
 			}
 			break;
 		case 'battle_guild_battle':

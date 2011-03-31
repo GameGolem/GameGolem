@@ -302,6 +302,7 @@ Battle.parse = function(change) {
 			 || tmp.match(/They are too high level for you to attack right now/i)
 			 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
 				this.set(['data','user',uid]);
+				this.set(['runtime','attacking'], null);
 			} else if (tmp.match(/Your opponent is dead or too weak/i)) {
 				this.set(['data','user',uid,'hide'], this.get(['data','user',uid,'hide'], 0) + 1);
 				this.set(['data','user',uid,'dead'], Date.now());
@@ -309,6 +310,7 @@ Battle.parse = function(change) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
+				this.set(['runtime','attacking'], null);
 			} else if ($('img[src*="battle_victory"]').length) {
 				this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i));
 				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
@@ -321,11 +323,6 @@ Battle.parse = function(change) {
 				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
 				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+loss',-1);
-			} else {
-				uid = null; // Don't remove target as we've not hit them...
-			}
-			if (uid) { // Delete them
-				this.set(['runtime','attacking'], null);
 			}
 		}
 		this.set(['data','points'], $('#app46755028429_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/), isArray);
@@ -443,7 +440,7 @@ Battle.update = function(event) {
 			&& data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.runtime.attacking = null;
 		}
-		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 >= Date.now()));
+		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {

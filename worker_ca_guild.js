@@ -144,6 +144,11 @@ Guild.parse = function(change) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
+			} else {
+				this._forget('finish');
+				this.set(['runtime','start'], 1800000 + now);
+				this._remind(1800, 'start');
+				this.set(['runtime','status'], 'wait');
 			}
 			break;
 		case 'battle_guild_battle':
