@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1034
+// @version		31.5.1035
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1034;
+var revision = 1035;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6217,8 +6217,6 @@ Battle.update = function(event) {
 			this.runtime.attacking = null;
 		}
 		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
-		//console.log(log('level ' +(this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level) + 'L'));
-		//console.log(log('level ' +(this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)));
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
@@ -9237,6 +9235,19 @@ Monster.types = {
 		list:'boss_jahanna_list.jpg',
 		image:'boss_jahanna_large.jpg',
 		dead:'boss_jahanna_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[10,20,50,100,200],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[20,40,100,200]
+	},
+	aurora: {
+		name:'Aurora',
+		list:'boss_aurora_list.jpg',
+		image:'boss_aurora_large.jpg',
+		dead:'boss_aurora_dead.jpg',
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,

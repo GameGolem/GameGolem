@@ -759,6 +759,19 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200]
 	},
+	aurora: {
+		name:'Aurora',
+		list:'boss_aurora_list.jpg',
+		image:'boss_aurora_large.jpg',
+		dead:'boss_aurora_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[10,20,50,100,200],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[20,40,100,200]
+	},
 	rebellion: {
 		name:'Aurelius, Lion\'s Rebellion',
 		list:'nm_aurelius_list.jpg',
