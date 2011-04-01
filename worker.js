@@ -191,6 +191,7 @@ Worker._notify_ = function(worker) {
  */
 Worker._flush_ = function(worker) {
 	Workers[worker]._reminders._flush = undefined;
+	Workers[worker]._save('data');
 	Workers[worker]['data'] = undefined;
 };
 
@@ -204,11 +205,12 @@ Worker._triggers_ = [];// Used for this._trigger
  */
 Worker.prototype._flush = function() {
 	this._push();
-	this._save();
 	if (!this.settings.keep) {// && !this._reminders._flush) {
 		var name = this.name;
 		window.clearTimeout(this._reminders._flush);
 		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
+	} else {
+		this._save();
 	}
 	this._pop();
 };
@@ -502,44 +504,44 @@ Worker.prototype._replace = function(type, data) {
  */
 Worker.prototype._save = function(type) {
 	var i, n, v;
-	if (!this._datatypes[type]) {
-		if (!type) {
-			n = false;
-			for (i in this._datatypes) {
-				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-					n = arguments.callee.call(this,i) || n;
-				}
+	if (!type) {
+		n = false;
+		for (i in this._datatypes) {
+			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+				n = arguments.callee.call(this,i) || n; // Stop Debug noting it as multiple calls
 			}
-			return n;
-		} else if (this._taint[type]) {
-			this._forget('_update_'+type);
-			this._update({type:type, self:true});
-			this._taint[type] = false;
+		}
+		return n;
+	}
+	if (this[type] === undefined || this[type] === null || this._saving[type] === true) {
+		return false;
+	}
+	if (!this._taint[type] && this._datatypes[type] && !this.settings.taint) { // Only make the "compare" JSON data if we know we might need it
+		try {
+			v = JSON.stringify(this[type]);
+		} catch (e) {
+			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+			// exit so we don't try to save mangled data over good data
+			return false;
 		}
 	}
-	if (this[type] === undefined || this[type] === null || this._saving[type] || (this.settings.taint && this._taint[type] === false)) {
-		return false;
-	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	try {
-		v = JSON.stringify(this[type]);
-	} catch (e) {
-		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
-		// exit so we don't try to save mangled data over good data
-		return false;
-	}
-	if ((!this.settings.taint || this._taint[type] !== false) && getItem(n) !== v) {
+	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
-		this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
 		this._forget('_'+type);
 		this._update({type:type, self:true});
-		this._saving[type] = this._taint[type] = false;
-		this._timestamps[type] = Date.now();
-		try {
-			setItem(n, JSON.stringify(this[type]));
-		} catch (e2) {
-			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+		this._saving[type] = false;
+		this._taint[type] = false;
+		if (this._datatypes[type]) {
+			this._timestamps[type] = Date.now();
+			try {
+				v = JSON.stringify(this[type]);
+				setItem(n, v);
+				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+			} catch (e2) {
+				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+			}
 		}
 		this._pop();
 		return true;
