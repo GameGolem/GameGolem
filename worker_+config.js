@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage, getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
@@ -458,6 +458,8 @@ Config.makeOption = function(worker, args) {
 		}
 	} else if (o.text) {
 		txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+	} else if (o.number) {
+		txt.push('<input type="number"' + o.real_id + ' style="float:right;' + (o.label || o.before || o.after ? '' : 'width:100%;') + '" size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
 	} else if (o.textarea) {
 		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {
@@ -598,9 +600,9 @@ Config.set = function(key, value) {
 };
 
 Config.checkRequire = function(id) {
-	var i, show = true, require = this.temp.require[id];
-	if (!id || !require) {
-		for (i in this.temp.require) {
+	var i, show = true, require;
+	if (!isNumber(id) || !(require = this.temp.require[id])) {
+		for (i=0; i<this.temp.require.length; i++) {
 			arguments.callee.call(this, i);
 		}
 		return;

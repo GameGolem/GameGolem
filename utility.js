@@ -212,6 +212,26 @@ Array.prototype.find = function(value) { // Returns if a value is found in an ar
 	return this.indexOf(value) >= 0;
 };
 
+Array.prototype.higher = function(value) { // return the lowest entry greater or equal to value, return -1 on failure
+	var i = this.length, best = Number.POSITIVE_INFINITY;
+	while (i--) {
+		if (isNumber(this[i]) && this[i] >= value && this[i] < best) {
+			best = this[i];
+		}
+	}
+	return best === Number.POSITIVE_INFINITY ? -1 : best;
+};
+
+Array.prototype.lower = function(value) { // return the highest entry lower or equal to value, return -1 on failure
+	var i = this.length, best = -1;
+	while (i--) {
+		if (isNumber(this[i]) && this[i] <= value && this[i] > best) {
+			best = this[i];
+		}
+	}
+	return best;
+};
+
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {
@@ -397,27 +417,6 @@ var objectIndex = function(list, index) {
 	return null;
 };
 
-var sortObject = function(obj, sortfunc, deep) {
-	var i, list = [], output = {};
-	if (deep === undefined) {
-		deep = false;
-	}
-	for (i in obj) {
-		if (obj.hasOwnProperty(i)) {
-			list.push(i);
-		}
-	}
-	list.sort(sortfunc ? sortfunc : function(a,b){return b-a;});
-	for (i=0; i<list.length; i++) {
-		if (deep && typeof obj[list[i]] === 'object') {
-			output[list[i]] = sortObject(obj[list[i]], sortfunc, deep);
-		} else {
-			output[list[i]] = obj[list[i]];
-		}
-	}
-	return output;
-};
-
 var getAttDefList = [];
 var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
@@ -561,26 +560,6 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 		x_label_list.pop();
 	}
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
-};
-
-var bestValue = function(list, value) {// pass a list of numbers, return the highest entry lower or equal to value, return -1 on failure
-	var i, best = -1;
-	for (i=0; i<list.length; i++) {
-		if (list[i] <= value && list[i] > best) {
-			best = list[i];
-		}
-	}
-	return best;
-};
-
-var bestValueHi = function(list, value) {// pass a list of numbers, return the highest entry greater or equal to value, return -1 on failure
-	var i, best = Number.POSITIVE_INFINITY;
-	for (i = 0; i < list.length; i++) {
-		if (list[i] >= value && list[i] < best) {
-			best = list[i];
-		}
-	}
-	return best === Number.POSITIVE_INFINITY ? -1 : best;
 };
 
 var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key

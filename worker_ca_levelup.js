@@ -4,8 +4,8 @@
 	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, calc_rolling_weighted_average, bestValue, bestObjValue
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage, calc_rolling_weighted_average
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -325,19 +325,18 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
-		monsterAction = basehit = bestValue(options, max);
+		monsterAction = basehit = options.lower(max);
 		multiples = Generals.get('runtime.multipliers');
 		for (i in multiples) {
-			check = bestValue(options.map(function(s){ return s * multiples[i]; } ), max);
+			check = options.map(function(s){ return s * multiples[i]; } ).lower(max);
 			if (check > monsterAction) {
 				monsterAction = check;
 				basehit = check / multiples[i];
 				general = i;
 			}
 		}
-		if (monsterAction < 0 && mode === 'attack' && !Battle.get(['option', '_disabled'], false) 
-				&& Battle.runtime.attacking) {
-			monsterAction = bestValue([(Battle.option.type === 'War' ? 10 : 1)],max);
+		if (monsterAction < 0 && mode === 'attack' && !Battle.get(['option', '_disabled'], false) && Battle.runtime.attacking) {
+			monsterAction = [(Battle.option.type === 'War' ? 10 : 1)].lower(max);
 		}
 		console.log(warn(), (exp ? 'Normal' : 'Big') + ' mode: ' + mode + ' ' + stat + ' use: ' + monsterAction +'/' + ((stat === 'stamina') ? stamina : energy) + ' Exp use: ' + monsterAction * this.get('exp_per_' + stat) + '/' + exp + ' Basehit ' + basehit + ' options ' + options + ' General ' + general);
 		if (monsterAction > 0 ) {

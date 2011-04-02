@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Resources **********
@@ -66,7 +66,7 @@ Resources.display = function() {
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
 	}
-	display.push({label:'Not doing anything yet...'});
+	display.push({title:'IMPORTANT', label:'This is *NOT* doing anything yet...'});
 	for (type in this.option.types) {
 		group = [];
 		for (worker in this.runtime.buckets) {
@@ -80,19 +80,24 @@ Resources.display = function() {
 		}
 		if (group.length) {
 			display.push({
-				title:type
-			},{
-				advanced:true,
-				id:'reserve.'+type,
-				label:'Reserve',
-				text:true
-			},{
-				id:'types.'+type,
-				label:type+' Use',
-				select:{0:'None',1:'Shared',2:'Exclusive'}
-			},{
-				group:group,
-				require:'types.'+type+'==2'
+				title:type,
+				group:[
+					{
+						advanced:true,
+						id:'reserve.'+type,
+						label:'Reserve',
+						number:true,
+						min:0,
+						max:100
+					},{
+						id:'types.'+type,
+						label:type+' Use',
+						select:{0:'None',1:'Shared',2:'Exclusive'}
+					},{
+						group:group,
+						require:'types.'+type+'==2'
+					}
+				]
 			});
 		}
 	}

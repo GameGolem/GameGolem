@@ -4,7 +4,7 @@
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
 */
 /********** Worker.Land **********
@@ -294,7 +294,7 @@ Land.work = function(state) {
 				this._remind(60.1, 'sell_land');
 				return QUEUE_RELEASE;
 			} else {
-				q = bestValue(this.data[this.runtime.best].sell, Math.abs(this.runtime.buy));
+				q = this.data[this.runtime.best].sell.lower(Math.abs(this.runtime.buy));
 				console.log(warn(), 'Selling ' + q + '/' + Math.abs(this.runtime.buy) + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
 
 				$('select[name="amount"]', o).val(q);
@@ -311,7 +311,7 @@ Land.work = function(state) {
 				this._remind(60.1, 'buy_land');
 				return QUEUE_RELEASE;
 			} else {
-				q = bestValueHi(this.data[this.runtime.best].buy, this.runtime.buy);
+				q = this.data[this.runtime.best].buy.higher(this.runtime.buy);
 				console.log(warn(), 'Buying ' + q + '/' + this.runtime.buy + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
 
 				$('select[name="amount"]', o).val(q);

@@ -4,7 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
 	makeImage
 */
 /********** Worker.History **********
@@ -138,14 +138,16 @@ History.math = {
 		return list[Math.floor(list.length / 2)];
 	},
 	mode: function(list) {
-		var i, l, j = 0, count = 0, num = {};
-		for (i = 0, l = list.length; i < l; i++) {
+		var i = list.length, j = 0, count = 0, num = {}, max = 0;
+		while (i--) {
 			num[list[i]] = (num[list[i]] || 0) + 1;
 		}
-		num = sortObject(num, function(a,b){return num[b]-num[a];});
 		for (i in num) {
-			if (num[i] === num[0]) {
-				j += parseInt(num[i], 10);
+			max = Math.max(max, num[i]);
+		}
+		for (i in num) {
+			if (num[i] >= max) {
+				j += i;
 				count++;
 			}
 		}

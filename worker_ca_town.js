@@ -4,8 +4,8 @@
 	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, bestValue
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
+	makeImage
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
@@ -655,7 +655,7 @@ Town.update = function(event) {
 //			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
 		if (need > have) {// Want to buy more                                
 			if (!best_quest && data[u].buy && data[u].buy.length) {
-				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = bestValue(data[u].buy, need - have)))) / Player.get('maxincome')) * 100) && (!best_buy || need > buy)) {
+				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / Player.get('maxincome')) * 100) && i > 1 && (!best_buy || need > buy)) {
 //						console.log(warn(), 'Buy: '+need);
 					best_buy = u;
 					buy = have + i; // this.buy() takes an absolute value
@@ -666,7 +666,7 @@ Town.update = function(event) {
 				}
 			}
 		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-			need = bestValue(data[u].sell, have - (i = Math.max(need,want,keep[u] || 0)));
+			need = data[u].sell.lower(have - (i = Math.max(need,want,keep[u] || 0)));
 			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
 //					console.log(warn(), 'Sell: '+need);
 				best_sell = u;
@@ -704,7 +704,7 @@ Town.update = function(event) {
 		Dashboard.status(this);
 	}
 	this.set(['runtime','best_buy'], best_buy);
-	this.set(['runtime','buy'], best_buy ? bestValue(data[best_buy].buy, buy - data[best_buy].own) : 0);
+	this.set(['runtime','buy'], best_buy ? data[best_buy].buy.lower(buy - data[best_buy].own) : 0);
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
@@ -739,7 +739,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = bestValue(this.data[item].buy, number);
+	var qty = this.data[item].buy.lower(number);
 	var $form = $('form#app46755028429_itemBuy_' + this.data[item].id);
 	if ($form.length) {
 		console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
@@ -758,7 +758,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	if (!Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = bestValue(this.data[item].sell, number);
+	var qty = this.data[item].sell.lower(number);
 	var $form = $('form#app46755028429_itemSell_' + this.data[item].id);
 	if ($form.length) {
 		console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
