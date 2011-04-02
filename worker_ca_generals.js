@@ -39,7 +39,7 @@ Generals.init = function() {
 };
 
 Generals.parse = function(change) {
-	var i, j, data = {}, bonus = [], current, stale = false;
+	var i, j, data = {}, bonus = [], current, b, n, el, tmp, stale = false, name;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
@@ -47,38 +47,46 @@ Generals.parse = function(change) {
 		}
 	}
 	if (Page.page === 'heroes_generals') {
+		tmp = $('.generalSmallContainer2');
+		for (i=0; i<tmp.length; i++) {
+			el = tmp[i];
+			try {
+				this._transaction(); // BEGIN TRANSACTION
+				name = $('.general_name_div3_padding', el).text().trim();
+				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
+				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val()), 'number') !== false, 'Bad general id: '+name);
+				assert(this.set(['data',name,'type'], parseInt($('input[name=itype]', el).val()), 'number') !== false, 'Bad general type: '+name);
+				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
+				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number'), 'Bad general attack: '+name);
+				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number'), 'Bad general defense: '+name);
+				this.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
+				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+				if (this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/i), 10)) >= 4) { // If we just leveled up to level 4, remove the priority
+					this.set(['data',name,'priority']);
+				}
+				data[name] = true;
+				this._transaction(true); // COMMIT TRANSACTION
+			} catch(e) {
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+				this._transaction(false); // ROLLBACK TRANSACTION on any error
+			}
+		}
 		current = $('div.general_name_div3').first().text().trim();
-		if (this.data[current]){
-			$('div[style*="model_items.jpg"] img[title]').each(function(i){
-				var temp = $(this).attr('title');
-				if (temp && temp.indexOf("[not owned]") === -1){
-					bonus.push(temp.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
+		if (this.get(['data',current])) {
+			tmp = $('div[style*="model_items.jpg"] img[title]');
+			for (i=0; i<tmp.length; i++) {
+				name = $(tmp[i]).attr('title');
+				if (name && name.indexOf("[not owned]") === -1){
+					bonus.push(name.replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
 					//console.log(warn("Found weapon: " + bonus[bonus.length]));
 				}
-			});
+			}
 			this.set(['data',current,'weaponbonus'], bonus.join(', '));
 			i = $('div.general_pic_div3 a img[title]').first().attr('title').trim();
 			if (i && (j = i.regex(/\bmax\.? (\d+)\b/i))) {
 				this.set(['data', current, 'stats', 'cap'], j);
 			}
 		}
-		$('.generalSmallContainer2').each(function(i,el){
-			var name = $('.general_name_div3_padding', el).text().trim(), level = parseInt($(el).text().regex(/Level (\d+)/i), 10), x;
-			if (name && name.indexOf('\t') === -1 && name.length < 30) { // Stop the "All generals in one box" bug
-				data[name] = true;
-				Generals.set(['data',name,'id'], $('input[name=item]', el).val());
-				Generals.set(['data',name,'type'], $('input[name=itype]', el).val());
-				Generals.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart());
-				Generals.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/));
-				Generals.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/));
-				Generals.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
-				Generals.set(['data',name,'level'], level); // Might only be 4 so far, however...
-				Generals.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
-				if (level >= 4){	// If we just leveled up to level 4, remove the priority
-					Generals.set(['data',name,'priority']);
-				}
-			}
-		});
 		for (i in this.data) {
 			if (!data[i]) {
 				this.set(['data',i]);
@@ -87,16 +95,14 @@ Generals.parse = function(change) {
 	} else if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			var tmp = $('.statsTTitle:contains("HEROES") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					if (n && !Generals.data[n]) {
-						stale = true;
-						return false;
-					}
-				});
+			tmp = $('.statsTTitle:contains("HEROES") + .statsTMain .statUnit');
+			for (i=0; i<tmp.length; i++) {
+				var b = $('a img[src]', tmp[i]);
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				if (n && !this.get(['data',n])) {
+					stale = true;
+					break;
+				}
 			}
 		}
 	}
