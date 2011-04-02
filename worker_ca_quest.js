@@ -118,43 +118,23 @@ Quest.setup = function() {
 };
 
 Quest.init = function() {
-	var data = this.get('data'), runtime = this.get('runtime'), i, j, r, x;
+	var data = this.get('data'), runtime = this.get('runtime'), revision = this.get(['runtime','revision'], 0), i, j, r, x;
+	// BEGIN: Fix for *old* bad page loads
 	for (i in data) {
-		if (i.indexOf('\t') !== -1) { // Fix bad page loads...
+		if (i.indexOf('\t') !== -1) {
 			delete data[i];
 		}
 	}
+	// END
+	// BEGIN: Fix for option type changes
 	if (this.option.monster === true) {
-		this.option.monster = 'When able';
+		this.set(['option','monster'], 'When able');
 	} else if (this.option.monster === false) {
-		this.option.monster = 'Never';
+		this.set(['option','monster'], 'Never');
 	}
-
-	r = this.rdmap = {};
-	for (i in this.rdata) {
-		for (j in this.rdata[i]) {
-			if ((x = j.regex(/^reps_q(\d+)$/i))) {
-				r[i + ';' + x] = this.rdata[i][j];
-			} else if (j.match(/^reps_d\d+$/i)) {
-				x = i + ';demiquest';
-				if (!r[x]) {
-					r[x] = this.rdata[i][j];
-				} else {
-					console.log(warn(), 'rdata demiquest dup on ' + x);
-				}
-			} else if (j.match(/^reps_a\d+$/i)) {
-				x = i + ';atlantis';
-				if (!r[x]) {
-					r[x] = this.rdata[i][j];
-				} else {
-					console.log(warn(), 'rdata demiquest dup on ' + x);
-				}
-			}
-		}
-	}
-
-	// one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
-	if ((runtime.revision || 0) < 845) {
+	// END
+	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
+	if (revision < 845) {
 		for (i in data) {
 			if (data[i].reps) {
 				x = this.wiki_reps(data[i], true);
@@ -168,9 +148,9 @@ Quest.init = function() {
 			}
 		}
 	}
-
-	// one time pre-r850 fix to map data by id instead of name
-	if ((runtime.revision || 0) < 850) {
+	// END
+	// BEGIN: one time pre-r850 fix to map data by id instead of name
+	if (revision < 850) {
 		runtime.best = null;
 		runtime.energy = 0;
 		if (runtime.quest) {
@@ -204,22 +184,21 @@ Quest.init = function() {
 			}
 		}
 	}
-
-	// one time pre-r851 fix for Queue triggered quest by name instead of id
-	if ((runtime.revision || 0) < 851) {
+	// END
+	// BEGIN: one time pre-r851 fix for Queue triggered quest by name instead of id
+	if (revision < 851) {
 		if (Queue.get('runtime.quest')) {
 			Queue.set('runtime.quest', false);
 		}
 	}
-
-	runtime.revision = revision; // started r845 for historic reference
-
+	// END
+	this.set(['runtime','revision'], revision); // started r845 for historic reference
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.maxenergy');
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, m_c, m_d, m_i, reps, purge, changes = 0;
+	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -230,7 +209,6 @@ Quest.parse = function(change) {
 		area = 'quest';
 		land = Page.page.regex(/quests_quest(\d+)/i) - 1;
 	}
-	purge = {};
 	for (i in data.id) {
 		if (data.id[i].area === area && (area !== 'quest' || data.id[i].land === land)) {
 			purge[i] = true;
@@ -240,130 +218,101 @@ Quest.parse = function(change) {
 		Page.to(Page.page, '');// Force a page reload as we're pretty sure it's a bad page load!
 		return false;
 	}
-	$('div.quests_background,div.quests_background_sub,div.quests_background_special').each(function(i,el){
-		var id, name, level, influence, reward, units, energy, exp, tmp, type = 0;
-		if ((tmp = $('input[name="quest"]', el)).length) {
-		    id = $(tmp).val().regex(/(\d+)/);
-		}
-		if ($(el).hasClass('quests_background_sub')) { // Subquest
-			name = $('.quest_sub_title', el).text().trim();
-			if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+	quests = $('div.quests_background,div.quests_background_sub,div.quests_background_special');
+	for (i=0; i<quests.length; i++) {
+		el = quests[i];
+		try {
+			tmp = $('input[name="quest"]', el);
+			if (!tmp.length || !tmp.val()) {
+				continue;
 			}
-			energy = $('.quest_req_sub', el).text().regex(/\b(\d+)\s*Energy\b/im);
-			level = $('.quest_sub_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
-			influence = $('.quest_sub_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
-			type = 2;
-		} else {
-			name = $('.qd_1 b', el).text().trim();
-			if ((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+			assert(id = parseInt(tmp.val() || '0'), 'Bad quest id: '+tmp.val());
+			this._transaction(); // BEGIN TRANSACTION
+			delete purge[id]; // We've found it, and further errors shouldn't delete it
+			if ($(el).hasClass('quests_background_sub')) { // Subquest
+				name = $('.quest_sub_title', el).text().trim();
+				if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
+					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+				} else {
+					throw 'Unknown rewards';
+				}
+				energy = $('.quest_req_sub', el).text().regex(/\b(\d+)\s*Energy\b/im);
+				level = $('.quest_sub_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
+				influence = $('.quest_sub_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
+				type = 2;
+			} else {
+				name = $('.qd_1 b', el).text().trim();
+				if ((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
+					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
+				} else {
+					throw 'Unknown rewards';
+				}
+				energy = $('.quest_req', el).text().regex(/\b(\d+)\s*Energy\b/im);
+				if ($(el).hasClass('quests_background')) { // Main quest
+					last_main = id;
+					tmp = $('.quest_progress', el).text();
+					level = tmp.regex(/\bLEVEL:?\s*(\d+)\b/im);
+					influence = tmp.regex(/\bINFLUENCE:?\s*(\d+)%/im);
+					type = 1;
+				} else { // Special / boss Quest
+					type = 3;
+				}
 			}
-			energy = $('.quest_req', el).text().regex(/\b(\d+)\s*Energy\b/im);
-			if ($(el).hasClass('quests_background')) { // Main quest
-				last_main = id;
-				level = $('.quest_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
-				influence = $('.quest_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
-				type = 1;
-			} else { // Special / boss Quest
-				type = 3;
+			assert(name && name.indexOf('\t') === -1, 'Bad quest name - found tab character');
+			assert(this.set(['data','id',id,'name'], name, 'string'), 'Bad quest name: '+name);
+			assert(this.set(['data','id',id,'area'], area, 'string'), 'Bad area name: '+area);
+			assert(this.set(['data','id',id,'type'], type, 'number'), 'Unknown quest type: '+name);
+			assert(this.set(['data','id',id,'exp'], exp, 'number'), 'Unknown exp reward');
+			assert(this.set(['data','id',id,'reward'], (reward[0] + reward[1]) / 2), 'Bad money reward');
+			this.set(['data','id',id,'energy'], energy);
+			this.set(['data','id',id,'land'], isNumber(land) ? land : undefined);
+			this.set(['data','id',id,'main'], type === 2 && last_main ? last_main : undefined);
+			if (isNumber(influence)) {
+				this.set(['data','id',id,'level'], level || 0);
+				this.set(['data','id',id,'influence'], influence);
+				m_c = this.get(['data','id',id,'m_c'], 0, 'number'); // percentage count metric
+				m_d = this.get(['data','id',id,'m_d'], 0, 'number'); // percentage delta metric
+				m_i = this.get(['data','id',id,'influence'], 0, 'number'); // last influence value
+				reps = this.get(['data','id',id,'reps'], 0, 'number'); // average reps needed per level
+				if (m_i < influence && influence < 100) {
+					m_d += influence - m_i;
+					m_c++;
+				}
+				if (m_c && m_d) {
+					this.set(['data','id',id,'m_c'], m_c);
+					this.set(['data','id',id,'m_d'], m_d);
+					reps = Math.ceil(m_c * 100 / m_d);
+				}
+				if (reps) {
+					this.set(['data','id',id,'reps'], reps);
+					this.set(['data','id',id,'eff'], energy * reps);
+				}
 			}
-		}
-		if (!id || !name || name.indexOf('\t') !== -1 || !type || !energy || !exp || !reward || !reward[0] || !reward[1]) {
-			// Hopefully stop it finding broken page load quests...
-			// but most times if some of this is wrong, a layout change has
-			// happened to the quest pages, and we want some kind of warning.
-			/*
-			console.log(warn(), 'Bad quest data:' +
-			  ' id:' + JSON.shallow(id, 2) +
-			  ' name:' + JSON.shallow(name, 2) +
-			  ' type:' + JSON.shallow(type, 2) +
-			  ' energy:' + JSON.shallow(energy, 2) +
-			  ' exp:' + JSON.shallow(exp, 2) +
-			  ' reward:' + JSON.shallow(reward, 2) +
-			  ' level:' + JSON.shallow(level, 2) +
-			  ' influence:' + JSON.shallow(influence, 2));
-			*/
-			return;
-		}
-		m_c = 0; // percentage count metric
-		m_d = 0; // percentage delta metric
-		m_i = null; // last influence value
-		reps = 0; // average reps needed per level
-		if (data.id[id]) {
-			m_c = data.id[id].m_c || 0;
-			m_d = data.id[id].m_d || 0;
-			m_i = data.id[id].influence;
-			reps = data.id[id].reps || 0;
-		}
-		if (purge[id]) {
-			purge[id] = false;
-		}
-		data.id[id] = {};
-		data.id[id].name = name;
-		data.id[id].area = area;
-		data.id[id].type = type;
-		if (type === 2 && last_main) {
-			data.id[id].main = last_main;
-		}
-		if (isNumber(land)) {
-			data.id[id].land = land;
-		}
-		if (isNumber(influence)) {
-			data.id[id].level = (level || 0);
-			data.id[id].influence = influence;
-			if (isNumber(m_i) && m_i < influence && influence < 100) {
-				m_d += influence - m_i;
-				m_c++;
+			if (type !== 2) { // That's everything for subquests
+				this.set(['data','id',id,'unique'], type === 3 ? true : undefined); // Special / boss quests create unique items
+				tmp = $('.qd_1 img', el).last();
+				if (tmp.length && tmp.attr('title')) {
+					this.set(['data','id',id,'item'], tmp.attr('title').trim());
+					this.set(['data','id',id,'itemimg'], tmp.attr('src').filepart());
+				}
+				units = $('.quest_req >div >div >div', el);
+				for (j=0; j<units.length; j++) {
+					this.set(['data','id',id,'units',$('img', units[j]).attr('title')], $(units[j]).text().regex(/(\d+)/));
+				}
+				tmp = $('.quest_act_gen img', el).attr('title');
+				this.set(['data','id',id,'general'], tmp || undefined);
 			}
-		}
-		data.id[id].exp = exp;
-		data.id[id].reward = (reward[0] + reward[1]) / 2;
-		data.id[id].energy = energy;
-		if (isNumber(m_c) && m_c && isNumber(m_d) && m_d) {
-			data.id[id].m_c = m_c;
-			data.id[id].m_d = m_d;
-			reps = Math.ceil(m_c * 100 / m_d);
-		}
-		if (isNumber(reps) && reps) {
-			data.id[id].reps = reps;
-			data.id[id].eff = data.id[id].energy * reps;
-		}
-		if (type !== 2) { // That's everything for subquests
-			if (type === 3) { // Special / boss quests create unique items
-				data.id[id].unique = true;
-			}
-			tmp = $('.qd_1 img', el).last();
-			if (tmp.length && tmp.attr('title')) {
-				data.id[id].item	= tmp.attr('title').trim();
-				data.id[id].itemimg	= tmp.attr('src').filepart();
-			}
-			units = {};
-			$('.quest_req >div >div >div', el).each(function(i,el){
-				var title = $('img', el).attr('title');
-				units[title] = $(el).text().regex(/(\d+)/);
-			});
-			if (length(units)) {
-				data.id[id].units = units;
-			}
-			tmp = $('.quest_act_gen img', el);
-			if (tmp.length && tmp.attr('title')) {
-				data.id[id].general = tmp.attr('title');
-			}
-		}
-		changes++;
-	});
-	for (i in purge) {
-		if (purge[i]) {
-			console.log(warn(), 'Deleting ' + i + '(' + (Quest.land[data.id[i].land] || data.id[i].area) + ')');
-			delete data.id[i];
-			changes++;
+			this._transaction(true); // COMMIT TRANSACTION
+		} catch(e) {
+			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+			this._transaction(false); // ROLLBACK TRANSACTION on any error
 		}
 	}
-	if (changes) {
-		Quest._notify('data');
+	for (i in purge) {
+		console.log(warn(), 'Deleting ' + i + '(' + (this.land[data.id[i].land] || data.id[i].area) + ')');
+		this.set(['data','id',i]); // Delete unseen quests...
 	}
 	return false;
 };
@@ -377,8 +326,8 @@ Quest.update = function(event) {
 	if (event.worker.name === 'Town' && event.type !== 'data') {
 		return; // Missing quest requirements
 	}
-	// First let's update the Quest dropdown list(s)...
 	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, data = this.data, maxenergy = Player.get('maxenergy',999), eff, best_adv_eff = 1e10, best_inf_eff = 1e10, cmp, oi, ob;
+	// First let's update the Quest dropdown list(s)...
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data.id) {
 			if (data.id[i].item && data.id[i].type !== 3) {
@@ -592,9 +541,9 @@ Quest.update = function(event) {
 		}
 	}
 	if (best !== this.runtime.best) {
-		this.runtime.best = best;
+		this.set(['runtime','best'], best);
 		if (best) {
-			this.runtime.energy = data.id[best].energy;
+			this.set(['runtime','energy'], data.id[best].energy);
 			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 		}
 	}
@@ -603,6 +552,7 @@ Quest.update = function(event) {
 	} else {
 		Dashboard.status(this);
 	}
+//	this.set(['option','_sleep'], !this.runtime.best || this.runtime.energy < (Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve));
 };
 
 Quest.work = function(state) {
@@ -955,7 +905,6 @@ Quest.cost = function(id) {
 	upkeep = ucount = 0;
 	desc = '';
 
-
 	if (id && quest[id]) {
 		if ((i = quest[id].general)) {
 			if (!gens || !gens[i]) {
@@ -1026,27 +975,16 @@ Quest.cost = function(id) {
 };
 
 Quest.wiki_reps = function(quest, pure) {
-	var reps = 0, n, q, v;
-
+	var reps = 0, rdata;
 	if (isObject(quest)) {
 		if (!isNumber(quest.level)) {
 			reps = 1;
-		} else {
-			n = (quest.name || '?').toLowerCase();
-			q = (isNumber(quest.land) ? (quest.land + 1) : quest.area) || '?';
-			if ((v = this.rdmap[n + ';' + q])) {
-				reps = v;
-			}
+		} else if ((rdata = this.rdata[(quest.name || '').toLowerCase()])) {
+			reps = rdata['reps_' + quest.area[0] + ((quest.land || 0) + 1).toString()] || 0;
 		}
 	}
-
-	if (!reps && !pure) {
-		reps = 16;
-	}
-
-	return reps;
+	return pure ? reps : reps || 16;
 };
-
 
 Quest.rts = 1301195384;	// Sun Mar 27 03:09:44 2011 UTC
 Quest.rdata =			// #391

@@ -13,6 +13,10 @@
 var Blessing = new Worker('Blessing');
 Blessing.data = Blessing.temp = null;
 
+Blessing.settings = {
+	taint:true
+};
+
 Blessing.defaults['castle_age'] = {
 	pages:'oracle_demipower'
 };
@@ -35,29 +39,32 @@ Blessing.display = [
 ];
 
 Blessing.setup = function() {
+	// BEGIN: Use global "Show Status" instead of custom option
 	if ('display' in this.option) {
-		this.option._hide_status = !this.option.display;
-		delete this.option.display;
+		this.set(['option','_hide_status'], !this.option.display);
+		this.set(['option','display']);
 	}
+	// END
 };
 
 Blessing.init = function() {
-	if (this.runtime.when) {
-		this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+	var when = this.get(['runtime','when'],0);
+	if (when) {
+		this._remind((when - Date.now()) / 1000, 'blessing');
 	}
 };
 
 Blessing.parse = function(change) {
-	var result = $('div.results'), time;
+	var result = $('div.results'), time, when;
 	if (result.length) {
 		time = result.text().regex(/Please come back in: (\d+) hours and (\d+) minutes/i);
 		if (time && time.length) {
-			this.runtime.when = Date.now() + (((time[0] * 60) + time[1] + 1) * 60000);
+			this.set(['runtime','when'], Date.now() + (((time[0] * 60) + time[1] + 1) * 60000));
 		} else if (result.text().match(/You have paid tribute to/i)) {
-			this.runtime.when = Date.now() + 86460000; // 24 hours and 1 minute
+			this.set(['runtime','when'], Date.now() + 86460000); // 24 hours and 1 minute
 		}
-		if (this.runtime.when) {
-			this._remind((this.runtime.when - Date.now()) / 1000, 'blessing');
+		if ((when = this.get(['runtime','when'],0))) {
+			this._remind((when - Date.now()) / 1000, 'blessing');
 		}
 	}
 	return false;

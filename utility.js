@@ -644,3 +644,8 @@ var makeImage = function(name, title) {
 	return '<img class="golem-image" title="' + (title || name.ucfirst()) + '" src="' + getImage(name) + '">';
 };
 
+var assert = function(test, msg, type) {
+	if (!test) {
+		throw {'name':type || 'Assert Error', 'message':msg};
+	}
+};

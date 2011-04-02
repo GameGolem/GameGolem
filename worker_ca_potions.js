@@ -66,7 +66,6 @@ Potions.init = function() {
 			Potions.set(['runtime','amount'], 1);
 		}
 	});
-
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.maxenergy');
 	this._watch(Player, 'data.stamina');
@@ -76,11 +75,12 @@ Potions.init = function() {
 
 Potions.parse = function(change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
-	$('.result_body:contains("You have acquired the Energy Potion!")').each(function(i,el){
-		Potions.set(['data','Energy'], Potions.data['Energy'] + 1);
-	});
+	var potions = $('.result_body:contains("You have acquired the Energy Potion!")');
+	if (potions.length) {
+		Potions.set(['data','Energy'], Potions.data['Energy'] + potions.length);
+	}
 	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
-		var potions = {};
+		potions = {};
 		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
 			if (info && info[0]) {

@@ -29,9 +29,11 @@
 * History.get('key.min') - gets lowest value
 */
 var History = new Worker('History');
-History.option = History.temp = null;
+History.option = History.runtime = History.temp = null;
+
 History.settings = {
-	system:true
+	system:true,
+	taint:true
 };
 
 History.dashboard = function() {
@@ -50,7 +52,7 @@ History.update = function(event) {
 	var i, hour = Math.floor(Date.now() / 3600000) - 168;
 	for (i in this.data) {
 		if (i < hour) {
-			delete this.data[i];
+			this._set(['data',i]);
 		}
 	}
 //	console.log(warn(), 'Exp: '+this.get('exp'));
@@ -76,8 +78,7 @@ History.set = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {};
-	this.data[hour][x[0]] = value;
+	this._set(['data',hour,x[0]], value);
 };
 
 History.add = function(what, value) {
@@ -89,8 +90,7 @@ History.add = function(what, value) {
 	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
 		hour = x.shift();
 	}
-	this.data[hour] = this.data[hour] || {};
-	this.data[hour][x[0]] = (this.data[hour][x[0]] || 0) + value;
+	this._set(['data',hour,x[0]], this._get(['data',hour,x[0]], 0) + value);
 };
 
 History.math = {

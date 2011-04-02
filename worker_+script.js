@@ -22,7 +22,7 @@
 // [["testing","blah"],"=",1234,"&",["yet","another","path"],"|",["something"],"&",["test","me"],">",5]
 
 var Script = new Worker('Script');
-Script.data = Script.runtime = Script.temp = null;
+Script.data = Script.runtime = null;
 
 Script.option = {
 	worker:'Player',
@@ -31,7 +31,8 @@ Script.option = {
 
 Script.settings = {
 	system:true,
-	advanced:true
+	advanced:true,
+	taint:true
 };
 
 Script.temp = {}; // Used for variables only!!!

@@ -13,6 +13,10 @@
 var Bank = new Worker('Bank');
 Bank.data = null;
 
+Bank.settings = {
+	taint:true
+};
+
 Bank.defaults['castle_age'] = {};
 
 Bank.option = {
@@ -52,10 +56,12 @@ Bank.display = [
 ];
 
 Bank.setup = function() {
+	// BEGIN: Use global "Show Status" instead of custom option
 	if ('status' in this.option) {
-		this.option._hide_status = !this.option.status;
-		delete this.option.status;
+		this.set(['option','_hide_status'], !this.option.status);
+		this.set(['option','status']);
 	}
+	// END
 };
 
 Bank.init = function() {

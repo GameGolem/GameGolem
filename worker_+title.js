@@ -15,7 +15,8 @@ var Title = new Worker('Title');
 Title.data = null;
 
 Title.settings = {
-	system:true
+	system:true,
+	taint:true
 };
 
 Title.option = {
@@ -78,14 +79,14 @@ Title.update = function(event) {
 			}
 		}
 		if (!this.temp.old) {
-			this.temp.old = document.title;
+			this.set(['temp','old'], document.title);
 		}
 		if (!document.title || output !== document.title) {
 			document.title = output;
 		}
 	} else if (this.temp.old) {
 		document.title = this.temp.old;
-		this.temp.old = null;
+		this.set(['temp','old'], null);
 	}
 };
 
@@ -93,6 +94,6 @@ Title.update = function(event) {
 * Pass a name and a string in the format "Worker:path.to.data[:txt if true[:txt if false]]"
 */
 Title.alias = function(name,str) {
-	this.temp.alias[name] = str;
+	this.set(['temp','alias',name], str);
 };
 
