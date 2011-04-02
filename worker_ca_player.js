@@ -83,8 +83,14 @@ Player.parse = function(change) {
 		keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 		if (keep.length) {
 			this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
-			this.set('battle', $('td.statsTMainback img[src*=rank_medals]').attr('src').filepart().regex(/(\d+)/));
-			this.set('war', $('td.statsTMainback img[src*=rank_medals_war]').attr('src').filepart().regex(/(\d+)/));
+			tmp = $('td.statsTMainback img[src*=rank_medals]');
+			if (tmp.length) {
+				this.set('battle',tmp.attr('src').filepart().regex(/(\d+)/));
+			}
+			tmp = $('td.statsTMainback img[src*=rank_medals_war]');
+			if (tmp.length) {
+				this.set('war', tmp.attr('src').filepart().regex(/(\d+)/));
+			}
 			stats = $('div.attribute_stat_container', keep);
 			this.set('maxenergy', $(stats).eq(0).text().regex(/(\d+)/));
 			this.set('maxstamina', $(stats).eq(1).text().regex(/(\d+)/));
