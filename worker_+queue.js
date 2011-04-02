@@ -233,11 +233,13 @@ Queue.update = function(event) {
 			}
 		}
 		if (!this.runtime.stamina && !this.runtime.energy) {
-			if (this.runtime.burn.stamina || Player.get('stamina') >= this.option.start_stamina) {
+			if (this.runtime.burn.stamina 
+					|| Player.get('stamina') >= this.option.start_stamina +  this.option.stamina) {
 				this.runtime.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
 				this.runtime.burn.stamina = this.runtime.stamina > 0;
 			}
-			if (this.runtime.burn.energy || Player.get('energy') >= this.option.start_energy) {
+			if (this.runtime.burn.energy 
+					|| Player.get('energy') >= this.option.start_energy + this.option.energy) {
 				this.runtime.energy = Math.max(0, Player.get('energy') - this.option.energy);
 				this.runtime.burn.energy = this.runtime.energy > 0;
 			}

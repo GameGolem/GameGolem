@@ -4040,11 +4040,13 @@ Queue.update = function(event) {
 			}
 		}
 		if (!this.runtime.stamina && !this.runtime.energy) {
-			if (this.runtime.burn.stamina || Player.get('stamina') >= this.option.start_stamina) {
+			if (this.runtime.burn.stamina 
+					|| Player.get('stamina') >= this.option.start_stamina +  this.option.stamina) {
 				this.runtime.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
 				this.runtime.burn.stamina = this.runtime.stamina > 0;
 			}
-			if (this.runtime.burn.energy || Player.get('energy') >= this.option.start_energy) {
+			if (this.runtime.burn.energy 
+					|| Player.get('energy') >= this.option.start_energy + this.option.energy) {
 				this.runtime.energy = Math.max(0, Player.get('energy') - this.option.energy);
 				this.runtime.burn.energy = this.runtime.energy > 0;
 			}
@@ -5905,7 +5907,8 @@ Battle.option = {
 
 Battle.runtime = {
 	attacking:null,
-	points:false
+	points:false,
+	chain:0 // Number of times current target chained
 };
 
 Battle.symbol = { // Demi-Power symbols
@@ -6145,34 +6148,45 @@ Battle.parse = function(change) {
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
 			data[info[0]] = {name:info[1], points:info[2]};
 		});
+		this.set(['data','war','bp'], $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i));
 		this.set(['data','war','rank'], data);
 	} else if (Page.page === 'battle_battle') {
 		data = this.data.user;
 		if ((uid = this.get(['runtime','attacking']))) {
 			tmp = $('div.results').text();
-			if (tmp.match(/You cannot battle someone in your army/i)
-			 || tmp.match(/This trainee is too weak. Challenge someone closer to your level/i)
-			 || tmp.match(/They are too high level for you to attack right now/i)
-			 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
+			if ($('img[src*="battle_victory"]').length) {
+				if (mode === 'battle') {
+					this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i));
+				}
+				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
+				this.set(['data','user',uid,'last'], Date.now());
+				History.add('battle+win',1);
+				if (this.option.chain && this.runtime.chain < this.option.chain) {
+					this.set(['runtime','chain'], this.runtime.chain + 1);
+				} else { 
+					this.set(['runtime','attacking'], null);
+					this.set(['runtime','chain'], 0);
+				}
+			} else if (tmp.match(/You cannot battle someone in your army/i)
+					 || tmp.match(/This trainee is too weak. Challenge someone closer to your level/i)
+					 || tmp.match(/They are too high level for you to attack right now/i)
+					 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
+			//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
 				this.set(['data','user',uid]);
 				this.set(['runtime','attacking'], null);
+				this.set(['runtime','chain'], 0);
 			} else if (tmp.match(/Your opponent is dead or too weak/i)) {
 				this.set(['data','user',uid,'hide'], this.get(['data','user',uid,'hide'], 0) + 1);
 				this.set(['data','user',uid,'dead'], Date.now());
+				this.set(['runtime','attacking'], null);
+				this.set(['runtime','chain'], 0);
 //			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of (\d+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
-				this.set(['runtime','attacking'], null);
-			} else if ($('img[src*="battle_victory"]').length) {
-				this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) \w+ Points/i));
-				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
-				this.set(['data','user',uid,'last'], Date.now());
-				History.add('battle+win',1);
-				if (this.option.chain && (data[uid][mode].win % this.option.chain)) { // NOTE: Bad - should be chaining in order - this might chain a smaller number due to death etc
-					this.set(['runtime','attacking'], uid);
-				}
 			} else if ($('img[src*="battle_defeat"]').length) {
+				this.set(['runtime','attacking'], null);
+				this.set(['runtime','chain'], 0);
 				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
 				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+loss',-1);
@@ -6368,7 +6382,9 @@ Battle.update = function(event) {
 */
 Battle.work = function(state) {
 	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
-	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) || useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)) {
+	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) 
+			|| useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)
+			|| Queue.runtime.big) {
 //		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
