@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1045
+// @version		31.5.1046
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1045;
+var revision = 1046;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -6864,8 +6864,8 @@ Generals.parse = function(change) {
 				data[name] = true;
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
-				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		}
 		current = $('div.general_name_div3').first().text().trim();
@@ -7071,7 +7071,8 @@ Generals.to = function(name) {
 		return true;
 	}
 	console.log(warn('General change: ' + Player.get('general') + ' to ' + name));
-	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null, true);
+	var id = this.get(['data',name,'id']), type = this.get(['data',name,'type']);
+	Page.to('heroes_generals', isNumber(id) && isNumber(type) ? {item:id, itype:type} : null, true);
 	return false;
 };
 
@@ -11445,8 +11446,8 @@ Quest.parse = function(change) {
 			}
 			this._transaction(true); // COMMIT TRANSACTION
 		} catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			this._transaction(false); // ROLLBACK TRANSACTION on any error
+			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 		}
 	}
 	for (i in purge) {

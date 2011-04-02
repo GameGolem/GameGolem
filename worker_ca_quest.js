@@ -306,8 +306,8 @@ Quest.parse = function(change) {
 			}
 			this._transaction(true); // COMMIT TRANSACTION
 		} catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			this._transaction(false); // ROLLBACK TRANSACTION on any error
+			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 		}
 	}
 	for (i in purge) {

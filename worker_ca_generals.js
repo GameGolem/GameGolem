@@ -67,8 +67,8 @@ Generals.parse = function(change) {
 				data[name] = true;
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
-				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		}
 		current = $('div.general_name_div3').first().text().trim();
@@ -274,7 +274,8 @@ Generals.to = function(name) {
 		return true;
 	}
 	console.log(warn('General change: ' + Player.get('general') + ' to ' + name));
-	Page.to('heroes_generals', this.data[name].id && this.data[name].type ? {item:this.data[name].id, itype:this.data[name].type} : null, true);
+	var id = this.get(['data',name,'id']), type = this.get(['data',name,'type']);
+	Page.to('heroes_generals', isNumber(id) && isNumber(type) ? {item:id, itype:type} : null, true);
 	return false;
 };
 
