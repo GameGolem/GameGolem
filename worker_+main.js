@@ -171,7 +171,7 @@ Main.update = function(event) {
 		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
 	this._revive(1, 'save', this.autoSave);
-	window.onbeforeunload = this.autoSave; // Make sure we've saved everything before quitting - not standard in all browsers
+//	window.onbeforeunload = this.autoSave; // Make sure we've saved everything before quitting - not standard in all browsers
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
