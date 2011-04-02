@@ -861,29 +861,28 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked;
+	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked, parent = $('#app46755028429_app_body');
 	this.runtime.clicked = false;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length 
-					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
-						|| $('#app46755028429_app_body div[style*="'+types[i].image+'"]').length)) {
-//			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
+			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length 
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]', parent).length 
+						|| $('div[style*="'+types[i].image+'"]', parent).length)) {
+//			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				dead = true;
 				break;
-			} else if (types[i].image && $('#app46755028429_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
+			} else if (types[i].image && $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]', parent).length) {
 				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				break;
-			} else if (types[i].image2 && $('#app46755028429_app_body img[src$="'+types[i].image2+'"],div[style*="'+
-			types[i].image2+'"]').length) {
+			} else if (types[i].image2 && $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]', parent).length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer2 || types[i].timer;
@@ -1092,7 +1091,7 @@ Monster.parse = function(change) {
 			festival = (Page.page === 'festival_monster_list');
 			this.runtime.check = false;
 
-			if (!$('#app46755028429_app_body div.imgButton').length) {
+			if (!$('div.imgButton', parent).length) {
 				return false;
 			}
 			for (mid in data) {
@@ -1107,7 +1106,7 @@ Monster.parse = function(change) {
 					data[mid].state = null;
 				}
 			}
-			$('#app46755028429_app_body div.imgButton').each(function(a,el){
+			$('div.imgButton', parent).each(function(a,el){
 				if ($('a', el).attr('href')
 						&& $('a', el).attr('href').regex(/casuser=(\d+)/i)) {
 					var i, uid = $('a', el).attr('href').regex(/casuser=(\d+)/i), type_label = null, tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i);

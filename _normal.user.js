@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1047
+// @version		31.5.1048
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1047;
+var revision = 1048;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3998,6 +3998,7 @@ Queue.update = function(event) {
 		this.runtime.stamina = this.runtime.energy = 0;
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
 		LevelUp.set('runtime.running',false);
+/* Stop wasting one resource when there's no way to burn the other...
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.'));
@@ -4006,6 +4007,7 @@ Queue.update = function(event) {
 				break;
 			}
 		}
+*/
 		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
@@ -9452,29 +9454,28 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked;
+	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked, parent = $('#app46755028429_app_body');
 	this.runtime.clicked = false;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
-			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length 
-					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
-						|| $('#app46755028429_app_body div[style*="'+types[i].image+'"]').length)) {
-//			if (types[i].dead && $('#app46755028429_app_body img[src$="'+types[i].dead+'"]').length) {
+			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length 
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]', parent).length 
+						|| $('div[style*="'+types[i].image+'"]', parent).length)) {
+//			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length) {
 				//console.log(warn(), 'Found a dead '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				dead = true;
 				break;
-			} else if (types[i].image && $('#app46755028429_app_body img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]').length) {
+			} else if (types[i].image && $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]', parent).length) {
 				//console.log(warn(), 'Parsing '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
 				break;
-			} else if (types[i].image2 && $('#app46755028429_app_body img[src$="'+types[i].image2+'"],div[style*="'+
-			types[i].image2+'"]').length) {
+			} else if (types[i].image2 && $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]', parent).length) {
 				//console.log(warn(), 'Parsing second stage '+i);
 				type_label = i;
 				timer = (festival ? types[i].festival_timer : 0) || types[i].timer2 || types[i].timer;
@@ -9683,7 +9684,7 @@ Monster.parse = function(change) {
 			festival = (Page.page === 'festival_monster_list');
 			this.runtime.check = false;
 
-			if (!$('#app46755028429_app_body div.imgButton').length) {
+			if (!$('div.imgButton', parent).length) {
 				return false;
 			}
 			for (mid in data) {
@@ -9698,7 +9699,7 @@ Monster.parse = function(change) {
 					data[mid].state = null;
 				}
 			}
-			$('#app46755028429_app_body div.imgButton').each(function(a,el){
+			$('div.imgButton', parent).each(function(a,el){
 				if ($('a', el).attr('href')
 						&& $('a', el).attr('href').regex(/casuser=(\d+)/i)) {
 					var i, uid = $('a', el).attr('href').regex(/casuser=(\d+)/i), type_label = null, tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i);
