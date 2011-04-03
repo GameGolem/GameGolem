@@ -542,7 +542,7 @@ Town.getDuel = function() {
 };
 
 Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep,
+	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep = {}, tmp, invade_att, invade_def, duel_att, duel_def, quest, generals,
 	land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
 	incr = (this.runtime.cost_incr || 4), visit = false;
 	if (!Page.data['town_soldiers'] || !Page.data['town_blacksmith'] || !Page.data['town_magic']) {
@@ -566,72 +566,62 @@ Town.update = function(event) {
 	}
 	// These two fill in all the data we need for buying / sellings items
 	this.set(['runtime','duel'], this.getDuel());
-	keep = {};
 	if (this.option.sell && max_sell !== max_buy) {
 		this.getInvade(max_sell);
 		for (u in data) {
-			resource = Resources.data['_'+u] || {};
-			need = 0;
-			if (this.option.units !== 'Best Defense') {
-				need = Math.max(need, Math.min(max_sell, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
-			}
-			if (this.option.units !== 'Best Offense') {
-				need = Math.max(need, Math.min(max_sell, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
-			}
-			if ((keep[u] || 0) < need && data[u].sell && data[u].sell.length) {
-				keep[u] = need;
-//				console.log(warn(), 'Keep[' + u + '] = ' + keep[u]);
-			}
-			if (resource && (resource.invade_def || resource.invade_att)) {
-				if (resource.invade_def) {
-					delete resource.invade_def;
+			if (data[u].sell && data[u].sell.length) { // Don't bother doing this if we can't sell them anyway
+				need = 0;
+				invade_att = Resources.get(['data','_'+u,'invade_att'], 0, 'number');
+				invade_def = Resources.get(['data','_'+u,'invade_def'], 0, 'number');
+				duel_att = Resources.get(['data','_'+u,'duel_att'], 0, 'number');
+				duel_def = Resources.get(['data','_'+u,'duel_def'], 0, 'number');
+				if (this.option.units !== 'Best Defense') {
+					need = Math.range(need, Math.max(invade_att, duel_att), max_sell);
 				}
-				if (resource.invade_att) {
-					delete resource.invade_att;
+				if (this.option.units !== 'Best Offense') {
+					need = Math.range(need, Math.max(invade_def, duel_def), max_sell);
 				}
-				if (!length(resource)) {
-					delete Resources.data['_'+u];
+				if ((keep[u] || 0) < need) {
+					keep[u] = need;
 				}
 			}
 		}
 		Resources._notify('data'); // reset the "what-if" tinkering
 	}
-	this.set(['runtime','invade'], this.getInvade(max_buy));
+	this.set(['runtime','invade'], this.getInvade(max_buy)); // Resets the Resources attack values
 	// For all items / units
 	// 1. parse through the list of buyable items of each type
 	// 2. find the one with Resources.get(_item.invade_att) the highest (that's the number needed to hit 541 items in total)
 	// 3. buy enough to get there
 	// 4. profit (or something)...
 	for (u in data) {
-		resource = Resources.data['_'+u] || {};
 		want = 0;
-		if (resource.quest) {
-			if (this.option.quest_buy) {
-				want = Math.max(want, resource.quest);
-			}
-			if ((keep[u] || 0) < resource.quest) {
-				keep[u] = resource.quest;
-			}
-		}
-		if (isNumber(resource.generals)) {
-			if (this.option.generals_buy) {
-				want = Math.max(want, resource.generals);
-			}
-			if ((keep[u] || 0) < (resource.generals || 1e50)) {
-				keep[u] = resource.generals || 1e50;
-			}
-		}
+		need = 0;
 		have = data[u].own;
-		// Sorry about the nested max/min/max -
-		// Max - 'need' can't get smaller
-		// Min - 'max_buy' is the most we want to buy
-		// Max - needs to accounts for invade and duel
+		invade_att = Resources.get(['data','_'+u,'invade_att'], 0, 'number');
+		invade_def = Resources.get(['data','_'+u,'invade_def'], 0, 'number');
+		duel_att = Resources.get(['data','_'+u,'duel_att'], 0, 'number');
+		duel_def = Resources.get(['data','_'+u,'duel_def'], 0, 'number');
+		quest = Resources.get(['data','_'+u,'quest'], 0, 'number');
+		generals = Resources.get(['data','_'+u,'generals'], 0, 'number');
+		if (quest) {
+			if (this.option.quest_buy) {
+				want = Math.max(want, quest);
+			}
+			keep[u] = Math.max(keep[u] || 0, quest);
+		}
+		if (isNumber(generals)) {
+			if (this.option.generals_buy) {
+				want = Math.max(want, generals || 1e50);
+			}
+			keep[u] = Math.ax(keep[u], generals || 1e50);
+		}
 		need = 0;
 		if (this.option.units !== 'Best Defense') {
-			need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_att || 0, resource.duel_att || 0)));
+			need = Math.range(need, Math.max(invade_att, duel_att), max_buy);
 		}
 		if (this.option.units !== 'Best Offense') {
-			need = Math.max(need, Math.min(max_buy, Math.max(resource.invade_def || 0, resource.duel_def || 0)));
+			need = Math.range(need, Math.max(invade_def, duel_def), max_buy);
 		}
 		if (want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
 			max_cost = Math.pow(10,30);
@@ -668,7 +658,7 @@ Town.update = function(event) {
 		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
 			need = data[u].sell.lower(have - (i = Math.max(need,want,keep[u] || 0)));
 			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//					console.log(warn(), 'Sell: '+need);
+//				console.log(warn(), 'Sell: '+need);
 				best_sell = u;
 				sell = need;
 				sell_pref = i;

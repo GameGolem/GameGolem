@@ -418,7 +418,7 @@ var objectIndex = function(list, index) {
 };
 
 var getAttDefList = [];
-var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+var getAttDef = function(list, unitfunc, x, count, type) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
 	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
 	if (unitfunc) {
 		for (i in list) {
@@ -434,16 +434,16 @@ var getAttDef = function(list, unitfunc, x, count, user) { // Find total att(ack
 	});
 	for (i=0; i<units.length; i++) {
 		own = isNumber(list[units[i]].own) ? list[units[i]].own : 1;
-		if (user) {
-			Resources.set(['_'+units[i], user+'_'+x], count || undefined);
+		if (type) {
+			Resources.set(['data', '_'+units[i], type+'_'+x], count || undefined);
 			if (Math.min(count, own) > 0) {
 //				console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
 				if (!list[units[i]].use) {
 					list[units[i]].use = {};
 				}
-				list[units[i]].use[(user+'_'+x)] = Math.min(count, own);
+				list[units[i]].use[(type+'_'+x)] = Math.min(count, own);
 			} else if (length(list[units[i]].use)) {
-				delete list[units[i]].use[(user+'_'+x)];
+				delete list[units[i]].use[(type+'_'+x)];
 				if (!length(list[units[i]].use)) {
 					delete list[units[i]].use;
 				}
