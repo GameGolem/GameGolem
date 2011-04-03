@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1052
+// @version		31.5.1053
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1052;
+var revision = 1053;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3437,7 +3437,8 @@ var Page = new Worker('Page');
 
 Page.settings = {
 	system:true,
-	keep:true
+	keep:true,
+	taint:true
 };
 
 Page.option = {
@@ -3520,7 +3521,7 @@ Global._overload(null, 'work', function(state) {
 			return QUEUE_CONTINUE;
 		}
 	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
-		Page.temp.checked = true;
+		Page.set(['temp','checked'], true);
 	}
 	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
 		if (!state) {
@@ -3532,6 +3533,7 @@ Global._overload(null, 'work', function(state) {
 });
 
 Page.init = function() {
+	// BEGIN: Fix for before Config supported path'ed set
 	if (Global.get(['option','page'], false)) {
 		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
 		this.set(['option','reload'], Global.get(['option','page','reload'], this.option.reload));
@@ -3539,6 +3541,7 @@ Page.init = function() {
 		this.set(['option','refresh'], Global.get(['option','page','refresh'], this.option.refresh));
 		Global.set(['option','page']);
 	}
+	// END
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
@@ -3558,7 +3561,7 @@ Page.update_reminder = function(event) {
 		for (i in this.runtime.timers) {
 			time = (this.runtime.timers[i] - now) / 1000;
 			if (time <= -604800) { // Delete old timers 1 week after "now?"
-				this.runtime.timers[i] = undefined;
+				this.set(['runtime','timers',i]);
 			} else {
 				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?')
 			}
@@ -3605,7 +3608,7 @@ Page.update = function(event) {
 				}
 			}
 			if (this.page !== '') {
-				this.data[this.page] = Date.now();
+				this.set(['data',this.page], Date.now());
 			}
 //			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
 			list = {};
@@ -3674,8 +3677,8 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 	}
 	if (page !== (this.temp.last || this.page)) {
 		this.clear();
-		this.temp.last = page;
-		this.temp.when = Date.now();
+		this.set(['temp','last'], page);
+		this.set(['temp','when'], Date.now());
 		this.set(['temp', 'loading'], true);
 		console.log(warn('Navigating to ' + page));
 	} else if (force) {
@@ -3683,7 +3686,7 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 	}
 	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
-	this.temp.count++;
+	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
 };
 
@@ -3699,13 +3702,11 @@ Page.retry = function() {
 	} else {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
-		this._load('runtime');// Just in case we've got multiple copies
-		this.runtime.delay = this.runtime.delay ? Math.max(this.runtime.delay * 2, 300) : this.option.timeout;
-		this._save('runtime');// Make sure it's saved for our next try
-		this.temp.reload = true;
-		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',this.runtime.delay * 1000, true) + '</div></div>');
+		var delay = this.set(['runtime','delay'], Math.max((this.get(['runtime','delay'], 0) * 2) || this.get(['option','timeout'], 10), 300));
+		this.set(['temp','reload'], true);
 		this.set(['temp', 'loading'], true);
-		this._remind(this.runtime.delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
+		this._remind(delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
+		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
 		console.log(log('Unexpected retry event.'));
 	}
 };
@@ -3739,20 +3740,22 @@ Page.click = function(el) {
 	}
 	this.set(['runtime', 'delay'], 0);
 	this.lastclick = el; // Causes circular reference when watching...
-	this.temp.when = Date.now();
+	this.set(['temp','when'], Date.now());
 	this.set(['temp', 'loading'], true);
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
 	this._remind(this.option.timeout, 'retry');
-	this.temp.count++;
+	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return true;
 };
 
 Page.clear = function() {
-	this.temp.last = this.lastclick = this.temp.when = null;
-	this.temp.retry = 0;
-	this.temp.reload = false;
+	this.lastclick = null;
+	this.set(['temp','last'], null);
+	this.set(['temp','when'], null);
+	this.set(['temp','retry'], 0);
+	this.set(['temp','reload'], 0);
 	this.set(['temp', 'loading'], false);
 	this.set(['runtime', 'delay'], 0);
 };
@@ -3761,12 +3764,12 @@ Page.addTimer = function(id, time, relative) {
 	if (relative) {
 		time = Date.now() + time;
 	}
-	this.runtime.timers['golem_timer_'+id] = time;
+	this.set(['runtime','timers','golem_timer_'+id], time);
 	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
 };
 
 Page.delTimer = function(id) {
-	this.runtime.timers['golem_timer_'+id] = undefined;
+	this.set(['runtime','timers','golem_timer_'+id]);
 };
 
 /*
@@ -3781,7 +3784,7 @@ Page.stale = function(page, age, go) {
 		var now = Date.now();
 		if (this.data[page] < now - (age * 1000)) {
 			if (go && !this.to(page)) {
-				this.set(page, now);
+				this.set(['data',page], now);
 			}
 			return false;
 		}
