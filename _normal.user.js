@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1051
+// @version		31.5.1052
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1051;
+var revision = 1052;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -13123,11 +13123,11 @@ Town.update = function(event) {
 			}
 			keep[u] = Math.max(keep[u] || 0, quest);
 		}
-		if (isNumber(generals)) {
+		if (generals) {
 			if (this.option.generals_buy) {
-				want = Math.max(want, generals || 1e50);
+				want = Math.max(want, generals);
 			}
-			keep[u] = Math.ax(keep[u], generals || 1e50);
+			keep[u] = Math.max(keep[u], generals || have); // Don't sell them unless we know for sure that the general can't use them all
 		}
 		need = 0;
 		if (this.option.units !== 'Best Defense') {

@@ -610,11 +610,11 @@ Town.update = function(event) {
 			}
 			keep[u] = Math.max(keep[u] || 0, quest);
 		}
-		if (isNumber(generals)) {
+		if (generals) {
 			if (this.option.generals_buy) {
-				want = Math.max(want, generals || 1e50);
+				want = Math.max(want, generals);
 			}
-			keep[u] = Math.ax(keep[u], generals || 1e50);
+			keep[u] = Math.max(keep[u], generals || have); // Don't sell them unless we know for sure that the general can't use them all
 		}
 		need = 0;
 		if (this.option.units !== 'Best Defense') {
