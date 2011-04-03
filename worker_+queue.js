@@ -191,16 +191,13 @@ Queue.update = function(event) {
 		this.runtime.stamina = this.runtime.energy = 0;
 		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
 		LevelUp.set('runtime.running',false);
-/* Stop wasting one resource when there's no way to burn the other...
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
-				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i] + ' first.'));
+				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i]));
 				this.runtime[ensta[i]] = Player.get(ensta[i]);
 				this.runtime.force[ensta[i]] = true;
-				break;
 			}
 		}
-*/
 		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
 				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
 			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));

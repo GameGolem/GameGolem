@@ -258,7 +258,11 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
 		energyAction = this.findAction('energy',energy,stamina,0);
-		staminaAction = this.findAction('attack',energy,stamina,0);
+/*		check = this.findAction('energy',energyAction.energy - 1,stamina,0);
+		if (energy - check.energy * energy ratio * 1.25 < exp) {
+			energyAction = check;
+		}
+*/		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction.exp > staminaAction.exp) {
 			console.log(warn(), 'Big action is energy.  Exp use:' + energyAction.exp + '/' + exp);
 			energyAction.big = true;
@@ -279,7 +283,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 						|| Quest.option.monster === 'When able'
 						|| Queue.option.queue.indexOf('Monster')
 							< Queue.option.queue.indexOf('Quest')))
-				|| (!exp && Monster.get('runtime.values.big',false))) {
+				|| (!exp && Monster.get('runtime.big',false))) {
 			defendAction = this.findAction('defend',energy,0,exp);
 			if (defendAction.exp) {
 				console.log(warn(), 'Energy use defend');
@@ -321,8 +325,10 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 		options = Monster.get('runtime.values.'+mode);
 		if (mode === 'defend' && !exp) {
-			options = options.concat(Monster.get('runtime.values.big',[])).unique();
-		}
+			options = options.concat(Monster.get('runtime.big',[])).unique();
+		} else if (mode === 'attack') { // Add 1 so it waits until it has a multiple of remaining stamina before doing the big quest.
+			options = options.concat([1]).unique();
+		}	
 		// Use 6 as a safe exp/stamina and 2.8 for exp/energy multiple 
 		max = Math.min((exp ? (exp / ((stat === 'energy') ? 2.8 : 6)) : value), value);
 		monsterAction = basehit = options.lower(max);

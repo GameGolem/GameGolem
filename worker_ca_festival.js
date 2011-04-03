@@ -258,10 +258,11 @@ Festival.work = function(state) {
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-						if (Festival.option.defeat && Festival.data && Festival.data[target[0]]) {
-							return;
-						}
-						if (isNumber(Festival.option.limit) && target[1] > Player.get('level',0) + Festival.option.limit) {
+						if (!target 
+								|| (Festival.option.defeat && Festival.data 
+									&& Festival.data[target[0]])
+								|| (isNumber(Festival.option.limit) 
+									&& target[1] > Player.get('level',0) + Festival.option.limit)) {
 							return;
 						}
 						while (i--) {

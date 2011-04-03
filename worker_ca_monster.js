@@ -59,8 +59,8 @@ Monster.runtime = {
 	defend:false, // id of monster if we have a defend target, otherwise false
 	secondary: false, // Is there a target for mage or rogue that is full or not in cycle?  Used to tell quest to wait if don't quest when fortifying is on.
 	multiplier : {defend:1,attack:1}, // General multiplier like Orc King or Barbarus
-	values : {defend:[],attack:[]  // Attack/defend values available for levelup
-		, big:[]}, // Defend big values available for levelup
+	values : {defend:[],attack:[]}, // Attack/defend values available for levelup
+	big : [], // Defend big values available for levelup
 	energy: 0, // How much can be used for next attack
 	stamina: 0, // How much can be used for next attack
 	used:{stamina:0,energy:0}, // How much was used in last attack
@@ -1171,7 +1171,7 @@ Monster.update = function(event) {
 	}
 	var i, j, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
 	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
-	this.runtime.values.big = [];
+	this.runtime.big = this.runtime.values.attack = this.runtime.values.defend = [];
 	limit = this.runtime.limit;
 	if(!LevelUp.runtime.running && limit === 100){
 		limit = 0;
@@ -1194,10 +1194,10 @@ Monster.update = function(event) {
 		}
 	}
 	// Some generals use more stamina, but only in certain circumstances...
-	for (i in defatt) {
-		this.runtime.multiplier[defatt[i]] = (Generals.get([Queue.runtime.general || (Generals.best(this.option['best_' + defatt[i]] ? ('monster_' + defatt[i]) : this.option['general_' + defatt[i]])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
-		//console.log(warn(), 'mult ' + defatt[i] + ' X ' + this.runtime.multiplier[defatt[i]]);
-	}
+	defatt.forEach( function(mode) {
+		Monster.runtime.multiplier[mode] = (Generals.get([Queue.runtime.general || (Generals.best(Monster.option['best_' + mode] ? ('monster_' + mode) : Monster.option['general_' + mode])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
+		//console.log(warn(), 'mult ' + mode + ' X ' + Monster.runtime.multiplier[mode]);
+	});
 	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.runtime.force.stamina;
 	if (this.option.stop === 'Priority List') {
@@ -1353,6 +1353,12 @@ Monster.update = function(event) {
 						}
 					}
 					// Possible defend target?
+					if (!monster.no_heal && type.defend && this.option.defend_active
+							&& (/:big\b/.test(condition)
+								|| ((monster.defense || 100) < monster.defend_max
+									&& (monster.defense || 100) > 1))) {
+						this.runtime.big = this.runtime.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
+					}
 					if (this.option.defend_active && (defend_found || o) === o) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
@@ -1365,13 +1371,6 @@ Monster.update = function(event) {
 									|| ((monster.defense || 100) < monster.defend_max
 										&& (monster.defense || 100) > 1))) {
 							defense_kind = type.defend_button;
-						}
-						if (!monster.no_heal 
-								&& type.defend
-								&& (/:big\b/.test(condition) 
-									|| ((monster.defense || 100) < monster.defend_max
-										&& (monster.defense || 100) > 1))) {
-							this.runtime.values.big = this.runtime.values.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 						}
 						if (monster.secondary === 100
 								&& (monster.max === false
