@@ -133,6 +133,13 @@ Quest.init = function() {
 		this.set(['option','monster'], 'Never');
 	}
 	// END
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if (revision < 845) {
 		for (i in data) {
@@ -198,7 +205,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units;
+	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -296,13 +303,20 @@ Quest.parse = function(change) {
 			if (type !== 2) { // That's everything for subquests
 				this.set(['data','id',id,'unique'], type === 3 ? true : undefined); // Special / boss quests create unique items
 				tmp = $('.qd_1 img', el).last();
-				if (tmp.length && tmp.attr('title')) {
-					this.set(['data','id',id,'item'], tmp.attr('title').trim());
-					this.set(['data','id',id,'itemimg'], tmp.attr('src').filepart());
+				if (tmp.length && (item = tmp.attr('title'))) {
+					item = item.replace(/\s+/gm, ' ').trim();
+					icon = (tmp.attr('src') || '').filepart();
+					item = Town.qualify(item, icon);
+					this.set(['data','id',id,'item'], item);
+					this.set(['data','id',id,'itemimg'], icon);
 				}
 				units = $('.quest_req >div >div >div', el);
 				for (j=0; j<units.length; j++) {
-					this.set(['data','id',id,'units',$('img', units[j]).attr('title')], $(units[j]).text().regex(/(\d+)/));
+					item = ($('img', units[j]).attr('title') || '').replace(/\s+/gm, ' ').trim();
+					icon = ($('img', units[j]).attr('src') || '').filepart();
+					item = Town.qualify(item, icon);
+					c = ($(units[j]).text() || '').regex(/\bx\s*(\d+)\b/im);
+					this.set(['data','id',id,'units',item], c);
 				}
 				tmp = $('.quest_act_gen img', el).attr('title');
 				this.set(['data','id',id,'general'], tmp || undefined);
@@ -581,7 +595,7 @@ Quest.work = function(state) {
 		if (this.data.id[best].general && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
 			general = this.data.id[best].general;
 		} else {
-			general = Generals.best('under level 4');
+			general = Generals.best('under max level');
 			switch(this.option.what) {
 				case 'Vampire Lord':
 				case 'Cartigan':

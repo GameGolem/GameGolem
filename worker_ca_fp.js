@@ -72,6 +72,14 @@ FP.runtime = {
 	points:0
 };
 
+FP.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general=== 'under level 4') {
+	        this.set('option.general', 'under max level');
+	}
+	// END
+};
+
 FP.parse = function(change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
 	$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){

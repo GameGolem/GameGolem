@@ -835,6 +835,19 @@ Monster.setup = function() {
 
 Monster.init = function() {
 	var i, str;
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_attack === 'under level 4') {
+		this.set('option.general_attack', 'under max level');
+	}
+	if (this.option.general_defend === 'under level 4') {
+		this.set('option.general_defend', 'under max level');
+	}
+	if (this.option.general_raid === 'under level 4') {
+		this.set('option.general_raid', 'under max level');
+	}
+	// END
+
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.stamina');

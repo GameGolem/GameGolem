@@ -61,7 +61,9 @@ Generals.parse = function(change) {
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
 				this.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
-				if (this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/i), 10)) >= 4) { // If we just leveled up to level 4, remove the priority
+				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/i), 10));
+				// If we just maxed level, remove the priority
+				if (this.get(['data',name,'progress'], 100, 'number') >= 100) {
 					this.set(['data',name,'priority']);
 				}
 				data[name] = true;
@@ -113,12 +115,12 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(event) {
-	var data = this.data, i, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
+	var data = this.data, i, j, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data) {
 			list.push(i);
-			if (data[i].level < 4) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+			if ((isNumber(j = data[i].progress) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
 				priority_list.push([i, data[i].priority]);
 			}
 			if (!data[i].stats) { // Force an update if stats not yet calculated
@@ -170,7 +172,7 @@ Generals.update = function(event) {
 			}
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
+		Config.set('generals', ['any','under max level'].concat(list.sort())); 
 	}
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
@@ -319,7 +321,7 @@ Generals.best = function(type) {
 		case 'dispel':			// Fall through
 		case 'monster_defend':	first = 'monster';	second = 'def'; break;
 		case 'defend':			first = 'duel';		second = 'def'; break;
-		case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+		case 'under max level':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
 		default:  				return 'any';
 	}
 	if (rx) {
@@ -390,7 +392,7 @@ Generals.dashboard = function(sort, rev) {
 		output.push('<a class="golem-link" href="generals.php?item=' + this.data[i].id + '&itype=' + this.data[i].type + '"><img src="' + imagepath + this.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + this.data[i].skills + ', Weapon Bonus: ' + (typeof this.data[i].weaponbonus !== 'unknown' ? (this.data[i].weaponbonus ? this.data[i].weaponbonus : 'none') : 'unknown') + '"></a>');
 		output.push(i);
 		output.push('<div'+(isNumber(this.data[i].progress) ? ' title="'+this.data[i].progress+'%"' : '')+'>'+this.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(this.data[i].progress || 0)+'%;"></div></div>');
-		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
+		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(this.data[i].invade ? (iatt === this.data[i].invade.att ? '<strong>' : '') + (this.data[i].invade.att).addCommas() + (iatt === this.data[i].invade.att ? '</strong>' : '') : '?');
 		output.push(this.data[i].invade ? (idef === this.data[i].invade.def ? '<strong>' : '') + (this.data[i].invade.def).addCommas() + (idef === this.data[i].invade.def ? '</strong>' : '') : '?');
 		output.push(this.data[i].duel ? (datt === this.data[i].duel.att ? '<strong>' : '') + (this.data[i].duel.att).addCommas() + (datt === this.data[i].duel.att ? '</strong>' : '') : '?');

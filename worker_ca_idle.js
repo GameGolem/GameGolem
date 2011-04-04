@@ -126,3 +126,10 @@ Idle.work = function(state) {
 	return true;
 };
 
+Idle.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general === 'under level 4') {
+		this.set('option.general', 'under max level');
+	}
+	// END
+};

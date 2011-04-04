@@ -328,68 +328,92 @@ Town.setup = function() {
 };
 
 Town.init = function() {
-	this._watch(Player, 'data.worth');
-	this._watch(Land, 'runtime.save_amount');
+	this._watch(Player, 'data.worth');			// cash available
+	this._watch(Player, 'data.army');			// current army size
+	this._watch(Player, 'data.armymax');		// capped army size (player)
+	this._watch(Generals, 'runtime.armymax');	// capped army size (generals)
+	this._watch(Generals, 'data');				// general stats
+	this._watch(Land, 'option.save_ahead');		// land reservation flag
+	this._watch(Land, 'runtime.save_amount');	// land reservation amount
+	this._watch(Page, 'data.town_soldiers');	// page freshness
+	this._watch(Page, 'data.town_blacksmith');	// page freshness
+	this._watch(Page, 'data.town_magic');		// page freshness
 	this.runtime.cost_incr = 4;
-	this.runtime.soldiers = this.runtime.blacksmith = this.runtime.magic = 0;
+
+	// map old local stale page variables to Page values
+	if (!isUndefined(i = this.runtime.soldiers)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_soldiers', now);
+		}
+		this.set('runtime.soldiers');
+	}
+	if (!isUndefined(i = this.runtime.blacksmith)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_blacksmith', now);
+		}
+		this.set('runtime.blacksmith');
+	}
+	if (!isUndefined(i = this.runtime.magic)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_magic', now);
+		}
+		this.set('runtime.magic');
+	}
 };
 
   // .layout td >div:contains("Owned Items:")
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var modify = false;
+	var now = Date.now(), self = this, modify = false;
 	if (change && Page.page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
-			var name = $('div img[alt]', el).attr('alt').trim(),
-				icon = $('div img[src]', el).attr('src').filepart();
-			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
-				name = Town.dup_map[name][icon];
-			}
+			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
+				icon = ($('div img[src]', el).attr('src') || '').filepart();
+			name = self.qualify(name, icon);
 			if (Town.data[name] && Town.data[name].type) {
 				$('div strong:first', el).parent().append('<br>'+Town.data[name].type);
 			}
 		});
 	} else if (Page.page === 'keep_stats') {
-		var keep = $('.keep_attribute_section').first();
 		// Only when it's our own keep and not someone elses
-		if (keep.length) {
-			var tmp = $('.statsTTitle:contains("UNITS") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var i = $(b).attr('src').filepart();
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-					if (!Town.data[n]) {
-						Town.set('runtime.soldiers', -1);
-						return false;
-					} else if (Town.data[n].own != c) {
-						Town.set(['data', n, 'own'], c);
-					}
-				});
-			}
+		if ($('.keep_attribute_section').length) {
+			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
+				return !$(this).text().regex(/^\s*UNITS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				n = self.qualify(n, i);
+				if (!self.data[n]) {
+					//console.log(warn(), 'missing unit: ' + n + ' (' + i + ')');
+					Page.setStale('town_soldiers', now);
+					return false;
+				} else if (isNumber(c)) {
+					self.set(['data', n, 'own'], c);
+				}
+			});
 
-			tmp = $('.statsTTitle:contains("ITEMS") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var i = $(b).attr('src').filepart();
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-					// names aren't unique for items
-					if (n && Town.dup_map[n] && Town.dup_map[n][i]) {
-						n = Town.dup_map[n][i];
-					}
-					if (!Town.data[n] || Town.data[n].img !== i) {
-						Town.set('runtime.blacksmith', -1);
-						Town.set('runtime.magic', -1);
-						return false;
-					} else if (Town.data[n].own != c) {
-						Town.set(['data', n, 'own'], c);
-					}
-				});
-			}
+			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
+				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				n = self.qualify(n, i); // names aren't unique for items
+				if (!self.data[n] || Town.data[n].img !== i) {
+					//console.log(warn(), 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
+					Page.setStale('town_blacksmith', now);
+					Page.setStale('town_magic', now);
+					return false;
+				} else if (self.data[n].own != c) {
+					self.set(['data', n, 'own'], c);
+				}
+			});
 		}
 	} else if (!change) {
 		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
@@ -419,9 +443,7 @@ Town.parse = function(change) {
 				upkeep = $('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, ''),
 				match, maxlen = 0;
 			changes++;
-			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
-				name = Town.dup_map[name][icon];
-			}
+			name = self.qualify(name, icon);
 			if (purge[name]) {
 				purge[name] = false;
 			}
@@ -837,19 +859,43 @@ Town.dashboard = function() {
 	$('#golem-dashboard-Town').html(left+right);
 };
 
+Town.qualify = function(name, icon) {
+	var p;
+
+	if (isString(name)) {
+		// if name already has a qualifier, peel it off
+		if ((p = name.search(/\s*\(/m)) >= 0) {
+			name = name.substr(0, p).trim();
+		}
+
+		// if an icon is provided, use it to further qualify the name
+		if (isString(icon)) {
+			if (isObject(p = this.dup_map[name]) && (icon in p)) {
+				name = p[icon];
+			}
+		}
+	}
+
+	return name;
+};
+
 Town.dup_map = {
-	'Earth Shard': {
+	'Earth Shard': { // Alchemy
 		'gift_earth_1.jpg':	'Earth Shard (1)',
 		'gift_earth_2.jpg':	'Earth Shard (2)',
 		'gift_earth_3.jpg':	'Earth Shard (3)',
 		'gift_earth_4.jpg':	'Earth Shard (4)'
 	},
-	'Elven Crown': {
+	'Elven Crown': { // Helmet
 		'gift_aeris_complete.jpg':	'Elven Crown (Aeris)',
 		'eq_sylvanus_crown.jpg':	'Elven Crown (Sylvanas)'
 	},
-	'Green Emerald Shard': {
+	'Green Emerald Shard': { // Alchemy
 		'mystery_armor_emerald_1.jpg': 'Green Emerald Shard (1)',
 		'mystery_armor_emerald_2.jpg': 'Green Emerald Shard (2)'
+	},
+	'Maelstrom': { // Magic
+		'magic_maelstrom.jpg':		'Maelstrom (Marina)',
+		'eq_valhalla_spell.jpg':	'Maelstrom (Valhalla)'
 	}
 };

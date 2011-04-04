@@ -38,7 +38,8 @@ Page.lastclick = null;
 
 Page.runtime = {
 	delay:0, // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
-	timers:{} // Tickers being displayed
+	timers:{}, // Tickers being displayed
+	stale:{}
 };
 
 Page.page = '';
@@ -186,6 +187,7 @@ Page.update = function(event) {
 			}
 			if (this.page !== '') {
 				this.set(['data',this.page], Date.now());
+				this.set(['runtime', 'stale', this.page]);
 			}
 //			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
 			list = {};
@@ -364,4 +366,45 @@ Page.stale = function(page, age, go) {
 		}
 	}
 	return true;
+};
+
+/*
+ * Mark a page as stale, hinting to relevant workers that it needs a visit.
+ * @param {string} page The page to mark as stale
+ * @param {number} [when=Date.now()] Optional point when the page became stale.
+ */
+Page.setStale = function(page, when) {
+	var now = Date.now(),
+		seen = this.get(['data', page], 0, 'number'),
+		want = this.get(['runtime', 'stale', page], 0, 'number');
+
+	// don't let this be negative (pre 1970) or future (past "now")
+	if (!isNumber(when) || when < 0 || when > now || want > now) {
+		when = now;
+	}
+
+	// maintain the later date if ours is older
+	if (seen >= when && seen >= want) {
+		this.set(['runtime', 'stale', page]);
+	} else if (want < when || want > now) {
+		this.set(['runtime', 'stale', page], Math.round(when));
+	}
+};
+
+/*
+ * Test if a page is considered stale.
+ * @param {string} page The page to check for staleness
+ * @param {number} [when] Optional check against a specific time.
+ * @return {boolean} True if the page is considered stale.
+ */
+Page.isStale = function(page, when) {
+	var seen = this.get(['data', page], 0, 'number'),
+		want = this.get(['runtime', 'stale', page], 0, 'number');
+
+	if (isNumber(when) && want < when) {
+		want = when;
+	}
+
+	// never seen or older than our stale mark
+	return !seen || seen < want;
 };

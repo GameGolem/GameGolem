@@ -118,6 +118,13 @@ Festival.display = [
 
 Festival.init = function() {
 	var now = Date.now();
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
 		this._remind((this.runtime.start - now) / 1000, 'start');

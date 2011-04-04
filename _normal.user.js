@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1056
+// @version		31.5.1057
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1056;
+var revision = 1057;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3551,7 +3551,8 @@ Page.lastclick = null;
 
 Page.runtime = {
 	delay:0, // Delay used for bad page load - reset in Page.clear(), otherwise double to a max of 5 minutes
-	timers:{} // Tickers being displayed
+	timers:{}, // Tickers being displayed
+	stale:{}
 };
 
 Page.page = '';
@@ -3699,6 +3700,7 @@ Page.update = function(event) {
 			}
 			if (this.page !== '') {
 				this.set(['data',this.page], Date.now());
+				this.set(['runtime', 'stale', this.page]);
 			}
 //			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
 			list = {};
@@ -3877,6 +3879,47 @@ Page.stale = function(page, age, go) {
 		}
 	}
 	return true;
+};
+
+/*
+ * Mark a page as stale, hinting to relevant workers that it needs a visit.
+ * @param {string} page The page to mark as stale
+ * @param {number} [when=Date.now()] Optional point when the page became stale.
+ */
+Page.setStale = function(page, when) {
+	var now = Date.now(),
+		seen = this.get(['data', page], 0, 'number'),
+		want = this.get(['runtime', 'stale', page], 0, 'number');
+
+	// don't let this be negative (pre 1970) or future (past "now")
+	if (!isNumber(when) || when < 0 || when > now || want > now) {
+		when = now;
+	}
+
+	// maintain the later date if ours is older
+	if (seen >= when && seen >= want) {
+		this.set(['runtime', 'stale', page]);
+	} else if (want < when || want > now) {
+		this.set(['runtime', 'stale', page], Math.round(when));
+	}
+};
+
+/*
+ * Test if a page is considered stale.
+ * @param {string} page The page to check for staleness
+ * @param {number} [when] Optional check against a specific time.
+ * @return {boolean} True if the page is considered stale.
+ */
+Page.isStale = function(page, when) {
+	var seen = this.get(['data', page], 0, 'number'),
+		want = this.get(['runtime', 'stale', page], 0, 'number');
+
+	if (isNumber(when) && want < when) {
+		want = when;
+	}
+
+	// never seen or older than our stale mark
+	return !seen || seen < want;
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -5457,7 +5500,7 @@ var Alchemy = new Worker('Alchemy');
 Alchemy.temp = null;
 
 Alchemy.settings = {
-	//taint:true
+	taint:true
 };
 
 Alchemy.defaults['castle_age'] = {
@@ -5477,7 +5520,8 @@ Alchemy.option = {
 };
 
 Alchemy.runtime = {
-	best:null
+	best:null,
+	wait:0
 };
 
 Alchemy.display = [
@@ -5493,20 +5537,57 @@ Alchemy.display = [
 ];
 
 Alchemy.parse = function(change) {
+	var now = Date.now(), self = this, i, tmp,
+		ipurge = {}, rpurge = {}, spurge = {};
+
 	if (Page.page === 'keep_alchemy') {
-		this.data.ingredients = {};
-		this.data.recipe = {};
-		this.data.summons = {};
-		var $elements = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
-		if (!$elements.length) {
-			console.log(warn(), 'Can\'t find any alchemy ingredients...');
-	//		Page.to('keep_alchemy', false); // Force reload
-			return false;
+		tmp = $('div.ingredientUnit');
+
+		if (!tmp.length) {
+			console.log(warn("Can't find any alchemy ingredients..."));
+			//Page.to('keep_alchemy', false); // Force reload
+			//return false;
+		} else {
+			for (i in this.data.ingredients) {
+				if (this.data.ingredients[i] !== 0) {
+					ipurge[i] = true;
+				}
+			}
 		}
-		$elements.each(function(i,el){
-			var recipe = {}, title = $('div.recipeTitle', el).text().trim().replace('RECIPES: ','');
-			if (title.indexOf(' (')>0) {
-				title = title.substr(0, title.indexOf(' ('));
+
+		// ingredients list
+		tmp.each(function(a, el) {
+			var icon = ($('img', el).attr('src') || '').filepart();
+			var c = ($(el).text() || '').regex(/\bx\s*(\d+)\b/im);
+			ipurge[icon] = false;
+			if (isNumber(c)) {
+				self.set(['ingredients', icon], c);
+			} else {
+				console.log(warn(), 'bad count ' + c + ' on ' + icon);
+			}
+		});
+
+		tmp = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
+
+		if (!tmp.length) {
+			console.log(warn("Can't find any alchemy recipes..."));
+			//Page.to('keep_alchemy', false); // Force reload
+			//return false;
+		} else {
+			for (i in this.data.recipe) {
+				rpurge[i] = true;
+			}
+			for (i in this.data.summons) {
+				spurge[i] = true;
+			}
+		}
+
+		// recipe list
+		tmp.each(function(a, el) {
+			var name = ($('div.recipeTitle', el).text() || '').replace('RECIPES:','').replace(/\s+/gm, ' ').trim(),
+				recipe = {}, i;
+			if ((i = name.search(/\s*\(/m)) >= 0) {
+				name = name.substr(0, i);
 			}
 			if ($(el).hasClass('alchemyQuestBack')) {
 				recipe.type = 'Quest';
@@ -5516,73 +5597,154 @@ Alchemy.parse = function(change) {
 				recipe.type = 'Summons';
 			}
 			recipe.ingredients = {};
-			$('div.recipeImgContainer', el).parent().each(function(i,el){
-				var name = $('img', el).attr('src').filepart();
-				recipe.ingredients[name] = ($(el).text().regex(/x(\d+)/) || 1);
-				Alchemy.data.ingredients[name] = 0;// Make sure we know an ingredient exists
+			$('div.recipeImgContainer', el).parent().each(function(b, el2) {
+				var icon = ($('img', el2).attr('src') || '').filepart();
+				var c = ($(el2).text() || '').regex(/\bx\s*(\d+)\b/im) || 1;
+				recipe.ingredients[icon] = c;
+				// Make sure we know an ingredient exists
+				if (!(icon in self.data.ingredients)) {
+					self.set(['ingredients', icon], 0);
+					ipurge[icon] = false;
+				}
 				if (recipe.type === 'Summons') {
-					Alchemy.data.summons[name] = true;// Make sure we know an ingredient exists
+					spurge[icon] = false;
+					self.set(['summons', icon], true);
 				}
 			});
-			Alchemy.data.recipe[title] = recipe;
+			rpurge[name] = false;
+			self.set(['recipe', name], recipe);
 		});
-		$('div.ingredientUnit').each(function(i,el){
-			var name = $('img', el).attr('src').filepart();
-			Alchemy.data.ingredients[name] = $(el).text().regex(/x(\d+)/);
-		});
-		this._notify('data.ingredients');
-		this._notify('data.recipe');
-		this._notify('data.summons');
 	} else if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			var tmp = $('.statsTTitle:contains("ALCHEMY INGREDIENTS") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var i = $(b).attr('src').filepart();
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-					if (i) {
-						Alchemy.set(['data', i], c || 0);
+			// some ingredients are units
+			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
+				return !$(this).text().regex(/^\s*UNITS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
+				n = Town.qualify(n, i);
+				if (i in self.data.ingredients) {
+					if (isNumber(c)) {
+						self.set(['ingredients', i], c);
 					}
-				});
-			}
+				}
+			});
+
+			// some ingredients are items
+			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
+				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
+				n = Town.qualify(n, i);
+				if (i in self.data.ingredients) {
+					if (isNumber(c)) {
+						self.set(['ingredients', i], c);
+					}
+				}
+			});
+
+			tmp = $('.statsT2 .statsTTitle:contains("ALCHEMY INGREDIENTS")').not(function(a) {
+				return !$(this).text().regex(/^\s*ALCHEMY INGREDIENTS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
+				if (i) {
+					self.set(['ingredients', i], c || 1);
+				} else {
+					Page.setStale('keep_alchemy', now);
+				}
+			});
 		}
 	}
+
+	// purge (zero) any ingredients we didn't encounter.
+	// Note: we need to leave placeholders for all known ingredients so keep
+	// parsing knows which unit/item overlaps to watch.
+	for (i in ipurge) {
+		if (ipurge[i] && this.data.ingredients[i] !== 0) {
+			console.log(warn(), 'zero ingredient ' + i + ' [' + (this.data.ingredients[i] || 0) + ']');
+			this.set(['data', 'ingredients', i], 0);
+		}
+	}
+
+	// purge any recipes we didn't encounter.
+	for (i in rpurge) {
+		if (rpurge[i]) {
+			console.log(warn(), 'delete recipe ' + i);
+			this.set(['recipe', i]);
+		}
+	}
+
+	// purge any summons we didn't encounter.
+	for (i in spurge) {
+		if (spurge[i]) {
+			console.log(warn(), 'delete summon ' + i);
+			this.set(['summons', i]);
+		}
+	}
+
+	return false;
 };
 
 Alchemy.update = function(event) {
-	var best = null, recipe = this.data.recipe, r, i;
-	for (r in recipe) {
-		if (recipe[r].type === 'Recipe') {
-			best = r;
-			for (i in recipe[r].ingredients) {
-				if ((!this.option.hearts && i === 'raid_hearts.gif') || (!this.option.summon && this.data.summons[i]) || recipe[r].ingredients[i] > this.data.ingredients[i]) {
-					best = null;
-					break;
+	var now = Date.now(), best = null, recipe = this.data.recipe, r, i, s;
+
+	if (recipe) {
+		for (r in recipe) {
+			if (recipe[r].type === 'Recipe') {
+				best = r;
+				for (i in recipe[r].ingredients) {
+					if ((!this.option.hearts && i === 'raid_hearts.gif') || (!this.option.summon && this.data.summons[i]) || recipe[r].ingredients[i] > this.data.ingredients[i]) {
+						best = null;
+						break;
+					}
 				}
+				if (best) {break;}
 			}
-			if (best) {break;}
 		}
 	}
-	this.runtime.best = best;
+
+	s = undefined;
+	if (!best) {
+		s = 'Nothing to do.';
+	} else {
+		s = (this.option._disabled ? 'Would perform ' : 'Perform ') + best;
+	}
+	Dashboard.status(this, s);
+
+	this.set('runtime.best', best);
+
+	this.set('option._sleep', (this.runtime.wait || 0) > now || !best || Page.isStale('keep_alchemy'));
 };
 
 Alchemy.work = function(state) {
-	if (!this.runtime.best) {
+	var now = Date.now();
+
+	if (!state && !best && !Page.isStale('keep_alchemy')) {
 		return QUEUE_FINISH;
-	}
-	if (!state || !Page.to('keep_alchemy')) {
+	} else if (!Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
+	} else if (this.runtime.best) {
+		console.log(warn('Perform - ' + this.runtime.best));
+		if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
+			console.log(warn("Can't find the recipe - waiting a minute"));
+			this.set('runtime.wait', now + 60000);
+			this._remind(60, 'wait');
+		}
 	}
-	console.log(warn(), 'Perform - ' + this.runtime.best);
-	if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
-		Page.reload(); // Can't find the recipe we just parsed when coming here...
-	}
+
 	return QUEUE_RELEASE;
 };
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
@@ -6166,6 +6328,12 @@ Battle.init = function() {
 	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
 		this.set('option.limit', i);
 	}
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
 
 	$('.Battle-prefer-on').live('click', function(event) {
 		Battle._unflush();
@@ -6931,7 +7099,9 @@ Generals.parse = function(change) {
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
 				this.set(['data',name,'progress'], parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/i), 10));
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+|\n/g,' ').trim());
-				if (this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/i), 10)) >= 4) { // If we just leveled up to level 4, remove the priority
+				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/i), 10));
+				// If we just maxed level, remove the priority
+				if (this.get(['data',name,'progress'], 100, 'number') >= 100) {
 					this.set(['data',name,'priority']);
 				}
 				data[name] = true;
@@ -6983,12 +7153,12 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(event) {
-	var data = this.data, i, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
+	var data = this.data, i, j, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data) {
 			list.push(i);
-			if (data[i].level < 4) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+			if ((isNumber(j = data[i].progress) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
 				priority_list.push([i, data[i].priority]);
 			}
 			if (!data[i].stats) { // Force an update if stats not yet calculated
@@ -7040,7 +7210,7 @@ Generals.update = function(event) {
 			}
 		}
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any','under level 4'].concat(list.sort())); 
+		Config.set('generals', ['any','under max level'].concat(list.sort())); 
 	}
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
@@ -7189,7 +7359,7 @@ Generals.best = function(type) {
 		case 'dispel':			// Fall through
 		case 'monster_defend':	first = 'monster';	second = 'def'; break;
 		case 'defend':			first = 'duel';		second = 'def'; break;
-		case 'under level 4':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
+		case 'under max level':	value = function(g) { return (g.priority ? -g.priority : null); }; break;
 		default:  				return 'any';
 	}
 	if (rx) {
@@ -7260,7 +7430,7 @@ Generals.dashboard = function(sort, rev) {
 		output.push('<a class="golem-link" href="generals.php?item=' + this.data[i].id + '&itype=' + this.data[i].type + '"><img src="' + imagepath + this.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + this.data[i].skills + ', Weapon Bonus: ' + (typeof this.data[i].weaponbonus !== 'unknown' ? (this.data[i].weaponbonus ? this.data[i].weaponbonus : 'none') : 'unknown') + '"></a>');
 		output.push(i);
 		output.push('<div'+(isNumber(this.data[i].progress) ? ' title="'+this.data[i].progress+'%"' : '')+'>'+this.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(this.data[i].progress || 0)+'%;"></div></div>');
-		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr</a>' : ' &nbsp;&nbsp;')) : '');
+		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
 		output.push(this.data[i].invade ? (iatt === this.data[i].invade.att ? '<strong>' : '') + (this.data[i].invade.att).addCommas() + (iatt === this.data[i].invade.att ? '</strong>' : '') : '?');
 		output.push(this.data[i].invade ? (idef === this.data[i].invade.def ? '<strong>' : '') + (this.data[i].invade.def).addCommas() + (idef === this.data[i].invade.def ? '</strong>' : '') : '?');
 		output.push(this.data[i].duel ? (datt === this.data[i].duel.att ? '<strong>' : '') + (this.data[i].duel.att).addCommas() + (datt === this.data[i].duel.att ? '</strong>' : '') : '?');
@@ -7892,6 +8062,13 @@ Idle.work = function(state) {
 	return true;
 };
 
+Idle.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general === 'under level 4') {
+		this.set('option.general', 'under max level');
+	}
+	// END
+};
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -8400,6 +8577,12 @@ LevelUp.display = [
 ];
 
 LevelUp.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	this._watch(Player, 'data.exp');
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.stamina');
@@ -9504,6 +9687,19 @@ Monster.setup = function() {
 
 Monster.init = function() {
 	var i, str;
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_attack === 'under level 4') {
+		this.set('option.general_attack', 'under max level');
+	}
+	if (this.option.general_defend === 'under level 4') {
+		this.set('option.general_defend', 'under max level');
+	}
+	if (this.option.general_raid === 'under level 4') {
+		this.set('option.general_raid', 'under max level');
+	}
+	// END
+
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.stamina');
@@ -11349,6 +11545,13 @@ Quest.init = function() {
 		this.set(['option','monster'], 'Never');
 	}
 	// END
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if (revision < 845) {
 		for (i in data) {
@@ -11414,7 +11617,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units;
+	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -11512,13 +11715,20 @@ Quest.parse = function(change) {
 			if (type !== 2) { // That's everything for subquests
 				this.set(['data','id',id,'unique'], type === 3 ? true : undefined); // Special / boss quests create unique items
 				tmp = $('.qd_1 img', el).last();
-				if (tmp.length && tmp.attr('title')) {
-					this.set(['data','id',id,'item'], tmp.attr('title').trim());
-					this.set(['data','id',id,'itemimg'], tmp.attr('src').filepart());
+				if (tmp.length && (item = tmp.attr('title'))) {
+					item = item.replace(/\s+/gm, ' ').trim();
+					icon = (tmp.attr('src') || '').filepart();
+					item = Town.qualify(item, icon);
+					this.set(['data','id',id,'item'], item);
+					this.set(['data','id',id,'itemimg'], icon);
 				}
 				units = $('.quest_req >div >div >div', el);
 				for (j=0; j<units.length; j++) {
-					this.set(['data','id',id,'units',$('img', units[j]).attr('title')], $(units[j]).text().regex(/(\d+)/));
+					item = ($('img', units[j]).attr('title') || '').replace(/\s+/gm, ' ').trim();
+					icon = ($('img', units[j]).attr('src') || '').filepart();
+					item = Town.qualify(item, icon);
+					c = ($(units[j]).text() || '').regex(/\bx\s*(\d+)\b/im);
+					this.set(['data','id',id,'units',item], c);
 				}
 				tmp = $('.quest_act_gen img', el).attr('title');
 				this.set(['data','id',id,'general'], tmp || undefined);
@@ -11797,7 +12007,7 @@ Quest.work = function(state) {
 		if (this.data.id[best].general && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
 			general = this.data.id[best].general;
 		} else {
-			general = Generals.best('under level 4');
+			general = Generals.best('under max level');
 			switch(this.option.what) {
 				case 'Vampire Lord':
 				case 'Cartigan':
@@ -12930,68 +13140,92 @@ Town.setup = function() {
 };
 
 Town.init = function() {
-	this._watch(Player, 'data.worth');
-	this._watch(Land, 'runtime.save_amount');
+	this._watch(Player, 'data.worth');			// cash available
+	this._watch(Player, 'data.army');			// current army size
+	this._watch(Player, 'data.armymax');		// capped army size (player)
+	this._watch(Generals, 'runtime.armymax');	// capped army size (generals)
+	this._watch(Generals, 'data');				// general stats
+	this._watch(Land, 'option.save_ahead');		// land reservation flag
+	this._watch(Land, 'runtime.save_amount');	// land reservation amount
+	this._watch(Page, 'data.town_soldiers');	// page freshness
+	this._watch(Page, 'data.town_blacksmith');	// page freshness
+	this._watch(Page, 'data.town_magic');		// page freshness
 	this.runtime.cost_incr = 4;
-	this.runtime.soldiers = this.runtime.blacksmith = this.runtime.magic = 0;
+
+	// map old local stale page variables to Page values
+	if (!isUndefined(i = this.runtime.soldiers)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_soldiers', now);
+		}
+		this.set('runtime.soldiers');
+	}
+	if (!isUndefined(i = this.runtime.blacksmith)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_blacksmith', now);
+		}
+		this.set('runtime.blacksmith');
+	}
+	if (!isUndefined(i = this.runtime.magic)) {
+		if (isNumber(i) && i) {
+			Page.setStale('town_magic', now);
+		}
+		this.set('runtime.magic');
+	}
 };
 
   // .layout td >div:contains("Owned Items:")
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var modify = false;
+	var now = Date.now(), self = this, modify = false;
 	if (change && Page.page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
-			var name = $('div img[alt]', el).attr('alt').trim(),
-				icon = $('div img[src]', el).attr('src').filepart();
-			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
-				name = Town.dup_map[name][icon];
-			}
+			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
+				icon = ($('div img[src]', el).attr('src') || '').filepart();
+			name = self.qualify(name, icon);
 			if (Town.data[name] && Town.data[name].type) {
 				$('div strong:first', el).parent().append('<br>'+Town.data[name].type);
 			}
 		});
 	} else if (Page.page === 'keep_stats') {
-		var keep = $('.keep_attribute_section').first();
 		// Only when it's our own keep and not someone elses
-		if (keep.length) {
-			var tmp = $('.statsTTitle:contains("UNITS") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var i = $(b).attr('src').filepart();
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-					if (!Town.data[n]) {
-						Town.set('runtime.soldiers', -1);
-						return false;
-					} else if (Town.data[n].own != c) {
-						Town.set(['data', n, 'own'], c);
-					}
-				});
-			}
+		if ($('.keep_attribute_section').length) {
+			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
+				return !$(this).text().regex(/^\s*UNITS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				n = self.qualify(n, i);
+				if (!self.data[n]) {
+					//console.log(warn(), 'missing unit: ' + n + ' (' + i + ')');
+					Page.setStale('town_soldiers', now);
+					return false;
+				} else if (isNumber(c)) {
+					self.set(['data', n, 'own'], c);
+				}
+			});
 
-			tmp = $('.statsTTitle:contains("ITEMS") + .statsTMain .statUnit');
-			if (tmp.length) {
-				tmp.each(function(a, el) {
-					var b = $('a img[src]', el);
-					var i = $(b).attr('src').filepart();
-					var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-					var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-					// names aren't unique for items
-					if (n && Town.dup_map[n] && Town.dup_map[n][i]) {
-						n = Town.dup_map[n][i];
-					}
-					if (!Town.data[n] || Town.data[n].img !== i) {
-						Town.set('runtime.blacksmith', -1);
-						Town.set('runtime.magic', -1);
-						return false;
-					} else if (Town.data[n].own != c) {
-						Town.set(['data', n, 'own'], c);
-					}
-				});
-			}
+			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
+				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
+			});
+			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+				var b = $('a img[src]', el);
+				var i = ($(b).attr('src') || '').filepart();
+				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				n = self.qualify(n, i); // names aren't unique for items
+				if (!self.data[n] || Town.data[n].img !== i) {
+					//console.log(warn(), 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
+					Page.setStale('town_blacksmith', now);
+					Page.setStale('town_magic', now);
+					return false;
+				} else if (self.data[n].own != c) {
+					self.set(['data', n, 'own'], c);
+				}
+			});
 		}
 	} else if (!change) {
 		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
@@ -13021,9 +13255,7 @@ Town.parse = function(change) {
 				upkeep = $('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, ''),
 				match, maxlen = 0;
 			changes++;
-			if (Town.dup_map[name] && Town.dup_map[name][icon]) {
-				name = Town.dup_map[name][icon];
-			}
+			name = self.qualify(name, icon);
 			if (purge[name]) {
 				purge[name] = false;
 			}
@@ -13439,20 +13671,44 @@ Town.dashboard = function() {
 	$('#golem-dashboard-Town').html(left+right);
 };
 
+Town.qualify = function(name, icon) {
+	var p;
+
+	if (isString(name)) {
+		// if name already has a qualifier, peel it off
+		if ((p = name.search(/\s*\(/m)) >= 0) {
+			name = name.substr(0, p).trim();
+		}
+
+		// if an icon is provided, use it to further qualify the name
+		if (isString(icon)) {
+			if (isObject(p = this.dup_map[name]) && (icon in p)) {
+				name = p[icon];
+			}
+		}
+	}
+
+	return name;
+};
+
 Town.dup_map = {
-	'Earth Shard': {
+	'Earth Shard': { // Alchemy
 		'gift_earth_1.jpg':	'Earth Shard (1)',
 		'gift_earth_2.jpg':	'Earth Shard (2)',
 		'gift_earth_3.jpg':	'Earth Shard (3)',
 		'gift_earth_4.jpg':	'Earth Shard (4)'
 	},
-	'Elven Crown': {
+	'Elven Crown': { // Helmet
 		'gift_aeris_complete.jpg':	'Elven Crown (Aeris)',
 		'eq_sylvanus_crown.jpg':	'Elven Crown (Sylvanas)'
 	},
-	'Green Emerald Shard': {
+	'Green Emerald Shard': { // Alchemy
 		'mystery_armor_emerald_1.jpg': 'Green Emerald Shard (1)',
 		'mystery_armor_emerald_2.jpg': 'Green Emerald Shard (2)'
+	},
+	'Maelstrom': { // Magic
+		'magic_maelstrom.jpg':		'Maelstrom (Marina)',
+		'eq_valhalla_spell.jpg':	'Maelstrom (Valhalla)'
 	}
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -13600,6 +13856,14 @@ FP.display = [
 
 FP.runtime = {
 	points:0
+};
+
+FP.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general=== 'under level 4') {
+	        this.set('option.general', 'under max level');
+	}
+	// END
 };
 
 FP.parse = function(change) {
@@ -13756,6 +14020,13 @@ Guild.display = [
 
 Guild.init = function() {
 	var now = Date.now();
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
 		this._remind((this.runtime.start - now) / 1000, 'start');
@@ -14064,6 +14335,13 @@ Festival.display = [
 
 Festival.init = function() {
 	var now = Date.now();
+
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
 		this._remind((this.runtime.start - now) / 1000, 'start');

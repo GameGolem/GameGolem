@@ -239,6 +239,12 @@ Battle.init = function() {
 		this.set('option.limit', i);
 	}
 
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	$('.Battle-prefer-on').live('click', function(event) {
 		Battle._unflush();
 		var uid = $(this).attr('name');

@@ -95,6 +95,12 @@ LevelUp.display = [
 ];
 
 LevelUp.init = function() {
+	// BEGIN: fix up "under level 4" generals
+	if (this.option.general_choice === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
 	this._watch(Player, 'data.exp');
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.stamina');
