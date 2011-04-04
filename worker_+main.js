@@ -45,8 +45,9 @@ Main.update = function(event) {
 			Workers[i]._init();
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true}, 'run');
+			Workers[i]._update({type:'init', self:true});
 		}
+		Worker.flush();
 	}
 	if (event.id !== 'startup') {
 		return;
@@ -156,7 +157,6 @@ Main.update = function(event) {
 	} else {
 		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	this._revive(1, 'flush', Worker.flush);
 //	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };

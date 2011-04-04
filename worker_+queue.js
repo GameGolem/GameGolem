@@ -292,7 +292,6 @@ Queue.update = function(event) {
 			}
 		}
 //		console.log(warn('End Queue'));
-		Worker.flush();
 		this._pop();
 	}
 };

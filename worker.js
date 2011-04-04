@@ -173,13 +173,23 @@ Worker.find = function(name) {
 /**
  * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
+Worker.flushTimer = null;
 Worker.flush = function() {
 	var i, t;
 	for (i in Workers) {
 		if (Workers[i]._updates_.length) {
 //			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
 			Workers[i]._update({}, 'run');
+			if (!Workers[i].settings.taint) { // Fix for non-taint workers
+				for (t in Workers[i]._datatypes) {
+					if (Workers[i]._datatypes[t]) {
+						Workers[i]._taint[t] = true;
+					}
+				}
+			}
 		}
+	}
+	for (i in Workers) {
 		if (Workers[i].settings.taint) {
 			for (t in Workers[i]._taint) {
 				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
@@ -193,6 +203,8 @@ Worker.flush = function() {
 			}
 		}
 	}
+	window.clearTimeout(Worker.flushTimer);
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 };
 
 // Static Data
@@ -529,9 +541,11 @@ Worker.prototype._save = function(type) {
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
 		this._push();
-		this._saving[type] = true;
-		this._update({}, 'run');
-		this._saving[type] = false;
+		if (this._updates_.length) {
+			this._saving[type] = true;
+			this._update({}, 'run');
+			this._saving[type] = false;
+		}
 		this._taint[type] = false;
 		if (this._datatypes[type]) {
 			this._timestamps[type] = Date.now();
@@ -748,7 +762,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, r;
+		var i, done, events;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -772,24 +786,24 @@ Worker.prototype._update = function(event, type) {
 			}
 		}
 		if (type === 'run') { // Go through the event list and process each one
-			while ((event = this._updates_.pop())) {
+			events = this._updates_;
+			this._updates_ = []; // Want an empty list to prevent it growing
+			while ((event = events.pop()) && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
 					event.worker = Worker.find(event.worker || this);
 					if (isFunction(this['update_'+event.type])) {
-						r = this['update_'+event.type](event);
+						done = this['update_'+event.type](event);
 					} else {
-						r = this.update(event);
+						done = this.update(event);
 					}
 				}catch(e) {
 					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 				}
-				if (r === true) { // If we have a single update function that handles everything that can happen
-					this._updates_ = [];
-				}
 			}
+			this._updates_ = []; // Make sure we don't directly update ourselves
 		}
 		this._pop();
 	}

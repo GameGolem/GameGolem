@@ -238,24 +238,19 @@ Quest.parse = function(change) {
 			reward = undefined;
 			if ($(el).hasClass('quests_background_sub')) { // Subquest
 				name = $('.quest_sub_title', el).text().trim();
-				if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
-				} else {
-					throw 'Unknown rewards';
-				}
+				assert((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
 				energy = $('.quest_req_sub', el).text().regex(/\b(\d+)\s*Energy\b/im);
-				level = $('.quest_sub_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
-				influence = $('.quest_sub_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
+				tmp = $('.quest_sub_progress', el).text();
+				level = tmp.regex(/\bLEVEL:?\s*(\d+)\b/im);
+				influence = tmp.regex(/\bINFLUENCE:?\s*(\d+)%/im);
 				type = 2;
 			} else {
 				name = $('.qd_1 b', el).text().trim();
-				if ((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
-				} else {
-					throw 'Unknown rewards';
-				}
+				assert((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
 				energy = $('.quest_req', el).text().regex(/\b(\d+)\s*Energy\b/im);
 				if ($(el).hasClass('quests_background')) { // Main quest
 					last_main = id;

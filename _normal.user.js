@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1055
+// @version		31.5.1056
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1055;
+var revision = 1056;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -848,13 +848,23 @@ Worker.find = function(name) {
 /**
  * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
+Worker.flushTimer = null;
 Worker.flush = function() {
 	var i, t;
 	for (i in Workers) {
 		if (Workers[i]._updates_.length) {
 //			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
 			Workers[i]._update({}, 'run');
+			if (!Workers[i].settings.taint) { // Fix for non-taint workers
+				for (t in Workers[i]._datatypes) {
+					if (Workers[i]._datatypes[t]) {
+						Workers[i]._taint[t] = true;
+					}
+				}
+			}
 		}
+	}
+	for (i in Workers) {
 		if (Workers[i].settings.taint) {
 			for (t in Workers[i]._taint) {
 				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
@@ -868,6 +878,8 @@ Worker.flush = function() {
 			}
 		}
 	}
+	window.clearTimeout(Worker.flushTimer);
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 };
 
 // Static Data
@@ -1204,9 +1216,11 @@ Worker.prototype._save = function(type) {
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
 		this._push();
-		this._saving[type] = true;
-		this._update({}, 'run');
-		this._saving[type] = false;
+		if (this._updates_.length) {
+			this._saving[type] = true;
+			this._update({}, 'run');
+			this._saving[type] = false;
+		}
 		this._taint[type] = false;
 		if (this._datatypes[type]) {
 			this._timestamps[type] = Date.now();
@@ -1423,7 +1437,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, r;
+		var i, done, events;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -1447,24 +1461,24 @@ Worker.prototype._update = function(event, type) {
 			}
 		}
 		if (type === 'run') { // Go through the event list and process each one
-			while ((event = this._updates_.pop())) {
+			events = this._updates_;
+			this._updates_ = []; // Want an empty list to prevent it growing
+			while ((event = events.pop()) && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
 					event.worker = Worker.find(event.worker || this);
 					if (isFunction(this['update_'+event.type])) {
-						r = this['update_'+event.type](event);
+						done = this['update_'+event.type](event);
 					} else {
-						r = this.update(event);
+						done = this.update(event);
 					}
 				}catch(e) {
 					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 				}
-				if (r === true) { // If we have a single update function that handles everything that can happen
-					this._updates_ = [];
-				}
 			}
+			this._updates_ = []; // Make sure we don't directly update ourselves
 		}
 		this._pop();
 	}
@@ -3379,8 +3393,9 @@ Main.update = function(event) {
 			Workers[i]._init();
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true}, 'run');
+			Workers[i]._update({type:'init', self:true});
 		}
+		Worker.flush();
 	}
 	if (event.id !== 'startup') {
 		return;
@@ -3490,7 +3505,6 @@ Main.update = function(event) {
 	} else {
 		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	this._revive(1, 'flush', Worker.flush);
 //	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
@@ -3699,7 +3713,6 @@ Page.update = function(event) {
 			for (i in list) {
 				Workers[i]._parse(true);
 			}
-			Worker.flush();
 		} else if (event.id === 'facebook') { // Need to act as if it's a page change
 			this._forget('retry');
 			this.set(['temp', 'loading'], false);
@@ -4159,7 +4172,6 @@ Queue.update = function(event) {
 			}
 		}
 //		console.log(warn('End Queue'));
-		Worker.flush();
 		this._pop();
 	}
 };
@@ -11442,24 +11454,19 @@ Quest.parse = function(change) {
 			reward = undefined;
 			if ($(el).hasClass('quests_background_sub')) { // Subquest
 				name = $('.quest_sub_title', el).text().trim();
-				if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
-				} else {
-					throw 'Unknown rewards';
-				}
+				assert((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
 				energy = $('.quest_req_sub', el).text().regex(/\b(\d+)\s*Energy\b/im);
-				level = $('.quest_sub_progress', el).text().regex(/\bLEVEL:?\s*(\d+)\b/im);
-				influence = $('.quest_sub_progress', el).text().regex(/\bINFLUENCE:?\s*(\d+)%/im);
+				tmp = $('.quest_sub_progress', el).text();
+				level = tmp.regex(/\bLEVEL:?\s*(\d+)\b/im);
+				influence = tmp.regex(/\bINFLUENCE:?\s*(\d+)%/im);
 				type = 2;
 			} else {
 				name = $('.qd_1 b', el).text().trim();
-				if ((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
-					exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
-					reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
-				} else {
-					throw 'Unknown rewards';
-				}
+				assert((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
+				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
+				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
 				energy = $('.quest_req', el).text().regex(/\b(\d+)\s*Energy\b/im);
 				if ($(el).hasClass('quests_background')) { // Main quest
 					last_main = id;

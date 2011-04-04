@@ -200,7 +200,6 @@ Page.update = function(event) {
 			for (i in list) {
 				Workers[i]._parse(true);
 			}
-			Worker.flush();
 		} else if (event.id === 'facebook') { // Need to act as if it's a page change
 			this._forget('retry');
 			this.set(['temp', 'loading'], false);
