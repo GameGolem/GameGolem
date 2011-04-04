@@ -16,7 +16,7 @@ Debug.data = null;
 Debug.settings = {
 //	system:true,
 	unsortable:true,
-	advanced:true,
+	debug:true,
 	taint:true
 };
 

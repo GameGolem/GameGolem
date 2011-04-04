@@ -8,6 +8,7 @@ utility.js
 worker.js
 ### System workers ###
 worker_+army.js
+worker_+coding.js
 worker_+config.js
 worker_+dashboard.js
 worker_+debug.js

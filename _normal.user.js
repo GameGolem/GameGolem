@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1053
+// @version		31.5.1054
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1053;
+var revision = 1054;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -698,6 +698,7 @@ new Worker(name, pages, settings)
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
 				no_disable (true/false) - stops a worker getting disabled
 				advanced (true/false) - only visible when "Advanced" is checked
+				debug (true/false) - only visible when "Debug" is checked
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
@@ -813,6 +814,7 @@ function Worker(name) {
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
 	this._transactions_ = null; // Will only be inside a transaction when this is an array of arrays - [[[path,to,data], value], ...]
+	this._updates_ = []; // Pending update events, array of objects, key = .worker + .type
 }
 
 // Static Functions
@@ -843,31 +845,29 @@ Worker.find = function(name) {
 	return null;
 };
 
-// Private status functions
 /**
- * Clear out all pending _watch events, notify the workers watching that it has happened via _update()
- * @param {string} worker Name of the worker that has notify events pending
- * @protected
+ * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
-Worker._notify_ = function(worker) {
-	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
-	Workers[worker]._watching_ = {};
-	for (i in w) {
-		j = watch[i].length;
-		while (j--) {
-			Workers[watch[i][j]]._update({worker:worker, type:'watch', id:i});
+Worker.flush = function() {
+	var i, t;
+	for (i in Workers) {
+		if (Workers[i]._updates_.length) {
+//			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
+			Workers[i]._update({}, 'run');
+		}
+		if (Workers[i].settings.taint) {
+			for (t in Workers[i]._taint) {
+				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
+//					console.log('Worker.flush(): '+i+'._save('+t+')');
+					Workers[i]._save(t);
+				}
+			}
+			if (!Workers[i].settings.keep) {
+//				console.log('Worker.flush(): delete '+i+'.data');
+				delete Workers[i]['data'];
+			}
 		}
 	}
-};
-
-/**
- * Delete Worker.data from a worker. By the time this is called it has already been saved.
- * @param {string} worker Name of the worker that is having it's data deleted.
- */
-Worker._flush_ = function(worker) {
-	Workers[worker]._reminders._flush = undefined;
-	Workers[worker]._save('data');
-	Workers[worker]['data'] = undefined;
 };
 
 // Static Data
@@ -877,17 +877,18 @@ Worker._triggers_ = [];// Used for this._trigger
 // Private functions - only override if you know exactly what you're doing
 /**
  * Save all changed datatypes then set a delay to delete this.data if possible
+ * NOTE: You should never call this directly - let Worker.flush() handle it instead!
+ * @protected
  */
 Worker.prototype._flush = function() {
-	this._push();
-	if (!this.settings.keep) {// && !this._reminders._flush) {
-		var name = this.name;
-		window.clearTimeout(this._reminders._flush);
-		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
-	} else {
-		this._save();
+	if (this['data']) {
+		this._push();
+		this._save('data');
+		if (!this.settings.keep) {
+			delete this['data'];
+		}
+		this._pop();
 	}
-	this._pop();
 };
 
 /**
@@ -921,8 +922,8 @@ Worker.prototype._forget = function(id) {
  */
 Worker.prototype._get = function(what, def, type) {
 	try {
-		var i, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
-		if (x.length && isObject(x[0]) || isArray(x[0])) { // Object or Array
+		var i, data, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		if (x.length && (isObject(x[0]) || isArray(x[0]))) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
 			if (!x.length || !(x[0] in this._datatypes)) {
@@ -1022,15 +1023,15 @@ Worker.prototype._load = function(type, merge) {
  * @param {(array|string)} path The path we want to notify on
  */
 Worker.prototype._notify = function(path) {
-	var i, txt = '', name = this.name;
+	var i, j, txt = '';
 	path = isArray(path) ? path : path.split('.');
-	for (i=0; i < path.length; i++) {
+	for (i=0; i<path.length; i++) {
 		txt += (i ? '.' : '') + path[i];
-		if (!this._watching_[txt] && this._watching[txt] !== undefined && this._watching[txt].length) {
-			if (!length(this._watching_)) {
-				window.setTimeout(function(){Worker._notify_(name);}, 50);
+		if (isArray(this._watching[txt])) {
+			j = this._watching[txt].length;
+			while (j--) {
+				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt});
 			}
-			this._watching_[txt] = true;
 		}
 	}
 };
@@ -1116,9 +1117,9 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback);};
+		fn = function(){Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['i' + id]) {
 		window.clearInterval(this._reminders['i' + id]);
@@ -1138,9 +1139,9 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback);};
+		fn = function(){Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
@@ -1204,8 +1205,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
-		this._forget('_'+type);
-		this._update({type:type, self:true});
+		this._update({}, 'run');
 		this._saving[type] = false;
 		this._taint[type] = false;
 		if (this._datatypes[type]) {
@@ -1232,7 +1232,7 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value, type) {
-	if (type && (isFunction(type) && !type(value)) || (isString(type) && typeof value !== type)) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
@@ -1252,7 +1252,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!compare(value, data[i])) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
-					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
+					this._update({type:path[0]});
 					if (isUndefined(value)) {
 						delete data[i];
 						return false;
@@ -1309,6 +1309,7 @@ Worker.prototype._setup = function() {
 			this._load(i, true); // Merge with default data, first time only
 			if (!this[i]) {
 				delete this._datatypes[i];
+				delete this[i]; // Make sure it's undefined and not null
 			}
 		}
 		if (this.setup) {
@@ -1361,7 +1362,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+					t[i][0]._update({worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});
 				}
 			}
 		});
@@ -1417,40 +1418,52 @@ Worker.prototype._unwatch = function(worker, path) {
  * Make sure the event passed is "clean", and that event.worker is a worker instead of a string
  * If .update() returns true then delete all pending _datatype update events
  * @param {(object|string)} event The event that we will copy and pass on to .update(). If it is a string then parse out to event.type
+ * @param {string=} type The type of update - key is event.worker+event.type. "add" (default) then will add to the update queue, "delete" will deleting matching keys, "purge" will purge the queue completely (use with care), "run" will run through the queue and act on every one
  */
-Worker.prototype._update = function(event) {
+Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, r, flush = false;
+		var i, r;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
 			event = {};
 		}
-		if (event.type === 'save') {
-			this._save(event.id);
-		} else if (isFunction(this.update) || (event.type && isFunction(this['update_'+event.type]))) {
-			event.worker = Worker.find(event.worker || this);
-			if (isUndefined(this.data) && this._datatypes.data) {
-				flush = true;
-				this._unflush();
-			}
-			try {
-				if (event.type && isFunction(this['update_'+event.type])) {
-					r = this['update_'+event.type](event);
-				} else {
-					r = this.update(event);
-				}
-				if (r) {
-					for (i in this._datatypes) {
-						this._forget('_'+i);
+		if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
+			event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
+			if (type !== 'purge') { // Delete from update queue
+				i = this._updates_.length;
+				while (i--) {
+					if (this._updates_[i].worker === event.worker && this._updates_[i].type === event.type && this._updates_[i].id === event.id) {
+						this._updates_.splice(i,1);
 					}
 				}
-			}catch(e) {
-				console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 			}
-			if (flush) {
-				this._flush();
+			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
+				this._updates_.push($.extend({}, event));
+			}
+			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
+				this._updates_ = [];
+			}
+		}
+		if (type === 'run') { // Go through the event list and process each one
+			while ((event = this._updates_.pop())) {
+				if (isUndefined(this.data) && this._datatypes.data) {
+					this._unflush();
+				}
+				try {
+					event.worker = Worker.find(event.worker || this);
+					if (isFunction(this['update_'+event.type])) {
+						r = this['update_'+event.type](event);
+					} else {
+						r = this.update(event);
+					}
+				}catch(e) {
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+				}
+				if (r === true) { // If we have a single update function that handles everything that can happen
+					this._updates_ = [];
+				}
 			}
 		}
 		this._pop();
@@ -1797,6 +1810,59 @@ Army.dashboard = function(sort, rev) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
+	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Coding:true,
+	Battle, Generals, LevelUp, Player,
+	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
+	GM_listValues, GM_deleteValue, localStorage
+*/
+/********** Worker.Coding **********
+* Just some coding nifo about current workers - nothing special
+*/
+var Coding = new Worker('Coding');
+Coding.data = Coding.option = Coding.runtime = Coding.temp = null;
+
+Coding.settings = {
+	system:true,
+	debug:true,
+	taint:true
+};
+
+Coding.dashboard = function() {
+	var i, j, html, list = [], types = ['system', 'advanced', 'debug', 'taint', 'keep'], data = ['display', 'dashboard', 'data', 'option', 'runtime', 'temp'];
+
+	for (i in Workers) {
+		html = '';
+		for (j=0; j<types.length; j++) {
+			if (Workers[i].settings[types[j]]) {
+				html += '<td class="green">true</td>';
+			} else {
+				html += '<td class="red">false</td>';
+			}
+		}
+		for (j=0; j<data.length; j++) {
+			if (Workers[i][data[j]]) {
+				html += '<td class="green">true</td>';
+			} else {
+				html += '<td class="red">false</td>';
+			}
+		}
+		list.push('<tr><th>' + i + '</th>' + html + '</tr>');
+	}
+	list.sort();
+	html = '';
+	for (j=0; j<types.length; j++) {
+		html += '<th>' + types[j].ucfirst() + '</td>';
+	}
+	for (j=0; j<data.length; j++) {
+		html += '<th>' + data[j].ucfirst() + '</td>';
+	}
+	$('#golem-dashboard-Coding').html('<table><tr><th></th>' + html + '</tr>' + list.join('') + '</table>');
+};
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
 	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
@@ -1818,6 +1884,7 @@ Config.option = {
 	display:'block',
 	fixed:false,
 	advanced:false,
+	debug:false,
 	exploit:false
 };
 
@@ -1864,6 +1931,7 @@ Config.init = function() {
 	$('.golem-config .golem-panel > h3').click(function(event){ // Toggle display of config panels
 		var worker = Worker.find($(this).parent().attr('id'));
 		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
+		Worker.flush();
 	});
 	$('.golem-config .golem-panel h4').click(function(event){ // Toggle display of config groups
 		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
@@ -1871,6 +1939,7 @@ Config.init = function() {
 			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
 			$this.toggleClass('golem-group-show');
 			$next.stop(true,true).toggle('blind');
+			Worker.flush();
 		}
 	});
 	$('#golem_config .golem-panel-sortable')
@@ -1960,11 +2029,13 @@ Config.init = function() {
 			}
 		}
 		multi_change_fn($multiple[0]);
+		Worker.flush();
 	});
 	$('input.golem_delselect').live('click', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
 		multi_change_fn($multiple[0]);
+		Worker.flush();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
@@ -1982,6 +2053,7 @@ Config.init = function() {
 			}
 			if (!handled) {
 				worker.set('option.'+tmp[1], val);
+				Worker.flush();
 			}
 		}
 	});
@@ -2032,6 +2104,7 @@ Config.init = function() {
 			Config.temp.menu = null;
 			$('#golem-menu').hide();
 		}
+		Worker.flush();
 		event.stopPropagation();
 		return false;
 	});
@@ -2040,23 +2113,26 @@ Config.init = function() {
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
+		Worker.flush();
 	});
 	$(document).click(function(event){ // Any click hides it, relevant handling done above
 		Config.temp.menu = null;
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
+		Worker.flush();
 	});
 	this._watch(this, 'option.advanced');
+	this._watch(this, 'option.debug');
 	this._watch(this, 'option.exploit');
 };
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
 		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length);
-		if (worker === this && (id === 'advanced' || id === 'exploit')) {
+		if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
 			for (i in Workers) {
-				if (Workers[i].settings.advanced || Workers[i].settings.exploit) {
-					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
+				if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
+					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
 		} else if (id === '_config._show') { // Fold / unfold a config panel or group panel
@@ -2098,7 +2174,8 @@ Config.menu = function(worker, key) {
 		if (!key) {
 			return [
 				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
-				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options'
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options',
+				'debug:' + (this.option.debug ? '+' : '-') + 'Debug&nbsp;Options'
 			];
 		} else if (key) {
 			switch (key) {
@@ -2108,6 +2185,10 @@ Config.menu = function(worker, key) {
 					break;
 				case 'advanced':
 					this._set(['option','advanced'], !this.option.advanced);
+					this.checkRequire();
+					break;
+				case 'debug':
+					this._set(['option','debug'], !this.option.debug);
 					this.checkRequire();
 					break;
 			}
@@ -2132,7 +2213,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 		this._watch(worker, 'option._config._show');
 		this._watch(worker, 'option._sleep');
 	} else {
@@ -2341,13 +2422,17 @@ Config.makeOption = function(worker, args) {
 		txt.push('</span>');
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
-	if (o.require || o.advanced || o.exploit) {
+	if (o.require || o.advanced || o.debug || o.exploit) {
 		try {
 			r = {depth:0};
 			r.require = {};
 			if (o.advanced) {
 				r.require.advanced = true;
 				$option.css('background','#ffeeee');
+			}
+			if (o.debug) {
+				r.require.debug = true;
+				$option.css({border:'1px solid blue', background:'#ddddff'});
 			}
 			if (o.exploit) {
 				r.require.exploit = true;
@@ -2407,6 +2492,9 @@ Config.checkRequire = function(id) {
 	if (require.advanced) {
 		show = Config.option.advanced;
 	}
+	if (require.debug) {
+		show = Config.option.debug;
+	}
 	if (show && require.exploit) {
 		show = Config.option.exploit;
 	}
@@ -2445,7 +2533,6 @@ Dashboard.temp = null;
 
 Dashboard.settings = {
 	taint:true
-//	keep:true
 };
 
 Dashboard.option = {
@@ -2473,11 +2560,11 @@ Dashboard.init = function() {
 	this._watch(this, 'option._hide_dashboard');
 	for (j=0; j<list.length; j++) {
 		i = list[j];
-		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced) || (Workers[i].settings.debug && !Config.option.debug);
 		if (hide && this.option.active === i) {
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ?'background:#ffeeee;' : '') + '">' + i + '</h3>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
 		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
@@ -2520,6 +2607,7 @@ Dashboard.init = function() {
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
+	this._watch(Config, 'option.debug');
 };
 
 Dashboard.update_trigger = function(event) {
@@ -2539,16 +2627,18 @@ Dashboard.update_trigger = function(event) {
 };
 
 Dashboard.update_watch = function(event) {
-	if (event.id === 'option.advanced') {
+	var i, settings, advanced, debug;
+	if (event.id === 'option.advanced' || event.id === 'option.debug') {
+		advanced = Config.get(['option','advanced'], false);
+		debug = Config.get(['option','debug'], false);
 		for (var i in Workers) {
-			if (Workers[i].settings.advanced) {
-				if (Config.option.advanced) {
-					$('#golem-dashboard > h3[name="'+i+'"]').show();
-				} else {
-					$('#golem-dashboard > h3[name="'+i+'"]').hide();
-					if (this.option.active === i) {
-						this.set(['option','active'], this.name);
-					}
+			settings = Workers[i].settings;
+			if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
+				$('#golem-dashboard > h3[name="'+i+'"]').show();
+			} else {
+				$('#golem-dashboard > h3[name="'+i+'"]').hide();
+				if (this.option.active === i) {
+					this.set(['option','active'], this.name);
 				}
 			}
 		}
@@ -2653,7 +2743,7 @@ Debug.data = null;
 Debug.settings = {
 //	system:true,
 	unsortable:true,
-	advanced:true,
+	debug:true,
 	taint:true
 };
 
@@ -3270,20 +3360,6 @@ Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
 };
 
-Main.autoSave = function() { // Automatically save everything that we can - called as a revive callback once Golem is running
-	var i, t;
-	for (i in Workers) {
-		if (Workers[i].settings.taint) {
-			for (t in Workers[i]._taint) {
-				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
-//						console.log(log('NOTE: Saving '+i+'.'+t));
-					Workers[i]._save(t);
-				}
-			}
-		}
-	}
-};
-
 Main.parse = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
@@ -3303,7 +3379,7 @@ Main.update = function(event) {
 			Workers[i]._init();
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true});
+			Workers[i]._update({type:'init', self:true}, 'run');
 		}
 	}
 	if (event.id !== 'startup') {
@@ -3414,8 +3490,8 @@ Main.update = function(event) {
 	} else {
 		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	this._revive(1, 'save', this.autoSave);
-//	window.onbeforeunload = this.autoSave; // Make sure we've saved everything before quitting - not standard in all browsers
+	this._revive(1, 'flush', Worker.flush);
+//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
@@ -3623,9 +3699,7 @@ Page.update = function(event) {
 			for (i in list) {
 				Workers[i]._parse(true);
 			}
-			for (i in Workers) {
-				Workers[i]._flush();
-			}
+			Worker.flush();
 		} else if (event.id === 'facebook') { // Need to act as if it's a page change
 			this._forget('retry');
 			this.set(['temp', 'loading'], false);
@@ -4079,16 +4153,13 @@ Queue.update = function(event) {
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			this.clearCurrent();
 			console.log(warn('Trigger ' + next.name));
-			this.set('runtime.current', next.name);
+			this.set(['runtime','current'], next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
-			this._notify('runtime.current');
 		}
 //		console.log(warn('End Queue'));
-		for (i in Workers) {
-			Workers[i]._flush();
-		}
+		Worker.flush();
 		this._pop();
 	}
 };
@@ -4353,7 +4424,7 @@ Script.option = {
 
 Script.settings = {
 	system:true,
-	advanced:true,
+	debug:true,
 	taint:true
 };
 

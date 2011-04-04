@@ -21,6 +21,7 @@ Config.option = {
 	display:'block',
 	fixed:false,
 	advanced:false,
+	debug:false,
 	exploit:false
 };
 
@@ -67,6 +68,7 @@ Config.init = function() {
 	$('.golem-config .golem-panel > h3').click(function(event){ // Toggle display of config panels
 		var worker = Worker.find($(this).parent().attr('id'));
 		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
+		Worker.flush();
 	});
 	$('.golem-config .golem-panel h4').click(function(event){ // Toggle display of config groups
 		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
@@ -74,6 +76,7 @@ Config.init = function() {
 			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
 			$this.toggleClass('golem-group-show');
 			$next.stop(true,true).toggle('blind');
+			Worker.flush();
 		}
 	});
 	$('#golem_config .golem-panel-sortable')
@@ -163,11 +166,13 @@ Config.init = function() {
 			}
 		}
 		multi_change_fn($multiple[0]);
+		Worker.flush();
 	});
 	$('input.golem_delselect').live('click', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
 		multi_change_fn($multiple[0]);
+		Worker.flush();
 	});
 	$('#golem_config input,textarea,select').live('change', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
@@ -185,6 +190,7 @@ Config.init = function() {
 			}
 			if (!handled) {
 				worker.set('option.'+tmp[1], val);
+				Worker.flush();
 			}
 		}
 	});
@@ -235,6 +241,7 @@ Config.init = function() {
 			Config.temp.menu = null;
 			$('#golem-menu').hide();
 		}
+		Worker.flush();
 		event.stopPropagation();
 		return false;
 	});
@@ -243,23 +250,26 @@ Config.init = function() {
 //		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
+		Worker.flush();
 	});
 	$(document).click(function(event){ // Any click hides it, relevant handling done above
 		Config.temp.menu = null;
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
+		Worker.flush();
 	});
 	this._watch(this, 'option.advanced');
+	this._watch(this, 'option.debug');
 	this._watch(this, 'option.exploit');
 };
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
 		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length);
-		if (worker === this && (id === 'advanced' || id === 'exploit')) {
+		if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
 			for (i in Workers) {
-				if (Workers[i].settings.advanced || Workers[i].settings.exploit) {
-					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
+				if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
+					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
 		} else if (id === '_config._show') { // Fold / unfold a config panel or group panel
@@ -301,7 +311,8 @@ Config.menu = function(worker, key) {
 		if (!key) {
 			return [
 				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
-				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options'
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options',
+				'debug:' + (this.option.debug ? '+' : '-') + 'Debug&nbsp;Options'
 			];
 		} else if (key) {
 			switch (key) {
@@ -311,6 +322,10 @@ Config.menu = function(worker, key) {
 					break;
 				case 'advanced':
 					this._set(['option','advanced'], !this.option.advanced);
+					this.checkRequire();
+					break;
+				case 'debug':
+					this._set(['option','debug'], !this.option.debug);
 					this.checkRequire();
 					break;
 			}
@@ -335,7 +350,7 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
 		this._watch(worker, 'option._config._show');
 		this._watch(worker, 'option._sleep');
 	} else {
@@ -544,13 +559,17 @@ Config.makeOption = function(worker, args) {
 		txt.push('</span>');
 	}
 	$option = $('<div>' + txt.join('') + '</div>');
-	if (o.require || o.advanced || o.exploit) {
+	if (o.require || o.advanced || o.debug || o.exploit) {
 		try {
 			r = {depth:0};
 			r.require = {};
 			if (o.advanced) {
 				r.require.advanced = true;
 				$option.css('background','#ffeeee');
+			}
+			if (o.debug) {
+				r.require.debug = true;
+				$option.css({border:'1px solid blue', background:'#ddddff'});
 			}
 			if (o.exploit) {
 				r.require.exploit = true;
@@ -609,6 +628,9 @@ Config.checkRequire = function(id) {
 	}
 	if (require.advanced) {
 		show = Config.option.advanced;
+	}
+	if (require.debug) {
+		show = Config.option.debug;
 	}
 	if (show && require.exploit) {
 		show = Config.option.exploit;

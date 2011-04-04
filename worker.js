@@ -23,6 +23,7 @@ new Worker(name, pages, settings)
 				unsortable (true/false) - stops a worker being sorted in the queue, prevents this.work(true)
 				no_disable (true/false) - stops a worker getting disabled
 				advanced (true/false) - only visible when "Advanced" is checked
+				debug (true/false) - only visible when "Debug" is checked
 				before (array of worker names) - never let these workers get before us when sorting
 				after (array of worker names) - never let these workers get after us when sorting
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
@@ -138,6 +139,7 @@ function Worker(name) {
 	this._watching_ = {}; // Changes have happened, path:true
 	this._reminders = {};
 	this._transactions_ = null; // Will only be inside a transaction when this is an array of arrays - [[[path,to,data], value], ...]
+	this._updates_ = []; // Pending update events, array of objects, key = .worker + .type
 }
 
 // Static Functions
@@ -168,31 +170,29 @@ Worker.find = function(name) {
 	return null;
 };
 
-// Private status functions
 /**
- * Clear out all pending _watch events, notify the workers watching that it has happened via _update()
- * @param {string} worker Name of the worker that has notify events pending
- * @protected
+ * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
-Worker._notify_ = function(worker) {
-	var i, j, w = Workers[worker]._watching_, watch = Workers[worker]._watching;
-	Workers[worker]._watching_ = {};
-	for (i in w) {
-		j = watch[i].length;
-		while (j--) {
-			Workers[watch[i][j]]._update({worker:worker, type:'watch', id:i});
+Worker.flush = function() {
+	var i, t;
+	for (i in Workers) {
+		if (Workers[i]._updates_.length) {
+//			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
+			Workers[i]._update({}, 'run');
+		}
+		if (Workers[i].settings.taint) {
+			for (t in Workers[i]._taint) {
+				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
+//					console.log('Worker.flush(): '+i+'._save('+t+')');
+					Workers[i]._save(t);
+				}
+			}
+			if (!Workers[i].settings.keep) {
+//				console.log('Worker.flush(): delete '+i+'.data');
+				delete Workers[i]['data'];
+			}
 		}
 	}
-};
-
-/**
- * Delete Worker.data from a worker. By the time this is called it has already been saved.
- * @param {string} worker Name of the worker that is having it's data deleted.
- */
-Worker._flush_ = function(worker) {
-	Workers[worker]._reminders._flush = undefined;
-	Workers[worker]._save('data');
-	Workers[worker]['data'] = undefined;
 };
 
 // Static Data
@@ -202,17 +202,18 @@ Worker._triggers_ = [];// Used for this._trigger
 // Private functions - only override if you know exactly what you're doing
 /**
  * Save all changed datatypes then set a delay to delete this.data if possible
+ * NOTE: You should never call this directly - let Worker.flush() handle it instead!
+ * @protected
  */
 Worker.prototype._flush = function() {
-	this._push();
-	if (!this.settings.keep) {// && !this._reminders._flush) {
-		var name = this.name;
-		window.clearTimeout(this._reminders._flush);
-		this._reminders._flush = window.setTimeout(function(){Worker._flush_(name);}, 500);// Delete data after half a second
-	} else {
-		this._save();
+	if (this['data']) {
+		this._push();
+		this._save('data');
+		if (!this.settings.keep) {
+			delete this['data'];
+		}
+		this._pop();
 	}
-	this._pop();
 };
 
 /**
@@ -246,8 +247,8 @@ Worker.prototype._forget = function(id) {
  */
 Worker.prototype._get = function(what, def, type) {
 	try {
-		var i, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
-		if (x.length && isObject(x[0]) || isArray(x[0])) { // Object or Array
+		var i, data, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		if (x.length && (isObject(x[0]) || isArray(x[0]))) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
 			if (!x.length || !(x[0] in this._datatypes)) {
@@ -347,15 +348,15 @@ Worker.prototype._load = function(type, merge) {
  * @param {(array|string)} path The path we want to notify on
  */
 Worker.prototype._notify = function(path) {
-	var i, txt = '', name = this.name;
+	var i, j, txt = '';
 	path = isArray(path) ? path : path.split('.');
-	for (i=0; i < path.length; i++) {
+	for (i=0; i<path.length; i++) {
 		txt += (i ? '.' : '') + path[i];
-		if (!this._watching_[txt] && this._watching[txt] !== undefined && this._watching[txt].length) {
-			if (!length(this._watching_)) {
-				window.setTimeout(function(){Worker._notify_(name);}, 50);
+		if (isArray(this._watching[txt])) {
+			j = this._watching[txt].length;
+			while (j--) {
+				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt});
 			}
-			this._watching_[txt] = true;
 		}
 	}
 };
@@ -441,9 +442,9 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback);};
+		fn = function(){Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['i' + id]) {
 		window.clearInterval(this._reminders['i' + id]);
@@ -463,9 +464,9 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback);};
+		fn = function(){Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)});};
+		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
@@ -529,8 +530,7 @@ Worker.prototype._save = function(type) {
 	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
 		this._push();
 		this._saving[type] = true;
-		this._forget('_'+type);
-		this._update({type:type, self:true});
+		this._update({}, 'run');
 		this._saving[type] = false;
 		this._taint[type] = false;
 		if (this._datatypes[type]) {
@@ -557,7 +557,7 @@ Worker.prototype._save = function(type) {
  * @return {*} The value we passed in
  */
 Worker.prototype._set = function(what, value, type) {
-	if (type && (isFunction(type) && !type(value)) || (isString(type) && typeof value !== type)) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
@@ -577,7 +577,7 @@ Worker.prototype._set = function(what, value, type) {
 				if (!compare(value, data[i])) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
-					this._remind(0, '_'+path[0], {type:'save', id:path[0]});
+					this._update({type:path[0]});
 					if (isUndefined(value)) {
 						delete data[i];
 						return false;
@@ -634,6 +634,7 @@ Worker.prototype._setup = function() {
 			this._load(i, true); // Merge with default data, first time only
 			if (!this[i]) {
 				delete this._datatypes[i];
+				delete this[i]; // Make sure it's undefined and not null
 			}
 		}
 		if (this.setup) {
@@ -686,7 +687,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.1, '_trigger' + t[i][2], {worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});// 100ms delay in case of multiple changes in sequence
+					t[i][0]._update({worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});
 				}
 			}
 		});
@@ -742,40 +743,52 @@ Worker.prototype._unwatch = function(worker, path) {
  * Make sure the event passed is "clean", and that event.worker is a worker instead of a string
  * If .update() returns true then delete all pending _datatype update events
  * @param {(object|string)} event The event that we will copy and pass on to .update(). If it is a string then parse out to event.type
+ * @param {string=} type The type of update - key is event.worker+event.type. "add" (default) then will add to the update queue, "delete" will deleting matching keys, "purge" will purge the queue completely (use with care), "run" will run through the queue and act on every one
  */
-Worker.prototype._update = function(event) {
+Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, r, flush = false;
+		var i, r;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
 			event = {};
 		}
-		if (event.type === 'save') {
-			this._save(event.id);
-		} else if (isFunction(this.update) || (event.type && isFunction(this['update_'+event.type]))) {
-			event.worker = Worker.find(event.worker || this);
-			if (isUndefined(this.data) && this._datatypes.data) {
-				flush = true;
-				this._unflush();
-			}
-			try {
-				if (event.type && isFunction(this['update_'+event.type])) {
-					r = this['update_'+event.type](event);
-				} else {
-					r = this.update(event);
-				}
-				if (r) {
-					for (i in this._datatypes) {
-						this._forget('_'+i);
+		if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
+			event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
+			if (type !== 'purge') { // Delete from update queue
+				i = this._updates_.length;
+				while (i--) {
+					if (this._updates_[i].worker === event.worker && this._updates_[i].type === event.type && this._updates_[i].id === event.id) {
+						this._updates_.splice(i,1);
 					}
 				}
-			}catch(e) {
-				console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 			}
-			if (flush) {
-				this._flush();
+			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
+				this._updates_.push($.extend({}, event));
+			}
+			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
+				this._updates_ = [];
+			}
+		}
+		if (type === 'run') { // Go through the event list and process each one
+			while ((event = this._updates_.pop())) {
+				if (isUndefined(this.data) && this._datatypes.data) {
+					this._unflush();
+				}
+				try {
+					event.worker = Worker.find(event.worker || this);
+					if (isFunction(this['update_'+event.type])) {
+						r = this['update_'+event.type](event);
+					} else {
+						r = this.update(event);
+					}
+				}catch(e) {
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+				}
+				if (r === true) { // If we have a single update function that handles everything that can happen
+					this._updates_ = [];
+				}
 			}
 		}
 		this._pop();

@@ -31,7 +31,7 @@ Script.option = {
 
 Script.settings = {
 	system:true,
-	advanced:true,
+	debug:true,
 	taint:true
 };
 

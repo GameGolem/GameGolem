@@ -26,20 +26,6 @@ Main.add = function(app, appid, appname) {
 	this._apps_[app] = [appid, appname];
 };
 
-Main.autoSave = function() { // Automatically save everything that we can - called as a revive callback once Golem is running
-	var i, t;
-	for (i in Workers) {
-		if (Workers[i].settings.taint) {
-			for (t in Workers[i]._taint) {
-				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
-//						console.log(log('NOTE: Saving '+i+'.'+t));
-					Workers[i]._save(t);
-				}
-			}
-		}
-	}
-};
-
 Main.parse = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
@@ -59,7 +45,7 @@ Main.update = function(event) {
 			Workers[i]._init();
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true});
+			Workers[i]._update({type:'init', self:true}, 'run');
 		}
 	}
 	if (event.id !== 'startup') {
@@ -170,8 +156,8 @@ Main.update = function(event) {
 	} else {
 		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
 	}
-	this._revive(1, 'save', this.autoSave);
-//	window.onbeforeunload = this.autoSave; // Make sure we've saved everything before quitting - not standard in all browsers
+	this._revive(1, 'flush', Worker.flush);
+//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 

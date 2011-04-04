@@ -15,7 +15,6 @@ Dashboard.temp = null;
 
 Dashboard.settings = {
 	taint:true
-//	keep:true
 };
 
 Dashboard.option = {
@@ -43,11 +42,11 @@ Dashboard.init = function() {
 	this._watch(this, 'option._hide_dashboard');
 	for (j=0; j<list.length; j++) {
 		i = list[j];
-		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced);
+		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced) || (Workers[i].settings.debug && !Config.option.debug);
 		if (hide && this.option.active === i) {
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ?'background:#ffeeee;' : '') + '">' + i + '</h3>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
 		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
@@ -90,6 +89,7 @@ Dashboard.init = function() {
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
+	this._watch(Config, 'option.debug');
 };
 
 Dashboard.update_trigger = function(event) {
@@ -109,16 +109,18 @@ Dashboard.update_trigger = function(event) {
 };
 
 Dashboard.update_watch = function(event) {
-	if (event.id === 'option.advanced') {
+	var i, settings, advanced, debug;
+	if (event.id === 'option.advanced' || event.id === 'option.debug') {
+		advanced = Config.get(['option','advanced'], false);
+		debug = Config.get(['option','debug'], false);
 		for (var i in Workers) {
-			if (Workers[i].settings.advanced) {
-				if (Config.option.advanced) {
-					$('#golem-dashboard > h3[name="'+i+'"]').show();
-				} else {
-					$('#golem-dashboard > h3[name="'+i+'"]').hide();
-					if (this.option.active === i) {
-						this.set(['option','active'], this.name);
-					}
+			settings = Workers[i].settings;
+			if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
+				$('#golem-dashboard > h3[name="'+i+'"]').show();
+			} else {
+				$('#golem-dashboard > h3[name="'+i+'"]').hide();
+				if (this.option.active === i) {
+					this.set(['option','active'], this.name);
 				}
 			}
 		}

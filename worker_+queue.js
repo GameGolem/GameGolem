@@ -286,16 +286,13 @@ Queue.update = function(event) {
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			this.clearCurrent();
 			console.log(warn('Trigger ' + next.name));
-			this.set('runtime.current', next.name);
+			this.set(['runtime','current'], next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
-			this._notify('runtime.current');
 		}
 //		console.log(warn('End Queue'));
-		for (i in Workers) {
-			Workers[i]._flush();
-		}
+		Worker.flush();
 		this._pop();
 	}
 };
