@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1054
+// @version		31.5.1055
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1054;
+var revision = 1055;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -11402,7 +11402,7 @@ Quest.init = function() {
 };
 
 Quest.parse = function(change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units;
+	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (Page.page === 'quests_demiquests') {
@@ -11433,6 +11433,13 @@ Quest.parse = function(change) {
 			assert(id = parseInt(tmp.val() || '0'), 'Bad quest id: '+tmp.val());
 			this._transaction(); // BEGIN TRANSACTION
 			delete purge[id]; // We've found it, and further errors shouldn't delete it
+			name = undefined;
+			type = undefined;
+			level = undefined;
+			influence = undefined;
+			energy = undefined;
+			exp = undefined;
+			reward = undefined;
 			if ($(el).hasClass('quests_background_sub')) { // Subquest
 				name = $('.quest_sub_title', el).text().trim();
 				if ((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000'))) {
@@ -11474,13 +11481,14 @@ Quest.parse = function(change) {
 			this.set(['data','id',id,'land'], isNumber(land) ? land : undefined);
 			this.set(['data','id',id,'main'], type === 2 && last_main ? last_main : undefined);
 			if (isNumber(influence)) {
+				m_l = this.get(['data','id',id,'level'], 0, 'number'); // last influence value
+				m_i = this.get(['data','id',id,'influence'], 0, 'number'); // last influence value
 				this.set(['data','id',id,'level'], level || 0);
 				this.set(['data','id',id,'influence'], influence);
 				m_c = this.get(['data','id',id,'m_c'], 0, 'number'); // percentage count metric
 				m_d = this.get(['data','id',id,'m_d'], 0, 'number'); // percentage delta metric
-				m_i = this.get(['data','id',id,'influence'], 0, 'number'); // last influence value
 				reps = this.get(['data','id',id,'reps'], 0, 'number'); // average reps needed per level
-				if (m_i < influence && influence < 100) {
+				if (m_l === (level || 0) && m_i < influence && influence < 100) {
 					m_d += influence - m_i;
 					m_c++;
 				}
