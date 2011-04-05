@@ -244,11 +244,11 @@ Alchemy.update = function(event) {
 Alchemy.work = function(state) {
 	var now = Date.now();
 
-	if (!best && !Page.isStale('keep_alchemy')) {
+	if (!this.runtime.best && !Page.isStale('keep_alchemy')) {
 		return QUEUE_FINISH;
 	} else if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
-	} else if (this.runtime.best) {
+	} else {
 		console.log(warn('Perform - ' + this.runtime.best));
 		if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 			console.log(warn("Can't find the recipe - waiting a minute"));

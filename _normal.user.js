@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1058
+// @version		31.5.1059
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1058;
+var revision = 1059;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -5730,11 +5730,11 @@ Alchemy.update = function(event) {
 Alchemy.work = function(state) {
 	var now = Date.now();
 
-	if (!best && !Page.isStale('keep_alchemy')) {
+	if (!this.runtime.best && !Page.isStale('keep_alchemy')) {
 		return QUEUE_FINISH;
 	} else if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
-	} else if (this.runtime.best) {
+	} else {
 		console.log(warn('Perform - ' + this.runtime.best));
 		if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
 			console.log(warn("Can't find the recipe - waiting a minute"));
