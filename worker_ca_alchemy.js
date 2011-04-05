@@ -244,9 +244,9 @@ Alchemy.update = function(event) {
 Alchemy.work = function(state) {
 	var now = Date.now();
 
-	if (!state && !best && !Page.isStale('keep_alchemy')) {
+	if (!best && !Page.isStale('keep_alchemy')) {
 		return QUEUE_FINISH;
-	} else if (!Page.to('keep_alchemy')) {
+	} else if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
 	} else if (this.runtime.best) {
 		console.log(warn('Perform - ' + this.runtime.best));
