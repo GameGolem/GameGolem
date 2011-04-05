@@ -105,7 +105,7 @@ Global._overload(null, 'work', function(state) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to('http://www.cloutman.com/reload.php');
+		Page.to('http://www.cloutman.com/reload.php', '', true);
 	}
 	return this._parent();
 });
@@ -126,7 +126,7 @@ Page.init = function() {
 		$('#fbDockChat').hide();
 	}
 	$('.golem-link').live('click', function(event){
-		if (!Page.to($(this).attr('href'), false)) {
+		if (!Page.to($(this).attr('href'), '', false)) {
 			return false;
 		}
 	});

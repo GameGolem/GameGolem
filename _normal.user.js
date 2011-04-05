@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1060
+// @version		31.5.1061
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1060;
+var revision = 1061;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3618,7 +3618,7 @@ Global._overload(null, 'work', function(state) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to('http://www.cloutman.com/reload.php');
+		Page.to('http://www.cloutman.com/reload.php', '', true);
 	}
 	return this._parent();
 });
@@ -3639,7 +3639,7 @@ Page.init = function() {
 		$('#fbDockChat').hide();
 	}
 	$('.golem-link').live('click', function(event){
-		if (!Page.to($(this).attr('href'), false)) {
+		if (!Page.to($(this).attr('href'), '', false)) {
 			return false;
 		}
 	});
