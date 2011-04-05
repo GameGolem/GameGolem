@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1059
+// @version		31.5.1060
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1059;
+var revision = 1060;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -13140,6 +13140,8 @@ Town.setup = function() {
 };
 
 Town.init = function() {
+	var now = Date.now(), i;
+
 	this._watch(Player, 'data.worth');			// cash available
 	this._watch(Player, 'data.army');			// current army size
 	this._watch(Player, 'data.armymax');		// capped army size (player)

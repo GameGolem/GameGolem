@@ -328,6 +328,8 @@ Town.setup = function() {
 };
 
 Town.init = function() {
+	var now = Date.now(), i;
+
 	this._watch(Player, 'data.worth');			// cash available
 	this._watch(Player, 'data.army');			// current army size
 	this._watch(Player, 'data.armymax');		// capped army size (player)
