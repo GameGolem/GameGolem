@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1063
+// @version		31.5.1064
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1063;
+var revision = 1064;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3396,7 +3396,7 @@ Main.update = function(event) {
 			}
 			console.log('GameGolem: Reverting from r' + old_revision + ' to r' + revision);
 		} else if (old_revision < revision) {
-			console.log('GameGolem: Updating from r' + old_revision + ' to r' + revision);
+			console.log('GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
@@ -3633,7 +3633,7 @@ Global._overload(null, 'work', function(state) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to('http://www.cloutman.com/reload.php', '', true);
+		Page.to('http://www.cloutman.com/reload.php', null, true);
 	}
 	return this._parent();
 });
@@ -3654,7 +3654,7 @@ Page.init = function() {
 		$('#fbDockChat').hide();
 	}
 	$('.golem-link').live('click', function(event){
-		if (!Page.to($(this).attr('href'), '', false)) {
+		if (!Page.to($(this).attr('href'), null, false)) {
 			return false;
 		}
 	});
@@ -3753,7 +3753,7 @@ Page.makeURL = function(url, args) {
 			url = url.substr(abs.length);
 		}
 	}
-	if (isString(args)) {
+	if (isString(args) && args.length) {
 		url += (/^\?/.test(args) ? '' : '?') + args;
 	} else if (isObject(args)) {
 		url += '?' + decodeURIComponent($.param(args));

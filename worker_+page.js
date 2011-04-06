@@ -105,7 +105,7 @@ Global._overload(null, 'work', function(state) {
 		if (!state) {
 			return QUEUE_CONTINUE;
 		}
-		Page.to('http://www.cloutman.com/reload.php', '', true);
+		Page.to('http://www.cloutman.com/reload.php', null, true);
 	}
 	return this._parent();
 });
@@ -126,7 +126,7 @@ Page.init = function() {
 		$('#fbDockChat').hide();
 	}
 	$('.golem-link').live('click', function(event){
-		if (!Page.to($(this).attr('href'), '', false)) {
+		if (!Page.to($(this).attr('href'), null, false)) {
 			return false;
 		}
 	});
@@ -225,7 +225,7 @@ Page.makeURL = function(url, args) {
 			url = url.substr(abs.length);
 		}
 	}
-	if (isString(args)) {
+	if (isString(args) && args.length) {
 		url += (/^\?/.test(args) ? '' : '?') + args;
 	} else if (isObject(args)) {
 		url += '?' + decodeURIComponent($.param(args));

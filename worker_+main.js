@@ -48,7 +48,7 @@ Main.update = function(event) {
 			}
 			console.log('GameGolem: Reverting from r' + old_revision + ' to r' + revision);
 		} else if (old_revision < revision) {
-			console.log('GameGolem: Updating from r' + old_revision + ' to r' + revision);
+			console.log('GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
