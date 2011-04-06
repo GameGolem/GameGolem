@@ -367,7 +367,7 @@ Worker.prototype._notify = function(path) {
 		if (isArray(this._watching[txt])) {
 			j = this._watching[txt].length;
 			while (j--) {
-				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt});
+				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt, path:path.join('.')});
 			}
 		}
 	}

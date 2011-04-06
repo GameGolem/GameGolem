@@ -14,7 +14,8 @@ var Config = new Worker('Config');
 
 Config.settings = {
 	system:true,
-	keep:true
+	keep:true,
+	taint:true
 };
 
 Config.option = {
@@ -58,7 +59,7 @@ Config.init = function() {
 	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
 	$('#golem_options').click(function(){
 		$(this).toggleClass('golem-button golem-button-active');
-		Config.option.display = Config.option.display==='block' ? 'none' : 'block';
+		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
 		Config._save('option');
 	});
@@ -202,8 +203,8 @@ Config.init = function() {
 	$('.golem-icon-menu').click(function(event) {
 		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
-		if (Config.temp.menu !== name) {
-			Config.temp.menu = name;
+		if (Config.get(['temp','menu']) !== name) {
+			Config.set(['temp','menu'], name);
 			for (i in Workers) {
 				if (Workers[i].menu) {
 					hr = true;
@@ -233,12 +234,12 @@ Config.init = function() {
 			$this.addClass('golem-icon-menu-active');
 			$('#golem-menu').html(html || 'no&nbsp;options');
 			$('#golem-menu').css({
-				position:Config.option.fixed ? 'fixed' : 'absolute',
+				position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
 				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true) - 4)
 			}).show();
 		} else {// Need to stop it going up to the config panel, but still close the menu if needed
-			Config.temp.menu = null;
+			Config.set(['temp','menu']);
 			$('#golem-menu').hide();
 		}
 		Worker.flush();
@@ -253,7 +254,7 @@ Config.init = function() {
 		Worker.flush();
 	});
 	$(document).click(function(event){ // Any click hides it, relevant handling done above
-		Config.temp.menu = null;
+		Config.set(['temp','menu']);
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
 		Worker.flush();
@@ -265,8 +266,24 @@ Config.init = function() {
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
-		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length);
-		if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value;
+		if (worker === this && event.id === 'data') { // Changing one of our dropdown lists
+			value = this.get(event.path);
+			if (isArray(value)) {
+				for (i=0; i<value.length; i++) {
+					options.push('<option value="' + value[i] + '">' + value[i] + '</option>');
+				}
+			} else if (isObject(value)) {
+				for (i in value) {
+					options.push('<option value="' + i + '">' + value[i] + '</option>');
+				}
+			}
+			options = options.join('');
+			$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
+				var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
+				$(el).html(options).val(val);
+			});
+		} else if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
 			for (i in Workers) {
 				if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
 					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
@@ -317,15 +334,15 @@ Config.menu = function(worker, key) {
 		} else if (key) {
 			switch (key) {
 				case 'fixed':
-					this._set(['option','fixed'], !this.option.fixed);
+					this.set(['option','fixed'], !this.option.fixed);
 					$('#golem_config_frame').toggleClass('golem-config-fixed');
 					break;
 				case 'advanced':
-					this._set(['option','advanced'], !this.option.advanced);
+					this.set(['option','advanced'], !this.option.advanced);
 					this.checkRequire();
 					break;
 				case 'debug':
-					this._set(['option','debug'], !this.option.debug);
+					this.set(['option','debug'], !this.option.debug);
 					this.checkRequire();
 					break;
 			}
@@ -350,7 +367,22 @@ Config.makePanel = function(worker, args) {
 	}
 //	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		$('#golem_config').append('<div id="' + worker.id + '" class="golem-panel' + (worker.settings.unsortable?'':' golem-panel-sortable') + (worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '') + '"' + ((worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit) ? ' style="display:none;"' : '') + ' name="' + worker.name + '"><h3 class="golem-panel-header' + (worker.get(['option', '_disabled'], false) ? ' red' : '') + '"><img class="golem-icon" src="' + getImage('blank') + '">' + worker.name + '<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + (worker.option._sleep ? '' : ' style="display:none;"') + '><img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '"><img class="golem-lock" src="' + getImage('lock') + '"></h3><div class="golem-panel-content" style="font-size:smaller;"></div></div>');
+		var unsortable = worker.settings.unsortable ? '' : ' golem-panel-sortable',
+			show = worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '',
+			display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
+			disabled = worker.get(['option', '_disabled'], false) ? ' red' : '',
+			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
+		$('#golem_config').append(
+			'<div id="' + worker.id + '" class="golem-panel' + unsortable + show + '"' + (display ? ' style="display:none;"' : '') + ' name="' + worker.name + '">' +
+				'<h3 class="golem-panel-header' + disabled + '">' +
+					'<img class="golem-icon" src="' + getImage('blank') + '">' +
+					worker.name +
+					'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
+					'<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '">' +
+					'<img class="golem-lock" src="' + getImage('lock') + '">' +
+				'</h3>' +
+			'<div class="golem-panel-content" style="font-size:smaller;"></div></div>'
+		);
 		this._watch(worker, 'option._config._show');
 		this._watch(worker, 'option._sleep');
 	} else {
@@ -593,29 +625,6 @@ Config.makeOption = function(worker, args) {
 		$option.attr('title', o.help);
 	}
 	return $option;
-};
-
-Config.set = function(key, value) {
-	this._unflush();
-	if (!this.data[key] || JSON.stringify(this.data[key]) !== JSON.stringify(value)) {
-		this.data[key] = value;
-		$('select.golem_' + key).each(function(a,el){
-			var i, worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null, list = Config.data[key], options = [];
-			if (isArray(list)) {
-				for (i=0; i<list.length; i++) {
-					options.push('<option value="' + list[i] + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
-				}
-			} else {
-				for (i in list) {
-					options.push('<option value="' + i + '">' + list[i] + '</option>');//' + (val===i ? ' selected' : '') + '
-				}
-			}
-			$(el).html(options.join('')).val(val);
-		});
-		this._save();
-		return true;
-	}
-	return false;
 };
 
 Config.checkRequire = function(id) {
