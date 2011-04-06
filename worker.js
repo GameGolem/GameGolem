@@ -630,7 +630,7 @@ Worker.prototype._set = function(what, value, type) {
  * First function called in our worker. This is where we decide if we are to become an active worker, or should be deleted.
  * Calls .setup() for worker-specific setup.
  */
-Worker.prototype._setup = function() {
+Worker.prototype._setup = function(old_revision) {
 	this._push();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		var i;
@@ -653,7 +653,7 @@ Worker.prototype._setup = function() {
 		}
 		if (this.setup) {
 			try {
-				this.setup();
+				this.setup(old_revision);
 			}catch(e) {
 				console.log(error(e.name + ' in ' + this.name + '.setup(): ' + e.message));
 			}

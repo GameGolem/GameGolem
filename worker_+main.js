@@ -36,10 +36,22 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
-	var i;
+	var i, old_revision = parseInt(getItem('revision') || 1061); // Added code to support Revision checking in 1062;
 	if (event.id === 'kickstart') {
+		if (old_revision > revision) {
+			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
+				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
+				'This may result in errors or other unexpected actions!' + "\n\n" +
+				'Are you sure you want to use this earlier version?' + "\n" +
+				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
+				return;
+			}
+			console.log('GameGolem: Reverting from r' + old_revision + ' to r' + revision);
+		} else if (old_revision < revision) {
+			console.log('GameGolem: Updating from r' + old_revision + ' to r' + revision);
+		}
 		for (i in Workers) {
-			Workers[i]._setup();
+			Workers[i]._setup(old_revision);
 		}
 		for (i in Workers) {
 			Workers[i]._init();
@@ -48,6 +60,9 @@ Main.update = function(event) {
 			Workers[i]._update({type:'init', self:true});
 		}
 		Worker.flush();
+		if (old_revision !== revision) {
+			setItem('revision', revision);
+		}
 	}
 	if (event.id !== 'startup') {
 		return;

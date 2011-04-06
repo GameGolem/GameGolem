@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1061
+// @version		31.5.1062
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1061;
+var revision = 1062;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1305,7 +1305,7 @@ Worker.prototype._set = function(what, value, type) {
  * First function called in our worker. This is where we decide if we are to become an active worker, or should be deleted.
  * Calls .setup() for worker-specific setup.
  */
-Worker.prototype._setup = function() {
+Worker.prototype._setup = function(old_revision) {
 	this._push();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		var i;
@@ -1328,7 +1328,7 @@ Worker.prototype._setup = function() {
 		}
 		if (this.setup) {
 			try {
-				this.setup();
+				this.setup(old_revision);
 			}catch(e) {
 				console.log(error(e.name + ' in ' + this.name + '.setup(): ' + e.message));
 			}
@@ -3384,10 +3384,22 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
-	var i;
+	var i, old_revision = parseInt(getItem('revision') || 1061); // Added code to support Revision checking in 1062;
 	if (event.id === 'kickstart') {
+		if (old_revision > revision) {
+			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
+				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
+				'This may result in errors or other unexpected actions!' + "\n\n" +
+				'Are you sure you want to use this earlier version?' + "\n" +
+				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
+				return;
+			}
+			console.log('GameGolem: Reverting from r' + old_revision + ' to r' + revision);
+		} else if (old_revision < revision) {
+			console.log('GameGolem: Updating from r' + old_revision + ' to r' + revision);
+		}
 		for (i in Workers) {
-			Workers[i]._setup();
+			Workers[i]._setup(old_revision);
 		}
 		for (i in Workers) {
 			Workers[i]._init();
@@ -3396,6 +3408,9 @@ Main.update = function(event) {
 			Workers[i]._update({type:'init', self:true});
 		}
 		Worker.flush();
+		if (old_revision !== revision) {
+			setItem('revision', revision);
+		}
 	}
 	if (event.id !== 'startup') {
 		return;
