@@ -164,18 +164,19 @@ Queue.clearCurrent = function() {
 //	}
 };
 
-Queue.update = function(event) {
+Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch' && event.id === 'option._disabled') { // A worker getting disabled / enabled
-		if (event.worker.get(['option', '_disabled'], false)) {
-			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
-			if (this.runtime.current === i) {
+	for (i=0; (i = events.findEvent(null, 'watch', 'option._disabled')) >= 0; i++) { // A worker getting disabled / enabled
+		if (events[i].worker.get(['option', '_disabled'], false)) {
+			$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
+			if (this.runtime.current === events[i].worker.name) {
 				this.clearCurrent();
 			}
 		} else {
-			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+			$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
 		}
-	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
+	}
+	if (events.findEvent(null,'init') >= 0 || events.findEvent(null,'option') >= 0 || events.findEvent(null,'watch') >= 0) { // options have changed or loading a page
 		if (this.option.pause || Page.temp.loading || !Session.temp.active) {
 			this._forget('run');
 			this.temp.delay = -1;
@@ -183,7 +184,8 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.temp.delay = this.option.delay;
 		}
-	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
+	}
+	if (events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
 		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
@@ -294,6 +296,7 @@ Queue.update = function(event) {
 //		console.log(warn('End Queue'));
 		this._pop();
 	}
+	return true;
 };
 
 Queue.menu = function(worker, key) {

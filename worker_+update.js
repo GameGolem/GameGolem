@@ -40,10 +40,10 @@ Update.temp = {
 2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
-	this.temp.version = version;
-	this.temp.revision = revision;
-	this.runtime.version = this.runtime.version || version;
-	this.runtime.revision = this.runtime.revision || revision;
+	this.set(['temp','version'], version);
+	this.set(['temp','revision'], revision);
+	this.set(['runtime','version'], this.runtime.version || version);
+	this.set(['runtime','revision'], this.runtime.revision || revision);
 	switch(browser) {
 		case 'chrome':
 			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
@@ -81,13 +81,13 @@ Update.init = function() {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
 			if (tmp) {
 				Update._remind(21600, 'check');// 6 hours
-				Update.runtime.lastcheck = Date.now();
-				Update.runtime.version = tmp[0];
-				Update.runtime.revision = tmp[1];
-				if (Update.runtime.force && Update.temp.version >= tmp[0] && (isRelease || Update.temp.revision >= tmp[1])) {
+				Update.set(['runtime','lastcheck'], Date.now());
+				Update.set(['runtime','version'], tmp[0]);
+				Update.set(['runtime','revision'], tmp[1]);
+				if (Update.get(['runtime','force']) && Update.get(['temp','version'], version) >= tmp[0] && (isRelease || Update.get(['temp','revision'], revision) >= tmp[1])) {
 					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
 				}
-				Update.runtime.force = false;
+				Update.set(['runtime','force'], false);
 				$('.golem-version').removeClass('red');
 			}
 			event.stopImmediatePropagation();
@@ -144,8 +144,8 @@ Update.update = function(event) {
 		if (!isRelease && this.runtime.revision > this.temp.revision) {
 			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
 		}
-		this.temp.version = this.runtime.version;
-		this.temp.revision = this.runtime.revision;
+		this.set(['temp','version'], this.runtime.version);
+		this.set(['temp','revision'], this.runtime.revision);
 	}
 };
 

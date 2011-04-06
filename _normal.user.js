@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1065
+// @version		31.5.1066
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1065;
+var revision = 1066;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -278,6 +278,17 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 	return best;
 };
 
+// Used for events in update(event, events)
+Array.prototype.findEvent = function(worker, type, id, start) {
+	var i = start || 0; l = this.length;
+	for (; i<l; i++) {
+		if ((!worker || this[i].worker === worker) && (!type || this[i].type === type) && (!id || this[i].id === id)) {
+			return i;
+		}
+	}
+	return -1;
+};
+ 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {
@@ -1445,16 +1456,11 @@ Worker.prototype._update = function(event, type) {
 		}
 		if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 			event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-			if (type !== 'purge') { // Delete from update queue
-				i = this._updates_.length;
-				while (i--) {
-					if (this._updates_[i].worker === event.worker && this._updates_[i].type === event.type && this._updates_[i].id === event.id) {
-						this._updates_.splice(i,1);
-					}
-				}
+			if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+				this._updates_.splice(i,1);
 			}
 			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
-				this._updates_.push($.extend({}, event));
+				this._updates_.unshift($.extend({}, event));
 			}
 			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
 				this._updates_ = [];
@@ -1463,20 +1469,21 @@ Worker.prototype._update = function(event, type) {
 		if (type === 'run') { // Go through the event list and process each one
 			events = this._updates_;
 			this._updates_ = []; // Want an empty list to prevent it growing
-			while ((event = events.pop()) && done !== true) {
+			while ((event = events[0]) && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
 					event.worker = Worker.find(event.worker || this);
 					if (isFunction(this['update_'+event.type])) {
-						done = this['update_'+event.type](event);
+						done = this['update_'+event.type](event, events);
 					} else {
-						done = this.update(event);
+						done = this.update(event, events);
 					}
 				}catch(e) {
 					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 				}
+				events.shift();
 			}
 			this._updates_ = []; // Make sure we don't directly update ourselves
 		}
@@ -3031,12 +3038,13 @@ Debug.dashboard = function(sort, rev) {
 */
 var Global = new Worker('Global');
 Global.data = Global.runtime = Global.temp = null;
-Global.option = {}; // Left in for legacy options
+Global.option = {}; // Left in for config options
 
 Global.settings = {
 	system:true,
 	unsortable:true,
-	no_disable:true
+	no_disable:true,
+	taint:true
 };
 
 // Use .push() to add our own panel groups
@@ -3371,7 +3379,8 @@ var Main = new Worker('Main');
 Main.data = Main.option = Main.runtime = Main.temp = null;
 
 Main.settings = {
-	system:true
+	system:true,
+	taint:true // Doesn't store any data, but still cleans it up lol
 };
 
 Main._apps_ = {};
@@ -4111,18 +4120,19 @@ Queue.clearCurrent = function() {
 //	}
 };
 
-Queue.update = function(event) {
+Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	if (event.type === 'watch' && event.id === 'option._disabled') { // A worker getting disabled / enabled
-		if (event.worker.get(['option', '_disabled'], false)) {
-			$('#'+event.worker.id+' .golem-panel-header').addClass('red');
-			if (this.runtime.current === i) {
+	for (i=0; (i = events.findEvent(null, 'watch', 'option._disabled')) >= 0; i++) { // A worker getting disabled / enabled
+		if (events[i].worker.get(['option', '_disabled'], false)) {
+			$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
+			if (this.runtime.current === events[i].worker.name) {
 				this.clearCurrent();
 			}
 		} else {
-			$('#'+event.worker.id+' .golem-panel-header').removeClass('red');
+			$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
 		}
-	} else if (event.type === 'init' || event.type === 'option' || event.type === 'watch') { // options have changed or loading a page
+	}
+	if (events.findEvent(null,'init') >= 0 || events.findEvent(null,'option') >= 0 || events.findEvent(null,'watch') >= 0) { // options have changed or loading a page
 		if (this.option.pause || Page.temp.loading || !Session.temp.active) {
 			this._forget('run');
 			this.temp.delay = -1;
@@ -4130,7 +4140,8 @@ Queue.update = function(event) {
 			this._revive(this.option.delay, 'run');
 			this.temp.delay = this.option.delay;
 		}
-	} else if (event.type === 'reminder') { // This is where we call worker.work() for everyone
+	}
+	if (events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
 		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}
@@ -4241,6 +4252,7 @@ Queue.update = function(event) {
 //		console.log(warn('End Queue'));
 		this._pop();
 	}
+	return true;
 };
 
 Queue.menu = function(worker, key) {
@@ -5397,10 +5409,10 @@ Update.temp = {
 2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
-	this.temp.version = version;
-	this.temp.revision = revision;
-	this.runtime.version = this.runtime.version || version;
-	this.runtime.revision = this.runtime.revision || revision;
+	this.set(['temp','version'], version);
+	this.set(['temp','revision'], revision);
+	this.set(['runtime','version'], this.runtime.version || version);
+	this.set(['runtime','revision'], this.runtime.revision || revision);
 	switch(browser) {
 		case 'chrome':
 			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
@@ -5438,13 +5450,13 @@ Update.init = function() {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
 			if (tmp) {
 				Update._remind(21600, 'check');// 6 hours
-				Update.runtime.lastcheck = Date.now();
-				Update.runtime.version = tmp[0];
-				Update.runtime.revision = tmp[1];
-				if (Update.runtime.force && Update.temp.version >= tmp[0] && (isRelease || Update.temp.revision >= tmp[1])) {
+				Update.set(['runtime','lastcheck'], Date.now());
+				Update.set(['runtime','version'], tmp[0]);
+				Update.set(['runtime','revision'], tmp[1]);
+				if (Update.get(['runtime','force']) && Update.get(['temp','version'], version) >= tmp[0] && (isRelease || Update.get(['temp','revision'], revision) >= tmp[1])) {
 					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
 				}
-				Update.runtime.force = false;
+				Update.set(['runtime','force'], false);
 				$('.golem-version').removeClass('red');
 			}
 			event.stopImmediatePropagation();
@@ -5501,8 +5513,8 @@ Update.update = function(event) {
 		if (!isRelease && this.runtime.revision > this.temp.revision) {
 			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
 		}
-		this.temp.version = this.runtime.version;
-		this.temp.revision = this.runtime.revision;
+		this.set(['temp','version'], this.runtime.version);
+		this.set(['temp','revision'], this.runtime.revision);
 	}
 };
 

@@ -232,6 +232,17 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 	return best;
 };
 
+// Used for events in update(event, events)
+Array.prototype.findEvent = function(worker, type, id, start) {
+	var i = start || 0; l = this.length;
+	for (; i<l; i++) {
+		if ((!worker || this[i].worker === worker) && (!type || this[i].type === type) && (!id || this[i].id === id)) {
+			return i;
+		}
+	}
+	return -1;
+};
+ 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {

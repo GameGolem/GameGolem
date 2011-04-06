@@ -14,7 +14,8 @@ var Main = new Worker('Main');
 Main.data = Main.option = Main.runtime = Main.temp = null;
 
 Main.settings = {
-	system:true
+	system:true,
+	taint:true // Doesn't store any data, but still cleans it up lol
 };
 
 Main._apps_ = {};

@@ -770,16 +770,11 @@ Worker.prototype._update = function(event, type) {
 		}
 		if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 			event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-			if (type !== 'purge') { // Delete from update queue
-				i = this._updates_.length;
-				while (i--) {
-					if (this._updates_[i].worker === event.worker && this._updates_[i].type === event.type && this._updates_[i].id === event.id) {
-						this._updates_.splice(i,1);
-					}
-				}
+			if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+				this._updates_.splice(i,1);
 			}
 			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
-				this._updates_.push($.extend({}, event));
+				this._updates_.unshift($.extend({}, event));
 			}
 			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
 				this._updates_ = [];
@@ -788,20 +783,21 @@ Worker.prototype._update = function(event, type) {
 		if (type === 'run') { // Go through the event list and process each one
 			events = this._updates_;
 			this._updates_ = []; // Want an empty list to prevent it growing
-			while ((event = events.pop()) && done !== true) {
+			while ((event = events[0]) && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
 					event.worker = Worker.find(event.worker || this);
 					if (isFunction(this['update_'+event.type])) {
-						done = this['update_'+event.type](event);
+						done = this['update_'+event.type](event, events);
 					} else {
-						done = this.update(event);
+						done = this.update(event, events);
 					}
 				}catch(e) {
 					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
 				}
+				events.shift();
 			}
 			this._updates_ = []; // Make sure we don't directly update ourselves
 		}

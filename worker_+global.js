@@ -12,12 +12,13 @@
 */
 var Global = new Worker('Global');
 Global.data = Global.runtime = Global.temp = null;
-Global.option = {}; // Left in for legacy options
+Global.option = {}; // Left in for config options
 
 Global.settings = {
 	system:true,
 	unsortable:true,
-	no_disable:true
+	no_disable:true,
+	taint:true
 };
 
 // Use .push() to add our own panel groups
