@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1062
+// @version		31.5.1063
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1062;
+var revision = 1063;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -975,7 +975,7 @@ Worker.prototype._get = function(what, def, type) {
 /**
  * This is called after _setup. All data exists and our worker is valid for this APP
  */
-Worker.prototype._init = function() {
+Worker.prototype._init = function(old_revision) {
 	if (this._loaded) {
 		return;
 	}
@@ -983,7 +983,7 @@ Worker.prototype._init = function() {
 	this._loaded = true;
 	if (this.init) {
 		try {
-			this.init();
+			this.init(old_revision);
 		}catch(e) {
 			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
 		}
@@ -3402,10 +3402,10 @@ Main.update = function(event) {
 			Workers[i]._setup(old_revision);
 		}
 		for (i in Workers) {
-			Workers[i]._init();
+			Workers[i]._init(old_revision);
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true});
+			Workers[i]._update({type:'init', self:true}, 'run');
 		}
 		Worker.flush();
 		if (old_revision !== revision) {

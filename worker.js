@@ -300,7 +300,7 @@ Worker.prototype._get = function(what, def, type) {
 /**
  * This is called after _setup. All data exists and our worker is valid for this APP
  */
-Worker.prototype._init = function() {
+Worker.prototype._init = function(old_revision) {
 	if (this._loaded) {
 		return;
 	}
@@ -308,7 +308,7 @@ Worker.prototype._init = function() {
 	this._loaded = true;
 	if (this.init) {
 		try {
-			this.init();
+			this.init(old_revision);
 		}catch(e) {
 			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
 		}

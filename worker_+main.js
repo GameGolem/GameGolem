@@ -54,10 +54,10 @@ Main.update = function(event) {
 			Workers[i]._setup(old_revision);
 		}
 		for (i in Workers) {
-			Workers[i]._init();
+			Workers[i]._init(old_revision);
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true});
+			Workers[i]._update({type:'init', self:true}, 'run');
 		}
 		Worker.flush();
 		if (old_revision !== revision) {
