@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1069
+// @version		31.5.1070
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1069;
+var revision = 1070;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3433,7 +3433,6 @@ Main.update = function(event) {
 		for (i in Workers) {
 			Workers[i]._update({type:'init', self:true}, 'run');
 		}
-		Worker.flush();
 		if (old_revision !== revision) {
 			setItem('revision', revision);
 		}
@@ -3551,8 +3550,8 @@ Main.update = function(event) {
 };
 
 Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
-Main._remind(0, 'startup');
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+Main._update({type:'startup', id:'startup'});
+window.setTimeout(Worker.flush, 50); // Kickstart everything running.../*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
 	Battle, Generals, LevelUp, Player,
@@ -3657,7 +3656,10 @@ Global._overload(null, 'work', function(state) {
 	}
 	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
 		if (state) {
-			Page.to('http://www.cloutman.com/reload.php', null, true);
+			if (!$('#reload_link').length) {
+				$('body').append('<a id="reload_link" href="http://www.cloutman.com/reload.php">reload</a>');
+			}
+			Page.click('#reload_link');
 		}
 		return QUEUE_CONTINUE;
 	}
@@ -7716,6 +7718,9 @@ Gift.update = function(event) {
 
 Gift.work = function(state) {
 	if (!this.runtime.gift_waiting && (!this.runtime.work || this.runtime.gift_delay > Date.now())) {
+		if (state && !Page.to('index')) {	// Force us to another page before giving up focus - hopefully fix reload issues
+			return QUEUE_CONTINUE;
+		}
 		return QUEUE_FINISH;
 	}
 	if (!state) {                
@@ -7724,9 +7729,9 @@ Gift.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-        if (!Generals.to(Idle.option.general)){
-                        return QUEUE_CONTINUE;
-                }
+	if (!Generals.to(Idle.option.general)){
+		return QUEUE_CONTINUE;
+	}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
 			return QUEUE_CONTINUE;

@@ -181,6 +181,9 @@ Gift.update = function(event) {
 
 Gift.work = function(state) {
 	if (!this.runtime.gift_waiting && (!this.runtime.work || this.runtime.gift_delay > Date.now())) {
+		if (state && !Page.to('index')) {	// Force us to another page before giving up focus - hopefully fix reload issues
+			return QUEUE_CONTINUE;
+		}
 		return QUEUE_FINISH;
 	}
 	if (!state) {                
@@ -189,9 +192,9 @@ Gift.work = function(state) {
 		}
 		return QUEUE_FINISH;
 	}
-        if (!Generals.to(Idle.option.general)){
-                        return QUEUE_CONTINUE;
-                }
+	if (!Generals.to(Idle.option.general)){
+		return QUEUE_CONTINUE;
+	}
 	if(this.runtime.gift_waiting && !this.runtime.gift.id) {	// We have a gift waiting, but we don't know the id.
 		if (!Page.to('index')) {	// Get the gift id from the index page.
 			return QUEUE_CONTINUE;

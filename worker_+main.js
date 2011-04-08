@@ -60,7 +60,6 @@ Main.update = function(event) {
 		for (i in Workers) {
 			Workers[i]._update({type:'init', self:true}, 'run');
 		}
-		Worker.flush();
 		if (old_revision !== revision) {
 			setItem('revision', revision);
 		}
@@ -178,4 +177,5 @@ Main.update = function(event) {
 };
 
 Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
-Main._remind(0, 'startup');
+Main._update({type:'startup', id:'startup'});
+window.setTimeout(Worker.flush, 50); // Kickstart everything running...

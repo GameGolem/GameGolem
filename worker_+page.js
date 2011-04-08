@@ -103,7 +103,10 @@ Global._overload(null, 'work', function(state) {
 	}
 	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
 		if (state) {
-			Page.to('http://www.cloutman.com/reload.php', null, true);
+			if (!$('#reload_link').length) {
+				$('body').append('<a id="reload_link" href="http://www.cloutman.com/reload.php">reload</a>');
+			}
+			Page.click('#reload_link');
 		}
 		return QUEUE_CONTINUE;
 	}
