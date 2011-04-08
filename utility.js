@@ -233,10 +233,18 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 };
 
 // Used for events in update(event, events)
+isEvent = function(event, worker, type, id) {
+	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
+		return true;
+	}
+	return false;
+};
+ 
+// Used for events in update(event, events)
 Array.prototype.findEvent = function(worker, type, id, start) {
 	var i = start || 0; l = this.length;
 	for (; i<l; i++) {
-		if ((!worker || this[i].worker === worker) && (!type || this[i].type === type) && (!id || this[i].id === id)) {
+		if (isEvent(this[i], worker, type, id)) {
 			return i;
 		}
 	}

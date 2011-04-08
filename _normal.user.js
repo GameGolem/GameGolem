@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1068
+// @version		31.5.1069
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1068;
+var revision = 1069;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -279,10 +279,18 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 };
 
 // Used for events in update(event, events)
+isEvent = function(event, worker, type, id) {
+	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
+		return true;
+	}
+	return false;
+};
+ 
+// Used for events in update(event, events)
 Array.prototype.findEvent = function(worker, type, id, start) {
 	var i = start || 0; l = this.length;
 	for (; i<l; i++) {
-		if ((!worker || this[i].worker === worker) && (!type || this[i].type === type) && (!id || this[i].id === id)) {
+		if (isEvent(this[i], worker, type, id)) {
 			return i;
 		}
 	}
@@ -1448,7 +1456,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, done, events;
+		var i, done = false, events;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -1469,19 +1477,19 @@ Worker.prototype._update = function(event, type) {
 		if (type === 'run') { // Go through the event list and process each one
 			events = this._updates_;
 			this._updates_ = []; // Want an empty list to prevent it growing
-			while ((event = events[0]) && done !== true) {
+			while (events.length && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
-					event.worker = Worker.find(event.worker || this);
-					if (isFunction(this['update_'+event.type])) {
-						done = this['update_'+event.type](event, events);
+					events[0].worker = Worker.find(events[0].worker || this);
+					if (isFunction(this['update_'+events[0].type])) {
+						done = this['update_'+events[0].type](events[0], events);
 					} else {
-						done = this.update(event, events);
+						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '}): ' + e.message));
 				}
 				events.shift();
 			}
@@ -2880,7 +2888,7 @@ Debug.setup = function() {
 									w[1] += t - Debug.stack[0][0];
 									w[2] += t;
 									if (Debug.temp[i][3]) {
-										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(r, 2).replace(/^\[?|\]?$/g, '');
+										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, '');
 										if (Debug.option.trace) {
 											console.log('!!! ' + error(s));
 										} else {
@@ -3648,10 +3656,10 @@ Global._overload(null, 'work', function(state) {
 		Page.set(['temp','checked'], true);
 	}
 	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
-		if (!state) {
-			return QUEUE_CONTINUE;
+		if (state) {
+			Page.to('http://www.cloutman.com/reload.php', null, true);
 		}
-		Page.to('http://www.cloutman.com/reload.php', null, true);
+		return QUEUE_CONTINUE;
 	}
 	return this._parent();
 });
@@ -3703,7 +3711,7 @@ Page.update = function(event) {
 			list = ['#app_content_'+APPID, '#app46755028429_globalContainer', '#app46755028429_globalcss', '#app46755028429_main_bntp', '#app46755028429_main_sts_container', '#app46755028429_app_body_container', '#app46755028429_nvbar', '#app46755028429_current_pg_url', '#app46755028429_current_pg_info'];
 //			console.log(warn('Page change noticed...'));
 			this._forget('retry');
-			this.set(['temp', 'loading'], false);
+			this.set(['temp','loading'], false);
 			for (i=0; i<list.length; i++) {
 				if (!$(list[i]).length) {
 					console.log(warn('Bad page warning: Unabled to find '+list[i]));
@@ -3801,12 +3809,12 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		this.clear();
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
-		this.set(['temp', 'loading'], true);
+		this.set(['temp','loading'], true);
 		console.log(warn('Navigating to ' + page));
 	} else if (force) {
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
-	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page : 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
@@ -3826,8 +3834,8 @@ Page.retry = function() {
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
 		var delay = this.set(['runtime','delay'], Math.max((this.get(['runtime','delay'], 0) * 2) || this.get(['option','timeout'], 10), 300));
 		this.set(['temp','reload'], true);
-		this.set(['temp', 'loading'], true);
-		this._remind(delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
+		this.set(['temp','loading'], true);
+		this._remind(delay,'retry',{worker:this, type:'init'});// Fake it to force a re-check
 		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
 		console.log(log('Unexpected retry event.'));
 	}
@@ -3863,7 +3871,7 @@ Page.click = function(el) {
 	this.set(['runtime', 'delay'], 0);
 	this.lastclick = el; // Causes circular reference when watching...
 	this.set(['temp','when'], Date.now());
-	this.set(['temp', 'loading'], true);
+	this.set(['temp','loading'], true);
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
@@ -3878,8 +3886,8 @@ Page.clear = function() {
 	this.set(['temp','when'], null);
 	this.set(['temp','retry'], 0);
 	this.set(['temp','reload'], 0);
-	this.set(['temp', 'loading'], false);
-	this.set(['runtime', 'delay'], 0);
+	this.set(['temp','loading'], false);
+	this.set(['runtime','delay'], 0);
 };
 
 Page.addTimer = function(id, time, relative) {
@@ -3921,8 +3929,8 @@ Page.stale = function(page, age, go) {
  */
 Page.setStale = function(page, when) {
 	var now = Date.now(),
-		seen = this.get(['data', page], 0, 'number'),
-		want = this.get(['runtime', 'stale', page], 0, 'number');
+		seen = this.get(['data',page], 0, 'number'),
+		want = this.get(['runtime','stale',page], 0, 'number');
 
 	// don't let this be negative (pre 1970) or future (past "now")
 	if (!isNumber(when) || when < 0 || when > now || want > now) {
@@ -3931,9 +3939,9 @@ Page.setStale = function(page, when) {
 
 	// maintain the later date if ours is older
 	if (seen >= when && seen >= want) {
-		this.set(['runtime', 'stale', page]);
+		this.set(['runtime','stale',page]);
 	} else if (want < when || want > now) {
-		this.set(['runtime', 'stale', page], Math.round(when));
+		this.set(['runtime','stale',page], Math.round(when));
 	}
 };
 
@@ -3944,8 +3952,8 @@ Page.setStale = function(page, when) {
  * @return {boolean} True if the page is considered stale.
  */
 Page.isStale = function(page, when) {
-	var seen = this.get(['data', page], 0, 'number'),
-		want = this.get(['runtime', 'stale', page], 0, 'number');
+	var seen = this.get(['data',page], 0, 'number'),
+		want = this.get(['runtime','stale',page], 0, 'number');
 
 	if (isNumber(when) && want < when) {
 		want = when;
@@ -3980,7 +3988,8 @@ Queue.settings = {
 	system:true,
 	unsortable:true,
 	keep:true,
-	no_disable:true
+	no_disable:true,
+	taint:true
 };
 
 // NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
@@ -4108,6 +4117,7 @@ Queue.init = function() {
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
 	this._watch(Session, 'temp.active');
+	this._watch(Queue, 'option.pause');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -4122,27 +4132,27 @@ Queue.clearCurrent = function() {
 
 Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
-	i = -1;
-	while ((i = events.findEvent(null, 'watch', 'option._disabled', i+1)) >= 0) { // A worker getting disabled / enabled
-		if (events[i].worker.get(['option', '_disabled'], false)) {
-			$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
-			if (this.runtime.current === events[i].worker.name) {
-				this.clearCurrent();
+	for (i=0; i<events.length; i++) {
+		if (isEvent(events[i], null, 'watch', 'option.disabled')) { // A worker getting disabled / enabled
+			if (events[i].worker.get(['option', '_disabled'], false)) {
+				$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
+				if (this.runtime.current === events[i].worker.name) {
+					this.clearCurrent();
+				}
+			} else {
+				$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
 			}
-		} else {
-			$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
+		} else if (isEvent(events[i], null, 'watch') || isEvent(events[i], null, 'init')) { // loading a page, pausing, or init
+			if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active'])) {
+				this._forget('run');
+				this.set(['temp','delay'], -1);
+			} else if (this.option.delay !== this.temp.delay) {
+				this._revive(this.option.delay, 'run');
+				this.set(['temp','delay'], this.option.delay);
+			}
 		}
 	}
-	if (events.findEvent(null,'init') >= 0 || events.findEvent(null,'option') >= 0 || events.findEvent(null,'watch') >= 0) { // options have changed or loading a page
-		if (this.option.pause || Page.temp.loading || !Session.temp.active) {
-			this._forget('run');
-			this.temp.delay = -1;
-		} else if (this.option.delay !== this.temp.delay) {
-			this._revive(this.option.delay, 'run');
-			this.temp.delay = this.option.delay;
-		}
-	}
-	if (events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
+	if (this.get(['temp','delay'], -1) !== -1 && events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
 		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
 		}

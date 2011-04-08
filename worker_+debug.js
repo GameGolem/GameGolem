@@ -123,7 +123,7 @@ Debug.setup = function() {
 									w[1] += t - Debug.stack[0][0];
 									w[2] += t;
 									if (Debug.temp[i][3]) {
-										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(r, 2).replace(/^\[?|\]?$/g, '');
+										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, '');
 										if (Debug.option.trace) {
 											console.log('!!! ' + error(s));
 										} else {

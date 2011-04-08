@@ -102,10 +102,10 @@ Global._overload(null, 'work', function(state) {
 		Page.set(['temp','checked'], true);
 	}
 	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
-		if (!state) {
-			return QUEUE_CONTINUE;
+		if (state) {
+			Page.to('http://www.cloutman.com/reload.php', null, true);
 		}
-		Page.to('http://www.cloutman.com/reload.php', null, true);
+		return QUEUE_CONTINUE;
 	}
 	return this._parent();
 });
@@ -157,7 +157,7 @@ Page.update = function(event) {
 			list = ['#app_content_'+APPID, '#app46755028429_globalContainer', '#app46755028429_globalcss', '#app46755028429_main_bntp', '#app46755028429_main_sts_container', '#app46755028429_app_body_container', '#app46755028429_nvbar', '#app46755028429_current_pg_url', '#app46755028429_current_pg_info'];
 //			console.log(warn('Page change noticed...'));
 			this._forget('retry');
-			this.set(['temp', 'loading'], false);
+			this.set(['temp','loading'], false);
 			for (i=0; i<list.length; i++) {
 				if (!$(list[i]).length) {
 					console.log(warn('Bad page warning: Unabled to find '+list[i]));
@@ -255,12 +255,12 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		this.clear();
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
-		this.set(['temp', 'loading'], true);
+		this.set(['temp','loading'], true);
 		console.log(warn('Navigating to ' + page));
 	} else if (force) {
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
-	window.location.href = 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page : 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
@@ -280,8 +280,8 @@ Page.retry = function() {
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
 		var delay = this.set(['runtime','delay'], Math.max((this.get(['runtime','delay'], 0) * 2) || this.get(['option','timeout'], 10), 300));
 		this.set(['temp','reload'], true);
-		this.set(['temp', 'loading'], true);
-		this._remind(delay, 'retry', {worker:this, type:'init'});// Fake it to force a re-check
+		this.set(['temp','loading'], true);
+		this._remind(delay,'retry',{worker:this, type:'init'});// Fake it to force a re-check
 		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
 		console.log(log('Unexpected retry event.'));
 	}
@@ -317,7 +317,7 @@ Page.click = function(el) {
 	this.set(['runtime', 'delay'], 0);
 	this.lastclick = el; // Causes circular reference when watching...
 	this.set(['temp','when'], Date.now());
-	this.set(['temp', 'loading'], true);
+	this.set(['temp','loading'], true);
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
@@ -332,8 +332,8 @@ Page.clear = function() {
 	this.set(['temp','when'], null);
 	this.set(['temp','retry'], 0);
 	this.set(['temp','reload'], 0);
-	this.set(['temp', 'loading'], false);
-	this.set(['runtime', 'delay'], 0);
+	this.set(['temp','loading'], false);
+	this.set(['runtime','delay'], 0);
 };
 
 Page.addTimer = function(id, time, relative) {
@@ -375,8 +375,8 @@ Page.stale = function(page, age, go) {
  */
 Page.setStale = function(page, when) {
 	var now = Date.now(),
-		seen = this.get(['data', page], 0, 'number'),
-		want = this.get(['runtime', 'stale', page], 0, 'number');
+		seen = this.get(['data',page], 0, 'number'),
+		want = this.get(['runtime','stale',page], 0, 'number');
 
 	// don't let this be negative (pre 1970) or future (past "now")
 	if (!isNumber(when) || when < 0 || when > now || want > now) {
@@ -385,9 +385,9 @@ Page.setStale = function(page, when) {
 
 	// maintain the later date if ours is older
 	if (seen >= when && seen >= want) {
-		this.set(['runtime', 'stale', page]);
+		this.set(['runtime','stale',page]);
 	} else if (want < when || want > now) {
-		this.set(['runtime', 'stale', page], Math.round(when));
+		this.set(['runtime','stale',page], Math.round(when));
 	}
 };
 
@@ -398,8 +398,8 @@ Page.setStale = function(page, when) {
  * @return {boolean} True if the page is considered stale.
  */
 Page.isStale = function(page, when) {
-	var seen = this.get(['data', page], 0, 'number'),
-		want = this.get(['runtime', 'stale', page], 0, 'number');
+	var seen = this.get(['data',page], 0, 'number'),
+		want = this.get(['runtime','stale',page], 0, 'number');
 
 	if (isNumber(when) && want < when) {
 		want = when;

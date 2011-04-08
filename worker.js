@@ -762,7 +762,7 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._push();
-		var i, done, events;
+		var i, done = false, events;
 		if (isString(event)) {
 			event = {type:event};
 		} else if (!isObject(event)) {
@@ -783,19 +783,19 @@ Worker.prototype._update = function(event, type) {
 		if (type === 'run') { // Go through the event list and process each one
 			events = this._updates_;
 			this._updates_ = []; // Want an empty list to prevent it growing
-			while ((event = events[0]) && done !== true) {
+			while (events.length && done !== true) {
 				if (isUndefined(this.data) && this._datatypes.data) {
 					this._unflush();
 				}
 				try {
-					event.worker = Worker.find(event.worker || this);
-					if (isFunction(this['update_'+event.type])) {
-						done = this['update_'+event.type](event, events);
+					events[0].worker = Worker.find(events[0].worker || this);
+					if (isFunction(this['update_'+events[0].type])) {
+						done = this['update_'+events[0].type](events[0], events);
 					} else {
-						done = this.update(event, events);
+						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(event) + '}): ' + e.message));
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '}): ' + e.message));
 				}
 				events.shift();
 			}
