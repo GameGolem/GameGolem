@@ -131,6 +131,8 @@ function Worker(name) {
 	// Default functions - overload if needed, by default calls prototype function
 	this.get = this._get;
 	this.set = this._set;
+	this.setAdd = this._setAdd;
+	this.setPush = this._setPush;
 
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
@@ -564,6 +566,42 @@ Worker.prototype._save = function(type) {
 };
 
 /*
+ * Adds a value to a Number in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will add, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ */
+Worker.prototype._setAdd = function(what, value) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isNumber(old) ? old : 0) + value;
+	});
+	return value;
+};
+
+/*
+ * Pushes a value to an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will push, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ */
+Worker.prototype._setPush = function(what, value) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isArray(old) ? old : []).concat(value);
+	});
+	return value;
+};
+
+/*
  * Set a value in one of our _datatypes
  * @param {(string|array)} what The path.to.data / [path, to, data] we want
  * @param {*=} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
@@ -588,6 +626,9 @@ Worker.prototype._set = function(what, value, type) {
 				}
 				break;
 			case false:
+				if (isFunction(value)) {
+					value = value.call(this, data[i], data, i);
+				}
 				if (!compare(value, data[i])) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;

@@ -1220,7 +1220,7 @@ Monster.update = function(event) {
 	}
 	// Check for unviewed monsters
 	for (mid in this.data) {
-		if (!this.data[mid].last && !this.data[mid].ignore) {
+		if (!this.data[mid].last && !this.data[mid].ignore && this.data[mid].state === 'engage') {
 			this.page(mid, 'Checking new monster ', 'casuser','');
 			this.runtime.defending = true;
 			this.data[mid].last = now; // Force it to only check once
@@ -1917,7 +1917,7 @@ Monster.dashboard = function(sort, rev) {
 				tt += v.addCommas();
 			}
 		}
-		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + tt + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay"' + (monster.page === 'festival' ? ' style="color:#ffff00;"' : '') + '>' + monster.state + '</strong>'), 'title="' + tt + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 

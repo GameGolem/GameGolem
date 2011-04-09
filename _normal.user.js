@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1071
+// @version		31.5.1072
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1071;
+var revision = 1072;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -833,6 +833,8 @@ function Worker(name) {
 	// Default functions - overload if needed, by default calls prototype function
 	this.get = this._get;
 	this.set = this._set;
+	this.setAdd = this._setAdd;
+	this.setPush = this._setPush;
 
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
@@ -1266,6 +1268,42 @@ Worker.prototype._save = function(type) {
 };
 
 /*
+ * Adds a value to a Number in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will add, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ */
+Worker.prototype._setAdd = function(what, value) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isNumber(old) ? old : 0) + value;
+	});
+	return value;
+};
+
+/*
+ * Pushes a value to an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will push, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ */
+Worker.prototype._setPush = function(what, value) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isArray(old) ? old : []).concat(value);
+	});
+	return value;
+};
+
+/*
  * Set a value in one of our _datatypes
  * @param {(string|array)} what The path.to.data / [path, to, data] we want
  * @param {*=} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
@@ -1290,6 +1328,9 @@ Worker.prototype._set = function(what, value, type) {
 				}
 				break;
 			case false:
+				if (isFunction(value)) {
+					value = value.call(this, data[i], data, i);
+				}
 				if (!compare(value, data[i])) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
@@ -10132,7 +10173,7 @@ Monster.update = function(event) {
 	}
 	// Check for unviewed monsters
 	for (mid in this.data) {
-		if (!this.data[mid].last && !this.data[mid].ignore) {
+		if (!this.data[mid].last && !this.data[mid].ignore && this.data[mid].state === 'engage') {
 			this.page(mid, 'Checking new monster ', 'casuser','');
 			this.runtime.defending = true;
 			this.data[mid].last = now; // Force it to only check once
@@ -10829,7 +10870,7 @@ Monster.dashboard = function(sort, rev) {
 				tt += v.addCommas();
 			}
 		}
-		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay">' + monster.state + '</strong>'), 'title="' + tt + '"');
+		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay"' + (monster.page === 'festival' ? ' style="color:#ffff00;"' : '') + '>' + monster.state + '</strong>'), 'title="' + tt + '"');
 		image_url = imagepath + type.list;
 		//console.log(warn(), image_url);
 
