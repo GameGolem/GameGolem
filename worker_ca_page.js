@@ -44,7 +44,7 @@ Page.defaults.castle_age = {
 		battle_guild:	{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
 		battle_guild_battle:	{url:'guild_battle.php', selector:'#app46755028429_guild_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
+		monster_monster_list:	{url:'battle_monster.php', image:'monster_button_yourmonster_on.jpg'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},

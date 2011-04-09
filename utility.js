@@ -414,20 +414,28 @@ var compare = function(left, right) {
 	return true;
 };
 
-var findInObject = function(list, value) {
-	if (isObject(list)) {
-		for (var i in list) {
-			if (list[i] === value) {
-				return i;
+var findInObject = function(obj, value, key) {
+	if (isObject(obj)) {
+		if (isUndefined(key)) {
+			for (var i in obj) {
+				if (obj[i] === value) {
+					return i;
+				}
+			}
+		} else {
+			for (var i in obj) {
+				if (obj[i][key] === value) {
+					return i;
+				}
 			}
 		}
 	}
 	return null;
 };
 
-var objectIndex = function(list, index) {
-	if (isObject(list)) {
-		for (var i in list) {
+var objectIndex = function(obj, index) {
+	if (isObject(obj)) {
+		for (var i in obj) {
 			if (index-- <= 0) {
 				return i;
 			}

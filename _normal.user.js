@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1070
+// @version		31.5.1071
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1070;
+var revision = 1071;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -460,20 +460,28 @@ var compare = function(left, right) {
 	return true;
 };
 
-var findInObject = function(list, value) {
-	if (isObject(list)) {
-		for (var i in list) {
-			if (list[i] === value) {
-				return i;
+var findInObject = function(obj, value, key) {
+	if (isObject(obj)) {
+		if (isUndefined(key)) {
+			for (var i in obj) {
+				if (obj[i] === value) {
+					return i;
+				}
+			}
+		} else {
+			for (var i in obj) {
+				if (obj[i][key] === value) {
+					return i;
+				}
 			}
 		}
 	}
 	return null;
 };
 
-var objectIndex = function(list, index) {
-	if (isObject(list)) {
-		for (var i in list) {
+var objectIndex = function(obj, index) {
+	if (isObject(obj)) {
+		for (var i in obj) {
 			if (index-- <= 0) {
 				return i;
 			}
@@ -4135,7 +4143,7 @@ Queue.clearCurrent = function() {
 Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
 	for (i=0; i<events.length; i++) {
-		if (isEvent(events[i], null, 'watch', 'option.disabled')) { // A worker getting disabled / enabled
+		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
 			if (events[i].worker.get(['option', '_disabled'], false)) {
 				$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
 				if (this.runtime.current === events[i].worker.name) {
@@ -9778,7 +9786,7 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var mid, uid, type, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], i, x, festival, clicked = this.runtime.clicked, parent = $('#app46755028429_app_body');
+	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, clicked = this.runtime.clicked, parent = $('#app46755028429_app_body'), $children;
 	this.runtime.clicked = false;
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
@@ -9990,93 +9998,113 @@ Monster.parse = function(change) {
 			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health === 100 ? 0.1 : (100 - monster.health)));
 		}
 		monster.eta = now + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
-	} else {
-		this.runtime.used.stamina = 0;
-		this.runtime.used.energy = 0;
-		if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
-			console.log(warn(), 'Found a timed out monster.');
-			if (clicked) {
-				console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
-				delete data[this.runtime.mid];
-			} else {
-				console.log(warn(), 'Unknown monster (timed out)');
-			}
-			this.runtime.check = false;
-			return false;
+//		this.runtime.used.stamina = 0;
+//		this.runtime.used.energy = 0;
+	} else if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
+		console.log(warn('Found a timed out monster.'));
+		if (clicked) {
+			console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
+			delete data[this.runtime.mid];
+		} else {
+			console.log(warn('Unknown monster (timed out)'));
 		}
-		if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
-			festival = (Page.page === 'festival_monster_list');
-			this.runtime.check = false;
-
-			if (!$('div.imgButton', parent).length) {
-				return false;
-			}
-			for (mid in data) {
-				if (	((types[data[mid].type].raid && Page.page === 'battle_raid')
-							|| (Page.page !== 'battle_raid' 
-								&& festival === (data[mid].page === 'festival')))
-						&& (data[mid].state === 'complete'
-							|| data[mid].state === 'reward'
-							|| (data[mid].state === 'assist'
-								&& data[mid].finish < now))
-					) {
-					data[mid].state = null;
-				}
-			}
-			$('div.imgButton', parent).each(function(a,el){
-				if ($('a', el).attr('href')
-						&& $('a', el).attr('href').regex(/casuser=(\d+)/i)) {
-					var i, uid = $('a', el).attr('href').regex(/casuser=(\d+)/i), type_label = null, tmp = $(el).parent().parent().children().eq(1).html().regex(/graphics\/([^.]*\....)/i);
-					for (i in types) {
-						if (tmp === types[i].list) {
-							type_label = i;
-							break;
-						}
-					}
-					if (!type_label) {
-						console.log(warn(), 'Unable to add monster - uid: '+uid+', image: "'+tmp+'"');
-						return;
-					}
-					mid = uid+'_' + (festival ? 'f' : (types[i].mpool || 4));
-					data[mid] = data[mid] || {};
-					if (festival) {
-						data[mid].page = 'festival';
-					}
-					data[mid].type = type_label;
-					if (uid === userID) {
-						data[mid].name = 'You';
-					} else if (festival) {
-						tmp = $(el).parent().parent().children().eq(2).text().trim();
-						data[mid].name = tmp.regex(/(.+)'s\s/i);
-					} else {
-						tmp = $(el).parent().parent().children().eq(2).text().trim();
-						data[mid].name = tmp.regex(/(.+)'s\s/i);
-					}
-					//console.log(warn(), 'switch ' + $('img', el).attr('src').regex(/(\w+)\.(gif|jpg)/)[0]);
-					switch($('img', el).attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
-						case 'festival_monster_collectbtn':
-						case 'dragon_list_btn_2':
-							data[mid].state = 'reward';
-							break;
-						case 'festival_monster_engagebtn':
-						case 'dragon_list_btn_3':
+		this.runtime.check = false;
+		return false;
+/*	} else if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
+				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
+					case 'festival_monster_collectbtn':
+					case 'monster_button_collect':
+					case 'dragon_list_btn_2':
+						data[mid].state = 'reward';
+						break;
+					case 'festival_monster_engagebtn':
+					case 'dragon_list_btn_3':
+						data[mid].state = 'engage';
+						break;
+					case 'festival_monster_viewbtn':
+					case 'dragon_list_btn_4':
+						if (Monster.types[data[mid].type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
 							data[mid].state = 'engage';
-							break;
-						case 'festival_monster_viewbtn':
-						case 'dragon_list_btn_4':
-							if (Monster.types[data[mid].type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
-								data[mid].state = 'engage';
-							} else {
-								data[mid].state = 'complete';
-								data[mid].remove = true;
-							}
-							break;
-						default:
-							data[mid].state = 'unknown';
-							break; // Should probably delete, but keep it on the list...
-					}
+						} else {
+							data[mid].state = 'complete';
+							data[mid].remove = true;
+						}
+						break;
+					default:
+						data[mid].state = 'unknown';
+						break; // Should probably delete, but keep it on the list...
 				}
-			});
+
+
+*/
+// Still need to do battle_raid
+	} else if (Page.page === 'festival_monster_list') { // Check monster / raid list
+		list = $('div[style*="festival_monster_list_middle.jpg"]', parent)
+		for (i=0; i<list.length; i++) {
+			el = list[i];
+			$children = $(el).children('div');
+			try {
+				this._transaction(); // BEGIN TRANSACTION
+				assert(uid = $children.eq(3).find('a').attr('href').regex(/casuser=(\d+)/i), 'Unknown UserID');
+				tmp = $children.eq(1).find('div[style*="graphics"]').eq(0).attr('style').regex(/graphics\/([^.]*\....)/i);
+				assert(type = findInObject(types, tmp, 'list'), 'Unknown monster type: '+tmp);
+				assert(name = $children.eq(2).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
+//				console.log(warn(), 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
+				mid = uid + '_f';
+				this.set(['data',mid,'type'], type);
+				this.set(['data',mid,'name'], name);
+				this.set(['data',mid,'page'], 'festival');
+				switch($children.eq(3).find('img').attr('src').filepart().regex(/(\w+)\.(gif|jpg)/)[0]) {
+					case 'festival_monster_engagebtn':
+						this.set(['data',mid,'state'], 'engage');
+						break;
+					case 'festival_monster_collectbtn':
+						this.set(['data',mid,'state'], 'reward');
+						break;
+					case 'festival_monster_viewbtn':
+						this.set(['data',mid,'state'], 'complete');
+						break;
+					default:
+						this.set(['data',mid,'state'], 'unknown');
+						break; // Should probably delete, but keep it on the list...
+				}
+				this._transaction(true); // COMMIT TRANSACTION
+			} catch(e) {
+				this._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+			}
+		}
+	} else if (Page.page === 'monster_monster_list') { // Check monster / raid list
+		list = $('div[style*="monsterlist_container.gif"]', parent)
+		for (i=0; i<list.length; i++) {
+			el = list[i];
+			$children = $(el).children('div');
+			try {
+				this._transaction(); // BEGIN TRANSACTION
+				assert(uid = $children.eq(2).find('input[name="casuser"]').attr('value'), 'Unknown UserID');
+				tmp = $children.eq(0).find('img').eq(0).attr('src').regex(/graphics\/([^.]*\....)/i);
+				assert(type = findInObject(types, tmp, 'list'), 'Unknown monster type: '+tmp);
+				assert(name = $children.eq(1).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
+//				console.log(warn(), 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
+				mid = uid + '_' + (types[type].mpool || 4);
+				this.set(['data',mid,'type'], type);
+				this.set(['data',mid,'name'], name);
+				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
+					case 'monsterlist_button_engage':
+						this.set(['data',mid,'state'], 'engage');
+						break;
+					case 'monster_button_collect':
+						this.set(['data',mid,'state'], $children.find('img[src*="cancelButton.gif"]').length ? 'complete' : 'reward');
+						break;
+					default:
+						this.set(['data',mid,'state'], 'unknown');
+						break; // Should probably delete, but keep it on the list...
+				}
+				this._transaction(true); // COMMIT TRANSACTION
+			} catch(e) {
+				this._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+			}
 		}
 	}
 	return false;
@@ -10107,6 +10135,7 @@ Monster.update = function(event) {
 		if (!this.data[mid].last && !this.data[mid].ignore) {
 			this.page(mid, 'Checking new monster ', 'casuser','');
 			this.runtime.defending = true;
+			this.data[mid].last = now; // Force it to only check once
 			return;
 		}
 	}
@@ -10667,8 +10696,7 @@ Monster.page = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_.+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s') : '')
-				+ ' ' + type.name;
+		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s') : '') + ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}
 	this.runtime.page = type.raid ? 'battle_raid' 
@@ -11073,7 +11101,7 @@ Page.defaults.castle_age = {
 		battle_guild:	{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
 		battle_guild_battle:	{url:'guild_battle.php', selector:'#app46755028429_guild_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-		monster_monster_list:	{url:'battle_monster.php', image:'tab_monster_list_on.gif'},
+		monster_monster_list:	{url:'battle_monster.php', image:'monster_button_yourmonster_on.jpg'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},

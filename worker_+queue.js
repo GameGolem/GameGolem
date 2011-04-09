@@ -169,7 +169,7 @@ Queue.clearCurrent = function() {
 Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
 	for (i=0; i<events.length; i++) {
-		if (isEvent(events[i], null, 'watch', 'option.disabled')) { // A worker getting disabled / enabled
+		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
 			if (events[i].worker.get(['option', '_disabled'], false)) {
 				$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
 				if (this.runtime.current === events[i].worker.name) {
