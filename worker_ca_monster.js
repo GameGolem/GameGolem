@@ -908,7 +908,7 @@ Monster.parse = function(change) {
 		}
 		mid = uid+'_' + (Page.page === 'festival_battle_monster' ? 'f' : (types[i].mpool || 4));
 		if (this.runtime.check === mid) {
-			this.runtime.check = false;
+			this.set(['runtime','check'], false);
 		}
 		monster = data[mid] = data[mid] || {};
 		monster.type = type_label;
@@ -1086,17 +1086,18 @@ Monster.parse = function(change) {
 			monster.total = Math.ceil(100 * sum(monster.damage) / (monster.health === 100 ? 0.1 : (100 - monster.health)));
 		}
 		monster.eta = now + (Math.floor((monster.total - sum(monster.damage)) / monster.dps) * 1000);
+		this._taint[data] = true;
 //		this.runtime.used.stamina = 0;
 //		this.runtime.used.energy = 0;
 	} else if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
 		console.log(warn('Found a timed out monster.'));
 		if (clicked) {
 			console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
-			delete data[this.runtime.mid];
+			this.set(['data',this.runtime.mid]);
 		} else {
 			console.log(warn('Unknown monster (timed out)'));
 		}
-		this.runtime.check = false;
+		this.set(['runtime','check'], false);
 		return false;
 /*	} else if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
 				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {

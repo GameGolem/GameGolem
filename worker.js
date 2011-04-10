@@ -82,7 +82,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._load(type)			- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)			- Saves data / option to storage, calls .update(type) on change
 
-._flush()				- Calls this._save() then deletes this.data if !this.settings.keep
+._flush()				- Calls this._save() then deletes this.data if !this.settings.keep ** PRIVATE **
 ._unflush()				- Loads .data if it's not there already
 
 ._parse(change)			- Calls this.parse(change) inside a try / catch block
@@ -194,12 +194,8 @@ Worker.flush = function() {
 		Workers[i]._update(null, 'run');
 	}
 	for (i in Workers) {
-//		console.log('Worker.flush(): '+i+'._save()');
-		Workers[i]._save();
-		if (!Workers[i].settings.keep) {
-//			console.log('Worker.flush(): delete '+i+'.data');
-			delete Workers[i]['data'];
-		}
+//		console.log('Worker.flush(): '+i+'._flush()');
+		Workers[i]._flush();
 	}
 };
 
@@ -214,10 +210,10 @@ Worker._triggers_ = [];// Used for this._trigger
  * @protected
  */
 Worker.prototype._flush = function() {
-	if (this['data']) {
+	if (this._loaded) {
 		this._pushStack();
-		this._save('data');
-		if (!this.settings.keep) {
+		this._save();
+		if (this['data'] && !this.settings.keep) {
 			delete this['data'];
 		}
 		this._popStack();
@@ -603,7 +599,7 @@ Worker.prototype._save = function(type) {
 		}
 		return n;
 	}
-	if (!this._datatypes[type] || this._saving[type] || (this.settings.taint && !this._taint[type]) || this[type] === undefined || this[type] === null) {
+	if (!this._datatypes[type] || this._saving[type] || this[type] === undefined || this[type] === null || (this.settings.taint && !this._taint[type])) {
 		return false;
 	}
 	this._saving[type] = true;
@@ -616,7 +612,7 @@ Worker.prototype._save = function(type) {
 		return false; // exit so we don't try to save mangled data over good data
 	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	if (this.settings.taint || this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
+	if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
 		this._pushStack();
 		this._taint[type] = false;
 		this._timestamps[type] = Date.now();
@@ -889,29 +885,32 @@ Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
 		this._pushStack();
 		var i, done = false, events;
-		if (isString(event)) {
-			event = {type:event};
-		} else if (!isObject(event)) {
-			event = {};
+		if (event) {
+			if (isString(event)) {
+				event = {type:event};
+			} else if (!isObject(event)) {
+				event = {};
+			}
+			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
+				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
+				if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+					this._updates_.splice(i,1);
+				}
+				if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
+					this._updates_.unshift($.extend({}, event));
+				}
+				if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
+					this._updates_ = [];
+				}
+				if (this._updates_.length) {
+					Worker.updates[this.name] = true;
+				} else {
+					delete Worker.updates[this.name];
+				}
+			}
 		}
-		if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
-			event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-			if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
-				this._updates_.splice(i,1);
-			}
-			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
-				this._updates_.unshift($.extend({}, event));
-				Worker.updates[this.name] = true;
-			}
-			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
-				this._updates_ = [];
-				delete Worker.updates[this.name];
-			}
-		}
-		if (type === 'run' && this._updates_.length) { // Go through the event list and process each one
-			if (isUndefined(this.data) && this._datatypes.data) {
-				this._unflush();
-			}
+		if (type === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
+			this._unflush();
 			events = this._updates_;
 			this._updates_ = [];
 			while (events.length && done !== true) {
