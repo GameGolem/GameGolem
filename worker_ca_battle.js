@@ -13,7 +13,7 @@
 var Battle = new Worker('Battle');
 
 Battle.settings = {
-	//taint: true
+	taint:true
 };
 
 Battle.temp = null;
@@ -199,7 +199,7 @@ Battle.init = function() {
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
 	if (typeof this.option.points === 'boolean') {
-		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
+		this.set(['option','points'], this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never');
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 /* Old fix for users stored directly in .data - breaks data.battle.rank
@@ -236,12 +236,12 @@ Battle.init = function() {
 	// map old "(#) rank" string into the number
 	i = this.get('option.limit');
 	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
-		this.set('option.limit', i);
+		this.set(['option','limit'], i);
 	}
 
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general_choice === 'under level 4') {
-		this.set('option.general_choice', 'under max level');
+		this.set(['option','general_choice'], 'under max level');
 	}
 	// END
 
@@ -440,23 +440,21 @@ Battle.update = function(event) {
 	}
 	// Check if we need Demi-points
         //console.log(warn(), 'Queue Logic = ' + enabled);
-	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50 && enabled);
+	points = this.set(['runtime','points'], this.option.points !== 'Never' && sum(this.get(['data','points'], [0])) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
 	if (!points && (this.option.monster || Queue.runtime.big) && Monster.get('runtime.attack',false)) {
-		this.runtime.attacking = null;
+		this.set(['runtime','attacking'], null);
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
 		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
-		|| (this.option.type === 'War' 
-			&& data[this.runtime.attacking].last 
-			&& data[this.runtime.attacking].last + 300000 < Date.now())) {
-			this.runtime.attacking = null;
+		|| (this.option.type === 'War' && data[this.runtime.attacking].last && data[this.runtime.attacking].last + 300000 < Date.now())) {
+			this.set(['runtime','attacking'], null);
 		}
 		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
 		skip = {};
@@ -501,7 +499,7 @@ Battle.update = function(event) {
 			}
 		}
 		if (!this.runtime.attacking && list.length) {
-			this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
+			this.set(['runtime','attacking'], list[Math.floor(Math.random() * list.length)]);
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
@@ -512,7 +510,7 @@ Battle.update = function(event) {
 			}
 			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i][mode].rank && this.data[mode].rank[data[i][mode].rank] ? ' ' + this.data[mode].rank[data[i][mode].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
-			this.runtime.attacking = null;
+			this.set(['runtime','attacking'], null);
 			status.push('No valid targets found.');
 			this._remind(60); // No targets, so check again in 1 minute...
 		}
@@ -634,7 +632,7 @@ Battle.dashboard = function(sort, rev) {
 		td(output, isNumber(data.align) ? '<img class="golem-image" src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
-		td(output, this.data[mode].rank[data[mode].rank] ? this.data[mode].rank[data[mode].rank].name : '');
+		td(output, this.get(['data',mode,'rank',data[mode].rank,'name'], '', 'string'));
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
 		td(output, data[mode].win || '');

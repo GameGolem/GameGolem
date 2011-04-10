@@ -13,6 +13,10 @@
 var Town = new Worker('Town');
 Town.temp = null;
 
+Town.settings = {
+	taint:true
+};
+
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic keep_stats'
 };
@@ -367,7 +371,7 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var now = Date.now(), self = this, modify = false;
+	var tmp, now = Date.now(), self = this;
 	if (change && Page.page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
 			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
@@ -418,8 +422,7 @@ Town.parse = function(change) {
 			});
 		}
 	} else if (!change) {
-		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
-		purge = {};
+		var unit = Town.data, page = Page.page.substr(5), purge = {}, changes = 0, i, j, cost_adj = 1;
 		for (i in unit) {
 			if (unit[i].page === page) {
 				purge[i] = true;
@@ -435,102 +438,68 @@ Town.parse = function(change) {
 			}
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
-			var i, j,
-				name = $('div img[alt]', el).attr('alt').trim(),
-				icon = $('div img[src]', el).attr('src').filepart(),
-				cost = $('div strong.gold', el).text().replace(/\D/g, ''),
-				own = $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i),
-				atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/),
-				def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i),
-				upkeep = $('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, ''),
-				match, maxlen = 0;
-			changes++;
-			name = self.qualify(name, icon);
-			if (purge[name]) {
-				purge[name] = false;
-			}
-			unit[name] = unit[name] || {};
-			unit[name].page = page;
-			unit[name].img = icon;
-			unit[name].own = own || 0;
-			Resources.add('_'+name, unit[name].own, true);
-			unit[name].att = atk || 0;
-			unit[name].def = def || 0;
-			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
-			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
-			if (cost) {
-				unit[name].cost = Math.round(cost_adj * (parseInt(cost, 10) || 0));
-			} else if ('cost' in unit[name]) {
-				delete unit[name].cost;
-			}
-			if (upkeep) {
-				unit[name].upkeep = parseInt(upkeep, 10) || 0;
-			} else if ('upkeep' in unit[name]) {
-				delete unit[name].upkeep;
-			}
-			if (cost) {
-				unit[name].id = null;
-				if ((i = $('form .imgButton input[name="Buy"]', el)).length) {
-					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemBuy_(\d+)$/)))) {
-						unit[name].id = j;
-					}
-					unit[name].buy = [];
-					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
-						unit[name].buy.push(parseInt($(el).val(), 10));
+			try {
+				var i, j, type, name = $('div img[alt]', el).attr('alt').trim(), icon = $('div img[src]', el).attr('src').filepart(),
+					cost = parseInt($('div strong.gold', el).text().replace(/\D/g, '') || 0, 10),
+					atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/) || 0,
+					def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i) || 0,
+					upkeep = parseInt($('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, '') || 0, 10),
+					match, maxlen = 0;
+				Town._transaction(); // BEGIN TRANSACTION
+				change = true;
+				name = self.qualify(name, icon);
+				delete purge[name];
+				Town.set(['data',name,'page'], page);
+				Town.set(['data',name,'img'], icon);
+				Resources.add('_'+name, Town.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
+				Town.set(['data',name,'att'], atk);
+				Town.set(['data',name,'def'], def);
+				Town.set(['data',name,'tot_att'], atk + (0.7 * def));
+				Town.set(['data',name,'tot_def'], def + (0.7 * atk));
+				Town.set(['data',name,'cost'], cost ? Math.round(cost_adj * cost) : undefined);
+				Town.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
+//				Town.set(['data',name,'id'], null);
+				Town.set(['data',name,'buy']);
+				if ((tmp = $('form[id*="_itemBuy_"]', el)).length) {
+					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
+					$('select[name="amount"] option', tmp).each(function(b, el) {
+						Town.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
 					});
-				} else {
-					unit[name].buy = null;
 				}
-				if ((i = $('form .imgButton input[name="Sell"]', el)).length) {
-					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemSell_(\d+)$/)))) {
-						unit[name].id = j;
-					}
-					unit[name].sell = [];
-					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
-						unit[name].sell.push(parseInt($(el).val(), 10));
+				Town.set(['data',name,'sell']);
+				if ((tmp = $('form[id*="_itemSell_"]', el)).length) {
+					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
+					$('select[name="amount"] option', tmp).each(function(b, el) {
+						Town.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});
-				} else {
-					unit[name].sell = null;
 				}
-			} else {
-				if ('buy' in unit[name]) {
-					delete unit[name].buy;
-				}
-				if ('sell' in unit[name]) {
-					delete unit[name].sell;
-				}
-			}
-			if (page === 'blacksmith') {
-				unit[name].type = null;
-				for (i in Town.blacksmith) {
-					if ((match = name.match(Town.blacksmith[i]))) {
-						j = 1;
-//						for (j=0; j<match.length; j++) {
-							if (match[j].length > maxlen) {
-								unit[name].type = i;
-								maxlen = match[j].length;
+				if (page === 'blacksmith') {
+					for (i in Town.blacksmith) {
+						if ((match = name.match(Town.blacksmith[i]))) {
+							if (match[1].length > maxlen) {
+								type = i;
+								maxlen = match[1].length;
 							}
-//						}
+						}
 					}
+					Town.set(['data',name,'type'], type);
 				}
+				Town._transaction(true); // COMMIT TRANSACTION
+			} catch(e) {
+				Town._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		});
 		// if nothing at all changed above, something went wrong on the page download
-		if (changes > 0) {
+		if (change) {
 			for (i in purge) {
-				if (purge[i]) {
-					console.log(warn(), 'Purge: ' + i);
-					delete unit[i];
-					changes++;
-				}
+				console.log(warn('Purge: ' + i));
+				Town.set(['data',i]);
 			}
 		}
-		if (changes) {
-			this._notify('data');
-		}
-		modify = true;
+		change = true;
 	}
-	return modify;
+	return change;
 };
 
 Town.getInvade = function(army) {

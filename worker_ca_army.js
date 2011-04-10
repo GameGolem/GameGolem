@@ -99,7 +99,6 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 		} else if (key === 'fill') {
 			this.set(['runtime','page'], 1);
 			this.set(['runtime','check'], true);
-			this._save('runtime');
 		}
 	}
 });

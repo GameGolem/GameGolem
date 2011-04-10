@@ -61,7 +61,6 @@ Config.init = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-		Config._save('option');
 	});
 	for (i in Workers) {
 		this.makePanel(Workers[i]);
@@ -346,7 +345,6 @@ Config.menu = function(worker, key) {
 					this.checkRequire();
 					break;
 			}
-			this._save('option');
 		}
 	}
 };

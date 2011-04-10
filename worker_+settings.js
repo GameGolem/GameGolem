@@ -18,7 +18,8 @@ Settings.settings = {
 	system:true,
 	unsortable:true,
 	advanced:true,
-	no_disable:true
+	no_disable:true,
+	taint:true
 };
 
 Settings.temp = {

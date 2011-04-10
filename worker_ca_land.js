@@ -124,6 +124,7 @@ Land.parse = function(change) {
 						assert(Land.set(['data',name,'income'], txt.regex(/Income:\$(\d+)/), 'number'), 'Bad income: '+name);
 						assert(Land.set(['data',name,'cost'], txt.regex(/Income:\$\d+\$(\d+)/), 'number'), 'Bad cost: '+name);
 						assert(Land.set(['data',name,'own'], $('span:contains("Owned:")', el).text().replace(/[,\s]+/g, '').regex(/Owned:(\d+)/i), 'number'), 'Bad own count: '+name);
+//						Land.set(['data',name,'id']);
 						Land.set(['data',name,'buy']);
 						if ((tmp = $('form[id*="_prop_"]', el)).length) {
 							Land.set(['data',name,'id'], tmp.attr('id').regex(/_prop_(\d+)/i), 'number');

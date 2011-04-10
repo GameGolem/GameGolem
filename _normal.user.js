@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1076
+// @version		31.5.1077
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1076;
+var revision = 1077;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -885,36 +885,22 @@ Worker.find = function(name) {
 /**
  * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
-Worker.flushTimer = null;
+Worker.updates = {};
+Worker.flushTimer = window.setTimeout(function(){Worker.flush();}, 250); // Kickstart everything running...
 Worker.flush = function() {
-	window.clearTimeout(Worker.flushTimer);
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
-	var i, t;
-	for (i in Workers) {
-		if (Workers[i]._updates_.length) {
-//			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
-			Workers[i]._update({}, 'run');
-			if (!Workers[i].settings.taint) { // Fix for non-taint workers
-				for (t in Workers[i]._datatypes) {
-					if (Workers[i]._datatypes[t]) {
-						Workers[i]._taint[t] = true;
-					}
-				}
-			}
-		}
+	var i;
+	window.clearTimeout(Worker.flushTimer); // Prevent a pending call from running
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000); // Call flush again in another second
+	for (i in Worker.updates) {
+//		console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
+		Workers[i]._update(null, 'run');
 	}
 	for (i in Workers) {
-		if (Workers[i].settings.taint) {
-			for (t in Workers[i]._taint) {
-				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
-//					console.log('Worker.flush(): '+i+'._save('+t+')');
-					Workers[i]._save(t);
-				}
-			}
-			if (!Workers[i].settings.keep) {
-//				console.log('Worker.flush(): delete '+i+'.data');
-				delete Workers[i]['data'];
-			}
+//		console.log('Worker.flush(): '+i+'._save()');
+		Workers[i]._save();
+		if (!Workers[i].settings.keep) {
+//			console.log('Worker.flush(): delete '+i+'.data');
+			delete Workers[i]['data'];
 		}
 	}
 };
@@ -955,6 +941,10 @@ Worker.prototype._add = function(what, value, type) {
 	}
 	if (isUndefined(value)) {
 		this._set(what);
+	} else if (isBoolean(value)) {
+		this._set(what, function(old){
+			return !old;
+		});
 	} else if (isNumber(value)) {
 		this._set(what, function(old){
 			return (isNumber(old) ? old : 0) + value;
@@ -1315,36 +1305,28 @@ Worker.prototype._save = function(type) {
 		}
 		return n;
 	}
-	if (this[type] === undefined || this[type] === null || this._saving[type] === true) {
+	if (!this._datatypes[type] || this._saving[type] || (this.settings.taint && !this._taint[type]) || this[type] === undefined || this[type] === null) {
 		return false;
 	}
-	if (!this._taint[type] && this._datatypes[type] && !this.settings.taint) { // Only make the "compare" JSON data if we know we might need it
-		try {
-			v = JSON.stringify(this[type]);
-		} catch (e) {
-			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
-			// exit so we don't try to save mangled data over good data
-			return false;
-		}
+	this._saving[type] = true;
+	this._update(null, 'run'); // Make sure we flush any pending updates
+	this._saving[type] = false;
+	try {
+		v = JSON.stringify(this[type]);
+	} catch (e) {
+		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+		return false; // exit so we don't try to save mangled data over good data
 	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
+	if (this.settings.taint || this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
 		this._pushStack();
-		if (this._updates_.length) {
-			this._saving[type] = true;
-			this._update({}, 'run');
-			this._saving[type] = false;
-		}
 		this._taint[type] = false;
-		if (this._datatypes[type]) {
-			this._timestamps[type] = Date.now();
-			try {
-				v = JSON.stringify(this[type]);
-				setItem(n, v);
-				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
-			} catch (e2) {
-				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
-			}
+		this._timestamps[type] = Date.now();
+		try {
+			setItem(n, v);
+			this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+		} catch (e2) {
+			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
 		}
 		this._popStack();
 		return true;
@@ -1621,18 +1603,20 @@ Worker.prototype._update = function(event, type) {
 			}
 			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
 				this._updates_.unshift($.extend({}, event));
+				Worker.updates[this.name] = true;
 			}
 			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
 				this._updates_ = [];
+				delete Worker.updates[this.name];
 			}
 		}
-		if (type === 'run') { // Go through the event list and process each one
+		if (type === 'run' && this._updates_.length) { // Go through the event list and process each one
+			if (isUndefined(this.data) && this._datatypes.data) {
+				this._unflush();
+			}
 			events = this._updates_;
-			this._updates_ = []; // Want an empty list to prevent it growing
+			this._updates_ = [];
 			while (events.length && done !== true) {
-				if (isUndefined(this.data) && this._datatypes.data) {
-					this._unflush();
-				}
 				try {
 					events[0].worker = Worker.find(events[0].worker || this);
 					if (isFunction(this['update_'+events[0].type])) {
@@ -1641,11 +1625,12 @@ Worker.prototype._update = function(event, type) {
 						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '}): ' + e.message));
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message));
 				}
 				events.shift();
 			}
 			this._updates_ = []; // Make sure we don't directly update ourselves
+			delete Worker.updates[this.name];
 		}
 		this._popStack();
 	}
@@ -2105,7 +2090,6 @@ Config.init = function() {
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-		Config._save('option');
 	});
 	for (i in Workers) {
 		this.makePanel(Workers[i]);
@@ -2390,7 +2374,6 @@ Config.menu = function(worker, key) {
 					this.checkRequire();
 					break;
 			}
-			this._save('option');
 		}
 	}
 };
@@ -2792,7 +2775,6 @@ Dashboard.init = function() {
 			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
-		Dashboard._save('option');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
@@ -3699,9 +3681,11 @@ Main.update = function(event) {
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
+console.log('GameGolem: Loading...');
+
 Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
 Main._update({type:'startup', id:'startup'});
-window.setTimeout(Worker.flush, 50); // Kickstart everything running.../*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
 	Battle, Generals, LevelUp, Player,
@@ -5251,7 +5235,8 @@ Settings.settings = {
 	system:true,
 	unsortable:true,
 	advanced:true,
-	no_disable:true
+	no_disable:true,
+	taint:true
 };
 
 Settings.temp = {
@@ -6043,7 +6028,6 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 		} else if (key === 'fill') {
 			this.set(['runtime','page'], 1);
 			this.set(['runtime','check'], true);
-			this._save('runtime');
 		}
 	}
 });
@@ -6300,7 +6284,7 @@ Bank.menu = function(worker, key) {
 var Battle = new Worker('Battle');
 
 Battle.settings = {
-	//taint: true
+	taint:true
 };
 
 Battle.temp = null;
@@ -6486,7 +6470,7 @@ Battle.init = function() {
 	this._watch(Monster, 'runtime.attack');
 	this._watch(this, 'option.prefer');
 	if (typeof this.option.points === 'boolean') {
-		this.option.points = this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never';
+		this.set(['option','points'], this.option.points ? (this.option.type === 'War' ? 'Duel' : this.option.type) : 'Never');
 		$(':golem(Battle,points)').val(this.option.points);
 	}
 /* Old fix for users stored directly in .data - breaks data.battle.rank
@@ -6523,12 +6507,12 @@ Battle.init = function() {
 	// map old "(#) rank" string into the number
 	i = this.get('option.limit');
 	if (isString(i) && (i = i.regex(/\((-?\d+)\)/))) {
-		this.set('option.limit', i);
+		this.set(['option','limit'], i);
 	}
 
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general_choice === 'under level 4') {
-		this.set('option.general_choice', 'under max level');
+		this.set(['option','general_choice'], 'under max level');
 	}
 	// END
 
@@ -6727,23 +6711,21 @@ Battle.update = function(event) {
 	}
 	// Check if we need Demi-points
         //console.log(warn(), 'Queue Logic = ' + enabled);
-	points = this.runtime.points = (this.option.points !== 'Never' && this.data.points && sum(this.data.points) < 50 && enabled);
+	points = this.set(['runtime','points'], this.option.points !== 'Never' && sum(this.get(['data','points'], [0])) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
 	if (!points && (this.option.monster || Queue.runtime.big) && Monster.get('runtime.attack',false)) {
-		this.runtime.attacking = null;
+		this.set(['runtime','attacking'], null);
 		status.push('Attacking Monsters');
 	} else {
 		if (!this.runtime.attacking || !data[this.runtime.attacking]
 		|| (this.option.army !== 'Any' && (data[this.runtime.attacking].army / army) * (data[this.runtime.attacking].level / level) > this.option.army)
 		|| (this.option.level !== 'Any' && (data[this.runtime.attacking].level / level) > this.option.level)
-		|| (this.option.type === 'War' 
-			&& data[this.runtime.attacking].last 
-			&& data[this.runtime.attacking].last + 300000 < Date.now())) {
-			this.runtime.attacking = null;
+		|| (this.option.type === 'War' && data[this.runtime.attacking].last && data[this.runtime.attacking].last + 300000 < Date.now())) {
+			this.set(['runtime','attacking'], null);
 		}
 		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
 		skip = {};
@@ -6788,7 +6770,7 @@ Battle.update = function(event) {
 			}
 		}
 		if (!this.runtime.attacking && list.length) {
-			this.runtime.attacking = list[Math.floor(Math.random() * list.length)];
+			this.set(['runtime','attacking'], list[Math.floor(Math.random() * list.length)]);
 		}
 		if (this.runtime.attacking) {
 			i = this.runtime.attacking;
@@ -6799,7 +6781,7 @@ Battle.update = function(event) {
 			}
 			status.push('Next Target: <img class="golem-image" src="' + this.symbol[data[i].align] +'" alt=" " title="'+this.demi[data[i].align]+'"> ' + j + ' (Level ' + data[i].level + (data[i][mode].rank && this.data[mode].rank[data[i][mode].rank] ? ' ' + this.data[mode].rank[data[i][mode].rank].name : '') + ' with ' + data[i].army + ' army)' + (count ? ', ' + count + ' valid target' + plural(count) : ''));
 		} else {
-			this.runtime.attacking = null;
+			this.set(['runtime','attacking'], null);
 			status.push('No valid targets found.');
 			this._remind(60); // No targets, so check again in 1 minute...
 		}
@@ -6921,7 +6903,7 @@ Battle.dashboard = function(sort, rev) {
 		td(output, isNumber(data.align) ? '<img class="golem-image" src="' + this.symbol[data.align] + '" alt="' + this.demi[data.align] + '">' : '', isNumber(data.align) ? 'title="' + this.demi[data.align] + '"' : null);
 		th(output, data.name.html_escape(), 'title="'+this.order[o]+'"');
 		td(output, (this.option.level !== 'Any' && (data.level / level) > this.option.level) ? '<i>'+data.level+'</i>' : data.level);
-		td(output, this.data[mode].rank[data[mode].rank] ? this.data[mode].rank[data[mode].rank].name : '');
+		td(output, this.get(['data',mode,'rank',data[mode].rank,'name'], '', 'string'));
 		td(output, (this.option.army !== 'Any' && (data.army / army * data.level / level) > this.option.army) ? '<i>'+data.army+'</i>' : data.army);
 		td(output, (prefs[this.order[o]] ? pref_img_on : pref_img_off) + this.order[o] + pref_img_end);
 		td(output, data[mode].win || '');
@@ -7158,7 +7140,6 @@ Elite.menu = function(worker, key) {
 			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
 		} else if (key === 'fill') {
 			this.set('runtime.waitelite', 0);
-			this._save('runtime');
 		}
 	}
 };
@@ -7350,7 +7331,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(event) {
-	var data = this.data, i, j, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
+	var data = this.data, i, j, pa, priority_list = [], list = [], pattack = Player.get('attack', 1, 'number'), pdefense = Player.get('defense', 1, 'number'), invade = Town.get('runtime.invade', 0, 'number'), duel = Town.get('runtime.duel', 0, 'number'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data) {
@@ -7412,7 +7393,7 @@ Generals.update = function(event) {
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
 		this.set(['runtime','force'], false);
-		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
+		if (event.worker.name === 'Player' && pattack > 1 && pdefense > 1) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
@@ -7421,14 +7402,14 @@ Generals.update = function(event) {
 			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
 				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
 				+ (sum(data[i].skills.regex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
-			attack = (Player.get('attack') + attack_bonus
-						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
-			defend = (Player.get('defense') + defense_bonus
-						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
-			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
-			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
+			attack = (pattack + attack_bonus
+						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * pattack / 100).round(0) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * pdefense / 100).round(0));
+			defend = (pdefense + defense_bonus
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * pattack / 100).round(0) 
+						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * pdefense / 100).round(0));
+			attack_potential = pattack + (attack_bonus * 4) / data[i].level;	// Approximation
+			defense_potential = pdefense + (defense_bonus * 4) / data[i].level;	// Approximation
 			army = Math.min(Player.get('armymax'),(sum(skillcombo.regex(/Increases? Army Limit to (\d+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
@@ -7572,7 +7553,7 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0;
+	var i, o, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0;
 
 	if (typeof sort === 'undefined') {
 		this.order = [];
@@ -7613,28 +7594,41 @@ Generals.dashboard = function(sort, rev) {
 		});
 	}
 	for (i in this.data) {
-		iatt = Math.max(iatt, this.data[i].invade ? this.data[i].invade.att : 1);
-		idef = Math.max(idef, this.data[i].invade ? this.data[i].invade.def : 1);
-		datt = Math.max(datt, this.data[i].duel ? this.data[i].duel.att : 1);
-		ddef = Math.max(ddef, this.data[i].duel ? this.data[i].duel.def : 1);
-		matt = Math.max(matt, this.data[i].monster ? this.data[i].monster.att : 1);
-		mdef = Math.max(mdef, this.data[i].monster ? this.data[i].monster.def : 1);
+		data = this.get(['data',i], {});
+		iatt = Math.max(iatt, this.get([data,'invade','att'], 1, 'number'));
+		idef = Math.max(idef, this.get([data,'invade','def'], 1, 'number'));
+		datt = Math.max(datt, this.get([data,'duel','att'], 1, 'number'));
+		ddef = Math.max(ddef, this.get([data,'duel','def'], 1, 'number'));
+		matt = Math.max(matt, this.get([data,'monster','att'], 1, 'number'));
+		mdef = Math.max(mdef, this.get([data,'monster','def'], 1, 'number'));
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Quest<br>Rank</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
+
+	th(output, '');
+	th(output, 'General');
+	th(output, 'Level');
+	th(output, 'Quest<br>Rank');
+	th(output, 'Invade<br>Attack');
+	th(output, 'Invade<br>Defend');
+	th(output, 'Duel<br>Attack');
+	th(output, 'Duel<br>Defend');
+	th(output, 'Monster<br>Attack');
+	th(output, 'Fortify<br>Dispel');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
+		data = this.get(['data',i], {});
 		output = [];
-		output.push('<a class="golem-link" href="generals.php?item=' + this.data[i].id + '&itype=' + this.data[i].type + '"><img src="' + imagepath + this.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + this.data[i].skills + ', Weapon Bonus: ' + (typeof this.data[i].weaponbonus !== 'unknown' ? (this.data[i].weaponbonus ? this.data[i].weaponbonus : 'none') : 'unknown') + '"></a>');
-		output.push(i);
-		output.push('<div'+(isNumber(this.data[i].progress) ? ' title="'+this.data[i].progress+'%"' : '')+'>'+this.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(this.data[i].progress || 0)+'%;"></div></div>');
-		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
-		output.push(this.data[i].invade ? (iatt === this.data[i].invade.att ? '<strong>' : '') + (this.data[i].invade.att).addCommas() + (iatt === this.data[i].invade.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].invade ? (idef === this.data[i].invade.def ? '<strong>' : '') + (this.data[i].invade.def).addCommas() + (idef === this.data[i].invade.def ? '</strong>' : '') : '?');
-		output.push(this.data[i].duel ? (datt === this.data[i].duel.att ? '<strong>' : '') + (this.data[i].duel.att).addCommas() + (datt === this.data[i].duel.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].duel ? (ddef === this.data[i].duel.def ? '<strong>' : '') + (this.data[i].duel.def).addCommas() + (ddef === this.data[i].duel.def ? '</strong>' : '') : '?');
-		output.push(this.data[i].monster ? (matt === this.data[i].monster.att ? '<strong>' : '') + (this.data[i].monster.att).addCommas() + (matt === this.data[i].monster.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].monster ? (mdef === this.data[i].monster.def ? '<strong>' : '') + (this.data[i].monster.def).addCommas() + (mdef === this.data[i].monster.def ? '</strong>' : '') : '?');
-		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, '<a class="golem-link" href="generals.php?item=' + data.id + '&itype=' + data.type + '"><img src="' + imagepath + data.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([data,'skills'], 'none') + ', Weapon Bonus: ' + this.get([data,'weaponbonus'], 'none') + '"></a>');
+		td(output, i);
+		td(output, '<div'+(isNumber(data.progress) ? ' title="'+data.progress+'%"' : '')+'>'+data.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(data.progress || 0)+'%;"></div></div>');
+		td(output, data.priority ? ((data.priority !== 1 ? '<a class="golem-moveup" name='+data.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + data.priority + (data.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+data.priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
+		td(output, this.get([data,'invade','att'],0,'number').addCommas(), (iatt === this.get([data,'invade','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'invade','def'],0,'number').addCommas(), (idef === this.get([data,'invade','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'duel','att'],0,'number').addCommas(), (datt === this.get([data,'duel','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'duel','def'],0,'number').addCommas(), (ddef === this.get([data,'duel','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'monster','att'],0,'number').addCommas(), (matt === this.get([data,'monster','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'monster','def'],0,'number').addCommas(), (mdef === this.get([data,'monster','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('a.golem-moveup').live('click', function(event){
@@ -8479,6 +8473,7 @@ Land.parse = function(change) {
 						assert(Land.set(['data',name,'income'], txt.regex(/Income:\$(\d+)/), 'number'), 'Bad income: '+name);
 						assert(Land.set(['data',name,'cost'], txt.regex(/Income:\$\d+\$(\d+)/), 'number'), 'Bad cost: '+name);
 						assert(Land.set(['data',name,'own'], $('span:contains("Owned:")', el).text().replace(/[,\s]+/g, '').regex(/Owned:(\d+)/i), 'number'), 'Bad own count: '+name);
+//						Land.set(['data',name,'id']);
 						Land.set(['data',name,'buy']);
 						if ((tmp = $('form[id*="_prop_"]', el)).length) {
 							Land.set(['data',name,'id'], tmp.attr('id').regex(/_prop_(\d+)/i), 'number');
@@ -11275,7 +11270,8 @@ var Player = new Worker('Player');
 Player.option = Player.runtime = Player.temp = null;
 
 Player.settings = {
-	keep:true
+	keep:true,
+	taint:true
 };
 
 Player.defaults['castle_age'] = {
@@ -11471,11 +11467,9 @@ Player.update = function(event) {
 };
 
 Player.get = function(what, def) {
-	var data = this.data, when;
+	var data = this.data;
 	switch(what) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
-//		case 'cash_timer':		when = new Date();
-//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy_timer':	return $('#app46755028429_energy_time_value').text().parseTimer();
 		case 'health_timer':	return $('#app46755028429_health_time_value').text().parseTimer();
 		case 'stamina_timer':	return $('#app46755028429_stamina_time_value').text().parseTimer();
@@ -11484,7 +11478,7 @@ Player.get = function(what, def) {
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
 		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
-		default: return this._get(what, def);
+		default: return this._get.apply(this, arguments);
 	}
 };
 
@@ -13028,6 +13022,10 @@ Quest.rdata =			// #391
 var Town = new Worker('Town');
 Town.temp = null;
 
+Town.settings = {
+	taint:true
+};
+
 Town.defaults['castle_age'] = {
 	pages:'town_soldiers town_blacksmith town_magic keep_stats'
 };
@@ -13382,7 +13380,7 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var now = Date.now(), self = this, modify = false;
+	var tmp, now = Date.now(), self = this;
 	if (change && Page.page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
 			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
@@ -13433,8 +13431,7 @@ Town.parse = function(change) {
 			});
 		}
 	} else if (!change) {
-		var unit = Town.data, page = Page.page.substr(5), purge, changes = 0, i, j, cost_adj = 1;
-		purge = {};
+		var unit = Town.data, page = Page.page.substr(5), purge = {}, changes = 0, i, j, cost_adj = 1;
 		for (i in unit) {
 			if (unit[i].page === page) {
 				purge[i] = true;
@@ -13450,102 +13447,68 @@ Town.parse = function(change) {
 			}
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
-			var i, j,
-				name = $('div img[alt]', el).attr('alt').trim(),
-				icon = $('div img[src]', el).attr('src').filepart(),
-				cost = $('div strong.gold', el).text().replace(/\D/g, ''),
-				own = $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i),
-				atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/),
-				def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i),
-				upkeep = $('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, ''),
-				match, maxlen = 0;
-			changes++;
-			name = self.qualify(name, icon);
-			if (purge[name]) {
-				purge[name] = false;
-			}
-			unit[name] = unit[name] || {};
-			unit[name].page = page;
-			unit[name].img = icon;
-			unit[name].own = own || 0;
-			Resources.add('_'+name, unit[name].own, true);
-			unit[name].att = atk || 0;
-			unit[name].def = def || 0;
-			unit[name].tot_att = unit[name].att + (0.7 * unit[name].def);
-			unit[name].tot_def = unit[name].def + (0.7 * unit[name].att);
-			if (cost) {
-				unit[name].cost = Math.round(cost_adj * (parseInt(cost, 10) || 0));
-			} else if ('cost' in unit[name]) {
-				delete unit[name].cost;
-			}
-			if (upkeep) {
-				unit[name].upkeep = parseInt(upkeep, 10) || 0;
-			} else if ('upkeep' in unit[name]) {
-				delete unit[name].upkeep;
-			}
-			if (cost) {
-				unit[name].id = null;
-				if ((i = $('form .imgButton input[name="Buy"]', el)).length) {
-					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemBuy_(\d+)$/)))) {
-						unit[name].id = j;
-					}
-					unit[name].buy = [];
-					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
-						unit[name].buy.push(parseInt($(el).val(), 10));
+			try {
+				var i, j, type, name = $('div img[alt]', el).attr('alt').trim(), icon = $('div img[src]', el).attr('src').filepart(),
+					cost = parseInt($('div strong.gold', el).text().replace(/\D/g, '') || 0, 10),
+					atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/) || 0,
+					def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i) || 0,
+					upkeep = parseInt($('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, '') || 0, 10),
+					match, maxlen = 0;
+				Town._transaction(); // BEGIN TRANSACTION
+				change = true;
+				name = self.qualify(name, icon);
+				delete purge[name];
+				Town.set(['data',name,'page'], page);
+				Town.set(['data',name,'img'], icon);
+				Resources.add('_'+name, Town.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
+				Town.set(['data',name,'att'], atk);
+				Town.set(['data',name,'def'], def);
+				Town.set(['data',name,'tot_att'], atk + (0.7 * def));
+				Town.set(['data',name,'tot_def'], def + (0.7 * atk));
+				Town.set(['data',name,'cost'], cost ? Math.round(cost_adj * cost) : undefined);
+				Town.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
+//				Town.set(['data',name,'id'], null);
+				Town.set(['data',name,'buy']);
+				if ((tmp = $('form[id*="_itemBuy_"]', el)).length) {
+					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
+					$('select[name="amount"] option', tmp).each(function(b, el) {
+						Town.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
 					});
-				} else {
-					unit[name].buy = null;
 				}
-				if ((i = $('form .imgButton input[name="Sell"]', el)).length) {
-					if ((j = i.closest('form').attr('id')) && (j = (j.regex(/^app46755028429_itemSell_(\d+)$/)))) {
-						unit[name].id = j;
-					}
-					unit[name].sell = [];
-					$('select[name="amount"] option', i.closest('form')).each(function(b,el) {
-						unit[name].sell.push(parseInt($(el).val(), 10));
+				Town.set(['data',name,'sell']);
+				if ((tmp = $('form[id*="_itemSell_"]', el)).length) {
+					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
+					$('select[name="amount"] option', tmp).each(function(b, el) {
+						Town.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});
-				} else {
-					unit[name].sell = null;
 				}
-			} else {
-				if ('buy' in unit[name]) {
-					delete unit[name].buy;
-				}
-				if ('sell' in unit[name]) {
-					delete unit[name].sell;
-				}
-			}
-			if (page === 'blacksmith') {
-				unit[name].type = null;
-				for (i in Town.blacksmith) {
-					if ((match = name.match(Town.blacksmith[i]))) {
-						j = 1;
-//						for (j=0; j<match.length; j++) {
-							if (match[j].length > maxlen) {
-								unit[name].type = i;
-								maxlen = match[j].length;
+				if (page === 'blacksmith') {
+					for (i in Town.blacksmith) {
+						if ((match = name.match(Town.blacksmith[i]))) {
+							if (match[1].length > maxlen) {
+								type = i;
+								maxlen = match[1].length;
 							}
-//						}
+						}
 					}
+					Town.set(['data',name,'type'], type);
 				}
+				Town._transaction(true); // COMMIT TRANSACTION
+			} catch(e) {
+				Town._transaction(false); // ROLLBACK TRANSACTION on any error
+				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		});
 		// if nothing at all changed above, something went wrong on the page download
-		if (changes > 0) {
+		if (change) {
 			for (i in purge) {
-				if (purge[i]) {
-					console.log(warn(), 'Purge: ' + i);
-					delete unit[i];
-					changes++;
-				}
+				console.log(warn('Purge: ' + i));
+				Town.set(['data',i]);
 			}
 		}
-		if (changes) {
-			this._notify('data');
-		}
-		modify = true;
+		change = true;
 	}
-	return modify;
+	return change;
 };
 
 Town.getInvade = function(army) {

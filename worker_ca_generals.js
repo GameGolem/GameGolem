@@ -115,7 +115,7 @@ Generals.parse = function(change) {
 };
 
 Generals.update = function(event) {
-	var data = this.data, i, j, pa, priority_list = [], list = [], invade = Town.get('runtime.invade',0), duel = Town.get('runtime.duel',0), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
+	var data = this.data, i, j, pa, priority_list = [], list = [], pattack = Player.get('attack', 1, 'number'), pdefense = Player.get('defense', 1, 'number'), invade = Town.get('runtime.invade', 0, 'number'), duel = Town.get('runtime.duel', 0, 'number'), attack, attack_bonus, defend, defense_bonus, army, gen_att, gen_def, attack_potential, defense_potential, att_when_att_potential, def_when_att_potential, att_when_att = 0, def_when_att = 0, monster_att = 0, monster_multiplier = 1, current_att, current_def, listpush = function(list,i){list.push(i);}, skillcombo, calcStats = false;
 
 	if (event.type === 'init' || event.type === 'data') {
 		for (i in data) {
@@ -177,7 +177,7 @@ Generals.update = function(event) {
 	
 	if (((event.type === 'data' || event.worker.name === 'Town' || event.worker.name === 'Player' || this.runtime.force) && invade && duel)) {
 		this.set(['runtime','force'], false);
-		if (event.worker.name === 'Player' && Player.get('attack') && Player.get('defense')) {
+		if (event.worker.name === 'Player' && pattack > 1 && pdefense > 1) {
 			this._unwatch(Player); // Only need them the first time...
 		}
 		for (i in data) {
@@ -186,14 +186,14 @@ Generals.update = function(event) {
 			defense_bonus = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Increase Player Defense by (\d+)/gi))	
 				+ sum(data[i].skills.regex(/Increase Player Defense by ([-+]?\d*\.?\d+) for every 3 Health/gi)) * Player.get('health') / 3
 				+ (sum(data[i].skills.regex(/Increase ([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * (length(data)-1)));
-			attack = (Player.get('attack') + attack_bonus
-						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
-			defend = (Player.get('defense') + defense_bonus
-						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * Player.get('attack') / 100).round(0) 
-						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * Player.get('defense') / 100).round(0));
-			attack_potential = Player.get('attack') + (attack_bonus * 4) / data[i].level;	// Approximation
-			defense_potential = Player.get('defense') + (defense_bonus * 4) / data[i].level;	// Approximation
+			attack = (pattack + attack_bonus
+						- (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * pattack / 100).round(0) 
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * pdefense / 100).round(0));
+			defend = (pdefense + defense_bonus
+						+ (sum(skillcombo.regex(/Transfer (\d+)% Attack to Defense/gi)) * pattack / 100).round(0) 
+						- (sum(skillcombo.regex(/Transfer (\d+)% Defense to Attack/gi)) * pdefense / 100).round(0));
+			attack_potential = pattack + (attack_bonus * 4) / data[i].level;	// Approximation
+			defense_potential = pdefense + (defense_bonus * 4) / data[i].level;	// Approximation
 			army = Math.min(Player.get('armymax'),(sum(skillcombo.regex(/Increases? Army Limit to (\d+)/gi)) || 501));
 			gen_att = getAttDef(data, listpush, 'att', Math.floor(army / 5));
 			gen_def = getAttDef(data, listpush, 'def', Math.floor(army / 5));
@@ -337,7 +337,7 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var i, o, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0;
+	var i, o, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0;
 
 	if (typeof sort === 'undefined') {
 		this.order = [];
@@ -378,28 +378,41 @@ Generals.dashboard = function(sort, rev) {
 		});
 	}
 	for (i in this.data) {
-		iatt = Math.max(iatt, this.data[i].invade ? this.data[i].invade.att : 1);
-		idef = Math.max(idef, this.data[i].invade ? this.data[i].invade.def : 1);
-		datt = Math.max(datt, this.data[i].duel ? this.data[i].duel.att : 1);
-		ddef = Math.max(ddef, this.data[i].duel ? this.data[i].duel.def : 1);
-		matt = Math.max(matt, this.data[i].monster ? this.data[i].monster.att : 1);
-		mdef = Math.max(mdef, this.data[i].monster ? this.data[i].monster.def : 1);
+		data = this.get(['data',i], {});
+		iatt = Math.max(iatt, this.get([data,'invade','att'], 1, 'number'));
+		idef = Math.max(idef, this.get([data,'invade','def'], 1, 'number'));
+		datt = Math.max(datt, this.get([data,'duel','att'], 1, 'number'));
+		ddef = Math.max(ddef, this.get([data,'duel','def'], 1, 'number'));
+		matt = Math.max(matt, this.get([data,'monster','att'], 1, 'number'));
+		mdef = Math.max(mdef, this.get([data,'monster','def'], 1, 'number'));
 	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr><th></th><th>General</th><th>Level</th><th>Quest<br>Rank</th><th>Invade<br>Attack</th><th>Invade<br>Defend</th><th>Duel<br>Attack</th><th>Duel<br>Defend</th><th>Monster<br>Attack</th><th>Fortify<br>Dispel</th></tr></thead><tbody>');
+
+	th(output, '');
+	th(output, 'General');
+	th(output, 'Level');
+	th(output, 'Quest<br>Rank');
+	th(output, 'Invade<br>Attack');
+	th(output, 'Invade<br>Defend');
+	th(output, 'Duel<br>Attack');
+	th(output, 'Duel<br>Defend');
+	th(output, 'Monster<br>Attack');
+	th(output, 'Fortify<br>Dispel');
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (o=0; o<this.order.length; o++) {
 		i = this.order[o];
+		data = this.get(['data',i], {});
 		output = [];
-		output.push('<a class="golem-link" href="generals.php?item=' + this.data[i].id + '&itype=' + this.data[i].type + '"><img src="' + imagepath + this.data[i].img+'" style="width:25px;height:25px;" title="Skills: ' + this.data[i].skills + ', Weapon Bonus: ' + (typeof this.data[i].weaponbonus !== 'unknown' ? (this.data[i].weaponbonus ? this.data[i].weaponbonus : 'none') : 'unknown') + '"></a>');
-		output.push(i);
-		output.push('<div'+(isNumber(this.data[i].progress) ? ' title="'+this.data[i].progress+'%"' : '')+'>'+this.data[i].level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(this.data[i].progress || 0)+'%;"></div></div>');
-		output.push(this.data[i].priority ? ((this.data[i].priority !== 1 ? '<a class="golem-moveup" name='+this.data[i].priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + this.data[i].priority + (this.data[i].priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+this.data[i].priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
-		output.push(this.data[i].invade ? (iatt === this.data[i].invade.att ? '<strong>' : '') + (this.data[i].invade.att).addCommas() + (iatt === this.data[i].invade.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].invade ? (idef === this.data[i].invade.def ? '<strong>' : '') + (this.data[i].invade.def).addCommas() + (idef === this.data[i].invade.def ? '</strong>' : '') : '?');
-		output.push(this.data[i].duel ? (datt === this.data[i].duel.att ? '<strong>' : '') + (this.data[i].duel.att).addCommas() + (datt === this.data[i].duel.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].duel ? (ddef === this.data[i].duel.def ? '<strong>' : '') + (this.data[i].duel.def).addCommas() + (ddef === this.data[i].duel.def ? '</strong>' : '') : '?');
-		output.push(this.data[i].monster ? (matt === this.data[i].monster.att ? '<strong>' : '') + (this.data[i].monster.att).addCommas() + (matt === this.data[i].monster.att ? '</strong>' : '') : '?');
-		output.push(this.data[i].monster ? (mdef === this.data[i].monster.def ? '<strong>' : '') + (this.data[i].monster.def).addCommas() + (mdef === this.data[i].monster.def ? '</strong>' : '') : '?');
-		list.push('<tr><td>' + output.join('</td><td>') + '</td></tr>');
+		td(output, '<a class="golem-link" href="generals.php?item=' + data.id + '&itype=' + data.type + '"><img src="' + imagepath + data.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([data,'skills'], 'none') + ', Weapon Bonus: ' + this.get([data,'weaponbonus'], 'none') + '"></a>');
+		td(output, i);
+		td(output, '<div'+(isNumber(data.progress) ? ' title="'+data.progress+'%"' : '')+'>'+data.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(data.progress || 0)+'%;"></div></div>');
+		td(output, data.priority ? ((data.priority !== 1 ? '<a class="golem-moveup" name='+data.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + data.priority + (data.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+data.priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
+		td(output, this.get([data,'invade','att'],0,'number').addCommas(), (iatt === this.get([data,'invade','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'invade','def'],0,'number').addCommas(), (idef === this.get([data,'invade','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'duel','att'],0,'number').addCommas(), (datt === this.get([data,'duel','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'duel','def'],0,'number').addCommas(), (ddef === this.get([data,'duel','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'monster','att'],0,'number').addCommas(), (matt === this.get([data,'monster','att'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		td(output, this.get([data,'monster','def'],0,'number').addCommas(), (mdef === this.get([data,'monster','def'],0,'number') ? 'style="font-weight:bold;"' : ''));
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
 	$('a.golem-moveup').live('click', function(event){

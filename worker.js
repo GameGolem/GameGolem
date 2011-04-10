@@ -183,36 +183,22 @@ Worker.find = function(name) {
 /**
  * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
  */
-Worker.flushTimer = null;
+Worker.updates = {};
+Worker.flushTimer = window.setTimeout(function(){Worker.flush();}, 250); // Kickstart everything running...
 Worker.flush = function() {
-	window.clearTimeout(Worker.flushTimer);
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
-	var i, t;
-	for (i in Workers) {
-		if (Workers[i]._updates_.length) {
-//			console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
-			Workers[i]._update({}, 'run');
-			if (!Workers[i].settings.taint) { // Fix for non-taint workers
-				for (t in Workers[i]._datatypes) {
-					if (Workers[i]._datatypes[t]) {
-						Workers[i]._taint[t] = true;
-					}
-				}
-			}
-		}
+	var i;
+	window.clearTimeout(Worker.flushTimer); // Prevent a pending call from running
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000); // Call flush again in another second
+	for (i in Worker.updates) {
+//		console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
+		Workers[i]._update(null, 'run');
 	}
 	for (i in Workers) {
-		if (Workers[i].settings.taint) {
-			for (t in Workers[i]._taint) {
-				if (Workers[i]._datatypes[t] && Workers[i]._taint[t]) {
-//					console.log('Worker.flush(): '+i+'._save('+t+')');
-					Workers[i]._save(t);
-				}
-			}
-			if (!Workers[i].settings.keep) {
-//				console.log('Worker.flush(): delete '+i+'.data');
-				delete Workers[i]['data'];
-			}
+//		console.log('Worker.flush(): '+i+'._save()');
+		Workers[i]._save();
+		if (!Workers[i].settings.keep) {
+//			console.log('Worker.flush(): delete '+i+'.data');
+			delete Workers[i]['data'];
 		}
 	}
 };
@@ -253,6 +239,10 @@ Worker.prototype._add = function(what, value, type) {
 	}
 	if (isUndefined(value)) {
 		this._set(what);
+	} else if (isBoolean(value)) {
+		this._set(what, function(old){
+			return !old;
+		});
 	} else if (isNumber(value)) {
 		this._set(what, function(old){
 			return (isNumber(old) ? old : 0) + value;
@@ -613,36 +603,28 @@ Worker.prototype._save = function(type) {
 		}
 		return n;
 	}
-	if (this[type] === undefined || this[type] === null || this._saving[type] === true) {
+	if (!this._datatypes[type] || this._saving[type] || (this.settings.taint && !this._taint[type]) || this[type] === undefined || this[type] === null) {
 		return false;
 	}
-	if (!this._taint[type] && this._datatypes[type] && !this.settings.taint) { // Only make the "compare" JSON data if we know we might need it
-		try {
-			v = JSON.stringify(this[type]);
-		} catch (e) {
-			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
-			// exit so we don't try to save mangled data over good data
-			return false;
-		}
+	this._saving[type] = true;
+	this._update(null, 'run'); // Make sure we flush any pending updates
+	this._saving[type] = false;
+	try {
+		v = JSON.stringify(this[type]);
+	} catch (e) {
+		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+		return false; // exit so we don't try to save mangled data over good data
 	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
+	if (this.settings.taint || this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
 		this._pushStack();
-		if (this._updates_.length) {
-			this._saving[type] = true;
-			this._update({}, 'run');
-			this._saving[type] = false;
-		}
 		this._taint[type] = false;
-		if (this._datatypes[type]) {
-			this._timestamps[type] = Date.now();
-			try {
-				v = JSON.stringify(this[type]);
-				setItem(n, v);
-				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
-			} catch (e2) {
-				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
-			}
+		this._timestamps[type] = Date.now();
+		try {
+			setItem(n, v);
+			this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+		} catch (e2) {
+			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
 		}
 		this._popStack();
 		return true;
@@ -919,18 +901,20 @@ Worker.prototype._update = function(event, type) {
 			}
 			if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
 				this._updates_.unshift($.extend({}, event));
+				Worker.updates[this.name] = true;
 			}
 			if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
 				this._updates_ = [];
+				delete Worker.updates[this.name];
 			}
 		}
-		if (type === 'run') { // Go through the event list and process each one
+		if (type === 'run' && this._updates_.length) { // Go through the event list and process each one
+			if (isUndefined(this.data) && this._datatypes.data) {
+				this._unflush();
+			}
 			events = this._updates_;
-			this._updates_ = []; // Want an empty list to prevent it growing
+			this._updates_ = [];
 			while (events.length && done !== true) {
-				if (isUndefined(this.data) && this._datatypes.data) {
-					this._unflush();
-				}
 				try {
 					events[0].worker = Worker.find(events[0].worker || this);
 					if (isFunction(this['update_'+events[0].type])) {
@@ -939,11 +923,12 @@ Worker.prototype._update = function(event, type) {
 						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '}): ' + e.message));
+					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message));
 				}
 				events.shift();
 			}
 			this._updates_ = []; // Make sure we don't directly update ourselves
+			delete Worker.updates[this.name];
 		}
 		this._popStack();
 	}

@@ -84,7 +84,6 @@ Dashboard.init = function() {
 			Workers[Dashboard.option.active].dashboard();
 		}
 		$('#golem-dashboard').toggle('drop');
-		Dashboard._save('option');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');

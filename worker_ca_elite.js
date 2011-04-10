@@ -107,7 +107,6 @@ Elite.menu = function(worker, key) {
 			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
 		} else if (key === 'fill') {
 			this.set('runtime.waitelite', 0);
-			this._save('runtime');
 		}
 	}
 };

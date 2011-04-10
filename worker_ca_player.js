@@ -14,7 +14,8 @@ var Player = new Worker('Player');
 Player.option = Player.runtime = Player.temp = null;
 
 Player.settings = {
-	keep:true
+	keep:true,
+	taint:true
 };
 
 Player.defaults['castle_age'] = {
@@ -210,11 +211,9 @@ Player.update = function(event) {
 };
 
 Player.get = function(what, def) {
-	var data = this.data, when;
+	var data = this.data;
 	switch(what) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
-//		case 'cash_timer':		when = new Date();
-//								return (3600 + data.cash_time - (when.getSeconds() + (when.getMinutes() * 60))) % 3600;
 		case 'energy_timer':	return $('#app46755028429_energy_time_value').text().parseTimer();
 		case 'health_timer':	return $('#app46755028429_health_time_value').text().parseTimer();
 		case 'stamina_timer':	return $('#app46755028429_stamina_time_value').text().parseTimer();
@@ -223,7 +222,7 @@ Player.get = function(what, def) {
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
 		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
-		default: return this._get(what, def);
+		default: return this._get.apply(this, arguments);
 	}
 };
 
