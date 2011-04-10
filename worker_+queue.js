@@ -252,7 +252,6 @@ Queue.update = function(event, events) {
 				LevelUp.set('runtime.heal_me',true);
 			}
 		}
-		this._push();
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 				console.log(warn(Workers[i].name + '.work(false);'));
@@ -297,7 +296,6 @@ Queue.update = function(event, events) {
 			}
 		}
 //		console.log(warn('End Queue'));
-		this._pop();
 	}
 	return true;
 };

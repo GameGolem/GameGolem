@@ -70,6 +70,10 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 *** Private functions - only overload if you're sure exactly what you're doing ***
 ._get(what,def,type)	- Returns the data requested, auto-loads if needed, what is 'path.to.data', default if not found
 ._set(what,val,type)	- Sets this.data[what] to value, auto-loading if needed. Deletes "empty" data sets (if you don't pass a value)
+._push(what,val,type)	- Pushes value onto this.data[what] (as an array), auto-loading if needed.
+._pop(what,def,type)	- Pops the data requested (from an array), auto-loads if needed, what is 'path.to.data', default if not found. ** CHANGES DATA **
+._shift(what,def,type)	- Shifts the data requested (from an array), auto-loads if needed, what is 'path.to.data', default if not found. ** CHANGES DATA **
+._unshift(what,val,type)- Unshifts value onto this.data[what] (as an array), auto-loading if needed.
 ._transaction(commit)	- Starts a transaction (no args) to allow multilpe _set calls to effectively queue and only write (or clear) with a true (or false) call.
 
 ._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
@@ -96,8 +100,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 
 ._overload(name,fn)		- Overloads the member function 'name'. this._parent() becomes available for running the original code (it automatically has the same arguments unless passed others)
 
-._push()				- Pushes us onto the "active worker" list for debug messages etc
-._pop()					- Pops us off the "active worker" list
+._pushStack()				- Pushes us onto the "active worker" list for debug messages etc
+._popStack()					- Pops us off the "active worker" list
 */
 var Workers = {};// 'name':worker
 
@@ -128,11 +132,14 @@ function Worker(name) {
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
 
-	// Default functions - overload if needed, by default calls prototype function
+	// Default functions - overload if needed, by default calls prototype function - these all affect storage
+	this.add = this._add;
 	this.get = this._get;
 	this.set = this._set;
-	this.setAdd = this._setAdd;
-	this.setPush = this._setPush;
+	this.push = this._push;
+	this.pop = this._pop;
+	this.shift = this._shift;
+	this.unshift = this._unshift;
 
 	// Private data
 	this._rootpath = true; // Override save path, replaces userID + '.' with ''
@@ -221,13 +228,48 @@ Worker._triggers_ = [];// Used for this._trigger
  */
 Worker.prototype._flush = function() {
 	if (this['data']) {
-		this._push();
+		this._pushStack();
 		this._save('data');
 		if (!this.settings.keep) {
 			delete this['data'];
 		}
-		this._pop();
+		this._popStack();
 	}
+};
+
+/**
+ * Adds a value to the current value of one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will add, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ * NOTE: Numbers and strings are old+new, arrays and objects have their contents merged
+ */
+Worker.prototype._add = function(what, value, type) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	if (isUndefined(value)) {
+		this._set(what);
+	} else if (isNumber(value)) {
+		this._set(what, function(old){
+			return (isNumber(old) ? old : 0) + value;
+		});
+	} else if (isString(value)) {
+		this._set(what, function(old){
+			return (isString(old) ? old : '') + value;
+		});
+	} else if (isArray(value)) {
+		this._set(what, function(old){
+			return (isArray(old) ? old : []).concat(value);
+		});
+	} else if (isObject(value)) {
+		this._set(what, function(old){
+			return $.extend({}, isObject(old) ? old : {}, value);
+		});
+	}
+	return value;
 };
 
 /**
@@ -261,7 +303,7 @@ Worker.prototype._forget = function(id) {
  */
 Worker.prototype._get = function(what, def, type) {
 	try {
-		var i, data, x = isArray(what) ? what : (isString(what) ? what.split('.') : []);
+		var i, data, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 		if (x.length && (isObject(x[0]) || isArray(x[0]))) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
@@ -306,7 +348,7 @@ Worker.prototype._init = function(old_revision) {
 	if (this._loaded) {
 		return;
 	}
-	this._push();
+	this._pushStack();
 	this._loaded = true;
 	if (this.init) {
 		try {
@@ -315,7 +357,7 @@ Worker.prototype._init = function(old_revision) {
 			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
 		}
 	}
-	this._pop();
+	this._popStack();
 };
 
 /**
@@ -337,7 +379,7 @@ Worker.prototype._load = function(type, merge) {
 		}
 		return;
 	}
-	this._push();
+	this._pushStack();
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	i = getItem(n);
 	if (isString(i)) { // JSON encoded string
@@ -354,7 +396,7 @@ Worker.prototype._load = function(type, merge) {
 			this._taint[type] = false;
 		}
 	}
-	this._pop();
+	this._popStack();
 };
 
 /**
@@ -418,7 +460,7 @@ Worker.prototype._overload = function(app, name, fn) {
  * return {boolean} If the worker wants to change the page
  */
 Worker.prototype._parse = function(change) {
-	this._push();
+	this._pushStack();
 	var result = false;
 	try {
 		this._unflush();
@@ -426,21 +468,61 @@ Worker.prototype._parse = function(change) {
 	}catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 	}
-	this._pop();
+	this._popStack();
 	return result;
+};
+
+/**
+ * Pops a value from an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*} def The default value to return if the path we want doesn't exist
+ * @param {string=} type The typeof of data required (or return def)
+ * @return {*} The value we passed in
+ * NOTE: This will change the data stored
+ */
+Worker.prototype._pop = function(what, def, type) {
+	var data;
+	this._set(what, function(old){
+		old = isArray(old) ? old.slice(0) : [];
+		data = old.pop();
+		return old;
+	});
+	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
+		return isNull(data) ? null : data.valueOf();
+	}
+	return def;
+};
+
+/**
+ * Pushes a value to an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will push, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ * NOTE: Unlike _add() this will force the new value to be pushed onto the end of the old value (as an array)
+ */
+Worker.prototype._push = function(what, value, type) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isArray(old) ? old : []).push(value);
+	});
+	return value;
 };
 
 /**
  * Removes the current worker from the stack of "Active" workers
  */
-Worker.prototype._pop = function() {
+Worker.prototype._popStack = function() {
 	Worker.stack.shift();
 };
 
 /**
  * Adds the current worker to the stack of "Active" workers
  */
-Worker.prototype._push = function() {
+Worker.prototype._pushStack = function() {
 	Worker.stack.unshift(this.name);
 };
 
@@ -542,7 +624,7 @@ Worker.prototype._save = function(type) {
 	}
 	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 	if (this._taint[type] || (this._datatypes[type] && !this.settings.taint && getItem(n) !== v)) {
-		this._push();
+		this._pushStack();
 		if (this._updates_.length) {
 			this._saving[type] = true;
 			this._update({}, 'run');
@@ -559,49 +641,13 @@ Worker.prototype._save = function(type) {
 				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
 			}
 		}
-		this._pop();
+		this._popStack();
 		return true;
 	}
 	return false;
 };
 
-/*
- * Adds a value to a Number in one of our _datatypes
- * @param {(string|array)} what The path.to.data / [path, to, data] we want
- * @param {*=} value The value we will add, undefined (not null!) will cause it to be deleted and any empty banches removed
- * @param {string=} type The typeof of data to be set (or return false and don't set anything)
- * @return {*} The value we passed in
- */
-Worker.prototype._setAdd = function(what, value) {
-	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
-		return false;
-	}
-	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isNumber(old) ? old : 0) + value;
-	});
-	return value;
-};
-
-/*
- * Pushes a value to an Array in one of our _datatypes
- * @param {(string|array)} what The path.to.data / [path, to, data] we want
- * @param {*=} value The value we will push, undefined (not null!) will cause it to be deleted and any empty banches removed
- * @param {string=} type The typeof of data to be set (or return false and don't set anything)
- * @return {*} The value we passed in
- */
-Worker.prototype._setPush = function(what, value) {
-	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
-		return false;
-	}
-	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isArray(old) ? old : []).concat(value);
-	});
-	return value;
-};
-
-/*
+/**
  * Set a value in one of our _datatypes
  * @param {(string|array)} what The path.to.data / [path, to, data] we want
  * @param {*=} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
@@ -613,7 +659,7 @@ Worker.prototype._set = function(what, value, type) {
 //		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
-	var i, x = isArray(what) ? what : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
+	var i, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
 		switch ((path.length - depth) > 1) { // Can we go deeper?
 			case true:
@@ -626,9 +672,6 @@ Worker.prototype._set = function(what, value, type) {
 				}
 				break;
 			case false:
-				if (isFunction(value)) {
-					value = value.call(this, data[i], data, i);
-				}
 				if (!compare(value, data[i])) {
 					this._notify(path);// Notify the watchers...
 					this._taint[path[0]] = true;
@@ -648,6 +691,9 @@ Worker.prototype._set = function(what, value, type) {
 		x.unshift('data');
 	}
 	try {
+		if (isFunction(value)) { // Transactions need to store the intermediate values in case a future _set within it changes the value again
+			value = value.call(this, this._get(x));
+		}
 		if (isArray(this._transactions_)) { // *Cannot* set data directly while in a transaction
 			for (i=0; i<this._transactions_.length; i++) {
 				if (compare(this._transactions_[i][0], x)) {
@@ -672,7 +718,7 @@ Worker.prototype._set = function(what, value, type) {
  * Calls .setup() for worker-specific setup.
  */
 Worker.prototype._setup = function(old_revision) {
-	this._push();
+	this._pushStack();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		var i;
 		if (this.defaults[APP]) {
@@ -702,7 +748,28 @@ Worker.prototype._setup = function(old_revision) {
 	} else { // Get us out of the list!!!
 		delete Workers[this.name];
 	}
-	this._pop();
+	this._popStack();
+};
+
+/**
+ * Shifts a value from an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*} def The default value to return if the path we want doesn't exist
+ * @param {string=} type The typeof of data required (or return def)
+ * @return {*} The value we passed in
+ * NOTE: This will change the data stored
+ */
+Worker.prototype._shift = function(what, def, type) {
+	var data;
+	this._set(what, function(old){
+		old = isArray(old) ? old.slice(0) : [];
+		data = old.shift();
+		return old;
+	});
+	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
+		return isNull(data) ? null : data.valueOf();
+	}
+	return def;
 };
 
 /**
@@ -754,14 +821,33 @@ Worker.prototype._trigger = function(selector, id) {
  * Make sure we have this.data in memory if needed
  */
 Worker.prototype._unflush = function() {
-	this._push();
+	this._pushStack();
 	if (!this._loaded) {
 		this._init();
 	}
 	if (!this.settings.keep && !this.data && this._datatypes.data) {
 		this._load('data');
 	}
-	this._pop();
+	this._popStack();
+};
+
+/**
+ * Pushes a value to an Array in one of our _datatypes
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {*=} value The value we will push, undefined (not null!) will cause it to be deleted and any empty banches removed
+ * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @return {*} The value we passed in
+ * NOTE: Unlike _add() this will force the new value to be pushed onto the end of the old value (as an array)
+ */
+Worker.prototype._unshift = function(what, value, type) {
+	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
+//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+		return false;
+	}
+	this._set(what, isUndefined(value) ? undefined : function(old){
+		return (isArray(old) ? old : []).unshift(value);
+	});
+	return value;
 };
 
 /**
@@ -802,7 +888,7 @@ Worker.prototype._unwatch = function(worker, path) {
  */
 Worker.prototype._update = function(event, type) {
 	if (this._loaded) {
-		this._push();
+		this._pushStack();
 		var i, done = false, events;
 		if (isString(event)) {
 			event = {type:event};
@@ -842,7 +928,7 @@ Worker.prototype._update = function(event, type) {
 			}
 			this._updates_ = []; // Make sure we don't directly update ourselves
 		}
-		this._pop();
+		this._popStack();
 	}
 };
 
@@ -874,14 +960,14 @@ Worker.prototype._watch = function(worker, path) {
  * return {boolean} If the worker wants to work
  */
 Worker.prototype._work = function(state) {
-	this._push();
+	this._pushStack();
 	var result = false;
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
 		console.log(error(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message));
 	}
-	this._pop();
+	this._popStack();
 	return result;
 };
 

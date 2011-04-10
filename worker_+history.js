@@ -69,28 +69,26 @@ History.update = function(event) {
 //	console.log(warn(), 'Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
-History.set = function(what, value) {
-	if (!value) {
-		return;
+History.set = function(what, value, type) {
+	var x = isArray(what) ? what.slice(0) : isString(what) ? what.split('.') : [];
+	if (x.length && !(x[0] in this._datatypes)) {
+		if (typeof x[0] !== 'number' && !/^\d+$/i.test(x[0])) {
+			x.unshift(Math.floor(Date.now() / 3600000));
+		}
+		x.unshift('data');
 	}
-	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
-	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
-		hour = x.shift();
-	}
-	this._set(['data',hour,x[0]], value);
+	return this._set(x, value, type);
 };
 
-History.add = function(what, value) {
-	if (!value) {
-		return;
+History.add = function(what, value, type) {
+	var x = isArray(what) ? what.slice(0) : isString(what) ? what.split('.') : [];
+	if (x.length && !(x[0] in this._datatypes)) {
+		if (typeof x[0] !== 'number' && !/^\d+$/i.test(x[0])) {
+			x.unshift(Math.floor(Date.now() / 3600000));
+		}
+		x.unshift('data');
 	}
-	this._unflush();
-	var hour = Math.floor(Date.now() / 3600000), x = isArray(what) ? what : isString(what) ? what.split('.') : [];
-	if (x.length && (typeof x[0] === 'number' || !x[0].regex(/\D/gi))) {
-		hour = x.shift();
-	}
-	this._set(['data',hour,x[0]], this._get(['data',hour,x[0]], 0) + value);
+	return this._add(x, value, type);
 };
 
 History.math = {
