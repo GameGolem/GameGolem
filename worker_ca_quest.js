@@ -133,13 +133,11 @@ Quest.init = function() {
 		this.set(['option','monster'], 'Never');
 	}
 	// END
-
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general_choice === 'under level 4') {
 		this.set('option.general_choice', 'under max level');
 	}
 	// END
-
 	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if (revision < 845) {
 		for (i in data) {

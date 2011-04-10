@@ -42,7 +42,7 @@ Generals.parse = function(change) {
 	var i, j, data = {}, bonus = [], current, b, n, el, tmp, stale = false, name;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
-			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+			this.add(['data',current,'level'], 1);
 			stale = true;
 		}
 	}

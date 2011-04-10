@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1073
+// @version		31.5.1076
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1073;
+var revision = 1076;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -799,6 +799,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
+._timer(id)				- Checks if we have an active timer with id
 
 ._overload(name,fn)		- Overloads the member function 'name'. this._parent() becomes available for running the original code (it automatically has the same arguments unless passed others)
 
@@ -886,6 +887,8 @@ Worker.find = function(name) {
  */
 Worker.flushTimer = null;
 Worker.flush = function() {
+	window.clearTimeout(Worker.flushTimer);
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 	var i, t;
 	for (i in Workers) {
 		if (Workers[i]._updates_.length) {
@@ -914,8 +917,6 @@ Worker.flush = function() {
 			}
 		}
 	}
-	window.clearTimeout(Worker.flushTimer);
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 };
 
 // Static Data
@@ -1205,11 +1206,13 @@ Worker.prototype._pop = function(what, def, type) {
  */
 Worker.prototype._push = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isArray(old) ? old : []).push(value);
+		old = isArray(old) ? old : [];
+		old.push(value);
+		return old;
 	});
 	return value;
 };
@@ -1475,6 +1478,18 @@ Worker.prototype._shift = function(what, def, type) {
 };
 
 /**
+ * Is there an active timer for a specific id?
+ * @param {string} id The timer id to check.
+ * @return {boolean} True if there is an active timer, false otherwise.
+ */
+Worker.prototype._timer = function(id) {
+	if (id && (this._reminders['i' + id] || this._reminders['t' + id])) {
+		return true;
+	}
+	return false;
+};
+
+/**
  * Defer _set changes to allow them to be flushed. While inside a transaction all _set and _get works as normal, however direct access returns pre-transaction data until committed.
  * this._transaction() - BEGIN
  * this._transaction(true) - COMMIT
@@ -1543,11 +1558,13 @@ Worker.prototype._unflush = function() {
  */
 Worker.prototype._unshift = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isArray(old) ? old : []).unshift(value);
+		old = isArray(old) ? old : [];
+		old.unshift(value);
+		return old;
 	});
 	return value;
 };
@@ -7260,7 +7277,7 @@ Generals.parse = function(change) {
 	var i, j, data = {}, bonus = [], current, b, n, el, tmp, stale = false, name;
 	if ($('div.results').text().match(/has gained a level!/i)) {
 		if ((current = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
-			this.set(['data',current,'level'], this.get(['data',current,'level'], 0) + 1);
+			this.add(['data',current,'level'], 1);
 			stale = true;
 		}
 	}
@@ -8444,56 +8461,43 @@ Land.init = function() {
 
 	this._watch(Player, 'data.level');		// watch for level ups
 	this._watch(Player, 'data.worth');		// watch for bank increases
+	this._watch(Bank, 'option.keep');		// Watch for changing available amount
 	this._watch(Page, 'data.town_land');	// watch for land triggers
 };
 
 Land.parse = function(change) {
-	var modify = false, tmp;
+	var i, tmp, name, txt, modify = false;
 
 	if (Page.page === 'town_land') {
-		// land data
 		$('div[style*="town_land_bar."],div[style*="town_land_bar_special."]').each(function(a, el) {
-			var name = $('div img[alt]', el).attr('alt').trim(), data, s, v;
-			if (name) {
+			if ((name = $('div img[alt]', el).attr('alt').trim())) {
 				if (!change) {
-					data = {};
-					if ((s = $('div div:contains("Max Allowed For your level:")', el).text()) && isNumber(v = s.replace(/,/g, '').regex(/Max Allowed For your level: (\d+)/i))) {
-						data.max = v;
-					}
-					if ((s = $('div div:contains("Income:") strong', el).text()) && isNumber(v = s.replace(/\D/g, '').regex(/(\d+)/))) {
-						data.income = v;
-					}
-					if ((s = $('div div:contains("Owned:") strong.gold', el).text()) && isNumber(v = s.replace(/\D/g, '').regex(/(\d+)/))) {
-						data.cost = v;
-					}
-					if ((s = $('div div:contains("Owned:")', el).text()) && isNumber(v = s.replace(/\s+/g, ' ').replace(/,/g, '').regex(/Owned: (\d+)/i))) {
-						data.own = v;
-					}
-					if ((s = $('form[id*="_prop_"]', el)).length) {
-						if (isNumber(v = s.attr('id').regex(/_prop_(\d+)/i))) {
-							data.id = v;
+					try {
+						var txt = $(el).text().replace(/[,\s]+/g, '');
+						Land._transaction(); // BEGIN TRANSACTION
+						assert(Land.set(['data',name,'max'], txt.regex(/yourlevel:(\d+)/i), 'number'), 'Bad maximum: '+name);
+						assert(Land.set(['data',name,'income'], txt.regex(/Income:\$(\d+)/), 'number'), 'Bad income: '+name);
+						assert(Land.set(['data',name,'cost'], txt.regex(/Income:\$\d+\$(\d+)/), 'number'), 'Bad cost: '+name);
+						assert(Land.set(['data',name,'own'], $('span:contains("Owned:")', el).text().replace(/[,\s]+/g, '').regex(/Owned:(\d+)/i), 'number'), 'Bad own count: '+name);
+						Land.set(['data',name,'buy']);
+						if ((tmp = $('form[id*="_prop_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/_prop_(\d+)/i), 'number');
+							$('select[name="amount"] option', tmp).each(function(b, el) {
+								Land.push(['data',name,'buy'], parseFloat($(el).val()), 'number')
+							});
 						}
-						data.buy = [];
-						$('select[name="amount"] option', s).each(function(b, el) {
-							var v = parseFloat($(el).val());
-							if (v && isNumber(v)) {
-								data.buy.push(v);
-							}
-						})
-					}
-					if ((s = $('form[id*="_propsell_"]', el)).length) {
-						if (isNumber(v = s.attr('id').regex(/_propsell_(\d+)/i))) {
-							data.id = v;
+						Land.set(['data',name,'sell']);
+						if ((tmp = $('form[id*="_propsell_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/_propsell_(\d+)/i), 'number');
+							$('select[name="amount"] option', tmp).each(function(b, el) {
+								Land.push(['data',name,'sell'], parseFloat($(el).val()), 'number')
+							})
 						}
-						data.sell = [];
-						$('select[name="amount"] option', s).each(function(b, el) {
-							var v = parseFloat($(el).val());
-							if (v && isNumber(v)) {
-								data.sell.push(v);
-							}
-						})
+						Land._transaction(true); // COMMIT TRANSACTION
+					} catch(e) {
+						Land._transaction(false); // ROLLBACK TRANSACTION on any error
+						console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 					}
-					Land.set(['data',name], data);
 				} else if (Land.data[name]) {
 					$('strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
 				}
@@ -8504,13 +8508,11 @@ Land.parse = function(change) {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			$('.statsTTitle:contains("LAND") + .statsTMain .statUnit').each(function(a, el) {
-				var b = $('a img[src]', el);
-				var n = ($(b).attr('alt') || '').trim();
-				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-				if (!Land.data[n]) {
-					Page.set('data.town_land', 0);
-				} else if (Land.data[n].own != c) {
-					Land.set(['data', n, 'own'], c);
+				var tmp = $('a img[src]', el), name = ($(tmp).attr('alt') || '').trim(), i = $(el).text().regex(/\bX\s*(\d+)\b/i);
+				if (!Land.data[name]) {
+					Page.set(['data','town_land'], 0);
+				} else if (Land.data[name].own !== i) {
+					Land.set(['data', name, 'own'], i);
 				}
 			});
 		}
@@ -11748,13 +11750,11 @@ Quest.init = function() {
 		this.set(['option','monster'], 'Never');
 	}
 	// END
-
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general_choice === 'under level 4') {
 		this.set('option.general_choice', 'under max level');
 	}
 	// END
-
 	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if (revision < 845) {
 		for (i in data) {

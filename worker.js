@@ -97,6 +97,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
 ._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
+._timer(id)				- Checks if we have an active timer with id
 
 ._overload(name,fn)		- Overloads the member function 'name'. this._parent() becomes available for running the original code (it automatically has the same arguments unless passed others)
 
@@ -184,6 +185,8 @@ Worker.find = function(name) {
  */
 Worker.flushTimer = null;
 Worker.flush = function() {
+	window.clearTimeout(Worker.flushTimer);
+	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 	var i, t;
 	for (i in Workers) {
 		if (Workers[i]._updates_.length) {
@@ -212,8 +215,6 @@ Worker.flush = function() {
 			}
 		}
 	}
-	window.clearTimeout(Worker.flushTimer);
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000);
 };
 
 // Static Data
@@ -503,11 +504,13 @@ Worker.prototype._pop = function(what, def, type) {
  */
 Worker.prototype._push = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isArray(old) ? old : []).push(value);
+		old = isArray(old) ? old : [];
+		old.push(value);
+		return old;
 	});
 	return value;
 };
@@ -773,6 +776,18 @@ Worker.prototype._shift = function(what, def, type) {
 };
 
 /**
+ * Is there an active timer for a specific id?
+ * @param {string} id The timer id to check.
+ * @return {boolean} True if there is an active timer, false otherwise.
+ */
+Worker.prototype._timer = function(id) {
+	if (id && (this._reminders['i' + id] || this._reminders['t' + id])) {
+		return true;
+	}
+	return false;
+};
+
+/**
  * Defer _set changes to allow them to be flushed. While inside a transaction all _set and _get works as normal, however direct access returns pre-transaction data until committed.
  * this._transaction() - BEGIN
  * this._transaction(true) - COMMIT
@@ -841,11 +856,13 @@ Worker.prototype._unflush = function() {
  */
 Worker.prototype._unshift = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setPush('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		console.log(warn('Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
-		return (isArray(old) ? old : []).unshift(value);
+		old = isArray(old) ? old : [];
+		old.unshift(value);
+		return old;
 	});
 	return value;
 };
