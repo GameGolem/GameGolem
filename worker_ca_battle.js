@@ -284,7 +284,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var i, data, uid, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, data, uid, info, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el) {
@@ -357,7 +357,7 @@ Battle.parse = function(change) {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5))) {
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
 				this.set(['data','user',uid,'battle','rank'], rank2.battle);

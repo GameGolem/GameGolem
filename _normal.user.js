@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1078
+// @version		31.5.1079
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1078;
+var revision = 1079;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1292,40 +1292,42 @@ Worker.prototype._replace = function(type, data) {
  */
 Worker.prototype._save = function(type) {
 	var i, n, v;
-	if (!type) {
-		n = false;
-		for (i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				n = arguments.callee.call(this,i) || n; // Stop Debug noting it as multiple calls
+	if (this._loaded) {
+		if (!type) {
+			n = false;
+			for (i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					n = arguments.callee.call(this,i) || n; // Stop Debug noting it as multiple calls
+				}
 			}
+			return n;
 		}
-		return n;
-	}
-	if (!this._datatypes[type] || this._saving[type] || this[type] === undefined || this[type] === null || (this.settings.taint && !this._taint[type])) {
-		return false;
-	}
-	this._saving[type] = true;
-	this._update(null, 'run'); // Make sure we flush any pending updates
-	this._saving[type] = false;
-	try {
-		v = JSON.stringify(this[type]);
-	} catch (e) {
-		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
-		return false; // exit so we don't try to save mangled data over good data
-	}
-	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
-		this._pushStack();
-		this._taint[type] = false;
-		this._timestamps[type] = Date.now();
+		if (!this._datatypes[type] || this._saving[type] || this[type] === undefined || this[type] === null || (this.settings.taint && !this._taint[type])) {
+			return false;
+		}
+		this._saving[type] = true;
+		this._update(null, 'run'); // Make sure we flush any pending updates
+		this._saving[type] = false;
 		try {
-			setItem(n, v);
-			this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
-		} catch (e2) {
-			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+			v = JSON.stringify(this[type]);
+		} catch (e) {
+			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+			return false; // exit so we don't try to save mangled data over good data
 		}
-		this._popStack();
-		return true;
+		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
+		if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
+			this._pushStack();
+			this._taint[type] = false;
+			this._timestamps[type] = Date.now();
+			try {
+				setItem(n, v);
+				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+			} catch (e2) {
+				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+			}
+			this._popStack();
+			return true;
+		}
 	}
 	return false;
 };
@@ -6554,7 +6556,7 @@ Battle.init = function() {
 2c. Check every possible target and if they're eligable then add them to the target list
 */
 Battle.parse = function(change) {
-	var i, data, uid, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, data, uid, info, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
 	if (Page.page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el) {
@@ -6627,7 +6629,7 @@ Battle.parse = function(change) {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5))) {
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
 				this.set(['data','user',uid,'battle','rank'], rank2.battle);

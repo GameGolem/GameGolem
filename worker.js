@@ -590,40 +590,42 @@ Worker.prototype._replace = function(type, data) {
  */
 Worker.prototype._save = function(type) {
 	var i, n, v;
-	if (!type) {
-		n = false;
-		for (i in this._datatypes) {
-			if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
-				n = arguments.callee.call(this,i) || n; // Stop Debug noting it as multiple calls
+	if (this._loaded) {
+		if (!type) {
+			n = false;
+			for (i in this._datatypes) {
+				if (this._datatypes.hasOwnProperty(i) && this._datatypes[i]) {
+					n = arguments.callee.call(this,i) || n; // Stop Debug noting it as multiple calls
+				}
 			}
+			return n;
 		}
-		return n;
-	}
-	if (!this._datatypes[type] || this._saving[type] || this[type] === undefined || this[type] === null || (this.settings.taint && !this._taint[type])) {
-		return false;
-	}
-	this._saving[type] = true;
-	this._update(null, 'run'); // Make sure we flush any pending updates
-	this._saving[type] = false;
-	try {
-		v = JSON.stringify(this[type]);
-	} catch (e) {
-		console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
-		return false; // exit so we don't try to save mangled data over good data
-	}
-	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
-		this._pushStack();
-		this._taint[type] = false;
-		this._timestamps[type] = Date.now();
+		if (!this._datatypes[type] || this._saving[type] || this[type] === undefined || this[type] === null || (this.settings.taint && !this._taint[type])) {
+			return false;
+		}
+		this._saving[type] = true;
+		this._update(null, 'run'); // Make sure we flush any pending updates
+		this._saving[type] = false;
 		try {
-			setItem(n, v);
-			this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
-		} catch (e2) {
-			console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+			v = JSON.stringify(this[type]);
+		} catch (e) {
+			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+			return false; // exit so we don't try to save mangled data over good data
 		}
-		this._popStack();
-		return true;
+		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
+		if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
+			this._pushStack();
+			this._taint[type] = false;
+			this._timestamps[type] = Date.now();
+			try {
+				setItem(n, v);
+				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+			} catch (e2) {
+				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+			}
+			this._popStack();
+			return true;
+		}
 	}
 	return false;
 };
