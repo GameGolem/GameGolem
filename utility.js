@@ -13,63 +13,139 @@
 
 // Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
-var isArray = function(obj) {// Not an object
+/**
+ * Check if a passed object is an Array (not an Object)
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isArray = function(obj) {
 	return obj && obj.constructor === Array;
 };
 
-var isObject = function(obj) {// Not an array
+/**
+ * Check if a passed object is an Object (not an Array)
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isObject = function(obj) {
 	return obj && obj.constructor === Object;
 };
 
+/**
+ * Check if a passed object is an Boolean
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
 var isBoolean = function(obj) {
 	return obj && obj.constructor === Boolean;
 };
 
+/**
+ * Check if a passed object is a Function
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
 var isFunction = function(obj) {
 	return obj && obj.constructor === Function;
 };
 
+/**
+ * Check if a passed object is a Worker
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
 var isWorker = function(obj) {
 	return obj && obj.constructor === Worker;
 };
 
-var isNumber = function(num) {
-	return typeof num === 'number';
+/**
+ * Check if a passed object is a Number
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isNumber = function(obj) {
+	return typeof obj === 'number';
 };
 
-var isString = function(str) {
-	return typeof str === 'string';
+/**
+ * Check if a passed object is a String
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isString = function(obj) {
+	return typeof obj === 'string';
 };
 
+/**
+ * Check if a passed object is Undefined
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
 var isUndefined = function(obj) {
 	return typeof obj === 'undefined';
 };
 
+/**
+ * Check if a passed object is Null
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
 var isNull = function(obj) {
 	return obj === null;
 };
 
-// These short functions are replaced by Debug worker if present - which gives far more fine-grained control and detail
+/**
+ * Log a message, insert the current Time before it
+ * @param {string} txt The message to log
+ * @return {string} The message with the timestamp inserted
+ * NOTE: Will be replaced by Debug Worker if present!
+ */
 var log = function(txt){
 	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
 };
+
+/**
+ * Log a message, insert the current Time and Worker before it
+ * @param {string} txt The message to log
+ * @return {string} The message with the timestamp inserted
+ * NOTE: Will be replaced by Debug Worker if present!
+ */
 var warn = function(txt) {
 	return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
 };
+
+/**
+ * Log a message, insert the current Time and Worker queue before it
+ * @param {string} txt The message to log
+ * @return {string} The message with the timestamp inserted
+ * NOTE: Will be replaced by Debug Worker if present!
+ */
 var error = function(txt) {
 	return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
 };
 
-// Data storage
+/**
+ * Store data in localStorage
+ * @param {string} n Name of the item to be stored (normally worker.type)
+ * @param {string} v Value to be stored
+ */
 var setItem = function(n, v) {
 	localStorage.setItem('golem.' + APP + '.' + n, v);
 };
 
+/**
+ * Retreive data from localStorage
+ * @param {string} n Name of the item to be stored (normally worker.type)
+ * @return {string} Value to be retreived
+ */
 var getItem = function(n) {
 	return localStorage.getItem('golem.' + APP + '.' + n);
 };
 
-if (browser === 'greasemonkey') {// Legacy - need GM to use localStorage like everything else at some point - set in main.js which is called before here
+/**
+ * In Firefox / GreaseMonkey we currently use the GM storage area rather than localStorage...
+ */
+if (browser === 'greasemonkey') {
 	setItem = GM_setValue;
 	getItem = GM_getValue;
 }
@@ -233,7 +309,7 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 };
 
 // Used for events in update(event, events)
-isEvent = function(event, worker, type, id) {
+var isEvent = function(event, worker, type, id) {
 	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
 		return true;
 	}
@@ -242,7 +318,7 @@ isEvent = function(event, worker, type, id) {
  
 // Used for events in update(event, events)
 Array.prototype.findEvent = function(worker, type, id, start) {
-	var i = start || 0; l = this.length;
+	var i = start || 0, l = this.length;
 	for (; i<l; i++) {
 		if (isEvent(this[i], worker, type, id)) {
 			return i;
@@ -292,10 +368,11 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 };
 
 var empty = function(x) { // Tests whether an object is empty (also useable for other types)
+	var i;
 	if (x === undefined || !x) {
 		return true;
 	} else if (isObject(x)) {
-		for (var i in x) {
+		for (i in x) {
 			if (x.hasOwnProperty(i)) {
 				return false;
 			}
@@ -415,15 +492,16 @@ var compare = function(left, right) {
 };
 
 var findInObject = function(obj, value, key) {
+	var i;
 	if (isObject(obj)) {
 		if (isUndefined(key)) {
-			for (var i in obj) {
+			for (i in obj) {
 				if (obj[i] === value) {
 					return i;
 				}
 			}
 		} else {
-			for (var i in obj) {
+			for (i in obj) {
 				if (obj[i][key] === value) {
 					return i;
 				}
@@ -434,8 +512,9 @@ var findInObject = function(obj, value, key) {
 };
 
 var objectIndex = function(obj, index) {
+	var i;
 	if (isObject(obj)) {
-		for (var i in obj) {
+		for (i in obj) {
 			if (index-- <= 0) {
 				return i;
 			}
@@ -634,7 +713,89 @@ JSON.shallow = function(obj, depth, replacer, space) {
 			out = o;
 		}
 		return out;
-	})(obj, depth || 1), replacer, space);
+	}(obj, depth || 1)), replacer, space);
+};
+
+JSON.encode = function(obj, replacer, space) {
+	var keys = {}, reverse = {}, count = {}, next = 0, nextKey = null, getKey = function() {
+		var key, digits = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', length = digits.length;
+		do {
+			key = nextKey;
+			nextKey = (next >= length ? digits[(Math.floor(next / length) - 1) % length] : '') + digits[next % length];
+			next++;
+		} while (count[nextKey]); // First time we're called we ignore "key", but already have count[] filled
+		return key;
+	}, check = function(obj) { // Count how many of each key - to decide if we replace them
+		var i;
+		if (isObject(obj)) {
+			for (i in obj) {
+				count[i] = (count[i] || 0) + 1;
+				arguments.callee(obj[i]);
+			}
+		} else if (isArray(obj)) {
+			for (i=0; i<obj.length; i++) {
+				arguments.callee(obj[i]);
+			}
+		}
+	}, encode = function(obj) { // Replace keys where the saved length is more than the used length
+		var i, to = obj;
+		if (isObject(obj)) {
+			to = {};
+			for (i in obj) {
+				if ((count[i] * (i.length + 2)) > ((count[i] * (nextKey.length + 2)) + i.length + 2)) { // total (length of key) > total (length of encoded key) + length of key
+					if (!keys[i]) {
+						keys[i] = getKey();
+						reverse[keys[i]] = i;
+					}
+					to[keys[i]] = arguments.callee(obj[i]);
+				} else {
+					to[i] = arguments.callee(obj[i]);
+				}
+			}
+		} else if (isArray(obj)) {
+			to = [];
+			for (i=0; i<obj.length; i++) {
+				to[i] = arguments.callee(obj[i]);
+			}
+		}
+		return to;
+	};
+	if (isObject(obj) || isArray(obj)) {
+		check(obj);
+		getKey(); // Load up the first key, prevent key conflicts
+		obj = encode(obj);
+		if (!empty(reverse)) {
+			obj['$'] = reverse;
+		}
+	}
+	return JSON.stringify(obj, replacer, space);
+};
+
+JSON.decode = function(str) {
+	var obj = JSON.parse(str), keys = obj['$'], decode = function(obj) {
+		var i, to = obj;
+		if (isObject(obj)) {
+			to = {};
+			for (i in obj) {
+				if (keys[i]) {
+					to[keys[i]] = arguments.callee(obj[i]);
+				} else {
+					to[i] = arguments.callee(obj[i]);
+				}
+			}
+		} else if (isArray(obj)) {
+			to = [];
+			for (i=0; i<obj.length; i++) {
+				to[i] = arguments.callee(obj[i]);
+			}
+		}
+		return to;
+	};
+	if (keys) {
+		delete obj['$'];
+		obj = decode(obj);
+	}
+	return obj;
 };
 
 // Images - either on SVN, or via extension location

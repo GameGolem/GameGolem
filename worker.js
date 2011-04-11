@@ -226,7 +226,7 @@ Worker.prototype._flush = function() {
  * @param {*=} value The value we will add, undefined (not null!) will cause it to be deleted and any empty banches removed
  * @param {string=} type The typeof of data to be set (or return false and don't set anything)
  * @return {*} The value we passed in
- * NOTE: Numbers and strings are old+new, arrays and objects have their contents merged
+ * NOTE: Numbers and strings are old+new, arrays and objects have their contents merged, boolean will toggle the value (and return the new value)
  */
 Worker.prototype._add = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
@@ -237,7 +237,8 @@ Worker.prototype._add = function(what, value, type) {
 		this._set(what);
 	} else if (isBoolean(value)) {
 		this._set(what, function(old){
-			return !old;
+			value = old ? false : true;
+			return old ? undefined : true;
 		});
 	} else if (isNumber(value)) {
 		this._set(what, function(old){
@@ -372,7 +373,7 @@ Worker.prototype._load = function(type, merge) {
 	if (isString(i)) { // JSON encoded string
 		try {
 			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
-			i = JSON.parse(i);
+			i = JSON.decode(i);
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 		}
@@ -607,7 +608,7 @@ Worker.prototype._save = function(type) {
 		this._update(null, 'run'); // Make sure we flush any pending updates
 		this._saving[type] = false;
 		try {
-			v = JSON.stringify(this[type]);
+			v = JSON.encode(this[type]);
 		} catch (e) {
 			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
 			return false; // exit so we don't try to save mangled data over good data

@@ -176,7 +176,9 @@ Main.update = function(event) {
 	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 };
 
-console.log('GameGolem: Loading...');
+if (!Main.loaded) { // Prevent double-start
+	console.log('GameGolem: Loading...');
+	Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
+	Main._update({type:'startup', id:'startup'});
+}
 
-Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
-Main._update({type:'startup', id:'startup'});
