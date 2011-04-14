@@ -491,7 +491,7 @@ Monster.types = {
 		name:'Ancient Red Dragon',
 		list:'dragon_list_red.jpg',
 		image:'dragon_monster_red.jpg',
-		image2:'dragon_red.jpg',
+		image2:'dragon_monster.jpg',
 		dead:'dead_dragon_image_red.jpg',
 		achievement:100000,
 		timer:259200, // 72 hours
