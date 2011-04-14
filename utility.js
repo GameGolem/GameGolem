@@ -153,7 +153,7 @@ if (browser === 'greasemonkey') {
 // Prototypes to ease functionality
 
 String.prototype.trim = function() {
-	return this.replace(/^\s+|\s+$/g, '');
+	return this.replace(/^\s+|\s+$/gm, '');
 };
 
 String.prototype.filepart = function() {
@@ -239,21 +239,65 @@ Number.prototype.round = function(dec) {
 	return Math.round(this*Math.pow(10,(dec||0))) / Math.pow(10,(dec||0));
 };
 
-Number.prototype.SI = function() {
-	var a = Math.abs(this);
-	if (a >= 1e12) {
-		return (this / 1e12).toFixed(1) + ' T';
+Number.prototype.SI = function(prec) {
+	var a = Math.abs(this), u,
+		p = Math.range(1, isNumber(prec) ? prec.round(0) : 3, 16);
+
+	if (a >= 1e18) {
+		return this.toExponential(Math.max(0, p - 1));
 	}
-	if (a >= 1e9) {
-		return (this / 1e9).toFixed(1) + ' B';
+
+	else if (a >= 1e17) {
+		return (this / 1e15).round(Math.max(0, p - 3)) + 'q';
+	} else if (a >= 1e16) {
+		return (this / 1e15).round(Math.max(0, p - 2)) + 'q';
+	} else if (a >= 1e15) {
+		return (this / 1e15).round(Math.max(0, p - 1)) + 'q';
 	}
-	if (a >= 1e6) {
-		return (this / 1e6).toFixed(1) + ' M';
+
+	else if (a >= 1e14) {
+		return (this / 1e12).round(Math.max(0, p - 3)) + 't';
+	} else if (a >= 1e13) {
+		return (this / 1e12).round(Math.max(0, p - 2)) + 't';
+	} else if (a >= 1e12) {
+		return (this / 1e12).round(Math.max(0, p - 1)) + 't';
 	}
-	if (a >= 1e3) {
-		return (this / 1e3).toFixed(1) + ' k';
+
+	else if (a >= 1e11) {
+		return (this / 1e9).round(Math.max(0, p - 3)) + 'b';
+	} else if (a >= 1e10) {
+		return (this / 1e9).round(Math.max(0, p - 2)) + 'b';
+	} else if (a >= 1e9) {
+		return (this / 1e9).round(Math.max(0, p - 1)) + 'b';
 	}
-	return this;
+
+	else if (a >= 1e8) {
+		return (this / 1e6).round(Math.max(0, p - 3)) + 'm';
+	} else if (a >= 1e7) {
+		return (this / 1e6).round(Math.max(0, p - 2)) + 'm';
+	} else if (a >= 1e6) {
+		return (this / 1e6).round(Math.max(0, p - 1)) + 'm';
+	}
+
+	else if (a >= 1e5) {
+		return (this / 1e3).round(Math.max(0, p - 3)) + 'k';
+	} else if (a >= 1e4) {
+		return (this / 1e3).round(Math.max(0, p - 2)) + 'k';
+	} else if (a >= 1e3) {
+		return (this / 1e3).round(Math.max(0, p - 1)) + 'k';
+	}
+
+	else if (a >= 1e2) {
+		return this.round(Math.max(0, p - 3));
+	} else if (a >= 1e1) {
+		return this.round(Math.max(0, p - 2));
+	} else if (a >= 1) {
+		return this.round(Math.max(0, p - 1));
+	} else if (a === 0) {
+		return this;
+	}
+
+	return this.toExponential(Math.max(0, p - 1));
 };
 
 Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
@@ -524,8 +568,11 @@ var objectIndex = function(obj, index) {
 };
 
 var getAttDefList = [];
-var getAttDef = function(list, unitfunc, x, count, type) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], attack = 0, defend = 0, x2 = (x==='att'?'def':'att'), i, own;
+var getAttDef = function(list, unitfunc, x, count, type, suffix) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+	var units = [], limit = 1e99, attack = 0, defend = 0, i, p, own, x2;
+	if (type !== 'monster') {
+		x2 = 'tot_' + x;
+	}
 	if (unitfunc) {
 		for (i in list) {
 			unitfunc(units, i, list);
@@ -534,31 +581,38 @@ var getAttDef = function(list, unitfunc, x, count, type) { // Find total att(ack
 		units = getAttDefList;
 	}
 	units.sort(function(a,b) {
-		return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]))
+		return (list[b][x2] || 0) - (list[a][x2] || 0)
 			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
 			|| (list[a].cost || 0) - (list[b].cost || 0);
 	});
+	if (!suffix) { suffix = ''; }
+	// hack for limits of 3 on war equipment
+	if (count < 0) {
+		limit = 3;
+		count = Math.abs(count);
+	}
 	for (i=0; i<units.length; i++) {
-		own = isNumber(list[units[i]].own) ? list[units[i]].own : 1;
+		p = list[units[i]];
+		own = isNumber(p.own) ? p.own : 0;
 		if (type) {
-			Resources.set(['data', '_'+units[i], type+'_'+x], count || undefined);
+			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], Math.min(count, limit) || undefined);
 			if (Math.min(count, own) > 0) {
-//				console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(list[units[i]]));
-				if (!list[units[i]].use) {
-					list[units[i]].use = {};
+				//console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(p));
+				if (!p['use'+suffix]) {
+					p['use'+suffix] = {};
 				}
-				list[units[i]].use[(type+'_'+x)] = Math.min(count, own);
-			} else if (length(list[units[i]].use)) {
-				delete list[units[i]].use[(type+'_'+x)];
-				if (!length(list[units[i]].use)) {
-					delete list[units[i]].use;
+				p['use'+suffix][type+suffix+'_'+x] = Math.min(count, own, limit);
+			} else if (length(p['use'+suffix])) {
+				delete p['use'+suffix][type+suffix+'_'+x];
+				if (!length(p['use'+suffix])) {
+					delete p['use'+suffix];
 				}
 			}
 		}
-//		if (count <= 0) {break;}
-		own = Math.min(count, own);
-		attack += own * list[units[i]].att;
-		defend += own * list[units[i]].def;
+		//if (count <= 0) {break;}
+		own = Math.min(count, own, limit);
+		attack += own * ((p.att || 0) + ((p.stats && p.stats.att) || 0));
+		defend += own * ((p.def || 0) + ((p.stats && p.stats.def) || 0));
 		count -= own;
 	}
 	getAttDefList = units;

@@ -374,7 +374,7 @@ Quest.update = function(event) {
 		if (this.option.what !== 'Vampire Lord' || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24) {
 			has_vampire = true; // Stop trying once we've got the required number of Vampire Lords
 		}
-		if (this.option.what !== 'Cartigan' || (Generals.get('Cartigan', false) || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3))) {
+		if (this.option.what !== 'Cartigan' || Generals.get(['data','Cartigan','own'], 0, 'number') || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3)) {
 			// Sword of the Faithless x3 - The Long Path, Burning Gates
 			// Crystal of Lament x3 - Fiery Awakening
 			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
@@ -912,8 +912,8 @@ Quest.cost = function(id) {
 	var c, i, j, k, n, cost, upkeep, desc, ccount, ucount;
 	/*jslint onevar:true*/
 
-	this.temp.cost = 1e50;
-	this.temp.upkeep = 1e50;
+	this.temp.cost = 1e99;
+	this.temp.upkeep = 1e99;
 	this.temp.desc = '(n/a)';
 
 	cost = ccount = 0;
@@ -922,8 +922,8 @@ Quest.cost = function(id) {
 
 	if (id && quest[id]) {
 		if ((i = quest[id].general)) {
-			if (!gens || !gens[i]) {
-				cost += 1e50;
+			if (!gens || !gens[i] || !gens[i].own) {
+				cost += 1e99;
 				if (desc !== '') {
 					desc += '; ';
 				}
@@ -935,7 +935,7 @@ Quest.cost = function(id) {
 			for (i in quest[id].units) {
 				n = quest[id].units[i];
 				c = j = 0;
-				k = 1e50;
+				k = 1e99;
 				if (town && town[i]) {
 					c = town[i].own || 0;
 					if (town[i].buy && town[i].buy.length) {
@@ -953,7 +953,7 @@ Quest.cost = function(id) {
 						desc += '; ';
 					}
 					desc += (n - c) + '/' + n + ' ' + i;
-					if (k >= 1e50) {
+					if (k >= 1e99) {
 						desc += ' (n/a)';
 						ccount++;
 					} else if (k) {
@@ -970,7 +970,7 @@ Quest.cost = function(id) {
 
 		if (ccount > 1 && cost) {
 			desc += '; total ';
-			if (cost < 1e50) {
+			if (cost < 1e99) {
 				desc += '$' + cost.SI();
 			} else {
 				desc += '(n/a)';
@@ -1001,8 +1001,8 @@ Quest.wiki_reps = function(quest, pure) {
 	return pure ? reps : reps || 16;
 };
 
-Quest.rts = 1301195384;	// Sun Mar 27 03:09:44 2011 UTC
-Quest.rdata =			// #391
+Quest.rts = 1302453435;	// Sun Apr 10 16:37:15 2011 UTC
+Quest.rdata =			// #419
 {
 	'a demonic transformation':			{ 'reps_q4':  40 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -1056,6 +1056,8 @@ Quest.rdata =			// #391
 	'cast holy light spell':			{ 'reps_q5':  24 },
 	'cast holy shield':					{ 'reps_d3':  12 },
 	'cast meteor':						{ 'reps_q5':  32 },
+    'cast poison shield':				{ 'reps_q13':  0 },
+    'cast regrowth':					{ 'reps_q13':  0 },
 	'castle of the black lion':			{ 'reps_d5':  13 },
 	'castle of the damn':				{ 'reps_d3':  21 },
 	'channel excalibur':				{ 'reps_q8':   0 },
@@ -1064,10 +1066,12 @@ Quest.rdata =			// #391
 	'charge the castle':				{ 'reps_q7':  15 },
 	'chasm of fire':					{ 'reps_q10': 10 },
 	'city of clouds':					{ 'reps_q8':  11 },
+    'clear haze':						{ 'reps_q13':  0 },
 	'clear the rocks':					{ 'reps_q11':  0 },
 	'climb castle cliffs':				{ 'reps_q11':  0 },
 	'climb the mountain':				{ 'reps_q8':   0 },
 	'close the black portal':			{ 'reps_d1':  12 },
+    'collect artifact shards':			{ 'reps_q13':  0 },
 	'collect astral souls':				{ 'reps_q12':  0 },
 	'collect runestones':				{ 'reps_q12':  0 },
 	'confront the black lion':			{ 'reps_d5':  12 },
@@ -1075,9 +1079,11 @@ Quest.rdata =			// #391
 	'consult aurora':					{ 'reps_d4':  12 },
 	'corruption of nature':				{ 'reps_d4':  20 },
 	'cover tracks':						{ 'reps_q7':  19 },
+    'create artifact relic':			{ 'reps_q13':  0 },
 	'create wall':						{ 'reps_q12':  0 },
 	'cross lava river':					{ 'reps_q7':  20 },
 	'cross the bridge':					{ 'reps_q8':   0, 'reps_q10':  0 },
+    'cross the falls':					{ 'reps_q13':  0 },
 	'cross the moat':					{ 'reps_q11':  0 },
 	'crossing the chasm':				{ 'reps_q2':  13, 'reps_q8':   0 },
 	'cure infested soldiers':			{ 'reps_q6':  25 },
@@ -1102,6 +1108,7 @@ Quest.rdata =			// #391
 	'defeat lothar':					{ 'reps_q12':  0 },
 	'defeat orc patrol':				{ 'reps_q8':   0 },
 	'defeat rebels':					{ 'reps_q10':  0 },
+    'defeat rock elementals':			{ 'reps_q13':  0 },
 	'defeat snow giants':				{ 'reps_q3':  24 },
 	'defeat spirits':					{ 'reps_q12':  0 },
 	'defeat the bandit leader':			{ 'reps_q1':   6 },
@@ -1114,12 +1121,15 @@ Quest.rdata =			// #391
 	'defeat the seraphims':				{ 'reps_q8':   0 },
 	'defeat tiger form':				{ 'reps_q11':  0 },
 	'defeat treants':					{ 'reps_q12':  0 },
+    'defeat wolverines':				{ 'reps_q13':  0 },
 	'defend the village':				{ 'reps_d3':  12 },
 	'desert temple':					{ 'reps_q11': 12 },
 	'destroy black oozes':				{ 'reps_q11':  0 },
 	'destroy fire dragon':				{ 'reps_q4':  10 },
 	'destroy fire elemental':			{ 'reps_q4':  16 },
 	'destroy horde of ghouls & trolls':	{ 'reps_q4':   9 },
+    'destroy mushrooms':				{ 'reps_q13':  0 },
+    'destroy scourge':					{ 'reps_q13':  0 },
 	'destroy spores':					{ 'reps_q12':  0 },
 	'destroy the black gate':			{ 'reps_d1':  12 },
 	'destroy the black portal':			{ 'reps_d1':  12 },
@@ -1131,6 +1141,7 @@ Quest.rdata =			// #391
 	'disarm townspeople':				{ 'reps_q11':  0 },
 	'discover cause of corruption':		{ 'reps_d4':  12 },
 	'dismantle orc patrol':				{ 'reps_q3':  32 },
+    'dispatch corrupted soldiers':		{ 'reps_q13':  0 },
 	'dispatch lothar':					{ 'reps_q12':  0 },
 	'dispatch more cultist guards':		{ 'reps_d1':  12 },
 	'distract the demons':				{ 'reps_q9':  17 },
@@ -1146,6 +1157,7 @@ Quest.rdata =			// #391
 	'entrance denied':					{ 'reps_q12': 12 },
 	'entrance to terra':				{ 'reps_q1':   9 },
 	'equip soldiers':					{ 'reps_q6':  25 },
+    'eradicate spores':					{ 'reps_q13':  0 },
 	'escape from trakan':				{ 'reps_q12':  7 },
 	'escape trakan':					{ 'reps_q12':  0 },
 	'escape woods':						{ 'reps_q12':  0 },
@@ -1179,6 +1191,7 @@ Quest.rdata =			// #391
 	'fight water demon lord':			{ 'reps_q2':  31 },
 	'fight water demons':				{ 'reps_q2':  30 },
 	'fight water spirits':				{ 'reps_q2':  40 },
+    'find a way across':				{ 'reps_q13':  0 },
 	'find answers':						{ 'reps_q12':  0 },
 	'find escape route':				{ 'reps_q12':  0 },
 	'find evidence of dragon attack':	{ 'reps_d2':   8 },
@@ -1186,6 +1199,7 @@ Quest.rdata =			// #391
 	'find nezeals keep':				{ 'reps_d3':  12 },
 	'find prison key':					{ 'reps_q12':  0 },
 	'find rock worms weakness':			{ 'reps_d2':  10 },
+    'find shelter from haze':			{ 'reps_q13':  0 },
 	'find source of the attacks':		{ 'reps_d3':  12 },
 	'find survivors':					{ 'reps_q8':  14 },
 	'find the dark elves':				{ 'reps_d1':  12 },
@@ -1206,7 +1220,11 @@ Quest.rdata =			// #391
 	'gain entry':						{ 'reps_q11':  0 },
 	'gates to the undead':				{ 'reps_q6':  17 },
 	'gateway':							{ 'reps_q8':  11 },
-	'gather supplies':					{ 'reps_q12':  0 },
+    'gather earth essence':				{ 'reps_q13':  0 },
+    'gather life dust':					{ 'reps_q13':  0 },
+    'gather nature essence':			{ 'reps_q13':  0 },
+    'gather samples':					{ 'reps_q13':  0 },
+    'gather supplies':					{ 'reps_q12':  0, 'reps_q13':  0 },
 	'get information from the druid':	{ 'reps_d4':  12 },
 	'get water for the druid':			{ 'reps_d4':  12 },
 	'grim outlook':						{ 'reps_q9':  17 },
@@ -1216,18 +1234,22 @@ Quest.rdata =			// #391
 	'heal wounds':						{ 'reps_q7':  20 },
 	'heat the villagers':				{ 'reps_q1':   5 },
 	'holy fire':						{ 'reps_d4':  11 },
+    'hunt for food':					{ 'reps_q13':  0 },
 	'impending battle':					{ 'reps_q10': 10 },
 	'infiltrate trakan':				{ 'reps_q12':  0 },
 	'inspire soldiers':					{ 'reps_q12':  0 },
 	'interrogate the prisoners':		{ 'reps_q9':  17 },
+    'investigate temple':				{ 'reps_q13':  0 },
 	'investigate the gateway':			{ 'reps_q8':   0 },
 	'ironfist dwarves':					{ 'reps_q10': 10 },
 	'join up with artanis':				{ 'reps_d1':  12 },
 	'judgement stronghold':				{ 'reps_q8':  11 },
 	'juliean desert':					{ 'reps_q11': 12 },
 	'kelp forest':						{ 'reps_a1':  20 },
+    'kill diseased treants':			{ 'reps_q13':  0 },
 	'kill gildamesh':					{ 'reps_q3':  34 },
 	'kill shades':						{ 'reps_q12':  0 },
+    'kill slimes':						{ 'reps_q13':  0 },
 	'kill vampire bats':				{ 'reps_d3':  10 },
 	'koralan coast town':				{ 'reps_q11': 14 },
 	'koralan townspeople':				{ 'reps_q11': 10 },
@@ -1237,6 +1259,7 @@ Quest.rdata =			// #391
 	'learn holy fire':					{ 'reps_d4':  12 },
 	'look for clues':					{ 'reps_q8':  14 },
 	'lothar the ranger':				{ 'reps_q12':  9 },
+    'make camp':						{ 'reps_q13':  0 },
 	'marauders!':						{ 'reps_d5':   9 },
 	'march into the undead lands':		{ 'reps_q6':  24 },
 	'march to the unholy war':			{ 'reps_q6':  25 },
@@ -1255,6 +1278,7 @@ Quest.rdata =			// #391
 	'power of excalibur':				{ 'reps_q8':  11 },
 	'prepare for ambush':				{ 'reps_q1':   6 },
 	'prepare for battle':				{ 'reps_d2':  12, 'reps_q5':  21 },
+    'prepare for dark':					{ 'reps_q13':  0 },
 	'prepare for the trials':			{ 'reps_q9':  17 },
 	'prepare tactics':					{ 'reps_q10':  0 },
 	'prepare troops':					{ 'reps_q10':  0 },
@@ -1275,6 +1299,7 @@ Quest.rdata =			// #391
 	'recruit allies':					{ 'reps_q10':  0 },
 	'recruit elekin to join you':		{ 'reps_d2':   9 },
 	'recruit furest to join you':		{ 'reps_d3':  12 },
+    'repair bridge':					{ 'reps_q13':  0 },
 	'repel gargoyle raid':				{ 'reps_q4':  14 },
 	'request council':					{ 'reps_q10':  0 },
 	'request entrance':					{ 'reps_q12':  0 },
@@ -1314,6 +1339,7 @@ Quest.rdata =			// #391
 	'sulfurous springs':				{ 'reps_q11': 10 },
 	'summon legendary defenders':		{ 'reps_q6':  25 },
 	'surround rebels':					{ 'reps_q10':  0 },
+    'survey area':						{ 'reps_q13':  0 },
 	'survey battlefield':				{ 'reps_q10':  0 },
 	'survey the surroundings':			{ 'reps_q8':  14 },
 	'survive the storm':				{ 'reps_q11':  0 },
@@ -1388,6 +1414,8 @@ Quest.rdata =			// #391
 	'underground path':					{ 'reps_q12':  8 },
 	'underwater ruins':					{ 'reps_a1':  20 },
 	'unholy war':						{ 'reps_q6':  20 },
+    'unlock altar':						{ 'reps_q13':  0 },
+    'use artifact relic':				{ 'reps_q13':  0 },
 	'use battering ram':				{ 'reps_q11':  0 },
 	'vengeance':						{ 'reps_d2':  17 },
 	'vesuv bridge':						{ 'reps_q10': 10 },

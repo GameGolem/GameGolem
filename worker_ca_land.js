@@ -198,7 +198,7 @@ Land.update = function(event) {
 		}
 
 		if ((income || 0) > 0 && this.data[i].buy && this.data[i].buy.length) {
-			b_cost = best ? (this.data[best].cost || 0) : 1e50;
+			b_cost = best ? (this.data[best].cost || 0) : 1e99;
 			i_cost = (this.data[i].cost || 0);
 			if (!best || ((b_cost / income) + (i_cost / (income + this.data[best].income))) > ((i_cost / income) + (b_cost / (income + this.data[i].income)))) {
 				best = i;

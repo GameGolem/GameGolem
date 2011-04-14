@@ -1494,7 +1494,7 @@ Monster.update = function(event) {
 				/*jslint eqeqeq:false*/
 				if ((uid == userID && this.option.own) || this.option.stop === 'Never') {
 				/*jslint eqeqeq:true*/
-					target = 1e10;
+					target = 1e99;
 				} else if (this.option.stop === 'Achievement') {
 					target = type.achievement || 0;
 				} else if (this.option.stop === '2X Achievement') {

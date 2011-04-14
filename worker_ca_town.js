@@ -110,7 +110,7 @@ Town.blacksmith = {
   // ensures the list has no outstanding mismatches or conflicts given all
   // known items as of a given date.
 
-  // as of Fri Mar 25 22:00:26 2011 UTC
+  // as of Tue Apr 12 11:25:28 2011 UTC
 Town.blacksmith = {
       // Feral Staff is a multi-pass match:
       //   shield.11{Feral Staff}, weapon.5{Staff}
@@ -148,7 +148,7 @@ Town.blacksmith = {
       '|\\bspear\\b' +			// 3
       '|\\bstaff\\b' +			// 9 (mismatches 1)
       '|\\bstaves\\b' +			// 1
-      '|\\bsword\\b' +			// 16 (mismatches 1)
+      '|\\bsword\\b' +			// 17 (mismatches 1)
       '|\\btalon\\b' +			// 1
       '|\\btrident\\b' +		// 2
       '|\\bwand\\b' +			// 3
@@ -187,6 +187,7 @@ Town.blacksmith = {
       '|^Soul Siphon$' +
       '|^Soulforge$' +
       '|^Stormcrusher$' +
+      '|^Syrens Call$' +
       '|^The Disemboweler$' +
       '|^The Galvanizer$' +
       '|^The Reckoning$' +
@@ -199,7 +200,7 @@ Town.blacksmith = {
       '|\\bdefender\\b' +		// 5
       '|\\bprotector\\b' +		// 1
       '|\\bshield\\b' +			// 22
-      '|\\btome\\b' +			// 3
+      '|\\btome\\b' +			// 4
       '|^Absolution$' +
       '|^Crest of the Griffin$' +
       '|^Dragon Scale$' +
@@ -221,7 +222,7 @@ Town.blacksmith = {
       '\\barmguard\\b' +		// 1
       '|\\barmor\\b' +			// 22
       '|\\bbattlegarb\\b' +		// 1
-      '|\\bbattlegear\\b' +		// 3
+      '|\\bbattlegear\\b' +		// 4
       '|\\bbelt\\b' +			// 1
       '|\\bcarapace\\b' +		// 1
       '|\\bchainmail\\b' +		// 2
@@ -257,7 +258,7 @@ Town.blacksmith = {
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 17
+      '\\bamulet\\b' +			// 18
       '|\\bband\\b' +			// 2
       '|\\bbauble\\b' +			// 1
       '|\\bcharm\\b' +			// 2
@@ -301,6 +302,7 @@ Town.blacksmith = {
       '|^Shadowmoon$' +
       '|^Silver Bar$' +
       '|^Soul Catcher$' +
+      '|^Temptations Lure$' +
       "|^Terra's Heart$" +
       '|^Thawing Star$' +
       '|^Tooth of Gehenna$' +
@@ -344,7 +346,7 @@ Town.init = function() {
 	this._watch(Page, 'data.town_soldiers');	// page freshness
 	this._watch(Page, 'data.town_blacksmith');	// page freshness
 	this._watch(Page, 'data.town_magic');		// page freshness
-	this.runtime.cost_incr = 4;
+	this.set('runtime.cost_incr', 4);
 
 	// map old local stale page variables to Page values
 	if (!isUndefined(i = this.runtime.soldiers)) {
@@ -371,17 +373,8 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var tmp, now = Date.now(), self = this;
-	if (change && Page.page === 'town_blacksmith') {
-		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
-			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
-				icon = ($('div img[src]', el).attr('src') || '').filepart();
-			name = self.qualify(name, icon);
-			if (Town.data[name] && Town.data[name].type) {
-				$('div strong:first', el).parent().append('<br>'+Town.data[name].type);
-			}
-		});
-	} else if (Page.page === 'keep_stats') {
+	var now = Date.now(), self = this, modify = false, tmp;
+	if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
@@ -411,18 +404,27 @@ Town.parse = function(change) {
 				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
 				n = self.qualify(n, i); // names aren't unique for items
-				if (!self.data[n] || Town.data[n].img !== i) {
+				if (!self.data[n] || self.data[n].img !== i) {
 					//console.log(warn(), 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
 					Page.setStale('town_blacksmith', now);
 					Page.setStale('town_magic', now);
 					return false;
-				} else if (self.data[n].own != c) {
+				} else if (isNumber(c)) {
 					self.set(['data', n, 'own'], c);
 				}
 			});
 		}
-	} else if (!change) {
-		var unit = Town.data, page = Page.page.substr(5), purge = {}, changes = 0, i, j, cost_adj = 1;
+	} else if (change && Page.page === 'town_blacksmith') {
+		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
+			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
+				icon = ($('div img[src]', el).attr('src') || '').filepart();
+			name = self.qualify(name, icon);
+			if (self.data[name] && self.data[name].type) {
+				$('div strong:first', el).parent().append('<br>'+self.data[name].type);
+			}
+		});
+	} else if (!change && (Page.page === 'town_soldiers' || Page.page === 'town_blacksmith' || Page.page === 'town_magic')) {
+		var unit = this.data, page = Page.page.substr(5), purge = {}, changes = 0, i, j, cost_adj = 1;
 		for (i in unit) {
 			if (unit[i].page === page) {
 				purge[i] = true;
@@ -430,10 +432,7 @@ Town.parse = function(change) {
 		}
 		// undo cost reduction general values on the magic page
 		if (page === 'magic' && (i = Generals.get(Player.get('general')))) {
-			j = Math.max(nmax(((i.skills || '') + ';' + (i.weaponbonus || '')).regex(/\bDecrease Soldier Cost by (\d+)\b/ig)),
-			  (i.stats && i.stats.cost) || 0,
-			  (i.potential && i.potential.cost) || 0);
-			if (j) {
+			if (i.stats && isNumber(j = i.stats.cost)) {
 				cost_adj = 100 / (100 - j);
 			}
 		}
@@ -445,78 +444,89 @@ Town.parse = function(change) {
 					def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i) || 0,
 					upkeep = parseInt($('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, '') || 0, 10),
 					match, maxlen = 0;
-				Town._transaction(); // BEGIN TRANSACTION
-				change = true;
+				self._transaction(); // BEGIN TRANSACTION
+				changes++;
 				name = self.qualify(name, icon);
 				delete purge[name];
-				Town.set(['data',name,'page'], page);
-				Town.set(['data',name,'img'], icon);
-				Resources.add('_'+name, Town.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
-				Town.set(['data',name,'att'], atk);
-				Town.set(['data',name,'def'], def);
-				Town.set(['data',name,'tot_att'], atk + (0.7 * def));
-				Town.set(['data',name,'tot_def'], def + (0.7 * atk));
-				Town.set(['data',name,'cost'], cost ? Math.round(cost_adj * cost) : undefined);
-				Town.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
-//				Town.set(['data',name,'id'], null);
-				Town.set(['data',name,'buy']);
+				self.set(['data',name,'page'], page);
+				self.set(['data',name,'img'], icon);
+				Resources.add('_'+name, self.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
+				self.set(['data',name,'att'], atk);
+				self.set(['data',name,'def'], def);
+				self.set(['data',name,'tot_att'], atk + (0.7 * def));
+				self.set(['data',name,'tot_def'], def + (0.7 * atk));
+				self.set(['data',name,'cost'], cost ? Math.round(cost_adj * cost) : undefined);
+				self.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
+//				self.set(['data',name,'id'], null);
+				self.set(['data',name,'buy']);
 				if ((tmp = $('form[id*="_itemBuy_"]', el)).length) {
-					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
+					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						Town.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
 					});
 				}
-				Town.set(['data',name,'sell']);
+				self.set(['data',name,'sell']);
 				if ((tmp = $('form[id*="_itemSell_"]', el)).length) {
-					Town.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
+					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						Town.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});
 				}
 				if (page === 'blacksmith') {
-					for (i in Town.blacksmith) {
-						if ((match = name.match(Town.blacksmith[i]))) {
+					for (i in self.blacksmith) {
+						if ((match = name.match(self.blacksmith[i]))) {
 							if (match[1].length > maxlen) {
 								type = i;
 								maxlen = match[1].length;
 							}
 						}
 					}
-					Town.set(['data',name,'type'], type);
+					self.set(['data',name,'type'], type);
 				}
-				Town._transaction(true); // COMMIT TRANSACTION
+				self._transaction(true); // COMMIT TRANSACTION
+				changes++; // this must come after the transaction
 			} catch(e) {
-				Town._transaction(false); // ROLLBACK TRANSACTION on any error
+				self._transaction(false); // ROLLBACK TRANSACTION on any error
 				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		});
+
 		// if nothing at all changed above, something went wrong on the page download
-		if (change) {
+		if (changes) {
 			for (i in purge) {
-				console.log(warn('Purge: ' + i));
-				Town.set(['data',i]);
+				if (purge[i]) {
+					console.log(warn('Purge: ' + i));
+					this.set(['data',i]);
+					changes++;
+				}
 			}
 		}
-		change = true;
+
+		// trigger the item type caption pass
+		if (Page.page === 'town_blacksmith') {
+		    modify = true;
+		}
 	}
-	return change;
+
+	return modify;
 };
 
-Town.getInvade = function(army) {
-	var att = 0, def = 0, data = this.data;
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='soldiers'){list.push(i);}}, 'att', army, 'invade');
-	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].type && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade');
-	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade');
-	def += getAttDef(data, null, 'def', army, 'invade');
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade');
-	def += getAttDef(data, null, 'def', army, 'invade');
+Town.getInvade = function(army, suffix) {
+	var att = 0, def = 0, data = this.get('data');
+	if (!suffix) { suffix = ''; }
+	att += getAttDef(data, function(list,i,units){if (units[i].page==='soldiers'){list.push(i);}}, 'att', army, 'invade', suffix);
+	def += getAttDef(data, null, 'def', army, 'invade', suffix);
+	att += getAttDef(data, function(list,i,units){if (units[i].type && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
+	def += getAttDef(data, null, 'def', army, 'invade', suffix);
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
+	def += getAttDef(data, null, 'def', army, 'invade', suffix);
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade', suffix);
+	def += getAttDef(data, null, 'def', army, 'invade', suffix);
 	return {attack:att, defend:def};
 };
 
 Town.getDuel = function() {
-	var att = 0, def = 0, data = this.data;
+	var att = 0, def = 0, data = this.get('data');
 	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', 1, 'duel');
 	def += getAttDef(data, null, 'def', 1, 'duel');
 	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', 1, 'duel');
@@ -534,13 +544,50 @@ Town.getDuel = function() {
 	return {attack:att, defend:def};
 };
 
-Town.update = function(event) {
-	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data, army = Math.min(Generals.get('runtime.armymax', 501), Player.get('armymax', 501)), max_buy = 0, max_sell = 0, resource, max_cost, keep = {}, tmp, invade_att, invade_def, duel_att, duel_def, quest, generals,
-	land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
-	incr = (this.runtime.cost_incr || 4), visit = false;
-	if (!Page.data['town_soldiers'] || !Page.data['town_blacksmith'] || !Page.data['town_magic']) {
-		visit = true;
-	}
+Town.getWar = function() {
+	var att = 0, def = 0, data = this.get('data');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', -7, 'war');
+	def += getAttDef(data, null, 'def', -7, 'war');
+	return {attack:att, defend:def};
+};
+
+Town.update = function(event, events) {
+	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data,
+		// largest possible army, including bonus generals
+		armymax = Math.max(541, Generals.get('runtime.armymax', 1, 'number')),
+		// our army size, capped at the largest possible army size above
+		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1))),
+		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep, tmp, invade_att, invade_def, duel_att, duel_def, quest, generals,
+		land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
+		incr = this.runtime.cost_incr || 4;
+
+	fixed_cost = ({
+	    '$0':   0,
+		'$10k': 1e4,
+		'$100k':1e5,
+		'$1m':  1e6,
+		'$10m': 1e7,
+		'$100m':1e8,
+		'$1b':  1e9,
+		'$10b': 1e10,
+		'$100b':1e11,
+		'$1t':  1e12,
+		'$10t': 1e13,
+		'$100t':1e14,
+		'INCR': Math.pow(10,incr)
+	})[this.option.maxcost] || 0;
 
 	switch (this.option.number) {
 		case 'Army':
@@ -548,95 +595,89 @@ Town.update = function(event) {
 			break;
 		case 'Army+':
 			max_buy = army;
-			max_sell = 541;
+			max_sell = armymax;
 			break;
 		case 'Max Army':
-			max_buy = max_sell = 541;
+			max_buy = max_sell = armymax;
 			break;
 		default:
-			max_buy = max_sell = 0;
+			max_buy = 0;
+			max_sell = army;
 			break;
 	}
+
 	// These two fill in all the data we need for buying / sellings items
+	this.set(['runtime','invade'], this.getInvade(max_buy));
 	this.set(['runtime','duel'], this.getDuel());
-	if (this.option.sell && max_sell !== max_buy) {
-		this.getInvade(max_sell);
+	this.set(['runtime','war'], this.getWar());
+
+	keep = {};
+	if (army < max_sell) {
+		this.getInvade(max_sell, max_sell.toString());
+		i = 'invade' + max_sell + '_att';
+		j = 'invade' + max_sell + '_def';
 		for (u in data) {
-			if (data[u].sell && data[u].sell.length) { // Don't bother doing this if we can't sell them anyway
+			if ((p = Resources.get(['data','_'+u]))) {
 				need = 0;
-				invade_att = Resources.get(['data','_'+u,'invade_att'], 0, 'number');
-				invade_def = Resources.get(['data','_'+u,'invade_def'], 0, 'number');
-				duel_att = Resources.get(['data','_'+u,'duel_att'], 0, 'number');
-				duel_def = Resources.get(['data','_'+u,'duel_def'], 0, 'number');
 				if (this.option.units !== 'Best Defense') {
-					need = Math.range(need, Math.max(invade_att, duel_att), max_sell);
+					need = Math.max(need, Math.min(max_sell, Math.max(p[i] || 0, p.duel_att || 0, p.war_att || 0)));
 				}
 				if (this.option.units !== 'Best Offense') {
-					need = Math.range(need, Math.max(invade_def, duel_def), max_sell);
+					need = Math.max(need, Math.min(max_sell, Math.max(p[j] || 0, p.duel_def || 0, p.war_def || 0)));
 				}
-				if ((keep[u] || 0) < need) {
+				if ((keep[u] || 0) < need && data[u].sell && data[u].sell.length) {
 					keep[u] = need;
 				}
+				Resources.set(['data','_'+u,i]);
+				Resources.set(['data','_'+u,j]);
 			}
 		}
-		Resources._notify('data'); // reset the "what-if" tinkering
 	}
-	this.set(['runtime','invade'], this.getInvade(max_buy)); // Resets the Resources attack values
+
 	// For all items / units
 	// 1. parse through the list of buyable items of each type
 	// 2. find the one with Resources.get(_item.invade_att) the highest (that's the number needed to hit 541 items in total)
 	// 3. buy enough to get there
 	// 4. profit (or something)...
 	for (u in data) {
+		p = Resources.get(['data','_'+u]) || {};
 		want = 0;
-		need = 0;
-		have = data[u].own;
-		invade_att = Resources.get(['data','_'+u,'invade_att'], 0, 'number');
-		invade_def = Resources.get(['data','_'+u,'invade_def'], 0, 'number');
-		duel_att = Resources.get(['data','_'+u,'duel_att'], 0, 'number');
-		duel_def = Resources.get(['data','_'+u,'duel_def'], 0, 'number');
-		quest = Resources.get(['data','_'+u,'quest'], 0, 'number');
-		generals = Resources.get(['data','_'+u,'generals'], 0, 'number');
-		if (quest) {
+		if (p.quest) {
 			if (this.option.quest_buy) {
-				want = Math.max(want, quest);
+				want = Math.max(want, p.quest);
 			}
-			keep[u] = Math.max(keep[u] || 0, quest);
+			// add quest counts to the keep set
+			if ((keep[u] || 0) < p.quest) {
+				keep[u] = p.quest;
+			}
 		}
-		if (generals) {
+		if (isNumber(p.generals)) {
 			if (this.option.generals_buy) {
-				want = Math.max(want, generals);
+				want = Math.max(want, p.generals);
 			}
-			keep[u] = Math.max(keep[u], generals || have); // Don't sell them unless we know for sure that the general can't use them all
+			// add general item counts to the keep set
+			if ((keep[u] || 0) < (p.generals || 1e99)) {
+				// Don't sell them unless we know for sure that the general can't use them all
+				keep[u] = p.generals || 1e99;
+			}
 		}
+		have = data[u].own || 0;
 		need = 0;
 		if (this.option.units !== 'Best Defense') {
-			need = Math.range(need, Math.max(invade_att, duel_att), max_buy);
+			need = Math.range(need, Math.max(p.invade_att || 0, p.duel_att || 0, p.war_att || 0), max_buy);
 		}
 		if (this.option.units !== 'Best Offense') {
-			need = Math.range(need, Math.max(invade_def, duel_def), max_buy);
+			need = Math.range(need, Math.max(p.invade_def || 0, p.duel_def || 0, p.war_def || 0), max_buy);
 		}
 		if (want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
-			max_cost = Math.pow(10,30);
+			max_cost = 1e99; // arbitrarily high value
 			need = want;
 		} else {
-			max_cost = ({
-				'$10k':Math.pow(10,4),
-				'$100k':Math.pow(10,5),
-				'$1m':Math.pow(10,6),
-				'$10m':Math.pow(10,7),
-				'$100m':Math.pow(10,8),
-				'$1b':Math.pow(10,9),
-				'$10b':Math.pow(10,10),
-				'$100b':Math.pow(10,11),
-				'$1t':Math.pow(10,12),
-				'$10t':Math.pow(10,13),
-				'$100t':Math.pow(10,14),
-				'INCR':Math.pow(10,incr)
-			})[this.option.maxcost];
+			max_cost = fixed_cost;
 		}
+
 //			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
-		if (need > have) {// Want to buy more                                
+		if (need > have) { // Want to buy more                                
 			if (!best_quest && data[u].buy && data[u].buy.length) {
 				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / Player.get('maxincome')) * 100) && i > 1 && (!best_buy || need > buy)) {
 //						console.log(warn(), 'Buy: '+need);
@@ -691,7 +732,15 @@ Town.update = function(event) {
 	this.set(['runtime','best_sell'], best_sell);
 	this.set(['runtime','sell'], sell);
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
-	this.set(['option','_sleep'], !(this.runtime.best_buy && Bank.worth(this.runtime.cost - land_buffer)) && !this.runtime.best_sell && !visit && Page.stale('town_soldiers', this.get('runtime.soldiers', 0)) && Page.stale('town_blacksmith', this.get('runtime.blacksmith', 0)) && Page.stale('town_magic', this.get('runtime.magic', 0)));
+
+	this.set(['option','_sleep'],
+	  !this.runtime.best_sell &&
+	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost - land_buffer)) &&
+	  !Page.isStale('town_soldiers') &&
+	  !Page.isStale('town_blacksmith') &&
+	  !Page.isStale('town_magic'));
+
+	return true;
 };
 
 Town.work = function(state) {
@@ -752,82 +801,390 @@ Town.sell = function(item, number) { // number is absolute including already own
 	return false;
 };
 
+format_unit_str = function(name) {
+    var i, j, k, n, m, p, s, str;
+
+	if (name && ((p = Town.get(['data',name])) || (p = Generals.get(['data',name])))) {
+		str = name;
+
+		j = p.att || 0;
+		k = p.def || 0;
+
+		s = '';
+		if ((m = (p.stats && p.stats.att) || 0) > 0) {
+			s += j + '+' + m;
+		} else if (m < 0) {
+			s += j + m;
+		} else {
+			s += j;
+		}
+		j += m;
+
+		s += '/';
+		if ((n = (p.stats && p.stats.def) || 0) > 0) {
+			s += k + '+' + n;
+		} else if (n < 0) {
+			s += k + n;
+		} else {
+			s += k;
+		}
+		k += n;
+
+		if (m || n) {
+			s = '<span style="color:green;" title="' + s + '">';
+		} else {
+			s = '';
+		}
+
+		str += ' (' + s + j + '/' + k + (s ? '</span>' : '') + ')';
+
+		if ((n = p.cost)) {
+			str += ' <span style="color:blue;">$' + n.SI() + '</span>';
+		}
+
+		if ((n = p.upkeep)) {
+			str += ' <span style="color:red;">$' + n.SI() + '/hr</span>';
+		}
+	} else {
+		console.log(warn('# format_unit_str(' + name + ') not found!'));
+    }
+
+    return str;
+};
+
 var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], output = [], x2 = (x==='att'?'def':'att'), i, order = {
-		Weapon:1,
-		Shield:2,
-		Helmet:3,
-		Armor:4,
-		Amulet:5,
-		Gloves:6,
-		Magic:7
-	};
+	var units = [], output = [], i, o, p,
+		order = {
+			Weapon:1,
+			Shield:2,
+			Helmet:3,
+			Armor:4,
+			Amulet:5,
+			Gloves:6,
+			Magic:7
+		};
+
 	if (name) {
-		output.push('<div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">'+name+'</h3><div class="golem-panel-content">');
+		output.push('<div class="golem-panel">');
+		output.push('<h3 class="golem-panel-header" style="width:auto;">');
+		output.push(name);
+		output.push('</h3>');
+		output.push('<div class="golem-panel-content">');
 	}
+
 	for (i in list) {
 		unitfunc(units, i, list);
 	}
-	if (list[units[0]]) {
-		if (type === 'duel' && list[units[0]].type) {
+
+	if ((o = list[units[0]])) {
+		if (type === 'duel' && o.type) {
 			units.sort(function(a,b) {
 				return order[list[a].type] - order[list[b].type]
 					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
 					|| (list[a].cost || 0) - (list[b].cost || 0);
 			});
-		} else if (list[units[0]] && list[units[0]].skills && list[units[0]][type]) {
-			units.sort(function(a,b) {
-				return (list[b][type][x] || 0) - (list[a][type][x] || 0)
-					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-					|| (list[a].cost || 0) - (list[b].cost || 0);
-			});
 		} else {
 			units.sort(function(a,b) {
-				return (list[b][x] + (0.7 * list[b][x2])) - (list[a][x] + (0.7 * list[a][x2]))
+				return (list[b]['tot_'+x] - list[a]['tot_'+x])
 					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
 					|| (list[a].cost || 0) - (list[b].cost || 0);
 			});
 		}
 	}
 	for (i=0; i<(count ? count : units.length); i++) {
-		if ((list[units[0]] && list[units[0]].skills) || (list[units[i]].use && list[units[i]].use[type+'_'+x])) {
-			output.push('<div style="height:25px;margin:1px;' + (list[units[i]].cost ? 'font-weight:bold;' : '') + '"><img src="' + imagepath + list[units[i]].img + '" style="width:25px;height:25px;float:left;margin-right:4px;"> ' + (list[units[i]].use ? list[units[i]].use[type+'_'+x]+' x ' : '') + units[i] + ' (' + list[units[i]].att + ' / ' + list[units[i]].def + ')' + (list[units[i]].cost?' $'+list[units[i]].cost.SI():'') + '</div>');
+		p = list[units[i]];
+		if ((o && o.skills) || (p.use && p.use[type+'_'+x])) {
+			output.push('<div style="height:25px;margin:1px;">');
+			output.push('<img src="' + imagepath + p.img + '"');
+			output.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+			output.push(' ');
+			if (p.use) {
+				output.push(p.use[type+'_'+x]+' x ');
+			}
+			output.push(format_unit_str(units[i]));
+			output.push('</div>');
 		}
 	}
+
 	if (name) {
 		output.push('</div></div>');
 	}
+
 	return output.join('');
 };
 
 Town.dashboard = function() {
-	var left, right, generals = Generals.get(), best;
-	best = Generals.best('duel');
-	left = '<div style="float:left;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-	+	makeTownDash(generals, function(list,i){list.push(i);}, 'att', 'invade', 'Heroes')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'att', 'invade', 'Soldiers')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'att', 'invade', 'Weapons')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'att', 'invade', 'Equipment')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'invade', 'Magic')
-	+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Attack</h3><div class="golem-panel-content" style="padding:8px;">'
-	+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'att', 'duel')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'att', 'duel')
-	+	'</div></div></div>';
-	best = Generals.best('defend');
-	right = '<div style="float:right;width:50%;"><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Invade - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-	+	makeTownDash(generals, function(list,i){list.push(i);}, 'def', 'invade', 'Heroes')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='soldiers' && units[i].use){list.push(i);}}, 'def', 'invade', 'Soldiers')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].use && units[i].type === 'Weapon'){list.push(i);}}, 'def', 'invade', 'Weapons')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use && units[i].type !== 'Weapon'){list.push(i);}}, 'def', 'invade', 'Equipment')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'invade', 'Magic')
-	+	'</div></div><div class="golem-panel"><h3 class="golem-panel-header" style="width:auto;">Duel - Defend</h3><div class="golem-panel-content" style="padding:8px;">'
-	+	(best !== 'any' ? '<div style="height:25px;margin:1px;"><img src="' + imagepath + generals[best].img + '" style="width:25px;height:25px;float:left;margin-right:4px;">' + best + ' (' + generals[best].att + ' / ' + generals[best].def + ')</div>' : '')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='blacksmith' && units[i].use){list.push(i);}}, 'def', 'duel')
-	+	makeTownDash(this.data, function(list,i,units){if (units[i].page==='magic' && units[i].use){list.push(i);}}, 'def', 'duel')
-	+	'</div></div></div>';
+	var lset = [], rset = [], generals = Generals.get(), best, tmp;
 
-	$('#golem-dashboard-Town').html(left+right);
+	// invade
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.invade_att) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	lset.push('<div class="golem-panel">');
+	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	lset.push('Invade - Attack');
+	lset.push('</h3>');
+	lset.push('<div class="golem-panel-content" style="padding:8px;">');
+	lset.push(makeTownDash(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'att', 'invade', 'Heroes'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'soldiers') {
+				list.push(i);
+			}
+		}, 'att', 'invade', 'Soldiers'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', 'invade', 'Weapons'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', 'invade', 'Equipment'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'att', 'invade', 'Magic'));
+	lset.push('</div></div>');
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.invade_def) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	rset.push('<div class="golem-panel">');
+	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	rset.push('Invade - Defend');
+	rset.push('</h3>');
+	rset.push('<div class="golem-panel-content" style="padding:8px;">');
+	rset.push(makeTownDash(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'def', 'invade', 'Heroes'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'soldiers') {
+				list.push(i);
+			}
+		}, 'def', 'invade', 'Soldiers'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'def', 'invade', 'Weapons'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
+				list.push(i);
+			}
+		}, 'def', 'invade', 'Equipment'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'def', 'invade', 'Magic'));
+	rset.push('</div></div>');
+	
+	// duel
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.duel_att) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	lset.push('<div class="golem-panel">');
+	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	lset.push('Duel - Attack');
+	lset.push('</h3>');
+	lset.push('<div class="golem-panel-content" style="padding:8px;">');
+	if ((best = Generals.best('duel')) !== 'any') {
+		lset.push('<div style="height:25px;margin:1px;">');
+		lset.push('<img src="' + imagepath + generals[best].img + '"');
+		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		lset.push(format_unit_str(best));
+		lset.push('</div>');
+	}
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'blacksmith') {
+				list.push(i);
+			}
+		}, 'att', 'duel'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'att', 'duel'));
+	lset.push('</div></div>');
+	
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.duel_def) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	rset.push('<div class="golem-panel">');
+	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	rset.push('Duel - Defend');
+	rset.push('</h3>');
+	rset.push('<div class="golem-panel-content" style="padding:8px;">');
+	if ((best = Generals.best('defend')) !== 'any') {
+		rset.push('<div style="height:25px;margin:1px;">');
+		rset.push('<img src="' + imagepath + generals[best].img + '"');
+		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		rset.push(format_unit_str(best));
+		rset.push('</div>');
+	}
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'blacksmith') {
+				list.push(i);
+			}
+		}, 'def', 'duel'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'def', 'duel'));
+	rset.push('</div></div>');
+
+	// war
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.war_att) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	lset.push('<div class="golem-panel">');
+	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	lset.push('War - Attack');
+	lset.push('</h3>');
+	lset.push('<div class="golem-panel-content" style="padding:8px;">');
+	lset.push(makeTownDash(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Heroes', 6));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Weapons'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Shield') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Shield'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Armor') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Armor'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Helmet') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Helmet'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Amulet') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Amulet'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Gloves') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Gloves'));
+	lset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'att', 'war', 'Magic'));
+	lset.push('</div></div>');
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+	    if (this.data[i].use && this.data[i].use.war_def) {
+		tmp[i] = this.data[i];
+	    }
+	}
+
+	rset.push('<div class="golem-panel">');
+	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
+	rset.push('War - Attack');
+	rset.push('</h3>');
+	rset.push('<div class="golem-panel-content" style="padding:8px;">');
+	rset.push(makeTownDash(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Heroes', 6));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Weapons'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Shield') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Shield'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Armor') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Armor'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Helmet') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Helmet'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Amulet') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Amulet'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].type === 'Gloves') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Gloves'));
+	rset.push(makeTownDash(tmp, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'def', 'war', 'Magic'));
+	rset.push('</div></div>');
+	
+	// div wrappers
+
+	lset.unshift('<div style="float:left;width:50%;">');
+	lset.push('</div>');
+
+	rset.unshift('<div style="float:left;width:50%;">');
+	rset.push('</div>');
+
+	$('#golem-dashboard-Town').html(lset.join('') + rset.join(''));
 };
 
 Town.qualify = function(name, icon) {
