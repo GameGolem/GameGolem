@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1081
+// @version		31.5.1082
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -22,14 +22,18 @@
 (function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
+
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
+
 // Version of the script
 var version = "31.5";
-var revision = 1081;
+var revision = 1082;
+
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
+
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -44,6 +48,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -11521,7 +11526,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
+		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + (monster.page === 'festival' && type.festival_mpool? type.festival_mpool  : type.mpool) : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
 		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
@@ -14343,7 +14348,7 @@ Town.update = function(event, events) {
 		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
-		} else if (Bank.worth(this.runtime.cost - land_buffer)) {
+		} else if (Bank.worth(this.runtime.cost + land_buffer)) {
 			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
@@ -14366,7 +14371,7 @@ Town.update = function(event, events) {
 
 	this.set(['option','_sleep'],
 	  !this.runtime.best_sell &&
-	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost - land_buffer)) &&
+	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer)) &&
 	  !Page.isStale('town_soldiers') &&
 	  !Page.isStale('town_blacksmith') &&
 	  !Page.isStale('town_magic'));

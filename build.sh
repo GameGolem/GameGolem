@@ -122,16 +122,18 @@ if [ ! -f $manifest ] ; then
     rc=1
 fi
 [ 0 = "$rc" ] || exit $rc
+cat _wrap_top.js >> "$out"
 for file in `sed -e 's/#.*//g' $manifest` ; do
     if [ -f $file ] ; then
-        sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" "$file" >> "$out"
-	[ "$manilist" != '' ] && manilist="$manilist,"
-	manilist="$manilist\"$file\""
+        cat "$file" >> "$out"
+	manilist="$manilist,\"$file\""
     else
         echo "Error: missing $file"
         rc=1
     fi
 done
+cat _wrap_bottom.js >> "$out"
+manilist="${manilist#,}"
 [ 0 = "$rc" ] || exit $rc
 
 ### Google Chrome extension (unpacked) ###

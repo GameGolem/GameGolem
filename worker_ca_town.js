@@ -712,7 +712,7 @@ Town.update = function(event, events) {
 		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
-		} else if (Bank.worth(this.runtime.cost - land_buffer)) {
+		} else if (Bank.worth(this.runtime.cost + land_buffer)) {
 			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
@@ -735,7 +735,7 @@ Town.update = function(event, events) {
 
 	this.set(['option','_sleep'],
 	  !this.runtime.best_sell &&
-	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost - land_buffer)) &&
+	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer)) &&
 	  !Page.isStale('town_soldiers') &&
 	  !Page.isStale('town_blacksmith') &&
 	  !Page.isStale('town_magic'));

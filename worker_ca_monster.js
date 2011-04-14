@@ -1896,7 +1896,7 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + type.mpool : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
+		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + (monster.page === 'festival' && type.festival_mpool? type.festival_mpool  : type.mpool) : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
 		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
