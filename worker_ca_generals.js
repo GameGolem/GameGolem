@@ -210,11 +210,9 @@ Generals.update = function(event, events) {
 		invade = Town.get('runtime.invade'),
 		duel = Town.get('runtime.duel'),
 		war = Town.get('runtime.war'),
-		attack, attack_bonus, defend, defense_bonus,
-		attack_potential, att_when_att_potential,
-		defense_potential, def_when_att_potential,
-		att_when_att = 0, def_when_att = 0,
-		monster_att = 0, monster_multiplier = 1, current_att, current_def,
+		attack, attack_bonus, att_when_att = 0, current_att,
+		defend, defense_bonus, def_when_att = 0, current_def,
+		monster_att = 0, monster_multiplier = 1,
 		listpush = function(list,i){list.push(i);},
 		skillcombo, calcStats = false, all_stats, bests;
 
@@ -530,6 +528,9 @@ Generals.update = function(event, events) {
 
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
 			this.set(['data',i,'stats','cash'], j ? j : undefined);
+
+			j = nmax(0, skillcombo.regex(/\bDecreases? Soldier Cost by (\d+)%/gi));
+			this.set(['data',i,'stats','cost'], j ? j : undefined);
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
 			this.set(['data',i,'stats','demi'], j ? j : undefined);

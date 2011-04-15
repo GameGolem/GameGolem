@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1083
+// @version		31.5.1084
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -22,18 +22,14 @@
 (function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
-
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-
 // Version of the script
 var version = "31.5";
-var revision = 1083;
-
+var revision = 1084;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
-
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -48,7 +44,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -7651,11 +7646,9 @@ Generals.update = function(event, events) {
 		invade = Town.get('runtime.invade'),
 		duel = Town.get('runtime.duel'),
 		war = Town.get('runtime.war'),
-		attack, attack_bonus, defend, defense_bonus,
-		attack_potential, att_when_att_potential,
-		defense_potential, def_when_att_potential,
-		att_when_att = 0, def_when_att = 0,
-		monster_att = 0, monster_multiplier = 1, current_att, current_def,
+		attack, attack_bonus, att_when_att = 0, current_att,
+		defend, defense_bonus, def_when_att = 0, current_def,
+		monster_att = 0, monster_multiplier = 1,
 		listpush = function(list,i){list.push(i);},
 		skillcombo, calcStats = false, all_stats, bests;
 
@@ -7971,6 +7964,9 @@ Generals.update = function(event, events) {
 
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
 			this.set(['data',i,'stats','cash'], j ? j : undefined);
+
+			j = nmax(0, skillcombo.regex(/\bDecreases? Soldier Cost by (\d+)%/gi));
+			this.set(['data',i,'stats','cost'], j ? j : undefined);
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
 			this.set(['data',i,'stats','demi'], j ? j : undefined);
@@ -8752,6 +8748,7 @@ Idle.settings ={
 Idle.option = {
 	general:'any',
 	index:86400000,
+	generals:604800000,
 	alchemy:86400000,
 	quests:0,
 	town:0,
@@ -8764,14 +8761,16 @@ Idle.option = {
 
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.when = {
-	0:'Never',
-	900000:'Quarterly',
-	3600000:'Hourly',
-	7200000:'2 Hours',
-	21600000:'6 Hours',
-	43200000:'12 Hours',
-	86400000:'Daily',
-	604800000:'Weekly'
+	0:			'Never',
+	900000:		'Quarterly',
+	3600000:	'Hourly',
+	7200000:	'2 Hours',
+	21600000:	'6 Hours',
+	43200000:	'12 Hours',
+	86400000:	'Daily',
+	604800000:	'Weekly',
+	1209600000:	'2 Weeks',
+	2592000000:	'Monthly'
 };
 
 Idle.display = [
@@ -8787,6 +8786,10 @@ Idle.display = [
 			{
 				id:'index',
 				label:'Home Page',
+				select:Idle.when
+			},{
+				id:'generals',
+				label:'Generals',
 				select:Idle.when
 			},{
 				id:'alchemy',
@@ -8827,8 +8830,25 @@ Idle.display = [
 
 Idle.pages = {
 	index:['index'],
+	generals:['heroes_heroes', 'heroes_generals'],
 	alchemy:['keep_alchemy'],
-	quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_quest7', 'quests_quest8', 'quests_quest9', 'quests_demiquests', 'quests_atlantis'],
+	quests:[
+		'quests_quest1',
+		'quests_quest2',
+		'quests_quest3',
+		'quests_quest4',
+		'quests_quest5',
+		'quests_quest6',
+		'quests_quest7',
+		'quests_quest8',
+		'quests_quest9',
+		'quests_quest10',
+		'quests_quest11',
+		'quests_quest12',
+		'quests_quest13',
+		'quests_demiquests',
+		'quests_atlantis'
+	],
 	town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
@@ -8837,29 +8857,50 @@ Idle.pages = {
 	collect:['apprentice_collect']
 };
 
-Idle.work = function(state) {
-	if (!state || !Generals.to(this.option.general)) {
-		return true;
-	}
-	var i, p;
-	for (i in this.pages) {
-		if (this.option[i]) {
-			for (p=0; p<this.pages[i].length; p++) {
-				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
-					return true;
-				}
-			}
-		}
-	}
-	return true;
-};
-
 Idle.init = function() {
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general === 'under level 4') {
 		this.set('option.general', 'under max level');
 	}
 	// END
+};
+
+Idle.work = function(state) {
+	var now = Date.now(), i, j, p, gen = false;
+
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+
+	// handle the generals tour first, to avoid thrashing with the Idle general
+	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
+		for (j in p) {
+			if (p[j] && p[j].own && (p[j].seen || 0) + this.option[i] <= now) {
+				if (Generals.to(j) === null) {
+					// if we can't change the general now due to stats or error
+					// just add an hour to the last seen time and try later
+					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
+				}
+				return QUEUE_CONTINUE;
+			}
+		}
+	}
+
+	if (!Generals.to(this.option.general)) {
+		return QUEUE_CONTINUE;
+	}
+
+	for (i in this.pages) {
+		if (this.option[i]) {
+			for (p=0; p<this.pages[i].length; p++) {
+				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
+					return QUEUE_CONTINUE;
+				}
+			}
+		}
+	}
+
+	return QUEUE_CONTINUE;
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -13661,7 +13702,7 @@ Town.option = {
 	general:true,
 	quest_buy:true,
 	number:'None',
-	maxcost:'$10m',
+	maxcost:'$0',
 	units:'Best for Both',
 	sell:false,
 	upkeep:20
@@ -13672,10 +13713,7 @@ Town.runtime = {
 	best_sell:null,
 	buy:0,
 	sell:0,
-	cost:0,
-	soldiers:0,
-	blacksmith:0,
-	magic:0
+	cost:0
 };
 
 Town.display = [
@@ -13717,7 +13755,7 @@ Town.display = [
 	id:'maxcost',
 	require:'number!="None"',
 	label:'Maximum Item Cost',
-	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
+	select:['$0','$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
 	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
@@ -14074,19 +14112,21 @@ Town.parse = function(change) {
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
 			try {
-				var i, j, type, name = $('div img[alt]', el).attr('alt').trim(), icon = $('div img[src]', el).attr('src').filepart(),
-					cost = parseInt($('div strong.gold', el).text().replace(/\D/g, '') || 0, 10),
-					atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/) || 0,
-					def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i) || 0,
-					upkeep = parseInt($('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, '') || 0, 10),
-					match, maxlen = 0;
+				var i, j, type, match, maxlen = 0,
+					name = ($('div img[alt]', el).attr('alt') || '').trim(),
+					icon = ($('div img[src]', el).attr('src') || '').filepart(),
+					cost = parseInt(($('div strong.gold', el).text() || '').replace(/\D/g, '') || 0, 10),
+					own = ($('div div:contains("Owned:")', el).text() || '').regex(/\bOwned:\s*(\d+)\b/i) || 0,
+					atk = ($('div div div:contains("Attack")', el).text() || '').regex(/\b(\d+)\s+Attack\b/) || 0,
+					def = ($('div div div:contains("Defense")', el).text() || '').regex(/\b(\d+)\s+Defense\b/i) || 0,
+					upkeep = parseInt(($('div div:contains("Upkeep:") span.negative', el).text() || '').replace(/\D/g, '') || 0, 10);
 				self._transaction(); // BEGIN TRANSACTION
-				changes++;
 				name = self.qualify(name, icon);
 				delete purge[name];
 				self.set(['data',name,'page'], page);
 				self.set(['data',name,'img'], icon);
-				Resources.add('_'+name, self.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
+				self.set(['data',name,'own'], own);
+				Resources.add('_'+name, own, true);
 				self.set(['data',name,'att'], atk);
 				self.set(['data',name,'def'], def);
 				self.set(['data',name,'tot_att'], atk + (0.7 * def));
@@ -14200,14 +14240,18 @@ Town.getWar = function() {
 };
 
 Town.update = function(event, events) {
-	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data,
+	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep,
+		data = this.data,
+		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
+		upkeep = Player.get('upkeep', 0, 'number'),
 		// largest possible army, including bonus generals
 		armymax = Math.max(541, Generals.get('runtime.armymax', 1, 'number')),
 		// our army size, capped at the largest possible army size above
-		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1))),
-		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep, tmp, invade_att, invade_def, duel_att, duel_def, quest, generals,
-		land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
-		incr = this.runtime.cost_incr || 4;
+		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1, 'number'))),
+		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep,
+		land_buffer = (Land.get('option.save_ahead') && Land.get('runtime.save_amount', 0, 'number')) || 0,
+		incr = this.runtime.cost_incr || 4,
+		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0;
 
 	fixed_cost = ({
 	    '$0':   0,
@@ -14242,11 +14286,12 @@ Town.update = function(event, events) {
 			break;
 	}
 
-	// These two fill in all the data we need for buying / sellings items
+	// These three fill in all the data we need for buying / sellings items
 	this.set(['runtime','invade'], this.getInvade(max_buy));
 	this.set(['runtime','duel'], this.getDuel());
 	this.set(['runtime','war'], this.getWar());
 
+	// Set up a keep set for future army sizes
 	keep = {};
 	if (army < max_sell) {
 		this.getInvade(max_sell, max_sell.toString());
@@ -14356,7 +14401,7 @@ Town.update = function(event, events) {
 	} else {
 		if (this.option.maxcost === 'INCR'){
 			this.set(['runtime','cost_incr'], incr === 14 ? 4 : incr + 1);
-			this.set(['runtime','check'], Date.now() + 3600000);
+			this.set(['runtime','check'], now + 3600000);
 		} else {
 			this.set(['runtime','cost_incr'], null);
 			this.set(['runtime','check'], null);

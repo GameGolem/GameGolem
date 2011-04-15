@@ -25,7 +25,7 @@ Town.option = {
 	general:true,
 	quest_buy:true,
 	number:'None',
-	maxcost:'$10m',
+	maxcost:'$0',
 	units:'Best for Both',
 	sell:false,
 	upkeep:20
@@ -36,10 +36,7 @@ Town.runtime = {
 	best_sell:null,
 	buy:0,
 	sell:0,
-	cost:0,
-	soldiers:0,
-	blacksmith:0,
-	magic:0
+	cost:0
 };
 
 Town.display = [
@@ -81,7 +78,7 @@ Town.display = [
 	id:'maxcost',
 	require:'number!="None"',
 	label:'Maximum Item Cost',
-	select:['$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
+	select:['$0','$10k','$100k','$1m','$10m','$100m','$1b','$10b','$100b','$1t','$10t','$100t','INCR'],
 	help:'Will buy best item based on Set Type with single item cost below selected value. INCR will start at $10k and work towards max buying at each level (WARNING, not cost effective!)'
 },{
 	advanced:true,
@@ -438,19 +435,21 @@ Town.parse = function(change) {
 		}
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(a,el) {
 			try {
-				var i, j, type, name = $('div img[alt]', el).attr('alt').trim(), icon = $('div img[src]', el).attr('src').filepart(),
-					cost = parseInt($('div strong.gold', el).text().replace(/\D/g, '') || 0, 10),
-					atk = $('div div div:contains("Attack")', el).text().regex(/\b(\d+)\s+Attack\b/) || 0,
-					def = $('div div div:contains("Defense")', el).text().regex(/\b(\d+)\s+Defense\b/i) || 0,
-					upkeep = parseInt($('div div:contains("Upkeep:") span.negative', el).text().replace(/\D/g, '') || 0, 10),
-					match, maxlen = 0;
+				var i, j, type, match, maxlen = 0,
+					name = ($('div img[alt]', el).attr('alt') || '').trim(),
+					icon = ($('div img[src]', el).attr('src') || '').filepart(),
+					cost = parseInt(($('div strong.gold', el).text() || '').replace(/\D/g, '') || 0, 10),
+					own = ($('div div:contains("Owned:")', el).text() || '').regex(/\bOwned:\s*(\d+)\b/i) || 0,
+					atk = ($('div div div:contains("Attack")', el).text() || '').regex(/\b(\d+)\s+Attack\b/) || 0,
+					def = ($('div div div:contains("Defense")', el).text() || '').regex(/\b(\d+)\s+Defense\b/i) || 0,
+					upkeep = parseInt(($('div div:contains("Upkeep:") span.negative', el).text() || '').replace(/\D/g, '') || 0, 10);
 				self._transaction(); // BEGIN TRANSACTION
-				changes++;
 				name = self.qualify(name, icon);
 				delete purge[name];
 				self.set(['data',name,'page'], page);
 				self.set(['data',name,'img'], icon);
-				Resources.add('_'+name, self.set(['data',name,'own'], $('div div:contains("Owned:")', el).text().regex(/\bOwned:\s*(\d+)\b/i) || 0), true);
+				self.set(['data',name,'own'], own);
+				Resources.add('_'+name, own, true);
 				self.set(['data',name,'att'], atk);
 				self.set(['data',name,'def'], def);
 				self.set(['data',name,'tot_att'], atk + (0.7 * def));
@@ -564,14 +563,18 @@ Town.getWar = function() {
 };
 
 Town.update = function(event, events) {
-	var i, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep, data = this.data,
+	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep,
+		data = this.data,
+		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
+		upkeep = Player.get('upkeep', 0, 'number'),
 		// largest possible army, including bonus generals
 		armymax = Math.max(541, Generals.get('runtime.armymax', 1, 'number')),
 		// our army size, capped at the largest possible army size above
-		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1))),
-		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep, tmp, invade_att, invade_def, duel_att, duel_def, quest, generals,
-		land_buffer = (Land.get('option.save_ahead', false) && Land.get('runtime.save_amount', 0)) || 0,
-		incr = this.runtime.cost_incr || 4;
+		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1, 'number'))),
+		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep,
+		land_buffer = (Land.get('option.save_ahead') && Land.get('runtime.save_amount', 0, 'number')) || 0,
+		incr = this.runtime.cost_incr || 4,
+		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0;
 
 	fixed_cost = ({
 	    '$0':   0,
@@ -606,11 +609,12 @@ Town.update = function(event, events) {
 			break;
 	}
 
-	// These two fill in all the data we need for buying / sellings items
+	// These three fill in all the data we need for buying / sellings items
 	this.set(['runtime','invade'], this.getInvade(max_buy));
 	this.set(['runtime','duel'], this.getDuel());
 	this.set(['runtime','war'], this.getWar());
 
+	// Set up a keep set for future army sizes
 	keep = {};
 	if (army < max_sell) {
 		this.getInvade(max_sell, max_sell.toString());
@@ -720,7 +724,7 @@ Town.update = function(event, events) {
 	} else {
 		if (this.option.maxcost === 'INCR'){
 			this.set(['runtime','cost_incr'], incr === 14 ? 4 : incr + 1);
-			this.set(['runtime','check'], Date.now() + 3600000);
+			this.set(['runtime','check'], now + 3600000);
 		} else {
 			this.set(['runtime','cost_incr'], null);
 			this.set(['runtime','check'], null);

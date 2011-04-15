@@ -24,6 +24,7 @@ Idle.settings ={
 Idle.option = {
 	general:'any',
 	index:86400000,
+	generals:604800000,
 	alchemy:86400000,
 	quests:0,
 	town:0,
@@ -36,14 +37,16 @@ Idle.option = {
 
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.when = {
-	0:'Never',
-	900000:'Quarterly',
-	3600000:'Hourly',
-	7200000:'2 Hours',
-	21600000:'6 Hours',
-	43200000:'12 Hours',
-	86400000:'Daily',
-	604800000:'Weekly'
+	0:			'Never',
+	900000:		'Quarterly',
+	3600000:	'Hourly',
+	7200000:	'2 Hours',
+	21600000:	'6 Hours',
+	43200000:	'12 Hours',
+	86400000:	'Daily',
+	604800000:	'Weekly',
+	1209600000:	'2 Weeks',
+	2592000000:	'Monthly'
 };
 
 Idle.display = [
@@ -59,6 +62,10 @@ Idle.display = [
 			{
 				id:'index',
 				label:'Home Page',
+				select:Idle.when
+			},{
+				id:'generals',
+				label:'Generals',
 				select:Idle.when
 			},{
 				id:'alchemy',
@@ -99,8 +106,25 @@ Idle.display = [
 
 Idle.pages = {
 	index:['index'],
+	generals:['heroes_heroes', 'heroes_generals'],
 	alchemy:['keep_alchemy'],
-	quests:['quests_quest1', 'quests_quest2', 'quests_quest3', 'quests_quest4', 'quests_quest5', 'quests_quest6', 'quests_quest7', 'quests_quest8', 'quests_quest9', 'quests_demiquests', 'quests_atlantis'],
+	quests:[
+		'quests_quest1',
+		'quests_quest2',
+		'quests_quest3',
+		'quests_quest4',
+		'quests_quest5',
+		'quests_quest6',
+		'quests_quest7',
+		'quests_quest8',
+		'quests_quest9',
+		'quests_quest10',
+		'quests_quest11',
+		'quests_quest12',
+		'quests_quest13',
+		'quests_demiquests',
+		'quests_atlantis'
+	],
 	town:['town_soldiers', 'town_blacksmith', 'town_magic', 'town_land'],
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
@@ -109,27 +133,48 @@ Idle.pages = {
 	collect:['apprentice_collect']
 };
 
-Idle.work = function(state) {
-	if (!state || !Generals.to(this.option.general)) {
-		return true;
-	}
-	var i, p;
-	for (i in this.pages) {
-		if (this.option[i]) {
-			for (p=0; p<this.pages[i].length; p++) {
-				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
-					return true;
-				}
-			}
-		}
-	}
-	return true;
-};
-
 Idle.init = function() {
 	// BEGIN: fix up "under level 4" generals
 	if (this.option.general === 'under level 4') {
 		this.set('option.general', 'under max level');
 	}
 	// END
+};
+
+Idle.work = function(state) {
+	var now = Date.now(), i, j, p, gen = false;
+
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+
+	// handle the generals tour first, to avoid thrashing with the Idle general
+	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
+		for (j in p) {
+			if (p[j] && p[j].own && (p[j].seen || 0) + this.option[i] <= now) {
+				if (Generals.to(j) === null) {
+					// if we can't change the general now due to stats or error
+					// just add an hour to the last seen time and try later
+					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
+				}
+				return QUEUE_CONTINUE;
+			}
+		}
+	}
+
+	if (!Generals.to(this.option.general)) {
+		return QUEUE_CONTINUE;
+	}
+
+	for (i in this.pages) {
+		if (this.option[i]) {
+			for (p=0; p<this.pages[i].length; p++) {
+				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
+					return QUEUE_CONTINUE;
+				}
+			}
+		}
+	}
+
+	return QUEUE_CONTINUE;
 };
