@@ -265,22 +265,23 @@ Config.init = function() {
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
-		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value;
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list;
 		if (worker === this && event.id === 'data') { // Changing one of our dropdown lists
+			list = [];
 			value = this.get(event.path);
 			if (isArray(value)) {
 				for (i=0; i<value.length; i++) {
-					options.push('<option value="' + value[i] + '">' + value[i] + '</option>');
+					list.push('<option value="' + value[i] + '">' + value[i] + '</option>');
 				}
 			} else if (isObject(value)) {
 				for (i in value) {
-					options.push('<option value="' + i + '">' + value[i] + '</option>');
+					list.push('<option value="' + i + '">' + value[i] + '</option>');
 				}
 			}
-			options = options.join('');
+			list = list.join('');
 			$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
 				var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
-				$(el).html(options).val(val);
+				$(el).html(list).val(val);
 			});
 		} else if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
 			for (i in Workers) {

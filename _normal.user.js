@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1084
+// @version		31.5.1085
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1084;
+var revision = 1085;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -816,7 +816,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	}(obj, depth || 1)), replacer, space);
 };
 
-JSON.encode = function(obj, replacer, space) {
+JSON.encode = function(obj, replacer, space, metrics) {
 	var keys = {}, reverse = {}, count = {}, next = 0, nextKey = null, getKey = function() {
 		var key, digits = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', length = digits.length;
 		do {
@@ -837,7 +837,7 @@ JSON.encode = function(obj, replacer, space) {
 				arguments.callee(obj[i]);
 			}
 		}
-	}, encode = function(obj) { // Replace keys where the saved length is more than the used length
+	}, encode = function(obj, m) { // Replace keys where the saved length is more than the used length
 		var i, to = obj;
 		if (isObject(obj)) {
 			to = {};
@@ -858,12 +858,21 @@ JSON.encode = function(obj, replacer, space) {
 				to[i] = arguments.callee(obj[i]);
 			}
 		}
+		if (isObject(m) && keys) {
+			m.oh = 6; // 7, -1 for first comma miscount
+			m.mod = 0;
+			m.num = length(keys);
+			for (i in keys) {
+				m.oh += i.length + keys[i].length + 6;
+				m.mod += (keys[i].length - i.length) * count[i];
+			}
+		}
 		return to;
 	};
 	if (isObject(obj) || isArray(obj)) {
 		check(obj);
 		getKey(); // Load up the first key, prevent key conflicts
-		obj = encode(obj);
+		obj = encode(obj, metrics);
 		if (!empty(reverse)) {
 			obj['$'] = reverse;
 		}
@@ -871,14 +880,15 @@ JSON.encode = function(obj, replacer, space) {
 	return JSON.stringify(obj, replacer, space);
 };
 
-JSON.decode = function(str) {
-	var obj = JSON.parse(str), keys = obj['$'], decode = function(obj) {
+JSON.decode = function(str, metrics) {
+	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj, m) {
 		var i, to = obj;
 		if (isObject(obj)) {
 			to = {};
 			for (i in obj) {
 				if (keys[i]) {
 					to[keys[i]] = arguments.callee(obj[i]);
+					count[i] = (count[i] || 0) + 1;
 				} else {
 					to[i] = arguments.callee(obj[i]);
 				}
@@ -889,11 +899,20 @@ JSON.decode = function(str) {
 				to[i] = arguments.callee(obj[i]);
 			}
 		}
+		if (isObject(m) && keys) {
+			m.oh = 6; // 7, -1 for first comma miscount
+			m.mod = 0;
+			m.num = length(keys);
+			for (i in keys) {
+				m.oh += i.length + keys[i].length + 6;
+				m.mod += (keys[i].length - i.length) * count[i];
+			}
+		}
 		return to;
 	};
 	if (keys) {
 		delete obj['$'];
-		obj = decode(obj);
+		obj = decode(obj, metrics);
 	}
 	return obj;
 };
@@ -1047,7 +1066,9 @@ function Worker(name) {
 	// Datatypes - one key for each type above
 	this._datatypes = {'data':true, 'option':true, 'runtime':true, 'temp':false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
-	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
+	this._storage = {}; // bytecount of storage, with compression = JSON.stringify(this[type]).length * 2
+	this._rawsize = {}; // bytecount of storage, without compression = JSON.stringify(this[type]).length * 2
+	this._numvars = {}; // number of keys compressed
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
 
@@ -1274,7 +1295,7 @@ Worker.prototype._init = function(old_revision) {
  * @param {boolean=} merge If we wish to merge with current data - normally only used in _setup
  */
 Worker.prototype._load = function(type, merge) {
-	var i, n;
+	var i, n, metrics = {};
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (i in this._datatypes) {
@@ -1291,7 +1312,9 @@ Worker.prototype._load = function(type, merge) {
 	if (isString(i)) { // JSON encoded string
 		try {
 			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
-			i = JSON.decode(i);
+			i = JSON.decode(i, metrics);
+			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
+			this._numvars[type] = metrics.num || 0;
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 		}
@@ -1508,7 +1531,7 @@ Worker.prototype._replace = function(type, data) {
  * @return {boolean} Did we save or not
  */
 Worker.prototype._save = function(type) {
-	var i, n, v;
+	var i, n, v, metrics = {};
 	if (this._loaded) {
 		if (!type) {
 			n = false;
@@ -1526,7 +1549,7 @@ Worker.prototype._save = function(type) {
 		this._update(null, 'run'); // Make sure we flush any pending updates
 		this._saving[type] = false;
 		try {
-			v = JSON.encode(this[type]);
+			v = JSON.encode(this[type], metrics);
 		} catch (e) {
 			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
 			return false; // exit so we don't try to save mangled data over good data
@@ -1539,6 +1562,8 @@ Worker.prototype._save = function(type) {
 			try {
 				setItem(n, v);
 				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
+				this._numvars[type] = metrics.num || 0;
 			} catch (e2) {
 				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
 			}
@@ -2512,22 +2537,23 @@ Config.init = function() {
 
 Config.update = function(event) {
 	if (event.type === 'watch') {
-		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value;
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list;
 		if (worker === this && event.id === 'data') { // Changing one of our dropdown lists
+			list = [];
 			value = this.get(event.path);
 			if (isArray(value)) {
 				for (i=0; i<value.length; i++) {
-					options.push('<option value="' + value[i] + '">' + value[i] + '</option>');
+					list.push('<option value="' + value[i] + '">' + value[i] + '</option>');
 				}
 			} else if (isObject(value)) {
 				for (i in value) {
-					options.push('<option value="' + i + '">' + value[i] + '</option>');
+					list.push('<option value="' + i + '">' + value[i] + '</option>');
 				}
 			}
-			options = options.join('');
+			list = list.join('');
 			$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
 				var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
-				$(el).html(options).val(val);
+				$(el).html(list).val(val);
 			});
 		} else if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
 			for (i in Workers) {
@@ -5559,7 +5585,7 @@ Settings.menu = function(worker, key) {
 };
 
 Settings.dashboard = function() {
-	var i, j, total, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
+	var i, j, o, x, y, z, total, rawtot, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
 	html = '<select id="golem_settings_path">';
 	for (i=0; i<this.temp.paths.length; i++) {
 		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
@@ -5573,17 +5599,39 @@ Settings.dashboard = function() {
 		}
 	}
 	if (!this.temp.worker) {
-		total = 0;
+		total = rawtot = 0;
+		o = [];
 		for (i in Workers) {
-			for (j in Workers[i]._storage) {
-				if (Workers[i]._storage[j]) {
-					total += Workers[i]._storage[j];
-					storage.push('<tr><th>' + i + '.' + j + '</th><td style="text-align:right;">' + Workers[i]._storage[j].addCommas() + ' bytes</td></tr>');
+		    o.push(i);
+		}
+		o.sort();
+		for (i = 0; i < o.length; i++) {
+			for (j in Workers[o[i]]._storage) {
+				if (Workers[o[i]]._storage[j]) {
+					x = Workers[o[i]]._storage[j] || 0;
+					y = Workers[o[i]]._rawsize[j] || x;
+					z = Workers[o[i]]._numvars[j] || 0;
+					total += x;
+					rawtot += y;
+					storage.push('<tr>');
+					storage.push('<th>' + o[i] + '.' + j + '</th>');
+					storage.push('<td style="text-align:right;">' + x.addCommas() + ' bytes</td>');
+					storage.push('<td style="text-align:right;">' + y.addCommas() + ' bytes</td>');
+					storage.push('<td style="text-align:right;">' + (x !== y ? (x * 100 / y).SI() + '%' : '&nbsp;') + '</td>');
+					storage.push('<td style="text-align:right;">' + (z ? z + ' key' + plural(z) : '&nbsp;') + '</td>');
+					storage.push('</tr>');
 				}
 			}
 		}
-		html += ' No worker specified (total ' + total.addCommas() +' bytes)';
-		html += '<br><table>' + storage.join('') + '</table>';
+		html += ' No worker specified (total ' + total.addCommas();
+		if (total !== rawtot) {
+			html += '/' + rawtot.addCommas();
+		}
+		html += ' bytes';
+		if (total !== rawtot) {
+			html += ', ' + (total * 100 / rawtot).SI() + '%';
+		}
+		html += ')<br><table>' + storage.join('') + '</table>';
 	} else if (!this.temp.edit) {
 		html += ' No ' + this.temp.worker + ' element specified.';
 	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {
@@ -7546,6 +7594,7 @@ Generals.parse = function(change) {
 			if (i && (j = i.regex(/\bmax\.? (\d+)\b/im))) {
 				this.set(['data', name, 'stats', 'cap'], j);
 			}
+			this.set(['data',name,'seen'], now);
 		}
 
 		// purge generals we didn't see
@@ -7992,7 +8041,7 @@ Generals.update = function(event, events) {
 
 		for (i in this.data) {
 			p = this.data[i];
-			if (p.stats) {
+			if (p.stats && p.own) {
 				for (j in p.stats) {
 					if (isNumber(p.stats[j])) {
 						if ((bests[j] || -1e99) < p.stats[j]) {
@@ -8064,7 +8113,7 @@ Generals.test = function(name) {
 };
 
 Generals.best = function(type) {
-	var best = 'any';
+	var best = 'any', i;
 
 	if (type && isString(type)) {
 
@@ -8072,60 +8121,65 @@ Generals.best = function(type) {
 			best = type;
 		}
 
-		if (!best || best === 'any') {
-			best = this.get(['runtime','best',type]);
+		if ((!best || best === 'any') && (i = this.get(['runtime','best',type]))) {
+			if (this.get(['data',i,'own'])) {
+				best = i;
+			}
 		}
 
 		if (!best || best === 'any') {
 			switch (type.toLowerCase()) {
 			case 'stamina':
-				best = this.get(['runtime','best','maxstamina']);
+				i = this.get(['runtime','best','maxstamina']);
 				break;
 			case 'energy':
-				best = this.get(['runtime','best','maxenergy']);
+				i = this.get(['runtime','best','maxenergy']);
 				break;
 			case 'health':
-				best = this.get(['runtime','best','maxhealth']);
+				i = this.get(['runtime','best','maxhealth']);
 				break;
 			case 'raid-duel':
 			case 'duel':
 			case 'duel-attack':
-				best = this.get(['runtime','best','duel-att']);
+				i = this.get(['runtime','best','duel-att']);
 				break;
 			case 'defend':
 			case 'duel-defend':
-				best = this.get(['runtime','best','duel-def']);
+				i = this.get(['runtime','best','duel-def']);
 				break;
 			case 'raid-invade':
 			case 'invade':
 			case 'invade-attack':
-				best = this.get(['runtime','best','invade-att']);
+				i = this.get(['runtime','best','invade-att']);
 				break;
 			case 'invade-defend':
-				best = this.get(['runtime','best','invade-def']);
+				i = this.get(['runtime','best','invade-def']);
 				break;
 			case 'war':
 			case 'war-attack':
-				best = this.get(['runtime','best','war-att']);
+				i = this.get(['runtime','best','war-att']);
 				break;
 			case 'war-defend':
-				best = this.get(['runtime','best','war-def']);
+				i = this.get(['runtime','best','war-def']);
 				break;
 			case 'monster':
 			case 'monster-attack':
-				best = this.get(['runtime','best','monster-att']);
+				i = this.get(['runtime','best','monster-att']);
 				break;
 			case 'monster-defend':
 			case 'dispell':
-				best = this.get(['runtime','best','monster-def']);
+				i = this.get(['runtime','best','monster-def']);
 				break;
 			case 'under max level':
-				best = this.get(['runtime','best','priority']);
+				i = this.get(['runtime','best','priority']);
+				break;
+			default:
+				i = null;
 				break;
 			}
 
-			if (!best) {
-				best = 'any';
+			if (i && this.get(['data',i,'own'])) {
+				best = i;
 			}
 		}
 	}
@@ -8755,8 +8809,8 @@ Idle.option = {
 	keep:0,
 //	arena:0,
 	battle:900000,
-	monsters:3600000,
-	collect:0
+	monsters:3600000
+//	collect:0
 };
 
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
@@ -8819,10 +8873,10 @@ Idle.display = [
 				id:'monsters',
 				label:'Monsters',
 				select:Idle.when
-			},{
-				id:'collect',
-				label:'Apprentice Reward',
-				select:Idle.when
+		//	},{
+		//		id:'collect',
+		//		label:'Apprentice Reward',
+		//		select:Idle.when
 			}
 		]
 	}
@@ -8853,8 +8907,8 @@ Idle.pages = {
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
 	battle:['battle_battle'],
-	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list'],
-	collect:['apprentice_collect']
+	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list']
+//	collect:['apprentice_collect']
 };
 
 Idle.init = function() {
@@ -8866,7 +8920,7 @@ Idle.init = function() {
 };
 
 Idle.work = function(state) {
-	var now = Date.now(), i, j, p, gen = false;
+	var now = Date.now(), i, j, p;
 
 	if (!state) {
 		return QUEUE_CONTINUE;
@@ -8893,7 +8947,7 @@ Idle.work = function(state) {
 	for (i in this.pages) {
 		if (this.option[i]) {
 			for (p=0; p<this.pages[i].length; p++) {
-				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
+				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
 					return QUEUE_CONTINUE;
 				}
 			}
@@ -11861,7 +11915,7 @@ Page.defaults.castle_age = {
 		battle_guild:	{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
 		battle_guild_battle:	{url:'guild_battle.php', selector:'#app46755028429_guild_battle_banner_section', skip:true},
 		battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-		monster_monster_list:	{url:'battle_monster.php', image:'monster_button_yourmonster_on.jpg'},
+		monster_monster_list:	{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg'},
 		monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="nm_monster_list_button.gif"]'},
 		keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 		festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},

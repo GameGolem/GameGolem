@@ -110,6 +110,7 @@ Generals.parse = function(change) {
 			if (i && (j = i.regex(/\bmax\.? (\d+)\b/im))) {
 				this.set(['data', name, 'stats', 'cap'], j);
 			}
+			this.set(['data',name,'seen'], now);
 		}
 
 		// purge generals we didn't see
@@ -556,7 +557,7 @@ Generals.update = function(event, events) {
 
 		for (i in this.data) {
 			p = this.data[i];
-			if (p.stats) {
+			if (p.stats && p.own) {
 				for (j in p.stats) {
 					if (isNumber(p.stats[j])) {
 						if ((bests[j] || -1e99) < p.stats[j]) {
@@ -628,7 +629,7 @@ Generals.test = function(name) {
 };
 
 Generals.best = function(type) {
-	var best = 'any';
+	var best = 'any', i;
 
 	if (type && isString(type)) {
 
@@ -636,60 +637,65 @@ Generals.best = function(type) {
 			best = type;
 		}
 
-		if (!best || best === 'any') {
-			best = this.get(['runtime','best',type]);
+		if ((!best || best === 'any') && (i = this.get(['runtime','best',type]))) {
+			if (this.get(['data',i,'own'])) {
+				best = i;
+			}
 		}
 
 		if (!best || best === 'any') {
 			switch (type.toLowerCase()) {
 			case 'stamina':
-				best = this.get(['runtime','best','maxstamina']);
+				i = this.get(['runtime','best','maxstamina']);
 				break;
 			case 'energy':
-				best = this.get(['runtime','best','maxenergy']);
+				i = this.get(['runtime','best','maxenergy']);
 				break;
 			case 'health':
-				best = this.get(['runtime','best','maxhealth']);
+				i = this.get(['runtime','best','maxhealth']);
 				break;
 			case 'raid-duel':
 			case 'duel':
 			case 'duel-attack':
-				best = this.get(['runtime','best','duel-att']);
+				i = this.get(['runtime','best','duel-att']);
 				break;
 			case 'defend':
 			case 'duel-defend':
-				best = this.get(['runtime','best','duel-def']);
+				i = this.get(['runtime','best','duel-def']);
 				break;
 			case 'raid-invade':
 			case 'invade':
 			case 'invade-attack':
-				best = this.get(['runtime','best','invade-att']);
+				i = this.get(['runtime','best','invade-att']);
 				break;
 			case 'invade-defend':
-				best = this.get(['runtime','best','invade-def']);
+				i = this.get(['runtime','best','invade-def']);
 				break;
 			case 'war':
 			case 'war-attack':
-				best = this.get(['runtime','best','war-att']);
+				i = this.get(['runtime','best','war-att']);
 				break;
 			case 'war-defend':
-				best = this.get(['runtime','best','war-def']);
+				i = this.get(['runtime','best','war-def']);
 				break;
 			case 'monster':
 			case 'monster-attack':
-				best = this.get(['runtime','best','monster-att']);
+				i = this.get(['runtime','best','monster-att']);
 				break;
 			case 'monster-defend':
 			case 'dispell':
-				best = this.get(['runtime','best','monster-def']);
+				i = this.get(['runtime','best','monster-def']);
 				break;
 			case 'under max level':
-				best = this.get(['runtime','best','priority']);
+				i = this.get(['runtime','best','priority']);
+				break;
+			default:
+				i = null;
 				break;
 			}
 
-			if (!best) {
-				best = 'any';
+			if (i && this.get(['data',i,'own'])) {
+				best = i;
 			}
 		}
 	}

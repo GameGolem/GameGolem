@@ -122,7 +122,7 @@ Settings.menu = function(worker, key) {
 };
 
 Settings.dashboard = function() {
-	var i, j, total, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
+	var i, j, o, x, y, z, total, rawtot, path = this.temp.worker+'.'+this.temp.edit, html = '', storage = [];
 	html = '<select id="golem_settings_path">';
 	for (i=0; i<this.temp.paths.length; i++) {
 		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
@@ -136,17 +136,39 @@ Settings.dashboard = function() {
 		}
 	}
 	if (!this.temp.worker) {
-		total = 0;
+		total = rawtot = 0;
+		o = [];
 		for (i in Workers) {
-			for (j in Workers[i]._storage) {
-				if (Workers[i]._storage[j]) {
-					total += Workers[i]._storage[j];
-					storage.push('<tr><th>' + i + '.' + j + '</th><td style="text-align:right;">' + Workers[i]._storage[j].addCommas() + ' bytes</td></tr>');
+		    o.push(i);
+		}
+		o.sort();
+		for (i = 0; i < o.length; i++) {
+			for (j in Workers[o[i]]._storage) {
+				if (Workers[o[i]]._storage[j]) {
+					x = Workers[o[i]]._storage[j] || 0;
+					y = Workers[o[i]]._rawsize[j] || x;
+					z = Workers[o[i]]._numvars[j] || 0;
+					total += x;
+					rawtot += y;
+					storage.push('<tr>');
+					storage.push('<th>' + o[i] + '.' + j + '</th>');
+					storage.push('<td style="text-align:right;">' + x.addCommas() + ' bytes</td>');
+					storage.push('<td style="text-align:right;">' + y.addCommas() + ' bytes</td>');
+					storage.push('<td style="text-align:right;">' + (x !== y ? (x * 100 / y).SI() + '%' : '&nbsp;') + '</td>');
+					storage.push('<td style="text-align:right;">' + (z ? z + ' key' + plural(z) : '&nbsp;') + '</td>');
+					storage.push('</tr>');
 				}
 			}
 		}
-		html += ' No worker specified (total ' + total.addCommas() +' bytes)';
-		html += '<br><table>' + storage.join('') + '</table>';
+		html += ' No worker specified (total ' + total.addCommas();
+		if (total !== rawtot) {
+			html += '/' + rawtot.addCommas();
+		}
+		html += ' bytes';
+		if (total !== rawtot) {
+			html += ', ' + (total * 100 / rawtot).SI() + '%';
+		}
+		html += ')<br><table>' + storage.join('') + '</table>';
 	} else if (!this.temp.edit) {
 		html += ' No ' + this.temp.worker + ' element specified.';
 	} else if (typeof Workers[this.temp.worker][this.temp.edit] === 'undefined') {

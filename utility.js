@@ -770,7 +770,7 @@ JSON.shallow = function(obj, depth, replacer, space) {
 	}(obj, depth || 1)), replacer, space);
 };
 
-JSON.encode = function(obj, replacer, space) {
+JSON.encode = function(obj, replacer, space, metrics) {
 	var keys = {}, reverse = {}, count = {}, next = 0, nextKey = null, getKey = function() {
 		var key, digits = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', length = digits.length;
 		do {
@@ -791,7 +791,7 @@ JSON.encode = function(obj, replacer, space) {
 				arguments.callee(obj[i]);
 			}
 		}
-	}, encode = function(obj) { // Replace keys where the saved length is more than the used length
+	}, encode = function(obj, m) { // Replace keys where the saved length is more than the used length
 		var i, to = obj;
 		if (isObject(obj)) {
 			to = {};
@@ -812,12 +812,21 @@ JSON.encode = function(obj, replacer, space) {
 				to[i] = arguments.callee(obj[i]);
 			}
 		}
+		if (isObject(m) && keys) {
+			m.oh = 6; // 7, -1 for first comma miscount
+			m.mod = 0;
+			m.num = length(keys);
+			for (i in keys) {
+				m.oh += i.length + keys[i].length + 6;
+				m.mod += (keys[i].length - i.length) * count[i];
+			}
+		}
 		return to;
 	};
 	if (isObject(obj) || isArray(obj)) {
 		check(obj);
 		getKey(); // Load up the first key, prevent key conflicts
-		obj = encode(obj);
+		obj = encode(obj, metrics);
 		if (!empty(reverse)) {
 			obj['$'] = reverse;
 		}
@@ -825,14 +834,15 @@ JSON.encode = function(obj, replacer, space) {
 	return JSON.stringify(obj, replacer, space);
 };
 
-JSON.decode = function(str) {
-	var obj = JSON.parse(str), keys = obj['$'], decode = function(obj) {
+JSON.decode = function(str, metrics) {
+	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj, m) {
 		var i, to = obj;
 		if (isObject(obj)) {
 			to = {};
 			for (i in obj) {
 				if (keys[i]) {
 					to[keys[i]] = arguments.callee(obj[i]);
+					count[i] = (count[i] || 0) + 1;
 				} else {
 					to[i] = arguments.callee(obj[i]);
 				}
@@ -843,11 +853,20 @@ JSON.decode = function(str) {
 				to[i] = arguments.callee(obj[i]);
 			}
 		}
+		if (isObject(m) && keys) {
+			m.oh = 6; // 7, -1 for first comma miscount
+			m.mod = 0;
+			m.num = length(keys);
+			for (i in keys) {
+				m.oh += i.length + keys[i].length + 6;
+				m.mod += (keys[i].length - i.length) * count[i];
+			}
+		}
 		return to;
 	};
 	if (keys) {
 		delete obj['$'];
-		obj = decode(obj);
+		obj = decode(obj, metrics);
 	}
 	return obj;
 };

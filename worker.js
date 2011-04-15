@@ -129,7 +129,9 @@ function Worker(name) {
 	// Datatypes - one key for each type above
 	this._datatypes = {'data':true, 'option':true, 'runtime':true, 'temp':false}; // Used for set/get/save/load. If false then can't save/load.
 	this._timestamps = {}; // timestamp of the last time each datatype has been saved
-	this._storage = {}; // bytecount of storage = JSON.stringify(this[type]).length * 2
+	this._storage = {}; // bytecount of storage, with compression = JSON.stringify(this[type]).length * 2
+	this._rawsize = {}; // bytecount of storage, without compression = JSON.stringify(this[type]).length * 2
+	this._numvars = {}; // number of keys compressed
 	this._taint = {}; // Has anything changed that might need saving?
 	this._saving = {}; // Prevent looping on save
 
@@ -356,7 +358,7 @@ Worker.prototype._init = function(old_revision) {
  * @param {boolean=} merge If we wish to merge with current data - normally only used in _setup
  */
 Worker.prototype._load = function(type, merge) {
-	var i, n;
+	var i, n, metrics = {};
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (i in this._datatypes) {
@@ -373,7 +375,9 @@ Worker.prototype._load = function(type, merge) {
 	if (isString(i)) { // JSON encoded string
 		try {
 			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
-			i = JSON.decode(i);
+			i = JSON.decode(i, metrics);
+			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
+			this._numvars[type] = metrics.num || 0;
 		} catch(e) {
 			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
 		}
@@ -590,7 +594,7 @@ Worker.prototype._replace = function(type, data) {
  * @return {boolean} Did we save or not
  */
 Worker.prototype._save = function(type) {
-	var i, n, v;
+	var i, n, v, metrics = {};
 	if (this._loaded) {
 		if (!type) {
 			n = false;
@@ -608,7 +612,7 @@ Worker.prototype._save = function(type) {
 		this._update(null, 'run'); // Make sure we flush any pending updates
 		this._saving[type] = false;
 		try {
-			v = JSON.encode(this[type]);
+			v = JSON.encode(this[type], metrics);
 		} catch (e) {
 			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
 			return false; // exit so we don't try to save mangled data over good data
@@ -621,6 +625,8 @@ Worker.prototype._save = function(type) {
 			try {
 				setItem(n, v);
 				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
+				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
+				this._numvars[type] = metrics.num || 0;
 			} catch (e2) {
 				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
 			}

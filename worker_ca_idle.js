@@ -31,8 +31,8 @@ Idle.option = {
 	keep:0,
 //	arena:0,
 	battle:900000,
-	monsters:3600000,
-	collect:0
+	monsters:3600000
+//	collect:0
 };
 
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
@@ -95,10 +95,10 @@ Idle.display = [
 				id:'monsters',
 				label:'Monsters',
 				select:Idle.when
-			},{
-				id:'collect',
-				label:'Apprentice Reward',
-				select:Idle.when
+		//	},{
+		//		id:'collect',
+		//		label:'Apprentice Reward',
+		//		select:Idle.when
 			}
 		]
 	}
@@ -129,8 +129,8 @@ Idle.pages = {
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
 	battle:['battle_battle'],
-	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list'],
-	collect:['apprentice_collect']
+	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list']
+//	collect:['apprentice_collect']
 };
 
 Idle.init = function() {
@@ -142,7 +142,7 @@ Idle.init = function() {
 };
 
 Idle.work = function(state) {
-	var now = Date.now(), i, j, p, gen = false;
+	var now = Date.now(), i, j, p;
 
 	if (!state) {
 		return QUEUE_CONTINUE;
@@ -169,7 +169,7 @@ Idle.work = function(state) {
 	for (i in this.pages) {
 		if (this.option[i]) {
 			for (p=0; p<this.pages[i].length; p++) {
-				if (!Page.stale(this.pages[i][p], this.option[i] / 1000, true)) {
+				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
 					return QUEUE_CONTINUE;
 				}
 			}
