@@ -903,7 +903,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			output.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
 			output.push(' ');
 			if (p.use) {
-				output.push(p.use[type+'_'+x]+' x ');
+				output.push(p.use[type+'_'+x]+' &times; ');
 			}
 			output.push(format_unit_str(units[i]));
 			output.push('</div>');
@@ -1135,7 +1135,7 @@ Town.dashboard = function() {
 
 	rset.push('<div class="golem-panel">');
 	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	rset.push('War - Attack');
+	rset.push('War - Defend');
 	rset.push('</h3>');
 	rset.push('<div class="golem-panel-content" style="padding:8px;">');
 	rset.push(makeTownDash(generals, function(list, i, units) {

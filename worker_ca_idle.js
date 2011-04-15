@@ -145,7 +145,7 @@ Idle.work = function(state) {
 	var now = Date.now(), i, j, p;
 
 	if (!state) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
 
 	// handle the generals tour first, to avoid thrashing with the Idle general
@@ -157,24 +157,24 @@ Idle.work = function(state) {
 					// just add an hour to the last seen time and try later
 					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
 				}
-				return QUEUE_CONTINUE;
+				return true;
 			}
 		}
 	}
 
 	if (!Generals.to(this.option.general)) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
 
 	for (i in this.pages) {
 		if (this.option[i]) {
 			for (p=0; p<this.pages[i].length; p++) {
 				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
-					return QUEUE_CONTINUE;
+					return true;
 				}
 			}
 		}
 	}
 
-	return QUEUE_CONTINUE;
+	return true;
 };

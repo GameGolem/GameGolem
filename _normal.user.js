@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1086
+// @version		31.5.1087
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1086;
+var revision = 1087;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8931,7 +8931,7 @@ Idle.work = function(state) {
 	var now = Date.now(), i, j, p;
 
 	if (!state) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
 
 	// handle the generals tour first, to avoid thrashing with the Idle general
@@ -8943,26 +8943,26 @@ Idle.work = function(state) {
 					// just add an hour to the last seen time and try later
 					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
 				}
-				return QUEUE_CONTINUE;
+				return true;
 			}
 		}
 	}
 
 	if (!Generals.to(this.option.general)) {
-		return QUEUE_CONTINUE;
+		return true;
 	}
 
 	for (i in this.pages) {
 		if (this.option[i]) {
 			for (p=0; p<this.pages[i].length; p++) {
 				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
-					return QUEUE_CONTINUE;
+					return true;
 				}
 			}
 		}
 	}
 
-	return QUEUE_CONTINUE;
+	return true;
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -14642,7 +14642,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			output.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
 			output.push(' ');
 			if (p.use) {
-				output.push(p.use[type+'_'+x]+' x ');
+				output.push(p.use[type+'_'+x]+' &times; ');
 			}
 			output.push(format_unit_str(units[i]));
 			output.push('</div>');
@@ -14874,7 +14874,7 @@ Town.dashboard = function() {
 
 	rset.push('<div class="golem-panel">');
 	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	rset.push('War - Attack');
+	rset.push('War - Defend');
 	rset.push('</h3>');
 	rset.push('<div class="golem-panel-content" style="padding:8px;">');
 	rset.push(makeTownDash(generals, function(list, i, units) {
