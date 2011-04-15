@@ -20,7 +20,7 @@ Generals.settings = {
 };
 
 Generals.defaults['castle_age'] = {
-	pages:'* heroes_generals keep_stats'
+	pages:'* heroes_generals heroes_heroes keep_stats'
 };
 
 Generals.runtime = {
@@ -38,6 +38,7 @@ Generals.init = function(old_revision) {
 	this._watch(Player, 'data.armymax');
 	this._watch(Town, 'runtime.invade');
 	this._watch(Town, 'runtime.duel');
+	this._watch(Town, 'runtime.war');
 	this._watch(Town, 'data'); // item counts
 
 	// last recalc revision is behind the current, fire a reminder
@@ -51,7 +52,7 @@ Generals.init = function(old_revision) {
 Generals.parse = function(change) {
 	var now = Date.now(), self = this, i, j, seen = {}, el, el2, tmp, name, item, icon;
 
-	if ($('div.results').text().match(/has gained a level!/i)) {
+	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 			this.add(['data',name,'level'], 1);
 			if (Page.page !== (j = 'heroes_generals')) {
@@ -187,7 +188,10 @@ Generals.parse = function(change) {
 	} else if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			tmp = $('.statsTTitle:contains("HEROES") + .statsTMain .statUnit');
+			tmp = $('.statsT2 .statsTTitle:contains("HEROES")').not(function(a) {
+				return !$(this).text().regex(/^\s*HEROES\s*$/im);
+			});
+			tmp = $('.statUnit', $(tmp).parent());
 			for (i=0; i<tmp.length; i++) {
 				el = $('a img[src]', tmp[i]);
 				name = ($(el).attr('title') || $(el).attr('alt') || '').trim();
@@ -284,7 +288,10 @@ Generals.update = function(event, events) {
 		Config.set('generals', ['any','under max level'].concat(list.sort())); 
 	}
 	
-	if ((invade && duel && (this.runtime.force ||
+	// busy stuff, so watch how often it runs
+	// revision increases force a run via an event
+
+	if ((invade && duel && war && (this.runtime.force ||
 	  events.findEvent(null, 'data') >= 0 ||
 	  events.findEvent(Town) >= 0 ||
 	  events.findEvent(Player) >= 0)) ||
@@ -644,7 +651,7 @@ Generals.best = function(type) {
 		}
 
 		if (!best || best === 'any') {
-			switch (type.toLowerCase()) {
+			switch (type.toLowerCase().replace('_', '-')) {
 			case 'stamina':
 				i = this.get(['runtime','best','maxstamina']);
 				break;
@@ -726,13 +733,13 @@ Generals.dashboard = function(sort, rev) {
 		}
 	}
 	if (typeof sort === 'undefined') {
-		sort = (this.runtime.sort || 1);
+		sort = this.runtime.sort || 1;
 	}
 	if (typeof rev === 'undefined'){
-		rev = (this.runtime.rev || false);
+		rev = this.runtime.rev || false;
 	}
-	this.runtime.sort = sort;
-	this.runtime.rev = rev;
+	this.set('runtime.sort', sort);
+	this.set('runtime.rev', rev);
 	if (typeof sort !== 'undefined') {
 		this.order.sort(function(a,b) {
 			var aa, bb, type, x;
@@ -841,3 +848,4 @@ Generals.dashboard = function(sort, rev) {
 	}
 };
 
+// vi: ts=4

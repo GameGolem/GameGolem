@@ -1073,10 +1073,10 @@ Monster.parse = function(change) {
 			}
 		});
 		// If we're doing our first attack then add them without having to visit list
-		if (monster.state === 'assist' && monster.damage.user && sum(monster.damage.user)) {
+		if (monster.state === 'assist' && sum(monster.damage && monster.damage.user)) {
 			monster.state = 'engage';
 		}
-		if (!type.raid && $(type.attack_button).length && monster.damage.user && sum(monster.damage.user)) {
+		if (!type.raid && $(type.attack_button).length && sum(monster.damage && monster.damage.user)) {
 			monster.state = monster.state || 'engage';
 		}
 		monster.dps = sum(monster.damage) / (timer - monster.timer);
@@ -1472,15 +1472,15 @@ Monster.update = function(event) {
 							>= monster.finish - this.option.check_interval)) {
 					// Add monster to rescue
 				} else if (this.option.stop === 'Achievement'
-						&& sum(monster.damage.user) + sum(monster.defend)
+						&& sum(monster.damage && monster.damage.user) + sum(monster.defend)
 							> (type.achievement || 0)) {
 					continue; // Don't add monster over achievement
 				} else if (this.option.stop === '2X Achievement'
-						&& sum(monster.damage.user) + sum(monster.defend)
+						&& sum(monster.damage && monster.damage.user) + sum(monster.defend)
 							> type.achievement * 2) {
 					continue; // Don't add monster over 2X  achievement
 				} else if (this.option.stop === 'Continuous'
-						&& sum(monster.damage.user) + sum(monster.defend)
+						&& sum(monster.damage && monster.damage.user) + sum(monster.defend)
 							> type.achievement * limit) {
 					continue; // Don't add monster over 2X  achievement
 				}
@@ -1518,9 +1518,9 @@ Monster.update = function(event) {
 						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
 					}
 					if (this.option.use_tactics && type.tactics) {
-						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
+						list.attack.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
 					} else {
-						list.attack.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button, damage, target]);
+						list.attack.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.attack_button, damage, target]);
 					}
 				}
 				// Possible defend target?
@@ -1529,12 +1529,12 @@ Monster.update = function(event) {
 						this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 					}
 					if ((monster.secondary || 100) < 100) {
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
+						list.defend.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
 					} else if (monster.warrior && (monster.strength || 100) < 100){
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior, damage, target]);
+						list.defend.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.warrior, damage, target]);
 					} else if ((monster.defense || 100) < Math.min(this.option.defend, (monster.strength -1 || 100))
                                                 && !monster.no_heal) {
-						list.defend.push([mid, (sum(monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button, damage, target]);
+						list.defend.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.defend_button, damage, target]);
 					}
 				}
 			}
@@ -1615,7 +1615,7 @@ Monster.update = function(event) {
 				button_count = ((type.attack.length > 2) ? this.runtime.button.count : type[defatt[i]].length);
 				min = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], Queue.runtime.basehit || this.option[defatt[i] + '_min']));
 				max = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Queue.runtime.basehit || this.option[defatt[i] + '_max'], Queue.runtime[ensta[i]] / this.runtime.multiplier[defatt[i]]);
-				damage = sum(monster.damage.user) + sum(monster.defend);
+				damage = sum(monster.damage && monster.damage.user) + sum(monster.defend);
 				limit = (Queue.runtime.big ? max : damage < (monster.ach || damage)
 						? monster.ach : damage < (monster.max || damage)
 						? monster.max : max);
@@ -1963,7 +1963,7 @@ Monster.dashboard = function(sort, rev) {
 		}
 		td(output, vv, tt);
 
-		var activity = (monster.damage ? sum(monster.damage.user) : 0) + sum(monster.defend);
+		var activity = sum(monster.damage && monster.damage.user) + sum(monster.defend);
 		if (monster.ach > 0 || monster.max > 0) {
 			if (monster.max > 0 && activity >= monster.max) {
 				color = 'red';
@@ -1978,12 +1978,12 @@ Monster.dashboard = function(sort, rev) {
 
 		// activity
 		td(output,
-			(blank || monster.state !== 'engage' || (typeof monster.damage.user === 'undefined'))
+			(blank || monster.state !== 'engage' || (typeof monster.damage === undefined || typeof monster.damage.user === 'undefined'))
 				? ''
 				: '<span style="color: ' + color + ';">' + activity.addCommas() + '</span>',
 			blank
 				? ''
-				: 'title="' + ( sum(monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
+				: 'title="' + ( sum(monster.damage && monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
 
 		// time left
 		td(output,
