@@ -357,7 +357,7 @@ Battle.parse = function(change) {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] > 5) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
 				this.set(['data','user',uid,'battle','rank'], rank2.battle);
@@ -406,7 +406,7 @@ Battle.update = function(event) {
 	limit = this.get(['option','limit'], -4, isNumber);
 	for (i in data) { // Forget low or high rank - no points or too many points
 		tmp = this.get([data,i,mode,'rank'],0);
-		if ((this.option.bp === 'Always' && tmp - rank <= limit) || (this.option.bp === 'Never' && rank - tmp <= 5)) { // unknown rank never deleted
+		if ((this.option.bp === 'Always' && tmp - rank < limit) || (this.option.bp === 'Never' && rank - tmp <= 5)) { // unknown rank never deleted
 			this.set(['data','user',i]); // Would be nicer to just ignore "bad" targets until they're naturally pruned...
 		}
 	}
