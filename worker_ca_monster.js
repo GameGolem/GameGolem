@@ -14,7 +14,7 @@ var Monster = new Worker('Monster');
 Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
-	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster monster_dead'
+	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster monster_dead monster_remove_list'
 };
 
 Monster.option = {
@@ -53,7 +53,6 @@ Monster.option = {
 };
 
 Monster.runtime = {
-	clicked:false, // Last monster clicked, for checking if timed out
 	check:false, // id of monster to check if needed, otherwise false
 	attack:false, // id of monster if we have an attack target, otherwise false
 	defend:false, // id of monster if we have a defend target, otherwise false
@@ -502,12 +501,12 @@ Monster.types = {
 		festival_timer: 345600, // 96 hours
 		festival: 'dragon_red'
 	},
-	serpent_amethyst: { // DEAD image Verified and enabled.
+	serpent_amethyst: { 
 		name:'Amethyst Sea Serpent',
 		list:'seamonster_list_purple.jpg',
 		image:'seamonster_purple.jpg',
 		dead:'seamonster_dead.jpg',
-		title:'seamonster_title_amethyst.jpg',
+		title:'monster_header_amyserpent.jpg',
 		achievement:250000,
 		timer:259200, // 72 hours
 		mpool:2,
@@ -519,12 +518,12 @@ Monster.types = {
 		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_purple'
 	},
-	serpent_ancient: { // DEAD image Verified and enabled.
+	serpent_ancient: { 
 		name:'Ancient Sea Serpent',
 		list:'seamonster_list_red.jpg',
 		image:'seamonster_red.jpg',
 		dead:'seamonster_dead.jpg',
-		title:'seamonster_title_ancient.jpg',
+		title:'monster_header_ancientserpent.jpg',
 		achievement:250000,
 		timer:259200, // 72 hours
 		mpool:2,
@@ -536,7 +535,7 @@ Monster.types = {
 		festival_timer: 345600, // 96 hours
 		festival: 'seamonster_red'
 	},
-	serpent_emerald: { // DEAD image Verified and enabled.
+	serpent_emerald: { 
 		name:'Emerald Sea Serpent',
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
@@ -874,15 +873,15 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, clicked = this.runtime.clicked, parent = $('#app46755028429_app_body'), $children;
-	this.runtime.clicked = false;
+	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, parent = $('#app46755028429_app_body'), $children;
+	//console.log(warn(), 'Parsing ' + Page.page);
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
 		uid = $('img[linked][size="square"]').attr('uid');
 		//console.log(warn(), 'Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length 
-					&& (!types[i].title || $('div[style*="'+types[i].title+'"]', parent).length 
+					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
 						|| $('div[style*="'+types[i].image+'"]', parent).length)) {
 //			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length) {
 				//console.log(warn(), 'Found a dead '+i);
@@ -903,15 +902,17 @@ Monster.parse = function(change) {
 			}
 		}
 		if (!uid || !type_label) {
-			console.log(warn(), 'Unknown monster (probably dead)');
+			console.log(warn(), 'Unable to identify monster' + (!uid ? ' owner' : '') + (!type_label ? ' type' : ''));
 			return false;
 		}
 		mid = uid+'_' + (Page.page === 'festival_battle_monster' ? 'f' : (types[i].mpool || 4));
 		if (this.runtime.check === mid) {
 			this.set(['runtime','check'], false);
 		}
-		monster = data[mid] = data[mid] || {};
-		monster.type = type_label;
+		//console.log(warn(), 'MID '+ mid);
+		this.set(['data',mid,'type'],type_label);
+		monster = data[mid];
+		monster.button_fail = 0;
 		type = types[type_label];
 		monster.last = now;
 		if (Page.page === 'festival_battle_monster') {
@@ -919,30 +920,21 @@ Monster.parse = function(change) {
 		} else {
 			monster.page = 'keep';
 		}
-		if (!monster.name) {
-			if (monster.page === 'festival') {
-				monster.name = $('img[linked][size="square"]').parent().parent().parent().text().trim().replace('\'s summoned','');
-				console.log(warn(), 'Name ' + monster.name);
-			} else if ((x = $('#app' + APPID + '_app_body div[style*="/dragon_title_owner."]')).length
-				|| (x = $('#app' + APPID + '_app_body div[style*="/nm_top."]')).length) {
-				i = x.text().trim();
-				if (isString(x = i.regex(this.name_re)) || isString(x = i.regex(this.name2_re))) {
-					monster.name = x.trim();
-				}
-			}
-		}
+		monster.name = $('img[linked][size="square"]').parent().parent().parent().text().replace('\'s summoned','').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim();
+		console.log(warn(), 'Name ' + monster.name);
 		if (dead) {
 			// Will this catch Raid format rewards?
-			if ($('input[src*="collect_reward_button.jpg"]').length) {
+			if ($('input[src*="collect_reward_button"]').length) {
 				monster.state = 'reward';
-			} else if (monster.state === 'assist') {
-				monster.state = null;
-			} else if (monster.state === 'reward' || monster.state === 'engage') {
+			} else if ($('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser=' + userID + '"]').length) {
 				if (!monster.dead) {
 					History.add(type_label,1);
 					monster.dead = true;
 				}
 				monster.state = 'complete';
+				this.set(['data',mid,'remove'], true);
+			} else {
+				monster.state = null;
 			}
 			return false;
 		}
@@ -997,7 +989,7 @@ Monster.parse = function(change) {
 			monster.secondary = 0.01; // Prevent from defaulting to false
 			$secondary = $(Monster['secondary_img']);
 			if ($secondary.length) {
-				monster.secondary = 100 * $secondary.width() / $secondary.parent().width();
+				this.set(['data',mid,'secondary'], 100 * $secondary.width() / $secondary.parent().width());
 				console.log(warn(), Monster['class_name'][monster.mclass]+" phase. Bar at "+monster.secondary+"%");
 			}
 		}
@@ -1065,7 +1057,7 @@ Monster.parse = function(change) {
 			dmg = tmp.regex(/(\d+)/);
 			fort = tmp.regex(/\/(\d+)/);
 			if (user === userID){
-				monster.damage.user.manual = dmg - (monster.damage.user.script || 0);
+				Monster.set(['data',mid,'damage','user','manual'], dmg - (monster.damage.user.script || 0));
 				monster.defend.manual = fort - (monster.defend.script || 0);
 				monster.stamina.manual = Math.round(monster.damage.user.manual / Monster.runtime.monsters[type_label].avg_damage_per_stamina);
 			} else {
@@ -1089,54 +1081,31 @@ Monster.parse = function(change) {
 		this._taint[data] = true;
 //		this.runtime.used.stamina = 0;
 //		this.runtime.used.energy = 0;
-	} else if (Page.page === 'monster_dead' || $('div[style*="no_monster_back.jpg"]').length) {
-		console.log(warn('Found a timed out monster.'));
-		if (clicked) {
+	} else if (Page.page === 'monster_dead') {
+		if (Queue.runtime.current === 'Monster' && this.runtime.mid) {
 			console.log(warn(), 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
 			this.set(['data',this.runtime.mid]);
 		} else {
 			console.log(warn('Unknown monster (timed out)'));
 		}
 		this.set(['runtime','check'], false);
-		return false;
-/*	} else if (['monster_monster_list', 'battle_raid', 'festival_monster_list'].indexOf(Page.page)>=0) { // Check monster / raid list
-				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
-					case 'festival_monster_collectbtn':
-					case 'monster_button_collect':
-					case 'dragon_list_btn_2':
-						data[mid].state = 'reward';
-						break;
-					case 'festival_monster_engagebtn':
-					case 'dragon_list_btn_3':
-						data[mid].state = 'engage';
-						break;
-					case 'festival_monster_viewbtn':
-					case 'dragon_list_btn_4':
-						if (Monster.types[data[mid].type].raid && data[mid].health && data[mid].finish > now) { // Fix for Raids that no longer show "Engage" as the image
-							data[mid].state = 'engage';
-						} else {
-							data[mid].state = 'complete';
-							data[mid].remove = true;
-						}
-						break;
-					default:
-						data[mid].state = 'unknown';
-						break; // Should probably delete, but keep it on the list...
-				}
-
-
-*/
 // Still need to do battle_raid
 	} else if (Page.page === 'festival_monster_list') { // Check monster / raid list
-		list = $('div[style*="festival_monster_list_middle.jpg"]', parent)
+		for (mid in data) {
+			if (data[mid].page === 'festival'
+					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
+				data[mid].state = null;
+			}
+		}
+		list = $('div[style*="festival_monster_list_middle.jpg"]')
 		for (i=0; i<list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
 			try {
 				this._transaction(); // BEGIN TRANSACTION
 				assert(uid = $children.eq(3).find('a').attr('href').regex(/casuser=(\d+)/i), 'Unknown UserID');
-				tmp = $children.eq(1).find('div[style*="graphics"]').eq(0).attr('style').regex(/graphics\/([^.]*\....)/i);
-				assert(type = findInObject(types, tmp, 'list'), 'Unknown monster type: '+tmp);
+				tmp = $children.eq(1).find('div').eq(0).attr('style').regex(/graphics\/([^.]*\....)/i);
+				assert(type = findInObject(types, tmp, 'list'), 'Unknown monster type: '+tmp+ ' for ' + uid);
 				assert(name = $children.eq(2).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
 //				console.log(warn(), 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
 				mid = uid + '_f';
@@ -1144,18 +1113,18 @@ Monster.parse = function(change) {
 				this.set(['data',mid,'name'], name);
 				this.set(['data',mid,'page'], 'festival');
 				switch($children.eq(3).find('img').attr('src').filepart().regex(/(\w+)\.(gif|jpg)/)[0]) {
-					case 'festival_monster_engagebtn':
-						this.set(['data',mid,'state'], 'engage');
-						break;
-					case 'festival_monster_collectbtn':
-						this.set(['data',mid,'state'], 'reward');
-						break;
-					case 'festival_monster_viewbtn':
-						this.set(['data',mid,'state'], 'complete');
-						break;
-					default:
-						this.set(['data',mid,'state'], 'unknown');
-						break; // Should probably delete, but keep it on the list...
+				case 'festival_monster_engagebtn':
+					this.set(['data',mid,'state'], 'engage');
+					break;
+				case 'festival_monster_collectbtn':
+					this.set(['data',mid,'state'], 'reward');
+					break;
+				case 'festival_monster_viewbtn':
+					this.set(['data',mid,'state'], 'complete');
+					break;
+				default:
+					this.set(['data',mid,'state'], 'unknown');
+					break; // Should probably delete, but keep it on the list...
 				}
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
@@ -1164,7 +1133,13 @@ Monster.parse = function(change) {
 			}
 		}
 	} else if (Page.page === 'monster_monster_list') { // Check monster / raid list
-		list = $('div[style*="monsterlist_container.gif"]', parent)
+		for (mid in data) {
+			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
+					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
+				data[mid].state = null;
+			}
+		}
+		list = $('div[style*="monsterlist_container.gif"]')
 		for (i=0; i<list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
@@ -1179,15 +1154,18 @@ Monster.parse = function(change) {
 				this.set(['data',mid,'type'], type);
 				this.set(['data',mid,'name'], name);
 				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
-					case 'monsterlist_button_engage':
-						this.set(['data',mid,'state'], 'engage');
-						break;
-					case 'monster_button_collect':
-						this.set(['data',mid,'state'], $children.find('img[src*="cancelButton.gif"]').length ? 'complete' : 'reward');
-						break;
-					default:
-						this.set(['data',mid,'state'], 'unknown');
-						break; // Should probably delete, but keep it on the list...
+				case 'monsterlist_button_engage':
+					this.set(['data',mid,'state'], 'engage');
+					break;
+				case 'monster_button_collect':
+					if (this.get(['data',mid,'state']) !== 'reward'
+							&& this.get(['data',mid,'state']) !== 'complete') {
+						this.set(['data',mid,'state'], 'reward');
+					}
+					break;
+				default:
+					this.set(['data',mid,'state'], 'unknown');
+					break; // Should probably delete, but keep it on the list...
 				}
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
@@ -1195,6 +1173,35 @@ Monster.parse = function(change) {
 				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
 			}
 		}
+	} else if (Page.page === 'monster_remove_list') { // Check monster / raid list
+		for (mid in data) {
+			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
+					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
+				data[mid].state = null;
+			}
+		}
+		$('#app'+APPID+'_app_body div.imgButton').each(function(a,el) {
+			var link = $('a', el).attr('href'), mid;
+			if (link && link.regex(/casuser=([0-9]+)/i)) {
+				mid = link.regex(/casuser=([0-9]+)/i)+'_'+link.regex(/mpool=([0-9])/i);
+				console.log(warn(), 'MID '+ mid);
+				switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
+				case 2:
+					Monster.set(['data',mid,'state'], 'reward');
+					break;
+				case 3:
+					Monster.set(['data',mid,'state'], 'engage');
+					break;
+				case 4:
+					Monster.set(['data',mid,'state'], 'complete');
+					Monster.set(['data',mid,'remove'], true);
+					break;
+				default:
+					Monster.set(['data',mid,'state'], 'unknown');
+					break; // Should probably delete, but keep it on the list...
+				}
+			}
+		});
 	}
 	return false;
 };
@@ -1701,7 +1708,6 @@ Monster.work = function(state) {
 	if (this.runtime.check) {
 		console.log(warn(), this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
-		this.runtime.clicked = this.runtime.mid;
 		this.runtime.check = this.runtime.limit = this.runtime.message = this.runtime.dead = false;
 		return QUEUE_RELEASE;
 	}
@@ -1712,8 +1718,8 @@ Monster.work = function(state) {
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];
 	if (this.runtime[stat]>Queue.runtime[stat] 
-			&& (!Queue.runtime.basehit 
-				|| this.runtime[stat] === Queue.runtime.basehit * this.runtime.multiplier[mode])) {
+			|| (Queue.runtime.basehit 
+				&& this.runtime[stat] !== Queue.runtime.basehit * this.runtime.multiplier[mode])) {
 			console.log(warn(), 'Check for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
 		return QUEUE_RELEASE;
 	}
@@ -1774,7 +1780,6 @@ Monster.work = function(state) {
 		}
 	}
 	Page.click(btn);
-	monster.button_fail = 0;
 	return QUEUE_RELEASE;
 };
 

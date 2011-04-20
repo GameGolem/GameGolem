@@ -225,6 +225,7 @@ Queue.update = function(event, events) {
 							? LevelUp.option.general_choice
 							: LevelUp.option.general );
 					this.runtime.basehit = action.basehit;
+					Monster._remind(0,'levelup');
 				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
 					console.log(warn('Overriding manual general that multiplies attack/defense'));
 					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');

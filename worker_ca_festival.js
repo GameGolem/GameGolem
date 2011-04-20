@@ -301,7 +301,12 @@ Festival.work = function(state) {
 					if (best) {
 						this.set(['runtime','last'], besttarget[0]);
 						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
-						Page.click($('input[src*="monster_duel_button.gif"]', best));
+						if ($('input[src*="monster_duel_button.gif"]', best).length) {
+							Page.click($('input[src*="monster_duel_button.gif"]', best));
+						} else {
+							console.log(log('But couldn\'t find button, so backing out.'));
+							Page.to('festival_guild');
+						}
 					} else {
 						this.set(['runtime','last'], null);
 					}
