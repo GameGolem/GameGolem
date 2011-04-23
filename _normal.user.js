@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1090
+// @version		31.5.1091
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -22,18 +22,14 @@
 (function($){var jQuery = $;// Top wrapper
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 // Global variables only
-
 // Shouldn't touch
 var isRelease = false;
 var script_started = Date.now();
-
 // Version of the script
 var version = "31.5";
-var revision = 1090;
-
+var revision = 1091;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
-
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
 var browser = 'unknown';
 if (navigator.userAgent.indexOf('Chrome') >= 0) {
@@ -48,7 +44,6 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	browser, window, localStorage, console, chrome
@@ -6857,7 +6852,7 @@ Battle.parse = function(change) {
 				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
 				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+win',1);
-				if (this.option.chain && this.runtime.chain < this.option.chain) {
+				if (this.option.chain && this.runtime.chain <= this.option.chain) {
 					this.set(['runtime','chain'], this.runtime.chain + 1);
 				} else { 
 					this.set(['runtime','attacking'], null);
@@ -6902,7 +6897,7 @@ Battle.parse = function(change) {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank[mode]- rank2[mode] >= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
 				this.set(['data','user',uid,'battle','rank'], rank2.battle);
@@ -8785,7 +8780,7 @@ Heal.me = function() {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
 		console.log(warn('Danger Danger Will Robinson... Unable to heal!'));
-		this.set(['option','_disabled'], true);
+		//this.set(['option','_disabled'], true);
 	}
 	return false;
 };
@@ -10541,6 +10536,58 @@ Monster.types = {
 		festival_timer: 691200, // 192 hours
 		festival: 'alpha_mephistopheles',
 		festival_mpool: 1
+	},
+	giant_kromash: {
+		name:'Kromash',
+		list:'monster_kromash_list.jpg',
+		image:'monster_kromash_large.jpg',
+		dead:'monster_kromash_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_glacius: {
+		name:'Glacius',
+		list:'monster_glacius_list.jpg',
+		image:'monster_glacius_large.jpg',
+		dead:'monster_glacius_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_shardros: {
+		name:'Shardros',
+		list:'monster_shardros_list.jpg',
+		image:'monster_shardros_large.jpg',
+		dead:'monster_shardros_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_magmos: {
+		name:'Magmos',
+		list:'monster_magmos_list.jpg',
+		image:'monster_magmos_large.jpg',
+		dead:'monster_magmos_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
 	}
 };
 
@@ -11474,7 +11521,7 @@ Monster.work = function(state) {
 	} else {
 		//Primary method of finding button.
 		console.log(warn(), 'Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
-		if (this.runtime.button[mode].pick > $(this.runtime.button[mode].query).length - 1) {
+		if (!$(this.runtime.button[mode].query).length || this.runtime.button[mode].pick >= $(this.runtime.button[mode].query).length) {
 			//console.log(warn(), 'Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name);
 		} else {
 			//console.log(warn(), ' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
@@ -15486,7 +15533,7 @@ Guild.work = function(state) {
 							Page.click($('input[src*="monster_duel_button.gif"]', best));
 						} else {
 							console.log(log('But couldn\'t find button, so backing out.'));
-							Page.to('festival_guild');
+							Page.to('battle_guild');
 						}
 					} else {
 						this.set(['runtime','last'], null);

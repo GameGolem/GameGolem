@@ -312,7 +312,7 @@ Battle.parse = function(change) {
 				this.set(['data','user',uid,mode,'win'], this.get(['data','user',uid,mode,'win'], 0) + 1);
 				this.set(['data','user',uid,'last'], Date.now());
 				History.add('battle+win',1);
-				if (this.option.chain && this.runtime.chain < this.option.chain) {
+				if (this.option.chain && this.runtime.chain <= this.option.chain) {
 					this.set(['runtime','chain'], this.runtime.chain + 1);
 				} else { 
 					this.set(['runtime','attacking'], null);
@@ -357,7 +357,7 @@ Battle.parse = function(change) {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
 			}
-			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank2[mode] - rank[mode] <= 5) || Battle.option.bp === "Don't Care")) {
+			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank[mode]- rank2[mode] >= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
 				this.set(['data','user',uid,'battle','rank'], rank2.battle);

@@ -802,6 +802,58 @@ Monster.types = {
 		festival_timer: 691200, // 192 hours
 		festival: 'alpha_mephistopheles',
 		festival_mpool: 1
+	},
+	giant_kromash: {
+		name:'Kromash',
+		list:'monster_kromash_list.jpg',
+		image:'monster_kromash_large.jpg',
+		dead:'monster_kromash_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_glacius: {
+		name:'Glacius',
+		list:'monster_glacius_list.jpg',
+		image:'monster_glacius_large.jpg',
+		dead:'monster_glacius_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_shardros: {
+		name:'Shardros',
+		list:'monster_shardros_list.jpg',
+		image:'monster_shardros_large.jpg',
+		dead:'monster_shardros_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	giant_magmos: {
+		name:'Magmos',
+		list:'monster_magmos_list.jpg',
+		image:'monster_magmos_large.jpg',
+		dead:'monster_magmos_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
 	}
 };
 
@@ -1735,7 +1787,7 @@ Monster.work = function(state) {
 	} else {
 		//Primary method of finding button.
 		console.log(warn(), 'Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
-		if (this.runtime.button[mode].pick > $(this.runtime.button[mode].query).length - 1) {
+		if (!$(this.runtime.button[mode].query).length || this.runtime.button[mode].pick >= $(this.runtime.button[mode].query).length) {
 			//console.log(warn(), 'Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name);
 		} else {
 			//console.log(warn(), ' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);

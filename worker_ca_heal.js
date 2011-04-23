@@ -66,7 +66,7 @@ Heal.me = function() {
 		Page.click('input[value="Heal Wounds"]');
 	} else {
 		console.log(warn('Danger Danger Will Robinson... Unable to heal!'));
-		this.set(['option','_disabled'], true);
+		//this.set(['option','_disabled'], true);
 	}
 	return false;
 };

@@ -306,7 +306,7 @@ Guild.work = function(state) {
 							Page.click($('input[src*="monster_duel_button.gif"]', best));
 						} else {
 							console.log(log('But couldn\'t find button, so backing out.'));
-							Page.to('festival_guild');
+							Page.to('battle_guild');
 						}
 					} else {
 						this.set(['runtime','last'], null);
