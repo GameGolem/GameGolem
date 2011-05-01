@@ -38,6 +38,7 @@ Idle.option = {
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.when = {
 	0:			'Never',
+	60000:		'1 Minute',
 	900000:		'Quarterly',
 	3600000:	'Hourly',
 	7200000:	'2 Hours',

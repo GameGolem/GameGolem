@@ -251,17 +251,12 @@ Guild.work = function(state) {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="collect_reward_button2.jpg"]');
 					}
-				} else if (this.runtime.status === 'start') {
+				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
-					}
-					this.set(['data'], {}); // Forget old "lose" list
-					//Add in attack button here.
-				} else if (this.runtime.status === 'fight') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						this.set(['data'], {}); // Forget old "lose" list
+						return QUEUE_CONTINUE;
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){

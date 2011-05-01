@@ -74,7 +74,9 @@ Monster.runtime = {
 	levelupdefending : false, // Used to preserve the runtime.defending value even when in force.stamina mode
 	page : null, // What page (battle or monster) the check page should go to
 	monsters : {}, // Used for storing running weighted averages for monsters
-	defending: false // hint for other workers as to whether we are potentially using energy to defend
+	defending: false,	// hint for other workers as to whether we are potentially using energy to defend
+	banthus : [], // Possible attack values for :ban condition crits
+	banthusNow : false  // Set true when ready to use a Banthus crit
 };
 
 Monster.display = [
@@ -739,9 +741,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100],
+		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
 		festival : 'agamemnon'
 	},
@@ -973,7 +975,6 @@ Monster.parse = function(change) {
 			monster.page = 'keep';
 		}
 		monster.name = $('img[linked][size="square"]').parent().parent().parent().text().replace('\'s summoned','').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim();
-		console.log(warn(), 'Name ' + monster.name);
 		if (dead) {
 			// Will this catch Raid format rewards?
 			if ($('input[src*="collect_reward_button"]').length) {
@@ -1009,6 +1010,14 @@ Monster.parse = function(change) {
 								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
 								,ensta[i],this.runtime.used[ensta[i]],10);
 						//console.log(warn(), 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[monster.type]['avg_damage_per_' + ensta[i]]);
+						if (Player.get('general') === 'Banthus Archfiend' 
+								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now()) {
+							Generals.set(['data','Banthus Archfiend','charge'],Date.now() + 4320000);
+						}
+						if (Player.get('general') === 'Zin'
+								&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+							Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+						}
 					}
 					this.runtime.used[ensta[i]] = 0;
 					break;
@@ -1210,10 +1219,8 @@ Monster.parse = function(change) {
 					this.set(['data',mid,'state'], 'engage');
 					break;
 				case 'monster_button_collect':
-					if (this.get(['data',mid,'state']) !== 'reward'
-							&& this.get(['data',mid,'state']) !== 'complete') {
-						this.set(['data',mid,'state'], 'reward');
-					}
+					// Can't tell if complete or reward, so set to complete, and will find reward when next visited
+					this.set(['data',mid,'state'], 'complete');
 					break;
 				default:
 					this.set(['data',mid,'state'], 'unknown');
@@ -1258,6 +1265,16 @@ Monster.parse = function(change) {
 	return false;
 };
 
+Monster.resource = function() {
+	Monster.runtime.banthusNow = Monster.runtime.banthus.length && Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now();
+	if (Monster.runtime.banthusNow) {
+		Queue.runtime.basehit = Monster.runtime.banthus.lower(Player.get('stamina'));
+		Queue.runtime.general = 'Banthus Archfiend';
+		return 'stamina';
+	}
+	return false;
+};
+
 Monster.update = function(event) {
 	if (event.type === 'runtime' && event.worker.name !== 'Queue') {
 		return;
@@ -1292,10 +1309,10 @@ Monster.update = function(event) {
 		Monster.runtime.multiplier[mode] = (Generals.get([Queue.runtime.general || (Generals.best(Monster.option['best_' + mode] ? ('monster_' + mode) : Monster.option['general_' + mode])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
 		//console.log(warn(), 'mult ' + mode + ' X ' + Monster.runtime.multiplier[mode]);
 	});
-	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.runtime.force.stamina;
 	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, o, suborder, p, defense_kind, button, order = [];
+		this.runtime.banthus = [];
 		if (this.option.priority) {
 			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/[, ]*\|[, ]*/g,'|').split(',');
 		}
@@ -1322,7 +1339,7 @@ Monster.update = function(event) {
 				}
 				searchterm = suborder[p].match(new RegExp("^[^:]+")).toString().trim();
 				condition = suborder[p].replace(new RegExp("^[^:]+"), '').toString().trim();
-				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition);
+				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition + ' o ' + o + ' p ' + p);
 				for (mid in this.data) {
 					monster = this.data[mid];
 					type = this.types[monster.type];
@@ -1410,27 +1427,38 @@ Monster.update = function(event) {
 							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
-					//console.log(warn(), 'monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
+					//console.log(warn(), 'monster name ' + type.name + ' basehit ' + Queue.runtime.basehit +' min ' + type.attack[Math.min(button_count, monster.smax || type.attack.length)-1]);
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
 							this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
-						} else if (type.defend && type.attack.indexOf(1) > -1) {
-							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 						} else {
-							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+							if (damage < this.conditions('ban',condition)) {
+								this.runtime.banthus = this.runtime.banthus.concat(type.attack).unique();
+							}
+							if (type.defend && type.attack.indexOf(1) > -1) {
+								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
+							} else {
+								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+							}
 						}
-						if ((attack_found || o) === o
+						if ((attack_found === false || attack_found === o)
 								&& (waiting_ok || (Player.get('health', 0) >= req_health
 								&& Queue.runtime.stamina >= req_stamina))
+								&& (!this.runtime.banthusNow	
+									|| damage < this.conditions('ban',condition))
 								&& (!Queue.runtime.basehit
-									|| type.attack.indexOf(Queue.runtime.basehit)>= 0 )) {
+									|| type.attack.indexOf(Queue.runtime.basehit)>= 0)) {
 							button = type.attack_button;
 							if (this.option.use_tactics && type.tactics) {
 								button = type.tactics_button;
 							}
-							if (damage < monster.ach) {
+							if (damage < monster.ach
+									|| (this.runtime.banthusNow	
+										&& damage < this.conditions('ban',condition))
+									|| (Queue.runtime.basehit
+										&& type.attack.indexOf(Queue.runtime.basehit)>= 0)) {
 								attack_found = o;
 								if (attack_found && attack_overach) {
 									list.attack = [[mid, damage / sum(monster.damage), button, damage, target]];
@@ -1440,7 +1468,8 @@ Monster.update = function(event) {
 								}
 								//console.log(warn(), 'ATTACK monster ' + monster.name + ' ' + type.name);
 							} else if ((monster.max === false || damage < monster.max)
-									&& !attack_found && (attack_overach || o) === o) {
+									&& !attack_found 
+									&& (attack_overach === false || attack_overach === o)) {
 								list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 								attack_overach = o;
 							}
@@ -1449,11 +1478,10 @@ Monster.update = function(event) {
 					// Possible defend target?
 					if (!monster.no_heal && type.defend && this.option.defend_active
 							&& (/:big\b/.test(condition)
-								|| ((monster.defense || 100) < monster.defend_max
-									&& (monster.defense || 100) > 1))) {
+								|| ((monster.defense || 100) < monster.defend_max))) {
 						this.runtime.big = this.runtime.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 					}
-					if (this.option.defend_active && (defend_found || o) === o) {
+					if (this.option.defend_active && (defend_found === false || defend_found === o)) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
 							//console.log(warn(), 'Secondary target found (' + monster.secondary + '%)');
@@ -1462,28 +1490,21 @@ Monster.update = function(event) {
 							defense_kind = Monster.warrior;
 						} else if (!monster.no_heal 
 								&& ((/:big\b/.test(condition) && Queue.runtime.big)
-									|| ((monster.defense || 100) < monster.defend_max
-										&& (monster.defense || 100) > 1))) {
+									|| (monster.defense || 100) < monster.defend_max)) {
 							defense_kind = type.defend_button;
-						}
-						if (monster.secondary === 100
-								&& (monster.max === false
-									|| damage < monster.max
-									|| /:sec\b/.test(condition))) {
-							this.runtime.secondary = true;
 						}
 						if (defense_kind) {
 							this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
-							if ((defend_found || o) === o
-								&& (!Queue.runtime.basehit 
-									|| type.defend.indexOf(Queue.runtime.basehit)>= 0 )) {
+							//console.log(warn(), 'defend ok' + damage + ' ' + Queue.runtime.basehit+ ' ' + type.defend.indexOf(Queue.runtime.basehit));
+							if (!Queue.runtime.basehit 
+									|| type.defend.indexOf(Queue.runtime.basehit)>= 0) {
 								if (damage < monster.ach
 										|| (/:sec\b/.test(condition)
 											&& defense_kind === Monster.secondary_on)) {
 									//console.log(warn(), 'DEFEND monster ' + monster.name + ' ' + type.name);
 									defend_found = o;
 								} else if ((monster.max === false || damage < monster.max)
-										&& !defend_found && (defend_overach || o) === o) {
+										&& !defend_found && (defend_overach === false  || defend_overach === o)) {
 									defend_overach = o;
 								} else {
 									continue;
@@ -1773,9 +1794,10 @@ Monster.work = function(state) {
 			|| (Queue.runtime.basehit 
 				&& this.runtime[stat] !== Queue.runtime.basehit * this.runtime.multiplier[mode])) {
 			console.log(warn(), 'Check for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
+		this._remind(0,'levelup');
 		return QUEUE_RELEASE;
 	}
-	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
+	if (!Generals.to(Generals.runtime.zin || Queue.runtime.general || (this.option['best_'+mode] 
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
 				: 'monster_' + mode)

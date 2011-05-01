@@ -306,6 +306,10 @@ Battle.parse = function(change) {
 		if ((uid = this.get(['runtime','attacking']))) {
 			tmp = $('div.results').text();
 			if ($('img[src*="battle_victory"]').length) {
+				if (Player.get('general') === 'Zin'
+						&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+					Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+				}
 				if (mode === 'battle') {
 					this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i));
 				}
@@ -336,6 +340,10 @@ Battle.parse = function(change) {
 //				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_defeat"]').length) {
+				if (Player.get('general') === 'Zin'
+						&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+					Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+				}
 				this.set(['runtime','attacking'], null);
 				this.set(['runtime','chain'], 0);
 				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
@@ -537,7 +545,7 @@ Battle.work = function(state) {
 //		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
+	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
 	/*jslint onevar:false*/

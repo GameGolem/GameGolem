@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1091
+// @version		31.5.1092
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1091;
+var revision = 1092;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4513,7 +4513,7 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(event, events) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
+	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'];
 	for (i=0; i<events.length; i++) {
 		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
 			if (events[i].worker.get(['option', '_disabled'], false)) {
@@ -4540,8 +4540,9 @@ Queue.update = function(event, events) {
 		}
 
 		this.runtime.stamina = this.runtime.energy = 0;
-		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
+		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general =this.runtime.big = this.runtime.force.stamina = this.runtime.force.energy = false;
 		LevelUp.set('runtime.running',false);
+		// Check if stamina/energy maxxed and should be forced
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i]));
@@ -4549,38 +4550,21 @@ Queue.update = function(event, events) {
 				this.runtime.force[ensta[i]] = true;
 			}
 		}
-		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
-				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
-			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
-			if (action.exp) {
-				this.runtime.energy = action.energy;
-				this.runtime.stamina = action.stamina;
-				this.runtime.levelup = true;
-				mode = (action.energy ? 'defend' : 'attack');
-				stat = (action.energy ? 'energy' : 'stamina');
-				if (action.quest) {
-					this.runtime.quest = action.quest;
+		// Preserve independence of queue system worker by putting exception code into CA workers
+		if (!this.runtime.stamina && !this.runtime.energy) {
+			var overrides = ['LevelUp','Monster','Generals'];
+			for (i=0; i<overrides.length; i++) {
+				worker = Workers[overrides[i]];
+				if (worker && !worker.get(['option', '_disabled'], false) 
+						&& !worker.get(['option', '_sleep'], false) && worker.resource) {
+					stat = worker.resource();
+					if (stat) {
+						this.runtime[stat] = this.runtime[stat] || Player.get(stat);
+						this.runtime.force[stat] = true;
+						console.log(warn(worker.name + ': force burn ' + stat + ' ' + this.runtime[stat]));
+						break;
+					}
 				}
-				this.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
-						? action.basehit : false);
-				this.runtime.big = action.big;
-				if (action.big) {
-					this.runtime.general = action.general || (LevelUp.option.general === 'any' 
-							? false 
-							: LevelUp.option.general === 'Manual' 
-							? LevelUp.option.general_choice
-							: LevelUp.option.general );
-					this.runtime.basehit = action.basehit;
-					Monster._remind(0,'levelup');
-				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
-					console.log(warn('Overriding manual general that multiplies attack/defense'));
-					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
-				}
-				Queue.runtime.force.stamina = (action.stamina !== 0);
-				Queue.runtime.force.energy = (action.energy !== 0);
-				console.log(warn('Leveling up: force burn ' + (this.runtime.stamina ? 'stamina' : 'energy') + ' ' + (this.runtime.stamina || this.runtime.energy)));
-				//console.log(warn('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers'))));
-				LevelUp.runtime.running = true;
 			}
 		}
 		if (!this.runtime.stamina && !this.runtime.energy) {
@@ -6846,6 +6830,10 @@ Battle.parse = function(change) {
 		if ((uid = this.get(['runtime','attacking']))) {
 			tmp = $('div.results').text();
 			if ($('img[src*="battle_victory"]').length) {
+				if (Player.get('general') === 'Zin'
+						&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+					Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+				}
 				if (mode === 'battle') {
 					this.set(['data',mode,'bp'], $('span.result_body:contains(" Points.")').text().replace(/,/g, '').regex(/total of (\d+) Battle Points/i));
 				}
@@ -6876,6 +6864,10 @@ Battle.parse = function(change) {
 //				uid = null; // Don't remove target as we've hit someone else...
 //				console.log(warn(), 'wrong ID');
 			} else if ($('img[src*="battle_defeat"]').length) {
+				if (Player.get('general') === 'Zin'
+						&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+					Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+				}
 				this.set(['runtime','attacking'], null);
 				this.set(['runtime','chain'], 0);
 				this.set(['data','user',uid,mode,'loss'], this.get(['data','user',uid,mode,'loss'], 0) + 1);
@@ -7077,7 +7069,7 @@ Battle.work = function(state) {
 //		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to(this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice) || !Page.to('battle_battle')) {
+	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle')) {
 		return QUEUE_CONTINUE;
 	}
 	/*jslint onevar:false*/
@@ -7501,12 +7493,25 @@ var Generals = new Worker('Generals');
 Generals.temp = null;
 
 Generals.settings = {
+	unsortable:true,
 	taint:true
 };
 
 Generals.defaults['castle_age'] = {
 	pages:'* heroes_generals heroes_heroes keep_stats'
 };
+
+Generals.option = {
+	zin:false
+};
+
+Generals.display = [
+	{
+		id:'zin',
+		label:'Automatically use Zin',
+		checkbox:true
+	}
+];
 
 Generals.runtime = {
 	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
@@ -7566,6 +7571,11 @@ Generals.parse = function(change) {
 					this.set(['data',name,'priority']);
 				}
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
+				j = parseInt($('div.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
+				if (j) {
+					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
+					//console.log(warn(name + ' ' + makeTime(this.data[name].charge, 'g:i a')));
+				}
 				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
 				this.set(['data',name,'own'], 1);
 				this._transaction(true); // COMMIT TRANSACTION
@@ -7689,6 +7699,16 @@ Generals.parse = function(change) {
 				}
 			}
 		}
+	}
+	return false;
+};
+
+Generals.resource = function() {
+	Generals.runtime.zin = false;
+	if (Generals.option.zin && Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+		Generals.runtime.zin = 'Zin';
+		Queue.runtime.force.stamina = true;
+		return 'stamina';
 	}
 	return false;
 };
@@ -8232,8 +8252,8 @@ Generals.dashboard = function(sort, rev) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
-				aa = self.get(['data',a,'priority'], 1e9, 'number');
-				bb = self.get(['data',b,'priority'], 1e9, 'number');
+				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
+				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
 			} else if ((i = sorttype[sort])) {
 				aa = self.get(['data',a].concat(i.split('.')), 0, 'number');
 				bb = self.get(['data',b].concat(i.split('.')), 0, 'number');
@@ -8258,7 +8278,7 @@ Generals.dashboard = function(sort, rev) {
 	th(output, '');
 	th(output, 'General');
 	th(output, 'Level');
-	th(output, 'Quest<br>Rank');
+	th(output, 'Rank /<br>Timer');
 	th(output, 'Invade<br>Attack');
 	th(output, 'Invade<br>Defend');
 	th(output, 'Duel<br>Attack');
@@ -8276,14 +8296,19 @@ Generals.dashboard = function(sort, rev) {
 		td(output, '<a class="golem-link" href="generals.php?item=' + p.id + '&itype=' + p.type + '"><img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '"></a>');
 		td(output, i);
 		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
-		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
+		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))
+				: !this.get([p,'charge'],0)
+				? '&nbsp;&nbsp; '
+				: (this.get([p,'charge'],0) <= Date.now()
+				? 'Now'
+				: makeTime(this.get([p,'charge'],0), 'g:i a')));
 		td(output, (j = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === j ? 'style="font-weight:bold;"' : ''));
-		tr(list, output.join(''));
+ 		tr(list, output.join(''));
 	}
 
 	list.push('</tbody></table>');
@@ -8825,6 +8850,7 @@ Idle.option = {
 //Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.when = {
 	0:			'Never',
+	60000:		'1 Minute',
 	900000:		'Quarterly',
 	3600000:	'Hourly',
 	7200000:	'2 Hours',
@@ -9616,6 +9642,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check.exp) {
 			console.log(warn(), 'Doing stamina attack');
+			console.log(warn(),'basehit0 ' + check.basehit);
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
@@ -9728,11 +9755,45 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		// Need to fill in later
 	}
 };
-			
-		
-			
-	
-/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+
+LevelUp.resource = function() {			
+	var mode, stat, action;
+	if (LevelUp.get('exp_possible') > Player.get('exp_needed')) {
+		action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
+		if (action.exp) {
+			Monster._remind(0,'levelup');
+			Queue.runtime.levelup = true;
+			mode = (action.energy ? 'defend' : 'attack');
+			stat = (action.energy ? 'energy' : 'stamina');
+			Queue.runtime[stat] = action[stat];
+			if (action.quest) {
+				Queue.runtime.quest = action.quest;
+			}
+			Queue.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
+					? action.basehit : false);
+			console.log(warn(),'basehit1 ' + Queue.runtime.basehit);
+			Queue.runtime.big = action.big;
+			if (action.big) {
+				Queue.runtime.basehit = action.basehit;
+				console.log(warn(),'basehit2 ' + Queue.runtime.basehit);
+				Queue.runtime.general = action.general || (LevelUp.option.general === 'any' 
+						? false 
+						: LevelUp.option.general === 'Manual' 
+						? LevelUp.option.general_choice
+						: LevelUp.option.general );
+			} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
+				console.log(warn('Overriding manual general that multiplies attack/defense'));
+				Queue.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
+			}
+			Queue.runtime.force.stamina = (action.stamina !== 0);
+			Queue.runtime.force.energy = (action.energy !== 0);
+			console.log(warn('Leveling up: force burn ' + (Queue.runtime.stamina ? 'stamina' : 'energy') + ' ' + (Queue.runtime.stamina || Queue.runtime.energy) + ' basehit ' + Queue.runtime.basehit));
+			//console.log(warn('Level up general ' + Queue.runtime.general + ' base ' + Queue.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers'))));
+			LevelUp.runtime.running = true;
+			return stat;
+		}
+	}
+};/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
@@ -9808,7 +9869,9 @@ Monster.runtime = {
 	levelupdefending : false, // Used to preserve the runtime.defending value even when in force.stamina mode
 	page : null, // What page (battle or monster) the check page should go to
 	monsters : {}, // Used for storing running weighted averages for monsters
-	defending: false // hint for other workers as to whether we are potentially using energy to defend
+	defending: false,	// hint for other workers as to whether we are potentially using energy to defend
+	banthus : [], // Possible attack values for :ban condition crits
+	banthusNow : false  // Set true when ready to use a Banthus crit
 };
 
 Monster.display = [
@@ -10473,9 +10536,9 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
+		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100],
+		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
 		festival : 'agamemnon'
 	},
@@ -10707,7 +10770,6 @@ Monster.parse = function(change) {
 			monster.page = 'keep';
 		}
 		monster.name = $('img[linked][size="square"]').parent().parent().parent().text().replace('\'s summoned','').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim();
-		console.log(warn(), 'Name ' + monster.name);
 		if (dead) {
 			// Will this catch Raid format rewards?
 			if ($('input[src*="collect_reward_button"]').length) {
@@ -10743,6 +10805,14 @@ Monster.parse = function(change) {
 								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
 								,ensta[i],this.runtime.used[ensta[i]],10);
 						//console.log(warn(), 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[monster.type]['avg_damage_per_' + ensta[i]]);
+						if (Player.get('general') === 'Banthus Archfiend' 
+								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now()) {
+							Generals.set(['data','Banthus Archfiend','charge'],Date.now() + 4320000);
+						}
+						if (Player.get('general') === 'Zin'
+								&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+							Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+						}
 					}
 					this.runtime.used[ensta[i]] = 0;
 					break;
@@ -10944,10 +11014,8 @@ Monster.parse = function(change) {
 					this.set(['data',mid,'state'], 'engage');
 					break;
 				case 'monster_button_collect':
-					if (this.get(['data',mid,'state']) !== 'reward'
-							&& this.get(['data',mid,'state']) !== 'complete') {
-						this.set(['data',mid,'state'], 'reward');
-					}
+					// Can't tell if complete or reward, so set to complete, and will find reward when next visited
+					this.set(['data',mid,'state'], 'complete');
 					break;
 				default:
 					this.set(['data',mid,'state'], 'unknown');
@@ -10992,6 +11060,16 @@ Monster.parse = function(change) {
 	return false;
 };
 
+Monster.resource = function() {
+	Monster.runtime.banthusNow = Monster.runtime.banthus.length && Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now();
+	if (Monster.runtime.banthusNow) {
+		Queue.runtime.basehit = Monster.runtime.banthus.lower(Player.get('stamina'));
+		Queue.runtime.general = 'Banthus Archfiend';
+		return 'stamina';
+	}
+	return false;
+};
+
 Monster.update = function(event) {
 	if (event.type === 'runtime' && event.worker.name !== 'Queue') {
 		return;
@@ -11026,10 +11104,10 @@ Monster.update = function(event) {
 		Monster.runtime.multiplier[mode] = (Generals.get([Queue.runtime.general || (Generals.best(Monster.option['best_' + mode] ? ('monster_' + mode) : Monster.option['general_' + mode])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
 		//console.log(warn(), 'mult ' + mode + ' X ' + Monster.runtime.multiplier[mode]);
 	});
-	this.runtime.secondary = false;
 	waiting_ok = !this.option.hide && !Queue.runtime.force.stamina;
 	if (this.option.stop === 'Priority List') {
 		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, o, suborder, p, defense_kind, button, order = [];
+		this.runtime.banthus = [];
 		if (this.option.priority) {
 			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/[, ]*\|[, ]*/g,'|').split(',');
 		}
@@ -11056,7 +11134,7 @@ Monster.update = function(event) {
 				}
 				searchterm = suborder[p].match(new RegExp("^[^:]+")).toString().trim();
 				condition = suborder[p].replace(new RegExp("^[^:]+"), '').toString().trim();
-				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition);
+				//console.log(warn(), 'Priority order ' + searchterm +' condition ' + condition + ' o ' + o + ' p ' + p);
 				for (mid in this.data) {
 					monster = this.data[mid];
 					type = this.types[monster.type];
@@ -11144,27 +11222,38 @@ Monster.update = function(event) {
 							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], Queue.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
-					//console.log(warn(), 'monster name ' + type.name + ' attack ' + Queue.runtime.basehit +' ' + (!Queue.runtime.basehit || type.attack.indexOf(Queue.runtime.basehit)>= 0));
+					//console.log(warn(), 'monster name ' + type.name + ' basehit ' + Queue.runtime.basehit +' min ' + type.attack[Math.min(button_count, monster.smax || type.attack.length)-1]);
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
 							this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
-						} else if (type.defend && type.attack.indexOf(1) > -1) {
-							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
 						} else {
-							this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+							if (damage < this.conditions('ban',condition)) {
+								this.runtime.banthus = this.runtime.banthus.concat(type.attack).unique();
+							}
+							if (type.defend && type.attack.indexOf(1) > -1) {
+								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
+							} else {
+								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+							}
 						}
-						if ((attack_found || o) === o
+						if ((attack_found === false || attack_found === o)
 								&& (waiting_ok || (Player.get('health', 0) >= req_health
 								&& Queue.runtime.stamina >= req_stamina))
+								&& (!this.runtime.banthusNow	
+									|| damage < this.conditions('ban',condition))
 								&& (!Queue.runtime.basehit
-									|| type.attack.indexOf(Queue.runtime.basehit)>= 0 )) {
+									|| type.attack.indexOf(Queue.runtime.basehit)>= 0)) {
 							button = type.attack_button;
 							if (this.option.use_tactics && type.tactics) {
 								button = type.tactics_button;
 							}
-							if (damage < monster.ach) {
+							if (damage < monster.ach
+									|| (this.runtime.banthusNow	
+										&& damage < this.conditions('ban',condition))
+									|| (Queue.runtime.basehit
+										&& type.attack.indexOf(Queue.runtime.basehit)>= 0)) {
 								attack_found = o;
 								if (attack_found && attack_overach) {
 									list.attack = [[mid, damage / sum(monster.damage), button, damage, target]];
@@ -11174,7 +11263,8 @@ Monster.update = function(event) {
 								}
 								//console.log(warn(), 'ATTACK monster ' + monster.name + ' ' + type.name);
 							} else if ((monster.max === false || damage < monster.max)
-									&& !attack_found && (attack_overach || o) === o) {
+									&& !attack_found 
+									&& (attack_overach === false || attack_overach === o)) {
 								list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 								attack_overach = o;
 							}
@@ -11183,11 +11273,10 @@ Monster.update = function(event) {
 					// Possible defend target?
 					if (!monster.no_heal && type.defend && this.option.defend_active
 							&& (/:big\b/.test(condition)
-								|| ((monster.defense || 100) < monster.defend_max
-									&& (monster.defense || 100) > 1))) {
+								|| ((monster.defense || 100) < monster.defend_max))) {
 						this.runtime.big = this.runtime.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
 					}
-					if (this.option.defend_active && (defend_found || o) === o) {
+					if (this.option.defend_active && (defend_found === false || defend_found === o)) {
 						defense_kind = false;
 						if (typeof monster.secondary !== 'undefined' && monster.secondary < 100) {
 							//console.log(warn(), 'Secondary target found (' + monster.secondary + '%)');
@@ -11196,28 +11285,21 @@ Monster.update = function(event) {
 							defense_kind = Monster.warrior;
 						} else if (!monster.no_heal 
 								&& ((/:big\b/.test(condition) && Queue.runtime.big)
-									|| ((monster.defense || 100) < monster.defend_max
-										&& (monster.defense || 100) > 1))) {
+									|| (monster.defense || 100) < monster.defend_max)) {
 							defense_kind = type.defend_button;
-						}
-						if (monster.secondary === 100
-								&& (monster.max === false
-									|| damage < monster.max
-									|| /:sec\b/.test(condition))) {
-							this.runtime.secondary = true;
 						}
 						if (defense_kind) {
 							this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
-							if ((defend_found || o) === o
-								&& (!Queue.runtime.basehit 
-									|| type.defend.indexOf(Queue.runtime.basehit)>= 0 )) {
+							//console.log(warn(), 'defend ok' + damage + ' ' + Queue.runtime.basehit+ ' ' + type.defend.indexOf(Queue.runtime.basehit));
+							if (!Queue.runtime.basehit 
+									|| type.defend.indexOf(Queue.runtime.basehit)>= 0) {
 								if (damage < monster.ach
 										|| (/:sec\b/.test(condition)
 											&& defense_kind === Monster.secondary_on)) {
 									//console.log(warn(), 'DEFEND monster ' + monster.name + ' ' + type.name);
 									defend_found = o;
 								} else if ((monster.max === false || damage < monster.max)
-										&& !defend_found && (defend_overach || o) === o) {
+										&& !defend_found && (defend_overach === false  || defend_overach === o)) {
 									defend_overach = o;
 								} else {
 									continue;
@@ -11507,9 +11589,10 @@ Monster.work = function(state) {
 			|| (Queue.runtime.basehit 
 				&& this.runtime[stat] !== Queue.runtime.basehit * this.runtime.multiplier[mode])) {
 			console.log(warn(), 'Check for ' + stat + ' burn to catch up ' + this.runtime[stat] + ' burn ' + Queue.runtime[stat]);
+		this._remind(0,'levelup');
 		return QUEUE_RELEASE;
 	}
-	if (!Generals.to(Queue.runtime.general || (this.option['best_'+mode] 
+	if (!Generals.to(Generals.runtime.zin || Queue.runtime.general || (this.option['best_'+mode] 
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
 				: 'monster_' + mode)
@@ -12640,6 +12723,7 @@ Quest.parse = function(change) {
 				}
 			}
 			assert(name && name.indexOf('\t') === -1, 'Bad quest name - found tab character');
+			this.set(['data','id',id,'button_fail'], 0);
 			assert(this.set(['data','id',id,'name'], name, 'string'), 'Bad quest name: '+name);
 			assert(this.set(['data','id',id,'area'], area, 'string'), 'Bad area name: '+area);
 			assert(this.set(['data','id',id,'type'], type, 'number'), 'Unknown quest type: '+name);
@@ -12943,7 +13027,7 @@ Quest.update = function(event) {
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
+	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve, quest, button;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;
@@ -12961,18 +13045,19 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
+	 quest = this.data.id[best]
 	if (this.option.general) {
-		if (this.data.id[best].general && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-			general = this.data.id[best].general;
+		if (quest.general && isNumber(quest.influence) && quest.influence < 100) {
+			general = quest.general;
 		} else {
 			general = Generals.best('under max level');
 			switch(this.option.what) {
 				case 'Vampire Lord':
 				case 'Cartigan':
-					if (this.data.id[best].general) {
-						general = this.data.id[best].general;
+					if (quest.general) {
+						general = quest.general;
 					} else {
-						if (general === 'any' && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
+						if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
 							general = Generals.best('influence');
 						}
 						if (general === 'any') {
@@ -12987,18 +13072,18 @@ Quest.work = function(state) {
 				case 'Experience':
 				case 'Inf+Cash':
 				case 'Cash':
-					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-						if (this.data.id[best].general) {
-							general = this.data.id[best].general;
+					if (isNumber(quest.influence) && quest.influence < 100) {
+						if (quest.general) {
+							general = quest.general;
 						} else if (general === 'any') {
 							general = Generals.best('influence');
 						}
 					}
 					break;
 				default:
-					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-						if (this.data.id[best].general) {
-							general = this.data.id[best].general;
+					if (isNumber(quest.influence) && quest.influence < 100) {
+						if (quest.general) {
+							general = quest.general;
 						} else if (general === 'any') {
 							general = Generals.best('influence');
 						}
@@ -13018,41 +13103,43 @@ Quest.work = function(state) {
 	if (!Generals.to(Queue.runtime.general || general)) {
 		return QUEUE_CONTINUE;
 	}
-	switch(this.data.id[best].area) {
-		case 'quest':
-			if (!Page.to('quests_quest' + (this.data.id[best].land + 1))) {
+	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
+	console.log(warn(), 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
+	//console.log(warn(),'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (Queue.runtime.general && quest.general));
+	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+		quest.button_fail = (quest.button_fail || 0) + 1;
+		if (quest.button_fail > 5){
+			console.log(warn(), 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
+			delete quest;
+			this.runtime.best = null;
+			Page.reload();
+			return QUEUE_RELEASE;
+		} else {
+			switch(quest.area) {
+			case 'quest':
+				Page.to('quests_quest' + (quest.land + 1),null,true);
 				return QUEUE_CONTINUE;
-			}
-			break;
-		case 'demiquest':
-			if (!Page.to('quests_demiquests')) {
+			case 'demiquest':
+				Page.to('quests_demiquests',null,true);
 				return QUEUE_CONTINUE;
-			}
-			break;
-		case 'atlantis':
-			if (!Page.to('quests_atlantis')) {
+			case 'atlantis':
+				Page.to('quests_atlantis',null,true);
 				return QUEUE_CONTINUE;
+			default:
+				console.log(log(), 'Can\'t get to quest area!');
+				return QUEUE_FINISH;
 			}
-			break;
-		default:
-			console.log(log(), 'Can\'t get to quest area!');
-			return QUEUE_FINISH;
-	}
-	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
-	//console.log(warn(),'Quest ' + this.data.id[best].name + ' general ' + this.data.id[best].general + ' test ' + !Generals.test(this.data.id[best].general || 'any') + ' this.data || '+ (this.data.id[best].general || 'any') + ' queue ' + (Queue.runtime.general && this.data.id[best].general));
-	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
-		delete this.data.id[best];
-		this.runtime.best = null;
-		Page.reload();
-	}
-	Queue.runtime.quest = false;
-	if (this.data.id[best].type === 3) {// Just completed a boss quest
-		if (!Alchemy.get(['ingredients', this.data.id[best].itemimg], 0, 'number')) {// Add one as we've just gained it...
-			Alchemy.set(['ingredients', this.data.id[best].itemimg], 1);
 		}
-		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (this.data.id[best].land + 2)]) {// If we just completed a boss quest, check for a new quest land.
-			Page.to('quests_quest' + (this.data.id[best].land + 2));// Go visit the next land as we've just unlocked it...
+	}
+	Page.click(button);
+	Queue.runtime.quest = false;
+	if (quest.type === 3) {// Just completed a boss quest
+		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {// Add one as we've just gained it...
+			Alchemy.set(['ingredients', quest.itemimg], 1);
+		}
+		// This won't work since we just clicked the quest above.
+		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (quest.land + 2)]) {// If we just completed a boss quest, check for a new quest land.
+			Page.to('quests_quest' + (quest.land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
 	return QUEUE_RELEASE;
@@ -15478,17 +15565,12 @@ Guild.work = function(state) {
 						console.log(log('Collecting Reward'));
 						Page.click('input[src*="collect_reward_button2.jpg"]');
 					}
-				} else if (this.runtime.status === 'start') {
+				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
 						console.log(log('Entering Battle'));
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
-					}
-					this.set(['data'], {}); // Forget old "lose" list
-					//Add in attack button here.
-				} else if (this.runtime.status === 'fight') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						this.set(['data'], {}); // Forget old "lose" list
+						return QUEUE_CONTINUE;
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){

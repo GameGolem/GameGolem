@@ -268,6 +268,7 @@ Quest.parse = function(change) {
 				}
 			}
 			assert(name && name.indexOf('\t') === -1, 'Bad quest name - found tab character');
+			this.set(['data','id',id,'button_fail'], 0);
 			assert(this.set(['data','id',id,'name'], name, 'string'), 'Bad quest name: '+name);
 			assert(this.set(['data','id',id,'area'], area, 'string'), 'Bad area name: '+area);
 			assert(this.set(['data','id',id,'type'], type, 'number'), 'Unknown quest type: '+name);
@@ -571,7 +572,7 @@ Quest.update = function(event) {
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve;
+	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve, quest, button;
 	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;
@@ -589,18 +590,19 @@ Quest.work = function(state) {
 	if (!state) {
 		return QUEUE_CONTINUE;
 	}
+	 quest = this.data.id[best]
 	if (this.option.general) {
-		if (this.data.id[best].general && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-			general = this.data.id[best].general;
+		if (quest.general && isNumber(quest.influence) && quest.influence < 100) {
+			general = quest.general;
 		} else {
 			general = Generals.best('under max level');
 			switch(this.option.what) {
 				case 'Vampire Lord':
 				case 'Cartigan':
-					if (this.data.id[best].general) {
-						general = this.data.id[best].general;
+					if (quest.general) {
+						general = quest.general;
 					} else {
-						if (general === 'any' && isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
+						if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
 							general = Generals.best('influence');
 						}
 						if (general === 'any') {
@@ -615,18 +617,18 @@ Quest.work = function(state) {
 				case 'Experience':
 				case 'Inf+Cash':
 				case 'Cash':
-					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-						if (this.data.id[best].general) {
-							general = this.data.id[best].general;
+					if (isNumber(quest.influence) && quest.influence < 100) {
+						if (quest.general) {
+							general = quest.general;
 						} else if (general === 'any') {
 							general = Generals.best('influence');
 						}
 					}
 					break;
 				default:
-					if (isNumber(this.data.id[best].influence) && this.data.id[best].influence < 100) {
-						if (this.data.id[best].general) {
-							general = this.data.id[best].general;
+					if (isNumber(quest.influence) && quest.influence < 100) {
+						if (quest.general) {
+							general = quest.general;
 						} else if (general === 'any') {
 							general = Generals.best('influence');
 						}
@@ -646,41 +648,43 @@ Quest.work = function(state) {
 	if (!Generals.to(Queue.runtime.general || general)) {
 		return QUEUE_CONTINUE;
 	}
-	switch(this.data.id[best].area) {
-		case 'quest':
-			if (!Page.to('quests_quest' + (this.data.id[best].land + 1))) {
+	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
+	console.log(warn(), 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
+	//console.log(warn(),'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (Queue.runtime.general && quest.general));
+	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
+		quest.button_fail = (quest.button_fail || 0) + 1;
+		if (quest.button_fail > 5){
+			console.log(warn(), 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
+			delete quest;
+			this.runtime.best = null;
+			Page.reload();
+			return QUEUE_RELEASE;
+		} else {
+			switch(quest.area) {
+			case 'quest':
+				Page.to('quests_quest' + (quest.land + 1),null,true);
 				return QUEUE_CONTINUE;
-			}
-			break;
-		case 'demiquest':
-			if (!Page.to('quests_demiquests')) {
+			case 'demiquest':
+				Page.to('quests_demiquests',null,true);
 				return QUEUE_CONTINUE;
-			}
-			break;
-		case 'atlantis':
-			if (!Page.to('quests_atlantis')) {
+			case 'atlantis':
+				Page.to('quests_atlantis',null,true);
 				return QUEUE_CONTINUE;
+			default:
+				console.log(log(), 'Can\'t get to quest area!');
+				return QUEUE_FINISH;
 			}
-			break;
-		default:
-			console.log(log(), 'Can\'t get to quest area!');
-			return QUEUE_FINISH;
-	}
-	console.log(warn(), 'Performing - ' + this.data.id[best].name + ' (energy: ' + this.data.id[best].energy + ')');
-	//console.log(warn(),'Quest ' + this.data.id[best].name + ' general ' + this.data.id[best].general + ' test ' + !Generals.test(this.data.id[best].general || 'any') + ' this.data || '+ (this.data.id[best].general || 'any') + ' queue ' + (Queue.runtime.general && this.data.id[best].general));
-	if (!Page.click($('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]'))) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		console.log(warn(), 'Can\'t find button for ' + this.data.id[best].name + ', so deleting and re-visiting page...');
-		delete this.data.id[best];
-		this.runtime.best = null;
-		Page.reload();
-	}
-	Queue.runtime.quest = false;
-	if (this.data.id[best].type === 3) {// Just completed a boss quest
-		if (!Alchemy.get(['ingredients', this.data.id[best].itemimg], 0, 'number')) {// Add one as we've just gained it...
-			Alchemy.set(['ingredients', this.data.id[best].itemimg], 1);
 		}
-		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (this.data.id[best].land + 2)]) {// If we just completed a boss quest, check for a new quest land.
-			Page.to('quests_quest' + (this.data.id[best].land + 2));// Go visit the next land as we've just unlocked it...
+	}
+	Page.click(button);
+	Queue.runtime.quest = false;
+	if (quest.type === 3) {// Just completed a boss quest
+		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {// Add one as we've just gained it...
+			Alchemy.set(['ingredients', quest.itemimg], 1);
+		}
+		// This won't work since we just clicked the quest above.
+		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (quest.land + 2)]) {// If we just completed a boss quest, check for a new quest land.
+			Page.to('quests_quest' + (quest.land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
 	return QUEUE_RELEASE;

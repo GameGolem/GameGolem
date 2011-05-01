@@ -167,7 +167,7 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(event, events) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'], action;
+	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'];
 	for (i=0; i<events.length; i++) {
 		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
 			if (events[i].worker.get(['option', '_disabled'], false)) {
@@ -194,8 +194,9 @@ Queue.update = function(event, events) {
 		}
 
 		this.runtime.stamina = this.runtime.energy = 0;
-		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general = this.runtime.force.stamina = this.runtime.force.energy = this.runtime.big = false;
+		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general =this.runtime.big = this.runtime.force.stamina = this.runtime.force.energy = false;
 		LevelUp.set('runtime.running',false);
+		// Check if stamina/energy maxxed and should be forced
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
 				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i]));
@@ -203,38 +204,21 @@ Queue.update = function(event, events) {
 				this.runtime.force[ensta[i]] = true;
 			}
 		}
-		if (!LevelUp.get(['option', '_disabled'], false) && !this.runtime.stamina && !this.runtime.energy 
-				 && LevelUp.get('exp_possible') > Player.get('exp_needed')) {
-			action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
-			if (action.exp) {
-				this.runtime.energy = action.energy;
-				this.runtime.stamina = action.stamina;
-				this.runtime.levelup = true;
-				mode = (action.energy ? 'defend' : 'attack');
-				stat = (action.energy ? 'energy' : 'stamina');
-				if (action.quest) {
-					this.runtime.quest = action.quest;
+		// Preserve independence of queue system worker by putting exception code into CA workers
+		if (!this.runtime.stamina && !this.runtime.energy) {
+			var overrides = ['LevelUp','Monster','Generals'];
+			for (i=0; i<overrides.length; i++) {
+				worker = Workers[overrides[i]];
+				if (worker && !worker.get(['option', '_disabled'], false) 
+						&& !worker.get(['option', '_sleep'], false) && worker.resource) {
+					stat = worker.resource();
+					if (stat) {
+						this.runtime[stat] = this.runtime[stat] || Player.get(stat);
+						this.runtime.force[stat] = true;
+						console.log(warn(worker.name + ': force burn ' + stat + ' ' + this.runtime[stat]));
+						break;
+					}
 				}
-				this.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
-						? action.basehit : false);
-				this.runtime.big = action.big;
-				if (action.big) {
-					this.runtime.general = action.general || (LevelUp.option.general === 'any' 
-							? false 
-							: LevelUp.option.general === 'Manual' 
-							? LevelUp.option.general_choice
-							: LevelUp.option.general );
-					this.runtime.basehit = action.basehit;
-					Monster._remind(0,'levelup');
-				} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
-					console.log(warn('Overriding manual general that multiplies attack/defense'));
-					this.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
-				}
-				Queue.runtime.force.stamina = (action.stamina !== 0);
-				Queue.runtime.force.energy = (action.energy !== 0);
-				console.log(warn('Leveling up: force burn ' + (this.runtime.stamina ? 'stamina' : 'energy') + ' ' + (this.runtime.stamina || this.runtime.energy)));
-				//console.log(warn('Level up general ' + this.runtime.general + ' base ' + this.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers'))));
-				LevelUp.runtime.running = true;
 			}
 		}
 		if (!this.runtime.stamina && !this.runtime.energy) {

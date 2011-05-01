@@ -252,6 +252,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check.exp) {
 			console.log(warn(), 'Doing stamina attack');
+			console.log(warn(),'basehit0 ' + check.basehit);
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
@@ -364,7 +365,42 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		// Need to fill in later
 	}
 };
-			
-		
-			
-	
+
+LevelUp.resource = function() {			
+	var mode, stat, action;
+	if (LevelUp.get('exp_possible') > Player.get('exp_needed')) {
+		action = LevelUp.runtime.action = LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed'));
+		if (action.exp) {
+			Monster._remind(0,'levelup');
+			Queue.runtime.levelup = true;
+			mode = (action.energy ? 'defend' : 'attack');
+			stat = (action.energy ? 'energy' : 'stamina');
+			Queue.runtime[stat] = action[stat];
+			if (action.quest) {
+				Queue.runtime.quest = action.quest;
+			}
+			Queue.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
+					? action.basehit : false);
+			console.log(warn(),'basehit1 ' + Queue.runtime.basehit);
+			Queue.runtime.big = action.big;
+			if (action.big) {
+				Queue.runtime.basehit = action.basehit;
+				console.log(warn(),'basehit2 ' + Queue.runtime.basehit);
+				Queue.runtime.general = action.general || (LevelUp.option.general === 'any' 
+						? false 
+						: LevelUp.option.general === 'Manual' 
+						? LevelUp.option.general_choice
+						: LevelUp.option.general );
+			} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
+				console.log(warn('Overriding manual general that multiplies attack/defense'));
+				Queue.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
+			}
+			Queue.runtime.force.stamina = (action.stamina !== 0);
+			Queue.runtime.force.energy = (action.energy !== 0);
+			console.log(warn('Leveling up: force burn ' + (Queue.runtime.stamina ? 'stamina' : 'energy') + ' ' + (Queue.runtime.stamina || Queue.runtime.energy) + ' basehit ' + Queue.runtime.basehit));
+			//console.log(warn('Level up general ' + Queue.runtime.general + ' base ' + Queue.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers'))));
+			LevelUp.runtime.running = true;
+			return stat;
+		}
+	}
+};

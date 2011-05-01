@@ -16,12 +16,25 @@ var Generals = new Worker('Generals');
 Generals.temp = null;
 
 Generals.settings = {
+	unsortable:true,
 	taint:true
 };
 
 Generals.defaults['castle_age'] = {
 	pages:'* heroes_generals heroes_heroes keep_stats'
 };
+
+Generals.option = {
+	zin:false
+};
+
+Generals.display = [
+	{
+		id:'zin',
+		label:'Automatically use Zin',
+		checkbox:true
+	}
+];
 
 Generals.runtime = {
 	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
@@ -81,6 +94,11 @@ Generals.parse = function(change) {
 					this.set(['data',name,'priority']);
 				}
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
+				j = parseInt($('div.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
+				if (j) {
+					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
+					//console.log(warn(name + ' ' + makeTime(this.data[name].charge, 'g:i a')));
+				}
 				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
 				this.set(['data',name,'own'], 1);
 				this._transaction(true); // COMMIT TRANSACTION
@@ -204,6 +222,16 @@ Generals.parse = function(change) {
 				}
 			}
 		}
+	}
+	return false;
+};
+
+Generals.resource = function() {
+	Generals.runtime.zin = false;
+	if (Generals.option.zin && Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
+		Generals.runtime.zin = 'Zin';
+		Queue.runtime.force.stamina = true;
+		return 'stamina';
 	}
 	return false;
 };
@@ -747,8 +775,8 @@ Generals.dashboard = function(sort, rev) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
-				aa = self.get(['data',a,'priority'], 1e9, 'number');
-				bb = self.get(['data',b,'priority'], 1e9, 'number');
+				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
+				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
 			} else if ((i = sorttype[sort])) {
 				aa = self.get(['data',a].concat(i.split('.')), 0, 'number');
 				bb = self.get(['data',b].concat(i.split('.')), 0, 'number');
@@ -773,7 +801,7 @@ Generals.dashboard = function(sort, rev) {
 	th(output, '');
 	th(output, 'General');
 	th(output, 'Level');
-	th(output, 'Quest<br>Rank');
+	th(output, 'Rank /<br>Timer');
 	th(output, 'Invade<br>Attack');
 	th(output, 'Invade<br>Defend');
 	th(output, 'Duel<br>Attack');
@@ -791,14 +819,19 @@ Generals.dashboard = function(sort, rev) {
 		td(output, '<a class="golem-link" href="generals.php?item=' + p.id + '&itype=' + p.type + '"><img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '"></a>');
 		td(output, i);
 		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
-		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;')) : '');
+		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))
+				: !this.get([p,'charge'],0)
+				? '&nbsp;&nbsp; '
+				: (this.get([p,'charge'],0) <= Date.now()
+				? 'Now'
+				: makeTime(this.get([p,'charge'],0), 'g:i a')));
 		td(output, (j = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === j ? 'style="font-weight:bold;"' : ''));
-		tr(list, output.join(''));
+ 		tr(list, output.join(''));
 	}
 
 	list.push('</tbody></table>');
