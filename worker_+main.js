@@ -47,9 +47,9 @@ Main.update = function(event) {
 				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
 				return;
 			}
-			console.log('GameGolem: Reverting from r' + old_revision + ' to r' + revision);
+			log(LOG_INFO, 'GameGolem: Reverting from r' + old_revision + ' to r' + revision);
 		} else if (old_revision < revision) {
-			console.log('GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
+			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
@@ -76,7 +76,7 @@ Main.update = function(event) {
 			b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
 			head.appendChild(a);
 			head.appendChild(b);
-			console.log('GameGolem: Loading jQuery & jQueryUI');
+			log(LOG_INFO, 'GameGolem: Loading jQuery & jQueryUI');
 			this._jQuery_ = true;
 		}
 		if (!(unsafeWindow || window).jQuery || !(unsafeWindow || window).jQuery.support || !(unsafeWindow || window).jQuery.ui) {
@@ -88,7 +88,7 @@ Main.update = function(event) {
 	// Identify Application
 	if (!APP) {
 		if (empty(this._apps_)) {
-			console.log('GameGolem: No applications known...');
+			log(LOG_INFO, 'GameGolem: No applications known...');
 		}
 		for (i in this._apps_) {
 			if (window.location.pathname.indexOf(i) === 1) {
@@ -96,12 +96,12 @@ Main.update = function(event) {
 				APPID = this._apps_[i][0];
 				APPNAME = this._apps_[i][1];
 				PREFIX = 'golem'+APPID+'_';
-				console.log('GameGolem: Starting '+APPNAME);
+				log(LOG_INFO, 'GameGolem: Starting '+APPNAME);
 				break;
 			}
 		}
 		if (typeof APP === 'undefined') {
-			console.log('GameGolem: Unknown application...');
+			log(LOG_INFO, 'GameGolem: Unknown application...');
 			return;
 		}
 	}
@@ -117,7 +117,7 @@ Main.update = function(event) {
 		}
 	}
 	if (!userID || !imagepath || typeof userID !== 'number' || userID === 0) {
-		console.log('ERROR: Bad Page Load!!!');
+		log(LOG_INFO, 'ERROR: Bad Page Load!!!');
 		window.setTimeout(Page.reload, 5000); // Force reload without retrying
 		return;
 	}
@@ -133,7 +133,7 @@ Main.update = function(event) {
 			case '==':	return value === args[2];
 			case '!=':	return value !== args[2];
 			default:
-				console.log(warn('Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')'));
+				log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
 				return false;
 		}
 	};
@@ -177,7 +177,7 @@ Main.update = function(event) {
 };
 
 if (!Main.loaded) { // Prevent double-start
-	console.log('GameGolem: Loading...');
+	log(LOG_INFO, 'GameGolem: Loading...');
 	Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
 	Main._update({type:'startup', id:'startup'});
 }

@@ -58,7 +58,7 @@ Alchemy.parse = function(change) {
 		tmp = $('div.ingredientUnit');
 
 		if (!tmp.length) {
-			console.log(warn("Can't find any alchemy ingredients..."));
+			log(LOG_WARN, "Can't find any alchemy ingredients...");
 			//Page.to('keep_alchemy', false); // Force reload
 			//return false;
 		} else {
@@ -77,14 +77,14 @@ Alchemy.parse = function(change) {
 			if (isNumber(c)) {
 				self.set(['ingredients', icon], c);
 			} else {
-				console.log(warn(), 'bad count ' + c + ' on ' + icon);
+				log(LOG_WARN, 'Bad count ' + c + ' on ' + icon);
 			}
 		});
 
 		tmp = $('div.alchemyQuestBack,div.alchemyRecipeBack,div.alchemyRecipeBackMonster');
 
 		if (!tmp.length) {
-			console.log(warn("Can't find any alchemy recipes..."));
+			log(LOG_WARN, "Can't find any alchemy recipes...");
 			//Page.to('keep_alchemy', false); // Force reload
 			//return false;
 		} else {
@@ -186,7 +186,7 @@ Alchemy.parse = function(change) {
 	// parsing knows which unit/item overlaps to watch.
 	for (i in ipurge) {
 		if (ipurge[i] && this.data.ingredients[i] !== 0) {
-			console.log(warn(), 'zero ingredient ' + i + ' [' + (this.data.ingredients[i] || 0) + ']');
+			log(LOG_WARN, 'Zero ingredient ' + i + ' [' + (this.data.ingredients[i] || 0) + ']');
 			this.set(['data', 'ingredients', i], 0);
 		}
 	}
@@ -194,7 +194,7 @@ Alchemy.parse = function(change) {
 	// purge any recipes we didn't encounter.
 	for (i in rpurge) {
 		if (rpurge[i]) {
-			console.log(warn(), 'delete recipe ' + i);
+			log(LOG_DEBUG, 'Delete recipe ' + i);
 			this.set(['recipe', i]);
 		}
 	}
@@ -202,7 +202,7 @@ Alchemy.parse = function(change) {
 	// purge any summons we didn't encounter.
 	for (i in spurge) {
 		if (spurge[i]) {
-			console.log(warn(), 'delete summon ' + i);
+			log(LOG_DEBUG, 'Delete summon ' + i);
 			this.set(['summons', i]);
 		}
 	}
@@ -249,9 +249,9 @@ Alchemy.work = function(state) {
 	} else if (!state || !Page.to('keep_alchemy')) {
 		return QUEUE_CONTINUE;
 	} else {
-		console.log(warn('Perform - ' + this.runtime.best));
+		log(LOG_INFO, 'Perform - ' + this.runtime.best);
 		if (!Page.click($('input[type="image"]', $('div.recipeTitle:contains("' + this.runtime.best + '")').next()))) {
-			console.log(warn("Can't find the recipe - waiting a minute"));
+			log(LOG_WARN, "Can't find the recipe - waiting a minute");
 			this.set('runtime.wait', now + 60000);
 			this._remind(60, 'wait');
 		}

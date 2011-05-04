@@ -28,7 +28,10 @@ Debug.option = {
 	total:false,
 	prototypes:true,
 	worker:'All',
-	trace:false
+	trace:false,
+	logdef:LOG_LOG, // Default level when no LOG_* set...
+	console:false,
+	log:{0:true, 1:false, 2:false, 3:true, 4:false}
 };
 
 Debug.runtime = {
@@ -39,6 +42,40 @@ Debug.runtime = {
 
 Debug.display = [
 	{
+		title:'Logging',
+		group:[
+			{
+				id:'logdef',
+				label:'Default log level',
+				select:{0:'Info', 1:'Log', 2:'Warn', 3:'Error', 4:'Debug'}
+			},{
+				id:'console',
+				label:'Use Console Functions',
+				checkbox:true,
+				help:'When this is enabled, the console Warn, Error, Debug etc functions will be used - this can filter out messages in the console when needed, but can also cause you to miss messages when you normally only watch Log to filter out non-Golem errors...'
+			},{
+				id:'log.0',
+				label:'0: Info',
+				checkbox:true
+			},{
+				id:'log.1',
+				label:'1: Log',
+				checkbox:true
+			},{
+				id:'log.2',
+				label:'2: Warn',
+				checkbox:true
+			},{
+				id:'log.3',
+				label:'3: Error',
+				checkbox:true
+			},{
+				id:'log.4',
+				label:'4: Debug',
+				checkbox:true
+			}
+		]
+	},{
 		title:'Function Profiling',
 		group:[
 			{
@@ -125,15 +162,15 @@ Debug.setup = function() {
 									if (Debug.temp[i][3]) {
 										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, '');
 										if (Debug.option.trace) {
-											console.log('!!! ' + error(s));
+											log(LOG_DEBUG, '!!! ' + s);
 										} else {
-											console.log('!!! [' + (new Date()).toLocaleTimeString() + '] ' + s);
+											log(LOG_INFO, '!!! ' + s);
 										}
 									}
 								}
 							}
 						} catch(e) {
-							console.log(error(e.name + ': ' + e.message));
+							log(LOG_ERROR, e.name + ': ' + e.message);
 						}
 						Debug.stack.shift();
 						return r;
@@ -148,29 +185,57 @@ Debug.setup = function() {
 		}
 	}
 	delete Workers['__fake__']; // Remove the fake worker
-	// Replace the global functions for better log reporting
-	log = function(txt){
-		return '[' + (new Date()).toLocaleTimeString() + ']' + (Debug.stack.length ? ' '+Debug.stack[0][1]+':' : '') + (txt ? ' ' + txt : '');
-	};
-	warn = function(txt){
-		var i, output = [];
-		for (i=0; i<Debug.stack.length; i++) {
-			if (!output.length || Debug.stack[i][1] !== output[0]) {
-				output.unshift(Debug.stack[i][1]);
+	// Replace the global logging function for better log reporting
+	log = function(level, txt /*, obj, array etc*/){
+		var i, j, level, tmp, args = Array.prototype.slice.call(arguments), prefix = [], suffix = [],
+			date = [true, true, true, true, true],
+			rev = [false, false, true, true, true],
+			worker = [false, true, true, true, true],
+			stack = [false, false, false, true, true],
+			type = ['info', 'log', 'warn', 'error', 'debug'];
+		if (isNumber(args[0])) {
+			level = Math.range(0, args.shift(), 4);
+		} else if (type.indexOf(args[0]) >= 0) {
+			level = type.indexOf(args.shift());
+		} else {
+			level = Debug.get(['option','logdef'], LOG_INFO);
+		}
+		if (!Debug.get(['option','log',level], false)) {
+			return;
+		}
+		if (rev[level]) {
+			prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
+		}
+		if (date[level]) {
+			prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+		}
+		if (worker[level]) {
+			tmp = [];
+			for (i=0; i<Debug.stack.length; i++) {
+				if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
+					tmp.unshift(Debug.stack[i][1]);
+				}
+			}
+			prefix.push(tmp.join('->'));
+		}
+		if (stack[level]) {
+			for (i=0; i<Debug.stack.length; i++) {
+				suffix.unshift('->' + Debug.stack[i][1] + '.' + Debug.stack[i][2].callee._name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')');
+				for (j=1; j<suffix.length; j++) {
+					suffix[j] = '  ' + suffix[j];
+				}
 			}
 		}
-		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + '] ' + output.join('->') + ':' + (txt ? ' ' + txt : '');
-	};
-	error = function(txt) {
-		var i, j, output = [];
-		for (i=0; i<Debug.stack.length; i++) {
-			output.unshift('->' + Debug.stack[i][1] + '.' + Debug.stack[i][2].callee._name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')');
-			for (j=1; j<output.length; j++) {
-				output[j] = '  ' + output[j];
-			}
+		suffix.unshift(''); // Force an initial \n before the stack trace
+		if (args.length > 1) {
+			suffix.push(''); // Force an extra \n after the stack trace if there's more args
 		}
-		output.unshift(txt ? ': ' + txt : '');
-		return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + output.join("\n") + (txt ? '' : "\n:");
+		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
+		if (Debug.get(['option','console'], false) && console[type[level]]) {
+			console[type[level]].apply(console, args);
+		} else {
+			console.log.apply(console, args);
+		}
 	};
 };
 

@@ -109,7 +109,7 @@ Queue.init = function() {
 		if (Workers[i].work && Workers[i].display) {
 			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
 			if (!this.option.queue.find(i)) {// Add any new workers that have a display (ie, sortable)
-				console.log(log('Adding '+i+' to Queue'));
+				log('Adding '+i+' to Queue');
 				if (Workers[i].settings.unsortable) {
 					this.option.queue.unshift(i);
 				} else {
@@ -122,7 +122,7 @@ Queue.init = function() {
 		worker = Workers[this.option.queue[i]];
 		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
-				console.log(warn('Trigger '+worker.name+' (continue after load)'));
+				log(LOG_INFO, 'Trigger '+worker.name+' (continue after load)');
 				$('#'+worker.id+' > h3').css('font-weight', 'bold');
 			}
 			$('#golem_config').append($('#'+worker.id));
@@ -136,7 +136,7 @@ Queue.init = function() {
 	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
 	$('#golem_pause').click(function() {
 		var pause = Queue.set(['option','pause'], !Queue.option.pause);
-		console.log(log('State: ' + (pause ? "paused" : "running")));
+		log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
 		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 		if (!pause) {
 			$('#golem_step').hide();
@@ -199,7 +199,7 @@ Queue.update = function(event, events) {
 		// Check if stamina/energy maxxed and should be forced
 		for (i=0; i<ensta.length; i++) {
 			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
-				console.log(warn('At max ' + ensta[i] + ', burning ' + ensta[i]));
+				log(LOG_INFO, 'At max ' + ensta[i] + ', burning ' + ensta[i]);
 				this.runtime[ensta[i]] = Player.get(ensta[i]);
 				this.runtime.force[ensta[i]] = true;
 			}
@@ -215,7 +215,7 @@ Queue.update = function(event, events) {
 					if (stat) {
 						this.runtime[stat] = this.runtime[stat] || Player.get(stat);
 						this.runtime.force[stat] = true;
-						console.log(warn(worker.name + ': force burn ' + stat + ' ' + this.runtime[stat]));
+						log(LOG_WARN, worker.name + ': force burn ' + stat + ' ' + this.runtime[stat]);
 						break;
 					}
 				}
@@ -239,7 +239,7 @@ Queue.update = function(event, events) {
 		}
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
-				console.log(warn(Workers[i].name + '.work(false);'));
+//				log(LOG_DEBUG, Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
 			}
@@ -252,7 +252,7 @@ Queue.update = function(event, events) {
 				}
 				continue;
 			}
-//			console.log(warn(worker.name + '.work(' + (this.runtime.current === worker.name) + ');'));
+//			log(LOG_DEBUG, worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 			if (this.runtime.current === worker.name) {
 				worker._unflush();
 				result = worker._work(true);
@@ -274,13 +274,13 @@ Queue.update = function(event, events) {
 		current = this.runtime.current ? Workers[this.runtime.current] : null;
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			this.clearCurrent();
-			console.log(warn('Trigger ' + next.name));
+			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['runtime','current'], next.name);
 			if (next.id) {
 				$('#'+next.id+' > h3').css('font-weight', 'bold');
 			}
 		}
-//		console.log(warn('End Queue'));
+//		log(LOG_DEBUG, 'End Queue');
 	}
 	return true;
 };

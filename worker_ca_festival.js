@@ -246,18 +246,18 @@ Festival.work = function(state) {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {//fix
 						Page.to('festival_guild');
 					} else {
-						console.log(log('Collecting Reward'));
+						log('Collecting Reward');
 						Page.click('input[src*="arena3_collectbutton.gif"]');//fix
 					}
 				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
+						log('Entering Battle');
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 					}
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
+						log('Entering Battle');
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
@@ -292,7 +292,7 @@ Festival.work = function(state) {
 						if (Festival.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						//console.log(log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]));
+						//log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]);
 						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 							best = el;
 							besttarget = target;
@@ -300,11 +300,11 @@ Festival.work = function(state) {
 					});
 					if (best) {
 						this.set(['runtime','last'], besttarget[0]);
-						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
+						log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
 						if ($('input[src*="monster_duel_button.gif"]', best).length) {
 							Page.click($('input[src*="monster_duel_button.gif"]', best));
 						} else {
-							console.log(log('But couldn\'t find button, so backing out.'));
+							log(LOG_INFO, 'But couldn\'t find button, so backing out.');
 							Page.to('festival_guild');
 						}
 					} else {

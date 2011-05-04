@@ -117,7 +117,7 @@ Potions.update = function(event) {
 
 Potions.work = function(state) {
 	if (state && this.runtime.type && this.runtime.amount && Page.to('keep_stats')) {
-		console.log(warn(), 'Wanting to drink a ' + this.runtime.type + ' potion');
+		log(LOG_WARN, 'Wanting to drink a ' + this.runtime.type + ' potion');
 		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
 		this.set(['runtime','type'], null);
 		this.set(['runtime','amount'], 0);

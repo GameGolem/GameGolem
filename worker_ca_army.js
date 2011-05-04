@@ -106,7 +106,7 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 Army._overload('castle_age', 'parse', function(change) {
 	if (change && Page.page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
 		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
-//		console.log('Not our keep, uid: '+uid);
+//		log('Not our keep, uid: '+uid);
 		if (uid && Army.get(['Army', uid], false)) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
@@ -137,7 +137,7 @@ Army._overload('castle_age', 'parse', function(change) {
 				army._info.page = page;
 				army._info.id = start + i;
 				Army._taint.data = true;
-	//			console.log(warn(), 'Adding: ' + JSON.stringify(army));
+	//			log(LOG_DEBUG, 'Adding: ' + JSON.stringify(army));
 			});
 		} else {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
@@ -146,7 +146,7 @@ Army._overload('castle_age', 'parse', function(change) {
 		$tmp = $('img[src*="bonus_member.jpg"]');
 		if ($tmp.length) {
 			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x(\d+)');
-//			console.log(log(), 'Extra Army Members Found: '+Army.runtime.extra);
+//			log(LOG_DEBUG, 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in army) {
 			if (army[i].Army) {
@@ -166,7 +166,7 @@ Army._overload('castle_age', 'parse', function(change) {
 				this._set(['runtime','page'], page + 1);
 			}
 		}
-//		console.log(warn(), 'parse: Army.runtime = '+JSON.stringify(this.runtime));
+//		log(LOG_DEBUG, 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent() || true;
 });
@@ -176,7 +176,7 @@ Army._overload('castle_age', 'update', function(event) {
 	if (!this.option._disabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
 		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
 		if (!page && this.option.auto && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
-			console.log(log(), 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
+			log(LOG_WARN, 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}
 		if (!page && this.option.recheck) {
@@ -192,7 +192,7 @@ Army._overload('castle_age', 'update', function(event) {
 			this._set(['runtime','oldest'], oldest);
 		}
 		this._set(['runtime','page'], page);
-//		console.log(warn(), 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
+//		log(LOG_WARN, 'update('+JSON.shallow(event,1)+'): Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	this._set(['option','_sleep'], !this.runtime.page);
 });

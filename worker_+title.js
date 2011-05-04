@@ -73,7 +73,7 @@ Title.update = function(event) {
 						}
 						output += isNumber(value) ? value.addCommas() : isString(value) ? value : '';
 					} else {
-						console.log(warn(), 'Bad worker specified = "' + tmp[1] + '"');
+						log(LOG_WARN, 'Bad worker specified = "' + tmp[1] + '"');
 					}
 				}
 			}

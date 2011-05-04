@@ -125,7 +125,7 @@ Army.get = function(what, def) {
 		if (!section || !uid) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
 			return;
 		}
-	//	console.log(log(), 'this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
+//		log('this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
 		x.unshift('data', uid, section);
 	}
 // Removed for performance reasons...
@@ -256,7 +256,7 @@ Army.dashboard = function(sort, rev) {
 					td(output, '');
 				}
 			} catch(e3) {
-				console.log(warn(), e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
+				log(LOG_WARN, e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
 				td(output, '');
 			}
 		}
@@ -291,7 +291,7 @@ Army.dashboard = function(sort, rev) {
 				}
 			}
 		} catch(e4) {
-			console.log(warn(), e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
+			log(LOG_WARN, e4.name + ' in Army.dashboard(): ' + Army.getSection($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
 		}
 		return false;
 	});

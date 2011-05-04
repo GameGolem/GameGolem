@@ -158,12 +158,12 @@ Page.update = function(event) {
 		var i, list;
 		if (event.type === 'init' || event.id === 'page_change') {
 			list = ['#app_content_'+APPID, '#app46755028429_globalContainer', '#app46755028429_globalcss', '#app46755028429_main_bntp', '#app46755028429_main_sts_container', '#app46755028429_app_body_container', '#app46755028429_nvbar', '#app46755028429_current_pg_url', '#app46755028429_current_pg_info'];
-//			console.log(warn('Page change noticed...'));
+//			log('Page change noticed...');
 			this._forget('retry');
 			this.set(['temp','loading'], false);
 			for (i=0; i<list.length; i++) {
 				if (!$(list[i]).length) {
-					console.log(warn('Bad page warning: Unabled to find '+list[i]));
+					log(LOG_WARN, 'Bad page warning: Unabled to find '+list[i]);
 					this.retry();
 					return;
 				}
@@ -175,7 +175,7 @@ Page.update = function(event) {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
 						Page.page = i;
-						//console.log(log(Page.page));
+//						log(LOG_DEBUG, 'Page:' + Page.page);
 						return;
 					}
 				}
@@ -183,8 +183,8 @@ Page.update = function(event) {
 			if (this.page === '') {
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
+//						log(LOG_DEBUG, 'Page:' + Page.page);
 						Page.page = i;
-						//console.log(log(Page.page));
 					}
 				}
 			}
@@ -192,7 +192,7 @@ Page.update = function(event) {
 				this.set(['data',this.page], Date.now());
 				this.set(['runtime', 'stale', this.page]);
 			}
-//			console.log(warn('Page.update: ' + (this.page || 'Unknown page') + ' recognised'));
+//			log(LOG_WARN, 'Page.update: ' + (this.page || 'Unknown page') + ' recognised');
 			list = {};
 			for (i in Workers) {
 				if (Workers[i].parse
@@ -246,9 +246,8 @@ Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
 Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
 	var page = this.makeURL(url, args);
-//	console.log(warn(), 'Page.to("'+page+'", "'+args+'");');
 //	if (Queue.option.pause) {
-//		console.log(error('Trying to load page when paused...'));
+//		log(LOG_ERROR, 'Trying to load page when paused...');
 //		return true;
 //	}
 	if (!page || (!force && page === (this.temp.last || this.page))) {
@@ -259,7 +258,7 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
 		this.set(['temp','loading'], true);
-		console.log(warn('Navigating to ' + page));
+		log('Navigating to ' + page);
 	} else if (force) {
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
@@ -273,10 +272,10 @@ Page.retry = function() {
 	if (this.temp.reload || ++this.temp.retry >= this.option.reload) {
 		this.reload();
 	} else if (this.temp.last) {
-		console.log(log('Page load timeout, retry '+this.temp.retry+'...'));
+		log(LOG_WARN, 'Page load timeout, retry '+this.temp.retry+'...');
 		this.to(this.temp.last, null, true);// Force
 	} else if (this.lastclick) {
-		console.log(log('Page click timeout, retry '+this.temp.retry+'...'));
+		log(LOG_WARN, 'Page click timeout, retry '+this.temp.retry+'...');
 		this.click(this.lastclick);
 	} else {
 		// Probably a bad initial page load...
@@ -286,12 +285,12 @@ Page.retry = function() {
 		this.set(['temp','loading'], true);
 		this._remind(delay,'retry',{worker:this, type:'init'});// Fake it to force a re-check
 		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
-		console.log(log('Unexpected retry event.'));
+		log(LOG_ERROR, 'Unexpected retry event.');
 	}
 };
 		
 Page.reload = function() {
-	console.log(warn('Page.reload()'));
+	log('Page.reload()');
 	window.location.replace(window.location.href);
 };
 
@@ -310,7 +309,7 @@ Page.clearFBpost = function(obj) {
 
 Page.click = function(el) {
 	if (!$(el).length) {
-		console.log(log(), 'Page.click: Unable to find element - '+el);
+		log(LOG_ERROR, 'Page.click: Unable to find element - '+el);
 		return false;
 	}
 	var e, element = $(el).get(0);

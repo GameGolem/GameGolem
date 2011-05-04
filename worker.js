@@ -192,11 +192,11 @@ Worker.flush = function() {
 	window.clearTimeout(Worker.flushTimer); // Prevent a pending call from running
 	Worker.flushTimer = window.setTimeout(Worker.flush, 1000); // Call flush again in another second
 	for (i in Worker.updates) {
-//		console.log('Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
+//		log(LOG_DEBUG, 'Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
 		Workers[i]._update(null, 'run');
 	}
 	for (i in Workers) {
-//		console.log('Worker.flush(): '+i+'._flush()');
+//		log(LOG_DEBUG, 'Worker.flush(): '+i+'._flush()');
 		Workers[i]._flush();
 	}
 };
@@ -232,7 +232,7 @@ Worker.prototype._flush = function() {
  */
 Worker.prototype._add = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
 	}
 	if (isUndefined(value)) {
@@ -323,10 +323,10 @@ Worker.prototype._get = function(what, def, type) {
 			return isNull(data) ? null : data.valueOf();
 		}
 //		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
-//			console.log(warn('Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//			log(LOG_WARN, 'Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 //		}
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message));
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message);
 	}
 	return def;
 };
@@ -344,7 +344,7 @@ Worker.prototype._init = function(old_revision) {
 		try {
 			this.init(old_revision);
 		}catch(e) {
-			console.log(error(e.name + ' in ' + this.name + '.init(): ' + e.message));
+			log(LOG_ERROR, e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
 	}
 	this._popStack();
@@ -379,7 +379,7 @@ Worker.prototype._load = function(type, merge) {
 			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 			this._numvars[type] = metrics.num || 0;
 		} catch(e) {
-			console.log(error(this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...'));
+			log(LOG_ERROR, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
 		if (merge && !compare(i, this[type])) {
 			this[type] = $.extend(true, {}, this[type], i);
@@ -458,7 +458,7 @@ Worker.prototype._parse = function(change) {
 		this._unflush();
 		result = this.parse && this.parse(change);
 	}catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 	}
 	this._popStack();
 	return result;
@@ -495,7 +495,7 @@ Worker.prototype._pop = function(what, def, type) {
  */
 Worker.prototype._push = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
@@ -614,7 +614,7 @@ Worker.prototype._save = function(type) {
 		try {
 			v = JSON.encode(this[type], metrics);
 		} catch (e) {
-			console.log(error(e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message));
+			log(LOG_ERROR, e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
 			return false; // exit so we don't try to save mangled data over good data
 		}
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
@@ -628,7 +628,7 @@ Worker.prototype._save = function(type) {
 				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 				this._numvars[type] = metrics.num || 0;
 			} catch (e2) {
-				console.log(error(e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message));
+				log(LOG_ERROR, e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message);
 			}
 			this._popStack();
 			return true;
@@ -646,7 +646,7 @@ Worker.prototype._save = function(type) {
  */
 Worker.prototype._set = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
 	}
 	var i, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
@@ -698,7 +698,7 @@ Worker.prototype._set = function(what, value, type) {
 			fn.call(this, this, x, value, 0);
 		}
 	} catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message));
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message);
 	}
 	return value;
 };
@@ -732,7 +732,7 @@ Worker.prototype._setup = function(old_revision) {
 			try {
 				this.setup(old_revision);
 			}catch(e) {
-				console.log(error(e.name + ' in ' + this.name + '.setup(): ' + e.message));
+				log(LOG_ERROR, e.name + ' in ' + this.name + '.setup(): ' + e.message);
 			}
 		}
 	} else { // Get us out of the list!!!
@@ -783,19 +783,19 @@ Worker.prototype._timer = function(id) {
  */
 Worker.prototype._transaction = function(commit) {
 	if (isUndefined(commit)) { // Begin transaction
-//		console.log(warn('Begin Transaction:'));
+//		log(LOG_DEBUG, 'Begin Transaction:');
 		this._transactions_ = [];
 	} else {
 		var i, list = this._transactions_;
 		this._transactions_ = null; // Both rollback and commit clear current status
 		if (commit && isArray(list)) { // Commit transaction
-//			console.log(warn('Commit Transaction:'));
+//			log(LOG_DEBUG, 'Commit Transaction:');
 			for (i=0; i<list.length; i++) {
-//				console.log(warn('...'+JSON.shallow(list[i],2)));
+//				log(LOG_DEBUG, '...'+JSON.shallow(list[i],2));
 				this._set(list[i][0], list[i][1]);
 			}
 		}
-//		else console.log(warn('Rollback Transaction:'));
+//		else log(LOG_DEBUG, 'Rollback Transaction:');
 	}
 };
 
@@ -843,7 +843,7 @@ Worker.prototype._unflush = function() {
  */
 Worker.prototype._unshift = function(what, value, type) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		console.log(warn('Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data)));
+//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
@@ -931,7 +931,7 @@ Worker.prototype._update = function(event, type) {
 						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					console.log(error(e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message));
+					log(LOG_ERROR, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
 				}
 				events.shift();
 			}
@@ -975,7 +975,7 @@ Worker.prototype._work = function(state) {
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
-		console.log(error(e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message));
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
 	this._popStack();
 	return result;

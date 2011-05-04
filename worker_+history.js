@@ -55,18 +55,6 @@ History.update = function(event) {
 			this._set(['data',i]);
 		}
 	}
-//	console.log(warn(), 'Exp: '+this.get('exp'));
-//	console.log(warn(), 'Exp max: '+this.get('exp.max'));
-//	console.log(warn(), 'Exp max change: '+this.get('exp.max.change'));
-//	console.log(warn(), 'Exp min: '+this.get('exp.min'));
-//	console.log(warn(), 'Exp min change: '+this.get('exp.min.change'));
-//	console.log(warn(), 'Exp change: '+this.get('exp.change'));
-//	console.log(warn(), 'Exp mean: '+this.get('exp.mean.change'));
-//	console.log(warn(), 'Exp harmonic: '+this.get('exp.harmonic.change'));
-//	console.log(warn(), 'Exp geometric: '+this.get('exp.geometric.change'));
-//	console.log(warn(), 'Exp mode: '+this.get('exp.mode.change'));
-//	console.log(warn(), 'Exp median: '+this.get('exp.median.change'));
-//	console.log(warn(), 'Average Exp = weighted average: ' + this.get('exp.average.change') + ', mean: ' + this.get('exp.mean.change') + ', geometric: ' + this.get('exp.geometric.change') + ', harmonic: ' + this.get('exp.harmonic.change') + ', mode: ' + this.get('exp.mode.change') + ', median: ' + this.get('exp.median.change'));
 };
 
 History.set = function(what, value, type) {
@@ -199,7 +187,7 @@ History.get = function(what) {
 				} else if (isNumber(last)) {
 					list.push(value - last);
 					if (isNaN(list[list.length - 1])) {
-						console.log(warn('NaN: '+value+' - '+last));
+						log(LOG_WARN, 'NaN: '+value+' - '+last);
 					}
 				}
 			}

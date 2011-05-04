@@ -151,7 +151,7 @@ Dashboard.update_watch = function(event) {
 			event.worker._unflush();
 			event.worker.dashboard();
 		}catch(e) {
-			console.log(warn(), e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
+			log(LOG_ERROR, e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 		}
 	} else {
 		$('#golem-dashboard-'+event.worker.name).empty();

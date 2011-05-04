@@ -95,33 +95,44 @@ var isNull = function(obj) {
 };
 
 /**
- * Log a message, insert the current Time before it
- * @param {string} txt The message to log
- * @return {string} The message with the timestamp inserted
+ * Log a message, can have various prefix parts
+ * @param {(number|string)} level The level to use (or the txt if only one arg)
+ * @param {string=} txt The message to log
  * NOTE: Will be replaced by Debug Worker if present!
  */
-var log = function(txt){
-	return '[' + (new Date()).toLocaleTimeString() + ']' + (txt ? ' '+txt : '');
-};
-
-/**
- * Log a message, insert the current Time and Worker before it
- * @param {string} txt The message to log
- * @return {string} The message with the timestamp inserted
- * NOTE: Will be replaced by Debug Worker if present!
- */
-var warn = function(txt) {
-	return '[' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
-};
-
-/**
- * Log a message, insert the current Time and Worker queue before it
- * @param {string} txt The message to log
- * @return {string} The message with the timestamp inserted
- * NOTE: Will be replaced by Debug Worker if present!
- */
-var error = function(txt) {
-	return '!!![' + (isRelease ? 'v'+version : 'r'+revision) + '] [' + (new Date()).toLocaleTimeString() + ']' + (Worker.stack.length ? ' '+Worker.stack[0]+':' : '') + (txt ? ' '+txt : '');
+var LOG_INFO = 0;
+var LOG_LOG = 1
+var LOG_WARN = 2;
+var LOG_ERROR = 3;
+var LOG_DEBUG = 4;
+var log = function(level, txt /*, obj, array etc*/){
+	var level, args = Array.prototype.slice.call(arguments), prefix = [],
+		date = [true, true, true, true, true],
+		rev = [false, false, true, true, true],
+		worker = [false, true, true, true, true],
+		type = ['info', 'log', 'warn', 'error', 'debug'];
+	if (isNumber(args[0])) {
+		level = Math.range(0, args.shift(), 4);
+	} else if (type.indexOf(args[0]) >= 0) {
+		level = type.indexOf(args.shift());
+	} else {
+		level = LOG_LOG;
+	}
+	if (rev[level]) {
+		prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
+	}
+	if (date[level]) {
+		prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+	}
+	if (worker[level]) {
+		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
+	}
+	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
+	if (console[type[level]]) {
+		console[type[level]].apply(console, args);
+	} else {
+		console.log.apply(console, args);
+	}
 };
 
 /**
@@ -597,7 +608,7 @@ var getAttDef = function(list, unitfunc, x, count, type, suffix) { // Find total
 		if (type) {
 			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], Math.min(count, limit) || undefined);
 			if (Math.min(count, own) > 0) {
-				//console.log(warn(), 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(p));
+				//log(LOG_WARN, 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(p));
 				if (!p['use'+suffix]) {
 					p['use'+suffix] = {};
 				}
@@ -771,13 +782,14 @@ JSON.shallow = function(obj, depth, replacer, space) {
 };
 
 JSON.encode = function(obj, replacer, space, metrics) {
-	var keys = {}, reverse = {}, count = {}, next = 0, nextKey = null, getKey = function() {
+	var i, keys = {}, count = {}, next = 0, nextKey = null, first = true, getKey = function() {
 		var key, digits = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', length = digits.length;
 		do {
 			key = nextKey;
 			nextKey = (next >= length ? digits[(Math.floor(next / length) - 1) % length] : '') + digits[next % length];
 			next++;
 		} while (count[nextKey]); // First time we're called we ignore "key", but already have count[] filled
+		first = false;
 		return key;
 	}, check = function(obj) { // Count how many of each key - to decide if we replace them
 		var i;
@@ -791,15 +803,15 @@ JSON.encode = function(obj, replacer, space, metrics) {
 				arguments.callee(obj[i]);
 			}
 		}
-	}, encode = function(obj, m) { // Replace keys where the saved length is more than the used length
-		var i, to = obj;
+	}, encode = function(obj) { // Replace keys where the saved length is more than the used length
+		var i, len, to;
 		if (isObject(obj)) {
 			to = {};
 			for (i in obj) {
-				if ((count[i] * (i.length + 2)) > ((count[i] * (nextKey.length + 2)) + i.length + 2)) { // total (length of key) > total (length of encoded key) + length of key
+				len = i.length;
+				if ((count[i] * len) > (((count[i] + 1) * nextKey.length) + len + (first ? 12 : 6))) { // total (length of key) > total (length of encoded key) + length of key translation
 					if (!keys[i]) {
 						keys[i] = getKey();
-						reverse[keys[i]] = i;
 					}
 					to[keys[i]] = arguments.callee(obj[i]);
 				} else {
@@ -811,32 +823,41 @@ JSON.encode = function(obj, replacer, space, metrics) {
 			for (i=0; i<obj.length; i++) {
 				to[i] = arguments.callee(obj[i]);
 			}
-		}
-		if (isObject(m) && keys) {
-			m.oh = 6; // 7, -1 for first comma miscount
-			m.mod = 0;
-			m.num = length(keys);
-			for (i in keys) {
-				m.oh += i.length + keys[i].length + 6;
-				m.mod += (keys[i].length - i.length) * count[i];
-			}
+		} else {
+			to = obj;
 		}
 		return to;
 	};
 	if (isObject(obj) || isArray(obj)) {
+		if (obj['$']) {
+			log(LOG_ERROR, 'Trying to encode an object that already contains a "$" key!!!');
+		}
 		check(obj);
 		getKey(); // Load up the first key, prevent key conflicts
-		obj = encode(obj, metrics);
-		if (!empty(reverse)) {
-			obj['$'] = reverse;
+		first = true; // For the "Should I?" check
+		obj = encode(obj);
+		if (!empty(keys)) {
+			obj['$'] = {};
+			for (i in keys) {
+				obj['$'][keys[i]] = i;
+			}
+			if (isObject(metrics)) {
+				metrics.oh = 6; // 7, -1 for first comma miscount
+				metrics.mod = 0;
+				metrics.num = length(keys);
+				for (i in keys) {
+					metrics.oh += i.length + keys[i].length + 6;
+					metrics.mod += (keys[i].length - i.length) * count[i];
+				}
+			}
 		}
 	}
 	return JSON.stringify(obj, replacer, space);
 };
 
 JSON.decode = function(str, metrics) {
-	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj, m) {
-		var i, to = obj;
+	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj) {
+		var i, to;
 		if (isObject(obj)) {
 			to = {};
 			for (i in obj) {
@@ -852,21 +873,23 @@ JSON.decode = function(str, metrics) {
 			for (i=0; i<obj.length; i++) {
 				to[i] = arguments.callee(obj[i]);
 			}
-		}
-		if (isObject(m) && keys) {
-			m.oh = 6; // 7, -1 for first comma miscount
-			m.mod = 0;
-			m.num = length(keys);
-			for (i in keys) {
-				m.oh += i.length + keys[i].length + 6;
-				m.mod += (keys[i].length - i.length) * count[i];
-			}
+		} else {
+			to = obj;
 		}
 		return to;
 	};
 	if (keys) {
 		delete obj['$'];
-		obj = decode(obj, metrics);
+		obj = decode(obj);
+		if (isObject(metrics) && !empty(keys)) {
+			metrics.oh = 6; // 7, -1 for first comma miscount
+			metrics.mod = 0;
+			metrics.num = length(keys);
+			for (i in keys) {
+				metrics.oh += i.length + keys[i].length + 6;
+				metrics.mod += (keys[i].length - i.length) * count[i];
+			}
+		}
 	}
 	return obj;
 };

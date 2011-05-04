@@ -144,7 +144,7 @@ Quest.init = function() {
 			if (data[i].reps) {
 				x = this.wiki_reps(data[i], true);
 				if (data[i].reps < Math.round(x * 0.8) || data[i].reps > Math.round(x * 1.2)) {
-					console.log(warn(), 'Quest.init: deleting metrics for: ' + i);
+					log(LOG_WARN, 'Quest.init: deleting metrics for: ' + i);
 					delete data[i].m_c;
 					delete data[i].m_d;
 					delete data[i].reps;
@@ -323,11 +323,11 @@ Quest.parse = function(change) {
 			this._transaction(true); // COMMIT TRANSACTION
 		} catch(e) {
 			this._transaction(false); // ROLLBACK TRANSACTION on any error
-			console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+			log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 		}
 	}
 	for (i in purge) {
-		console.log(warn(), 'Deleting ' + i + '(' + (this.land[data.id[i].land] || data.id[i].area) + ')');
+		log(LOG_WARN, 'Deleting ' + i + '(' + (this.land[data.id[i].land] || data.id[i].area) + ')');
 		this.set(['data','id',i]); // Delete unseen quests...
 	}
 	return false;
@@ -381,7 +381,7 @@ Quest.update = function(event) {
 			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
 			has_cartigan = true; // Stop trying once we've got the general or the ingredients
 		}
-//		console.log(warn(), 'option = ' + this.option.what);
+//		log(LOG_WARN, 'option = ' + this.option.what);
 //		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
 		for (i in data.id) {
 			// Skip quests we can't afford or can't equip the general for
@@ -560,7 +560,7 @@ Quest.update = function(event) {
 		this.set(['runtime','best'], best);
 		if (best) {
 			this.set(['runtime','energy'], data.id[best].energy);
-			console.log(warn(), 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
+			log(LOG_WARN, 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 		}
 	}
 	if (best) {
@@ -649,12 +649,12 @@ Quest.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
-	console.log(warn(), 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
-	//console.log(warn(),'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (Queue.runtime.general && quest.general));
+	log(LOG_WARN, 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
+	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (Queue.runtime.general && quest.general));
 	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		quest.button_fail = (quest.button_fail || 0) + 1;
 		if (quest.button_fail > 5){
-			console.log(warn(), 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
+			log(LOG_WARN, 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
 			delete quest;
 			this.runtime.best = null;
 			Page.reload();
@@ -671,7 +671,7 @@ Quest.work = function(state) {
 				Page.to('quests_atlantis',null,true);
 				return QUEUE_CONTINUE;
 			default:
-				console.log(log(), 'Can\'t get to quest area!');
+				log(LOG_LOG, 'Can\'t get to quest area!');
 				return QUEUE_FINISH;
 			}
 		}

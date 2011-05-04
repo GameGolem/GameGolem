@@ -128,7 +128,7 @@ Player.parse = function(change) {
 				if (!o[a]) o[a] = {};
 				o[a].value = ($(el).text() || '').trim();
 			});
-			//console.log(warn(), 'Land.income: ' + JSON.shallow(o, 2));
+			//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
 			for (i in o) {
 				if (o[i].label && o[i].value) {
 					if (o[i].label.match(/Land Income:/i)) {

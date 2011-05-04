@@ -326,7 +326,7 @@ Battle.parse = function(change) {
 					 || tmp.match(/This trainee is too weak. Challenge someone closer to your level/i)
 					 || tmp.match(/They are too high level for you to attack right now/i)
 					 || tmp.match(/Their army is far greater than yours! Build up your army first before attacking this player!/i)) {
-			//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
+//				log(LOG_DEBUG, 'data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now());
 				this.set(['data','user',uid]);
 				this.set(['runtime','attacking'], null);
 				this.set(['runtime','chain'], 0);
@@ -338,7 +338,7 @@ Battle.parse = function(change) {
 //			} else if (!$('div.results').text().match(new RegExp(data[uid].name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")+"( fought with:|'s Army of (\d+) fought with|'s Defense)",'i'))) {
 //			} else if (!$('div.results').text().match(data[uid].name)) {
 //				uid = null; // Don't remove target as we've hit someone else...
-//				console.log(warn(), 'wrong ID');
+//				log(LOG_WARN, 'wrong ID');
 			} else if ($('img[src*="battle_defeat"]').length) {
 				if (Player.get('general') === 'Zin'
 						&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
@@ -419,7 +419,7 @@ Battle.update = function(event) {
 		}
 	}
 	if (length(data) > this.option.cache) { // Need to prune our target cache
-//		console.log(warn(), 'Pruning target cache');
+//		log('Pruning target cache');
 		list = [];
 		for (i in data) {
 			list.push(i);
@@ -447,7 +447,7 @@ Battle.update = function(event) {
 		}
 	}
 	// Check if we need Demi-points
-        //console.log(warn(), 'Queue Logic = ' + enabled);
+//	log(LOG_WARN, 'Queue Logic = ' + enabled);
 	points = this.set(['runtime','points'], this.option.points !== 'Never' && sum(this.get(['data','points'], [0])) < 50 && enabled);
 	// Second choose our next target
 /*	if (!points.length && this.option.arena && Arena.option.enabled && Arena.runtime.attacking) {
@@ -464,7 +464,7 @@ Battle.update = function(event) {
 		|| (this.option.type === 'War' && data[this.runtime.attacking].last && data[this.runtime.attacking].last + 300000 < Date.now())) {
 			this.set(['runtime','attacking'], null);
 		}
-		//console.log(log('data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now()));
+//		log(LOG_DEBUG, 'data[this.runtime.attacking].last ' + data[this.runtime.attacking].last+ ' Date.now() '+ Date.now()) + ' test ' + (data[this.runtime.attacking].last + 300000 < Date.now());
 		skip = {};
 		list = [];
 		for(j=0; j<this.option.prefer.length; j++) {
@@ -542,7 +542,7 @@ Battle.work = function(state) {
 	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) 
 			|| useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)
 			|| Queue.runtime.big) {
-//		console.log(warn(), 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
+//		log(LOG_WARN, 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
 	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle')) {
@@ -553,10 +553,10 @@ Battle.work = function(state) {
 	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	/*jslint onevar:true*/
 	if (!$form.length) {
-		console.log(warn(), 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
+		log(LOG_WARN, 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
 		Page.to('index');
 	} else {
-		console.log(log(), (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
+		log(LOG_INFO, (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
 		Page.click($('input[type="image"]', $form));
 	}

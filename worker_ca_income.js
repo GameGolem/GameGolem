@@ -69,11 +69,11 @@ Income.work = function(state) {
 	if (state) {
 		if (this.temp.income) {
 			if (Generals.to('income')) {
-				console.log(log('Waiting for Income... (' + Player.get('cash_timer') + ' seconds)'));
+				log(LOG_INFO, 'Waiting for Income... (' + Player.get('cash_timer') + ' seconds)');
 			}
 		} else if (this.temp.bank) {
 			if (!Bank.stash()) {
-				console.log(log('Banking Income...'));
+				log(LOG_INFO, 'Banking Income...');
 			} else {
 				this.set(['temp','bank'], false);
 			}

@@ -210,7 +210,7 @@ Script._operate = function(op, op_list, value_list) {
 		if (this._operators[tmp[0]][1]) {
 			args = this._expand(args);
 		}
-//		console.log(log('Perform: '+this._operators[tmp[0]][0]+'('+args+')'));
+//		log(LOG_LOG, 'Perform: '+this._operators[tmp[0]][0]+'('+args+')');
 		value_list.push(fn.apply(this, args));
 	}
 	if (this._operators[op]) {
@@ -268,7 +268,7 @@ Script._interpret = function(_script) {
 			} else if (x[0] === '#') {
 				value_list.push(x);
 			} else {
-				console.log(error('Bad string format: '+x));
+				log(LOG_ERROR, 'Bad string format: '+x);
 				value_list.push(x); // Should never hit this...
 			}
 		} else { // number or boolean
@@ -331,17 +331,17 @@ Script.parse = function(worker, datatype, text, map) {
 				// unary op
 				if (!script.length || Script._find(script[script.length-1], Script._operators) !== -1) {
 					if (Script._find('u' + atom, Script._operators) !== -1) {
-						//console.log(warn(), 'unary/prefix [' + atom + ']');
+						//log(LOG_WARN, 'unary/prefix [' + atom + ']');
 						atom = 'u' + atom;
 					} else {
-						console.log(warn(), 'unary/prefix [' + atom + '] is not supported');
+						log(LOG_WARN, 'unary/prefix [' + atom + '] is not supported');
 					}
 				} else if (Script._operators[i][2] === false) {
 					if (Script._find('p' + atom, Script._operators) !== -1) {
-						//console.log(warn(), 'postifx [' + atom + ']');
+						//log(LOG_WARN, 'postifx [' + atom + ']');
 						atom = 'p' + atom;
 					} else {
-						console.log(warn(), 'postifx [' + atom + '] is not supported');
+						log(LOG_WARN, 'postifx [' + atom + '] is not supported');
 					}
 				}
 				script.push(atom);
@@ -367,7 +367,7 @@ Script.parse = function(worker, datatype, text, map) {
 				script.push(path.join('.'));
 			}
 		}
-//		console.log('Script section: '+JSON.stringify(script));
+//		log(LOG_DEBUG, 'Script section: '+JSON.stringify(script));
 		if (script[script.length-1] === ';') {
 			script.pop();
 		}

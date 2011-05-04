@@ -103,10 +103,10 @@ FP.notReady = function() {
 FP.update = function(event) {
 	Dashboard.status(this, 'You have ' + makeImage('favor') + this.runtime.points + ' favor points.');
 	this.set(['option','_sleep'], FP.notReady());
-//	console.log(warn(), 'a '+(Player.get(this.option.type,0) >= this.option.stat));
-//	console.log(warn(), 'b '+(Player.get('exp_needed', 0) < this.option.xp));
-//	console.log(warn(), 'c '+((this.data[Player.get('level',0)] || 0) >= this.option.times));
-//	console.log(warn(), 'd '+(this.runtime.points < this.option.fps + 10));
+//	log(LOG_WARN, 'a '+(Player.get(this.option.type,0) >= this.option.stat));
+//	log(LOG_WARN, 'b '+(Player.get('exp_needed', 0) < this.option.xp));
+//	log(LOG_WARN, 'c '+((this.data[Player.get('level',0)] || 0) >= this.option.times));
+//	log(LOG_WARN, 'd '+(this.runtime.points < this.option.fps + 10));
 };
 
 FP.work = function(state) {
@@ -116,7 +116,7 @@ FP.work = function(state) {
 	if (state && Generals.to(this.option.general) && Page.to('oracle_oracle')) {
 		Page.click('#app46755028429_favorBuy_' + (this.option.type === 'energy' ? '5' : '6') + ' input[name="favor submit"]');
 		//this.set(['data', Player.get('level',0).toString()], (parseInt(this.data[Player.get('level',0).toString()] || 0, 10)) + 1); 
-		console.log(warn(), 'Clicking on ' + this.option.type + ' refill ' + Player.get('level',0));
+		log(LOG_WARN, 'Clicking on ' + this.option.type + ' refill ' + Player.get('level',0));
 	}
 	return QUEUE_CONTINUE;
 };

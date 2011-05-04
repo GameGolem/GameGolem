@@ -135,7 +135,7 @@ Session.updateTimestamps = function() {
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
 					} else if (_ts > Workers[i]._timestamps[j]) {
-//						console.log(log('Need to replace '+i+'.'+j+' with newer data'));
+						log(LOG_DEBUG, 'Need to replace '+i+'.'+j+' with newer data');
 						_old = Workers[i][j];
 						Workers[i]._load(j);
 						_new = Workers[i][j];

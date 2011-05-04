@@ -384,7 +384,7 @@ Town.parse = function(change) {
 				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
 				n = self.qualify(n, i);
 				if (!self.data[n]) {
-					//console.log(warn(), 'missing unit: ' + n + ' (' + i + ')');
+					//log(LOG_WARN, 'missing unit: ' + n + ' (' + i + ')');
 					Page.setStale('town_soldiers', now);
 					return false;
 				} else if (isNumber(c)) {
@@ -402,7 +402,7 @@ Town.parse = function(change) {
 				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
 				n = self.qualify(n, i); // names aren't unique for items
 				if (!self.data[n] || self.data[n].img !== i) {
-					//console.log(warn(), 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
+					//log(LOG_WARN, 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
 					Page.setStale('town_blacksmith', now);
 					Page.setStale('town_magic', now);
 					return false;
@@ -486,7 +486,7 @@ Town.parse = function(change) {
 				changes++; // this must come after the transaction
 			} catch(e) {
 				self._transaction(false); // ROLLBACK TRANSACTION on any error
-				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 			}
 		});
 
@@ -494,7 +494,7 @@ Town.parse = function(change) {
 		if (changes) {
 			for (i in purge) {
 				if (purge[i]) {
-					console.log(warn('Purge: ' + i));
+					log(LOG_WARN, 'Purge: ' + i);
 					this.set(['data',i]);
 					changes++;
 				}
@@ -680,11 +680,11 @@ Town.update = function(event, events) {
 			max_cost = fixed_cost;
 		}
 
-//			console.log(warn(), 'Item: '+u+', need: '+need+', want: '+want);
+//			log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
 		if (need > have) { // Want to buy more                                
 			if (!best_quest && data[u].buy && data[u].buy.length) {
 				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / Player.get('maxincome')) * 100) && i > 1 && (!best_buy || need > buy)) {
-//						console.log(warn(), 'Buy: '+need);
+//						log(LOG_WARN, 'Buy: '+need);
 					best_buy = u;
 					buy = have + i; // this.buy() takes an absolute value
 					buy_pref = Math.max(need, want);
@@ -696,7 +696,7 @@ Town.update = function(event, events) {
 		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
 			need = data[u].sell.lower(have - (i = Math.max(need,want,keep[u] || 0)));
 			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//				console.log(warn(), 'Sell: '+need);
+//				log(LOG_WARN, 'Sell: '+need);
 				best_sell = u;
 				sell = need;
 				sell_pref = i;
@@ -778,7 +778,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	var qty = this.data[item].buy.lower(number);
 	var $form = $('form#app46755028429_itemBuy_' + this.data[item].id);
 	if ($form.length) {
-		console.log(warn(), 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
+		log(LOG_WARN, 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 		$('select[name="amount"]', $form).val(qty);
 		Page.click($('input[name="Buy"]', $form));
 	}
@@ -797,7 +797,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	var qty = this.data[item].sell.lower(number);
 	var $form = $('form#app46755028429_itemSell_' + this.data[item].id);
 	if ($form.length) {
-		console.log(warn(), 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
+		log(LOG_WARN, 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 		$('select[name="amount"]', $form).val(qty);
 		Page.click($('input[name="Sell"]', $form));
 	}
@@ -850,7 +850,7 @@ format_unit_str = function(name) {
 			str += ' <span style="color:red;">$' + n.SI() + '/hr</span>';
 		}
 	} else {
-		console.log(warn('# format_unit_str(' + name + ') not found!'));
+		log(LOG_WARN, '# format_unit_str(' + name + ') not found!');
     }
 
     return str;

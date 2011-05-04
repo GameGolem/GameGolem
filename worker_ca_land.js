@@ -142,7 +142,7 @@ Land.parse = function(change) {
 						Land._transaction(true); // COMMIT TRANSACTION
 					} catch(e) {
 						Land._transaction(false); // ROLLBACK TRANSACTION on any error
-						console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+						log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 					}
 				} else if (Land.data[name]) {
 					$('strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
@@ -273,7 +273,7 @@ Land.work = function(state) {
 		this.set('runtime.lastlevel', Player.get('level'));
 		if (this.runtime.buy < 0) {
 			if (!(o = $('form#app'+APPID+'_propsell_'+this.data[this.runtime.best].id)).length) {
-				console.log(warn(), 'Can\'t find Land sell form for',
+				log(LOG_WARN, 'Can\'t find Land sell form for',
 				  this.runtime.best,
 				  'id[' + this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
@@ -281,27 +281,21 @@ Land.work = function(state) {
 				return QUEUE_RELEASE;
 			} else {
 				q = this.data[this.runtime.best].sell.lower(Math.abs(this.runtime.buy));
-				console.log(warn(), 'Selling ' + q + '/' + Math.abs(this.runtime.buy) + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
-
+				log(LOG_INFO, 'Selling ' + q + '/' + Math.abs(this.runtime.buy) + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
 				$('select[name="amount"]', o).val(q);
-				console.log(warn(), 'Land.sell:', q, 'x', this.runtime.best);
 				Page.click($('input[name="Sell"]', o));
 				return QUEUE_CONTINUE;
 			}
 		} else if (this.runtime.buy > 0) {
 			if (!(o = $('form#app'+APPID+'_prop_'+this.data[this.runtime.best].id)).length) {
-				console.log(warn(), 'Can\'t find Land buy form for',
-				  this.runtime.best,
-				  'id[' + this.data[this.runtime.best].id + ']');
+				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
 				this._remind(60.1, 'buy_land');
 				return QUEUE_RELEASE;
 			} else {
 				q = this.data[this.runtime.best].buy.higher(this.runtime.buy);
-				console.log(warn(), 'Buying ' + q + '/' + this.runtime.buy + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
-
+				log(LOG_INFO, 'Buying ' + q + '/' + this.runtime.buy + ' x ' + this.runtime.best + ' for $' + Math.abs(this.runtime.cost).SI());
 				$('select[name="amount"]', o).val(q);
-				console.log(warn(), 'Land.buy:', q, 'x', this.runtime.best);
 				Page.click($('input[name="Buy"]', o));
 				return QUEUE_CONTINUE;
 			}

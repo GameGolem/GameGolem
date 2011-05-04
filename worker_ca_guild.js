@@ -248,12 +248,12 @@ Guild.work = function(state) {
 					if (!$('input[src*="collect_reward_button2.jpg"]').length) {
 						Page.to('battle_guild');
 					} else {
-						console.log(log('Collecting Reward'));
+						log('Collecting Reward');
 						Page.click('input[src*="collect_reward_button2.jpg"]');
 					}
 				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
+						log('Entering Battle');
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 						this.set(['data'], {}); // Forget old "lose" list
 						return QUEUE_CONTINUE;
@@ -296,11 +296,11 @@ Guild.work = function(state) {
 					});
 					if (best) {
 						this.set(['runtime','last'], besttarget[0]);
-						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
+						log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
 						if ($('input[src*="monster_duel_button.gif"]', best).length) {
 							Page.click($('input[src*="monster_duel_button.gif"]', best));
 						} else {
-							console.log(log('But couldn\'t find button, so backing out.'));
+							log(LOG_INFO, 'But couldn\'t find button, so backing out.');
 							Page.to('battle_guild');
 						}
 					} else {

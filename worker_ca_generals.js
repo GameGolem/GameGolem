@@ -97,14 +97,14 @@ Generals.parse = function(change) {
 				j = parseInt($('div.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
 					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
-					//console.log(warn(name + ' ' + makeTime(this.data[name].charge, 'g:i a')));
+					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
 				this.set(['data',name,'own'], 1);
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				console.log(error(e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message));
+				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
 			}
 		}
 
@@ -199,7 +199,7 @@ Generals.parse = function(change) {
 					self._transaction(true); // COMMIT TRANSACTION
 				} catch (e2) {
 					self._transaction(false); // ROLLBACK TRANSACTION on any error
-					console.log(error(e2.name + ' in ' + self.name + '.parse(' + change + '): ' + e2.message));
+					log(LOG_ERROR, e2.name + ' in ' + self.name + '.parse(' + change + '): ' + e2.message);
 				}
 			}
 		}
@@ -295,7 +295,7 @@ Generals.update = function(event, events) {
 				}
 				if (num && item) {
 					Resources.set(['data', '_' + item, 'generals'], num * cap);
-//					console.log(warn('Save ' + (num * cap) + ' x ' + item + ' for General ' + i));
+//					log(LOG_WARN, 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
 				}
 			}
 		}
@@ -638,14 +638,14 @@ Generals.to = function(name) {
 		return true;
 	}
 	if (!this.data[name]) {
-		console.log(warn('General "'+name+'" requested but not found!'));
+		log(LOG_WARN, 'General "'+name+'" requested but not found!');
 		return true; // Not found, so fake it
 	}
 	if (!this.test(name)) {
-		console.log(log('General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name));
+		log(LOG_INFO, 'General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
 		return true;
 	}
-	console.log(warn('General change: ' + Player.get('general') + ' to ' + name));
+	log(LOG_WARN, 'General change: ' + Player.get('general') + ' to ' + name);
 	var id = this.get(['data',name,'id']), type = this.get(['data',name,'type']);
 	Page.to('heroes_generals', isNumber(id) && isNumber(type) ? {item:id, itype:type} : null, true);
 	return false;
@@ -848,7 +848,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			console.log(log('Priority: Swapping '+gup+' with '+gdown));
+			log('Priority: Swapping '+gup+' with '+gdown);
 			Generals.set(['data',gdown,'priority'], Generals.data[gdown].priority + 1);
 			Generals.set(['data',gup,'priority'], Generals.data[gup].priority - 1);
 		}
@@ -867,7 +867,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 		}
 		if (gdown && gup) {
-			console.log(log('Priority: Swapping '+gup+' with '+gdown));
+			log('Priority: Swapping '+gup+' with '+gdown);
 			Generals.set(['data',gdown,'priority'], Generals.data[gdown].priority + 1);
 			Generals.set(['data',gup,'priority'], Generals.data[gup].priority - 1);
 		}

@@ -141,7 +141,6 @@ LevelUp.update = function(event) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
-				//console.log(warn(), 'page.page ' + Page.page);
 				this.runtime.last_stamina = (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle';
 				calc_rolling_weighted_average(runtime, 'exp',exp - runtime.exp,
 						'stamina',runtime.stamina - stamina);
@@ -158,7 +157,7 @@ LevelUp.update = function(event) {
 		runtime.stamina = stamina;
 		runtime.exp = exp;
 	}
-	//console.log(warn(), 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
+	//log(LOG_DEBUG, 'next action ' + LevelUp.findAction('best', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', Player.get('energy'), Player.get('stamina'), Player.get('exp_needed')).exp);
 	d = new Date(this.get('level_time'));
 	if (runtime.running) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
@@ -189,7 +188,7 @@ LevelUp.work = function(state) {
 /*	if (action && action.big) {
 		Generals.set('runtime.disabled', false);
 		if (Generals.to(this.option.general)) {
-			//console.log(warn(), 'Disabling Generals because next action will level.');
+			//log('Disabling Generals because next action will level.');
 			Generals.set('runtime.disabled', true);	// Lock the General again so we can level up.
 		} else {
 			return QUEUE_CONTINUE;	// Try to change generals again
@@ -241,26 +240,26 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		big = this.findAction('big',energy,stamina,0); 
 		if (this.option.order === 'Energy') {
 			check = this.findAction('energy',energy-big.energy,0,exp);
-			//console.log(warn(), ' levelup quest ' + energy + ' ' + exp);
-			//console.log(warn(), 'this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
+			//log(LOG_WARN, ' levelup quest ' + energy + ' ' + exp);
+			//log(LOG_WARN, 'this.runtime.last_energy ' + this.runtime.last_energy + ' checkexp ' + check.exp +' quest ' + check.quest);
 			// Do energy first if defending a monster or doing the best quest, but not little 'use energy' quests
 			if (check.exp && (check.quest === Quest.runtime.best || !check.quest)) {
-				console.log(warn(), 'Doing regular quest ' + Quest.runtime.best);
+				log(LOG_WARN, 'Doing regular quest ' + Quest.runtime.best);
 				return check;
 			}
 		}
 		check = this.findAction('attack',0,stamina - big.stamina,exp);
 		if (check.exp) {
-			console.log(warn(), 'Doing stamina attack');
-			console.log(warn(),'basehit0 ' + check.basehit);
+			log(LOG_WARN, 'Doing stamina attack');
+			log(LOG_DEBUG, 'basehit0 ' + check.basehit);
 			return check;
 		}
 		check = this.findAction('quest',energy - big.energy,0,exp);
 		if (check.exp) {
-			console.log(warn(), 'Doing little quest ' + check.quest);
+			log(LOG_WARN, 'Doing little quest ' + check.quest);
 			return check;
 		}
-		console.log(warn(), 'Doing big action to save exp');
+		log(LOG_WARN, 'Doing big action to save exp');
 		return (big.exp ? big : nothing);
 	case 'big':		
 		// Should enable to look for other options than last stamina, energy?
@@ -271,20 +270,20 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		}
 */		staminaAction = this.findAction('attack',energy,stamina,0);
 		if (energyAction.exp > staminaAction.exp) {
-			console.log(warn(), 'Big action is energy.  Exp use:' + energyAction.exp + '/' + exp);
+			log(LOG_WARN, 'Big action is energy.  Exp use:' + energyAction.exp + '/' + exp);
 			energyAction.big = true;
 			return energyAction;
 		} else if (staminaAction.exp) {
-			//console.log(warn(), 'big stamina ' + staminaAction.exp + staminaAction.general);
-			console.log(warn(), 'Big action is stamina.  Exp use:' + staminaAction.exp + '/' + exp);
+			//log(LOG_WARN, 'big stamina ' + staminaAction.exp + staminaAction.general);
+			log(LOG_WARN, 'Big action is stamina.  Exp use:' + staminaAction.exp + '/' + exp);
 			staminaAction.big = true;
 			return staminaAction;
 		} else {
-			console.log(warn(), 'Big action not found');
+			log(LOG_WARN, 'Big action not found');
 			return nothing;  
 		}
 	case 'energy':	
-		//console.log(warn(), 'monster runtime defending ' + Monster.get('runtime.defending'));
+		//log(LOG_WARN, 'monster runtime defending ' + Monster.get('runtime.defending'));
 		if ((Monster.get('runtime.defending')
 					&& (Quest.option.monster === 'Wait for'
 						|| Quest.option.monster === 'When able'
@@ -293,12 +292,12 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				|| (!exp && Monster.get('runtime.big',false))) {
 			defendAction = this.findAction('defend',energy,0,exp);
 			if (defendAction.exp) {
-				console.log(warn(), 'Energy use defend');
+				log(LOG_WARN, 'Energy use defend');
 				return defendAction;
 			}
 		}
 		questAction = this.findAction('quest',energy,0,exp);
-		console.log(warn(), 'Energy use quest' + (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
+		log(LOG_WARN, 'Energy use quest' + (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
 		return questAction;
 	case 'quest':		
 		quests = Quest.get('id');
@@ -311,13 +310,13 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			});
 		}
 		if (i) {
-			console.log(warn(), (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
+			log(LOG_WARN, (exp ? 'Normal' : 'Big') + ' QUEST ' + ' Energy use: ' + questAction.energy +'/' + energy + ' Exp use: ' + questAction.exp + '/' + exp + 'Quest ' + questAction.quest);
 			return {	energy : quests[i].energy,
 						stamina : 0,
 						exp : quests[i].exp,
 						quest : i};
 		} else {
-			console.log(warn(), 'No appropriate quest found');
+			log(LOG_WARN, 'No appropriate quest found');
 			return nothing;
 		}
 	case 'defend':
@@ -351,7 +350,7 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 		if (monsterAction < 0 && mode === 'attack' && !Battle.get(['option', '_disabled'], false) && Battle.runtime.attacking) {
 			monsterAction = [(Battle.option.type === 'War' ? 10 : 1)].lower(max);
 		}
-		console.log(warn(), (exp ? 'Normal' : 'Big') + ' mode: ' + mode + ' ' + stat + ' use: ' + monsterAction +'/' + ((stat === 'stamina') ? stamina : energy) + ' Exp use: ' + monsterAction * this.get('exp_per_' + stat) + '/' + exp + ' Basehit ' + basehit + ' options ' + options + ' General ' + general);
+		log(LOG_WARN, (exp ? 'Normal' : 'Big') + ' mode: ' + mode + ' ' + stat + ' use: ' + monsterAction +'/' + ((stat === 'stamina') ? stamina : energy) + ' Exp use: ' + monsterAction * this.get('exp_per_' + stat) + '/' + exp + ' Basehit ' + basehit + ' options ' + options + ' General ' + general);
 		if (monsterAction > 0 ) {
 			return {	stamina : (stat === 'stamina') ? monsterAction : 0,
 						energy : (stat === 'energy') ? monsterAction : 0,
@@ -381,24 +380,24 @@ LevelUp.resource = function() {
 			}
 			Queue.runtime.basehit = ((action.basehit < Monster.get('option.attack_min')) 
 					? action.basehit : false);
-			console.log(warn(),'basehit1 ' + Queue.runtime.basehit);
+			log(LOG_DEBUG, 'basehit1 ' + Queue.runtime.basehit);
 			Queue.runtime.big = action.big;
 			if (action.big) {
 				Queue.runtime.basehit = action.basehit;
-				console.log(warn(),'basehit2 ' + Queue.runtime.basehit);
+				log(LOG_DEBUG, 'basehit2 ' + Queue.runtime.basehit);
 				Queue.runtime.general = action.general || (LevelUp.option.general === 'any' 
 						? false 
 						: LevelUp.option.general === 'Manual' 
 						? LevelUp.option.general_choice
 						: LevelUp.option.general );
 			} else if (action.basehit === action[stat] && !Monster.get('option.best_'+mode) && Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')) {
-				console.log(warn('Overriding manual general that multiplies attack/defense'));
+				log(LOG_WARN, 'Overriding manual general that multiplies attack/defense');
 				Queue.runtime.general = (action.stamina ? 'monster_attack' : 'monster_defend');
 			}
 			Queue.runtime.force.stamina = (action.stamina !== 0);
 			Queue.runtime.force.energy = (action.energy !== 0);
-			console.log(warn('Leveling up: force burn ' + (Queue.runtime.stamina ? 'stamina' : 'energy') + ' ' + (Queue.runtime.stamina || Queue.runtime.energy) + ' basehit ' + Queue.runtime.basehit));
-			//console.log(warn('Level up general ' + Queue.runtime.general + ' base ' + Queue.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers'))));
+			log(LOG_WARN, 'Leveling up: force burn ' + (Queue.runtime.stamina ? 'stamina' : 'energy') + ' ' + (Queue.runtime.stamina || Queue.runtime.energy) + ' basehit ' + Queue.runtime.basehit);
+			//log(LOG_WARN, 'Level up general ' + Queue.runtime.general + ' base ' + Queue.runtime.basehit + ' action[stat] ' + action[stat] + ' best ' + !Monster.get('option.best_'+mode) + ' muly ' + (Monster.get('option.general_' + mode) in Generals.get('runtime.multipliers')));
 			LevelUp.runtime.running = true;
 			return stat;
 		}

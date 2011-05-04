@@ -261,20 +261,20 @@ Arena.work = function(state) {
 					if (!$('input[src*="arena3_collectbutton.gif"]').length) {
 						Page.to('battle_arena');
 					} else {
-						console.log(log('Collecting Reward'));
+						log(LOG_LOG, 'Collecting Reward');
 						Page.click('input[src*="arena3_collectbutton.gif"]');
 						this.set(['runtime','status'], 'wait');
 					}
 				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
+						log(LOG_LOG, 'Entering Battle');
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 					}
 					this.set(['runtime','status'], 'fight');
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
-						console.log(log('Entering Battle'));
+						log(LOG_LOG, 'Entering Battle');
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
@@ -315,7 +315,7 @@ Arena.work = function(state) {
 					});
 					if (best) {
 						this.set(['runtime','last'], besttarget[0]);
-						console.log(log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health'));
+						log(LOG_LOG, 'Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
 						Page.click($('input[src*="monster_duel_button.gif"]', best));
 					} else {
 						this.set(['runtime','last'], null);

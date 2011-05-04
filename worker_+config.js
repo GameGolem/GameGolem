@@ -1,6 +1,6 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
+	$, Worker, Army, Dashboard, History, Page, Queue, Resources, Script,
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
@@ -32,7 +32,7 @@ Config.temp = {
 };
 
 Config.init = function() {
-	var i, j, k, $display;
+	var i, j, k, tmp, worker, multi_change_fn;
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
 	for (i in Workers) {
 		if (Workers[i].option && ('_enabled' in Workers[i].option)) {
@@ -46,7 +46,7 @@ Config.init = function() {
 	// START: Move active (unfolded) workers into individual worker.option._config._show
 	if (this.option.active) {
 		for (i=0; i<this.option.active.length; i++) {
-			var worker = Worker.find(this.option.active[i]);
+			worker = Worker.find(this.option.active[i]);
 			if (worker) {
 				worker.set(['option','_config','_show'], true);
 			}
@@ -55,22 +55,18 @@ Config.init = function() {
 	}
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
-	$display = $('<div id="golem_config_frame" class="golem-config ui-widget-content' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;"><div class="golem-title">&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) + '<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '"></div><div id="golem_buttons"><img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '"></div><div style="display:'+this.option.display+';"><div id="golem_config" style="overflow:hidden;overflow-y:auto;"></div></div></div>');
-	$('div.UIStandardFrame_Content').after($display);// Should really be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
-	$('#golem_options').click(function(){
+	this.makeWindow(); // Creates all UI stuff
+	$('#golem_options').live('click.golem', function(){
 		$(this).toggleClass('golem-button golem-button-active');
 		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
 		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
 	});
-	for (i in Workers) {
-		this.makePanel(Workers[i]);
-	}
-	$('.golem-config .golem-panel > h3').click(function(event){ // Toggle display of config panels
+	$('.golem-config .golem-panel > h3').live('click.golem', function(event){ // Toggle display of config panels
 		var worker = Worker.find($(this).parent().attr('id'));
 		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
 		Worker.flush();
 	});
-	$('.golem-config .golem-panel h4').click(function(event){ // Toggle display of config groups
+	$('.golem-config .golem-panel h4').live('click.golem', function(event){ // Toggle display of config groups
 		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
 		if ($next.length && worker && id) {
 			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
@@ -79,75 +75,7 @@ Config.init = function() {
 			Worker.flush();
 		}
 	});
-	$('#golem_config .golem-panel-sortable')
-		.draggable({
-			axis:'y',
-			distance:5,
-			scroll:false,
-			handle:'h3',
-			helper:'clone',
-			opacity:0.75,
-			zIndex:100,
-			refreshPositions:true,
-			containment:'parent',
-			stop:function(event,ui) {
-				Queue.clearCurrent();// Make sure we deal with changed circumstances
-				Queue.set(['option','queue'], Config.getOrder());
-			}
-		})
-		.droppable({
-			tolerance:'pointer',
-			over:function(e,ui) {
-				var i, order = Config.getOrder(), me = Worker.find($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
-				if (order.indexOf('Idle') >= newplace) {
-					if (me.settings.before) {
-						for(i=0; i<me.settings.before.length; i++) {
-							if (order.indexOf(me.settings.before[i]) <= newplace) {
-								return;
-							}
-						}
-					}
-					if (me.settings.after) {
-						for(i=0; i<me.settings.after.length; i++) {
-							if (order.indexOf(me.settings.after[i]) >= newplace) {
-								return;
-							}
-						}
-					}
-				}
-				if (newplace < order.indexOf($(ui.draggable).attr('name'))) {
-					$(this).before(ui.draggable);
-				} else {
-					$(this).after(ui.draggable);
-				}
-			}
-		});
-	for (i in Workers) { // Propagate all before and after settings
-		if (Workers[i].settings.before) {
-			for (j=0; j<Workers[i].settings.before.length; j++) {
-				k = Worker.find(Workers[i].settings.before[j]);
-				if (k) {
-					k.settings.after = k.settings.after || [];
-					k.settings.after.push(Workers[i].name);
-					k.settings.after = k.settings.after.unique();
-//					console.log(warn(), 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
-				}
-			}
-		}
-		if (Workers[i].settings.after) {
-			for (j=0; j<Workers[i].settings.after.length; j++) {
-				k = Worker.find(Workers[i].settings.after[j]);
-				if (k) {
-					k.settings.before = k.settings.before || [];
-					k.settings.before.push(Workers[i].name);
-					k.settings.before = k.settings.before.unique();
-//					console.log(warn(), 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
-				}
-			}
-		}
-	}
-
-	var multi_change_fn = function(el) {
+	multi_change_fn = function(el) {
 		var $this = $(el), tmp, worker, val;
 		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			val = [];
@@ -157,7 +85,7 @@ Config.init = function() {
 		}
 	};
 
-	$('input.golem_addselect').live('click', function(){
+	$('input.golem_addselect').live('click.golem', function(){
 		var i, value, values = $(this).prev().val().split(','), $multiple = $(this).parent().children().first();
 		for (i=0; i<values.length; i++) {
 			value = values[i].trim();
@@ -168,13 +96,13 @@ Config.init = function() {
 		multi_change_fn($multiple[0]);
 		Worker.flush();
 	});
-	$('input.golem_delselect').live('click', function(){
+	$('input.golem_delselect').live('click.golem', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
 		multi_change_fn($multiple[0]);
 		Worker.flush();
 	});
-	$('#golem_config input,textarea,select').live('change', function(){
+	$('#golem_config input,textarea,select').live('change.golem', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
 		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			if ($this.attr('type') === 'checkbox') {
@@ -194,12 +122,11 @@ Config.init = function() {
 			}
 		}
 	});
-	$('.golem-panel-header input').click(function(event){
+	$('.golem-panel-header input').live('click.golem', function(event){
 		event.stopPropagation(true);
 	});
-	$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
 	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
-	$('.golem-icon-menu').click(function(event) {
+	$('.golem-icon-menu').live('click.golem', function(event) {
 		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		if (Config.get(['temp','menu']) !== name) {
@@ -245,14 +172,14 @@ Config.init = function() {
 		event.stopPropagation();
 		return false;
 	});
-	$('.golem-menu > div').live('click', function(event) {
+	$('.golem-menu > div').live('click.golem', function(event) {
 		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
-//		console.log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
+//		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
 		Worker.flush();
 	});
-	$(document).click(function(event){ // Any click hides it, relevant handling done above
+	$('body').live('click.golem', function(event){ // Any click hides it, relevant handling done above
 		Config.set(['temp','menu']);
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
@@ -264,8 +191,11 @@ Config.init = function() {
 };
 
 Config.update = function(event) {
+	if (event.type === 'show') {
+		$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
+	}
 	if (event.type === 'watch') {
-		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list;
+		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list, options = [];
 		if (worker === this && event.id === 'data') { // Changing one of our dropdown lists
 			list = [];
 			value = this.get(event.path);
@@ -348,6 +278,99 @@ Config.menu = function(worker, key) {
 			}
 		}
 	}
+};
+
+Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
+	var i, j, k, tmp = $('<div id="golem_config_frame" class="UIStandardFrame_SidebarAds canvasSidebar ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;">' +
+		'<div class="golem-title">' +
+			'&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
+			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
+		'</div>' +
+		'<div id="golem_buttons">' +
+			'<img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '">' +
+		'</div>' +
+		'<div style="display:'+this.option.display+';">' +
+			'<div id="golem_config" style="overflow:hidden;overflow-y:auto;">' +
+				// All config panels go in here
+			'</div>' +
+		'</div>' +
+	'</div>');
+	if (('.canvasSidebar').length) { // Should always be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
+		$('.canvasSidebar').before(tmp);
+	} else {
+		$('div.UIStandardFrame_Content').after(tmp);
+	}
+	for (i in Workers) { // Propagate all before and after settings
+		if (Workers[i].settings.before) {
+			for (j=0; j<Workers[i].settings.before.length; j++) {
+				k = Worker.find(Workers[i].settings.before[j]);
+				if (k) {
+					k.settings.after = k.settings.after || [];
+					k.settings.after.push(Workers[i].name);
+					k.settings.after = k.settings.after.unique();
+//					log(LOG_WARN, 'Pushing '+k.name+' after '+Workers[i].name+' = '+k.settings.after);
+				}
+			}
+		}
+		if (Workers[i].settings.after) {
+			for (j=0; j<Workers[i].settings.after.length; j++) {
+				k = Worker.find(Workers[i].settings.after[j]);
+				if (k) {
+					k.settings.before = k.settings.before || [];
+					k.settings.before.push(Workers[i].name);
+					k.settings.before = k.settings.before.unique();
+//					log(LOG_WARN, 'Pushing '+k.name+' before '+Workers[i].name+' = '+k.settings.before);
+				}
+			}
+		}
+	}
+	for (i in Workers) {
+		this.makePanel(Workers[i]);
+	}
+	$('#golem_config .golem-panel-sortable')
+		.draggable({
+			axis:'y',
+			distance:5,
+			scroll:false,
+			handle:'h3',
+			helper:'clone',
+			opacity:0.75,
+			zIndex:100,
+			refreshPositions:true,
+			containment:'parent',
+			stop:function(event,ui) {
+				Queue.clearCurrent();// Make sure we deal with changed circumstances
+				Queue.set(['option','queue'], Config.getOrder());
+			}
+		})
+		.droppable({
+			tolerance:'pointer',
+			over:function(e,ui) {
+				var i, order = Config.getOrder(), me = Worker.find($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
+				if (order.indexOf('Idle') >= newplace) {
+					if (me.settings.before) {
+						for(i=0; i<me.settings.before.length; i++) {
+							if (order.indexOf(me.settings.before[i]) <= newplace) {
+								return;
+							}
+						}
+					}
+					if (me.settings.after) {
+						for(i=0; i<me.settings.after.length; i++) {
+							if (order.indexOf(me.settings.after[i]) >= newplace) {
+								return;
+							}
+						}
+					}
+				}
+				if (newplace < order.indexOf($(ui.draggable).attr('name'))) {
+					$(this).before(ui.draggable);
+				} else {
+					$(this).after(ui.draggable);
+				}
+			}
+		});
+	this._update('show');
 };
 
 Config.makePanel = function(worker, args) {
@@ -440,10 +463,10 @@ Config.makeOptions = function(worker, args) {
 		try {
 			return this.makeOptions(worker, args.call(worker));
 		} catch(e) {
-			console.log(warn(e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message));
+			log(LOG_WARN, e.name + ' in Config.makeOptions(' + worker.name + '.display()): ' + e.message);
 		}
 	} else {
-		console.log(error(worker.name+' is trying to add an unknown type of option: '+(typeof args)));
+		log(LOG_ERROR, worker.name+' is trying to add an unknown type of option: '+(typeof args));
 	}
 	return $([]);
 };
@@ -612,7 +635,7 @@ Config.makeOption = function(worker, args) {
 			this.temp.require.push(r.require);
 			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
 		} catch(e) {
-			console.log(error(e.name + ' in createRequire(' + o.require + '): ' + e.message));
+			log(LOG_ERROR, e.name + ' in createRequire(' + o.require + '): ' + e.message);
 		}
 	}
 	if (o.group) {
