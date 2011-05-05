@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1096
+// @version		31.5.1097
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1096;
+var revision = 1097;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -155,12 +155,9 @@ var log = function(level, txt /*, obj, array etc*/){
 	var level, args = Array.prototype.slice.call(arguments), prefix = [],
 		date = [true, true, true, true, true],
 		rev = [false, false, true, true, true],
-		worker = [false, true, true, true, true],
-		type = ['info', 'log', 'warn', 'error', 'debug'];
+		worker = [false, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 4);
-	} else if (type.indexOf(args[0]) >= 0) {
-		level = type.indexOf(args.shift());
 	} else {
 		level = LOG_LOG;
 	}
@@ -174,14 +171,11 @@ var log = function(level, txt /*, obj, array etc*/){
 		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
-/* Disabled for now - keep "default" Golem without Debug installed as plain "log"
-	if (typeof console[type[level]] === 'function') {
-		console[type[level]].apply(console, args);
-	} else {
+	try {
 		console.log.apply(console, args);
+	} catch(e) { // FF4 fix
+		console.log(args);
 	}
-*/
-	console.log(args);
 };
 
 /**
@@ -2354,11 +2348,6 @@ Config.init = function() {
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	this.makeWindow(); // Creates all UI stuff
-	$('#golem_options').live('click.golem', function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
-		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-	});
 	$('.golem-config .golem-panel > h3').live('click.golem', function(event){ // Toggle display of config panels
 		var worker = Worker.find($(this).parent().attr('id'));
 		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
@@ -2578,6 +2567,20 @@ Config.menu = function(worker, key) {
 	}
 };
 
+Config.addButton = function(options) {
+	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.advanced >= 0 && !Config.get(['option','advanced'],false) ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
+	if (options.prepend) {
+		$('#golem_buttons').prepend(html);
+	} else if (options.after) {
+		$('#'+relative).after(html);
+	} else {
+		$('#golem_buttons').append(html);
+	}
+	if (options.click) {
+		html.click(options.click);
+	}
+}
+
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
 	var i, j, k, tmp = $('<div id="golem_config_frame" class="UIStandardFrame_SidebarAds canvasSidebar ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;">' +
 		'<div class="golem-title">' +
@@ -2585,7 +2588,6 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
 		'</div>' +
 		'<div id="golem_buttons">' +
-			'<img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '">' +
 		'</div>' +
 		'<div style="display:'+this.option.display+';">' +
 			'<div id="golem_config" style="overflow:hidden;overflow-y:auto;">' +
@@ -2598,6 +2600,17 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	} else {
 		$('div.UIStandardFrame_Content').after(tmp);
 	}
+	this.addButton({
+		id:'golem_options',
+		image:'options',
+		active:this.option.display==='block',
+		title:'Show Options',
+		click:function(){
+			$(this).toggleClass('golem-button golem-button-active');
+			Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
+			$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
+		}
+	});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
@@ -2694,7 +2707,7 @@ Config.makePanel = function(worker, args) {
 			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
 		$('#golem_config').append(
 			'<div id="' + worker.id + '" class="golem-panel' + unsortable + show + '"' + (display ? ' style="display:none;"' : '') + ' name="' + worker.name + '">' +
-				'<h3 class="golem-panel-header' + disabled + '">' +
+				'<h3 class="golem-theme-panel golem-panel-header' + disabled + '">' +
 					'<img class="golem-icon" src="' + getImage('blank') + '">' +
 					worker.name +
 					'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
@@ -2921,11 +2934,11 @@ Config.makeOption = function(worker, args) {
 			}
 			if (o.debug) {
 				r.require.debug = true;
-				$option.css({border:'1px solid blue', background:'#ddddff'});
+				$option.css({border:'1px solid blue', 'background':'#ddddff'});
 			}
 			if (o.exploit) {
 				r.require.exploit = true;
-				$option.css({border:'1px solid red', background:'#ffeeee'});
+				$option.css({border:'1px solid red', 'background':'#ffeeee'});
 			}
 			if (o.require) {
 				r.require.x = Script.parse(worker, 'option', o.require);
@@ -3020,7 +3033,7 @@ Dashboard.init = function() {
 		}
 	}
 	list.sort();
-	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header golem-theme-button' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 	divs.push('<div id="golem-dashboard-' + this.name + '"' + (active === this.name ? '' : ' style="display:none;"') + '></div>');
 	this._watch(this, 'data');
 	this._watch(this, 'option._hide_dashboard');
@@ -3030,7 +3043,7 @@ Dashboard.init = function() {
 		if (hide && this.option.active === i) {
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
 		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
@@ -3059,15 +3072,20 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
-	$('#golem_icon_dashboard').click(function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
-		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
-			Dashboard.update_trigger();
-			Workers[Dashboard.option.active].dashboard();
+	Config.addButton({
+		id:'golem_icon_dashboard',
+		image:'dashboard',
+		active:(Dashboard.option.display==='block'),
+		title:'Show Dashboard',
+		click:function(){
+			$(this).toggleClass('golem-button golem-button-active');
+			Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
+			if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+				Dashboard.update_trigger();
+				Workers[Dashboard.option.active].dashboard();
+			}
+			$('#golem-dashboard').toggle('drop');
 		}
-		$('#golem-dashboard').toggle('drop');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
@@ -3222,8 +3240,8 @@ Debug.option = {
 	worker:'All',
 	trace:false,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
-	console:false,
-	log:{0:true, 1:false, 2:false, 3:true, 4:false}
+	loglevel:LOG_INFO, // Level to show - can turn off individual levels in Debug config
+	log:{0:'info', 1:'log', 2:'warn', 3:'error', 4:'debug'}
 };
 
 Debug.runtime = {
@@ -3239,32 +3257,27 @@ Debug.display = [
 			{
 				id:'logdef',
 				label:'Default log level',
-				select:{0:'Info', 1:'Log', 2:'Warn', 3:'Error', 4:'Debug'}
-			},{
-				id:'console',
-				label:'Use Console Functions',
-				checkbox:true,
-				help:'When this is enabled, the console Warn, Error, Debug etc functions will be used - this can filter out messages in the console when needed, but can also cause you to miss messages when you normally only watch Log to filter out non-Golem errors...'
+				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG'}
 			},{
 				id:'log.0',
 				label:'0: Info',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.1',
 				label:'1: Log',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.2',
 				label:'2: Warn',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.3',
 				label:'3: Error',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.4',
 				label:'4: Debug',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			}
 		]
 	},{
@@ -3383,16 +3396,13 @@ Debug.setup = function() {
 			date = [true, true, true, true, true],
 			rev = [false, false, true, true, true],
 			worker = [false, true, true, true, true],
-			stack = [false, false, false, true, true],
-			type = ['info', 'log', 'warn', 'error', 'debug'];
+			stack = [false, false, false, true, true];
 		if (isNumber(args[0])) {
 			level = Math.range(0, args.shift(), 4);
-		} else if (type.indexOf(args[0]) >= 0) {
-			level = type.indexOf(args.shift());
 		} else {
-			level = Debug.get(['option','logdef'], LOG_INFO);
+			level = Debug.get(['option','logdef'], LOG_LOG);
 		}
-		if (!Debug.get(['option','log',level], false)) {
+		if (level > Debug.get(['option','loglevel', LOG_LOG]) || Debug.get(['option','log',level], '-') === '-') {
 			return;
 		}
 		if (rev[level]) {
@@ -3423,25 +3433,46 @@ Debug.setup = function() {
 			suffix.push(''); // Force an extra \n after the stack trace if there's more args
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
-		if (Debug.get(['option','console'], false) && typeof console[type[level]] === 'function') {
-//			console[type[level]].apply(console, args);
-			console[type[level]](args);
-		} else {
-			//console.log.apply(console, args);
-			console.log(args);
+		level = Debug.get(['option','log',level], '-');
+		if (!console[level]) {
+			level = 'log';
+		}
+		try {
+			console[level].apply(console, args);
+		} catch(e) { // FF4 fix
+			console[level](args);
 		}
 	};
 };
 
-Debug.init = function() {
+Debug.init = function(old_revision) {
 	var i, list = [];
+	// BEGIN: Change log message type from on/off to debug level
+	if (old_revision <= 1097) {
+		var type = ['info', 'log', 'warn', 'error', 'debug'];
+		for (i in this.option.log) {
+			if (this.option.log[i] === true) {
+				this.option.log[i] = type[i];
+			} else if (this.option.log[i] === false) {
+				this.option.log[i] = '-';
+			}
+		}
+		delete this.option.console;
+	}
+	// END
 	for (i in Workers) {
 		list.push(i);
 	}
 	Config.set('worker_list', ['All', '_worker'].concat(list.unique().sort()));
-	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'bug',
+		advanced:true,
+		className:'blue',
+		title:'Bug Reporting',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
+		}
+	});
 //	try{abc.def.ghi = 123;}catch(e){console.log(JSON.stringify(e));}
 /*
 {
@@ -3464,17 +3495,24 @@ Debug.update = function(event) {
 };
 
 Debug.work = function(){};// Stub so we can be disabled
-/*
+
 Debug.menu = function(worker, key) {
-	if (worker) {
-		if (!key) {
-			return {
-			}
-		} else if (key === '...') {
+	if (!worker) {
+		if (!isUndefined(key)) {
+			this.set(['option','loglevel'], parseInt(key, 10));
+		} else if (Config.option.advanced || Config.option.debug) {
+			return [
+				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
+				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Info',
+				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Log',
+				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Warn',
+				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Error',
+				'4:' + (this.option.loglevel === 4 ? '=' : '') + 'Debug'
+			]
 		}
 	}
 };
-*/
+
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
@@ -4578,22 +4616,33 @@ Queue.init = function(old_revision) {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
-	$('#golem_pause').click(function() {
-		var pause = Queue.set(['option','pause'], !Queue.option.pause);
-		log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
-		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
-		if (!pause) {
-			$('#golem_step').hide();
-		} else if (Config.get('option.advanced', false)) {
-			$('#golem_step').show();
+	Config.addButton({
+		id:'golem_pause',
+		image:this.option.pause ? 'play' : 'pause',
+		className:this.option.pause ? 'red' : 'green',
+		prepend:true,
+		title:'Pause',
+		click:function() {
+			var pause = Queue.set(['option','pause'], !Queue.option.pause);
+			log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
+			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
+			if (!pause) {
+				$('#golem_step').remove();
+			} else if (Config.get(['option','debug'], false)) {
+				Config.addButton({
+					id:'golem_step',
+					image:'step',
+					className:'green',
+					after:'golem_pause',
+					click:function() {
+						$(this).toggleClass('red green');
+						Queue._update({type:'reminder'}, 'run'); // A single shot
+						$(this).toggleClass('red green');
+					}
+				});
+			}
+			Queue.clearCurrent();
 		}
-		Queue.clearCurrent();
-	});
-	$('#golem_step').click(function() {
-		$(this).toggleClass('red green');
-		Queue._update({type:'reminder'}); // A single shot
-		$(this).toggleClass('red green');
 	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
@@ -5368,7 +5417,7 @@ Session.setup = function() {
 Session.init = function() {
 	var now = Date.now();
 	this.set(['data','_sessions',this.temp._id], now);
-	$('.golem-title').after('<div id="golem_session" class="golem-info golem-button green" style="display:none;">Enabled</div>');
+	$('.golem-title').after('<div id="golem_session" class="golem-info golem-theme-button green" style="display:none;">Enabled</div>');
 	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.option.timeout || this.data._active === this.temp._id) {
 		this._set(['temp','active'], true);
 		this._set(['data','_active'], this.temp._id);
@@ -5879,25 +5928,47 @@ Update.init = function() {
 			break;
 	}
 	// Add an update button for everyone
-	$('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
-		$(this).addClass('red');
-		Update.checkVersion(true);
-	}).appendTo('#golem_buttons');
-	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
-			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+	Config.addButton({
+		id:'golem_icon_update',
+		image:'update',
+		title:'Check for Update',
+		click:function(){
 			$(this).addClass('red');
 			Update.checkVersion(true);
-		}).appendTo('#golem_buttons');
+		}
+	});
+	if (isRelease) { // Add an advanced "beta" button for official release versions
+		Config.addButton({
+			id:'golem_icon_beta',
+			image:'beta',
+			title:'Check for Beta Versions',
+			advanced:true,
+			click:function(){
+				isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+				$(this).addClass('red');
+				Update.checkVersion(true);
+			}
+		});
 	}
 	// Add a changelog advanced button
-	$('<img class="golem-button golem-advanced blue"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'log',
+		advanced:true,
+		className:'blue',
+		title:'Changelog',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
+		}
+	});
 	// Add a wiki button
-	$('<img class="golem-button blue" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'wiki',
+		className:'blue',
+		title:'GameGolem wiki',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
+		}
+	});
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
@@ -5910,7 +5981,7 @@ Update.init = function() {
 					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
 				}
 				Update.set(['runtime','force'], false);
-				$('.golem-version').removeClass('red');
+				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 			}
 			event.stopImmediatePropagation();
 			event.stopPropagation();
@@ -11474,9 +11545,8 @@ Monster.update = function(event) {
 					target = 0;
 				}
 				// Possible attack target?
-				if ((waiting_ok || (Player.get('health', 0) >= req_health
-							&& LevelUp.runtime.stamina >= req_stamina))
-						&& (monster.defense || 100) >= Math.max(this.option.min_to_attack,0.1)) {
+				if ((waiting_ok || (Player.get('health', 0) >= req_health && LevelUp.runtime.stamina >= req_stamina))
+				 && (isNumber(monster.defense) ? monster.defense : 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
 					if (type.raid) {
 						this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();

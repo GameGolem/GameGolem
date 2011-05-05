@@ -56,11 +56,6 @@ Config.init = function() {
 	// END
 	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	this.makeWindow(); // Creates all UI stuff
-	$('#golem_options').live('click.golem', function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
-		$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
-	});
 	$('.golem-config .golem-panel > h3').live('click.golem', function(event){ // Toggle display of config panels
 		var worker = Worker.find($(this).parent().attr('id'));
 		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
@@ -280,6 +275,20 @@ Config.menu = function(worker, key) {
 	}
 };
 
+Config.addButton = function(options) {
+	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.advanced >= 0 && !Config.get(['option','advanced'],false) ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
+	if (options.prepend) {
+		$('#golem_buttons').prepend(html);
+	} else if (options.after) {
+		$('#'+relative).after(html);
+	} else {
+		$('#golem_buttons').append(html);
+	}
+	if (options.click) {
+		html.click(options.click);
+	}
+}
+
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
 	var i, j, k, tmp = $('<div id="golem_config_frame" class="UIStandardFrame_SidebarAds canvasSidebar ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;">' +
 		'<div class="golem-title">' +
@@ -287,7 +296,6 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
 		'</div>' +
 		'<div id="golem_buttons">' +
-			'<img class="golem-button' + (this.option.display==='block'?'-active':'') + '" id="golem_options" src="' + getImage('options') + '">' +
 		'</div>' +
 		'<div style="display:'+this.option.display+';">' +
 			'<div id="golem_config" style="overflow:hidden;overflow-y:auto;">' +
@@ -300,6 +308,17 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	} else {
 		$('div.UIStandardFrame_Content').after(tmp);
 	}
+	this.addButton({
+		id:'golem_options',
+		image:'options',
+		active:this.option.display==='block',
+		title:'Show Options',
+		click:function(){
+			$(this).toggleClass('golem-button golem-button-active');
+			Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
+			$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
+		}
+	});
 	for (i in Workers) { // Propagate all before and after settings
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
@@ -396,7 +415,7 @@ Config.makePanel = function(worker, args) {
 			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
 		$('#golem_config').append(
 			'<div id="' + worker.id + '" class="golem-panel' + unsortable + show + '"' + (display ? ' style="display:none;"' : '') + ' name="' + worker.name + '">' +
-				'<h3 class="golem-panel-header' + disabled + '">' +
+				'<h3 class="golem-theme-panel golem-panel-header' + disabled + '">' +
 					'<img class="golem-icon" src="' + getImage('blank') + '">' +
 					worker.name +
 					'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
@@ -623,11 +642,11 @@ Config.makeOption = function(worker, args) {
 			}
 			if (o.debug) {
 				r.require.debug = true;
-				$option.css({border:'1px solid blue', background:'#ddddff'});
+				$option.css({border:'1px solid blue', 'background':'#ddddff'});
 			}
 			if (o.exploit) {
 				r.require.exploit = true;
-				$option.css({border:'1px solid red', background:'#ffeeee'});
+				$option.css({border:'1px solid red', 'background':'#ffeeee'});
 			}
 			if (o.require) {
 				r.require.x = Script.parse(worker, 'option', o.require);

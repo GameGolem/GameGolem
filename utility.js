@@ -109,12 +109,9 @@ var log = function(level, txt /*, obj, array etc*/){
 	var level, args = Array.prototype.slice.call(arguments), prefix = [],
 		date = [true, true, true, true, true],
 		rev = [false, false, true, true, true],
-		worker = [false, true, true, true, true],
-		type = ['info', 'log', 'warn', 'error', 'debug'];
+		worker = [false, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 4);
-	} else if (type.indexOf(args[0]) >= 0) {
-		level = type.indexOf(args.shift());
 	} else {
 		level = LOG_LOG;
 	}
@@ -128,14 +125,11 @@ var log = function(level, txt /*, obj, array etc*/){
 		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
-/* Disabled for now - keep "default" Golem without Debug installed as plain "log"
-	if (typeof console[type[level]] === 'function') {
-		console[type[level]].apply(console, args);
-	} else {
+	try {
 		console.log.apply(console, args);
+	} catch(e) { // FF4 fix
+		console.log(args);
 	}
-*/
-	console.log(args);
 };
 
 /**

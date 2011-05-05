@@ -36,7 +36,7 @@ Dashboard.init = function() {
 		}
 	}
 	list.sort();
-	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
+	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header golem-theme-button' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
 	divs.push('<div id="golem-dashboard-' + this.name + '"' + (active === this.name ? '' : ' style="display:none;"') + '></div>');
 	this._watch(this, 'data');
 	this._watch(this, 'option._hide_dashboard');
@@ -46,7 +46,7 @@ Dashboard.init = function() {
 		if (hide && this.option.active === i) {
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
 		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
@@ -75,15 +75,20 @@ Dashboard.init = function() {
 		worker._unflush();
 		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
 	});
-	$('#golem_buttons').append('<img class="golem-button' + (Dashboard.option.display==='block'?'-active':'') + '" id="golem_icon_dashboard" src="' + getImage('dashboard') + '">');
-	$('#golem_icon_dashboard').click(function(){
-		$(this).toggleClass('golem-button golem-button-active');
-		Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
-		if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
-			Dashboard.update_trigger();
-			Workers[Dashboard.option.active].dashboard();
+	Config.addButton({
+		id:'golem_icon_dashboard',
+		image:'dashboard',
+		active:(Dashboard.option.display==='block'),
+		title:'Show Dashboard',
+		click:function(){
+			$(this).toggleClass('golem-button golem-button-active');
+			Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
+			if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
+				Dashboard.update_trigger();
+				Workers[Dashboard.option.active].dashboard();
+			}
+			$('#golem-dashboard').toggle('drop');
 		}
-		$('#golem-dashboard').toggle('drop');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');

@@ -121,22 +121,33 @@ Queue.init = function(old_revision) {
 			Queue.lastclick=Date.now();
 		}
 	});
-	$('#golem_buttons').prepend('<img class="golem-button' + (this.option.pause?' red':' green') + '" id="golem_pause" src="' + getImage(this.option.pause ? 'play' : 'pause') + '"><img class="golem-button green" id="golem_step" style="display:' + (this.option.pause ? '' : 'none') + '" src="' + getImage('step') + '">');
-	$('#golem_pause').click(function() {
-		var pause = Queue.set(['option','pause'], !Queue.option.pause);
-		log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
-		$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
-		if (!pause) {
-			$('#golem_step').hide();
-		} else if (Config.get('option.advanced', false)) {
-			$('#golem_step').show();
+	Config.addButton({
+		id:'golem_pause',
+		image:this.option.pause ? 'play' : 'pause',
+		className:this.option.pause ? 'red' : 'green',
+		prepend:true,
+		title:'Pause',
+		click:function() {
+			var pause = Queue.set(['option','pause'], !Queue.option.pause);
+			log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
+			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
+			if (!pause) {
+				$('#golem_step').remove();
+			} else if (Config.get(['option','debug'], false)) {
+				Config.addButton({
+					id:'golem_step',
+					image:'step',
+					className:'green',
+					after:'golem_pause',
+					click:function() {
+						$(this).toggleClass('red green');
+						Queue._update({type:'reminder'}, 'run'); // A single shot
+						$(this).toggleClass('red green');
+					}
+				});
+			}
+			Queue.clearCurrent();
 		}
-		Queue.clearCurrent();
-	});
-	$('#golem_step').click(function() {
-		$(this).toggleClass('red green');
-		Queue._update({type:'reminder'}); // A single shot
-		$(this).toggleClass('red green');
 	});
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');

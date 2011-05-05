@@ -57,25 +57,47 @@ Update.init = function() {
 			break;
 	}
 	// Add an update button for everyone
-	$('<img class="golem-button golem-version" title="Check for Updates" src="' + getImage('update') + '">').click(function(){
-		$(this).addClass('red');
-		Update.checkVersion(true);
-	}).appendTo('#golem_buttons');
-	if (isRelease) { // Add an advanced "beta" button for official release versions
-		$('<img class="golem-button golem-version golem-advanced"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Check for Beta Versions" src="' + getImage('beta') + '">').click(function(){
-			isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+	Config.addButton({
+		id:'golem_icon_update',
+		image:'update',
+		title:'Check for Update',
+		click:function(){
 			$(this).addClass('red');
 			Update.checkVersion(true);
-		}).appendTo('#golem_buttons');
+		}
+	});
+	if (isRelease) { // Add an advanced "beta" button for official release versions
+		Config.addButton({
+			id:'golem_icon_beta',
+			image:'beta',
+			title:'Check for Beta Versions',
+			advanced:true,
+			click:function(){
+				isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
+				$(this).addClass('red');
+				Update.checkVersion(true);
+			}
+		});
 	}
 	// Add a changelog advanced button
-	$('<img class="golem-button golem-advanced blue"' + (Config.get('option.advanced') ? '' : ' style="display:none;"') + ' title="Changelog" src="' + getImage('log') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'log',
+		advanced:true,
+		className:'blue',
+		title:'Changelog',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
+		}
+	});
 	// Add a wiki button
-	$('<img class="golem-button blue" title="GameGolem wiki" src="' + getImage('wiki') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'wiki',
+		className:'blue',
+		title:'GameGolem wiki',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
+		}
+	});
 	$('head').bind('DOMNodeInserted', function(event){
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
@@ -88,7 +110,7 @@ Update.init = function() {
 					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
 				}
 				Update.set(['runtime','force'], false);
-				$('.golem-version').removeClass('red');
+				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 			}
 			event.stopImmediatePropagation();
 			event.stopPropagation();

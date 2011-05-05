@@ -30,8 +30,8 @@ Debug.option = {
 	worker:'All',
 	trace:false,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
-	console:false,
-	log:{0:true, 1:false, 2:false, 3:true, 4:false}
+	loglevel:LOG_INFO, // Level to show - can turn off individual levels in Debug config
+	log:{0:'info', 1:'log', 2:'warn', 3:'error', 4:'debug'}
 };
 
 Debug.runtime = {
@@ -47,32 +47,27 @@ Debug.display = [
 			{
 				id:'logdef',
 				label:'Default log level',
-				select:{0:'Info', 1:'Log', 2:'Warn', 3:'Error', 4:'Debug'}
-			},{
-				id:'console',
-				label:'Use Console Functions',
-				checkbox:true,
-				help:'When this is enabled, the console Warn, Error, Debug etc functions will be used - this can filter out messages in the console when needed, but can also cause you to miss messages when you normally only watch Log to filter out non-Golem errors...'
+				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG'}
 			},{
 				id:'log.0',
 				label:'0: Info',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.1',
 				label:'1: Log',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.2',
 				label:'2: Warn',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.3',
 				label:'3: Error',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			},{
 				id:'log.4',
 				label:'4: Debug',
-				checkbox:true
+				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 			}
 		]
 	},{
@@ -191,16 +186,13 @@ Debug.setup = function() {
 			date = [true, true, true, true, true],
 			rev = [false, false, true, true, true],
 			worker = [false, true, true, true, true],
-			stack = [false, false, false, true, true],
-			type = ['info', 'log', 'warn', 'error', 'debug'];
+			stack = [false, false, false, true, true];
 		if (isNumber(args[0])) {
 			level = Math.range(0, args.shift(), 4);
-		} else if (type.indexOf(args[0]) >= 0) {
-			level = type.indexOf(args.shift());
 		} else {
-			level = Debug.get(['option','logdef'], LOG_INFO);
+			level = Debug.get(['option','logdef'], LOG_LOG);
 		}
-		if (!Debug.get(['option','log',level], false)) {
+		if (level > Debug.get(['option','loglevel', LOG_LOG]) || Debug.get(['option','log',level], '-') === '-') {
 			return;
 		}
 		if (rev[level]) {
@@ -231,25 +223,46 @@ Debug.setup = function() {
 			suffix.push(''); // Force an extra \n after the stack trace if there's more args
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
-		if (Debug.get(['option','console'], false) && typeof console[type[level]] === 'function') {
-//			console[type[level]].apply(console, args);
-			console[type[level]](args);
-		} else {
-			//console.log.apply(console, args);
-			console.log(args);
+		level = Debug.get(['option','log',level], '-');
+		if (!console[level]) {
+			level = 'log';
+		}
+		try {
+			console[level].apply(console, args);
+		} catch(e) { // FF4 fix
+			console[level](args);
 		}
 	};
 };
 
-Debug.init = function() {
+Debug.init = function(old_revision) {
 	var i, list = [];
+	// BEGIN: Change log message type from on/off to debug level
+	if (old_revision <= 1097) {
+		var type = ['info', 'log', 'warn', 'error', 'debug'];
+		for (i in this.option.log) {
+			if (this.option.log[i] === true) {
+				this.option.log[i] = type[i];
+			} else if (this.option.log[i] === false) {
+				this.option.log[i] = '-';
+			}
+		}
+		delete this.option.console;
+	}
+	// END
 	for (i in Workers) {
 		list.push(i);
 	}
 	Config.set('worker_list', ['All', '_worker'].concat(list.unique().sort()));
-	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
-		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
-	}).appendTo('#golem_buttons');
+	Config.addButton({
+		image:'bug',
+		advanced:true,
+		className:'blue',
+		title:'Bug Reporting',
+		click:function(){
+			window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
+		}
+	});
 //	try{abc.def.ghi = 123;}catch(e){console.log(JSON.stringify(e));}
 /*
 {
@@ -272,17 +285,24 @@ Debug.update = function(event) {
 };
 
 Debug.work = function(){};// Stub so we can be disabled
-/*
+
 Debug.menu = function(worker, key) {
-	if (worker) {
-		if (!key) {
-			return {
-			}
-		} else if (key === '...') {
+	if (!worker) {
+		if (!isUndefined(key)) {
+			this.set(['option','loglevel'], parseInt(key, 10));
+		} else if (Config.option.advanced || Config.option.debug) {
+			return [
+				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
+				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Info',
+				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Log',
+				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Warn',
+				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Error',
+				'4:' + (this.option.loglevel === 4 ? '=' : '') + 'Debug'
+			]
 		}
 	}
 };
-*/
+
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
