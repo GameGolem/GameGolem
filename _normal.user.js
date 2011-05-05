@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1095
+// @version		31.5.1096
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1095;
+var revision = 1096;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -178,9 +178,10 @@ var log = function(level, txt /*, obj, array etc*/){
 	if (typeof console[type[level]] === 'function') {
 		console[type[level]].apply(console, args);
 	} else {
-*/
 		console.log.apply(console, args);
-//	}
+	}
+*/
+	console.log(args);
 };
 
 /**
@@ -3423,9 +3424,11 @@ Debug.setup = function() {
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
 		if (Debug.get(['option','console'], false) && typeof console[type[level]] === 'function') {
-			console[type[level]].apply(console, args);
+//			console[type[level]].apply(console, args);
+			console[type[level]](args);
 		} else {
-			console.log.apply(console, args);
+			//console.log.apply(console, args);
+			console.log(args);
 		}
 	};
 };

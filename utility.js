@@ -132,9 +132,10 @@ var log = function(level, txt /*, obj, array etc*/){
 	if (typeof console[type[level]] === 'function') {
 		console[type[level]].apply(console, args);
 	} else {
-*/
 		console.log.apply(console, args);
-//	}
+	}
+*/
+	console.log(args);
 };
 
 /**

@@ -232,9 +232,11 @@ Debug.setup = function() {
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
 		if (Debug.get(['option','console'], false) && typeof console[type[level]] === 'function') {
-			console[type[level]].apply(console, args);
+//			console[type[level]].apply(console, args);
+			console[type[level]](args);
 		} else {
-			console.log.apply(console, args);
+			//console.log.apply(console, args);
+			console.log(args);
 		}
 	};
 };
