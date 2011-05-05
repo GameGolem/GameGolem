@@ -552,11 +552,11 @@ Worker.prototype._revive = function(seconds, id, callback) {
 Worker.prototype._remind = function(seconds, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
-		fn = function(){callback.apply(Workers[name]);};
+		fn = function(){delete Workers[name]._reminders['t' + id];callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback, 'run');};
+		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
+		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);

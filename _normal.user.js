@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1097
+// @version		31.5.1098
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1097;
+var revision = 1098;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1509,11 +1509,11 @@ Worker.prototype._revive = function(seconds, id, callback) {
 Worker.prototype._remind = function(seconds, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
-		fn = function(){callback.apply(Workers[name]);};
+		fn = function(){delete Workers[name]._reminders['t' + id];callback.apply(Workers[name]);};
 	} else if (isObject(callback)) {
-		fn = function(){Workers[name]._update(callback, 'run');};
+		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
+		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
@@ -4534,7 +4534,7 @@ Queue.option = {
 };
 
 Queue.temp = {
-	delay:-1
+	sleep:false // If we're currently sleeping, no workers can run...
 };
 
 Global.display.push({
@@ -4558,8 +4558,6 @@ Global.display.push({
 		}
 	]
 });
-
-Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 
 Queue.init = function(old_revision) {
 	var i, $btn, worker;
@@ -4613,7 +4611,8 @@ Queue.init = function(old_revision) {
 	}
 	$(document).bind('click keypress', function(event){
 		if (!event.target || !$(event.target).parents().is('#golem_config_frame,#golem-dashboard')) {
-			Queue.lastclick=Date.now();
+			Queue.set(['temp','sleep'], true);
+			Queue._remind(Queue.get(['option','clickdelay'], 5), 'click');
 		}
 	});
 	Config.addButton({
@@ -4647,7 +4646,8 @@ Queue.init = function(old_revision) {
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
 	this._watch(Session, 'temp.active');
-	this._watch(Queue, 'option.pause');
+	this._watch(this, 'option.pause');
+	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -4661,31 +4661,33 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(event, events) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'];
+	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
 	for (i=0; i<events.length; i++) {
 		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
-			if (events[i].worker.get(['option', '_disabled'], false)) {
-				$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
-				if (this.runtime.current === events[i].worker.name) {
+			worker = events[i].worker;
+			if (worker.get(['option', '_disabled'], false)) {
+				$('#'+worker.id+' .golem-panel-header').addClass('red');
+				if (this.runtime.current === worker.name) {
 					this.clearCurrent();
 				}
 			} else {
-				$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
-			}
-		} else if (isEvent(events[i], null, 'watch') || isEvent(events[i], null, 'init')) { // loading a page, pausing, or init
-			if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active'])) {
-				this._forget('run');
-				this.set(['temp','delay'], -1);
-			} else if (this.option.delay !== this.temp.delay) {
-				this._revive(this.option.delay, 'run');
-				this.set(['temp','delay'], this.option.delay);
+				$('#'+worker.id+' .golem-panel-header').removeClass('red');
 			}
 		}
 	}
-	if (this.get(['temp','delay'], -1) !== -1 && events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
-		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
-			return;
+	if (this.temp.sleep || events.findEvent(null, 'watch') || events.findEvent(null, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
+		if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active']) || this._timer('click')) {
+			this.temp.sleep = true;
+		} else {
+			this.temp.sleep = false;
 		}
+	}
+	if (this.temp.sleep) {
+		this._forget('run');
+	} else if (!this._timer('run')) {
+		this._revive(this.option.delay, 'run');
+	}
+	if (!this.temp.sleep && events.findEvent(null,'reminder') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');

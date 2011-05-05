@@ -39,7 +39,7 @@ Queue.option = {
 };
 
 Queue.temp = {
-	delay:-1
+	sleep:false // If we're currently sleeping, no workers can run...
 };
 
 Global.display.push({
@@ -63,8 +63,6 @@ Global.display.push({
 		}
 	]
 });
-
-Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 
 Queue.init = function(old_revision) {
 	var i, $btn, worker;
@@ -118,7 +116,8 @@ Queue.init = function(old_revision) {
 	}
 	$(document).bind('click keypress', function(event){
 		if (!event.target || !$(event.target).parents().is('#golem_config_frame,#golem-dashboard')) {
-			Queue.lastclick=Date.now();
+			Queue.set(['temp','sleep'], true);
+			Queue._remind(Queue.get(['option','clickdelay'], 5), 'click');
 		}
 	});
 	Config.addButton({
@@ -152,7 +151,8 @@ Queue.init = function(old_revision) {
 	// Running the queue every second, options within it give more delay
 	this._watch(Page, 'temp.loading');
 	this._watch(Session, 'temp.active');
-	this._watch(Queue, 'option.pause');
+	this._watch(this, 'option.pause');
+	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
 };
@@ -166,31 +166,33 @@ Queue.clearCurrent = function() {
 };
 
 Queue.update = function(event, events) {
-	var i, $worker, worker, current, result, now = Date.now(), next = null, release = false, ensta = ['energy','stamina'];
+	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
 	for (i=0; i<events.length; i++) {
 		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
-			if (events[i].worker.get(['option', '_disabled'], false)) {
-				$('#'+events[i].worker.id+' .golem-panel-header').addClass('red');
-				if (this.runtime.current === events[i].worker.name) {
+			worker = events[i].worker;
+			if (worker.get(['option', '_disabled'], false)) {
+				$('#'+worker.id+' .golem-panel-header').addClass('red');
+				if (this.runtime.current === worker.name) {
 					this.clearCurrent();
 				}
 			} else {
-				$('#'+events[i].worker.id+' .golem-panel-header').removeClass('red');
-			}
-		} else if (isEvent(events[i], null, 'watch') || isEvent(events[i], null, 'init')) { // loading a page, pausing, or init
-			if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active'])) {
-				this._forget('run');
-				this.set(['temp','delay'], -1);
-			} else if (this.option.delay !== this.temp.delay) {
-				this._revive(this.option.delay, 'run');
-				this.set(['temp','delay'], this.option.delay);
+				$('#'+worker.id+' .golem-panel-header').removeClass('red');
 			}
 		}
 	}
-	if (this.get(['temp','delay'], -1) !== -1 && events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
-		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
-			return;
+	if (this.temp.sleep || events.findEvent(null, 'watch') || events.findEvent(null, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
+		if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active']) || this._timer('click')) {
+			this.temp.sleep = true;
+		} else {
+			this.temp.sleep = false;
 		}
+	}
+	if (this.temp.sleep) {
+		this._forget('run');
+	} else if (!this._timer('run')) {
+		this._revive(this.option.delay, 'run');
+	}
+	if (!this.temp.sleep && events.findEvent(null,'reminder') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');
