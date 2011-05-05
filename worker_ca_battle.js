@@ -454,7 +454,7 @@ Battle.update = function(event) {
 		this.runtime.attacking = null;
 		status.push('Battling in the Arena');
 	} else*/
-	if (!points && (this.option.monster || Queue.runtime.big) && Monster.get('runtime.attack',false)) {
+	if (!points && (this.option.monster || LevelUp.runtime.big) && Monster.get('runtime.attack',false)) {
 		this.set(['runtime','attacking'], null);
 		status.push('Attacking Monsters');
 	} else {
@@ -538,10 +538,10 @@ Battle.update = function(event) {
 3c. Click the Invade / Dual attack button
 */
 Battle.work = function(state) {
-	var useable_stamina = Queue.runtime.force.stamina ? Queue.runtime.stamina : Queue.runtime.stamina - this.option.stamina_reserve;
+	var useable_stamina = LevelUp.runtime.force.stamina ? LevelUp.runtime.stamina : LevelUp.runtime.stamina - this.option.stamina_reserve;
 	if (!this.runtime.attacking || Player.get('health',0) < (this.option.risk ? 10 : 13) 
 			|| useable_stamina < (!this.runtime.points && this.option.type === 'War' ? 10 : 1)
-			|| Queue.runtime.big) {
+			|| LevelUp.runtime.big) {
 //		log(LOG_WARN, 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}

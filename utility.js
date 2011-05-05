@@ -128,11 +128,13 @@ var log = function(level, txt /*, obj, array etc*/){
 		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
-	if (console[type[level]]) {
+/* Disabled for now - keep "default" Golem without Debug installed as plain "log"
+	if (typeof console[type[level]] === 'function') {
 		console[type[level]].apply(console, args);
 	} else {
+*/
 		console.log.apply(console, args);
-	}
+//	}
 };
 
 /**

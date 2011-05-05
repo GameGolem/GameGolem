@@ -58,26 +58,24 @@
 
 .golem-config {
 	position: static;
-	padding: 4px;
 	margin-bottom: 17px;
 	overflow: hidden;
 	overflow-y: auto;
-	float: right;
 	z-index: 2;
 }
 
+.golem-config-fixed {
+	position: fixed;
+	margin-left: -2px !important; /* Not quite sure why it needs this to stay in the same position... */
+}
+
 .golem-config > div {
-	margin-top: 4px;
+	margin: 4px;
 }
 
 .golem_config h3, .golem_config h4 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
-}
-
-.golem-config-fixed {
-	position: fixed;
-	margin-left: 760px;
 }
 
 #golem-dashboard {
@@ -322,7 +320,7 @@ img.golem-button, img.golem-button-active {
 .golem-title {
 	height:16px;
 	padding: 2px;
-	margin: -4px -4px 0 -4px !important;
+	margin: 0 !important;
 	overflow: hidden;
 	border-bottom: 1px solid #aaaaaa;
 	background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x;

@@ -509,7 +509,7 @@ Config.makeOption = function(worker, args) {
 	}
 	if (o.label && !o.button) {
 		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-		if (o.text || o.checkbox || o.select) {
+		if (o.text || o.checkbox || o.select || o.number) {
 			txt.push('<span style="float:right;">');
 		} else if (o.multiple) {
 			txt.push('<br>');
@@ -528,7 +528,7 @@ Config.makeOption = function(worker, args) {
 	} else if (o.text) {
 		txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 	} else if (o.number) {
-		txt.push('<input type="number"' + o.real_id + ' style="float:right;' + (o.label || o.before || o.after ? '' : 'width:100%;') + '" size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
+		txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
 	} else if (o.textarea) {
 		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
 	} else if (o.checkbox) {

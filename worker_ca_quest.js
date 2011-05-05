@@ -190,13 +190,6 @@ Quest.init = function() {
 		}
 	}
 	// END
-	// BEGIN: one time pre-r851 fix for Queue triggered quest by name instead of id
-	if (revision < 851) {
-		if (Queue.get('runtime.quest')) {
-			Queue.set('runtime.quest', false);
-		}
-	}
-	// END
 	this.set(['runtime','revision'], revision); // started r845 for historic reference
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.maxenergy');
@@ -388,7 +381,7 @@ Quest.update = function(event) {
 			oi = data.id[i];
 			if (oi.energy > maxenergy 
 					|| !Generals.test(oi.general || 'any')
-					|| (Queue.runtime.general && oi.general)) {
+					|| (LevelUp.runtime.general && oi.general)) {
 				continue;
 			}
 			if (oi.units) {
@@ -568,23 +561,23 @@ Quest.update = function(event) {
 	} else {
 		Dashboard.status(this);
 	}
-//	this.set(['option','_sleep'], !this.runtime.best || this.runtime.energy < (Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve));
+//	this.set(['option','_sleep'], !this.runtime.best || this.runtime.energy < (LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve));
 };
 
 Quest.work = function(state) {
-	var mid, general = 'any', best = Queue.runtime.quest || this.runtime.best, useable_energy = Queue.runtime.force.energy ? Queue.runtime.energy : Queue.runtime.energy - this.option.energy_reserve, quest, button;
-	if (!best || (!Queue.runtime.quest && this.runtime.energy > useable_energy)) {
+	var mid, general = 'any', best = LevelUp.runtime.quest || this.runtime.best, useable_energy = LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve, quest, button;
+	if (!best || (!LevelUp.runtime.quest && this.runtime.energy > useable_energy)) {
 		if (state && this.option.bank && !Bank.stash()) {
 			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
 	// If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-	if ((Queue.runtime.levelup && !Queue.runtime.quest)
-			|| (!Queue.runtime.levelup 
+	if ((LevelUp.runtime.levelup && !LevelUp.runtime.quest)
+			|| (!LevelUp.runtime.levelup 
 				&& ((this.option.monster === 'When able' && Monster.get('runtime.defending')) 
 					|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending')
-						|| !Queue.runtime.force.energy))))) {
+						|| !LevelUp.runtime.force.energy))))) {
 		return QUEUE_FINISH;
 	}
 	if (!state) {
@@ -645,12 +638,12 @@ Quest.work = function(state) {
 	} else {
 		general = this.option.general_choice;
 	}
-	if (!Generals.to(Queue.runtime.general || general)) {
+	if (!Generals.to(LevelUp.runtime.general || general)) {
 		return QUEUE_CONTINUE;
 	}
 	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
 	log(LOG_WARN, 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
-	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (Queue.runtime.general && quest.general));
+	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (LevelUp.runtime.general && quest.general));
 	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		quest.button_fail = (quest.button_fail || 0) + 1;
 		if (quest.button_fail > 5){
@@ -677,7 +670,7 @@ Quest.work = function(state) {
 		}
 	}
 	Page.click(button);
-	Queue.runtime.quest = false;
+	LevelUp.set(['runtime','quest'], null);
 	if (quest.type === 3) {// Just completed a boss quest
 		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {// Add one as we've just gained it...
 			Alchemy.set(['ingredients', quest.itemimg], 1);

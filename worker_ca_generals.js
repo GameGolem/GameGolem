@@ -230,7 +230,7 @@ Generals.resource = function() {
 	Generals.runtime.zin = false;
 	if (Generals.option.zin && Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
 		Generals.runtime.zin = 'Zin';
-		Queue.runtime.force.stamina = true;
+		LevelUp.runtime.force.stamina = true;
 		return 'stamina';
 	}
 	return false;

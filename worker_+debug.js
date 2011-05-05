@@ -231,7 +231,7 @@ Debug.setup = function() {
 			suffix.push(''); // Force an extra \n after the stack trace if there's more args
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
-		if (Debug.get(['option','console'], false) && console[type[level]]) {
+		if (Debug.get(['option','console'], false) && typeof console[type[level]] === 'function') {
 			console[type[level]].apply(console, args);
 		} else {
 			console.log.apply(console, args);
@@ -248,6 +248,14 @@ Debug.init = function() {
 	$('<img class="golem-button golem-advanced blue" title="Bug Reporting" src="' + getImage('bug') + '">').click(function(){
 		window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
 	}).appendTo('#golem_buttons');
+//	try{abc.def.ghi = 123;}catch(e){console.log(JSON.stringify(e));}
+/*
+{
+	"arguments":["abc"],
+	"type":"not_defined",
+	"message":"abc is not defined",
+	"stack":"ReferenceError: abc is not defined\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:251:6)\n    at Worker.init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:345:9)\n    at Worker._init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+main.js:58:15)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:931:19)\n    at chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:559:33"}
+*/
 };
 
 Debug.update = function(event) {

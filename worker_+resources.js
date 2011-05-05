@@ -66,7 +66,7 @@ Resources.display = function() {
 	if (!length(this.runtime.types)) {
 		return 'No Resources to be Used...';
 	}
-	display.push({title:'IMPORTANT', label:'This is *NOT* doing anything yet...'});
+	display.push({title:'IMPORTANT', label:'Only the Reserve option is currently active...'});
 	for (type in this.option.types) {
 		group = [];
 		for (worker in this.runtime.buckets) {
@@ -83,12 +83,12 @@ Resources.display = function() {
 				title:type,
 				group:[
 					{
-						advanced:true,
 						id:'reserve.'+type,
 						label:'Reserve',
 						number:true,
 						min:0,
-						max:100
+						max:500,
+						step:10
 					},{
 						id:'types.'+type,
 						label:type+' Use',

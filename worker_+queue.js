@@ -22,37 +22,19 @@ var QUEUE_INTERRUPT_OK	= QUEUE_RELEASE;// Not quite finished, but safe to interr
 
 Queue.settings = {
 	system:true,
-	unsortable:true,
 	keep:true,
-	no_disable:true,
 	taint:true
 };
 
 // NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
 Queue.runtime = {
-	quest: false, // Use for name of quest if over-riding quest
-	general : false, // If necessary to specify a multiple general for attack
-	action: false, // Level up action
-	stamina:false, //How much stamina can be used by workers, false if none
-	energy:false, //How much energy can be used by workers, false if none
-	
-	// Force is TRUE when energy/stamina is at max or needed to burn to level up,
-	// used to tell workers to do anything necessary to use energy/stamina
-	force: {energy:false, 
-			stamina:false}, 
-	burn: {energy:false, // True when burning energy after stocking up
-			stamina:false}, // True when burning stamina after stocking up
 	current:null
 };
 
 Queue.option = {
-	queue: ['Global', 'Debug', 'Queue', 'Resources', 'Title', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Global', 'Debug', 'Resources', 'Generals', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
-	start_stamina: 0,
-	stamina: 0,
-	start_energy: 0,
-	energy: 0,
 	pause: false
 };
 
@@ -60,50 +42,56 @@ Queue.temp = {
 	delay:-1
 };
 
-Queue.display = [
-	{
-		label:'Drag the unlocked panels into the order you wish them run.'
-	},{
-		id:'delay',
-		label:'Delay Between Events',
-		text:true,
-		after:'secs',
-		size:3
-	},{
-		id:'clickdelay',
-		label:'Delay After Mouse Click',
-		text:true,
-		after:'secs',
-		size:3,
-		help:'This should be a multiple of Event Delay'
-	},{
-		id:'stamina',
-		before:'Keep',
-		select:'stamina',
-		after:'Stamina Always'
-	},{
-		id:'start_stamina',
-		before:'Stock Up',
-		select:'stamina',
-		after:'Stamina Before Using'
-	},{
-		id:'energy',
-		before:'Keep',
-		select:'energy',
-		after:'Energy Always'
-	},{
-		id:'start_energy',
-		before:'Stock Up',
-		select:'energy',
-		after:'Energy Before Using'
-	}
-];
+Global.display.push({
+	title:'Running',
+	group:[
+		{
+			id:['Queue','option','delay'],
+			label:'Delay Between Events',
+			number:true,
+			after:'secs',
+			min:1,
+			max:30
+		},{
+			id:['Queue','option','clickdelay'],
+			label:'Delay After Mouse Click',
+			number:true,
+			after:'secs',
+			min:1,
+			max:60,
+			help:'This should be a multiple of Event Delay'
+		}
+	]
+});
 
 Queue.lastclick = Date.now();	// Last mouse click - don't interrupt the player
 
-Queue.init = function() {
+Queue.init = function(old_revision) {
 	var i, $btn, worker;
-//	this._watch(Player);
+	// BEGIN: Moving stats into Resources
+	if (old_revision <= 1095) {
+		if (this.option.energy) {
+			Resources.set(['option','reserve','energy'], this.option.energy);
+			this.set(['option','energy']);
+			this.set(['option','start_energy']);
+		}
+		if (this.option.stamina) {
+			Resources.set(['option','reserve','stamina'], this.option.stamina);
+			this.set(['option','stamina']);
+			this.set(['option','start_stamina']);
+		}
+		this.set(['runtime','quest']);
+		this.set(['runtime','general']);
+		this.set(['runtime','action']);
+		this.set(['runtime','stamina']);
+		this.set(['runtime','energy']);
+		this.set(['runtime','force']);
+		this.set(['runtime','burn']);
+		this.set(['runtime','big']);
+		this.set(['runtime','basehit']);
+		this.set(['runtime','levelup']);
+	}
+	// END
 	this.option.queue = this.option.queue.unique();
 	for (i in Workers) {
 		if (Workers[i].work && Workers[i].display) {
@@ -162,7 +150,7 @@ Queue.clearCurrent = function() {
 //	var current = this.get('runtime.current', null);
 //	if (current) {
 		$('#golem_config > div > h3').css('font-weight', 'normal');
-		this.set('runtime.current', null);// Make sure we deal with changed circumstances
+		this.set(['runtime','current'], null);// Make sure we deal with changed circumstances
 //	}
 };
 
@@ -191,51 +179,6 @@ Queue.update = function(event, events) {
 	if (this.get(['temp','delay'], -1) !== -1 && events.findEvent(null,'reminder') >= 0) { // This is where we call worker.work() for everyone
 		if (now - this.lastclick < this.option.clickdelay * 1000) { // Want to make sure we delay after a click
 			return;
-		}
-
-		this.runtime.stamina = this.runtime.energy = 0;
-		this.runtime.levelup = this.runtime.basehit = this.runtime.quest = this.runtime.general =this.runtime.big = this.runtime.force.stamina = this.runtime.force.energy = false;
-		LevelUp.set('runtime.running',false);
-		// Check if stamina/energy maxxed and should be forced
-		for (i=0; i<ensta.length; i++) {
-			if (Player.get(ensta[i]) >= Player.get('max'+ensta[i])) {
-				log(LOG_INFO, 'At max ' + ensta[i] + ', burning ' + ensta[i]);
-				this.runtime[ensta[i]] = Player.get(ensta[i]);
-				this.runtime.force[ensta[i]] = true;
-			}
-		}
-		// Preserve independence of queue system worker by putting exception code into CA workers
-		if (!this.runtime.stamina && !this.runtime.energy) {
-			var overrides = ['LevelUp','Monster','Generals'];
-			for (i=0; i<overrides.length; i++) {
-				worker = Workers[overrides[i]];
-				if (worker && !worker.get(['option', '_disabled'], false) 
-						&& !worker.get(['option', '_sleep'], false) && worker.resource) {
-					stat = worker.resource();
-					if (stat) {
-						this.runtime[stat] = this.runtime[stat] || Player.get(stat);
-						this.runtime.force[stat] = true;
-						log(LOG_WARN, worker.name + ': force burn ' + stat + ' ' + this.runtime[stat]);
-						break;
-					}
-				}
-			}
-		}
-		if (!this.runtime.stamina && !this.runtime.energy) {
-			if (this.runtime.burn.stamina 
-					|| Player.get('stamina') >= this.option.start_stamina +  this.option.stamina) {
-				this.runtime.stamina = Math.max(0, Player.get('stamina') - this.option.stamina);
-				this.runtime.burn.stamina = this.runtime.stamina > 0;
-			}
-			if (this.runtime.burn.energy 
-					|| Player.get('energy') >= this.option.start_energy + this.option.energy) {
-				this.runtime.energy = Math.max(0, Player.get('energy') - this.option.energy);
-				this.runtime.burn.energy = this.runtime.energy > 0;
-			}
-		} else {
-			if (this.runtime.force.stamina && Player.get('health') < 13) {
-				LevelUp.set('runtime.heal_me',true);
-			}
 		}
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
