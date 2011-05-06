@@ -131,21 +131,23 @@ Queue.init = function(old_revision) {
 			log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
 			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 			if (!pause) {
-				$('#golem_step').remove();
+				$('#golem_step').hide();
 			} else if (Config.get(['option','debug'], false)) {
-				Config.addButton({
-					id:'golem_step',
-					image:'step',
-					className:'green',
-					after:'golem_pause',
-					click:function() {
-						$(this).toggleClass('red green');
-						Queue._update({type:'reminder'}, 'run'); // A single shot
-						$(this).toggleClass('red green');
-					}
-				});
+				$('#golem_step').show();
 			}
 			Queue.clearCurrent();
+		}
+	});
+	Config.addButton({
+		id:'golem_step',
+		image:'step',
+		className:'green',
+		after:'golem_pause',
+		hide:!this.option.pause || !Config.get(['option','debug'], false),
+		click:function() {
+			$(this).toggleClass('red green');
+			Queue._update({type:'step'}, 'run'); // A single shot
+			$(this).toggleClass('red green');
 		}
 	});
 	// Running the queue every second, options within it give more delay
@@ -188,11 +190,13 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-		this._forget('run');
+		if (events.findEvent(null,'reminder','run') >= 0) { // Only delete the run timer if it's been triggered when we're asleep
+			this._forget('run');
+		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if (!this.temp.sleep && events.findEvent(null,'reminder') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping
+	if ((!this.temp.sleep && events.findEvent(null,'reminder') >= 0) || events.findEvent(null,'step') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');

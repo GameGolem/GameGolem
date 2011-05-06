@@ -90,6 +90,9 @@ Dashboard.init = function() {
 			$('#golem-dashboard').toggle('drop');
 		}
 	});
+	$(window).resize(function(event){
+		Dashboard._update({type:'trigger'});
+	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');

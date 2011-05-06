@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1102
+// @version		31.5.1103
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1102;
+var revision = 1103;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2574,11 +2574,14 @@ Config.menu = function(worker, key) {
 };
 
 Config.addButton = function(options) {
-	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.advanced >= 0 && !Config.get(['option','advanced'],false) ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
+	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
+		options.hide = true;
+	}
+	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.hide ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
 	if (options.prepend) {
 		$('#golem_buttons').prepend(html);
 	} else if (options.after) {
-		$('#'+relative).after(html);
+		$('#'+options.after).after(html);
 	} else {
 		$('#golem_buttons').append(html);
 	}
@@ -3092,6 +3095,9 @@ Dashboard.init = function() {
 			}
 			$('#golem-dashboard').toggle('drop');
 		}
+	});
+	$(window).resize(function(event){
+		Dashboard._update({type:'trigger'});
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
@@ -4648,21 +4654,23 @@ Queue.init = function(old_revision) {
 			log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
 			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 			if (!pause) {
-				$('#golem_step').remove();
+				$('#golem_step').hide();
 			} else if (Config.get(['option','debug'], false)) {
-				Config.addButton({
-					id:'golem_step',
-					image:'step',
-					className:'green',
-					after:'golem_pause',
-					click:function() {
-						$(this).toggleClass('red green');
-						Queue._update({type:'reminder'}, 'run'); // A single shot
-						$(this).toggleClass('red green');
-					}
-				});
+				$('#golem_step').show();
 			}
 			Queue.clearCurrent();
+		}
+	});
+	Config.addButton({
+		id:'golem_step',
+		image:'step',
+		className:'green',
+		after:'golem_pause',
+		hide:!this.option.pause || !Config.get(['option','debug'], false),
+		click:function() {
+			$(this).toggleClass('red green');
+			Queue._update({type:'step'}, 'run'); // A single shot
+			$(this).toggleClass('red green');
 		}
 	});
 	// Running the queue every second, options within it give more delay
@@ -4705,11 +4713,13 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-		this._forget('run');
+		if (events.findEvent(null,'reminder','run') >= 0) { // Only delete the run timer if it's been triggered when we're asleep
+			this._forget('run');
+		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if (!this.temp.sleep && events.findEvent(null,'reminder') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping
+	if ((!this.temp.sleep && events.findEvent(null,'reminder') >= 0) || events.findEvent(null,'step') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');

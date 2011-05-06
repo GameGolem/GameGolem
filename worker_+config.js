@@ -276,11 +276,14 @@ Config.menu = function(worker, key) {
 };
 
 Config.addButton = function(options) {
-	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.advanced >= 0 && !Config.get(['option','advanced'],false) ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
+	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
+		options.hide = true;
+	}
+	var html = $('<img class="golem-theme-button golem-button' + (options.active ? '-active' : '') + (options.advanced ? ' golem-advanced' : '') + (options.className ? ' '+options.className : '') + '" ' + (options.id ? 'id="'+options.id+'" ' : '') + (options.title ? 'title="'+options.title+'" ' : '') + (options.hide ? 'style="display:none;" ' : '') + 'src="' + getImage(options.image) + '">');
 	if (options.prepend) {
 		$('#golem_buttons').prepend(html);
 	} else if (options.after) {
-		$('#'+relative).after(html);
+		$('#'+options.after).after(html);
 	} else {
 		$('#golem_buttons').append(html);
 	}
