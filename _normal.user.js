@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1098
+// @version		31.5.1099
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1098;
+var revision = 1099;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -4040,6 +4040,13 @@ Main.update = function(event) {
 		var args = meta[3].toLowerCase().split(',');
 		return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
 	};
+	$.expr[':'].regex = function(obj, index, meta, stack) { // $('div:regex(^\stest\s$)') - selects if the text() matches this
+		var ac = arguments.callee, rx = ac['_'+meta[3]]; // Cache the regex - it's quite expensive to construct
+		if (!rx) {
+			rx = ac['_'+meta[3]] = new RegExp(meta[3],'i');
+		}
+		return rx.test($(obj).text());
+	};
 	// jQuery extra functions
 	$.fn.autoSize = function() {
 		function autoSize(e) {
@@ -6180,52 +6187,49 @@ Alchemy.parse = function(change) {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			// some ingredients are units
-			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
-				return !$(this).text().regex(/^\s*UNITS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$")').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
 				n = Town.qualify(n, i);
-				if (i in self.data.ingredients) {
+				if (i in this.data.ingredients) {
 					if (isNumber(c)) {
-						self.set(['ingredients', i], c);
+						this.set(['ingredients', i], c);
 					}
 				}
-			});
+			}
 
 			// some ingredients are items
-			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
-				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
 				n = Town.qualify(n, i);
-				if (i in self.data.ingredients) {
+				if (i in this.data.ingredients) {
 					if (isNumber(c)) {
-						self.set(['ingredients', i], c);
+						this.set(['ingredients', i], c);
 					}
 				}
-			});
+			}
 
-			tmp = $('.statsT2 .statsTTitle:contains("ALCHEMY INGREDIENTS")').not(function(a) {
-				return !$(this).text().regex(/^\s*ALCHEMY INGREDIENTS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ALCHEMY INGREDIENTS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 				if (i) {
-					self.set(['ingredients', i], c || 1);
+					this.set(['ingredients', i], c || 1);
 				} else {
 					Page.setStale('keep_alchemy', now);
 				}
-			});
+			}
 		}
 	}
 
@@ -14406,46 +14410,43 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.parse = function(change) {
-	var now = Date.now(), self = this, modify = false, tmp;
+	var i, el, tmp, img, filename, name, count, now = Date.now(), self = this, modify = false, tmp;
 	if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
-				return !$(this).text().regex(/^\s*UNITS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
-				n = self.qualify(n, i);
-				if (!self.data[n]) {
-					//log(LOG_WARN, 'missing unit: ' + n + ' (' + i + ')');
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
+				img = $('a img[src]', el);
+				filename = ($(img).attr('src') || '').filepart();
+				name = this.qualify(($(img).attr('title') || $(img).attr('alt') || '').trim(), filename);
+				count = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				if (!this.data[name]) {
+					//log(LOG_WARN, 'missing unit: ' + name + ' (' + filename + ')');
 					Page.setStale('town_soldiers', now);
-					return false;
-				} else if (isNumber(c)) {
-					self.set(['data', n, 'own'], c);
+					break;
+				} else if (isNumber(count)) {
+					this.set(['data', name, 'own'], count);
 				}
-			});
+			}
 
-			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
-				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = $(el).text().regex(/\bX\s*(\d+)\b/im);
-				n = self.qualify(n, i); // names aren't unique for items
-				if (!self.data[n] || self.data[n].img !== i) {
-					//log(LOG_WARN, 'missing item: ' + n + ' (' + i + ')' + (self.data[n] ? ' img[' + self.data[n].img + ']' : ''));
+			tmp = $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)');
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
+				img = $('a img[src]', el);
+				filename = ($(img).attr('src') || '').filepart();
+				name = this.qualify(($(img).attr('title') || $(img).attr('alt') || '').trim(), filename); // names aren't unique for items
+				count = $(el).text().regex(/\bX\s*(\d+)\b/im);
+				if (!this.data[name] || this.data[name].img !== filename) {
+					//log(LOG_WARN, 'missing item: ' + name + ' (' + i + ')' + (this.data[name] ? ' img[' + this.data[name].img + ']' : ''));
 					Page.setStale('town_blacksmith', now);
 					Page.setStale('town_magic', now);
-					return false;
-				} else if (isNumber(c)) {
-					self.set(['data', n, 'own'], c);
+					break;
+				} else if (isNumber(count)) {
+					this.set(['data', name, 'own'], count);
 				}
-			});
+			}
 		}
 	} else if (change && Page.page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {

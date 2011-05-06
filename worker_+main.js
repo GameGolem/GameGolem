@@ -141,6 +141,13 @@ Main.update = function(event) {
 		var args = meta[3].toLowerCase().split(',');
 		return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
 	};
+	$.expr[':'].regex = function(obj, index, meta, stack) { // $('div:regex(^\stest\s$)') - selects if the text() matches this
+		var ac = arguments.callee, rx = ac['_'+meta[3]]; // Cache the regex - it's quite expensive to construct
+		if (!rx) {
+			rx = ac['_'+meta[3]] = new RegExp(meta[3],'i');
+		}
+		return rx.test($(obj).text());
+	};
 	// jQuery extra functions
 	$.fn.autoSize = function() {
 		function autoSize(e) {

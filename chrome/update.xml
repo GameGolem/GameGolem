@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">
 	<app appid="onfncfheocnidgnejgnlcnfiifoidemg">
-		<updatecheck codebase="http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx" version="31.5.1098" />
+		<updatecheck codebase="http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx" version="31.5.1099" />
 	</app>
 </gupdate>

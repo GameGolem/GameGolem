@@ -132,52 +132,49 @@ Alchemy.parse = function(change) {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			// some ingredients are units
-			tmp = $('.statsT2 .statsTTitle:contains("UNITS")').not(function(a) {
-				return !$(this).text().regex(/^\s*UNITS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$")').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
 				n = Town.qualify(n, i);
-				if (i in self.data.ingredients) {
+				if (i in this.data.ingredients) {
 					if (isNumber(c)) {
-						self.set(['ingredients', i], c);
+						this.set(['ingredients', i], c);
 					}
 				}
-			});
+			}
 
 			// some ingredients are items
-			tmp = $('.statsT2 .statsTTitle:contains("ITEMS")').not(function(a) {
-				return !$(this).text().regex(/^\s*ITEMS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
 				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
 				n = Town.qualify(n, i);
-				if (i in self.data.ingredients) {
+				if (i in this.data.ingredients) {
 					if (isNumber(c)) {
-						self.set(['ingredients', i], c);
+						this.set(['ingredients', i], c);
 					}
 				}
-			});
+			}
 
-			tmp = $('.statsT2 .statsTTitle:contains("ALCHEMY INGREDIENTS")').not(function(a) {
-				return !$(this).text().regex(/^\s*ALCHEMY INGREDIENTS\s*$/im);
-			});
-			$('.statUnit', $(tmp).parent()).each(function(a, el) {
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ALCHEMY INGREDIENTS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
 				var b = $('a img[src]', el);
 				var i = ($(b).attr('src') || '').filepart();
 				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
 				if (i) {
-					self.set(['ingredients', i], c || 1);
+					this.set(['ingredients', i], c || 1);
 				} else {
 					Page.setStale('keep_alchemy', now);
 				}
-			});
+			}
 		}
 	}
 
