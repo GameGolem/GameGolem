@@ -211,7 +211,9 @@ Queue.update = function(event, events) {
 //			log(LOG_DEBUG, worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 			if (this.runtime.current === worker.name) {
 				worker._unflush();
+				Page.temp.enabled = true;
 				result = worker._work(true);
+				Page.temp.enabled = false;
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH

@@ -31,6 +31,11 @@ Coding.dashboard = function() {
 				html += '<td class="red">false</td>';
 			}
 		}
+		if (isBoolean(Workers[i]._get(['option','_sleep']))) {
+			html += '<td class="green">true</td>';
+		} else {
+			html += '<td class="red">false</td>';
+		}
 		for (j=0; j<data.length; j++) {
 			if (Workers[i][data[j]]) {
 				html += '<td class="green">true</td>';
@@ -45,6 +50,7 @@ Coding.dashboard = function() {
 	for (j=0; j<types.length; j++) {
 		html += '<th>' + types[j].ucfirst() + '</td>';
 	}
+	html += '<th>Sleep</th>';
 	for (j=0; j<data.length; j++) {
 		html += '<th>' + data[j].ucfirst() + '</td>';
 	}

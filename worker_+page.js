@@ -31,7 +31,8 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0
+	count:0,
+	enabled:false // Set to true in .work(true) - otherwise Page.to() should throw an error
 };
 
 Page.lastclick = null;
@@ -245,6 +246,10 @@ Page.makeLink = function(url, args, content) {
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
 Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
+	if (!this.temp.enabled) {
+		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.to('+JSON.shallow(arguments,2)+'): Not allowed to use Page.to() outside .work(true)');
+		return true;
+	}
 	var page = this.makeURL(url, args);
 //	if (Queue.option.pause) {
 //		log(LOG_ERROR, 'Trying to load page when paused...');
@@ -308,6 +313,10 @@ Page.clearFBpost = function(obj) {
 };
 
 Page.click = function(el) {
+	if (!this.temp.enabled) {
+		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.click('+JSON.shallow(arguments,2)+'): Not allowed to use Page.click() outside .work(true)');
+		return true;
+	}
 	if (!$(el).length) {
 		log(LOG_ERROR, 'Page.click: Unable to find element - '+el);
 		return false;

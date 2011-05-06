@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1099
+// @version		31.5.1102
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1099;
+var revision = 1102;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -2270,6 +2270,11 @@ Coding.dashboard = function() {
 				html += '<td class="red">false</td>';
 			}
 		}
+		if (isBoolean(Workers[i]._get(['option','_sleep']))) {
+			html += '<td class="green">true</td>';
+		} else {
+			html += '<td class="red">false</td>';
+		}
 		for (j=0; j<data.length; j++) {
 			if (Workers[i][data[j]]) {
 				html += '<td class="green">true</td>';
@@ -2284,6 +2289,7 @@ Coding.dashboard = function() {
 	for (j=0; j<types.length; j++) {
 		html += '<th>' + types[j].ucfirst() + '</td>';
 	}
+	html += '<th>Sleep</th>';
 	for (j=0; j<data.length; j++) {
 		html += '<th>' + data[j].ucfirst() + '</td>';
 	}
@@ -4121,7 +4127,8 @@ Page.temp = {
 	when:null,
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
-	count:0
+	count:0,
+	enabled:false // Set to true in .work(true) - otherwise Page.to() should throw an error
 };
 
 Page.lastclick = null;
@@ -4335,6 +4342,10 @@ Page.makeLink = function(url, args, content) {
 Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
 */
 Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
+	if (!this.temp.enabled) {
+		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.to('+JSON.shallow(arguments,2)+'): Not allowed to use Page.to() outside .work(true)');
+		return true;
+	}
 	var page = this.makeURL(url, args);
 //	if (Queue.option.pause) {
 //		log(LOG_ERROR, 'Trying to load page when paused...');
@@ -4398,6 +4409,10 @@ Page.clearFBpost = function(obj) {
 };
 
 Page.click = function(el) {
+	if (!this.temp.enabled) {
+		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.click('+JSON.shallow(arguments,2)+'): Not allowed to use Page.click() outside .work(true)');
+		return true;
+	}
 	if (!$(el).length) {
 		log(LOG_ERROR, 'Page.click: Unable to find element - '+el);
 		return false;
@@ -4713,7 +4728,9 @@ Queue.update = function(event, events) {
 //			log(LOG_DEBUG, worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
 			if (this.runtime.current === worker.name) {
 				worker._unflush();
+				Page.temp.enabled = true;
 				result = worker._work(true);
+				Page.temp.enabled = false;
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH
