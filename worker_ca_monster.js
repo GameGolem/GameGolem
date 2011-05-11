@@ -925,7 +925,7 @@ Monster.init = function() {
 };
 
 Monster.parse = function(change) {
-	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, parent = $('#app46755028429_app_body'), $children;
+	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, parent = $('#'+APPID_+'app_body'), $children;
 	//log(LOG_WARN, 'Parsing ' + Page.page);
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
 		festival = Page.page === 'festival_battle_monster';
@@ -1092,7 +1092,7 @@ Monster.parse = function(change) {
 				}
 			}
 		}
-		monster.timer = $('#app46755028429_monsterTicker').text().parseTimer();
+		monster.timer = $('#'+APPID_+'monsterTicker').text().parseTimer();
 		monster.finish = now + (monster.timer * 1000);
 		monster.damage.siege = 0;
 		monster.damage.others = 0;

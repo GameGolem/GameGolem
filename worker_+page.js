@@ -124,7 +124,7 @@ Page.init = function() {
 		Global.set(['option','page']);
 	}
 	// END
-	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
+	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
 		$('#fbDockChat').hide();
@@ -158,7 +158,7 @@ Page.update = function(event) {
 	if (event.type === 'init' || event.type === 'trigger') {
 		var i, list;
 		if (event.type === 'init' || event.id === 'page_change') {
-			list = ['#app_content_'+APPID, '#app46755028429_globalContainer', '#app46755028429_globalcss', '#app46755028429_main_bntp', '#app46755028429_main_sts_container', '#app46755028429_app_body_container', '#app46755028429_nvbar', '#app46755028429_current_pg_url', '#app46755028429_current_pg_info'];
+			list = ['#app_content_'+APPID, '#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', '#'+APPID_+'nvbar', '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
 //			log('Page change noticed...');
 			this._forget('retry');
 			this.set(['temp','loading'], false);
@@ -171,7 +171,7 @@ Page.update = function(event) {
 			}
 			// NOTE: Need a better function to identify pages, this lot is bad for CPU
 			this.page = '';
-			$('img', $('#app46755028429_app_body')).each(function(i,el){
+			$('img', $('#'+APPID_+'app_body')).each(function(i,el){
 				var i, filename = $(el).attr('src').filepart();
 				for (i in Page.pageNames) {
 					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {

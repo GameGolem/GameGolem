@@ -351,12 +351,12 @@ Battle.parse = function(change) {
 				History.add('battle+loss',-1);
 			}
 		}
-		this.set(['data','points'], $('#app46755028429_app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/), isArray);
+		this.set(['data','points'], $('#'+APPID_+'app_body table.layout table div div:contains("Once a day you can")').text().replace(/[^0-9\/]/g ,'').regex(/(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10(\d+)\/10/), isArray);
 		rank = {
 			battle: Player.get('battle',0),
 			war: Player.get('war',0)
 		}
-		$list = $('#app46755028429_app_body table.layout table table tr:even');
+		$list = $('#'+APPID_+'app_body table.layout table table tr:even');
 		for (i=0; i<$list.length; i++) {
 			$el = $list[i];
 			uid = $('img[uid!==""]', $el).attr('uid');
@@ -549,7 +549,7 @@ Battle.work = function(state) {
 		return QUEUE_CONTINUE;
 	}
 	/*jslint onevar:false*/
-	var $symbol_rows = $('#app46755028429_app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
+	var $symbol_rows = $('#'+APPID_+'app_body table.layout table table tr:even').has('img[src*="graphics/symbol_'+this.data.user[this.runtime.attacking].align+'"]');
 	var $form = $('form input[alt="' + (this.runtime.points ? this.option.points : this.option.type) + '"]', $symbol_rows).first().parents('form');
 	/*jslint onevar:true*/
 	if (!$form.length) {

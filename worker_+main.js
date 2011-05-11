@@ -22,9 +22,16 @@ Main._apps_ = {};
 Main._retry_ = 0;
 Main._jQuery_ = false; // Only set if we're loading it
 
-// Use this function to add more applications, "app" must be the pathname of the app under facebook.com, appid is the facebook app id, appname is the human readable name
-Main.add = function(app, appid, appname) {
-	this._apps_[app] = [appid, appname];
+/**
+ * Use this function to add more applications
+ * @param {string} app The pathname of the app under facebook.com
+ * @param {string} appid The facebook app id
+ * @param {string} appname The human readable app name
+ * @param {?RegExp=} alt An alternative domain for the app (make sure you include the protocol for security)
+ * @param {?Function=} fn A function to call before _setup() when the app is recognised
+ */
+Main.add = function(app, appid, appname, alt, fn) {
+	this._apps_[app] = [appid, appname, alt, fn];
 };
 
 Main.parse = function() {
@@ -37,7 +44,7 @@ Main.parse = function() {
 };
 
 Main.update = function(event) {
-	var i, old_revision = parseInt(getItem('revision') || 1061); // Added code to support Revision checking in 1062;
+	var i, old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
 	if (event.id === 'kickstart') {
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
@@ -50,6 +57,10 @@ Main.update = function(event) {
 			log(LOG_INFO, 'GameGolem: Reverting from r' + old_revision + ' to r' + revision);
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
+		}
+		$('#rightCol').prepend('<div id="golem" class="golem"></div>');
+		if (isFunction(this._apps_[APP][3])) {
+			this._apps_[APP][3]();
 		}
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
@@ -91,11 +102,16 @@ Main.update = function(event) {
 			log(LOG_INFO, 'GameGolem: No applications known...');
 		}
 		for (i in this._apps_) {
-			if (window.location.pathname.indexOf(i) === 1) {
+			if (window.location.pathname.indexOf(i) === 1 || (isRegExp(this._apps_[i][2]) && this._apps_[i][2].test(window.location))) {
 				APP = i;
 				APPID = this._apps_[i][0];
 				APPNAME = this._apps_[i][1];
 				PREFIX = 'golem'+APPID+'_';
+				if (window.location.pathname.indexOf(i) === 1) {
+					APPID_ = 'app' + APPID + '_';
+				} else {
+					APPID_ = '';
+				}
 				log(LOG_INFO, 'GameGolem: Starting '+APPNAME);
 				break;
 			}

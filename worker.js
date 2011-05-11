@@ -104,6 +104,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._pushStack()				- Pushes us onto the "active worker" list for debug messages etc
 ._popStack()					- Pops us off the "active worker" list
 */
+
 var Workers = {};// 'name':worker
 
 /**
@@ -586,6 +587,20 @@ Worker.prototype._replace = function(type, data) {
 };
 
 /**
+ * Set up a notification on the window size changing.
+ * Calls _update with type:'resize'
+ */
+Worker.prototype._resize = function() {
+	if (!this._resize_) {
+		this._resize_ = true;
+		var self = this;
+		$(window).resize(function(){
+			self._update('resize', 'run');
+		});
+	}
+};
+
+/**
  * Save _datatypes to storage
  * Save the amount of storage space used
  * Clear the _taint[type] value
@@ -884,13 +899,12 @@ Worker.prototype._unwatch = function(worker, path) {
 
 /**
  * Wrapper function for .update()
- * If event.type === save then we're a triggered save, no other work needed
- * Make sure the event passed is "clean", and that event.worker is a worker instead of a string
- * If .update() returns true then delete all pending _datatype update events
+ * Make sure the event passed is "clean", and be aware that event.worker is stored as a string, but passed to .update() as a Worker
+ * If .update() returns true then delete all pending update events
  * @param {(object|string)} event The event that we will copy and pass on to .update(). If it is a string then parse out to event.type
- * @param {string=} type The type of update - key is event.worker+event.type. "add" (default) then will add to the update queue, "delete" will deleting matching keys, "purge" will purge the queue completely (use with care), "run" will run through the queue and act on every one
+ * @param {string=} action The type of update - "add" (default) will add to the update queue, "delete" will deleting matching events, "purge" will purge the queue completely (use with care), "run" will run through the queue and act on every one (automatically happens every 250ms)
  */
-Worker.prototype._update = function(event, type) {
+Worker.prototype._update = function(event, action) {
 	if (this._loaded) {
 		this._pushStack();
 		var i, done = false, events;
@@ -902,13 +916,13 @@ Worker.prototype._update = function(event, type) {
 			}
 			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-				if (type !== 'purge' && (i = this._updates_.getEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+				if (action !== 'purge' && (i = this._updates_.getEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
 					this._updates_.splice(i,1);
 				}
-				if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
+				if (action !== 'add' && action !== 'delete') { // Add to update queue, old key already deleted
 					this._updates_.unshift($.extend({}, event));
 				}
-				if (type === 'purge') { // Purge the update queue immediately - don't do anything with the entries
+				if (action === 'purge') { // Purge the update queue immediately - don't do anything with the entries
 					this._updates_ = [];
 				}
 				if (this._updates_.length) {
@@ -918,7 +932,7 @@ Worker.prototype._update = function(event, type) {
 				}
 			}
 		}
-		if (type === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
+		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
 			this._unflush();
 			events = this._updates_;
 			this._updates_ = [];

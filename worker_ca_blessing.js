@@ -106,7 +106,7 @@ Blessing.work = function(state) {
 	if (!state || !Page.to('oracle_demipower')) {
 		return QUEUE_CONTINUE;
 	}
-	Page.click('#app46755028429_symbols_form_'+this.which.indexOf(this.option.which)+' input.imgButton');
+	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which)+' input.imgButton');
 	return QUEUE_RELEASE;
 };
 

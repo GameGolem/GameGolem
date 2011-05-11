@@ -135,7 +135,7 @@ Guild.init = function() {
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
 		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
 	}
-	this._trigger('#app46755028429_guild_token_current_value', 'tokens'); //fix
+	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
 Guild.parse = function(change) {
@@ -159,9 +159,9 @@ Guild.parse = function(change) {
 			}
 			break;
 		case 'battle_guild_battle':
-			this.set(['runtime','tokens'], ($('#app46755028429_guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
-			this._remind(($('#app46755028429_guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
-			i = $('#app46755028429_monsterTicker').text().parseTimer();
+			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
 			if ($('input[src*="collect_reward_button2.jpg"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
@@ -174,7 +174,7 @@ Guild.parse = function(change) {
 				this.set(['runtime','finish'], (i * 1000) + now);
 				this._remind(i, 'finish');
 			}
-			tmp = $('#app46755028429_results_main_wrapper');
+			tmp = $('#'+APPID_+'results_main_wrapper');
 			if (tmp.length) {
 				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
 				if (isNumber(i)) {
@@ -186,7 +186,7 @@ Guild.parse = function(change) {
 			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
 				this.set(['data',this.runtime.last], true);
 			}
-			this.set(['runtime','stunned'], !!$('#app46755028429_guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+			this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
 			break;
 	}
 };
@@ -206,8 +206,8 @@ Guild.update = function(event) {
 		}
 	}
 	if (event.type === 'trigger' && event.id === 'tokens') {
-		if ($('#app46755028429_guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#app46755028429_guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
+		if ($('#'+APPID_+'guild_token_current_value').length) {//fix
+			this.set(['runtime','tokens'], $('#'+APPID_+'guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
 		}
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
@@ -259,7 +259,7 @@ Guild.work = function(state) {
 						return QUEUE_CONTINUE;
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#app46755028429_enemy_guild_member_list_1 > div, #app46755028429_enemy_guild_member_list_2 > div, #app46755028429_enemy_guild_member_list_3 > div, #app46755028429_enemy_guild_member_list_4 > div').each(function(i,el){
+					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
 					
 						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]

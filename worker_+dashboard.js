@@ -36,23 +36,20 @@ Dashboard.init = function() {
 		}
 	}
 	list.sort();
-	tabs.push('<h3 name="' + this.name + '" class="golem-tab-header golem-theme-button' + (active === this.name ? ' golem-tab-header-active' : '') + '">&nbsp;*&nbsp;</h3>');
-	divs.push('<div id="golem-dashboard-' + this.name + '"' + (active === this.name ? '' : ' style="display:none;"') + '></div>');
-	this._watch(this, 'data');
-	this._watch(this, 'option._hide_dashboard');
+	list.unshift(this.name);
 	for (j=0; j<list.length; j++) {
 		i = list[j];
 		hide = Workers[i]._get(['option','_hide_dashboard'], false) || (Workers[i].settings.advanced && !Config.option.advanced) || (Workers[i].settings.debug && !Config.option.debug);
-		if (hide && this.option.active === i) {
+		if (hide && this.option.active === i) { // Make sure we can see the active worker
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button' + (active === i ? ' golem-tab-header-active' : '') + '" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + i + '</h3>');
-		divs.push('<div id="golem-dashboard-' + i + '"'+(active === i ? '' : ' style="display:none;"') + '></div>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + (i===this.name ? '*' : i) + '</h3>');
+		divs.push('<div id="golem-dashboard-' + i + '" style="display:none;"></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('#mainContainer').append('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>');
-	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
+	$('#golem').append('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>');
+	$('#golem-dashboard').offset($('#'+APPID_+'app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
 			Dashboard.set(['option','active'], $(this).attr('name'));
@@ -90,27 +87,21 @@ Dashboard.init = function() {
 			$('#golem-dashboard').toggle('drop');
 		}
 	});
-	$(window).resize(function(event){
-		Dashboard._update({type:'trigger'}, 'run');
-	});
-	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
+	this._resize();
+	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
 	this._watch(this, 'option.active');
 	this._watch(Config, 'option.advanced');
 	this._watch(Config, 'option.debug');
+	this._update({type:'watch', worker:this.option.active, id:'option.active'}); // Make sure we draw the first one, no id so we don't do excess processing...
 };
 
 Dashboard.update = function(event, events) {
-	var i, init = events.findEvent(null, 'init');
-	for (i=0; i<events.length; i++) {
-		event = events[i];
-		if (init) {
-			event.worker = Workers[this.option.active];
-		}
-		var settings, advanced, debug;
+	var i, settings, advanced, debug, $el, offset, width, height, margin = 0;
+	for (event=events.findEvent(null, 'watch'); event; event=events.findEvent()) {
 		if (event.id === 'option.advanced' || event.id === 'option.debug') {
 			advanced = Config.get(['option','advanced'], false);
 			debug = Config.get(['option','debug'], false);
-			for (var i in Workers) {
+			for (i in Workers) {
 				settings = Workers[i].settings;
 				if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
 					$('#golem-dashboard > h3[name="'+i+'"]').show();
@@ -155,20 +146,19 @@ Dashboard.update = function(event, events) {
 			$('#golem-dashboard-'+event.worker.name).empty();
 		}
 	}
-	if (init || events.findEvent(null, 'trigger')) { // Make sure we're always in the right place
-		var $el, offset, width, height, margin = 0;
+	if (events.findEvent(null, 'resize') || events.findEvent(null, 'trigger') || events.findEvent(null, 'init')) { // Make sure we're always in the right place
 		if (this.get(['option','expand'], false)) {
-			$el = $('#app46755028429_globalContainer');
+			$el = $('#contentArea');
 			width = $el.width();
 			height = $el.height();
 			margin = 10;
 		} else {
-			$el = $('#app46755028429_app_body_container');
+			$el = $('#'+APPID_+'app_body_container');
 			width = this.get(['option','width'], 0);
 			height = this.get(['option','height'], 0);
 		}
 		offset = $el.offset();
-		$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
+		$('#golem-dashboard').animate({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
 	}
 	return true;
 };

@@ -50,6 +50,15 @@ var isFunction = function(obj) {
 };
 
 /**
+ * Check if a passed object is a RegExp
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isRegExp = function(obj) {
+	return obj && obj.constructor === RegExp;
+};
+
+/**
  * Check if a passed object is a Worker
  * @param {*} obj The object we wish to check
  * @return {boolean} If it is or not
@@ -379,10 +388,27 @@ Array.prototype.getEvent = function(worker, type, id, start) {
 	return -1;
 };
 
-// Used for events in update(event, events)
+/**
+ * Used for events in update(event, events)
+ * @param {?string=} worker The worker name we're looking for
+ * @param {?string=} type The event type we're looking for
+ * @param {?string=} id The event id we're looking for
+ * @return {?Object}
+ */
 Array.prototype.findEvent = function(worker, type, id) {
-	var i = this.getEvent(worker, type, id);
-	return (i >= 0 ? this[i] : null);
+	if (worker || type || id) {
+		this._worker = worker;
+		this._type = type;
+		this._id = id;
+		this._index = -1;
+	}
+	var length = this.length;
+	for (this._index++; this._index<length; this._index++) {
+		if (isEvent(this[this._index], this._worker, this._type, this._id)) {
+			return this[this._index];
+		}
+	}
+	return null;
 };
 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};

@@ -773,7 +773,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 		return false;
 	}
 	var qty = this.data[item].buy.lower(number);
-	var $form = $('form#app46755028429_itemBuy_' + this.data[item].id);
+	var $form = $('form#'+APPID_+'itemBuy_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 		$('select[name="amount"]', $form).val(qty);
@@ -792,7 +792,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 		return false;
 	}
 	var qty = this.data[item].sell.lower(number);
-	var $form = $('form#app46755028429_itemSell_' + this.data[item].id);
+	var $form = $('form#'+APPID_+'itemSell_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 		$('select[name="amount"]', $form).val(qty);

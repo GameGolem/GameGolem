@@ -120,7 +120,7 @@ Config.init = function() {
 	$('.golem-panel-header input').live('click.golem', function(event){
 		event.stopPropagation(true);
 	});
-	$('#content').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
+	$('#golem').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-icon-menu').live('click.golem', function(event) {
 		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
@@ -293,7 +293,7 @@ Config.addButton = function(options) {
 }
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
-	var i, j, k, tmp = $('<div id="golem_config_frame" class="ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;width:' + $('#rightCol').width() + 'px;">' +
+	var i, j, k, tmp = $('<div id="golem_config_frame" class="ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;width:' + $('#golem').width() + 'px;">' +
 		'<div class="golem-title">' +
 			'&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
 			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
@@ -306,7 +306,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'</div>' +
 		'</div>' +
 	'</div>');
-	$('#rightCol').prepend(tmp);
+	$('#golem').prepend(tmp);
 	this.addButton({
 		id:'golem_options',
 		image:'options',
@@ -630,7 +630,7 @@ Config.makeOption = function(worker, args) {
 	if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
 		txt.push('</span>');
 	}
-	$option = $('<div>' + txt.join('') + '</div>');
+	$option = $('<div class="ui-helper-clearfix">' + txt.join('') + '</div>');
 	if (o.require || o.advanced || o.debug || o.exploit) {
 		try {
 			r = {depth:0};
@@ -657,9 +657,9 @@ Config.makeOption = function(worker, args) {
 		}
 	}
 	if (o.group) {
-		$option.append($('<div' + o.real_id + (o.title ? ' style="padding-left:16px;' + (worker.get(['option','_config',o.title.toLowerCase().replace(/[^a-z]/g,'')], false) ? 'display:none;' : '') + '"' : '') + '></div>').append(this.makeOptions(worker,o.group)));
-	} else {
-		$option.append('<br>');
+		$option.append($('<div class="ui-helper-clearfix"' + o.real_id + (o.title ? ' style="padding-left:16px;' + (worker.get(['option','_config',o.title.toLowerCase().replace(/[^a-z]/g,'')], false) ? 'display:none;' : '') + '"' : '') + '></div>').append(this.makeOptions(worker,o.group)));
+//	} else {
+//		$option.append('<br>');
 	}
 	if (o.help) {
 		$option.attr('title', o.help);

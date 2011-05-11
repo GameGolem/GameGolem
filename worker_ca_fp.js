@@ -114,7 +114,7 @@ FP.work = function(state) {
 		return QUEUE_NO_ACTION;
 	}
 	if (state && Generals.to(this.option.general) && Page.to('oracle_oracle')) {
-		Page.click('#app46755028429_favorBuy_' + (this.option.type === 'energy' ? '5' : '6') + ' input[name="favor submit"]');
+		Page.click('#'+APPID_+'favorBuy_' + (this.option.type === 'energy' ? '5' : '6') + ' input[name="favor submit"]');
 		//this.set(['data', Player.get('level',0).toString()], (parseInt(this.data[Player.get('level',0).toString()] || 0, 10)) + 1); 
 		log(LOG_WARN, 'Clicking on ' + this.option.type + ' refill ' + Player.get('level',0));
 	}
