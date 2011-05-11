@@ -249,7 +249,7 @@ Generals.update = function(event, events) {
 		listpush = function(list,i){list.push(i);},
 		skillcombo, calcStats = false, all_stats, bests;
 
-	if (events.findEvent(this, 'init') >= 0 || events.findEvent(this, 'data') >= 0) {
+	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
 		bests = true;
 
 		k = 0;
@@ -319,11 +319,12 @@ Generals.update = function(event, events) {
 	// busy stuff, so watch how often it runs
 	// revision increases force a run via an event
 
-	if ((invade && duel && war && (this.runtime.force ||
-	  events.findEvent(null, 'data') >= 0 ||
-	  events.findEvent(Town) >= 0 ||
-	  events.findEvent(Player) >= 0)) ||
-	  events.findEvent(this, 'reminder', 'revision') >= 0) {
+	if ((invade && duel && war
+	&& (this.runtime.force
+		|| events.findEvent(null, 'data')
+		|| events.findEvent(Town)
+		|| events.findEvent(Player)))
+	|| events.findEvent(this, 'reminder', 'revision')) {
 		bests = true;
 		this.set(['runtime','force'], false);
 
@@ -337,7 +338,7 @@ Generals.update = function(event, events) {
 		health = Player.get('health', 0, 'number');
 		armymax = Player.get('armymax', 1, 'number');
 
-		if (events.findEvent(Player) >= 0 && pattack > 1 && pdefense > 1) {
+		if (events.findEvent(Player) && pattack > 1 && pdefense > 1) {
 			// Only need them the first time...
 			this._unwatch(Player, 'data.attack');
 			this._unwatch(Player, 'data.defense');

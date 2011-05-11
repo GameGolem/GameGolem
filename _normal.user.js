@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Auto player for Castle Age on Facebook. If there's anything you'd like it to do, just ask...
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		31.5.1103
+// @version		31.5.1104
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // @require		http://cloutman.com/jquery-1.4.2.min.js
@@ -27,7 +27,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.5";
-var revision = 1103;
+var revision = 1104;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPNAME, PREFIX; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -415,7 +415,7 @@ var isEvent = function(event, worker, type, id) {
 };
  
 // Used for events in update(event, events)
-Array.prototype.findEvent = function(worker, type, id, start) {
+Array.prototype.getEvent = function(worker, type, id, start) {
 	var i = start || 0, l = this.length;
 	for (; i<l; i++) {
 		if (isEvent(this[i], worker, type, id)) {
@@ -424,7 +424,13 @@ Array.prototype.findEvent = function(worker, type, id, start) {
 	}
 	return -1;
 };
- 
+
+// Used for events in update(event, events)
+Array.prototype.findEvent = function(worker, type, id) {
+	var i = this.getEvent(worker, type, id);
+	return (i >= 0 ? this[i] : null);
+};
+
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {
@@ -1859,7 +1865,7 @@ Worker.prototype._update = function(event, type) {
 			}
 			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-				if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+				if (type !== 'purge' && (i = this._updates_.getEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
 					this._updates_.splice(i,1);
 				}
 				if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted
@@ -2455,7 +2461,7 @@ Config.init = function() {
 			$('#golem-menu').css({
 				position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true) - 4)
+				left:Math.min($this.offset().left, $('body').width() - $('#golem-menu').outerWidth(true) - 4)
 			}).show();
 		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.set(['temp','menu']);
@@ -2591,7 +2597,7 @@ Config.addButton = function(options) {
 }
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
-	var i, j, k, tmp = $('<div id="golem_config_frame" class="UIStandardFrame_SidebarAds canvasSidebar ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;">' +
+	var i, j, k, tmp = $('<div id="golem_config_frame" class="ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;width:' + $('#rightCol').width() + 'px;">' +
 		'<div class="golem-title">' +
 			'&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
 			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
@@ -2604,11 +2610,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'</div>' +
 		'</div>' +
 	'</div>');
-	if (('.canvasSidebar').length) { // Should always be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
-		$('.canvasSidebar').before(tmp);
-	} else {
-		$('div.UIStandardFrame_Content').after(tmp);
-	}
+	$('#rightCol').prepend(tmp);
 	this.addButton({
 		id:'golem_options',
 		image:'options',
@@ -3057,7 +3059,7 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('#mainContainer').append('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>');
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
@@ -3066,7 +3068,7 @@ Dashboard.init = function() {
 	});
 	$('#golem_dashboard_expand').click(function(event){
 		Dashboard.set(['option','expand'], !Dashboard.get(['option','expand'], false));
-		Dashboard.update_trigger(event);
+		Dashboard._update('trigger','run');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -3090,14 +3092,14 @@ Dashboard.init = function() {
 			$(this).toggleClass('golem-button golem-button-active');
 			Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
 			if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
-				Dashboard.update_trigger();
+				Dashboard._update('trigger','run');
 				Workers[Dashboard.option.active].dashboard();
 			}
 			$('#golem-dashboard').toggle('drop');
 		}
 	});
 	$(window).resize(function(event){
-		Dashboard._update({type:'trigger'});
+		Dashboard._update({type:'trigger'}, 'run');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
@@ -3105,79 +3107,78 @@ Dashboard.init = function() {
 	this._watch(Config, 'option.debug');
 };
 
-Dashboard.update_trigger = function(event) {
-	var expand = this.get(['option','expand'], false), $el, offset, width, height, margin = 0;
-	if (expand) {
-		$el = $('#app46755028429_globalContainer');
-		width = $el.width();
-		height = $el.height();
-		margin = 10;
-	} else {
-		$el = $('#app46755028429_app_body_container');
-		width = this.get(['option','width'], 0);
-		height = this.get(['option','height'], 0);
-	}
-	offset = $el.offset();
-	$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)}); // Make sure we're always in the right place
-};
-
-Dashboard.update_watch = function(event) {
-	var i, settings, advanced, debug;
-	if (event.id === 'option.advanced' || event.id === 'option.debug') {
-		advanced = Config.get(['option','advanced'], false);
-		debug = Config.get(['option','debug'], false);
-		for (var i in Workers) {
-			settings = Workers[i].settings;
-			if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
-				$('#golem-dashboard > h3[name="'+i+'"]').show();
-			} else {
-				$('#golem-dashboard > h3[name="'+i+'"]').hide();
-				if (this.option.active === i) {
-					this.set(['option','active'], this.name);
+Dashboard.update = function(event, events) {
+	var i, init = events.findEvent(null, 'init');
+	for (i=0; i<events.length; i++) {
+		event = events[i];
+		if (init) {
+			event.worker = Workers[this.option.active];
+		}
+		var settings, advanced, debug;
+		if (event.id === 'option.advanced' || event.id === 'option.debug') {
+			advanced = Config.get(['option','advanced'], false);
+			debug = Config.get(['option','debug'], false);
+			for (var i in Workers) {
+				settings = Workers[i].settings;
+				if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
+					$('#golem-dashboard > h3[name="'+i+'"]').show();
+				} else {
+					$('#golem-dashboard > h3[name="'+i+'"]').hide();
+					if (this.option.active === i) {
+						this.set(['option','active'], this.name);
+					}
 				}
 			}
+			return;
 		}
-		return;
-	}
-	if (event.id === 'option._hide_dashboard') {
-		if (event.worker._get(['option','_hide_dashboard'], false)) {
-			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
-			if (this.option.active === event.worker.name) {
-				this.set(['option','active'], this.name);
+		if (event.id === 'option._hide_dashboard') {
+			if (event.worker._get(['option','_hide_dashboard'], false)) {
+				$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
+				if (this.option.active === event.worker.name) {
+					this.set(['option','active'], this.name);
+				}
+			} else {
+				$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+			}
+			return;
+		}
+		if (event.id === 'option.active') {
+			if (!Workers[this.option.active]) {
+				this.set('option.active', this.name);
+			}
+			$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
+			$('#golem-dashboard > div > div').hide();
+			$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
+			$('#golem-dashboard-'+this.option.active).show();
+			event.worker = Workers[this.option.active];
+		}
+		if (this.option.active === event.worker.name && this.option.display === 'block') {
+			try {
+				event.worker._unflush();
+				event.worker.dashboard();
+			}catch(e) {
+				log(LOG_ERROR, e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 			}
 		} else {
-			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+			$('#golem-dashboard-'+event.worker.name).empty();
 		}
-		return;
 	}
-	if (event.id === 'option.active') {
-		if (!Workers[this.option.active]) {
-			this.set('option.active', this.name);
+	if (init || events.findEvent(null, 'trigger')) { // Make sure we're always in the right place
+		var $el, offset, width, height, margin = 0;
+		if (this.get(['option','expand'], false)) {
+			$el = $('#app46755028429_globalContainer');
+			width = $el.width();
+			height = $el.height();
+			margin = 10;
+		} else {
+			$el = $('#app46755028429_app_body_container');
+			width = this.get(['option','width'], 0);
+			height = this.get(['option','height'], 0);
 		}
-		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
-		$('#golem-dashboard > div > div').hide();
-		$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
-		$('#golem-dashboard-'+this.option.active).show();
-		event.worker = Workers[this.option.active];
+		offset = $el.offset();
+		$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
 	}
-	if (this.option.active === event.worker.name && this.option.display === 'block') {
-		try {
-			event.worker._unflush();
-			event.worker.dashboard();
-		}catch(e) {
-			log(LOG_ERROR, e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
-		}
-	} else {
-		$('#golem-dashboard-'+event.worker.name).empty();
-	}
-};
-
-Dashboard.update = function(event) {
-	if (event.type === 'init') {
-		event.worker = Workers[this.option.active];
-		this.update_trigger(event);
-		this.update_watch(event);
-	}
+	return true;
 };
 
 Dashboard.dashboard = function() {
@@ -3502,7 +3503,7 @@ Debug.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		Dashboard.update_watch({worker:this}); // Any changes to options should force a dashboard update
+		this._notify('data'); // Any changes to options should force a dashboard update
 	}
 };
 
@@ -4380,10 +4381,14 @@ Page.retry = function() {
 		this.reload();
 	} else if (this.temp.last) {
 		log(LOG_WARN, 'Page load timeout, retry '+this.temp.retry+'...');
+		this.temp.enabled = true;
 		this.to(this.temp.last, null, true);// Force
+		this.temp.enabled = false;
 	} else if (this.lastclick) {
 		log(LOG_WARN, 'Page click timeout, retry '+this.temp.retry+'...');
+		this.temp.enabled = true;
 		this.click(this.lastclick);
+		this.temp.enabled = false;
 	} else {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes
@@ -4713,13 +4718,14 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-		if (events.findEvent(null,'reminder','run') >= 0) { // Only delete the run timer if it's been triggered when we're asleep
+// Selective deleting caused race conditions on faster delay timers - need a better solution...
+//		if (events.findEvent(null,'reminder','run')) { // Only delete the run timer if it's been triggered when we're asleep
 			this._forget('run');
-		}
+//		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if ((!this.temp.sleep && events.findEvent(null,'reminder') >= 0) || events.findEvent(null,'step') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
+	if ((!this.temp.sleep && events.findEvent(null,'reminder')) || events.findEvent(null,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');
@@ -7884,7 +7890,7 @@ Generals.update = function(event, events) {
 		listpush = function(list,i){list.push(i);},
 		skillcombo, calcStats = false, all_stats, bests;
 
-	if (events.findEvent(this, 'init') >= 0 || events.findEvent(this, 'data') >= 0) {
+	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
 		bests = true;
 
 		k = 0;
@@ -7954,11 +7960,12 @@ Generals.update = function(event, events) {
 	// busy stuff, so watch how often it runs
 	// revision increases force a run via an event
 
-	if ((invade && duel && war && (this.runtime.force ||
-	  events.findEvent(null, 'data') >= 0 ||
-	  events.findEvent(Town) >= 0 ||
-	  events.findEvent(Player) >= 0)) ||
-	  events.findEvent(this, 'reminder', 'revision') >= 0) {
+	if ((invade && duel && war
+	&& (this.runtime.force
+		|| events.findEvent(null, 'data')
+		|| events.findEvent(Town)
+		|| events.findEvent(Player)))
+	|| events.findEvent(this, 'reminder', 'revision')) {
 		bests = true;
 		this.set(['runtime','force'], false);
 
@@ -7972,7 +7979,7 @@ Generals.update = function(event, events) {
 		health = Player.get('health', 0, 'number');
 		armymax = Player.get('armymax', 1, 'number');
 
-		if (events.findEvent(Player) >= 0 && pattack > 1 && pdefense > 1) {
+		if (events.findEvent(Player) && pattack > 1 && pdefense > 1) {
 			// Only need them the first time...
 			this._unwatch(Player, 'data.attack');
 			this._unwatch(Player, 'data.defense');
@@ -9687,7 +9694,7 @@ LevelUp.parse = function(change) {
 
 LevelUp.update = function(event, events) {
 	var i, quests, energy = Player.get('energy',0), maxenergy = Player.get('maxenergy',0), stamina = Player.get('stamina',0), maxstamina = Player.get('maxstamina',0), exp = Player.get('exp',0), runtime = this.runtime;
-	if (events.findEvent('Player') >= 0) {
+	if (events.findEvent('Player')) {
 		// Check if stamina/energy is maxed and should be forced
 		if (!this.runtime.force.energy) {
 			if (energy >= maxenergy) {
@@ -9724,7 +9731,7 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
-	if (events.findEvent('Player') >= 0 || !length(runtime.quests)) {
+	if (events.findEvent('Player') || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {

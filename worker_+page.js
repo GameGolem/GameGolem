@@ -278,10 +278,14 @@ Page.retry = function() {
 		this.reload();
 	} else if (this.temp.last) {
 		log(LOG_WARN, 'Page load timeout, retry '+this.temp.retry+'...');
+		this.temp.enabled = true;
 		this.to(this.temp.last, null, true);// Force
+		this.temp.enabled = false;
 	} else if (this.lastclick) {
 		log(LOG_WARN, 'Page click timeout, retry '+this.temp.retry+'...');
+		this.temp.enabled = true;
 		this.click(this.lastclick);
+		this.temp.enabled = false;
 	} else {
 		// Probably a bad initial page load...
 		// Reload the page - but use an incrimental delay - every time we double it to a maximum of 5 minutes

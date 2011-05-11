@@ -190,13 +190,14 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-		if (events.findEvent(null,'reminder','run') >= 0) { // Only delete the run timer if it's been triggered when we're asleep
+// Selective deleting caused race conditions on faster delay timers - need a better solution...
+//		if (events.findEvent(null,'reminder','run')) { // Only delete the run timer if it's been triggered when we're asleep
 			this._forget('run');
-		}
+//		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if ((!this.temp.sleep && events.findEvent(null,'reminder') >= 0) || events.findEvent(null,'step') >= 0) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
+	if ((!this.temp.sleep && events.findEvent(null,'reminder')) || events.findEvent(null,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');

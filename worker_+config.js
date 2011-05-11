@@ -157,7 +157,7 @@ Config.init = function() {
 			$('#golem-menu').css({
 				position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
 				top:$this.offset().top + $this.height(),
-				left:Math.min($this.offset().left, $('#content').width() - $('#golem-menu').outerWidth(true) - 4)
+				left:Math.min($this.offset().left, $('body').width() - $('#golem-menu').outerWidth(true) - 4)
 			}).show();
 		} else {// Need to stop it going up to the config panel, but still close the menu if needed
 			Config.set(['temp','menu']);
@@ -293,7 +293,7 @@ Config.addButton = function(options) {
 }
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
-	var i, j, k, tmp = $('<div id="golem_config_frame" class="UIStandardFrame_SidebarAds canvasSidebar ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;">' +
+	var i, j, k, tmp = $('<div id="golem_config_frame" class="ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;width:' + $('#rightCol').width() + 'px;">' +
 		'<div class="golem-title">' +
 			'&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
 			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
@@ -306,11 +306,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'</div>' +
 		'</div>' +
 	'</div>');
-	if (('.canvasSidebar').length) { // Should always be inside #UIStandardFrame_SidebarAds - but some ad-blockers remove that
-		$('.canvasSidebar').before(tmp);
-	} else {
-		$('div.UIStandardFrame_Content').after(tmp);
-	}
+	$('#rightCol').prepend(tmp);
 	this.addButton({
 		id:'golem_options',
 		image:'options',

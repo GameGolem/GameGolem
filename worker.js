@@ -902,7 +902,7 @@ Worker.prototype._update = function(event, type) {
 			}
 			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-				if (type !== 'purge' && (i = this._updates_.findEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
+				if (type !== 'purge' && (i = this._updates_.getEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
 					this._updates_.splice(i,1);
 				}
 				if (type !== 'add' && type !== 'delete') { // Add to update queue, old key already deleted

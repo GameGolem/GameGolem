@@ -369,7 +369,7 @@ var isEvent = function(event, worker, type, id) {
 };
  
 // Used for events in update(event, events)
-Array.prototype.findEvent = function(worker, type, id, start) {
+Array.prototype.getEvent = function(worker, type, id, start) {
 	var i = start || 0, l = this.length;
 	for (; i<l; i++) {
 		if (isEvent(this[i], worker, type, id)) {
@@ -378,7 +378,13 @@ Array.prototype.findEvent = function(worker, type, id, start) {
 	}
 	return -1;
 };
- 
+
+// Used for events in update(event, events)
+Array.prototype.findEvent = function(worker, type, id) {
+	var i = this.getEvent(worker, type, id);
+	return (i >= 0 ? this[i] : null);
+};
+
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
 var makeTimer = function(sec) {

@@ -280,7 +280,7 @@ Debug.update = function(event) {
 		} else {
 			this._forget('timer');
 		}
-		Dashboard.update_watch({worker:this}); // Any changes to options should force a dashboard update
+		this._notify('data'); // Any changes to options should force a dashboard update
 	}
 };
 

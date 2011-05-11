@@ -80,7 +80,6 @@
 
 .golem-config-fixed {
 	position: fixed;
-	margin-left: -2px !important; /* Not quite sure why it needs this to stay in the same position... */
 }
 
 .golem-config > div {

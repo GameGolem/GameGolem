@@ -51,7 +51,7 @@ Dashboard.init = function() {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>').prependTo('.UIStandardFrame_Content');
+	$('#mainContainer').append('<div id="golem-dashboard" style="position:absolute;display:none;">' + tabs.join('') + '<img id="golem_dashboard_expand" style="position:absolute;top:0;right:0;" src="'+getImage('expand')+'"><div>' + divs.join('') + '</div></div>');
 	$('#golem-dashboard').offset($('#app46755028429_app_body_container').offset()).css('display', this.option.display); // Make sure we're always in the right place
 	$('.golem-tab-header').click(function(){
 		if (!$(this).hasClass('golem-tab-header-active')) {
@@ -60,7 +60,7 @@ Dashboard.init = function() {
 	});
 	$('#golem_dashboard_expand').click(function(event){
 		Dashboard.set(['option','expand'], !Dashboard.get(['option','expand'], false));
-		Dashboard.update_trigger(event);
+		Dashboard._update('trigger','run');
 	});
 	$('#golem-dashboard .golem-panel > h3').live('click', function(event){
 		if ($(this).parent().hasClass('golem-panel-show')) {
@@ -84,14 +84,14 @@ Dashboard.init = function() {
 			$(this).toggleClass('golem-button golem-button-active');
 			Dashboard.set(['option','display'], Dashboard.option.display==='block' ? 'none' : 'block');
 			if (Dashboard.option.display === 'block' && !$('#golem-dashboard-'+Dashboard.option.active).children().length) {
-				Dashboard.update_trigger();
+				Dashboard._update('trigger','run');
 				Workers[Dashboard.option.active].dashboard();
 			}
 			$('#golem-dashboard').toggle('drop');
 		}
 	});
 	$(window).resize(function(event){
-		Dashboard._update({type:'trigger'});
+		Dashboard._update({type:'trigger'}, 'run');
 	});
 	this._trigger('#app46755028429_app_body_container, #app46755028429_globalContainer', 'page_change');
 	this._watch(this, 'option.active');
@@ -99,79 +99,78 @@ Dashboard.init = function() {
 	this._watch(Config, 'option.debug');
 };
 
-Dashboard.update_trigger = function(event) {
-	var expand = this.get(['option','expand'], false), $el, offset, width, height, margin = 0;
-	if (expand) {
-		$el = $('#app46755028429_globalContainer');
-		width = $el.width();
-		height = $el.height();
-		margin = 10;
-	} else {
-		$el = $('#app46755028429_app_body_container');
-		width = this.get(['option','width'], 0);
-		height = this.get(['option','height'], 0);
-	}
-	offset = $el.offset();
-	$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)}); // Make sure we're always in the right place
-};
-
-Dashboard.update_watch = function(event) {
-	var i, settings, advanced, debug;
-	if (event.id === 'option.advanced' || event.id === 'option.debug') {
-		advanced = Config.get(['option','advanced'], false);
-		debug = Config.get(['option','debug'], false);
-		for (var i in Workers) {
-			settings = Workers[i].settings;
-			if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
-				$('#golem-dashboard > h3[name="'+i+'"]').show();
-			} else {
-				$('#golem-dashboard > h3[name="'+i+'"]').hide();
-				if (this.option.active === i) {
-					this.set(['option','active'], this.name);
+Dashboard.update = function(event, events) {
+	var i, init = events.findEvent(null, 'init');
+	for (i=0; i<events.length; i++) {
+		event = events[i];
+		if (init) {
+			event.worker = Workers[this.option.active];
+		}
+		var settings, advanced, debug;
+		if (event.id === 'option.advanced' || event.id === 'option.debug') {
+			advanced = Config.get(['option','advanced'], false);
+			debug = Config.get(['option','debug'], false);
+			for (var i in Workers) {
+				settings = Workers[i].settings;
+				if ((!settings.advanced || advanced) && (!settings.debug || debug)) {
+					$('#golem-dashboard > h3[name="'+i+'"]').show();
+				} else {
+					$('#golem-dashboard > h3[name="'+i+'"]').hide();
+					if (this.option.active === i) {
+						this.set(['option','active'], this.name);
+					}
 				}
 			}
+			return;
 		}
-		return;
-	}
-	if (event.id === 'option._hide_dashboard') {
-		if (event.worker._get(['option','_hide_dashboard'], false)) {
-			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
-			if (this.option.active === event.worker.name) {
-				this.set(['option','active'], this.name);
+		if (event.id === 'option._hide_dashboard') {
+			if (event.worker._get(['option','_hide_dashboard'], false)) {
+				$('#golem-dashboard > h3[name="'+event.worker.name+'"]').hide();
+				if (this.option.active === event.worker.name) {
+					this.set(['option','active'], this.name);
+				}
+			} else {
+				$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+			}
+			return;
+		}
+		if (event.id === 'option.active') {
+			if (!Workers[this.option.active]) {
+				this.set('option.active', this.name);
+			}
+			$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
+			$('#golem-dashboard > div > div').hide();
+			$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
+			$('#golem-dashboard-'+this.option.active).show();
+			event.worker = Workers[this.option.active];
+		}
+		if (this.option.active === event.worker.name && this.option.display === 'block') {
+			try {
+				event.worker._unflush();
+				event.worker.dashboard();
+			}catch(e) {
+				log(LOG_ERROR, e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
 			}
 		} else {
-			$('#golem-dashboard > h3[name="'+event.worker.name+'"]').show();
+			$('#golem-dashboard-'+event.worker.name).empty();
 		}
-		return;
 	}
-	if (event.id === 'option.active') {
-		if (!Workers[this.option.active]) {
-			this.set('option.active', this.name);
+	if (init || events.findEvent(null, 'trigger')) { // Make sure we're always in the right place
+		var $el, offset, width, height, margin = 0;
+		if (this.get(['option','expand'], false)) {
+			$el = $('#app46755028429_globalContainer');
+			width = $el.width();
+			height = $el.height();
+			margin = 10;
+		} else {
+			$el = $('#app46755028429_app_body_container');
+			width = this.get(['option','width'], 0);
+			height = this.get(['option','height'], 0);
 		}
-		$('#golem-dashboard > h3').removeClass('golem-tab-header-active');
-		$('#golem-dashboard > div > div').hide();
-		$('#golem-dashboard > h3[name="'+this.option.active+'"]').addClass('golem-tab-header-active');
-		$('#golem-dashboard-'+this.option.active).show();
-		event.worker = Workers[this.option.active];
+		offset = $el.offset();
+		$('#golem-dashboard').css({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
 	}
-	if (this.option.active === event.worker.name && this.option.display === 'block') {
-		try {
-			event.worker._unflush();
-			event.worker.dashboard();
-		}catch(e) {
-			log(LOG_ERROR, e.name + ' in ' + event.worker.name + '.dashboard(): ' + e.message);
-		}
-	} else {
-		$('#golem-dashboard-'+event.worker.name).empty();
-	}
-};
-
-Dashboard.update = function(event) {
-	if (event.type === 'init') {
-		event.worker = Workers[this.option.active];
-		this.update_trigger(event);
-		this.update_watch(event);
-	}
+	return true;
 };
 
 Dashboard.dashboard = function() {

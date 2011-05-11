@@ -145,7 +145,7 @@ LevelUp.parse = function(change) {
 
 LevelUp.update = function(event, events) {
 	var i, quests, energy = Player.get('energy',0), maxenergy = Player.get('maxenergy',0), stamina = Player.get('stamina',0), maxstamina = Player.get('maxstamina',0), exp = Player.get('exp',0), runtime = this.runtime;
-	if (events.findEvent('Player') >= 0) {
+	if (events.findEvent('Player')) {
 		// Check if stamina/energy is maxed and should be forced
 		if (!this.runtime.force.energy) {
 			if (energy >= maxenergy) {
@@ -182,7 +182,7 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
-	if (events.findEvent('Player') >= 0 || !length(runtime.quests)) {
+	if (events.findEvent('Player') || !length(runtime.quests)) {
 		if (exp > runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (runtime.stamina > stamina) {
