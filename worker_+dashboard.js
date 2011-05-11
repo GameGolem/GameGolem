@@ -43,7 +43,7 @@ Dashboard.init = function() {
 		if (hide && this.option.active === i) { // Make sure we can see the active worker
 			this.set(['option','active'], this.name);
 		}
-		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + (i===this.name ? '*' : i) + '</h3>');
+		tabs.push('<h3 name="' + i + '" class="golem-tab-header golem-theme-button" style="' + (hide ? 'display:none;' : '') + (Workers[i].settings.advanced ? 'background:#ffeeee;' : Workers[i].settings.debug ? 'background:#ddddff;' : '') + '">' + (i===this.name ? '&nbsp;*&nbsp;' : i) + '</h3>');
 		divs.push('<div id="golem-dashboard-' + i + '" style="display:none;"></div>');
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
@@ -146,9 +146,9 @@ Dashboard.update = function(event, events) {
 			$('#golem-dashboard-'+event.worker.name).empty();
 		}
 	}
-	if (events.findEvent(null, 'resize') || events.findEvent(null, 'trigger') || events.findEvent(null, 'init')) { // Make sure we're always in the right place
+	if ((i = events.findEvent(null, 'resize')) || events.findEvent(null, 'trigger') || events.findEvent(null, 'init')) { // Make sure we're always in the right place
 		if (this.get(['option','expand'], false)) {
-			$el = $('#contentArea');
+			$el = $('#contentArea,#globalcss').eq(0);
 			width = $el.width();
 			height = $el.height();
 			margin = 10;
@@ -158,7 +158,7 @@ Dashboard.update = function(event, events) {
 			height = this.get(['option','height'], 0);
 		}
 		offset = $el.offset();
-		$('#golem-dashboard').animate({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
+		$('#golem-dashboard')[i ? 'css' : 'animate']({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
 	}
 	return true;
 };

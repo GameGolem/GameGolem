@@ -59,9 +59,6 @@ Main.update = function(event) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
 		$('#rightCol').prepend('<div id="golem" class="golem"></div>');
-		if (isFunction(this._apps_[APP][3])) {
-			this._apps_[APP][3]();
-		}
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -102,15 +99,18 @@ Main.update = function(event) {
 			log(LOG_INFO, 'GameGolem: No applications known...');
 		}
 		for (i in this._apps_) {
-			if (window.location.pathname.indexOf(i) === 1 || (isRegExp(this._apps_[i][2]) && this._apps_[i][2].test(window.location))) {
+			if ((isFacebook = (window.location.pathname.indexOf(i) === 1)) || (isRegExp(this._apps_[i][2]) && this._apps_[i][2].test(window.location))) {
 				APP = i;
 				APPID = this._apps_[i][0];
 				APPNAME = this._apps_[i][1];
 				PREFIX = 'golem'+APPID+'_';
-				if (window.location.pathname.indexOf(i) === 1) {
+				if (isFacebook) {
 					APPID_ = 'app' + APPID + '_';
 				} else {
 					APPID_ = '';
+				}
+				if (isFunction(this._apps_[APP][3])) {
+					this._apps_[APP][3]();
 				}
 				log(LOG_INFO, 'GameGolem: Starting '+APPNAME);
 				break;
@@ -124,15 +124,19 @@ Main.update = function(event) {
 	// Once we hit this point we have our APP and can start things rolling
 	try {
 		//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
-		userID = $('script').text().regex(/user:(\d+),/i);
-		imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
+		if (!userID || !isNumber(userID)) {
+			userID = $('script').text().regex(/user:(\d+),/i);
+		}
+		if (!imagepath) {
+			imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart(); // #'+APPID_+'app_body_container
+		}
 	} catch(e) {
 		if (Main._retry_++ < 5) {// Try 5 times before we give up...
 			this._remind(1, 'startup');
 			return;
 		}
 	}
-	if (!userID || !imagepath || typeof userID !== 'number' || userID === 0) {
+	if (!userID || !imagepath || !isNumber(userID)) {
 		log(LOG_INFO, 'ERROR: Bad Page Load!!!');
 		window.setTimeout(Page.reload, 5000); // Force reload without retrying
 		return;

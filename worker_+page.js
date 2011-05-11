@@ -47,6 +47,8 @@ Page.page = '';
 
 Page.pageNames = {}; //id:{url:'...', image:'filename.jpg', selector:'jquery selector'}
 
+Page.pageCheck = []; // List of selectors that *must* match for a valid page load
+
 Global.display.push({
 	title:'Page Loading',
 	group:[
@@ -158,7 +160,7 @@ Page.update = function(event) {
 	if (event.type === 'init' || event.type === 'trigger') {
 		var i, list;
 		if (event.type === 'init' || event.id === 'page_change') {
-			list = ['#app_content_'+APPID, '#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', '#'+APPID_+'nvbar', '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
+			list = this.pageCheck;
 //			log('Page change noticed...');
 			this._forget('retry');
 			this.set(['temp','loading'], false);
@@ -239,7 +241,7 @@ Page.makeURL = function(url, args) {
 
 Page.makeLink = function(url, args, content) {
 	var page = this.makeURL(url, args);
-	return '<a href="' + window.location.protocol + '//apps.facebook.com/' + APP + '/' + page + '" onclick="' + 'a46755028429_ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
+	return '<a href="' + window.location.protocol + '//apps.facebook.com/' + APP + '/' + page + '" onclick="' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
 };
 
 /*
@@ -267,7 +269,7 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 	} else if (force) {
 		window.location.href = 'javascript:void((function(){})())';// Force it to change
 	}
-	window.location.href = /^https?:/i.test(page) ? page : 'javascript:void(a46755028429_ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page : 'javascript:void(' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;

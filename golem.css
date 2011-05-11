@@ -4,6 +4,81 @@
  */
 
  /*
+ * Reset
+ */
+
+.golem {
+	font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+	text-decoration: none;
+}
+
+.golem div,.golem dl,.golem dt,.golem dd,.golem ul,.golem ol,.golem li,.golem h1,.golem h2,.golem h3,.golem h4,.golem h5,.golem h6,.golem pre,.golem code,.golem form,.golem fieldset,.golem legend,.golem input,.golem textarea,.golem p,.golem blockquote,.golem th,.golem td {
+	margin: 0;
+	padding: 0;
+	font-size: 11px;
+	font-weight: normal;
+}
+
+.golem table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+.golem fieldset,.golem img {
+	border: 0;
+}
+
+.golem address,.golem caption,.golem cite,.golem code,.golem dfn,.golem em,.golem strong,.golem th,.golem var {
+	font-style: normal;
+	font-weight: normal;
+}
+
+.golem li {
+	list-style: none;
+}
+
+.golem caption,.golem th {
+	font-weight: bold;
+	text-align: left;
+}
+
+.golem h1,.golem h2,.golem h3,.golem h4,.golem h5,.golem h6 {
+	font-size: 13px;
+	font-weight: normal;
+}
+
+.golem q:before,.golem q:after {
+	content: '';
+}
+
+.golem abbr,.golem acronym {
+	border: 0;
+	font-variant: normal;
+}
+
+.golem sup {
+	vertical-align: text-top;
+}
+
+.golem sub {
+	vertical-align: text-bottom;
+}
+
+.golem input,.golem textarea,.golem select {
+	font-family: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+}
+
+.golem input,.golem textarea,.golem select {
+	*font-size: 100%;
+}
+
+.golem legend {
+	color: #000;
+}
+
+ /*
  * jQuery UI CSS Framework 1.8.12
  *
  * Copyright 2011, AUTHORS.txt (http://jqueryui.com/about)
@@ -46,18 +121,10 @@
 .ui-widget-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
 /*
- * Reset
- */
-
-.golem {
-	font-size: 11px;
-}
-
-/*
  * Theming - Images, colours, and backgrounds
  */
 
-.golem-theme-button, .golem-theme-panel {
+.golem .golem-theme-button, .golem .golem-theme-panel {
 	border: 1px solid #d3d3d3;
 	background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
 	color: #555555;
@@ -67,37 +134,37 @@
  * Normal CSS
  */
 
- .red {
+ .golem .red {
 	background: #ffd3d3 !important;
 }
 
-.red:hover {
+.golem .red:hover {
 	background: #ffc0c0 !important;
 }
 
-.green {
+.golem .green {
 	background: #e6ffe6 !important;
 }
 
-.green:hover {
+.golem .green:hover {
 	background: #d3ffd3 !important;
 }
 
-.blue {
+.golem .blue {
 	background: #e6e6ff !important;
 }
 
-.blue:hover {
+.golem .blue:hover {
 	background: #d3d3ff !important;
 }
 
-.golem-shadow {
+.golem .golem-shadow {
 	box-shadow: 2px 2px 4px black;
 	-webkit-box-shadow: 2px 2px 4px black;
 	-moz-box-shadow: 2px 2px 4px black;
 }
 
-.golem-tooltip {
+.golem .golem-tooltip {
 	display: none;
 	position: absolute;
 	top: 10000px;
@@ -108,19 +175,19 @@
 	padding: 0;
 }
 
-.golem-tooltip > p {
+.golem .golem-tooltip > p {
 	background: white;
 	border: 1px solid #aaaaaa;
 	margin: 0;
 	padding: 5px;
 }
 
-.golem-tooltip > a {
+.golem .golem-tooltip > a {
 	float: right;
 	color: red;
 }
 
-.golem-config {
+.golem .golem-config {
 	position: static;
 	margin-bottom: 17px;
 	overflow: hidden;
@@ -128,15 +195,15 @@
 	z-index: 2;
 }
 
-.golem-config-fixed {
+.golem .golem-config-fixed {
 	position: fixed;
 }
 
-.golem-config > div {
+.golem .golem-config > div {
 	margin: 4px;
 }
 
-.golem_config h3, .golem_config h4 {
+.golem .golem_config h3, .golem .golem_config h4 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 }
@@ -216,64 +283,64 @@
 	text-shadow: black 0px 0px 2px;
 }
 
-table.golem-graph {
+.golem table.golem-graph {
 	height: 100px;
 }
 
-table.golem-graph tbody th, table.golem-graph tbody td {
+.golem table.golem-graph tbody th, .golem table.golem-graph tbody td {
 	border-top: 1px solid #dddddd;
 	border-bottom: 1px solid #dddddd;
 }
 
-table.golem-graph tbody th {
+.golem table.golem-graph tbody th {
 	max-width: 75px;
 }
 
-table.golem-graph tbody th:first-child {
+.golem table.golem-graph tbody th:first-child {
 	text-align: right;
 	border-left: 1px solid #dddddd;
 	border-right: 1px solid #cccccc;
 }
 
-table.golem-graph tbody th:first-child div {
+.golem table.golem-graph tbody th:first-child div {
 	line-height: 60px;
 	height: 60px;
 }
 
-table.golem-graph tbody th:first-child div:first-child, table.golem-graph tbody th:first-child div:last-child {
+.golem table.golem-graph tbody th:first-child div:first-child, .golem table.golem-graph tbody th:first-child div:last-child {
 	line-height: 20px;
 	height: 20px;
 }
 
-table.golem-graph tbody th:last-child {
+.golem table.golem-graph tbody th:last-child {
 	text-align: left;
 	border-right: 1px solid #dddddd;
 	vertical-align: bottom;
 }
 
-table.golem-graph tbody th:last-child div {
+.golem table.golem-graph tbody th:last-child div {
 	position: relative;
 	height: 10px;
 	margin: -10px 0 0;
 }
 
-table.golem-graph tbody th:last-child div:nth-last-child(1) {
+.golem table.golem-graph tbody th:last-child div:nth-last-child(1) {
 	color: #ff0000;
 }
 
-table.golem-graph tbody th:last-child div:nth-last-child(2) {
+.golem table.golem-graph tbody th:last-child div:nth-last-child(2) {
 	color: #0000ff;
 }
 
-table.golem-graph tbody th:last-child div:nth-last-child(3) {
+.golem table.golem-graph tbody th:last-child div:nth-last-child(3) {
 	color: #00ffff;
 }
 
-table.golem-graph tbody th:last-child div:nth-last-child(4) {
+.golem table.golem-graph tbody th:last-child div:nth-last-child(4) {
 	color: #aa00aa;
 }
 
-table.golem-graph tbody td {
+.golem table.golem-graph tbody td {
 	margin: 0;
 	padding: 0 !important;
 	vertical-align: bottom;
@@ -281,55 +348,55 @@ table.golem-graph tbody td {
 	border-right: 1px solid #dddddd;
 }
 
-table.golem-graph tbody td:nth-child(12n+1) {
+.golem table.golem-graph tbody td:nth-child(12n+1) {
 	border-right: 1px solid #cccccc;
 }
 
-table.golem-graph tbody td div div {
+.golem table.golem-graph tbody td div div {
 	margin: 0;
 	padding: 0;
 	width: 5px;
 }
 
-table.golem-graph tbody td div.bars div:nth-last-child(1) {
+.golem table.golem-graph tbody td div.bars div:nth-last-child(1) {
 	background: #00ff00;
 }
 
-table.golem-graph tbody td div.bars div:nth-last-child(2) {
+.golem table.golem-graph tbody td div.bars div:nth-last-child(2) {
 	background: #00aa00;
 }
 
-table.golem-graph tbody td div.bars div:nth-last-child(3) {
+.golem table.golem-graph tbody td div.bars div:nth-last-child(3) {
 	background: #ffff00;
 }
 
-table.golem-graph tbody td div.bars div:nth-last-child(4) {
+.golem table.golem-graph tbody td div.bars div:nth-last-child(4) {
 	background: #ff00ff;
 }
 
-table.golem-graph tbody td div.goal div {
+.golem table.golem-graph tbody td div.goal div {
 	position: relative;
 	height: 1px;
 	margin: -1px 0 0;
 }
 
-table.golem-graph tbody td div.goal div:nth-last-child(1) {
+.golem table.golem-graph tbody td div.goal div:nth-last-child(1) {
 	background: #ff0000;
 }
 
-table.golem-graph tbody td div.goal div:nth-last-child(2) {
+.golem table.golem-graph tbody td div.goal div:nth-last-child(2) {
 	background: #0000ff;
 }
 
-table.golem-graph tbody td div.goal div:nth-last-child(3) {
+.golem table.golem-graph tbody td div.goal div:nth-last-child(3) {
 	background: #00ffff;
 }
 
-table.golem-graph tbody td div.goal div:nth-last-child(4) {
+.golem table.golem-graph tbody td div.goal div:nth-last-child(4) {
 	background: #aa00aa;
 }
 
-.golem-button, .golem-button-active {
+.golem .golem-button, .golem .golem-button-active {
 	display: inline-block;
 	cursor: pointer;
 	margin-right: 1px;
@@ -341,16 +408,16 @@ table.golem-graph tbody td div.goal div:nth-last-child(4) {
 	border-radius: 3px;
 }
 
-.golem-button:hover, .golem-button-active {
+.golem .golem-button:hover, .golem .golem-button-active {
 	border: 1px solid #aaaaaa;
 	background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
 }
 
-img.golem-button, img.golem-button-active {
+.golem img.golem-button, .golem img.golem-button-active {
 	margin-bottom: -2px;
 }
 
-.golem-tab-header {
+.golem .golem-tab-header {
 	position: relative;
 	top: 1px;
 	display: inline-block;
@@ -367,14 +434,14 @@ img.golem-button, img.golem-button-active {
 	border-top-right-radius: 3px;
 }
 
-.golem-tab-header-active {
+.golem .golem-tab-header-active {
 	border: 1px solid #aaaaaa;
 	border-bottom: 0 !important;
 	padding: 2px;
 	background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
 }
 
-.golem-title {
+.golem .golem-title {
 	height:16px;
 	padding: 2px;
 	margin: 0 !important;
@@ -385,13 +452,13 @@ img.golem-button, img.golem-button-active {
 	font-weight: bold;
 }
 
-.golem-group-title {
+.golem .golem-group-title {
 	height: 16px;
 	padding: 2px;
 	cursor: pointer;
 }
 
-.golem-panel > .golem-panel-header, .golem-panel > * > .golem-panel-header {
+.golem .golem-panel > .golem-panel-header, .golem .golem-panel > * > .golem-panel-header {
 	cursor: pointer;
 	margin-top: 1px;
 	font-weight: normal;
@@ -401,12 +468,12 @@ img.golem-button, img.golem-button-active {
 	border-radius: 3px;
 }
 
-.golem-panel-header input {
+.golem .golem-panel-header input {
 	float: right;
 	margin: 2px;
 }
 
-.golem-panel > .golem-panel-content, .golem-panel > * > .golem-panel-content {
+.golem .golem-panel > .golem-panel-content, .golem .golem-panel > * > .golem-panel-content {
 	border: 1px solid #aaaaaa;
 	border-top: 0 !important;
 	padding: 2px 6px;
@@ -422,7 +489,7 @@ img.golem-button, img.golem-button-active {
 	border-bottom-right-radius: 3px;
 }
 
-.golem-panel-show > .golem-panel-header, .golem-panel-show > * > .golem-panel-header {
+.golem .golem-panel-show > .golem-panel-header, .golem .golem-panel-show > * > .golem-panel-header {
 	border: 1px solid #aaaaaa;
 	border-bottom: 0 !important;
 	background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
@@ -434,45 +501,45 @@ img.golem-button, img.golem-button-active {
 	border-bottom-right-radius: 0 !important;
 }
 
-.golem-panel-show > .golem-panel-content, .golem-panel-show > * > .golem-panel-content {
+.golem .golem-panel-show > .golem-panel-content, .golem .golem-panel-show > * > .golem-panel-content {
 	display: block;
 }
 
-.golem-panel-sortable .golem-lock {
+.golem .golem-panel-sortable .golem-lock {
 	display: none;
 }
 
-.golem-panel-content br:last-child {
+.golem .golem-panel-content br:last-child {
 	clear: both;
 }
 
-.golem-panel-content h4 {
+.golem .golem-panel-content h4 {
 	text-align: center;
 	font-size: larger;
 	font-weight: bold;
 }
 
-.golem-panel .golem-panel-header .golem-icon, .golem-group .golem-icon {
+.golem .golem-panel .golem-panel-header .golem-icon, .golem .golem-group .golem-icon {
 	float: left;
 	width: 16px;
 	height: 16px;
 	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAwzUE2DAEGDAEGDAEGAgpIKQLRQ5HSDAAIEOAPHeJZW+AAAAAElFTkSuQmCC') no-repeat;
 }
 
-.golem-panel-show .golem-panel-header .golem-icon, .golem-group-show .golem-icon {
+.golem .golem-panel-show .golem-panel-header .golem-icon, .golem .golem-group-show .golem-icon {
 	float: left;
 	width: 16px;
 	height: 16px;
 	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEVVVVUAAAD1BJ+gAAAAAnRSTlP/AOW3MEoAAAAiSURBVHjaYmBEAww0E2CAACQVCD5MC5zPiE7T0GHIACDAAH/eAPHMY6ZiAAAAAElFTkSuQmCC') no-repeat;
 }
 
-.golem-panel .golem-panel-header .golem-lock, .golem-icon-menu {
+.golem .golem-panel .golem-panel-header .golem-lock, .golem .golem-icon-menu {
 	float: right;
 	width: 16px;
 	height: 16px;
 }
 
-.golem-icon-menu:hover, .golem-icon-menu-active {
+.golem .golem-icon-menu:hover, .golem .golem-icon-menu-active {
 	border: 1px solid #aaaaaa;
 	margin: -1px;
 	-moz-border-radius: 3px;
@@ -480,22 +547,22 @@ img.golem-button, img.golem-button-active {
 	border-radius: 3px;
 }
 
-.golem-icon-menu-active {
+.golem .golem-icon-menu-active {
 	background: #cccccc;
 }
 
-.golem-info {
+.golem .golem-info {
 	text-align: center;
 	display: block;
 }
 
-img.golem-image {
+.golem img.golem-image {
 	width: 16px;
 	height: 16px;
 	margin-bottom: -4px;
 }
 
-.golem-menu {
+.golem .golem-menu {
 	display: none;
 	position: absolute;
 	top: 10000px;
@@ -512,23 +579,23 @@ img.golem-image {
 	-moz-user-select: none;
 }
 
-.golem-menu > div {
+.golem .golem-menu > div {
 	margin: 0;
 	padding: 5px 5px 5px 26px;
 }
 
-.golem-menu > hr {
+.golem .golem-menu > hr {
 	margin: 1px 0;
 	padding: 0;
 }
 
-.golem-menu > div > img {
+.golem .golem-menu > div > img {
 	margin-top: -2px;
 	margin-left: -21px;
 	float: left;
 }
 
-.golem-menu > div:hover {
+.golem .golem-menu > div:hover {
 	border: 1px solid #aecff7;
 	margin: -1px;
 	-moz-border-radius: 3px;
