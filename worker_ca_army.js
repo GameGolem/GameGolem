@@ -111,47 +111,55 @@ Army._overload('castle_age', 'parse', function(change) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
 	} else if (!change && Page.page === 'army_viewarmy') {
-		var i, page, start, army = this.data = this.data || {}, now = Date.now(), count = 0, $tmp;
+		var i, uid, who, page, start, now = Date.now(), count = 0, tmp, level, parent, spans;
 		$tmp = $('table.layout table[width=740] div').first().children();
 		page = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: (\d+) - \d+/);
-		$tmp = $('img[linked="true"][size="square"]');
-		if ($tmp.length) {
-			$tmp.each(function(i,el){
-				var uid = parseInt($(el).attr('uid')), who = $(el).parent().parent().parent().next(), army, level;
-				if (uid === userID) {// Shouldn't ever happen!
-					return;
+		tmp = $('td > a[href*="keep.php?casuser="]');
+		for (i=0; i<tmp.length; i++) {
+			try {
+				this._transaction(); // BEGIN TRANSACTION
+				uid = $(tmp[i]).attr('href').regex(/casuser=(\d*)$/i);
+				parent = $(tmp[i]).closest('td').next()
+				who = $(parent).find('a').eq(-1).text();
+				spans = $(parent).find('span[style]');
+				level = $(spans).eq(1).text().regex(/(\d+) Commander/i);
+				assert(isNumber(uid) && uid !== userID, 'Bad uid: '+uid);
+				this.set(['data',uid,'Army'], true);
+				assert(this.set(['data',uid,'_info','name'], $(spans).eq(0).text().replace(/^ *"|"$/g,''), 'string') !== false, 'Bad name: '+uid);
+				if (isFacebook) {
+					assert(this.set(['data',uid,'_info','fbname'], who, 'string') !== false, 'Bad fbname: '+uid);
+				} else { // Gave up trying to fight this thing - thanks non-standard fb:name node type that breaks jQuery...
+					assert(this.set(['data',uid,'_info','fbname'], $(parent).find('a.fb_link').text() || 'Facebook User', 'string') !== false, 'Bad fbname: '+uid);
 				}
-				army = Army.data[uid] = Army.data[uid] || {};
-				army.Army = true;
-				army._info = army._info || {};
-				army._info.fbname = $('a', who).text();
-				army._info.name = $('a', who).next().text().replace(/^ "|"$/g,'');
-				army._info.friend = (army._info.fbname !== 'Facebook User');
-				level = $(who).text().regex(/(\d+) Commander/i);
-				if (!army._info.changed || army._info.level !== level) {
-					army._info.changed = now;
-					army._info.level = level;
+				this.set(['data',uid,'_info','friend'], who !== 'Facebook User');
+				if (!this.get(['data',uid,'_info','changed']) || this.get(['data',uid,'_info','level']) !== level) {
+					this.set(['data',uid,'_info','changed'], now);
+					this.set(['data',uid,'_info','level'], level);
 				}
-				army._info.seen = now;
-				army._info.page = page;
-				army._info.id = start + i;
-				Army._taint.data = true;
-	//			log(LOG_DEBUG, 'Adding: ' + JSON.stringify(army));
-			});
-		} else {
+				this.set(['data',uid,'_info','seen'], now);
+				this.set(['data',uid,'_info','page'], page);
+				this.set(['data',uid,'_info','id'], start + i);
+				this._transaction(true); // COMMIT TRANSACTION
+//				log('Adding: ' + JSON.stringify(this.get(['data',uid,'_info'])));
+			} catch(e) {
+				this._transaction(false); // ROLLBACK TRANSACTION on any error
+				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+			}
+		}
+		if (!i) {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
 			this._set(['runtime','check'], false);
 		}
-		$tmp = $('img[src*="bonus_member.jpg"]');
-		if ($tmp.length) {
-			this.runtime.extra = 1 + $tmp.parent().next().text().regex('Extra member x(\d+)');
+		tmp = $('img[src*="bonus_member.jpg"]');
+		if (tmp.length) {
+			this.set(['runtime','extra'], 1 + tmp.closest('tr').text().regex('Extra member x(\d+)'));
 //			log(LOG_DEBUG, 'Extra Army Members Found: '+Army.runtime.extra);
 		}
-		for (i in army) {
-			if (army[i].Army) {
-				if (!army[i]._info || (army[i]._info.page === page && army[i]._info.seen !== now)) {
-					delete army[i].Army;// Forget this one, not found on the correct page
+		for (i in this.data) {
+			if (this.data[i].Army) {
+				if (!this.data[i]._info || (this.data[i]._info.page === page && this.data[i]._info.seen !== now)) {
+					this.set(['data',i,'Army']); // Forget this one, not found on the correct page
 				} else {
 					count++;// Lets count this one instead
 				}

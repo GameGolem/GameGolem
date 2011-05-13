@@ -54,6 +54,6 @@ Coding.dashboard = function() {
 	for (j=0; j<data.length; j++) {
 		html += '<th>' + data[j].ucfirst() + '</td>';
 	}
-	$('#golem-dashboard-Coding').html('<table><tr><th></th>' + html + '</tr>' + list.join('') + '</table>');
+	$('#golem-dashboard-Coding').html('<table><thead><tr><th></th>' + html + '</tr></thead><tbody>' + list.join('') + '</tbody></table>');
 };
 

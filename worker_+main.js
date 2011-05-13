@@ -11,11 +11,16 @@
 * Initial kickstart of Golem.
 */
 var Main = new Worker('Main');
-Main.data = Main.option = Main.runtime = Main.temp = null;
+Main.data = Main.runtime = Main.temp = null;
 
 Main.settings = {
 	system:true,
 	taint:true // Doesn't store any data, but still cleans it up lol
+};
+
+Main.option = {
+	theme: 'default',
+	themes: ['default', 'test'] // Put in here so we can update it manually
 };
 
 Main._apps_ = {};
@@ -34,6 +39,19 @@ Main.add = function(app, appid, appname, alt, fn) {
 	this._apps_[app] = [appid, appname, alt, fn];
 };
 
+Global.display.push({
+	title:'Display',
+	group:[
+		function() {
+			return {
+				id:['Main','option','theme'],
+				label:'Theme',
+				select:Main.option.themes
+			};
+		}
+	]
+});
+
 Main.parse = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
@@ -43,22 +61,26 @@ Main.parse = function() {
 	} catch(e) {}
 };
 
-Main.update = function(event) {
-	var i, old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
-	if (event.id === 'kickstart') {
+Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
+	var i, old_revision, head, a, b;
+	if (events.findEvent(null,'option') || events.findEvent(null,'init')) {
+		$('#golem').attr('class', 'golem-theme-' + this.option.theme);
+	}
+	if (events.findEvent(null,null,'kickstart')) {
+		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
 				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
 				'This may result in errors or other unexpected actions!' + "\n\n" +
 				'Are you sure you want to use this earlier version?' + "\n" +
 				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
-				return;
+				return true;
 			}
 			log(LOG_INFO, 'GameGolem: Reverting from r' + old_revision + ' to r' + revision);
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem" class="golem"></div>');
+		$('#rightCol').prepend('<div id="golem"></div>'); // Can't set theme yet as we don't have .option
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -72,140 +94,142 @@ Main.update = function(event) {
 			setItem('revision', revision);
 		}
 	}
-	if (event.id !== 'startup') {
-		return;
-	}
-	// Let's get jQuery running
-	if (!$ || !$.support || !$.ui) {
-		if (!this._jQuery_) {
-			var head = document.getElementsByTagName('head')[0] || document.documentElement, a = document.createElement('script'), b = document.createElement('script');
-			a.type = b.type = 'text/javascript';
-			a.src = 'http://cloutman.com/jquery-latest.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
-			b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
-			head.appendChild(a);
-			head.appendChild(b);
-			log(LOG_INFO, 'GameGolem: Loading jQuery & jQueryUI');
-			this._jQuery_ = true;
+	if (events.findEvent(null,'startup')) {
+		// Let's get jQuery running
+		if (!$ || !$.support || !$.ui) {
+			if (!this._jQuery_) {
+				head = document.getElementsByTagName('head')[0] || document.documentElement;
+				a = document.createElement('script');
+				b = document.createElement('script');
+				a.type = b.type = 'text/javascript';
+				a.src = 'http://cloutman.com/jquery-latest.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+				b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
+				head.appendChild(a);
+				head.appendChild(b);
+				log(LOG_INFO, 'GameGolem: Loading jQuery & jQueryUI');
+				this._jQuery_ = true;
+			}
+			if (!(unsafeWindow || window).jQuery || !(unsafeWindow || window).jQuery.support || !(unsafeWindow || window).jQuery.ui) {
+				this._remind(0.1, 'startup');
+				return true;
+			}
+			$ = (unsafeWindow || window).jQuery.noConflict(true);
 		}
-		if (!(unsafeWindow || window).jQuery || !(unsafeWindow || window).jQuery.support || !(unsafeWindow || window).jQuery.ui) {
-			this._remind(0.1, 'startup');
-			return;
-		}
-		$ = (unsafeWindow || window).jQuery.noConflict(true);
-	}
-	// Identify Application
-	if (!APP) {
-		if (empty(this._apps_)) {
-			log(LOG_INFO, 'GameGolem: No applications known...');
-		}
-		for (i in this._apps_) {
-			if ((isFacebook = (window.location.pathname.indexOf(i) === 1)) || (isRegExp(this._apps_[i][2]) && this._apps_[i][2].test(window.location))) {
-				APP = i;
-				APPID = this._apps_[i][0];
-				APPNAME = this._apps_[i][1];
-				PREFIX = 'golem'+APPID+'_';
-				if (isFacebook) {
-					APPID_ = 'app' + APPID + '_';
-				} else {
-					APPID_ = '';
+		// Identify Application
+		if (!APP) {
+			if (empty(this._apps_)) {
+				log(LOG_INFO, 'GameGolem: No applications known...');
+			}
+			for (i in this._apps_) {
+				if ((isFacebook = (window.location.pathname.indexOf(i) === 1)) || (isRegExp(this._apps_[i][2]) && this._apps_[i][2].test(window.location))) {
+					APP = i;
+					APPID = this._apps_[i][0];
+					APPNAME = this._apps_[i][1];
+					PREFIX = 'golem'+APPID+'_';
+					if (isFacebook) {
+						APPID_ = 'app' + APPID + '_';
+					} else {
+						APPID_ = '';
+					}
+					if (isFunction(this._apps_[APP][3])) {
+						this._apps_[APP][3]();
+					}
+					log(LOG_INFO, 'GameGolem: Starting '+APPNAME);
+					break;
 				}
-				if (isFunction(this._apps_[APP][3])) {
-					this._apps_[APP][3]();
-				}
-				log(LOG_INFO, 'GameGolem: Starting '+APPNAME);
-				break;
+			}
+			if (typeof APP === 'undefined') {
+				log(LOG_INFO, 'GameGolem: Unknown application...');
+				return true;
 			}
 		}
-		if (typeof APP === 'undefined') {
-			log(LOG_INFO, 'GameGolem: Unknown application...');
-			return;
-		}
-	}
-	// Once we hit this point we have our APP and can start things rolling
-	try {
-		//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
-		if (!userID || !isNumber(userID)) {
-			userID = $('script').text().regex(/user:(\d+),/i);
-		}
-		if (!imagepath) {
-			imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart(); // #'+APPID_+'app_body_container
-		}
-	} catch(e) {
-		if (Main._retry_++ < 5) {// Try 5 times before we give up...
-			this._remind(1, 'startup');
-			return;
-		}
-	}
-	if (!userID || !imagepath || !isNumber(userID)) {
-		log(LOG_INFO, 'ERROR: Bad Page Load!!!');
-		window.setTimeout(Page.reload, 5000); // Force reload without retrying
-		return;
-	}
-	// jQuery selector extensions
-	$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
-		var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
-		switch(args[1]) {
-			case '<':	return value < args[2];
-			case '<=':	return value <= args[2];
-			case '>':	return value > args[2];
-			case '>=':	return value >= args[2];
-			case '=':
-			case '==':	return value === args[2];
-			case '!=':	return value !== args[2];
-			default:
-				log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
-				return false;
-		}
-	};
-	$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
-		var args = meta[3].toLowerCase().split(',');
-		return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
-	};
-	$.expr[':'].regex = function(obj, index, meta, stack) { // $('div:regex(^\stest\s$)') - selects if the text() matches this
-		var ac = arguments.callee, rx = ac['_'+meta[3]]; // Cache the regex - it's quite expensive to construct
-		if (!rx) {
-			rx = ac['_'+meta[3]] = new RegExp(meta[3],'i');
-		}
-		return rx.test($(obj).text());
-	};
-	// jQuery extra functions
-	$.fn.autoSize = function() {
-		function autoSize(e) {
-			var p = (e = e.target || e), s;
-			if (e.oldValueLength !== e.value.length) {
-				while (p && !p.scrollTop) {p = p.parentNode;}
-				if (p) {s = p.scrollTop;}
-				e.style.height = '0px';
-				e.style.height = e.scrollHeight + 'px';
-				if (p) {p.scrollTop = s;}
-				e.oldValueLength = e.value.length;
+		// Once we hit this point we have our APP and can start things rolling
+		try {
+			//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
+			if (!userID || !isNumber(userID)) {
+				userID = $('script').text().regex(/user:(\d+),/i);
 			}
+			if (!imagepath) {
+				imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart(); // #'+APPID_+'app_body_container
+			}
+		} catch(e) {
+			if (Main._retry_++ < 5) {// Try 5 times before we give up...
+				this._remind(1, 'startup');
+				return true;
+			}
+		}
+		if (!userID || !imagepath || !isNumber(userID)) {
+			log(LOG_INFO, 'ERROR: Bad Page Load!!!');
+			window.setTimeout(Page.reload, 5000); // Force reload without retrying
 			return true;
 		}
-		this.filter('textarea').each(function(){
-			$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
-			autoSize(this);
-		});
-		return this;
-	};
-	$.fn.selected = function() {
-		return $(this).filter(function(){return this.selected;});
-	};
-	// Now we're rolling
-	if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
-		$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
-	} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
-		GM_addStyle(GM_getResourceText('stylesheet'));
-	} else {
-		$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
+		// jQuery selector extensions
+		$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
+			var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
+			switch(args[1]) {
+				case '<':	return value < args[2];
+				case '<=':	return value <= args[2];
+				case '>':	return value > args[2];
+				case '>=':	return value >= args[2];
+				case '=':
+				case '==':	return value === args[2];
+				case '!=':	return value !== args[2];
+				default:
+					log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
+					return false;
+			}
+		};
+		$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
+			var args = meta[3].toLowerCase().split(',');
+			return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
+		};
+		$.expr[':'].regex = function(obj, index, meta, stack) { // $('div:regex(^\stest\s$)') - selects if the text() matches this
+			var ac = arguments.callee, rx = ac['_'+meta[3]]; // Cache the regex - it's quite expensive to construct
+			if (!rx) {
+				rx = ac['_'+meta[3]] = new RegExp(meta[3],'i');
+			}
+			return rx.test($(obj).text());
+		};
+		// jQuery extra functions
+		$.fn.autoSize = function() {
+			function autoSize(e) {
+				var p = (e = e.target || e), s;
+				if (e.oldValueLength !== e.value.length) {
+					while (p && !p.scrollTop) {p = p.parentNode;}
+					if (p) {s = p.scrollTop;}
+					e.style.height = '0px';
+					e.style.height = e.scrollHeight + 'px';
+					if (p) {p.scrollTop = s;}
+					e.oldValueLength = e.value.length;
+				}
+				return true;
+			}
+			this.filter('textarea').each(function(){
+				$(this).css({'resize':'none','overflow-y':'hidden'}).unbind('.autoSize').bind('keyup.autoSize keydown.autoSize change.autoSize', autoSize);
+				autoSize(this);
+			});
+			return this;
+		};
+		$.fn.selected = function() {
+			return $(this).filter(function(){return this.selected;});
+		};
+		// Now we're rolling
+		if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
+			$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
+		} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
+			GM_addStyle(GM_getResourceText('stylesheet'));
+		} else {
+			$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
+		}
+	//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
+		this._remind(0.1, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 	}
-//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
-	this._remind(0, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
+	return true;
 };
 
 if (!Main.loaded) { // Prevent double-start
 	log(LOG_INFO, 'GameGolem: Loading...');
 	Main._loaded = true;// Otherwise .update() will never fire - no init needed for us as we're the one that calls it
-	Main._update({type:'startup', id:'startup'});
+	Main._update('startup');
 }
 

@@ -891,7 +891,7 @@ JSON.decode = function(str, metrics) {
 			to = {};
 			for (i in obj) {
 				if (keys[i]) {
-					to[keys[i]] = arguments.callee(obj[i]);
+					to[keys[i].valueOf()] = arguments.callee(obj[i]);
 					count[i] = (count[i] || 0) + 1;
 				} else {
 					to[i] = arguments.callee(obj[i]);

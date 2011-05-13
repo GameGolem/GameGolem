@@ -222,6 +222,9 @@ Debug.setup = function() {
 		if (args.length > 1) {
 			suffix.push(''); // Force an extra \n after the stack trace if there's more args
 		}
+		if (!isString(args[0]) && !isNumber(args[0])) { // If we want to pass a single object for inspection
+			args.unshift('');
+		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
 		level = Debug.get(['option','log',level], '-');
 		if (!console[level]) {

@@ -581,7 +581,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:3,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[5,10,20,50,100,200],
+		attack:[10,20,50,100,200],
 		festival_timer: 691200, // 192 hours
 		festival: 'hydra'
 	},

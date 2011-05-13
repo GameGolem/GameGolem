@@ -137,6 +137,7 @@ Town.blacksmith = {
       '|\\blongsword\\b' +		// 1
       '|\\bmace\\b' +			// 6
       '|\\bmorningstar\\b' +	// 1
+      '|\\bpike\\b' +			// 1
       '|\\brapier\\b' +			// 1
       '|\\brod\\b' +			// 2
       '|\\bsaber\\b' +			// 4
@@ -208,6 +209,7 @@ Town.blacksmith = {
       '|^Hour Glass$' +
       '|^Ice Dagger$' +
       '|^Illvasan Crest$' +
+ 	  '|^Impenetrable Ice$' +
       '|^Purgatory$' +
       '|^Serenes Arrow$' +
       '|^Sword of Redemption$' +

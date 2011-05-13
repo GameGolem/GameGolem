@@ -222,14 +222,13 @@ Battle.init = function() {
 //	this.option.arena = false;// ARENA!!!!!!
 	// make a custom Config type of for rank, based on number so it carries forward on level ups
 	list = {};
-	rank = Player.get(mode,0);
-	if (rank < 4) {
-		for (i = rank - 4; i < 0; i++) {
-			list[i] = '(' + i + ') ' + this.data[mode].rank[0];
+	if (this.get(['data',mode,'rank'])) {
+		rank = Player.get(mode, 0);
+		for (i in this.data[mode].rank){
+			list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
 		}
-	}
-	for (i in this.data[mode].rank){
-		list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
+	} else {
+		list[0] = '(0) Newbie';
 	}
 	Config.set('limit_list', list);
 

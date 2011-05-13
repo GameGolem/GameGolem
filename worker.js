@@ -205,6 +205,7 @@ Worker.flush = function() {
 // Static Data
 Worker.stack = ['unknown'];// array of active workers, last at the start
 Worker._triggers_ = [];// Used for this._trigger
+Worker._resize_ = [];// Used for this._resize
 
 // Private functions - only override if you know exactly what you're doing
 /**
@@ -588,15 +589,26 @@ Worker.prototype._replace = function(type, data) {
 
 /**
  * Set up a notification on the window size changing.
- * Calls _update with type:'resize'
+ * @param {?Function} fn The function to call on a resize event, otherwise calls _update with type:'resize'
  */
-Worker.prototype._resize = function() {
-	if (!this._resize_) {
-		this._resize_ = true;
-		var self = this;
+Worker.prototype._resize = function(fn) {
+	if (!Worker._resize_.length) {
 		$(window).resize(function(){
-			self._update('resize', 'run');
+			var i, w, l=Worker._resize_.length;
+			for (i=0; i<l; i++) {
+				w = Worker._resize_[i];
+				if (isFunction(w)) {
+					w();
+				} else {
+					Worker.find(w)._update('resize', 'run');
+				}
+			}
 		});
+	}
+	if (isFunction(fn)) {
+		Worker._resize_.unshift(fn); // Make sure that functions run before updates
+	} else {
+		Worker._resize_.push(this.name);
 	}
 };
 
