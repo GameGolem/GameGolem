@@ -165,7 +165,7 @@ Debug.setup = function() {
 								}
 							}
 						} catch(e) {
-							log(LOG_ERROR, e.name + ': ' + e.message);
+							log(LOG_ERROR, isString(e) ? e : e.name + ': ' + e.message);
 						}
 						Debug.stack.shift();
 						return r;

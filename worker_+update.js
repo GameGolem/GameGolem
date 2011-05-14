@@ -113,7 +113,6 @@ Update.init = function() {
 				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 			}
 			event.stopImmediatePropagation();
-			event.stopPropagation();
 			$('script.golem-script-version').remove();
 			$(event.target).remove();
 			return false;

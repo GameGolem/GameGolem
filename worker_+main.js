@@ -45,7 +45,7 @@ Main.parse = function() {
 
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 	var i, old_revision, head, a, b;
-	if (events.findEvent(null,null,'kickstart')) {
+	if (events.getEvent(null,null,'kickstart')) {
 		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
@@ -73,7 +73,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			setItem('revision', revision);
 		}
 	}
-	if (events.findEvent(null,'startup')) {
+	if (events.getEvent(null,'startup')) {
 		// Let's get jQuery running
 		if (!$ || !$.support || !$.ui) {
 			if (!this._jQuery_) {
@@ -81,8 +81,8 @@ Main.update = function(event, events) { // Using events with multiple returns be
 				a = document.createElement('script');
 				b = document.createElement('script');
 				a.type = b.type = 'text/javascript';
-				a.src = 'http://cloutman.com/jquery-latest.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
-				b.src = 'http://cloutman.com/jquery-ui-latest.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js';
+				a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js';
+				b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js';
 				head.appendChild(a);
 				head.appendChild(b);
 				log(LOG_INFO, 'GameGolem: Loading jQuery & jQueryUI');

@@ -15,6 +15,7 @@ worker_+debug.js
 worker_+global.js
 worker_+history.js
 worker_+main.js
+worker_+menu.js
 worker_+page.js
 worker_+queue.js
 worker_+resources.js

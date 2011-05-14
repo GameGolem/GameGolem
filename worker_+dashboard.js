@@ -97,7 +97,7 @@ Dashboard.init = function() {
 
 Dashboard.update = function(event, events) {
 	var i, settings, advanced, debug, $el, offset, width, height, margin = 0;
-	for (event=events.findEvent(null, 'watch'); event; event=events.findEvent()) {
+	for (event=events.getEvent(null, 'watch'); event; event=events.getEvent()) {
 		if (event.id === 'option.advanced' || event.id === 'option.debug') {
 			advanced = Config.get(['option','advanced'], false);
 			debug = Config.get(['option','debug'], false);
@@ -146,7 +146,9 @@ Dashboard.update = function(event, events) {
 			$('#golem-dashboard-'+event.worker.name).empty();
 		}
 	}
-	if ((i = events.findEvent(null, 'resize')) || events.findEvent(null, 'trigger') || events.findEvent(null, 'init')) { // Make sure we're always in the right place
+	if ((i = events.getEvent(null, 'resize'))
+	 || events.getEvent(null, 'trigger')
+	 || events.getEvent(null, 'init')) { // Make sure we're always in the right place
 		if (this.get(['option','expand'], false)) {
 			$el = $('#contentArea,#globalcss').eq(0);
 			width = $el.width();

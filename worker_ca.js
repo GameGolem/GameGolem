@@ -3,7 +3,6 @@ Main.add('castle_age', '46755028429', 'Castle Age', /^http:\/\/web3.castleagegam
 	if (!isFacebook) {
 		userID = $('#main_bntp img').attr('src').regex(/graph.facebook.com\/(\d+)\/picture/i);
 		imagepath = 'http://image4.castleagegame.com/graphics/';
-		PREFIX = 'golem'+APPID+'2_';
 		var fn = function(){
 			var left = Math.max(0, Math.floor(($('body').width() - 1030) / 2));
 			$('#rightCol').css({'padding-left':(left + 781) + 'px'});

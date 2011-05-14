@@ -377,19 +377,9 @@ var isEvent = function(event, worker, type, id) {
 	return false;
 };
  
-// Used for events in update(event, events)
-Array.prototype.getEvent = function(worker, type, id, start) {
-	var i = start || 0, l = this.length;
-	for (; i<l; i++) {
-		if (isEvent(this[i], worker, type, id)) {
-			return i;
-		}
-	}
-	return -1;
-};
-
 /**
  * Used for events in update(event, events)
+ * This will leave the event on the events list for another search
  * @param {?string=} worker The worker name we're looking for
  * @param {?string=} type The event type we're looking for
  * @param {?string=} id The event id we're looking for
@@ -405,10 +395,27 @@ Array.prototype.findEvent = function(worker, type, id) {
 	var length = this.length;
 	for (this._index++; this._index<length; this._index++) {
 		if (isEvent(this[this._index], this._worker, this._type, this._id)) {
+			this[this._index].worker = Worker.find(this[this._index].worker || this);
 			return this[this._index];
 		}
 	}
 	return null;
+};
+
+/**
+ * Used for events in update(event, events)
+ * This will remove the event from the events list
+ * @param {?string=} worker The worker name we're looking for
+ * @param {?string=} type The event type we're looking for
+ * @param {?string=} id The event id we're looking for
+ * @return {?Object}
+ */
+Array.prototype.getEvent = function(worker, type, id) {
+	var event = this.findEvent(worker, type, id);
+	if (this._index >= 0 && this._index < this.length) {
+		this.splice(this._index--, 1);
+	}
+	return event;
 };
 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};

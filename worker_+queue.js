@@ -65,6 +65,7 @@ Global.display.push({
 });
 
 Queue.init = function(old_revision) {
+	Config._init(); // Make sure we're running after the display is created...
 	var i, $btn, worker;
 	// BEGIN: Moving stats into Resources
 	if (old_revision <= 1095) {
@@ -96,21 +97,13 @@ Queue.init = function(old_revision) {
 			this._watch(Workers[i], 'option._disabled');// Keep an eye out for them going disabled
 			if (!this.option.queue.find(i)) {// Add any new workers that have a display (ie, sortable)
 				log('Adding '+i+' to Queue');
-				if (Workers[i].settings.unsortable) {
-					this.option.queue.unshift(i);
-				} else {
-					this.option.queue.push(i);
-				}
+				this.option.queue[Workers[i].settings.unsortable ? 'unshift' : 'push'](i);
 			}
 		}
 	}
 	for (i=0; i<this.option.queue.length; i++) {// Then put them in saved order
 		worker = Workers[this.option.queue[i]];
 		if (worker && worker.display) {
-			if (this.runtime.current && worker.name === this.runtime.current) {
-				log(LOG_INFO, 'Trigger '+worker.name+' (continue after load)');
-				$('#'+worker.id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
-			}
 			$('#golem_config').append($('#'+worker.id));
 		}
 	}
@@ -135,7 +128,7 @@ Queue.init = function(old_revision) {
 			} else if (Config.get(['option','debug'], false)) {
 				$('#golem_step').show();
 			}
-			Queue.clearCurrent();
+			Queue.set(['runtime','current']);;
 		}
 	});
 	Config.addButton({
@@ -151,36 +144,35 @@ Queue.init = function(old_revision) {
 		}
 	});
 	// Running the queue every second, options within it give more delay
-	this._watch(Page, 'temp.loading');
-	this._watch(Session, 'temp.active');
+	this._watch('Page', 'temp.loading');
+	this._watch('Session', 'temp.active');
 	this._watch(this, 'option.pause');
+	this._watch(this, 'runtime.current');
 	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
 	Title.alias('worker', 'Queue:runtime.current::None');
-};
-
-Queue.clearCurrent = function() {
-//	var current = this.get('runtime.current', null);
-//	if (current) {
-		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		this.set(['runtime','current'], null);// Make sure we deal with changed circumstances
-//	}
+	this._notify('runtime.current');
 };
 
 Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
-	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
+	if (events.getEvent(this, 'watch', 'runtime.current')) {
+		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
+	}
+	for (event=events.getEvent(null, 'watch', 'option._disabled'); event; event=events.getEvent()) { // A worker getting disabled / enabled
 		worker = event.worker;
-		if (worker.get(['option', '_disabled'], false)) {
-			$('#'+worker.id+' > h3').addClass(Theme.get('Queue_disabled', 'ui-state-disabled'));
-			if (this.runtime.current === worker.name) {
-				this.clearCurrent();
-			}
-		} else {
-			$('#'+worker.id+' > h3').removeClass(Theme.get('Queue_disabled', 'ui-state-disabled'));
+		i = worker.get(['option', '_disabled'], false);
+		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
+		if (i && this.runtime.current === worker.name) {
+			this.set(['runtime','current'], null);
 		}
 	}
-	if (this.temp.sleep || events.findEvent(null, 'watch') || events.findEvent(null, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
+	if (this.temp.sleep
+	 || events.getEvent(this, 'watch', 'temp.sleep')
+	 || events.getEvent('Page', 'watch', 'temp.loading')
+	 || events.getEvent('Session', 'watch', 'temp.active')
+	 || events.getEvent(this, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
 		if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active']) || this._timer('click')) {
 			this.temp.sleep = true;
 		} else {
@@ -189,13 +181,13 @@ Queue.update = function(event, events) {
 	}
 	if (this.temp.sleep) {
 // Selective deleting caused race conditions on faster delay timers - need a better solution...
-//		if (events.findEvent(null,'reminder','run')) { // Only delete the run timer if it's been triggered when we're asleep
+//		if (events.getEvent(null,'reminder','run')) { // Only delete the run timer if it's been triggered when we're asleep
 			this._forget('run');
 //		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if ((!this.temp.sleep && events.findEvent(null,'reminder')) || events.findEvent(null,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
+	if ((!this.temp.sleep && events.getEvent(null,'reminder')) || events.getEvent(null,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');
@@ -207,7 +199,7 @@ Queue.update = function(event, events) {
 			worker = Workers[this.option.queue[i]];
 			if (!worker || !worker.work || !worker.display || worker.get(['option', '_disabled'], false) || worker.get(['option', '_sleep'], false)) {
 				if (worker && this.runtime.current === worker.name) {
-					this.clearCurrent();
+					this.set(['runtime','current']);
 				}
 				continue;
 			}
@@ -220,7 +212,7 @@ Queue.update = function(event, events) {
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH
-					this.clearCurrent();
+					this.set(['runtime','current']);
 				}
 			} else {
 				result = worker._work(false);
@@ -234,12 +226,8 @@ Queue.update = function(event, events) {
 		}
 		current = this.runtime.current ? Workers[this.runtime.current] : null;
 		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
-			this.clearCurrent();
 			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['runtime','current'], next.name);
-			if (next.id) {
-				$('#'+next.id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
-			}
 		}
 //		log(LOG_DEBUG, 'End Queue');
 	}

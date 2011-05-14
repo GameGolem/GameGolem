@@ -103,7 +103,6 @@ Config.init = function() {
 		}
 	});
 	$('#golem').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
-	$('.golem-icon-menu').live('click.golem', this.makeMenu);
 	$('.golem-menu > div').live('click.golem', function(event) {
 		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
 //		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
@@ -126,12 +125,13 @@ Config.init = function() {
 };
 
 Config.update = function(event, events) {
-	if (event.type === 'show' || event.type === 'init') {
+	if (events.getEvent(this, 'show') || events.getEvent(this, 'init')) {
 		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
 	}
 	if (event.type === 'watch') {
 		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list, options = [];
-		if (worker === this && event.id === 'data') { // Changing one of our dropdown lists
+
+		if (events.getEvent(this, 'data')) { // Changing one of our dropdown lists
 			list = [];
 			value = this.get(event.path);
 			if (isArray(value)) {
@@ -148,13 +148,18 @@ Config.update = function(event, events) {
 				var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
 				$(el).html(list).val(val);
 			});
-		} else if (worker === this && (id === 'advanced' || id === 'debug' || id === 'exploit')) {
+		}
+		if (events.getEvent(this, 'watch', 'option.advanced')
+		 || events.getEvent(this, 'watch', 'option.debug')
+		 || events.getEvent(this, 'watch', 'option.exploit')) {
 			for (i in Workers) {
 				if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
 					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
-		} else if (id === '_config') {
+		}
+		for (event=events.getEvent(this, 'watch', 'option._config'); event; event=events.getEvent()) {
+			worker = event.worker;
 			if (event.path === 'option._config._show') { // Fold / unfold a config panel
 				i = worker.get(['option','_config','_show'], false) && 0;
 				id = worker.id;
@@ -165,10 +170,15 @@ Config.update = function(event, events) {
 			if (i !== $('#' + id).accordion('option','active')) {
 				$('#' + id).accordion('activate', i);
 			}
-		} else if (id === '_sleep') { // Show the ZZZ icon
-			$('#golem_sleep_' + worker.name).css('display', worker.get(['option','_sleep'],false) ? '' : 'none');
-		} else {
-			if (($el = $('#'+this.makeID(worker, id))).length === 1) {
+		}
+		for (event=events.getEvent(this, 'watch', 'option._sleep'); event; event=events.getEvent()) { // Show the ZZZ icon
+			worker = event.worker;
+			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden', !worker.get(['option','_sleep'],false));
+		}
+		for (event=events.getEvent(null, 'watch'); event; event=events.getEvent()) {
+			worker = event.worker;
+			id = event.id.slice('option.'.length);
+			if (id && id.length && ($el = $('#'+this.makeID(worker, id))).length === 1) {
 				if ($el.attr('type') === 'checkbox') {
 					$el.attr('checked', worker.get('option.'+id, false));
 				} else if ($el.attr('multiple')) {
@@ -187,51 +197,6 @@ Config.update = function(event, events) {
 	}
 };
 
-Config.makeMenu = function(event) {
-	var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.closest('div').attr('name')), name = worker ? worker.name : '';
-	if (Config.get(['temp','menu']) !== name) {
-		Config.set(['temp','menu'], name);
-		for (i in Workers) {
-			if (Workers[i].menu) {
-				hr = true;
-				Workers[i]._unflush();
-				keys = Workers[i].menu(worker) || [];
-				for (j=0; j<keys.length; j++) {
-					k = keys[j].regex(/([^:]*):?(.*)/);
-					if (k[0] === '---') {
-						hr = true;
-					} else if (k[1]) {
-						if (hr) {
-							html += html ? '<hr>' : '';
-							hr = false;
-						}
-						switch (k[1].charAt(0)) {
-							case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-							case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-							case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-							case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
-							default:	break;
-						}
-						html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
-					}
-				}
-			}
-		}
-		$('#golem-menu').html(html || 'no&nbsp;options');
-		$('#golem-menu').css({
-			position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
-			top:$this.offset().top + $this.height(),
-			left:Math.min($this.offset().left, $('body').width() - $('#golem-menu').outerWidth(true) - 4)
-		}).show();
-	} else {// Need to stop it going up to the config panel, but still close the menu if needed
-		Config.set(['temp','menu']);
-		$('#golem-menu').hide();
-	}
-	Worker.flush();
-	event.stopPropagation();
-	return false;
-};
-
 Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
@@ -243,15 +208,14 @@ Config.menu = function(worker, key) {
 		} else if (key) {
 			switch (key) {
 				case 'fixed':
-					this.set(['option','fixed'], !this.option.fixed);
-					$('#golem_config_frame').toggleClass('ui-helper-fixed');
+					$('#golem_config_frame').toggleClass('ui-helper-fixed', this.toggle(['option','fixed']));
 					break;
 				case 'advanced':
-					this.set(['option','advanced'], !this.option.advanced);
+					this.toggle(['option','advanced']);
 					this.checkRequire();
 					break;
 				case 'debug':
-					this.set(['option','debug'], !this.option.debug);
+					this.toggle(['option','debug']);
 					this.checkRequire();
 					break;
 			}
@@ -277,7 +241,7 @@ Config.addButton = function(options) {
 }
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
-	var i, j, k, tmp;
+	var i, j, k, tmp, stop = false;
 	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
 		'<h3 class="ui-widget-header">' +
 			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
@@ -291,7 +255,6 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'</div>' +
 		'</div>' +
 	'</div>'));
-	$('h3', tmp).append($('<span class="ui-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '" style="position:absolute;top:50%;margin-top:-8px;right:2px;border-left:1px solid #d3d3d3;"></span>').click(this.makeMenu));
 	this.addButton({
 		id:'golem_options',
 		image:'options',
@@ -330,49 +293,25 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	for (i in Workers) {
 		this.makePanel(Workers[i]);
 	}
-	$('#golem_config .golem-panel-sortable')
-		.draggable({
-			axis:'y',
-			distance:5,
-			scroll:false,
-			handle:'h3',
-			helper:'clone',
-			opacity:0.75,
-			zIndex:100,
-			refreshPositions:true,
-			containment:'parent',
-			stop:function(event,ui) {
-				Queue.clearCurrent();// Make sure we deal with changed circumstances
-				Queue.set(['option','queue'], Config.getOrder());
-			}
-		})
-		.droppable({
-			tolerance:'pointer',
-			over:function(e,ui) {
-				var i, order = Config.getOrder(), me = Worker.find($(ui.draggable).attr('name')), newplace = order.indexOf($(this).attr('name'));
-				if (order.indexOf('Idle') >= newplace) {
-					if (me.settings.before) {
-						for(i=0; i<me.settings.before.length; i++) {
-							if (order.indexOf(me.settings.before[i]) <= newplace) {
-								return;
-							}
-						}
-					}
-					if (me.settings.after) {
-						for(i=0; i<me.settings.after.length; i++) {
-							if (order.indexOf(me.settings.after[i]) >= newplace) {
-								return;
-							}
-						}
-					}
-				}
-				if (newplace < order.indexOf($(ui.draggable).attr('name'))) {
-					$(this).before(ui.draggable);
-				} else {
-					$(this).after(ui.draggable);
-				}
+	$('#golem_config')
+		.sortable({
+			axis: 'y',
+			containment: 'parent',
+			distance: 15,
+			handle: '> h3',
+			items: 'div:not(.golem-unsortable)',
+			tolerance: 'pointer',
+			start: function(event) {
+				$('#golem_config').data('stop', true);
 			}
 		});
+	$( "#golem_config > div > h3 > a" ).click(function(event) {
+		if ($('#golem_config').data('stop')) {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			$('#golem_config').data('stop', false);
+		}
+	});
 	this._update('show');
 };
 
@@ -395,25 +334,24 @@ Config.makePanel = function(worker, args) {
 			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
 			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
 		$('#golem_config').append(tmp = $(
-			'<div id="' + worker.id + '" name="' + worker.name + '"' + (display ? ' style="display:none;"' : '') + '>' +
+			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
 				'<h3 class="' + disabled + '">' +
 					'<a href="#">' +
+						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
 						worker.name +
 						'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
-						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="left:inherit;right:20px;"></span>' : '') +
 					'</a>' +
 				'</h3>' +
 				'<div style="font-size:smaller;"></div>' +
 			'</div>'
 		));
-		$('a', tmp).append($('<span class="ui-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '" style="left:inherit;right:2px;border-left:1px solid #d3d3d3;"></span>').click(this.makeMenu));
-//		tmp.addClass('golem-icon-menu');
 		name = worker.name;
 		$('#'+worker.id).accordion({
 			collapsible: true,
 			autoHeight: false,
 			clearStyle: true,
 			animated: 'blind',
+			header: '> h3',
 			active: worker.get(['option','_config','_show'], false) && 0,
 			change: function(event, ui){
 				Workers[name].set(['option','_config','_show'], ui.newHeader.length ? true : undefined, null, true); // Only set when *showing* panel

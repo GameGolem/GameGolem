@@ -140,6 +140,7 @@ function Worker(name) {
 	this.add = this._add;
 	this.get = this._get;
 	this.set = this._set;
+	this.toggle = this._toggle;
 	this.push = this._push;
 	this.pop = this._pop;
 	this.shift = this._shift;
@@ -793,6 +794,16 @@ Worker.prototype._shift = function(what, def, type) {
 };
 
 /**
+ * Toggles a boolean value in of one of our _datatypes
+ * This is an readability alias
+ * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @return {*} The current state
+ */
+Worker.prototype._toggle = function(what) {
+	return this._add(what, true);
+};
+
+/**
  * Is there an active timer for a specific id?
  * @param {string} id The timer id to check.
  * @return {boolean} True if there is an active timer, false otherwise.
@@ -922,19 +933,20 @@ Worker.prototype._unwatch = function(worker, path) {
 Worker.prototype._update = function(event, action) {
 	if (this._loaded) {
 		this._pushStack();
-		var i, done = false, events;
+		var i, done = false, events, old;
 		if (event) {
 			if (isString(event)) {
 				event = {type:event};
 			} else if (!isObject(event)) {
 				event = {};
 			}
+			action = action || 'add';
 			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
-				if (action !== 'purge' && (i = this._updates_.getEvent(event.worker, event.type, event.id)) >= 0) { // Delete from update queue
-					this._updates_.splice(i,1);
+				if (action === 'add' || action === 'run' || action === 'delete') { // Delete from update queue
+					this._updates_.getEvent(event.worker, event.type, event.id);
 				}
-				if (action !== 'add' && action !== 'delete') { // Add to update queue, old key already deleted
+				if (action === 'add' || action === 'run') { // Add to update queue, old key already deleted
 					this._updates_.unshift($.extend({}, event));
 				}
 				if (action === 'purge') { // Purge the update queue immediately - don't do anything with the entries
@@ -950,8 +962,9 @@ Worker.prototype._update = function(event, action) {
 		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
 			this._unflush();
 			events = this._updates_;
+			old = events.slice();
 			this._updates_ = [];
-			while (events.length && done !== true) {
+			while (events.length && !done) {
 				try {
 					events[0].worker = Worker.find(events[0].worker || this);
 					if (isFunction(this['update_'+events[0].type])) {
@@ -962,8 +975,17 @@ Worker.prototype._update = function(event, action) {
 				}catch(e) {
 					log(LOG_ERROR, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
 				}
-				this._updates_ = []; // Make sure we don't directly update ourselves without an _update(type, 'run');
-				events.shift();
+				if (done) {
+					events = [];
+				} else {
+					events.shift();
+				}
+				while (event = this._updates_.shift()) { // Prevent endless loops, while keeping anything we added
+					if (!old.findEvent(event.worker, event.type, event.id)) {
+						done = false;
+						events.push(event);
+					}
+				}
 			}
 			delete Worker.updates[this.name];
 		}

@@ -75,12 +75,14 @@ Gift.init = function() {
 };
 
 Gift.parse = function(change) {
+/*
 	if (change) {
 		if (change === 'facebook') {
 			log(LOG_DEBUG, 'Facebook popup parsed...');
 		}
 		return false;
 	}
+*/
 	var i, j, id, $tmp, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
 	//alert('Gift.parse running');
 	if (Page.page === 'index') {

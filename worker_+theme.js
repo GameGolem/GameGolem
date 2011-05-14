@@ -63,7 +63,7 @@ Theme.setup = function() {
 };
 
 Theme.update = function(event, events) {
-	if (events.findEvent(null,'option') || events.findEvent(null,'init')) {
+	if (events.getEvent(null,'option') || events.getEvent(null,'init')) {
 		this._replace('data', this.option.themes[this.option.theme]);
 		$('#golem').attr('class', 'golem-theme golem-theme-' + this.option.theme);
 		Config.makePanel(this);
