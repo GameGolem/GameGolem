@@ -109,7 +109,7 @@ Queue.init = function(old_revision) {
 		if (worker && worker.display) {
 			if (this.runtime.current && worker.name === this.runtime.current) {
 				log(LOG_INFO, 'Trigger '+worker.name+' (continue after load)');
-				$('#'+worker.id+' > h3').css('font-weight', 'bold');
+				$('#'+worker.id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
 			}
 			$('#golem_config').append($('#'+worker.id));
 		}
@@ -162,24 +162,22 @@ Queue.init = function(old_revision) {
 Queue.clearCurrent = function() {
 //	var current = this.get('runtime.current', null);
 //	if (current) {
-		$('#golem_config > div > h3').css('font-weight', 'normal');
+		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
 		this.set(['runtime','current'], null);// Make sure we deal with changed circumstances
 //	}
 };
 
 Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
-	for (i=0; i<events.length; i++) {
-		if (isEvent(events[i], null, 'watch', 'option._disabled')) { // A worker getting disabled / enabled
-			worker = events[i].worker;
-			if (worker.get(['option', '_disabled'], false)) {
-				$('#'+worker.id+' .golem-panel-header').addClass('red');
-				if (this.runtime.current === worker.name) {
-					this.clearCurrent();
-				}
-			} else {
-				$('#'+worker.id+' .golem-panel-header').removeClass('red');
+	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
+		worker = event.worker;
+		if (worker.get(['option', '_disabled'], false)) {
+			$('#'+worker.id+' > h3').addClass(Theme.get('Queue_disabled', 'ui-state-disabled'));
+			if (this.runtime.current === worker.name) {
+				this.clearCurrent();
 			}
+		} else {
+			$('#'+worker.id+' > h3').removeClass(Theme.get('Queue_disabled', 'ui-state-disabled'));
 		}
 	}
 	if (this.temp.sleep || events.findEvent(null, 'watch') || events.findEvent(null, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
@@ -240,7 +238,7 @@ Queue.update = function(event, events) {
 			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['runtime','current'], next.name);
 			if (next.id) {
-				$('#'+next.id+' > h3').css('font-weight', 'bold');
+				$('#'+next.id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
 			}
 		}
 //		log(LOG_DEBUG, 'End Queue');

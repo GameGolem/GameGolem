@@ -135,8 +135,8 @@ var log = function(level, txt /*, obj, array etc*/){
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
 	try {
-		console.log.apply(console, args);
-	} catch(e) { // FF4 fix
+		console.log.apply(console.firebug ? window : console, args);
+	} catch(e) { // FF4 fix - doesn't like .apply
 		console.log(args);
 	}
 };

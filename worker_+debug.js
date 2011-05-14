@@ -226,14 +226,11 @@ Debug.setup = function() {
 			args.unshift('');
 		}
 		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
-		level = Debug.get(['option','log',level], '-');
-		if (!console[level]) {
-			level = 'log';
-		}
+		level = Debug.get(['option','log',level], 'log');
 		try {
-			console[level].apply(console, args);
-		} catch(e) { // FF4 fix
-			console[level](args);
+			console[level] ? console[level].apply(console.firebug ? window : console, args) : console.log.apply(console.firebug ? window : console, args);
+		} catch(e) { // FF4 fix - doesn't like .apply
+			console[level] ? console[level](args) : console.log(args);
 		}
 	};
 };

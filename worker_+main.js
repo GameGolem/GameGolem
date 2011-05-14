@@ -11,16 +11,11 @@
 * Initial kickstart of Golem.
 */
 var Main = new Worker('Main');
-Main.data = Main.runtime = Main.temp = null;
+Main.data = Main.option = Main.runtime = Main.temp = null;
 
 Main.settings = {
 	system:true,
 	taint:true // Doesn't store any data, but still cleans it up lol
-};
-
-Main.option = {
-	theme: 'default',
-	themes: ['default', 'test'] // Put in here so we can update it manually
 };
 
 Main._apps_ = {};
@@ -39,19 +34,6 @@ Main.add = function(app, appid, appname, alt, fn) {
 	this._apps_[app] = [appid, appname, alt, fn];
 };
 
-Global.display.push({
-	title:'Display',
-	group:[
-		function() {
-			return {
-				id:['Main','option','theme'],
-				label:'Theme',
-				select:Main.option.themes
-			};
-		}
-	]
-});
-
 Main.parse = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
@@ -63,9 +45,6 @@ Main.parse = function() {
 
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 	var i, old_revision, head, a, b;
-	if (events.findEvent(null,'option') || events.findEvent(null,'init')) {
-		$('#golem').attr('class', 'golem-theme-' + this.option.theme);
-	}
 	if (events.findEvent(null,null,'kickstart')) {
 		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
@@ -80,7 +59,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem"></div>'); // Can't set theme yet as we don't have .option
+		$('#rightCol').prepend('<div id="golem"></div>'); // Set the theme from Theme.update('init')
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}

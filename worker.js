@@ -669,9 +669,10 @@ Worker.prototype._save = function(type) {
  * @param {(string|array)} what The path.to.data / [path, to, data] we want
  * @param {*=} value The value we will set it to, undefined (not null!) will cause it to be deleted and any empty banches removed
  * @param {string=} type The typeof of data to be set (or return false and don't set anything)
+ * @param {?Boolean} quiet Don't _notify on changes (use sparingly)
  * @return {*} The value we passed in
  */
-Worker.prototype._set = function(what, value, type) {
+Worker.prototype._set = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
@@ -690,7 +691,9 @@ Worker.prototype._set = function(what, value, type) {
 				break;
 			case false:
 				if (!compare(value, data[i])) {
-					this._notify(path);// Notify the watchers...
+					if (!quiet) {
+						this._notify(path);// Notify the watchers...
+					}
 					this._taint[path[0]] = true;
 					this._update({type:path[0]});
 					if (isUndefined(value)) {
@@ -959,9 +962,9 @@ Worker.prototype._update = function(event, action) {
 				}catch(e) {
 					log(LOG_ERROR, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
 				}
+				this._updates_ = []; // Make sure we don't directly update ourselves without an _update(type, 'run');
 				events.shift();
 			}
-			this._updates_ = []; // Make sure we don't directly update ourselves
 			delete Worker.updates[this.name];
 		}
 		this._popStack();

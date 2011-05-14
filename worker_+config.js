@@ -54,22 +54,7 @@ Config.init = function() {
 		this.set(['option','active']);
 	}
 	// END
-	$('head').append('<link rel="stylesheet" href="http://cloutman.com/css/base/jquery-ui.css" type="text/css" />');
 	this.makeWindow(); // Creates all UI stuff
-	$('.golem-config .golem-panel > h3').live('click.golem', function(event){ // Toggle display of config panels
-		var worker = Worker.find($(this).parent().attr('id'));
-		worker.set(['option','_config','_show'], worker.get(['option','_config','_show'], false) ? undefined : true); // Only set when *showing* panel
-		Worker.flush();
-	});
-	$('.golem-config .golem-panel h4').live('click.golem', function(event){ // Toggle display of config groups
-		var $this = $(this), $next = $this.next('div'), worker = Worker.find($this.parents('.golem-panel').attr('id')), id = $this.text().toLowerCase().replace(/[^a-z]/g,'');
-		if ($next.length && worker && id) {
-			worker.set(['option','_config',id], worker.get(['option','_config',id], false) ? undefined : true); // Only set when *hiding* group
-			$this.toggleClass('golem-group-show');
-			$next.stop(true,true).toggle('blind');
-			Worker.flush();
-		}
-	});
 	multi_change_fn = function(el) {
 		var $this = $(el), tmp, worker, val;
 		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
@@ -117,62 +102,17 @@ Config.init = function() {
 			}
 		}
 	});
-	$('.golem-panel-header input').live('click.golem', function(event){
-		event.stopPropagation(true);
-	});
 	$('#golem').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
-	$('.golem-icon-menu').live('click.golem', function(event) {
-		var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.attr('name')), name = worker ? worker.name : '';
-		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
-		if (Config.get(['temp','menu']) !== name) {
-			Config.set(['temp','menu'], name);
-			for (i in Workers) {
-				if (Workers[i].menu) {
-					hr = true;
-					Workers[i]._unflush();
-					keys = Workers[i].menu(worker) || [];
-					for (j=0; j<keys.length; j++) {
-						k = keys[j].regex(/([^:]*):?(.*)/);
-						if (k[0] === '---') {
-							hr = true;
-						} else if (k[1]) {
-							if (hr) {
-								html += html ? '<hr>' : '';
-								hr = false;
-							}
-							switch (k[1].charAt(0)) {
-								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
-								default:	break;
-							}
-							html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
-						}
-					}
-				}
-			}
-			$this.addClass('golem-icon-menu-active');
-			$('#golem-menu').html(html || 'no&nbsp;options');
-			$('#golem-menu').css({
-				position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
-				top:$this.offset().top + $this.height(),
-				left:Math.min($this.offset().left, $('body').width() - $('#golem-menu').outerWidth(true) - 4)
-			}).show();
-		} else {// Need to stop it going up to the config panel, but still close the menu if needed
-			Config.set(['temp','menu']);
-			$('#golem-menu').hide();
-		}
-		Worker.flush();
-		event.stopPropagation();
-		return false;
-	});
+	$('.golem-icon-menu').live('click.golem', this.makeMenu);
 	$('.golem-menu > div').live('click.golem', function(event) {
 		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
 //		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
 		Worker.flush();
+	});
+	$('.ui-accordion-header').live('click', function(){
+		$(this).blur();
 	});
 	$('body').live('click.golem', function(event){ // Any click hides it, relevant handling done above
 		Config.set(['temp','menu']);
@@ -185,9 +125,9 @@ Config.init = function() {
 	this._watch(this, 'option.exploit');
 };
 
-Config.update = function(event) {
-	if (event.type === 'show') {
-		$('#golem_config_frame').show();// make sure everything is created before showing (css sometimes takes another second to load though)
+Config.update = function(event, events) {
+	if (event.type === 'show' || event.type === 'init') {
+		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
 	}
 	if (event.type === 'watch') {
 		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list, options = [];
@@ -214,17 +154,16 @@ Config.update = function(event) {
 					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
 				}
 			}
-		} else if (id === '_config._show') { // Fold / unfold a config panel or group panel
-			i = worker.get(['option','_config','_show'], false);
-			$el = $('#' + worker.id);
-			$el2 = $el.children('div').stop(true,true);
-			if (i) {
-				$el2.show('blind');
-				$el.addClass('golem-panel-show');
-			} else {
-				$el2.hide('blind',function(){
-					$el.removeClass('golem-panel-show');
-				});
+		} else if (id === '_config') {
+			if (event.path === 'option._config._show') { // Fold / unfold a config panel
+				i = worker.get(['option','_config','_show'], false) && 0;
+				id = worker.id;
+			} else { // Fold / unfold a group panel
+				i = worker.get(event.path, false) || 0;
+				id = worker.id + '_' + event.path.slice('option._config.'.length);
+			}
+			if (i !== $('#' + id).accordion('option','active')) {
+				$('#' + id).accordion('activate', i);
 			}
 		} else if (id === '_sleep') { // Show the ZZZ icon
 			$('#golem_sleep_' + worker.name).css('display', worker.get(['option','_sleep'],false) ? '' : 'none');
@@ -248,6 +187,51 @@ Config.update = function(event) {
 	}
 };
 
+Config.makeMenu = function(event) {
+	var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.closest('div').attr('name')), name = worker ? worker.name : '';
+	if (Config.get(['temp','menu']) !== name) {
+		Config.set(['temp','menu'], name);
+		for (i in Workers) {
+			if (Workers[i].menu) {
+				hr = true;
+				Workers[i]._unflush();
+				keys = Workers[i].menu(worker) || [];
+				for (j=0; j<keys.length; j++) {
+					k = keys[j].regex(/([^:]*):?(.*)/);
+					if (k[0] === '---') {
+						hr = true;
+					} else if (k[1]) {
+						if (hr) {
+							html += html ? '<hr>' : '';
+							hr = false;
+						}
+						switch (k[1].charAt(0)) {
+							case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
+							case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
+							case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
+							case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+							default:	break;
+						}
+						html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
+					}
+				}
+			}
+		}
+		$('#golem-menu').html(html || 'no&nbsp;options');
+		$('#golem-menu').css({
+			position:Config.get(['option','fixed']) ? 'fixed' : 'absolute',
+			top:$this.offset().top + $this.height(),
+			left:Math.min($this.offset().left, $('body').width() - $('#golem-menu').outerWidth(true) - 4)
+		}).show();
+	} else {// Need to stop it going up to the config panel, but still close the menu if needed
+		Config.set(['temp','menu']);
+		$('#golem-menu').hide();
+	}
+	Worker.flush();
+	event.stopPropagation();
+	return false;
+};
+
 Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
@@ -260,7 +244,7 @@ Config.menu = function(worker, key) {
 			switch (key) {
 				case 'fixed':
 					this.set(['option','fixed'], !this.option.fixed);
-					$('#golem_config_frame').toggleClass('golem-config-fixed');
+					$('#golem_config_frame').toggleClass('ui-helper-fixed');
 					break;
 				case 'advanced':
 					this.set(['option','advanced'], !this.option.advanced);
@@ -293,20 +277,21 @@ Config.addButton = function(options) {
 }
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
-	var i, j, k, tmp = $('<div id="golem_config_frame" class="ui-widget-content golem-config' + (this.option.fixed?' golem-config-fixed':'') + '" style="display:none;width:' + $('#golem').width() + 'px;">' +
-		'<div class="golem-title">' +
-			'&nbsp;Castle Age Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
-			'<img class="golem-image golem-icon-menu" src="' + getImage('menu') + '">' +
-		'</div>' +
-		'<div id="golem_buttons">' +
-		'</div>' +
-		'<div style="display:'+this.option.display+';">' +
-			'<div id="golem_config" style="overflow:hidden;overflow-y:auto;">' +
+	var i, j, k, tmp;
+	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
+		'<h3 class="ui-widget-header">' +
+			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
+		'</h3>' +
+		'<div class="ui-widget-content" style="margin-top:-1px;">' +
+			'<div id="golem_buttons">' +
+				// All buttons go in here
+			'</div>' +
+			'<div id="golem_config" style="display:'+this.option.display+';">' +
 				// All config panels go in here
 			'</div>' +
 		'</div>' +
-	'</div>');
-	$('#golem').prepend(tmp);
+	'</div>'));
+	$('h3', tmp).append($('<span class="ui-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '" style="position:absolute;top:50%;margin-top:-8px;right:2px;border-left:1px solid #d3d3d3;"></span>').click(this.makeMenu));
 	this.addButton({
 		id:'golem_options',
 		image:'options',
@@ -405,25 +390,36 @@ Config.makePanel = function(worker, args) {
 		}
 		args = worker.display;
 	}
-//	worker.id = 'golem_panel_'+worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-');
 	if (!$('#'+worker.id).length) {
-		var unsortable = worker.settings.unsortable ? '' : ' golem-panel-sortable',
-			show = worker.get(['option','_config','_show'], false) ? ' golem-panel-show' : '',
-			display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
-			disabled = worker.get(['option', '_disabled'], false) ? ' red' : '',
+		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
+			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
 			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
-		$('#golem_config').append(
-			'<div id="' + worker.id + '" class="golem-panel' + unsortable + show + '"' + (display ? ' style="display:none;"' : '') + ' name="' + worker.name + '">' +
-				'<h3 class="golem-theme-panel golem-panel-header' + disabled + '">' +
-					'<img class="golem-icon" src="' + getImage('blank') + '">' +
-					worker.name +
-					'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
-					'<img class="golem-image golem-icon-menu" name="' + worker.name + '" src="' + getImage('menu') + '">' +
-					'<img class="golem-lock" src="' + getImage('lock') + '">' +
+		$('#golem_config').append(tmp = $(
+			'<div id="' + worker.id + '" name="' + worker.name + '"' + (display ? ' style="display:none;"' : '') + '>' +
+				'<h3 class="' + disabled + '">' +
+					'<a href="#">' +
+						worker.name +
+						'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
+						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="left:inherit;right:20px;"></span>' : '') +
+					'</a>' +
 				'</h3>' +
-			'<div class="golem-panel-content" style="font-size:smaller;"></div></div>'
-		);
-		this._watch(worker, 'option._config._show');
+				'<div style="font-size:smaller;"></div>' +
+			'</div>'
+		));
+		$('a', tmp).append($('<span class="ui-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '" style="left:inherit;right:2px;border-left:1px solid #d3d3d3;"></span>').click(this.makeMenu));
+//		tmp.addClass('golem-icon-menu');
+		name = worker.name;
+		$('#'+worker.id).accordion({
+			collapsible: true,
+			autoHeight: false,
+			clearStyle: true,
+			animated: 'blind',
+			active: worker.get(['option','_config','_show'], false) && 0,
+			change: function(event, ui){
+				Workers[name].set(['option','_config','_show'], ui.newHeader.length ? true : undefined, null, true); // Only set when *showing* panel
+			}
+		});
+		this._watch(worker, 'option._config');
 		this._watch(worker, 'option._sleep');
 	} else {
 		$('#'+worker.id+' > div').empty();
@@ -468,9 +464,9 @@ Config.addOption = function(selector, args) {
 Config.makeOptions = function(worker, args) {
 	this._init(); // Make sure we're properly loaded first!
 	if (isArray(args)) {
-		var i, $output = $([]);
+		var i, $output = $('<div></div>');
 		for (i=0; i<args.length; i++) {
-			$output = $output.add(this.makeOptions(worker, args[i]));
+			$output = $output.append(this.makeOptions(worker, args[i]));
 		}
 		return $output;
 	} else if (isObject(args)) {
@@ -490,7 +486,7 @@ Config.makeOptions = function(worker, args) {
 };
 
 Config.makeOption = function(worker, args) {
-	var i, j, o, r, step, $option, txt = [], list = [];
+	var i, j, o, r, step, $option, tmp, name, txt = [], list = [];
 	o = $.extend({}, {
 		before: '',
 		after: '',
@@ -518,148 +514,163 @@ Config.makeOption = function(worker, args) {
 		o.real_id = ' id="' + this.makeID(worker, o.id) + '"';
 		o.value = worker.get(o.path, null);
 	}
-	o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
-	if (o.hr) {
-		txt.push('<br><hr style="clear:both;margin:0;">');
-	}
-	if (o.title) {
-		txt.push('<h4 class="golem-group-title' + (o.group ? ' golem-group' + (worker.get(['option','_config',o.title.replace(' ','').toLowerCase()], false) ? '' : ' golem-group-show') : '') + '">' + (o.group ? '<img class="golem-icon" src="' + getImage('blank') + '">' : '') + o.title.replace(' ','&nbsp;') + '</h4>');
-	}
-	if (o.label && !o.button) {
-		txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
-		if (o.text || o.checkbox || o.select || o.number) {
-			txt.push('<span style="float:right;">');
-		} else if (o.multiple) {
-			txt.push('<br>');
-		}
-	}
-	if (o.before) {
-		txt.push(o.before+' ');
-	}
-	// our different types of input elements
-	if (o.info) { // only useful for externally changed
-		if (o.id) {
-			txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info) + '</span>');
+	if (o.group) {
+		if (o.title) {
+			tmp = o.title.toLowerCase().replace(/[^a-z]/g,'');
+			name = worker.name;
+			$option = $('<div id="' + worker.id + '_' + tmp + '"><h3><a href="#">' + o.title + '</a></h3></div>').append(this.makeOptions(worker,o.group));
+			$option.accordion({
+				collapsible: true,
+				autoHeight: false,
+				clearStyle: true,
+				animated: 'blind',
+				active: worker.get(['option','_config',tmp], false) || 0,
+				change: function(event, ui){
+					Workers[name].set(['option','_config',tmp], ui.newHeader.length ? undefined : true, null, true); // Only set when *hiding* panel
+				}
+			});
 		} else {
-			txt.push(o.info);
+			$option = this.makeOptions(worker,o.group);
 		}
-	} else if (o.text) {
-		txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
-	} else if (o.number) {
-		txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
-	} else if (o.textarea) {
-		txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
-	} else if (o.checkbox) {
-		txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
-	} else if (o.button) {
-		txt.push('<input type="button"' + o.real_id + ' value="' + o.label + '">');
-	} else if (o.select) {
-		if (typeof o.select === 'function') {
-			o.select = o.select.call(worker, o.id);
+	} else {
+		o.alt = (o.alt ? ' alt="'+o.alt+'"' : '');
+		if (o.hr) {
+			txt.push('<br><hr style="clear:both;margin:0;">');
 		}
-		switch (typeof o.select) {
-			case 'number':
-				step = Divisor(o.select);
-				for (i=0; i<=o.select; i+=step) {
-					list.push('<option' + (o.value==i ? ' selected' : '') + '>' + i + '</option>');
-				}
-				break;
-			case 'string':
-				o.className = ' class="golem_'+o.select+'"';
-				if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
-					o.select = this.data[o.select];
-				} else {
-					break;
-				} // deliberate fallthrough
-			case 'array':
-			case 'object':
-				if (isArray(o.select)) {
-					for (i=0; i<o.select.length; i++) {
-						list.push('<option value="' + o.select[i] + '"' + (o.value==o.select[i] ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-					}
-				} else {
-					for (i in o.select) {
-						list.push('<option value="' + i + '"' + (o.value==i ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-					}
-				}
-				break;
+		if (o.title) {
+			txt.push('<h4 class="golem-group-title">' + o.title.replace(' ','&nbsp;') + '</h4>');
 		}
-		txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
-	} else if (o.multiple) {
-		if (isArray(o.value)) {
-			for (i = 0; i < o.value.length; i++) {
-				list.push('<option>'+o.value[i]+'</option>');
-			}
-		} else if (isObject(o.value)) {
-			for (i in o.value) {
-				list.push('<option>'+o.value[i]+'</option>');
+		if (o.label && !o.button) {
+			txt.push('<span style="float:left;margin-top:2px;">'+o.label.replace(' ','&nbsp;')+'</span>');
+			if (o.text || o.checkbox || o.select || o.number) {
+				txt.push('<span style="float:right;">');
+			} else if (o.multiple) {
+				txt.push('<br>');
 			}
 		}
-		txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
-		if (typeof o.multiple === 'string') {
-			txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
-		} else {
-			list = [];
-			switch (typeof o.multiple) {
+		if (o.before) {
+			txt.push(o.before+' ');
+		}
+		// our different types of input elements
+		if (o.info) { // only useful for externally changed
+			if (o.id) {
+				txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info) + '</span>');
+			} else {
+				txt.push(o.info);
+			}
+		} else if (o.text) {
+			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+		} else if (o.number) {
+			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
+		} else if (o.textarea) {
+			txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
+		} else if (o.checkbox) {
+			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
+		} else if (o.button) {
+			txt.push('<input type="button"' + o.real_id + ' value="' + o.label + '">');
+		} else if (o.select) {
+			if (typeof o.select === 'function') {
+				o.select = o.select.call(worker, o.id);
+			}
+			switch (typeof o.select) {
 				case 'number':
 					step = Divisor(o.select);
-					for (i=0; i<=o.multiple; i+=step) {
-						list.push('<option>' + i + '</option>');
+					for (i=0; i<=o.select; i+=step) {
+						list.push('<option' + (o.value==i ? ' selected' : '') + '>' + i + '</option>');
 					}
 					break;
+				case 'string':
+					o.className = ' class="golem_'+o.select+'"';
+					if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
+						o.select = this.data[o.select];
+					} else {
+						break;
+					} // deliberate fallthrough
 				case 'array':
 				case 'object':
-					if (isArray(o.multiple)) {
-						for (i=0; i<o.multiple.length; i++) {
-							list.push('<option value="' + o.multiple[i] + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					if (isArray(o.select)) {
+						for (i=0; i<o.select.length; i++) {
+							list.push('<option value="' + o.select[i] + '"' + (o.value==o.select[i] ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
 						}
 					} else {
-						for (i in o.multiple) {
-							list.push('<option value="' + i + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+						for (i in o.select) {
+							list.push('<option value="' + i + '"' + (o.value==i ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
 						}
 					}
 					break;
 			}
-			txt.push('<select class="golem_select">'+list.join('')+'</select>');
+			txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
+		} else if (o.multiple) {
+			if (isArray(o.value)) {
+				for (i = 0; i < o.value.length; i++) {
+					list.push('<option>'+o.value[i]+'</option>');
+				}
+			} else if (isObject(o.value)) {
+				for (i in o.value) {
+					list.push('<option>'+o.value[i]+'</option>');
+				}
+			}
+			txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
+			if (typeof o.multiple === 'string') {
+				txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+			} else {
+				list = [];
+				switch (typeof o.multiple) {
+					case 'number':
+						step = Divisor(o.select);
+						for (i=0; i<=o.multiple; i+=step) {
+							list.push('<option>' + i + '</option>');
+						}
+						break;
+					case 'array':
+					case 'object':
+						if (isArray(o.multiple)) {
+							for (i=0; i<o.multiple.length; i++) {
+								list.push('<option value="' + o.multiple[i] + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							}
+						} else {
+							for (i in o.multiple) {
+								list.push('<option value="' + i + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+							}
+						}
+						break;
+				}
+				txt.push('<select class="golem_select">'+list.join('')+'</select>');
+			}
+			txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
 		}
-		txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
-	}
-	if (o.after) {
-		txt.push(' '+o.after);
-	}
-	if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
-		txt.push('</span>');
-	}
-	$option = $('<div class="ui-helper-clearfix">' + txt.join('') + '</div>');
-	if (o.require || o.advanced || o.debug || o.exploit) {
-		try {
-			r = {depth:0};
-			r.require = {};
-			if (o.advanced) {
-				r.require.advanced = true;
-				$option.css('background','#ffeeee');
-			}
-			if (o.debug) {
-				r.require.debug = true;
-				$option.css({border:'1px solid blue', 'background':'#ddddff'});
-			}
-			if (o.exploit) {
-				r.require.exploit = true;
-				$option.css({border:'1px solid red', 'background':'#ffeeee'});
-			}
-			if (o.require) {
-				r.require.x = Script.parse(worker, 'option', o.require);
-			}
-			this.temp.require.push(r.require);
-			$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
-		} catch(e) {
-			log(LOG_ERROR, e.name + ' in createRequire(' + o.require + '): ' + e.message);
+		if (o.after) {
+			txt.push(' '+o.after);
 		}
-	}
-	if (o.group) {
-		$option.append($('<div class="ui-helper-clearfix"' + o.real_id + (o.title ? ' style="padding-left:16px;' + (worker.get(['option','_config',o.title.toLowerCase().replace(/[^a-z]/g,'')], false) ? 'display:none;' : '') + '"' : '') + '></div>').append(this.makeOptions(worker,o.group)));
-//	} else {
-//		$option.append('<br>');
+		if (o.label && (o.text || o.checkbox || o.select || o.multiple)) {
+			txt.push('</span>');
+		}
+		$option = $('<div class="ui-helper-clearfix">' + txt.join('') + '</div>');
+		if (o.require || o.advanced || o.debug || o.exploit) {
+			try {
+				r = {depth:0};
+				r.require = {};
+				if (o.advanced) {
+					r.require.advanced = true;
+					$option.css('background','#ffeeee');
+				}
+				if (o.debug) {
+					r.require.debug = true;
+					$option.css({border:'1px solid blue', 'background':'#ddddff'});
+				}
+				if (o.exploit) {
+					r.require.exploit = true;
+					$option.css({border:'1px solid red', 'background':'#ffeeee'});
+				}
+				if (o.require) {
+					r.require.x = Script.parse(worker, 'option', o.require);
+				}
+				this.temp.require.push(r.require);
+				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
+			} catch(e) {
+				log(LOG_ERROR, e.name + ' in createRequire(' + o.require + '): ' + e.message);
+			}
+		}
 	}
 	if (o.help) {
 		$option.attr('title', o.help);

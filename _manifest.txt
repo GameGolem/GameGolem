@@ -22,6 +22,7 @@ worker_+script.js
 worker_+session.js
 worker_+settings.js
 worker_+title.js
+worker_+theme.js
 worker_+update.js
 #############
 ### Games ###
