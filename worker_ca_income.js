@@ -62,6 +62,7 @@ Income.update = function(event) {
 	if ((this.set(['temp','income'], when <= 0))) {
 		this.set(['temp','bank'], true);
 	}
+	Dashboard.status(this, makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
 	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
 };
 

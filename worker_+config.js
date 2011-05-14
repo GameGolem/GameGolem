@@ -303,6 +303,14 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			tolerance: 'pointer',
 			start: function(event) {
 				$('#golem_config').data('stop', true);
+			},
+			stop: function(event) {
+				var i, el, order = [];
+				el = $('#golem_config > div');
+				for (i=0; i<el.length; i++) {
+					order.push($(el[i]).attr('name'));
+				}
+				Queue.set(['option','queue'], order.unique());
 			}
 		});
 	$( "#golem_config > div > h3 > a" ).click(function(event) {
@@ -342,7 +350,7 @@ Config.makePanel = function(worker, args) {
 						'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
 					'</a>' +
 				'</h3>' +
-				'<div style="font-size:smaller;"></div>' +
+				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +
 			'</div>'
 		));
 		name = worker.name;
@@ -456,7 +464,7 @@ Config.makeOption = function(worker, args) {
 		if (o.title) {
 			tmp = o.title.toLowerCase().replace(/[^a-z]/g,'');
 			name = worker.name;
-			$option = $('<div id="' + worker.id + '_' + tmp + '"><h3><a href="#">' + o.title + '</a></h3></div>').append(this.makeOptions(worker,o.group));
+			$option = $('<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" id="' + worker.id + '_' + tmp + '"><h3><a href="#">' + o.title + '</a></h3></div>').append(this.makeOptions(worker,o.group));
 			$option.accordion({
 				collapsible: true,
 				autoHeight: false,
@@ -590,15 +598,15 @@ Config.makeOption = function(worker, args) {
 				r.require = {};
 				if (o.advanced) {
 					r.require.advanced = true;
-					$option.css('background','#ffeeee');
+					$option.addClass('red');
 				}
 				if (o.debug) {
 					r.require.debug = true;
-					$option.css({border:'1px solid blue', 'background':'#ddddff'});
+					$option.addClass('blue');
 				}
 				if (o.exploit) {
 					r.require.exploit = true;
-					$option.css({border:'1px solid red', 'background':'#ffeeee'});
+					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
 					r.require.x = Script.parse(worker, 'option', o.require);
@@ -641,13 +649,5 @@ Config.checkRequire = function(id) {
 		$('#golem_require_'+id).css('display', show ? '' : 'none');
 	}
 	return show;
-};
-
-Config.getOrder = function() {
-	var order = [];
-	$('#golem_config > div').each(function(i,el){
-		order.push($(el).attr('name'));
-	});
-	return order.unique();
 };
 

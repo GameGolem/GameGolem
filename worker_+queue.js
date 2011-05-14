@@ -158,7 +158,9 @@ Queue.update = function(event, events) {
 	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
 	if (events.getEvent(this, 'watch', 'runtime.current')) {
 		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		if (this.runtime.current) {
+			$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		}
 	}
 	for (event=events.getEvent(null, 'watch', 'option._disabled'); event; event=events.getEvent()) { // A worker getting disabled / enabled
 		worker = event.worker;
