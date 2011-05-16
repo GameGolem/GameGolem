@@ -47,9 +47,8 @@ Script.dashboard = function() {
 	html += '</select>';
 	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
 	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
-//	html += '<br style="clear:both;"><input type="text" id="golem_script_edit" placeholder="Enter code here" style="width:99%;">';
-	html += '<br style="clear:both;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:99%;"></textarea>';
-	html += '<textarea id="golem_script_source" placeholder="Compiled code" style="width:99%;" disabled></textarea>';
+	html += '<div class="ui-helper-clearfix" style="border:1px solid #bdc7d8;padding:2px;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:100%;" class="ui-helper-reset"></textarea></div>';
+	html += '<div class="ui-helper-clearfix" style="border:1px solid #bdc7d8;padding:2px;"><textarea id="golem_script_source" placeholder="Compiled code" style="width:100%;" class="ui-helper-reset" disabled></textarea></div>';
 	$('#golem-dashboard-Script').html(html);
 	$('#golem_script_worker').change(function(){
 		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
@@ -60,8 +59,7 @@ Script.dashboard = function() {
 			Script.option.worker = Script.option.type = null;
 		}
 	});
-	$('#golem_script_source').autoSize();
-	$('#golem_script_edit').autoSize();
+	$('#golem_script_source,#golem_script_edit').autoSize();
 	$('#golem_script_run').click(function(){
 		var script = Script.parse(Workers[Script.option.worker], Script.option.type, $('#golem_script_edit').val());
 		$('#golem_script_source').val(script.length ? JSON.stringify(script, null, '   ') : '').autoSize();

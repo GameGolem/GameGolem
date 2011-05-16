@@ -139,9 +139,10 @@ Page.init = function() {
 	this._revive(1, 'timers');// update() once every second to update any timers
 };
 
-Page.update_reminder = function(event) {
-	if (event.id === 'timers') {
-		var i, now = Date.now(), time;
+Page.update = function(event, events) {
+	// Can use init as no system workers (which can come before us) care what page we are on
+	var i, list, now = Date.now(), time;
+	if (events.findEvent(null,'reminder','timers')) {
 		for (i in this.runtime.timers) {
 			time = (this.runtime.timers[i] - now) / 1000;
 			if (time <= -604800) { // Delete old timers 1 week after "now?"
@@ -150,76 +151,70 @@ Page.update_reminder = function(event) {
 				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?')
 			}
 		}
-	} else {
-		this.update(event);
 	}
-};
-
-Page.update = function(event) {
-	// Can use init as no system workers (which can come before us) care what page we are on
-	if (event.type === 'init' || event.type === 'trigger') {
-		var i, list;
-		if (event.type === 'init' || event.id === 'page_change') {
-			list = this.pageCheck;
-//			log('Page change noticed...');
-			this._forget('retry');
-			this.set(['temp','loading'], false);
-			for (i=0; i<list.length; i++) {
-				if (!$(list[i]).length) {
-					log(LOG_WARN, 'Bad page warning: Unabled to find '+list[i]);
-					this.retry();
+	if (events.findEvent(null,'reminder','retry')) {
+		this.retry();
+	}
+	if (events.findEvent(null,'init') || events.findEvent(null,'trigger','page_change')) {
+		list = this.pageCheck;
+//		log('Page change noticed...');
+		this._forget('retry');
+		this.set(['temp','loading'], false);
+		for (i=0; i<list.length; i++) {
+			if (!$(list[i]).length) {
+				log(LOG_WARN, 'Bad page warning: Unabled to find '+list[i]);
+				this.retry();
+				return;
+			}
+		}
+		// NOTE: Need a better function to identify pages, this lot is bad for CPU
+		this.page = '';
+		$('img', $('#'+APPID_+'app_body')).each(function(i,el){
+			var i, filename = $(el).attr('src').filepart();
+			for (i in Page.pageNames) {
+				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
+					Page.page = i;
+//					log(LOG_DEBUG, 'Page:' + Page.page);
 					return;
 				}
 			}
-			// NOTE: Need a better function to identify pages, this lot is bad for CPU
-			this.page = '';
-			$('img', $('#'+APPID_+'app_body')).each(function(i,el){
-				var i, filename = $(el).attr('src').filepart();
-				for (i in Page.pageNames) {
-					if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
-						Page.page = i;
-//						log(LOG_DEBUG, 'Page:' + Page.page);
-						return;
-					}
-				}
-			});
-			if (this.page === '') {
-				for (i in Page.pageNames) {
-					if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
-//						log(LOG_DEBUG, 'Page:' + Page.page);
-						Page.page = i;
-					}
-				}
-			}
-			if (this.page !== '') {
-				this.set(['data',this.page], Date.now());
-				this.set(['runtime', 'stale', this.page]);
-			}
-//			log(LOG_WARN, 'Page.update: ' + (this.page || 'Unknown page') + ' recognised');
-			list = {};
-			for (i in Workers) {
-				if (Workers[i].parse
-				 && Workers[i].pages
-				 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
-				 && Workers[i]._parse(false)) {
-					list[i] = true;
-				}
-			}
-			for (i in list) {
-				Workers[i]._parse(true);
-			}
-		} else if (event.id === 'facebook') { // Need to act as if it's a page change
-			this._forget('retry');
-			this.set(['temp', 'loading'], false);
-			for (i in Workers) {
-				if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
-					Workers[i]._parse('facebook');
+		});
+		if (this.page === '') {
+			for (i in Page.pageNames) {
+				if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
+//					log(LOG_DEBUG, 'Page:' + Page.page);
+					Page.page = i;
 				}
 			}
 		}
-	} else if (event.type === 'reminder' && event.id === 'retry') {
-		this.retry();
+		if (this.page !== '') {
+			this.set(['data',this.page], Date.now());
+			this.set(['runtime', 'stale', this.page]);
+		}
+//		log(LOG_WARN, 'Page.update: ' + (this.page || 'Unknown page') + ' recognised');
+		list = {};
+		for (i in Workers) {
+			if (Workers[i].pages
+			 && Workers[i].pages.indexOf
+			 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
+			 && Workers[i]._parse(false)) {
+				list[i] = true;
+			}
+		}
+		for (i in list) {
+			Workers[i]._parse(true);
+		}
 	}
+	if (events.findEvent(null,'trigger','facebook')) { // Need to act as if it's a page change
+		this._forget('retry');
+		this.set(['temp', 'loading'], false);
+		for (i in Workers) {
+			if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
+				Workers[i]._parse('facebook');
+			}
+		}
+	}
+	return true;
 };
 
 Page.makeURL = function(url, args) {

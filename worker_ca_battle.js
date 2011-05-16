@@ -358,7 +358,7 @@ Battle.parse = function(change) {
 		$list = $('#'+APPID_+'app_body table.layout table table tr:even');
 		for (i=0; i<$list.length; i++) {
 			$el = $list[i];
-			uid = $('img[uid!==""]', $el).attr('uid');
+			uid = $('img[uid!=""]', $el).attr('uid');
 			info = $('td.bluelink', $el).text().replace(/[ \t\n]+/g, ' ');
 			rank2 = {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),

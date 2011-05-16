@@ -94,8 +94,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._unwatch(worker[,path])- Removes a watcher from worker (safe to call if not watching). Will remove exact matches or all
 ._notify(path)			- Updates any workers watching this path or below
 
-._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
-._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', self:true, id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
+._remind(secs,id)		- Calls this._update({worker:this, type:'reminder', id:(id || null)}) after a specified delay. Replaces old 'id' if passed (so only one _remind() per id active)
+._revive(secs,id)		- Calls this._update({worker:this, type:'reminder', id:(id || null)}) regularly. Replaces old 'id' if passed (so only one _revive() per id active)
 ._forget(id)			- Forgets all _remind() and _revive() with the same id
 ._timer(id)				- Checks if we have an active timer with id
 
@@ -242,8 +242,9 @@ Worker.prototype._add = function(what, value, type) {
 		this._set(what);
 	} else if (isBoolean(value)) {
 		this._set(what, function(old){
-			value = old ? false : true;
-			return old ? undefined : true;
+			log (value, old);
+			value = (old = old ? (value ? false : undefined) : true) || false;
+			return old;
 		});
 	} else if (isNumber(value)) {
 		this._set(what, function(old){
@@ -329,7 +330,7 @@ Worker.prototype._get = function(what, def, type) {
 //			log(LOG_WARN, 'Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 //		}
 	} catch(e) {
-		log(LOG_ERROR, e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message);
+		log(e, e.name + ' in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): ' + e.message);
 	}
 	return def;
 };
@@ -347,7 +348,7 @@ Worker.prototype._init = function(old_revision) {
 		try {
 			this.init(old_revision);
 		}catch(e) {
-			log(LOG_ERROR, e.name + ' in ' + this.name + '.init(): ' + e.message);
+			log(e, e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
 	}
 	this._popStack();
@@ -361,7 +362,7 @@ Worker.prototype._init = function(old_revision) {
  * @param {boolean=} merge If we wish to merge with current data - normally only used in _setup
  */
 Worker.prototype._load = function(type, merge) {
-	var i, n, metrics = {};
+	var i, path, raw, data, metrics = {};
 	if (!this._datatypes[type]) {
 		if (!type) {
 			for (i in this._datatypes) {
@@ -373,21 +374,21 @@ Worker.prototype._load = function(type, merge) {
 		return;
 	}
 	this._pushStack();
-	n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	i = getItem(n);
-	if (isString(i)) { // JSON encoded string
+	path = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
+	raw = getItem(path);
+	if (isString(raw)) { // JSON encoded string
 		try {
-			this._storage[type] = (n.length + i.length) * 2; // x2 for unicode
-			i = JSON.decode(i, metrics);
+			this._storage[type] = (path.length + raw.length) * 2; // x2 for unicode
+			data = JSON.decode(raw, metrics);
 			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 			this._numvars[type] = metrics.num || 0;
 		} catch(e) {
-			log(LOG_ERROR, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
+			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
-		if (merge && !compare(i, this[type])) {
-			this[type] = $.extend(true, {}, this[type], i);
+		if (merge && !compare(data, this[type])) {
+			this[type] = $.extend(true, {}, this[type], data);
 		} else {
-			this[type] = i;
+			this[type] = data;
 			this._taint[type] = false;
 		}
 	}
@@ -457,11 +458,13 @@ Worker.prototype._overload = function(app, name, fn) {
 Worker.prototype._parse = function(change) {
 	this._pushStack();
 	var result = false;
-	try {
-		this._unflush();
-		result = this.parse && this.parse(change);
-	}catch(e) {
-		log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+	if (this.parse) {
+		try {
+			this._unflush();
+			result = this.parse(change);
+		}catch(e) {
+			log(e, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+		}
 	}
 	this._popStack();
 	return result;
@@ -537,7 +540,7 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	} else if (isObject(callback)) {
 		fn = function(){Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
+		fn = function(){Workers[name]._update({type:'reminder', id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['i' + id]) {
 		window.clearInterval(this._reminders['i' + id]);
@@ -559,7 +562,7 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	} else if (isObject(callback)) {
 		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update(callback, 'run');};
 	} else {
-		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update({type:'reminder', self:true, id:(id || null)}, 'run');};
+		fn = function(){delete Workers[name]._reminders['t' + id];Workers[name]._update({type:'reminder', id:(id || null)}, 'run');};
 	}
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
@@ -642,7 +645,7 @@ Worker.prototype._save = function(type) {
 		try {
 			v = JSON.encode(this[type], metrics);
 		} catch (e) {
-			log(LOG_ERROR, e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
+			log(e, e.name + ' in ' + this.name + '.save(' + type + '): ' + e.message);
 			return false; // exit so we don't try to save mangled data over good data
 		}
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
@@ -656,7 +659,7 @@ Worker.prototype._save = function(type) {
 				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 				this._numvars[type] = metrics.num || 0;
 			} catch (e2) {
-				log(LOG_ERROR, e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message);
+				log(e2, e2.name + ' in ' + this.name + '.save(' + type + '): Saving: ' + e2.message);
 			}
 			this._popStack();
 			return true;
@@ -729,7 +732,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
 			fn.call(this, this, x, value, 0);
 		}
 	} catch(e) {
-		log(LOG_ERROR, e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message);
+		log(e, e.name + ' in ' + this.name + '.set('+JSON.stringify(arguments,2)+'): ' + e.message);
 	}
 	return value;
 };
@@ -753,17 +756,18 @@ Worker.prototype._setup = function(old_revision) {
 		}
 		// NOTE: Really need to move this into .init, and defer .init until when it's actually needed
 		for (i in this._datatypes) {// Delete non-existant datatypes
-			this._load(i, true); // Merge with default data, first time only
 			if (!this[i]) {
 				delete this._datatypes[i];
 				delete this[i]; // Make sure it's undefined and not null
+			} else {
+				this._load(i, true); // Merge with default data, first time only
 			}
 		}
 		if (this.setup) {
 			try {
 				this.setup(old_revision);
 			}catch(e) {
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.setup(): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.setup(): ' + e.message);
 			}
 		}
 	} else { // Get us out of the list!!!
@@ -797,10 +801,11 @@ Worker.prototype._shift = function(what, def, type) {
  * Toggles a boolean value in of one of our _datatypes
  * This is an readability alias
  * @param {(string|array)} what The path.to.data / [path, to, data] we want
+ * @param {?Boolean} keep Do we want to keep false values?
  * @return {*} The current state
  */
-Worker.prototype._toggle = function(what) {
-	return this._add(what, true);
+Worker.prototype._toggle = function(what, keep) {
+	return this._add(what, keep ? true : false);
 };
 
 /**
@@ -852,7 +857,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._update({worker:t[i][0], self:true, type:'trigger', id:t[i][2], selector:t[i][1]});
+					t[i][0]._update({worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
 				}
 			}
 		});
@@ -973,7 +978,7 @@ Worker.prototype._update = function(event, action) {
 						done = this.update(events[0], events);
 					}
 				}catch(e) {
-					log(LOG_ERROR, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
+					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
 				}
 				if (done) {
 					events = [];
@@ -1026,7 +1031,7 @@ Worker.prototype._work = function(state) {
 	try {
 		result = this.work && this.work(state);
 	}catch(e) {
-		log(LOG_ERROR, e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
+		log(e, e.name + ' in ' + this.name + '.work(' + state + '): ' + e.message);
 	}
 	this._popStack();
 	return result;

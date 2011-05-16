@@ -19,7 +19,7 @@ Config.settings = {
 };
 
 Config.option = {
-	display:'block',
+	display:true,
 	fixed:false,
 	advanced:false,
 	debug:false,
@@ -31,27 +31,40 @@ Config.temp = {
 	menu:null
 };
 
-Config.init = function() {
+Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
+	// BEGIN: Changing this.option.display to a bool
+	if (old_revision <= 1110) {
+		if (this.option.display === 'block') {
+			this.option.display = true;
+		} else {
+			delete this.option.display;
+		}
+	}
+	// END
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
-	for (i in Workers) {
-		if (Workers[i].option && ('_enabled' in Workers[i].option)) {
-			if (!Workers[i].option._enabled) {
-				Workers[i].set(['option','_disabled'], true);
+	if (old_revision <= 1106) { // Not sure real revision
+		for (i in Workers) {
+			if (Workers[i].option && ('_enabled' in Workers[i].option)) {
+				if (!Workers[i].option._enabled) {
+					Workers[i].set(['option','_disabled'], true);
+				}
+				Workers[i].set(['option','_enabled']);
 			}
-			Workers[i].set(['option','_enabled']);
 		}
 	}
 	// END
 	// START: Move active (unfolded) workers into individual worker.option._config._show
-	if (this.option.active) {
-		for (i=0; i<this.option.active.length; i++) {
-			worker = Worker.find(this.option.active[i]);
-			if (worker) {
-				worker.set(['option','_config','_show'], true);
+	if (old_revision <= 1106) { // Not sure real revision
+		if (this.option.active) {
+			for (i=0; i<this.option.active.length; i++) {
+				worker = Worker.find(this.option.active[i]);
+				if (worker) {
+					worker.set(['option','_config','_show'], true);
+				}
 			}
+			this.set(['option','active']);
 		}
-		this.set(['option','active']);
 	}
 	// END
 	this.makeWindow(); // Creates all UI stuff
@@ -86,12 +99,12 @@ Config.init = function() {
 		var $this = $(this), tmp, worker, val, handled = false;
 		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			if ($this.attr('type') === 'checkbox') {
-				val = $this.attr('checked');
+				val = $this.prop('checked');
 			} else if ($this.attr('multiple')) {
 				multi_change_fn($this[0]);
 				handled = true;
 			} else {
-				val = $this.attr('value') || $this.val() || null;
+				val = $this.prop('value') || $this.val() || null;
 				if (val && val.search(/^[-+]?\d*\.?\d+$/) >= 0) {
 					val = parseFloat(val);
 				}
@@ -126,6 +139,9 @@ Config.init = function() {
 
 Config.update = function(event, events) {
 	if (events.getEvent(this, 'show') || events.getEvent(this, 'init')) {
+		if (this.option.display) {
+			$('#golem_config').show();
+		}
 		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
 	}
 	if (event.type === 'watch') {
@@ -246,11 +262,14 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 		'<h3 class="ui-widget-header">' +
 			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
 		'</h3>' +
-		'<div class="ui-widget-content" style="margin-top:-1px;">' +
-			'<div id="golem_buttons">' +
+		'<div class="ui-widget-content" style="margin-top:-1px;padding:0 4px 4px 4px;">' +
+			'<div id="golem_info" style="display:none;padding-top:4px;">' +
+				// Extra info goes in here
+			'</div>' +
+			'<div id="golem_buttons" style="padding-top:4px;">' +
 				// All buttons go in here
 			'</div>' +
-			'<div id="golem_config" style="display:'+this.option.display+';">' +
+			'<div id="golem_config" style="display:none;padding-top:4px;">' +
 				// All config panels go in here
 			'</div>' +
 		'</div>' +
@@ -258,12 +277,13 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	this.addButton({
 		id:'golem_options',
 		image:'options',
-		active:this.option.display==='block',
 		title:'Show Options',
+		active:this.option.display,
+		className:this.option.display ? 'green' : '',
 		click:function(){
-			$(this).toggleClass('golem-button golem-button-active');
-			Config.set(['option','display'], Config.get(['option','display'], false) === 'block' ? 'none' : 'block');
-			$('#golem_config').parent().toggle('blind'); //Config.option.fixed?null:
+			$(this).toggleClass('golem-button golem-button-active green');
+			Config.toggle(['option','display'], true);
+			$('#golem_config').toggle('blind'); //Config.option.fixed?null:
 		}
 	});
 	for (i in Workers) { // Propagate all before and after settings

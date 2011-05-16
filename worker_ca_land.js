@@ -82,17 +82,20 @@ Land.display = [
 */
 ];
 
-Land.setup = function() {
-	Resources.use('Gold');
-
-	// one time pre-r959 fix for bad land name "name"
-	if ((this.runtime.revision || 0) < 959) {
+Land.setup = function(old_revision) {
+	// BEGIN one time pre-r959 fix for bad land name "name"
+	if (old_revision < 959) {
 		if (this.data && this.data.name) {
 			delete this.data.name;
 		}
 	}
-
-	this.runtime.revision = revision; // started r959 for historic reference
+	// END
+	// BEGIN Remove old internal revision storage
+	if (old_revision <= 1110) {
+		this.set(['runtime','revision']);
+	}
+	// END
+	Resources.use('Gold');
 };
 
 Land.init = function() {

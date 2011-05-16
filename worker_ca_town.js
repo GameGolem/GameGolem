@@ -868,11 +868,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		};
 
 	if (name) {
-		output.push('<div class="golem-panel">');
-		output.push('<h3 class="golem-panel-header" style="width:auto;">');
-		output.push(name);
-		output.push('</h3>');
-		output.push('<div class="golem-panel-content">');
+		output.push('<div><h3><a>' + name + '</a></h3><div>');
 	}
 
 	for (i in list) {
@@ -917,88 +913,95 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var lset = [], rset = [], generals = Generals.get(), best, tmp;
+	var lset = [], rset = [], generals = Generals.get(), best, tmp,
+		fn_own = function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		},
+		fn_page_soldiers = function(list, i, units) {
+			if (units[i].page === 'soldiers') {
+				list.push(i);
+			}
+		},
+		fn_page_blacksmith = function(list, i, units) {
+			if (units[i].page === 'blacksmith') {
+				list.push(i);
+			}
+		},
+		fn_page_magic = function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		},
+		fn_type_weapon = function(list, i, units) {
+			if (units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		},
+		fn_type_not_weapon = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
+				list.push(i);
+			}
+		},
+		fn_type_shield = function(list, i, units) {
+			if (units[i].type === 'Shield') {
+				list.push(i);
+			}
+		},
+		fn_type_armor = function(list, i, units) {
+			if (units[i].type === 'Armor') {
+				list.push(i);
+			}
+		},
+		fn_type_helmet = function(list, i, units) {
+			if (units[i].type === 'Helmet') {
+				list.push(i);
+			}
+		},
+		fn_type_amulet = function(list, i, units) {
+			if (units[i].type === 'Amulet') {
+				list.push(i);
+			}
+		},
+		fn_type_gloves = function(list, i, units) {
+			if (units[i].type === 'Gloves') {
+				list.push(i);
+			}
+		};
 
 	// invade
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.invade_att) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.invade_att) {
+			tmp[i] = this.data[i];
+		}
 	}
 
-	lset.push('<div class="golem-panel">');
-	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	lset.push('Invade - Attack');
-	lset.push('</h3>');
-	lset.push('<div class="golem-panel-content" style="padding:8px;">');
-	lset.push(makeTownDash(generals, function(list, i, units) {
-			if (units[i].own) {
-				list.push(i);
-			}
-		}, 'att', 'invade', 'Heroes'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'soldiers') {
-				list.push(i);
-			}
-		}, 'att', 'invade', 'Soldiers'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Weapon') {
-				list.push(i);
-			}
-		}, 'att', 'invade', 'Weapons'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
-				list.push(i);
-			}
-		}, 'att', 'invade', 'Equipment'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'att', 'invade', 'Magic'));
+	lset.push('<div><h3><a>Invade - Attack</a></h3><div>');
+	lset.push(makeTownDash(generals, fn_own, 'att', 'invade', 'Heroes'));
+	lset.push(makeTownDash(tmp, fn_page_soldiers, 'att', 'invade', 'Soldiers'));
+	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'invade', 'Weapons'));
+	lset.push(makeTownDash(tmp, fn_type_not_weapon, 'att', 'invade', 'Equipment'));
+	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'invade', 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.invade_def) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.invade_def) {
+			tmp[i] = this.data[i];
+		}
 	}
 
-	rset.push('<div class="golem-panel">');
-	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	rset.push('Invade - Defend');
-	rset.push('</h3>');
-	rset.push('<div class="golem-panel-content" style="padding:8px;">');
-	rset.push(makeTownDash(generals, function(list, i, units) {
-			if (units[i].own) {
-				list.push(i);
-			}
-		}, 'def', 'invade', 'Heroes'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'soldiers') {
-				list.push(i);
-			}
-		}, 'def', 'invade', 'Soldiers'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Weapon') {
-				list.push(i);
-			}
-		}, 'def', 'invade', 'Weapons'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
-				list.push(i);
-			}
-		}, 'def', 'invade', 'Equipment'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'def', 'invade', 'Magic'));
+	rset.push('<div><h3><a>Invade - Defend</a></h3><div>');
+	rset.push(makeTownDash(generals, fn_own, 'def', 'invade', 'Heroes'));
+	rset.push(makeTownDash(tmp, fn_page_soldiers, 'def', 'invade', 'Soldiers'));
+	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'invade', 'Weapons'));
+	rset.push(makeTownDash(tmp, fn_type_not_weapon, 'def', 'invade', 'Equipment'));
+	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'invade', 'Magic'));
 	rset.push('</div></div>');
 	
 	// duel
@@ -1006,16 +1009,12 @@ Town.dashboard = function() {
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.duel_att) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.duel_att) {
+			tmp[i] = this.data[i];
+		}
 	}
 
-	lset.push('<div class="golem-panel">');
-	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	lset.push('Duel - Attack');
-	lset.push('</h3>');
-	lset.push('<div class="golem-panel-content" style="padding:8px;">');
+	lset.push('<div><h3><a>Duel - Attack</a></h3><div>');
 	if ((best = Generals.best('duel')) !== 'any') {
 		lset.push('<div style="height:25px;margin:1px;">');
 		lset.push('<img src="' + imagepath + generals[best].img + '"');
@@ -1023,31 +1022,19 @@ Town.dashboard = function() {
 		lset.push(format_unit_str(best));
 		lset.push('</div>');
 	}
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'blacksmith') {
-				list.push(i);
-			}
-		}, 'att', 'duel'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'att', 'duel'));
+	lset.push(makeTownDash(tmp, fn_page_blacksmith, 'att', 'duel'));
+	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'duel'));
 	lset.push('</div></div>');
 	
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.duel_def) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.duel_def) {
+			tmp[i] = this.data[i];
+		}
 	}
 
-	rset.push('<div class="golem-panel">');
-	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	rset.push('Duel - Defend');
-	rset.push('</h3>');
-	rset.push('<div class="golem-panel-content" style="padding:8px;">');
+	rset.push('<div><h3><a>Duel - Defend</a></h3><div>');
 	if ((best = Generals.best('defend')) !== 'any') {
 		rset.push('<div style="height:25px;margin:1px;">');
 		rset.push('<img src="' + imagepath + generals[best].img + '"');
@@ -1055,16 +1042,8 @@ Town.dashboard = function() {
 		rset.push(format_unit_str(best));
 		rset.push('</div>');
 	}
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'blacksmith') {
-				list.push(i);
-			}
-		}, 'def', 'duel'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'def', 'duel'));
+	rset.push(makeTownDash(tmp, fn_page_blacksmith, 'def', 'duel'));
+	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'duel'));
 	rset.push('</div></div>');
 
 	// war
@@ -1072,111 +1051,39 @@ Town.dashboard = function() {
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.war_att) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.war_att) {
+			tmp[i] = this.data[i];
+			}
 	}
 
-	lset.push('<div class="golem-panel">');
-	lset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	lset.push('War - Attack');
-	lset.push('</h3>');
-	lset.push('<div class="golem-panel-content" style="padding:8px;">');
-	lset.push(makeTownDash(generals, function(list, i, units) {
-			if (units[i].own) {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Heroes', 6));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Weapon') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Weapons'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Shield') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Shield'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Armor') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Armor'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Helmet') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Helmet'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Amulet') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Amulet'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Gloves') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Gloves'));
-	lset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'att', 'war', 'Magic'));
+	lset.push('<div><h3><a>War - Attack</a></h3><div>');
+	lset.push(makeTownDash(generals, fn_own, 'att', 'war', 'Heroes', 6));
+	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'war', 'Weapons'));
+	lset.push(makeTownDash(tmp, fn_type_shield, 'att', 'war', 'Shield'));
+	lset.push(makeTownDash(tmp, fn_type_armor, 'att', 'war', 'Armor'));
+	lset.push(makeTownDash(tmp, fn_type_helmet, 'att', 'war', 'Helmet'));
+	lset.push(makeTownDash(tmp, fn_type_amulet, 'att', 'war', 'Amulet'));
+	lset.push(makeTownDash(tmp, fn_type_gloves, 'att', 'war', 'Gloves'));
+	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'war', 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-	    if (this.data[i].use && this.data[i].use.war_def) {
-		tmp[i] = this.data[i];
-	    }
+		if (this.data[i].use && this.data[i].use.war_def) {
+			tmp[i] = this.data[i];
+		}
 	}
 
-	rset.push('<div class="golem-panel">');
-	rset.push('<h3 class="golem-panel-header" style="width:auto;">');
-	rset.push('War - Defend');
-	rset.push('</h3>');
-	rset.push('<div class="golem-panel-content" style="padding:8px;">');
-	rset.push(makeTownDash(generals, function(list, i, units) {
-			if (units[i].own) {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Heroes', 6));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Weapon') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Weapons'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Shield') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Shield'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Armor') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Armor'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Helmet') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Helmet'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Amulet') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Amulet'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].type === 'Gloves') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Gloves'));
-	rset.push(makeTownDash(tmp, function(list, i, units) {
-			if (units[i].page === 'magic') {
-				list.push(i);
-			}
-		}, 'def', 'war', 'Magic'));
+	rset.push('<div><h3><a>War - Defend</a></h3><div>');
+	rset.push(makeTownDash(generals, fn_own, 'def', 'war', 'Heroes', 6));
+	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'war', 'Weapons'));
+	rset.push(makeTownDash(tmp, fn_type_shield, 'def', 'war', 'Shield'));
+	rset.push(makeTownDash(tmp, fn_type_armor, 'def', 'war', 'Armor'));
+	rset.push(makeTownDash(tmp, fn_type_helmet, 'def', 'war', 'Helmet'));
+	rset.push(makeTownDash(tmp, fn_type_amulet, 'def', 'war', 'Amulet'));
+	rset.push(makeTownDash(tmp, fn_type_gloves, 'def', 'war', 'Gloves'));
+	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'war', 'Magic'));
 	rset.push('</div></div>');
 	
 	// div wrappers
@@ -1184,10 +1091,19 @@ Town.dashboard = function() {
 	lset.unshift('<div style="float:left;width:50%;">');
 	lset.push('</div>');
 
-	rset.unshift('<div style="float:left;width:50%;">');
+	rset.unshift('<div style="float:right;width:50%;">');
 	rset.push('</div>');
 
 	$('#golem-dashboard-Town').html(lset.join('') + rset.join(''));
+	$('#golem-dashboard-Town h3').parent().accordion({
+		collapsible: true,
+		autoHeight: false,
+		active: false,
+		clearStyle: true,
+		animated: 'blind',
+		header: '> h3'
+	});
+
 };
 
 Town.qualify = function(name, icon) {

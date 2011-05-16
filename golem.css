@@ -110,6 +110,10 @@
  * Normal CSS
  */
 
+#golem.golem-startup > div {
+	display: none !important;
+}
+
 #golem .golem-shadow {
 	box-shadow: 2px 2px 4px black;
 	-webkit-box-shadow: 2px 2px 4px black;
@@ -153,11 +157,11 @@
 	background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x;
 	font-weight: bold;
 }
-
+/*
 #golem #golem_config_frame > .ui-widget-content > div {
 	margin: 4px;
 }
-
+*/
 #golem #golem-dashboard {
 	position: absolute;
 	width: 600px;
@@ -194,7 +198,7 @@
 	text-align: left;
 	font-weight: normal;
 }
-
+/*
 #golem #golem-dashboard > div {
 	position: absolute;
 	top: 21px;
@@ -208,7 +212,7 @@
 #golem #golem-dashboard > div > div {
 	padding: 2px;
 }
-
+*/
 #golem #golem-dashboard .golem-status {
 	width: 100%;
 }
@@ -472,13 +476,10 @@
 ----------------------------------*/
 #golem .ui-helper-hidden { display: none; }
 #golem .ui-helper-fixed { position: fixed !important; }
+#golem .ui-helper-relative { position: relative !important; }
 #golem .ui-helper-hidden-accessible { position: absolute !important; clip: rect(1px 1px 1px 1px); clip: rect(1px,1px,1px,1px); }
 #golem .ui-helper-reset { margin: 0; padding: 0; border: 0; outline: 0; line-height: 1.3; text-decoration: none; font-size: 11px; list-style: none; }
 #golem .ui-helper-clearfix:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
-/*
-#golem .ui-helper-clearfix { display: inline-block; }
-#golem div.ui-helper-clearfix { display: block; }
-*/
 #golem .ui-helper-zfix { width: 100%; height: 100%; top: 0; left: 0; position: absolute; opacity: 0; filter: Alpha(Opacity=0); }
 
 
@@ -516,9 +517,9 @@
 
 /* Component containers
 ----------------------------------*/
-#golem.golem-theme .ui-widget { font-family: Verdana,Arial,sans-serif; font-size: 1.1em; }
-#golem.golem-theme .ui-widget .ui-widget { font-size: 1em; }
-#golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: Verdana,Arial,sans-serif; font-size: 1em; }
+#golem.golem-theme .ui-widget { font-family: Verdana,Arial,sans-serif; font-size: 11px; }
+#golem.golem-theme .ui-widget .ui-widget { font-size: 11px; }
+#golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: Verdana,Arial,sans-serif; font-size: 11px; }
 #golem.golem-theme .ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
 #golem.golem-theme .ui-widget-content a { color: #222222; }
 #golem.golem-theme .ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }
@@ -828,7 +829,7 @@
  *
  * http://docs.jquery.com/UI/Autocomplete#theming
  */
-.ui-autocomplete { position: absolute; cursor: default; }
+#golem.golem-theme .ui-autocomplete { position: absolute; cursor: default; }
 
 /* workarounds */
 * html .ui-autocomplete { width: 1px; } /* without this, the menu expands to 100% in IE6 */
@@ -968,15 +969,15 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
  *
  * http://docs.jquery.com/UI/Tabs#theming
  */
-.ui-tabs { position: relative; padding: .2em; zoom: 1; } /* position: relative prevents IE scroll bug (element with position: relative inside container with overflow: auto appear as "fixed") */
-.ui-tabs .ui-tabs-nav { margin: 0; padding: .2em .2em 0; }
-.ui-tabs .ui-tabs-nav li { list-style: none; float: left; position: relative; top: 1px; margin: 0 .2em 1px 0; border-bottom: 0 !important; padding: 0; white-space: nowrap; }
-.ui-tabs .ui-tabs-nav li a { float: left; padding: .5em 1em; text-decoration: none; }
-.ui-tabs .ui-tabs-nav li.ui-tabs-selected { margin-bottom: 0; padding-bottom: 1px; }
-.ui-tabs .ui-tabs-nav li.ui-tabs-selected a, .ui-tabs .ui-tabs-nav li.ui-state-disabled a, .ui-tabs .ui-tabs-nav li.ui-state-processing a { cursor: text; }
-.ui-tabs .ui-tabs-nav li a, .ui-tabs.ui-tabs-collapsible .ui-tabs-nav li.ui-tabs-selected a { cursor: pointer; } /* first selector in group seems obsolete, but required to overcome bug in Opera applying cursor: text overall if defined elsewhere... */
-.ui-tabs .ui-tabs-panel { display: block; border-width: 0; padding: 1em 1.4em; background: none; }
-.ui-tabs .ui-tabs-hide { display: none !important; }
+#golem.golem-theme .ui-tabs { position: relative; padding: 0; zoom: 1; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav { margin: 0; padding: 0 2px; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li { list-style: none; float: left; position: relative; top: 1px; margin: 0 1px 1px 0; border-bottom: 0 !important; padding: 0; white-space: nowrap; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li a { float: left; padding: 2px; text-decoration: none; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li.ui-tabs-selected { margin-bottom: 0; padding-bottom: 1px; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li.ui-tabs-selected a, .ui-tabs .ui-tabs-nav li.ui-state-disabled a, .ui-tabs .ui-tabs-nav li.ui-state-processing a { cursor: text; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li a, .ui-tabs.ui-tabs-collapsible .ui-tabs-nav li.ui-tabs-selected a { cursor: pointer; } /* first selector in group seems obsolete, but required to overcome bug in Opera applying cursor: text overall if defined elsewhere... */
+#golem.golem-theme .ui-tabs .ui-tabs-panel { position: absolute; top: 2em; bottom: 0; left: 0; right: 0; display: block; border: 0; padding: 2px; background: none; overflow-y: scroll; }
+#golem.golem-theme .ui-tabs .ui-tabs-hide { display: none !important; }
 
 /*
  * jQuery UI Datepicker 1.8.12

@@ -64,8 +64,14 @@ Theme.setup = function() {
 
 Theme.update = function(event, events) {
 	if (events.getEvent(null,'option') || events.getEvent(null,'init')) {
+		var i, list = [];
+		for (i in this.option.themes) {
+			if (i !== this.option.theme) {
+				list.push(i);
+			}
+		}
 		this._replace('data', this.option.themes[this.option.theme]);
-		$('#golem').attr('class', 'golem-theme golem-theme-' + this.option.theme);
+		$('#golem').removeClass(list.join(' ')).addClass('golem-theme golem-theme-' + this.option.theme);
 		Config.makePanel(this);
 	}
 };

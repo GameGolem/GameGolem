@@ -59,7 +59,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem"></div>'); // Set the theme from Theme.update('init')
+		$('#rightCol').prepend('<div id="golem" class="golem-startup"></div>'); // Set the theme from Theme.update('init')
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -67,11 +67,12 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			Workers[i]._init(old_revision);
 		}
 		for (i in Workers) {
-			Workers[i]._update({type:'init', self:true}, 'run');
+			Workers[i]._update('init', 'run');
 		}
 		if (old_revision !== revision) {
 			setItem('revision', revision);
 		}
+		$('#golem').removeClass('golem-startup');
 	}
 	if (events.getEvent(null,'startup')) {
 		// Let's get jQuery running
@@ -81,8 +82,8 @@ Main.update = function(event, events) { // Using events with multiple returns be
 				a = document.createElement('script');
 				b = document.createElement('script');
 				a.type = b.type = 'text/javascript';
-				a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js';		// 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js';
-				b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js';	// 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js';
+				a.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js';
+				b.src = 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js';
 				head.appendChild(a);
 				head.appendChild(b);
 				log(LOG_INFO, 'GameGolem: Loading jQuery & jQueryUI');
@@ -177,7 +178,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 					while (p && !p.scrollTop) {p = p.parentNode;}
 					if (p) {s = p.scrollTop;}
 					e.style.height = '0px';
-					e.style.height = e.scrollHeight + 'px';
+					e.style.height = Math.max(e.scrollHeight, 13) + 'px';
 					if (p) {p.scrollTop = s;}
 					e.oldValueLength = e.value.length;
 				}

@@ -30,8 +30,20 @@ Debug.option = {
 	worker:'All',
 	trace:false,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
-	loglevel:LOG_INFO, // Level to show - can turn off individual levels in Debug config
-	log:{0:'info', 1:'log', 2:'warn', 3:'error', 4:'debug'}
+	logexception:LOG_ERROR, // Default when it's an exception
+	loglevel:LOG_INFO, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
+	logs:{
+		0:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:false,	stack:false	},
+		1:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false	},
+		2:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false	},
+		3:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true	},
+		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:true,	worker:true,	stack:true	},
+		5:{ /* LOG_USER1 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
+		6:{ /* LOG_USER2 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
+		7:{ /* LOG_USER3 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
+		8:{ /* LOG_USER4 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
+		9:{ /* LOG_USER5 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	}
+	}
 };
 
 Debug.runtime = {
@@ -42,35 +54,6 @@ Debug.runtime = {
 
 Debug.display = [
 	{
-		title:'Logging',
-		group:[
-			{
-				id:'logdef',
-				label:'Default log level',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG'}
-			},{
-				id:'log.0',
-				label:'0: Info',
-				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
-			},{
-				id:'log.1',
-				label:'1: Log',
-				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
-			},{
-				id:'log.2',
-				label:'2: Warn',
-				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
-			},{
-				id:'log.3',
-				label:'3: Error',
-				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
-			},{
-				id:'log.4',
-				label:'4: Debug',
-				select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
-			}
-		]
-	},{
 		title:'Function Profiling',
 		group:[
 			{
@@ -112,15 +95,69 @@ Debug.display = [
 				checkbox:true
 			}
 		]
+	},{
+		title:'Logging',
+		group:[
+			{
+				id:'logdef',
+				label:'Default log',
+				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				help:'This is for log() lines that do not have an exception or LOG_* as the first argument'
+			},{
+				id:'logexception',
+				label:'Default exception',
+				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				help:'This is for log() lines that have an exception as the first argument'
+			},{
+				group:function() {
+					var i, options = [], levels = ['Info', 'Log', 'Warn', 'Error', 'Debug', 'User1', 'User2', 'User3', 'User4', 'User5'];
+					for (i=0; i<levels.length; i++) {
+						options.push({
+							title:i + ': ' + levels[i],
+							group:[
+								{
+									id:'logs.'+i+'.display',
+									label:'Display',
+									select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
+								},{
+									id:'logs.'+i+'.date',
+									label:'Date',
+									checkbox:true
+								},{
+									id:'logs.'+i+'.revision',
+									label:'Revision',
+									checkbox:true
+								},{
+									id:'logs.'+i+'.worker',
+									label:'Worker',
+									checkbox:true
+								},{
+									id:'log.'+i+'.stack',
+									label:'Stack',
+									checkbox:true
+								}
+							]
+						});
+					}
+					return options;
+				}
+			}
+		]
 	}
 ];
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
-Debug.setup = function() {
-	if (this.option._disabled) {// Need to remove our dashboard when disabled
-		delete this.dashboard;
-		return;
+Debug.setup = function(old_revision) {
+	// BEGIN Change of log options
+	if (old_revision <= 1111 && this.option.log) {
+		this.set(['option','logs','0','display'], this.get(['option','log','0'], 'info'));
+		this.set(['option','logs','1','display'], this.get(['option','log','1'], 'log'));
+		this.set(['option','logs','2','display'], this.get(['option','log','2'], 'warn'));
+		this.set(['option','logs','3','display'], this.get(['option','log','3'], 'error'));
+		this.set(['option','logs','4','display'], this.get(['option','log','4'], 'debug'));
+		this.set(['option','log']);
 	}
+	// END
 	// Go through every worker and replace their functions with a stub function
 	var i, j, p, wkr, fn;
 	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
@@ -165,7 +202,7 @@ Debug.setup = function() {
 								}
 							}
 						} catch(e) {
-							log(LOG_ERROR, isString(e) ? e : e.name + ': ' + e.message);
+							log(e, isString(e) ? e : e.name + ': ' + e.message);
 						}
 						Debug.stack.shift();
 						return r;
@@ -182,55 +219,88 @@ Debug.setup = function() {
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global logging function for better log reporting
 	log = function(level, txt /*, obj, array etc*/){
-		var i, j, level, tmp, args = Array.prototype.slice.call(arguments), prefix = [], suffix = [],
-			date = [true, true, true, true, true],
-			rev = [false, false, true, true, true],
-			worker = [false, true, true, true, true],
-			stack = [false, false, false, true, true];
+		var i, j, worker, name, line = '', level, tmp, stack, args = Array.prototype.slice.call(arguments), prefix = [], suffix = [], display = '-';
 		if (isNumber(args[0])) {
-			level = Math.range(0, args.shift(), 4);
+			level = Math.range(0, args.shift(), 9);
+		} else if (isError(args[0])) {
+			tmp = args.shift();
+			if (browser === 'chrome' && isString(tmp.stack)) {
+				stack = tmp.stack.split("\n");
+			}
+			level = Debug.get(['option','logexception'], LOG_ERROR);
 		} else {
 			level = Debug.get(['option','logdef'], LOG_LOG);
 		}
-		if (level > Debug.get(['option','loglevel', LOG_LOG]) || Debug.get(['option','log',level], '-') === '-') {
-			return;
-		}
-		if (rev[level]) {
-			prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
-		}
-		if (date[level]) {
-			prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
-		}
-		if (worker[level]) {
-			tmp = [];
-			for (i=0; i<Debug.stack.length; i++) {
-				if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
-					tmp.unshift(Debug.stack[i][1]);
+		if (isNumber(level)
+		 && level <= Debug.get(['option','loglevel'], LOG_LOG)
+		 && (display = Debug.get(['option','logs',level,'display'], '-')) !== '-') {
+			if (Debug.get(['option','logs',level,'revision'], false)) {
+				prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
+			}
+			if (Debug.get(['option','logs',level,'date'], true)) {
+				prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+			}
+			if (Debug.get(['option','logs',level,'worker'], false)) {
+				tmp = [];
+				for (i=0; i<Debug.stack.length; i++) {
+					if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
+						tmp.unshift(Debug.stack[i][1]);
+					}
+				}
+				prefix.push(tmp.join('->'));
+			}
+			if (Debug.get(['option','logs',level,'stack'], false)) {
+/*
+e.stack contents by browser:
+CHROME:
+ReferenceError: abc is not defined
+    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:251:6)
+    at Worker.init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)
+    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:345:9)
+    at Worker._init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)
+    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+main.js:58:15)
+    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:931:19)
+    at chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:559:33
+
+GREASEMONKEY:
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:4452,(1111)
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:4330,(1111)
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:2185,(1111)
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:4330,([object Object],[object Array])
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:4975,([object Object],"run")
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:2814,(215)
+@jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:2401,@:0,
+*/
+				for (i=0; i<Debug.stack.length; i++) {
+					worker = Debug.stack[i][1];
+					name = Debug.stack[i][2].callee._name;
+					if (stack) {
+						while (tmp = stack.shift()) {
+							if (tmp.indexOf('Worker.'+name+' ') >= 0 && tmp.indexOf(worker.toLowerCase()) >= 0) {
+								break;
+							}
+							line = ' <' + tmp.regex(/\/([^\/]+:\d+:\d+)\)$/i) + '>'; // We're the anonymous function before the real call
+						}
+					}
+					suffix.unshift('->' + worker + '.' + name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')' + line);
+					for (j=1; j<suffix.length; j++) {
+						suffix[j] = '  ' + suffix[j];
+					}
 				}
 			}
-			prefix.push(tmp.join('->'));
-		}
-		if (stack[level]) {
-			for (i=0; i<Debug.stack.length; i++) {
-				suffix.unshift('->' + Debug.stack[i][1] + '.' + Debug.stack[i][2].callee._name + '(' + JSON.shallow(Debug.stack[i][2],2).replace(/^\[|\]$/g,'') + ')');
-				for (j=1; j<suffix.length; j++) {
-					suffix[j] = '  ' + suffix[j];
-				}
+			suffix.unshift(''); // Force an initial \n before the stack trace
+			if (args.length > 1) {
+				suffix.push(''); // Force an extra \n after the stack trace if there's more args
 			}
-		}
-		suffix.unshift(''); // Force an initial \n before the stack trace
-		if (args.length > 1) {
-			suffix.push(''); // Force an extra \n after the stack trace if there's more args
-		}
-		if (!isString(args[0]) && !isNumber(args[0])) { // If we want to pass a single object for inspection
-			args.unshift('');
-		}
-		args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
-		level = Debug.get(['option','log',level], 'log');
-		try {
-			console[level] ? console[level].apply(console.firebug ? window : console, args) : console.log.apply(console.firebug ? window : console, args);
-		} catch(e) { // FF4 fix - doesn't like .apply
-			console[level] ? console[level](args) : console.log(args);
+			if (!isString(args[0]) && !isNumber(args[0])) { // If we want to pass a single object for inspection
+				args.unshift('');
+			}
+			args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
+			try {
+				console[display] ? console[display].apply(console.firebug ? window : console, args) : console.log.apply(console.firebug ? window : console, args);
+			} catch(e) { // FF4 fix - doesn't like .apply
+				console[display] ? console[display](args) : console.log(args);
+			}
 		}
 	};
 };
@@ -263,14 +333,6 @@ Debug.init = function(old_revision) {
 			window.open('http://code.google.com/p/game-golem/wiki/BugReporting', '_blank'); 
 		}
 	});
-//	try{abc.def.ghi = 123;}catch(e){console.log(JSON.stringify(e));}
-/*
-{
-	"arguments":["abc"],
-	"type":"not_defined",
-	"message":"abc is not defined",
-	"stack":"ReferenceError: abc is not defined\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:251:6)\n    at Worker.init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:345:9)\n    at Worker._init (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+debug.js:152:22)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker_+main.js:58:15)\n    at Worker.<anonymous> (chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:931:19)\n    at chrome-extension://pjopfpjfmcdkjjokkbijcehcjhmijhbm/worker.js:559:33"}
-*/
 };
 
 Debug.update = function(event) {
@@ -291,14 +353,24 @@ Debug.menu = function(worker, key) {
 		if (!isUndefined(key)) {
 			this.set(['option','loglevel'], parseInt(key, 10));
 		} else if (Config.option.advanced || Config.option.debug) {
-			return [
+			var levels = [
 				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
 				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Info',
 				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Log',
 				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Warn',
 				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Error',
 				'4:' + (this.option.loglevel === 4 ? '=' : '') + 'Debug'
-			]
+			];
+			if (Config.option.debug) {
+				levels = levels.concat(
+					'5:' + (this.option.loglevel === 5 ? '=' : '') + 'User1',
+					'6:' + (this.option.loglevel === 6 ? '=' : '') + 'User2',
+					'7:' + (this.option.loglevel === 7 ? '=' : '') + 'User3',
+					'8:' + (this.option.loglevel === 8 ? '=' : '') + 'User4',
+					'9:' + (this.option.loglevel === 9 ? '=' : '') + 'User5'
+				);
+			}
+			return levels;
 		}
 	}
 };

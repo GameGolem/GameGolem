@@ -37,7 +37,7 @@ var isObject = function(obj) {
  * @return {boolean} If it is or not
  */
 var isBoolean = function(obj) {
-	return obj && obj.constructor === Boolean;
+	return obj === true || obj === false;
 };
 
 /**
@@ -65,6 +65,15 @@ var isRegExp = function(obj) {
  */
 var isWorker = function(obj) {
 	return obj && obj.constructor === Worker;
+};
+
+/**
+ * Check if a passed object is an Error
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isError = function(obj) {
+	return !!(typeof obj === 'object' && obj.name && obj.message);
 };
 
 /**
@@ -114,13 +123,21 @@ var LOG_LOG = 1
 var LOG_WARN = 2;
 var LOG_ERROR = 3;
 var LOG_DEBUG = 4;
+var LOG_USER1 = 5;
+var LOG_USER2 = 6;
+var LOG_USER3 = 7;
+var LOG_USER4 = 8;
+var LOG_USER5 = 9;
 var log = function(level, txt /*, obj, array etc*/){
 	var level, args = Array.prototype.slice.call(arguments), prefix = [],
-		date = [true, true, true, true, true],
-		rev = [false, false, true, true, true],
-		worker = [false, true, true, true, true];
+		date = [true, true, true, true, true, true, true, true, true, true],
+		rev = [false, false, true, true, true, true, true, true, true, true],
+		worker = [false, true, true, true, true, true, true, true, true, true];
 	if (isNumber(args[0])) {
-		level = Math.range(0, args.shift(), 4);
+		level = Math.range(0, args.shift(), 9);
+	} else if (isError(args[0])) {
+		args.shift();
+		level = LOG_ERROR;
 	} else {
 		level = LOG_LOG;
 	}
