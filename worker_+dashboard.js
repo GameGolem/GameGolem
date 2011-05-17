@@ -61,15 +61,15 @@ Dashboard.init = function(old_revision) {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('#golem').append('<div id="golem-dashboard" style="position:absolute;display:none;"><ul>' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
+	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;display:none;"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
 	$('<span style="position:absolute;top:0;right:0;" class="ui-icon ui-icon-arrowthick-2-ne-sw"></span>').click(function(event){
 		Dashboard.toggle(['option','expand']);
 	}).appendTo('#golem-dashboard');
 	$('#golem-dashboard')
 		.tabs({
-			fx: {opacity:'toggle', duration:50},
+			fx: {opacity:'toggle', duration:100},
 			selected: selected,
-			select: function(event,ui) {
+			show: function(event,ui) {
 				Dashboard.set(['option','active'], Worker.find(ui.panel.id.slice('golem-dashboard-'.length)).name);
 				Dashboard._update(null, 'run');
 			}
@@ -127,10 +127,10 @@ Dashboard.update = function(event, events) {
 	if (events.findEvent(this, 'watch', 'option.active')) {
 		$('#golem-dashboard').tabs('option', 'selected', $('#golem-dashboard-'+this.option.active).index());
 	}
-	if ((event = events.findEvent(null, 'resize'))
-	 || (event = events.findEvent(null, 'trigger'))
+	if ((event = events.findEvent(this, 'resize'))
+	 || (event = events.findEvent(this, 'trigger'))
 	 || events.findEvent(this, 'watch', 'option.expand')
-	 || events.findEvent(null, 'init')) { // Make sure we're always in the right place
+	 || events.findEvent(this, 'init')) { // Make sure we're always in the right place
 		if (this.get(['option','expand'], false)) {
 			$el = $('#contentArea,#globalcss').eq(0);
 			width = $el.width();

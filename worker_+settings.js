@@ -128,7 +128,6 @@ Settings.dashboard = function() {
 		html += '<option value="' + this.temp.paths[i] + '"' + (this.temp.paths[i] === path ? ' selected' : '') + '>' + this.temp.paths[i] + '</option>';
 	}
 	html += '</select>';
-//	html += '<input type="text" value="'+this.temp.worker+'.'+this.temp.edit+'" disabled>';
 	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
 	if (this.temp.worker && this.temp.edit) {
 		if (this.temp.edit === 'data') {

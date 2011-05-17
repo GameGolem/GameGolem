@@ -31,16 +31,18 @@ Idle.option = {
 	keep:0,
 //	arena:0,
 	battle:900000,
+	guild:0,
+	festival:0,
 	monsters:3600000
 //	collect:0
 };
 
-//Idle.when = ['Never', 'Quarterly', 'Hourly', '2 Hours', '6 Hours', '12 Hours', 'Daily', 'Weekly'];
 Idle.when = {
 	0:			'Never',
-	60000:		'1 Minute',
-	900000:		'Quarterly',
-	3600000:	'Hourly',
+	60000:		'Every Minute',
+	900000:		'Quarter Hour',
+	1800000:	'Half Hour',
+	3600000:	'Every Hour',
 	7200000:	'2 Hours',
 	21600000:	'6 Hours',
 	43200000:	'12 Hours',
@@ -96,6 +98,14 @@ Idle.display = [
 				id:'monsters',
 				label:'Monsters',
 				select:Idle.when
+			},{
+				id:'guild',
+				label:'Guild',
+				select:Idle.when
+			},{
+				id:'festival',
+				label:'Festival',
+				select:Idle.when
 		//	},{
 		//		id:'collect',
 		//		label:'Apprentice Reward',
@@ -130,6 +140,8 @@ Idle.pages = {
 	keep:['keep_stats'],
 //	arena:['battle_arena'],
 	battle:['battle_battle'],
+	guild:['battle_guild'],
+	festival:['festival_guild'],
 	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list']
 //	collect:['apprentice_collect']
 };

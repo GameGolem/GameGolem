@@ -45,7 +45,7 @@ Main.parse = function() {
 
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 	var i, old_revision, head, a, b;
-	if (events.getEvent(null,null,'kickstart')) {
+	if (events.findEvent(null,null,'kickstart')) {
 		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
@@ -74,7 +74,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		}
 		$('#golem').removeClass('golem-startup');
 	}
-	if (events.getEvent(null,'startup')) {
+	if (events.findEvent(null,'startup')) {
 		// Let's get jQuery running
 		if (!$ || !$.support || !$.ui) {
 			if (!this._jQuery_) {
@@ -174,13 +174,17 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		$.fn.autoSize = function() {
 			function autoSize(e) {
 				var p = (e = e.target || e), s;
-				if (e.oldValueLength !== e.value.length) {
-					while (p && !p.scrollTop) {p = p.parentNode;}
-					if (p) {s = p.scrollTop;}
-					e.style.height = '0px';
-					e.style.height = Math.max(e.scrollHeight, 13) + 'px';
-					if (p) {p.scrollTop = s;}
-					e.oldValueLength = e.value.length;
+				if ($(e).is(':visible')) {
+					if (e.oldValueLength !== e.value.length) {
+						while (p && !p.scrollTop) {p = p.parentNode;}
+						if (p) {s = p.scrollTop;}
+						e.style.height = '0px';
+						e.style.height = Math.max(e.scrollHeight, 13) + 'px';
+						if (p) {p.scrollTop = s;}
+						e.oldValueLength = e.value.length;
+					}
+				} else {
+					window.setTimeout(function(){autoSize(e);}, 50);
 				}
 				return true;
 			}

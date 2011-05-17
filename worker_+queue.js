@@ -32,7 +32,7 @@ Queue.runtime = {
 };
 
 Queue.option = {
-	queue: ['Global', 'Debug', 'Resources', 'Generals', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Arena', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle'],//Must match worker names exactly - even by case
+	queue: ['Global', 'Debug', 'Resources', 'Generals', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Guild', 'Festival', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle', 'FP'], // Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	pause: false
@@ -120,15 +120,15 @@ Queue.init = function(old_revision) {
 		prepend:true,
 		title:'Pause',
 		click:function() {
-			var pause = Queue.set(['option','pause'], !Queue.option.pause);
-			log(LOG_INFO, 'State: ' + (pause ? "paused" : "running"));
+			var pause = Queue.toggle(['option','pause'], true);
+			log(LOG_INFO, 'State: ' + (pause ? 'paused' : 'running'));
 			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 			if (!pause) {
 				$('#golem_step').hide();
 			} else if (Config.get(['option','debug'], false)) {
 				$('#golem_step').show();
 			}
-			Queue.set(['runtime','current']);;
+			Queue.set(['runtime','current']);
 		}
 	});
 	Config.addButton({
@@ -155,14 +155,8 @@ Queue.init = function(old_revision) {
 };
 
 Queue.update = function(event, events) {
-	var i, $worker, worker, current, result, next = null, release = false, ensta = ['energy','stamina'];
-	if (events.getEvent(this, 'watch', 'runtime.current')) {
-		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		if (this.runtime.current) {
-			$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		}
-	}
-	for (event=events.getEvent(null, 'watch', 'option._disabled'); event; event=events.getEvent()) { // A worker getting disabled / enabled
+	var i, worker, result, next, release = false;
+	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
 		worker = event.worker;
 		i = worker.get(['option', '_disabled'], false);
 		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
@@ -170,11 +164,15 @@ Queue.update = function(event, events) {
 			this.set(['runtime','current'], null);
 		}
 	}
+	if (events.getEvent(this, 'watch', 'runtime.current')) {
+		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		if (this.runtime.current) {
+			$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		}
+	}
 	if (this.temp.sleep
-	 || events.getEvent(this, 'watch', 'temp.sleep')
-	 || events.getEvent('Page', 'watch', 'temp.loading')
-	 || events.getEvent('Session', 'watch', 'temp.active')
-	 || events.getEvent(this, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
+	 || events.findEvent(null, 'watch')
+	 || events.findEvent(this, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
 		if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active']) || this._timer('click')) {
 			this.temp.sleep = true;
 		} else {
@@ -182,14 +180,13 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-// Selective deleting caused race conditions on faster delay timers - need a better solution...
-//		if (events.getEvent(null,'reminder','run')) { // Only delete the run timer if it's been triggered when we're asleep
+		while (events.getEvent(this,'reminder')) { // Only delete the run timer if it's been triggered when we're "busy"
 			this._forget('run');
-//		}
+		}
 	} else if (!this._timer('run')) {
 		this._revive(this.option.delay, 'run');
 	}
-	if ((!this.temp.sleep && events.getEvent(null,'reminder')) || events.getEvent(null,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
+	if ((!this.temp.sleep && events.findEvent(this,'reminder')) || events.findEvent(this,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
 			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');
@@ -226,8 +223,8 @@ Queue.update = function(event, events) {
 				next = worker; // the worker who wants to take over
 			}
 		}
-		current = this.runtime.current ? Workers[this.runtime.current] : null;
-		if (next !== current && (!current || !current.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
+		worker = Worker.find(this.runtime.current);
+		if (next !== worker && (!worker || !worker.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['runtime','current'], next.name);
 		}

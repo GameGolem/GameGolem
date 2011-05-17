@@ -249,7 +249,7 @@ Generals.update = function(event, events) {
 		listpush = function(list,i){list.push(i);},
 		skillcombo, calcStats = false, all_stats, bests;
 
-	if (events.getEvent(this, 'init') || events.findEvent(this, 'data')) {
+	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
 		bests = true;
 
 		k = 0;
@@ -324,7 +324,7 @@ Generals.update = function(event, events) {
 		|| events.findEvent(null, 'data')
 		|| events.findEvent(Town)
 		|| events.findEvent(Player)))
-	|| events.getEvent(this, 'reminder', 'revision')) {
+	|| events.findEvent(this, 'reminder', 'revision')) {
 		bests = true;
 		this.set(['runtime','force'], false);
 

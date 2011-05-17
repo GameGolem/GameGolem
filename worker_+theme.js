@@ -63,7 +63,7 @@ Theme.setup = function() {
 };
 
 Theme.update = function(event, events) {
-	if (events.getEvent(null,'option') || events.getEvent(null,'init')) {
+	if (events.findEvent(null,'option') || events.findEvent(null,'init')) {
 		var i, list = [];
 		for (i in this.option.themes) {
 			if (i !== this.option.theme) {

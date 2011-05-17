@@ -186,7 +186,10 @@ if (browser === 'greasemonkey') {
 
 // Prototypes to ease functionality
 
-String.prototype.trim = function() {
+String.prototype.trim = function(inside) {
+	if (inside) {
+		this.replace(/^\s+$/gm, ' ')
+	}
 	return this.replace(/^\s+|\s+$/gm, '');
 };
 
@@ -755,6 +758,7 @@ Date.replaceChars = {
 	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
 	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
 	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
+	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
 	// Timezone
 	e: function() { return "Not Yet Supported"; },
 	I: function() { return "Not Supported"; },

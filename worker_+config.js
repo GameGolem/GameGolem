@@ -110,7 +110,7 @@ Config.init = function(old_revision) {
 				}
 			}
 			if (!handled) {
-				worker.set('option.'+tmp[1], val);
+				worker.set('option.'+tmp[1], val, null, true);
 				Worker.flush();
 			}
 		}
@@ -138,46 +138,45 @@ Config.init = function(old_revision) {
 };
 
 Config.update = function(event, events) {
-	if (events.getEvent(this, 'show') || events.getEvent(this, 'init')) {
+	var i, $el, $el2, worker, id, value, list, options = [];
+	if (events.findEvent(this, 'show') || events.findEvent(this, 'init')) {
 		if (this.option.display) {
 			$('#golem_config').show();
 		}
 		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
 	}
-	if (event.type === 'watch') {
-		var i, $el, $el2, worker = event.worker, id = event.id.slice('option.'.length), value, list, options = [];
-
-		if (events.getEvent(this, 'data')) { // Changing one of our dropdown lists
-			list = [];
-			value = this.get(event.path);
-			if (isArray(value)) {
-				for (i=0; i<value.length; i++) {
-					list.push('<option value="' + value[i] + '">' + value[i] + '</option>');
-				}
-			} else if (isObject(value)) {
-				for (i in value) {
-					list.push('<option value="' + i + '">' + value[i] + '</option>');
-				}
+	for (event=events.findEvent(null, 'data'); event; event=events.findEvent()) { // Changing one of our dropdown lists
+		list = [];
+		value = this.get(event.path);
+		if (isArray(value)) {
+			for (i=0; i<value.length; i++) {
+				list.push('<option value="' + value[i] + '">' + value[i] + '</option>');
 			}
-			list = list.join('');
-			$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
-				var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
-				$(el).html(list).val(val);
-			});
-		}
-		if (events.getEvent(this, 'watch', 'option.advanced')
-		 || events.getEvent(this, 'watch', 'option.debug')
-		 || events.getEvent(this, 'watch', 'option.exploit')) {
-			for (i in Workers) {
-				if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
-					$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
-				}
+		} else if (isObject(value)) {
+			for (i in value) {
+				list.push('<option value="' + i + '">' + value[i] + '</option>');
 			}
 		}
-		for (event=events.getEvent(this, 'watch', 'option._config'); event; event=events.getEvent()) {
-			worker = event.worker;
+		list = list.join('');
+		$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
+			var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
+			$(el).html(list).val(val);
+		});
+	}
+	if (events.getEvent(this, 'watch', 'option.advanced')
+	 || events.getEvent(this, 'watch', 'option.debug')
+	 || events.getEvent(this, 'watch', 'option.exploit')) {
+		for (i in Workers) {
+			if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
+				$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
+			}
+		}
+	}
+	for (event=events.findEvent(null, 'watch'); event; event=events.findEvent()) {
+		worker = event.worker;
+		if (event.id === 'option._config') {
 			if (event.path === 'option._config._show') { // Fold / unfold a config panel
-				i = worker.get(['option','_config','_show'], false) && 0;
+				i = worker.get(event.path, false) && 0;
 				id = worker.id;
 			} else { // Fold / unfold a group panel
 				i = worker.get(event.path, false) || 0;
@@ -186,31 +185,29 @@ Config.update = function(event, events) {
 			if (i !== $('#' + id).accordion('option','active')) {
 				$('#' + id).accordion('activate', i);
 			}
-		}
-		for (event=events.getEvent(this, 'watch', 'option._sleep'); event; event=events.getEvent()) { // Show the ZZZ icon
-			worker = event.worker;
-			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden', !worker.get(['option','_sleep'],false));
-		}
-		for (event=events.getEvent(null, 'watch'); event; event=events.getEvent()) {
-			worker = event.worker;
+		} else if (event.id === 'option._sleep') { // Show the ZZZ icon
+//			log(LOG_LOG, worker.name + ' going to sleep...');
+			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden', !worker.get(['option','_sleep'], false));
+		} else if (event.id) { // Some option changed, so make sure we show that
 			id = event.id.slice('option.'.length);
 			if (id && id.length && ($el = $('#'+this.makeID(worker, id))).length === 1) {
 				if ($el.attr('type') === 'checkbox') {
-					$el.attr('checked', worker.get('option.'+id, false));
+					$el.prop('checked', worker.get(event.id, false));
 				} else if ($el.attr('multiple')) {
 					$el.empty();
-					worker.get('option.'+id, [], isArray).forEach(function(val){
+					worker.get(event.id, [], isArray).forEach(function(val){
 						$el.append('<option>'+val+'</option>');
 					});
 				} else if ($el.attr('value')) {
-					$el.attr('value', worker.get('option.'+id));
+					$el.prop('value', worker.get(event.id));
 				} else {
-					$el.val(worker.get('option.'+id));
+					$el.val(worker.get(event.id));
 				}
 			}
 		}
-		this.checkRequire();
 	}
+	this.checkRequire();
+	return true;
 };
 
 Config.menu = function(worker, key) {
@@ -482,7 +479,7 @@ Config.makeOption = function(worker, args) {
 	}
 	if (o.group) {
 		if (o.title) {
-			tmp = o.title.toLowerCase().replace(/[^a-z]/g,'');
+			tmp = o.title.toLowerCase().replace(/[^a-z0-9]/g,'');
 			name = worker.name;
 			$option = $('<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" id="' + worker.id + '_' + tmp + '"><h3><a href="#">' + o.title + '</a></h3></div>').append(this.makeOptions(worker,o.group));
 			$option.accordion({

@@ -148,10 +148,10 @@ LevelUp.parse = function(change) {
 
 LevelUp.update = function(event, events) {
 	var i, energy = Player.get('energy',0), stamina = Player.get('stamina',0), exp = Player.get('exp',0);
-	if (events.getEvent(this, 'watch', 'runtime.force.energy') && this.get(['runtime','force','energy'])) {
+	if (events.findEvent(this, 'watch', 'runtime.force.energy') && this.get(['runtime','force','energy'])) {
 		log(LOG_INFO, 'At max energy, burning...');
 	}
-	if (events.getEvent(this, 'watch', 'runtime.force.stamina') && this.get(['runtime','force','stamina'])) {
+	if (events.findEvent(this, 'watch', 'runtime.force.stamina') && this.get(['runtime','force','stamina'])) {
 		log(LOG_INFO, 'At max stamina, burning...');
 	}
 	if (this.option._disabled) {

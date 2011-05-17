@@ -11,10 +11,9 @@
 * Profiling information
 */
 var Debug = new Worker('Debug');
-Debug.data = null;
 
 Debug.settings = {
-//	system:true,
+	system:true,
 	unsortable:true,
 	debug:true,
 	taint:true
@@ -28,21 +27,21 @@ Debug.option = {
 	total:false,
 	prototypes:true,
 	worker:'All',
-	trace:false,
+	trace:4,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
 	logexception:LOG_ERROR, // Default when it's an exception
 	loglevel:LOG_INFO, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
 	logs:{
-		0:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:false,	stack:false	},
-		1:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false	},
-		2:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false	},
-		3:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true	},
-		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:true,	worker:true,	stack:true	},
-		5:{ /* LOG_USER1 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
-		6:{ /* LOG_USER2 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
-		7:{ /* LOG_USER3 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
-		8:{ /* LOG_USER4 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	},
-		9:{ /* LOG_USER5 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false	}
+		0:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:false,	stack:false,	prefix:''	},
+		1:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		2:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false,	prefix:''	},
+		3:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
+		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
+		5:{ /* LOG_USER1 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		6:{ /* LOG_USER2 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		7:{ /* LOG_USER3 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		8:{ /* LOG_USER4 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		9:{ /* LOG_USER5 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	}
 	}
 };
 
@@ -70,7 +69,7 @@ Debug.display = [
 				select:{0:'All',10:10,20:20,30:30,40:40,50:50,60:60,70:70,80:80,90:90,100:100}
 			},{
 				id:'digits',
-				label:'Digits',
+				label:'Time Digits',
 				select:[1,2,3,4,5]
 			},{
 				id:'total',
@@ -84,15 +83,10 @@ Debug.display = [
 				id:'worker',
 				label:'Worker',
 				select:'worker_list'
-			}
-		]
-	},{
-		title:'Stack Trace',
-		group:[
-			{
+			},{
 				id:'trace',
-				label:'Full Stack Trace',
-				checkbox:true
+				label:'Tracing',
+				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'}
 			}
 		]
 	},{
@@ -121,8 +115,12 @@ Debug.display = [
 									select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
 								},{
 									id:'logs.'+i+'.date',
-									label:'Date',
-									checkbox:true
+									label:'Timestamp',
+									select:{'-':'None', 'G:i':'13:24', 'G:i:s':'13:24:56', 'G:i:s.u':'13:24:56.001', 'D G:i':'Mon 13:24', 'D G:i:s':'Mon 13:24:56', 'D G:i:s.u':'Mon 13:24:56.001'}
+								},{
+									id:'logs.'+i+'.prefix',
+									label:'Prefix',
+									text:true
 								},{
 									id:'logs.'+i+'.revision',
 									label:'Revision',
@@ -132,7 +130,7 @@ Debug.display = [
 									label:'Worker',
 									checkbox:true
 								},{
-									id:'log.'+i+'.stack',
+									id:'logs.'+i+'.stack',
 									label:'Stack',
 									checkbox:true
 								}
@@ -148,6 +146,7 @@ Debug.display = [
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 Debug.setup = function(old_revision) {
+	var i, j, p, wkr, fn;
 	// BEGIN Change of log options
 	if (old_revision <= 1111 && this.option.log) {
 		this.set(['option','logs','0','display'], this.get(['option','log','0'], 'info'));
@@ -157,9 +156,18 @@ Debug.setup = function(old_revision) {
 		this.set(['option','logs','4','display'], this.get(['option','log','4'], 'debug'));
 		this.set(['option','log']);
 	}
+	if (old_revision <= 1112 && this.option.logs) {
+		for (i in this.option.logs) {
+			if (isBoolean(this.option.logs[i].date)) {
+				this.set(['option','logs',i,'date'], this.option.logs[i].date ? 'G:i:s' : '-');
+			}
+		}
+	}
+	if (old_revision <= 1112 && isBoolean(this.option.trace)) {
+		this.set(['option','trace'], this.option.trace ? LOG_DEBUG : LOG_LOG);
+	}
 	// END
 	// Go through every worker and replace their functions with a stub function
-	var i, j, p, wkr, fn;
 	Workers['__fake__'] = null;// Add a fake worker for accessing Worker.prototype
 	for (i in Workers) {
 		for (p=0; p<=1; p++) {
@@ -168,7 +176,7 @@ Debug.setup = function(old_revision) {
 				if (isFunction(wkr[j]) && wkr.hasOwnProperty(j) && !/^_.*_$/.test(j)) {// Don't overload functions using _blah_ names - they're speed conscious
 					fn = wkr[j];
 					wkr[j] = function() {
-						var t, r, ac = arguments.callee, w = (ac._worker || (this ? this.name : null)), l = [], s;
+						var i, t, r, ac = arguments.callee, w = (ac._worker || (this ? this.name : null)), l = [], s;
 						Debug.stack.unshift([0, w || '', arguments]);
 						try {
 							if (Debug.option._disabled) {
@@ -192,12 +200,7 @@ Debug.setup = function(old_revision) {
 									w[1] += t - Debug.stack[0][0];
 									w[2] += t;
 									if (Debug.temp[i][3]) {
-										s = i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, '');
-										if (Debug.option.trace) {
-											log(LOG_DEBUG, '!!! ' + s);
-										} else {
-											log(LOG_INFO, '!!! ' + s);
-										}
+										log(Debug.option.trace, i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, ''));
 									}
 								}
 							}
@@ -234,11 +237,14 @@ Debug.setup = function(old_revision) {
 		if (isNumber(level)
 		 && level <= Debug.get(['option','loglevel'], LOG_LOG)
 		 && (display = Debug.get(['option','logs',level,'display'], '-')) !== '-') {
+			if ((tmp = Debug.get(['option','logs',level,'prefix'], false))) {
+				prefix.push(tmp);
+			}
 			if (Debug.get(['option','logs',level,'revision'], false)) {
 				prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
 			}
-			if (Debug.get(['option','logs',level,'date'], true)) {
-				prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+			if ((tmp = Debug.get(['option','logs',level,'date'], '-')) !== 'tmp') {
+				prefix.push('[' + (new Date()).format(tmp) + ']');
 			}
 			if (Debug.get(['option','logs',level,'worker'], false)) {
 				tmp = [];
@@ -249,7 +255,6 @@ Debug.setup = function(old_revision) {
 				}
 				prefix.push(tmp.join('->'));
 			}
-			if (Debug.get(['option','logs',level,'stack'], false)) {
 /*
 e.stack contents by browser:
 CHROME:
@@ -271,10 +276,11 @@ GREASEMONKEY:
 @jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:2814,(215)
 @jar:file:///C:/Users/Robin/AppData/Roaming/Mozilla/Firefox/Profiles/0cxznhqg.default/extensions/%7Be4a8a97b-f2ed-450b-b12d-ee082ba24781%7D.xpi!/components/greasemonkey.js:2401,@:0,
 */
+			if (Debug.get(['option','logs',level,'stack'], false)) {
 				for (i=0; i<Debug.stack.length; i++) {
 					worker = Debug.stack[i][1];
 					name = Debug.stack[i][2].callee._name;
-					if (stack) {
+					if (stack && browser === 'chrome') { // Chrome format stack trace
 						while (tmp = stack.shift()) {
 							if (tmp.indexOf('Worker.'+name+' ') >= 0 && tmp.indexOf(worker.toLowerCase()) >= 0) {
 								break;
@@ -287,10 +293,13 @@ GREASEMONKEY:
 						suffix[j] = '  ' + suffix[j];
 					}
 				}
-			}
-			suffix.unshift(''); // Force an initial \n before the stack trace
-			if (args.length > 1) {
-				suffix.push(''); // Force an extra \n after the stack trace if there's more args
+				if (!suffix.length) { // Sometimes we're called from a handler
+					suffix.push('-> unknown');
+				}
+				suffix.unshift(''); // Force an initial \n before the stack trace
+				if (args.length > 1) {
+					suffix.push(''); // Force an extra \n after the stack trace if there's more args
+				}
 			}
 			if (!isString(args[0]) && !isNumber(args[0])) { // If we want to pass a single object for inspection
 				args.unshift('');
@@ -335,15 +344,21 @@ Debug.init = function(old_revision) {
 	});
 };
 
-Debug.update = function(event) {
-	if (event.type === 'option' || event.type === 'init') {
+Debug.update = function(event, events) {
+	if (events.findEvent(this, 'init')
+	 || events.findEvent(this, 'option')) {
 		if (this.option.timer) {
-			this._revive(this.option.timer, 'timer', function(){Debug._notify('data');});
+			this._revive(this.option.timer, 'timer');
 		} else {
 			this._forget('timer');
 		}
+	}
+	if (events.findEvent(this, 'init')
+	 || events.findEvent(this, 'option')
+	 || events.findEvent(this, 'reminder')) {
 		this._notify('data'); // Any changes to options should force a dashboard update
 	}
+	return true;
 };
 
 Debug.work = function(){};// Stub so we can be disabled

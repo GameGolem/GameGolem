@@ -242,7 +242,6 @@ Worker.prototype._add = function(what, value, type) {
 		this._set(what);
 	} else if (isBoolean(value)) {
 		this._set(what, function(old){
-			log (value, old);
 			value = (old = old ? (value ? false : undefined) : true) || false;
 			return old;
 		});
@@ -857,7 +856,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._update({worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
+					t[i][0]._remind(1, '_trigger_'+id, {worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
 				}
 			}
 		});

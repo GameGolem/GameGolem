@@ -517,9 +517,9 @@
 
 /* Component containers
 ----------------------------------*/
-#golem.golem-theme .ui-widget { font-family: Verdana,Arial,sans-serif; font-size: 11px; }
+#golem.golem-theme .ui-widget { font-family: inherit; font-size: 11px; }
 #golem.golem-theme .ui-widget .ui-widget { font-size: 11px; }
-#golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: Verdana,Arial,sans-serif; font-size: 11px; }
+#golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: inherit; font-size: 11px; }
 #golem.golem-theme .ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
 #golem.golem-theme .ui-widget-content a { color: #222222; }
 #golem.golem-theme .ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }
@@ -759,6 +759,7 @@
 #golem.golem-theme .ui-corner-tr, #golem.golem-theme .ui-corner-top, #golem.golem-theme .ui-corner-right, #golem.golem-theme .ui-corner-all { -moz-border-radius-topright: 3px; -webkit-border-top-right-radius: 3px; border-top-right-radius: 3px; }
 #golem.golem-theme .ui-corner-bl, #golem.golem-theme .ui-corner-bottom, #golem.golem-theme .ui-corner-left, #golem.golem-theme .ui-corner-all { -moz-border-radius-bottomleft: 3px; -webkit-border-bottom-left-radius: 3px; border-bottom-left-radius: 3px; }
 #golem.golem-theme .ui-corner-br, #golem.golem-theme .ui-corner-bottom, #golem.golem-theme .ui-corner-right, #golem.golem-theme .ui-corner-all { -moz-border-radius-bottomright: 3px; -webkit-border-bottom-right-radius: 3px; border-bottom-right-radius: 3px; }
+#golem.golem-theme .ui-corner-none { -moz-border-radius: 0 !important; -webkit-border-radius: 0 !important; border-radius: 0 !important; }
 
 /* Overlays */
 #golem.golem-theme .ui-widget-overlay { background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter:Alpha(Opacity=30); }
@@ -971,7 +972,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
  */
 #golem.golem-theme .ui-tabs { position: relative; padding: 0; zoom: 1; }
 #golem.golem-theme .ui-tabs .ui-tabs-nav { margin: 0; padding: 0 2px; }
-#golem.golem-theme .ui-tabs .ui-tabs-nav li { list-style: none; float: left; position: relative; top: 1px; margin: 0 1px 1px 0; border-bottom: 0 !important; padding: 0; white-space: nowrap; }
+#golem.golem-theme .ui-tabs .ui-tabs-nav li { list-style: none; float: left; position: relative; top: 1px; margin: 0 1px 1px 0; border-bottom: 0 !important; padding: 0 2px; white-space: nowrap; }
 #golem.golem-theme .ui-tabs .ui-tabs-nav li a { float: left; padding: 2px; text-decoration: none; }
 #golem.golem-theme .ui-tabs .ui-tabs-nav li.ui-tabs-selected { margin-bottom: 0; padding-bottom: 1px; }
 #golem.golem-theme .ui-tabs .ui-tabs-nav li.ui-tabs-selected a, .ui-tabs .ui-tabs-nav li.ui-state-disabled a, .ui-tabs .ui-tabs-nav li.ui-state-processing a { cursor: text; }
