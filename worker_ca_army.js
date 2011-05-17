@@ -67,22 +67,23 @@ Army.defaults.castle_age = {
 		}
 	]
 };
-
+/*
 Army._overload('castle_age', 'setup', function() {
 	this.section('Changed', { // Second column = Info
 		'key':'Army',
 		'name':'Changed',
 		'show':'Changed',
-		'label':function(data,uid){
-			var time = Math.floor((Date.now() - (data[uid]._info.changed || 0)) / 86400000);
-			return data[uid].Army && data[uid]._info.changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : '-';
+		'label':function(uid){
+			var changed = this.get(['Army',uid,'changed'],0), time = Math.floor((Date.now() - changed) / 86400000);
+			return this.get(['Army',uid]) && changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : '-';
 		},
-		'sort':function(data,uid){
-			return data[uid].Army ? data[uid]._info.changed || 0 : null;
+		'sort':function(uid){
+			return this.get(['Army',uid]) ? this.get(['Army',uid,'changed'],0) : null;
 		}
 	});
+	this._parent();
 });
-
+*/
 Army._overload('castle_age', 'init', function() {
 	this.runtime.extra = Math.max(1, this.runtime.extra);
 	this._watch(Player, 'data.armymax');
@@ -125,23 +126,23 @@ Army._overload('castle_age', 'parse', function(change) {
 				spans = $(parent).find('span[style]');
 				level = $(spans).eq(1).text().regex(/(\d+) Commander/i);
 				assert(isNumber(uid) && uid !== userID, 'Bad uid: '+uid);
-				this.set(['data',uid,'Army'], true);
-				assert(this.set(['data',uid,'_info','name'], $(spans).eq(0).text().replace(/^ *"|"$/g,''), 'string') !== false, 'Bad name: '+uid);
+				this.set(['Army',uid,'member'], true);
+				assert(this.set(['Army',uid,'name'], $(spans).eq(0).text().replace(/^ *"|"$/g,''), 'string') !== false, 'Bad name: '+uid);
 				if (isFacebook) {
-					assert(this.set(['data',uid,'_info','fbname'], who, 'string') !== false, 'Bad fbname: '+uid);
+					assert(this.set(['Army',uid,'fbname'], who, 'string') !== false, 'Bad fbname: '+uid);
 				} else { // Gave up trying to fight this thing - thanks non-standard fb:name node type that breaks jQuery...
-					assert(this.set(['data',uid,'_info','fbname'], $(parent).find('a.fb_link').text() || 'Facebook User', 'string') !== false, 'Bad fbname: '+uid);
+					assert(this.set(['Army',uid,'fbname'], $(parent).find('a.fb_link').text() || 'Facebook User', 'string') !== false, 'Bad fbname: '+uid);
 				}
-				this.set(['data',uid,'_info','friend'], who !== 'Facebook User');
-				if (!this.get(['data',uid,'_info','changed']) || this.get(['data',uid,'_info','level']) !== level) {
-					this.set(['data',uid,'_info','changed'], now);
-					this.set(['data',uid,'_info','level'], level);
+				this.set(['Army',uid,'friend'], who !== 'Facebook User');
+				if (!this.get(['Army',uid,'changed']) || this.get(['Army',uid,'level']) !== level) {
+					this.set(['Army',uid,'changed'], now);
+					this.set(['Army',uid,'level'], level);
 				}
-				this.set(['data',uid,'_info','seen'], now);
-				this.set(['data',uid,'_info','page'], page);
-				this.set(['data',uid,'_info','id'], start + i);
+				this.set(['Army',uid,'seen'], now);
+				this.set(['Army',uid,'page'], page);
+				this.set(['Army',uid,'id'], start + i);
 				this._transaction(true); // COMMIT TRANSACTION
-//				log('Adding: ' + JSON.stringify(this.get(['data',uid,'_info'])));
+//				log('Adding: ' + JSON.stringify(this.get(['Army',uid])));
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
 				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
@@ -156,10 +157,10 @@ Army._overload('castle_age', 'parse', function(change) {
 			this.set(['runtime','extra'], 1 + tmp.closest('tr').text().regex('Extra member x(\d+)'));
 //			log(LOG_DEBUG, 'Extra Army Members Found: '+Army.runtime.extra);
 		}
-		for (i in this.data) {
-			if (this.data[i].Army) {
-				if (!this.data[i]._info || (this.data[i]._info.page === page && this.data[i]._info.seen !== now)) {
-					this.set(['data',i,'Army']); // Forget this one, not found on the correct page
+		for (i in this.data.Army) {
+			if (this.data.Army[i].member) {
+				if (this.get(['Army',i,'page']) === page && this.get(['Army',i,'seen']) !== now) {
+					this.set(['Army',i,'member']); // Forget this one, not found on the correct page
 				} else {
 					count++;// Lets count this one instead
 				}
@@ -181,20 +182,19 @@ Army._overload('castle_age', 'parse', function(change) {
 
 Army._overload('castle_age', 'update', function(event) {
 	this._parent();
-	if (!this.option._disabled && event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
-		var i, page = this.runtime.page, army = this.data, ai, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
+	if (event.type !== 'data' && (!this.runtime.page || (this.option.recheck && !this.runtime.oldest))) {
+		var i, page = this.runtime.page, army = this.get('Army'), s, now = Date.now(), then = now - this.option.recheck, oldest = this.runtime.oldest;
 		if (!page && this.option.auto && Player.get('armymax',0) !== (this.runtime.count + this.runtime.extra)) {
 			log(LOG_WARN, 'Army size ('+Player.get('armymax',0)+') does not match cache ('+(this.runtime.count + this.runtime.extra)+'), checking from page 1');
 			page = 1;
 		}
 		if (!page && this.option.recheck) {
 			for (i in army) {
-				ai = army[i];
-				if (ai.Army && ai._info && ai._info.page && ai._info.seen) {
-					oldest = Math.min(oldest || Number.MAX_VALUE, ai._info.seen);
-					if (!page && ai._info.seen < then) {
-						page = Math.min(page || Number.MAX_VALUE, ai._info.page);
-					}
+				s = this.get(['Army',i,'seen']);
+				oldest = Math.min(oldest || Number.MAX_VALUE, s);
+				if (!page && s < then) {
+					page = Math.min(page || Number.MAX_VALUE, this.get(['Army',i,'page']));
+					then = s;
 				}
 			}
 			this._set(['runtime','oldest'], oldest);
