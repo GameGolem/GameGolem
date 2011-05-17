@@ -152,8 +152,8 @@ Dashboard.update = function(event, events) {
 
 Dashboard.dashboard = function() {
 	var i, list = [];
-	for (i in Workers) {
-		if (this.data[i] && !Workers[i].get(['option','_hide_status'], false)) {
+	for (i in this.data) {
+		if (!Workers[i]._get(['option','_hide_status'], false)) {
 			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
 		}
 	}

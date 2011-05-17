@@ -62,7 +62,7 @@ Debug.display = [
 			},{
 				id:'count',
 				label:'Minimum Count',
-				select:[1,2,3,4,5,10,15,20,25,50,100]
+				select:[0,1,2,3,4,5,10,15,20,25,50,100]
 			},{
 				id:'show',
 				label:'Display Lines',
@@ -214,6 +214,7 @@ Debug.setup = function(old_revision) {
 					wkr[j]._orig = fn;
 					if (i !== '__fake__') {
 						wkr[j]._worker = i;
+						Debug.temp[i+'.'+j] = Debug.temp[i+'.'+j] || [0,0,0,false];
 					}
 				}
 			}
@@ -433,9 +434,9 @@ Debug.dashboard = function(sort, rev) {
 		td(output, o[0].addCommas(), 'style="text-align:right;"');
 		td(output, o[1].addCommas() + 'ms', 'style="text-align:right;"');
 		td(output, o[2].addCommas() + 'ms', 'style="text-align:right;"');
-		td(output, (o[1]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
-		td(output, (o[2]/o[0]).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
-		td(output, ((o[2]/o[0])-(o[1]/o[0])).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, (o[1]/o[0] || 0).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, (o[2]/o[0] || 0).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
+		td(output, ((o[2]/o[0] || 0)-(o[1]/o[0] || 0)).addCommas(this.option.digits) + 'ms', 'style="text-align:right;"');
 		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');

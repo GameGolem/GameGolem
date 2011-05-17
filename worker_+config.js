@@ -260,7 +260,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
 		'</h3>' +
 		'<div class="ui-widget-content" style="margin-top:-1px;padding:0 4px 4px 4px;">' +
-			'<div id="golem_info" style="display:none;padding-top:4px;">' +
+			'<div id="golem_info" style="margin:0 -4px;">' +
 				// Extra info goes in here
 			'</div>' +
 			'<div id="golem_buttons" style="padding-top:4px;">' +

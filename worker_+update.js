@@ -107,7 +107,7 @@ Update.init = function() {
 				Update.set(['runtime','version'], tmp[0]);
 				Update.set(['runtime','revision'], tmp[1]);
 				if (Update.get(['runtime','force']) && Update.get(['temp','version'], version) >= tmp[0] && (isRelease || Update.get(['temp','revision'], revision) >= tmp[1])) {
-					$('<div class="golem-button golem-info red">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).insertAfter('#golem_buttons');
+					$('<div class="golem-button golem-info red" style="passing:4px;">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).appendTo('#golem_info');
 				}
 				Update.set(['runtime','force'], false);
 				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
@@ -118,9 +118,9 @@ Update.init = function() {
 			return false;
 		}
 	});
-	if (this.runtime.current !== (version + revision)) {
+	if (this.runtime.current !== (version + '.' + revision)) {
 		this.set(['runtime','installed'], Date.now());
-		this.set(['runtime','current'], version + revision);
+		this.set(['runtime','current'], version + '.' + revision);
 	}
 };
 
@@ -158,12 +158,12 @@ Update.update = function(event) {
 		this._remind(Math.max(0, time), 'check');
 	}
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
-		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + version + '.' + revision);
+		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
 		if (this.runtime.version > this.temp.version) {
-			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
 		}
 		if (!isRelease && this.runtime.revision > this.temp.revision) {
-			$('#golem_buttons').after('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
 		}
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);

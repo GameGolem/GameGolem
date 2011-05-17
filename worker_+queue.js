@@ -158,7 +158,7 @@ Queue.update = function(event, events) {
 	var i, worker, result, next, release = false;
 	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
 		worker = event.worker;
-		i = worker.get(['option', '_disabled'], false);
+		i = worker._get(['option', '_disabled'], false);
 		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
 		if (i && this.runtime.current === worker.name) {
 			this.set(['runtime','current'], null);
@@ -173,7 +173,7 @@ Queue.update = function(event, events) {
 	if (this.temp.sleep
 	 || events.findEvent(null, 'watch')
 	 || events.findEvent(this, 'init')) { // loading a page, pausing, resuming after a mouse-click, or init
-		if (this.get(['option','pause']) || Page.get(['temp','loading']) || !Session.get(['temp','active']) || this._timer('click')) {
+		if (this._get(['option','pause']) || Page._get(['temp','loading']) || !Session._get(['temp','active']) || this._timer('click')) {
 			this.temp.sleep = true;
 		} else {
 			this.temp.sleep = false;
@@ -188,7 +188,7 @@ Queue.update = function(event, events) {
 	}
 	if ((!this.temp.sleep && events.findEvent(this,'reminder')) || events.findEvent(this,'step')) { // Will fire on the "run" and "click" reminders if we're not sleeping, also on "step"
 		for (i in Workers) { // Run any workers that don't have a display, can never get focus!!
-			if (Workers[i].work && !Workers[i].display && !Workers[i].get(['option', '_disabled'], false) && !Workers[i].get(['option', '_sleep'], false)) {
+			if (Workers[i].work && !Workers[i].display && !Workers[i]._get(['option', '_disabled'], false) && !Workers[i]._get(['option', '_sleep'], false)) {
 //				log(LOG_DEBUG, Workers[i].name + '.work(false);');
 				Workers[i]._unflush();
 				Workers[i]._work(false);
@@ -196,7 +196,7 @@ Queue.update = function(event, events) {
 		}
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
-			if (!worker || !worker.work || !worker.display || worker.get(['option', '_disabled'], false) || worker.get(['option', '_sleep'], false)) {
+			if (!worker || !worker.work || !worker.display || worker._get(['option', '_disabled'], false) || worker._get(['option', '_sleep'], false)) {
 				if (worker && this.runtime.current === worker.name) {
 					this.set(['runtime','current']);
 				}

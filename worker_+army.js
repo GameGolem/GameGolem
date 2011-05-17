@@ -10,9 +10,8 @@
 /********** Worker.Army **********
 * Stores data by facebook userid for any worker that wants to use it.
 * Data is stored as -
-* Army.data.uid.section[...] = value
-* section == '_info' for general use of any workers with data useful for many
-* section == '_last' is the last time the data was accessed (not including making a list)
+* Army.data.section.uid[...] = value
+* section == 'Army' for general use of any workers with data useful for many
 */
 var Army = new Worker('Army');
 Army.data = {};
@@ -41,6 +40,37 @@ Army.display = [
 	}
 ];
 */
+
+Army.setup = function(old_revision) {
+	// BEGIN Change of storage from "data.uid.section.xyz" to "data.section.uid.xyz"
+	if (old_revision <= 1113) {
+		log('Updating Army...');
+		var i, j;
+		for (i in this.data) { // First change the layout
+			if (isNumber(i) || !/[^\d]/.test(i)) {
+				for (j in this.data[i]) {
+					this._set(['data',j,i], this.data[i][j]);
+					this._set(['data',i,j]);
+				}
+				this._set(['data',i]);
+			}
+		}
+		this.data.Army = this.data.Army || {};
+		for (i in this.data.Army) { // Second change the uid.Army bool to be Army.uid.member
+			if (this.data.Army[i] === true) {
+				this._set(['data','Army',i], this._get(['data','_info',i],{}));
+				this._set(['data','_info',i])
+				this._set(['data','Army',i,'member'], true);
+			}
+		}
+		for (i in this.data._info) { // Finally remove _info into Army
+			this._set(['data','Army',i], this.data._info[i]);
+			this._set(['data','_info',i])
+		}
+	}
+	// END
+};
+
 Army.init = function() {
 	$('#golem').append('<div id="golem-army-tooltip" class="golem-tooltip golem-shadow golem-overlay"><a>&nbsp;x&nbsp;</a><p></p></div>');
 	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide();});
@@ -48,76 +78,22 @@ Army.init = function() {
 		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
 		return false;
 	});
-	this.data = this.data || {};
-	for (var i in this.data) {// Fix for accidentally added bad data in a previous version
-		if (typeof i === 'string' && i.regex(/\D/g)) {
-			delete this.data[i];
-		}
-	}
-	delete this.data[userID];// Make sure we never try to handle ourselves
 };
 
-// what = ['worker', userID, key ...]
-Army.set = function(what, value) {
-	var x = typeof what === 'string' ? what.split('.') : (typeof what === 'object' ? what : []), section = null, uid = null;
-	if (!(x[0] in this._datatypes)) {
-		// Section first - either string id, worker.name, or current_worker.name
-		if (isWorker(x[0])) {
-			section = x.shift().name;
-		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
-			section = x.shift();
-		} else {
-			section = Worker.stack[0];
-		}
-		// userID next
-		if (x.length && parseInt(x[0])) {
-			uid = x.shift();
-		}
-		if (!section || !uid || parseInt(uid) === userID) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
-			return;
-		}
-		this._notify(['data',i]);
-//		this.runtime.update[section] = true;
+Army.set = function(what) {
+	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
+		x.unshift(Worker.stack[0]); // Section first - if it's not a valid section then use the current worker
 	}
-// Removed for performance reasons...
-//	try{this.data[uid]._last = Date.now();}catch(e){} // Remember when it was last accessed
-	return this._set(x, value);
+	return this._set.apply(this, arguments);
 };
 
-// what = [] (for list of uids that this worker knows about), ['section', userID, key ...]
-Army.get = function(what, def) {
-	var i, x = isString(what) ? what.split('.') : (isArray(what) ? what : []), section = null, uid = null, list = [];
-	if (!(x[0] in this._datatypes)) {
-		// Section first - either string id, worker.name, or current_worker.name
-		if (isWorker(x[0])) {
-			section = x.shift().name;
-		} else if (typeof x[0] === 'string' && !parseInt(x[0])) {
-			section = x.shift();
-		} else {
-			section = Worker.stack[0];
-		}
-		// No userid, so return a list of userid's used by this section
-		if (section && !x.length) {
-			this._unflush();
-			for (i in this.data) {
-				if (isObject(this.data[i]) && section in this.data[i]) {
-					list.push(i);
-				}
-			}
-			return list;
-		}
-		// userID next
-		if (x.length && parseInt(x[0])) {
-			uid = x.shift();
-		}
-		if (!section || !uid) { // Must have both section name and userID to continue, userID *cannot* be our own facebook id
-			return;
-		}
-//		log('this._get(\'data.' + uid + '.' + section + (x.length ? '.' + x.join('.') : '') + ', ' + value + ')');
-		x.unshift('data', uid, section);
+Army.get = function(what) {
+	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
+		x.unshift(Worker.stack[0]); // Section first - if it's not a valid section then use the current worker
 	}
-// Removed for performance reasons...
-	return this._get(x, def);
+	return this._get.apply(this, arguments);
 };
 
 Army.infolist = {
@@ -125,40 +101,43 @@ Army.infolist = {
 	'Level':'level',
 	'Army Size':'army_size'
 };
+
 Army.sectionlist = {
-	'Name':{ // First column = Name
-		'key':'_info',
-		'name':'Name',
-		'label':function(data,uid){
-			return (data[uid]._info.name || '').html_escape();
+	'Army':{ //
+		'title':'Name',
+		'show':function(uid) {
+			return this.get(['Army',uid,'name'],'-').html_escape();
 		},
-		'sort':function(data,uid){
-			return data[uid]._info.name || null;
-		},
-		'tooltip':function(data,uid){
-			var space = '&nbsp;&nbsp;&nbsp;', $tooltip;
-			$tooltip = $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(data[uid], null, '   ') + '</pre><br>');
-			return $tooltip;
+		'tooltip':function(uid) {
+			var i, obj = {};
+			for (i in this.data) {
+				if (this.data[i][uid]) {
+					obj[i] = this.data[i][uid];
+				}
+			}
+			return $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(obj, null, '   ') + '</pre><br>');
 		}
 	},
-	'Info':{ // Second column = Info
-		'key':'_info',
-		'name':function(){return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';},
-		'show':'Info',
-		'label':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || '';
+	'_info':{ // Second column = Info
+		'title':function(){
+			return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';
 		},
-		'sort':function(data,uid){
-			return Army.runtime.info === 'uid' ? uid : data[uid]._info[Army.runtime.info] || null;
+		'show':function(uid){
+			return Army.runtime.info === 'uid' ? uid : this.get(['Army',uid,Army.runtime.info],'-');
+		},
+		'sort':function(uid){
+			return Army.runtime.info === 'uid' ? uid : this.get(['Army',uid,Army.runtime.info],'-');
 		}
 	}
 };
-Army.section = function(name, object) { // Safe to call in setup()
+
+Army.section = function(name, fn) { // Safe to call in setup()
 	// Add a section to the dashboard.
 	// callback = function(type, data), returns text or html string
 	// type = 'id', 'sort', 'tooltip'
-	this.sectionlist[name] = object;
+	this.sectionlist[name] = fn;
 };
+
 Army._getSection_ = function(show, key, uid) { // Named with underscores to prevent Debug overhead...
 	try {
 		if (isNumber(show)) {
@@ -168,7 +147,7 @@ Army._getSection_ = function(show, key, uid) { // Named with underscores to prev
 			case 'string':
 				return this.sectionlist[show][key];
 			case 'function':
-				return this.sectionlist[show][key](this.data, uid);
+				return this.sectionlist[show][key](uid);
 			default:
 				return '';
 		}
@@ -178,33 +157,23 @@ Army._getSection_ = function(show, key, uid) { // Named with underscores to prev
 
 Army.order = [];
 Army.dashboard = function(sort, rev) {
-	var i, j, k, label, show = this.runtime.show, info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
+	var i, j, k, label, show = this.runtime.show || 'Army', info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
 	if ($('#golem-army-show').length) {
-		show = $('#golem-army-show').attr('value');
+		show = $('#golem-army-show').val();
 	}
 	if ($('#golem-army-info').length) {
-		info = $('#golem-army-info').attr('value');
+		info = $('#golem-army-info').val();
 	}
 	if (typeof sort === 'undefined' || this.runtime.show !== show || this.runtime.info !== info) {
 		this.runtime.show = show;
 		this.runtime.info = info;
 		this.order = [];
-		k = this._getSection_(show, 'key');
-		for (i in this.data) {
-			try {
-				label = this._getSection_(show, 'sort', i);
-				if (label) {
-					this.order.push(i);
-				}
-			} catch(e){}
+		for (i in this.data[show]) {
+			this.order.push(i);
 		}
 	}
-	for (i in this.sectionlist) {
-		th(output, this._getSection_(i, 'name'));
-		k = this._getSection_(i, 'show');
-		if (k && k!== '') {
-			showsection.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + k + '</option>');
-		}
+	for (i in this.data) {
+		showsection.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + i + '</option>');
 	}
 	for (i in this.infolist) {
 		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] === info ? ' selected' : '') + '>' + i + '</option>');
@@ -216,10 +185,10 @@ Army.dashboard = function(sort, rev) {
 		this.order.sort(function(a,b) {
 			var aa = 0, bb = 0;
 			try {
-				aa = Army._getSection_(sort, 'sort', a);
+				aa = Army._getSection_(sort, 'show', a);
 			} catch(e1){}
 			try {
-				bb = Army._getSection_(sort, 'sort', b);
+				bb = Army._getSection_(sort, 'show', b);
 			} catch(e2){}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -227,14 +196,18 @@ Army.dashboard = function(sort, rev) {
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
 	}
+	th(output, 'UserID');
+	for (i in this.sectionlist) {
+		th(output, this._getSection_(i, 'title'));
+	}
 	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
 	for (j=0; j<this.order.length; j++) {
 		output = [];
+		td(output, this.order[j]);
 		for (i in this.sectionlist) {
 			try {
-//				if (typeof this.data[this.order[j]][this._getSection_(i,'key')] !== 'undefined') {
-				k = this._getSection_(i,'label', this.order[j]);
-				if (typeof k !== 'undefined' && k !== null && k !== '') {
+				k = this._getSection_(i, 'show', this.order[j]);
+				if (k) {
 					if (this.sectionlist[i]['tooltip'] || this.sectionlist[i]['click']) {
 						td(output, '<a>' + k + '</a>');
 					} else {
@@ -263,12 +236,7 @@ Army.dashboard = function(sort, rev) {
 			section = objectIndex(Army.sectionlist, $this.closest('td').index());
 			uid = Army.order[$this.closest('tr').index()];
 			Army._unflush();
-			if ('click' in Army.sectionlist[section]) {
-				if (Army._getSection_(section, 'click', uid)) {
-					$this.html('<a>' + Army._getSection_(section, 'label', uid) + '</a>');
-//					Army.dashboard(Army.runtime.show, Army.runtime.rev);
-				}
-			} else {
+			if ('tooltip' in Army.sectionlist[section]) {
 				tooltip = Army._getSection_(section, 'tooltip', uid);
 				if (tooltip && tooltip !== '') {
 					$('#golem-army-tooltip > p').html(tooltip);

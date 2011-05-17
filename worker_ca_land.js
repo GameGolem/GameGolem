@@ -170,7 +170,7 @@ Land.parse = function(change) {
 	return modify;
 };
 
-Land.update = function(event) {
+Land.update = function(event, events) {
 	var i, j, k, worth = Bank.worth(), income = Player.get('income', 0) + History.get('income.mean'), level = Player.get('level', 0), best, i_cost, b_cost, buy = 0, cost_increase, time_limit;
 	
 	if (event.type === 'option' && this.option.land_exp) {
@@ -256,12 +256,12 @@ Land.update = function(event) {
 	}
 
 	this.set(['option','_sleep'],
-	  level === this.runtime.lastlevel &&
-	  (Page.get('town_land') || 0) > 0 &&
-	  (!this.runtime.best ||
-	  !this.runtime.buy ||
-	  worth < this.runtime.cost ||
-	  this.runtime.snooze > Date.now()));
+		level === this.runtime.lastlevel
+		&& (Page.get('town_land') || 0) > 0
+		&& (!this.runtime.best
+			|| !this.runtime.buy
+			|| worth < this.runtime.cost
+			|| this.runtime.snooze > Date.now()));
 };
 
 Land.work = function(state) {

@@ -75,9 +75,10 @@ Session.setup = function() {
 7. Add a repeating reminder for every 1 second
 */
 Session.init = function() {
+	Config._init(); // Make sure Config has loaded first
 	var now = Date.now();
 	this.set(['data','_sessions',this.temp._id], now);
-	$('.golem-title').after('<div id="golem_session" class="golem-info golem-theme-button green" style="display:none;">Enabled</div>');
+	$('#golem_info').append('<div id="golem_session" class="golem-info golem-theme-button green" style="display:none;padding:4px;">Enabled</div>');
 	if (!this.data._active || typeof this.data._sessions[this.data._active] === 'undefined' || this.data._sessions[this.data._active] < now - this.option.timeout || this.data._active === this.temp._id) {
 		this._set(['temp','active'], true);
 		this._set(['data','_active'], this.temp._id);
@@ -135,7 +136,7 @@ Session.updateTimestamps = function() {
 					if (Workers[i]._timestamps[j] === undefined) {
 						Workers[i]._timestamps[j] = _ts;
 					} else if (_ts > Workers[i]._timestamps[j]) {
-						log(LOG_DEBUG, 'Need to replace '+i+'.'+j+' with newer data');
+//						log(LOG_DEBUG, 'Need to replace '+i+'.'+j+' with newer data');
 						_old = Workers[i][j];
 						Workers[i]._load(j);
 						_new = Workers[i][j];
@@ -156,55 +157,55 @@ Session.updateTimestamps = function() {
 3. If no other open instances then make ourselves active (if not already) and remove the "Enabled/Disabled" button
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
-Session.update = function(event) {
-	var i, l, now = Date.now();
-	if (event.type !== 'reminder' && event.type !== 'unload') {
-		return;
-	}
-	this._load('data');
-	if (event.type === 'unload') {
-		Queue._forget('run'); // Make sure we don't do anything else
-		for (i in Workers) { // Make sure anything that needs saving is saved
-			for (l in Workers[i]._taint) {
-				if (Workers[i]._taint[l]) {
-					Workers[i]._save(l);
+Session.update = function(event, events) {
+	var i, l, now = Date.now(), unload;
+	if (events.findEvent(this,'reminder') || (unload = events.findEvent(this,'unload'))) {
+		this._load('data');
+		if (unload) {
+			Queue._forget('run'); // Make sure we don't do anything else
+			for (i in Workers) { // Make sure anything that needs saving is saved
+				for (l in Workers[i]._taint) {
+					if (Workers[i]._taint[l]) {
+						Workers[i]._save(l);
+					}
+				}
+				for (l in Workers[i]._reminders) {
+					if (/^i/.test(l)) {
+						window.clearInterval(Workers[i]._reminders[l]);
+					} else if (/^t/.test(l)) {
+						window.clearTimeout(Workers[i]._reminders[l]);
+					}
 				}
 			}
-			for (l in Workers[i]._reminders) {
-				if (/^i/.test(l)) {
-					window.clearInterval(Workers[i]._reminders[l]);
-				} else if (/^t/.test(l)) {
-					window.clearTimeout(Workers[i]._reminders[l]);
-				}
+			this.data._sessions[this.temp._id] = 0;
+			if (this.data._active === this.temp._id) {
+				this.data._active = null;
+			}
+			this.temp.active = false;
+		} else {
+			this.data._sessions[this.temp._id] = now;
+		}
+		now -= this.option.timeout;
+		for(i in this.data._sessions) {
+			if (this.data._sessions[i] < now) {
+				this.data._sessions[i] = undefined;
 			}
 		}
-		this.data._sessions[this.temp._id] = 0;
-		if (this.data._active === this.temp._id) {
-			this.data._active = null;
-		}
-		this.temp.active = false;
-	} else {
-		this.data._sessions[this.temp._id] = now;
-	}
-	now -= this.option.timeout;
-	for(i in this.data._sessions) {
-		if (this.data._sessions[i] < now) {
-			this.data._sessions[i] = undefined;
-		}
-	}
-	l = length(this.data._sessions);
-	if (l === 1) {
-		if (!this.temp.active) {
+		l = length(this.data._sessions);
+		if (l === 1) {
+			if (!this.temp.active) {
+				this.updateTimestamps();
+				$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
+				this.data._active = this.temp._id;
+				this.set(['temp','active'], true);
+			}
+			$('#golem_session').hide();
+		} else if (l > 1) {
 			this.updateTimestamps();
-			$('#golem_session').stop().css('color','black').html('Enabled').addClass('green').removeClass('red');
-			this.data._active = this.temp._id;
-			this.set(['temp','active'], true);
+			$('#golem_session').show();
 		}
-		$('#golem_session').hide();
-	} else if (l > 1) {
-		this.updateTimestamps();
-		$('#golem_session').show();
+		this._taint.data = true;
+		this._save('data');
 	}
-	this._taint.data = true;
-	this._save('data');
+	return true;
 };

@@ -233,7 +233,7 @@ Worker.prototype._flush = function() {
  * @return {*} The value we passed in
  * NOTE: Numbers and strings are old+new, arrays and objects have their contents merged, boolean will toggle the value (and return the new value)
  */
-Worker.prototype._add = function(what, value, type) {
+Worker.prototype._add = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		log(LOG_DEBUG, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
@@ -244,23 +244,23 @@ Worker.prototype._add = function(what, value, type) {
 		this._set(what, function(old){
 			value = (old = old ? (value ? false : undefined) : true) || false;
 			return old;
-		});
+		}, null, quiet);
 	} else if (isNumber(value)) {
 		this._set(what, function(old){
 			return (isNumber(old) ? old : 0) + value;
-		});
+		}, null, quiet);
 	} else if (isString(value)) {
 		this._set(what, function(old){
 			return (isString(old) ? old : '') + value;
-		});
+		}, null, quiet);
 	} else if (isArray(value)) {
 		this._set(what, function(old){
 			return (isArray(old) ? old : []).concat(value);
-		});
+		}, null, quiet);
 	} else if (isObject(value)) {
 		this._set(what, function(old){
 			return $.extend({}, isObject(old) ? old : {}, value);
-		});
+		}, null, quiet);
 	}
 	return value;
 };
@@ -477,13 +477,13 @@ Worker.prototype._parse = function(change) {
  * @return {*} The value we passed in
  * NOTE: This will change the data stored
  */
-Worker.prototype._pop = function(what, def, type) {
+Worker.prototype._pop = function(what, def, type, quiet) {
 	var data;
 	this._set(what, function(old){
 		old = isArray(old) ? old.slice(0) : [];
 		data = old.pop();
 		return old;
-	});
+	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
 		return isNull(data) ? null : data.valueOf();
 	}
@@ -498,7 +498,7 @@ Worker.prototype._pop = function(what, def, type) {
  * @return {*} The value we passed in
  * NOTE: Unlike _add() this will force the new value to be pushed onto the end of the old value (as an array)
  */
-Worker.prototype._push = function(what, value, type) {
+Worker.prototype._push = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
@@ -507,7 +507,7 @@ Worker.prototype._push = function(what, value, type) {
 		old = isArray(old) ? old : [];
 		old.push(value);
 		return old;
-	});
+	}, null, quiet);
 	return value;
 };
 
@@ -783,13 +783,13 @@ Worker.prototype._setup = function(old_revision) {
  * @return {*} The value we passed in
  * NOTE: This will change the data stored
  */
-Worker.prototype._shift = function(what, def, type) {
+Worker.prototype._shift = function(what, def, type, quiet) {
 	var data;
 	this._set(what, function(old){
 		old = isArray(old) ? old.slice(0) : [];
 		data = old.shift();
 		return old;
-	});
+	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
 		return isNull(data) ? null : data.valueOf();
 	}
@@ -803,8 +803,8 @@ Worker.prototype._shift = function(what, def, type) {
  * @param {?Boolean} keep Do we want to keep false values?
  * @return {*} The current state
  */
-Worker.prototype._toggle = function(what, keep) {
-	return this._add(what, keep ? true : false);
+Worker.prototype._toggle = function(what, keep, type, quiet) {
+	return this._add(what, keep ? true : false, null, quiet);
 };
 
 /**
@@ -856,7 +856,7 @@ Worker.prototype._trigger = function(selector, id) {
 			var i, t = Worker._triggers_, $target = $(event.target);
 			for (i=0; i<t.length; i++) {
 				if ($target.is(t[i][1])) {
-					t[i][0]._remind(1, '_trigger_'+id, {worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
+					t[i][0]._remind(0.5, '_trigger_'+id, {worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
 				}
 			}
 		});
@@ -886,7 +886,7 @@ Worker.prototype._unflush = function() {
  * @return {*} The value we passed in
  * NOTE: Unlike _add() this will force the new value to be pushed onto the end of the old value (as an array)
  */
-Worker.prototype._unshift = function(what, value, type) {
+Worker.prototype._unshift = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
 //		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
 		return false;
@@ -895,7 +895,7 @@ Worker.prototype._unshift = function(what, value, type) {
 		old = isArray(old) ? old : [];
 		old.unshift(value);
 		return old;
-	});
+	}, null, quiet);
 	return value;
 };
 
@@ -963,14 +963,18 @@ Worker.prototype._update = function(event, action) {
 				}
 			}
 		}
-		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
+		if (action === 'run' && Worker.updates[this.name] && this._updates_.length) { // Go through the event list and process each one
 			this._unflush();
-			events = this._updates_;
-			old = events.slice();
+			old = this._updates_;
 			this._updates_ = [];
-			while (events.length && !done) {
+			events = [];
+			for (i=0; i<old.length; i++) {
+				event = $.extend({}, old[i]);
+				event.worker = Worker.find(event.worker || this);
+				events.push(event);
+			}
+			while (!done && events.length) {
 				try {
-					events[0].worker = Worker.find(events[0].worker || this);
 					if (isFunction(this['update_'+events[0].type])) {
 						done = this['update_'+events[0].type](events[0], events);
 					} else {
@@ -980,13 +984,15 @@ Worker.prototype._update = function(event, action) {
 					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
 				}
 				if (done) {
-					events = [];
+					events = []; // Purely in case we need to add new events below
 				} else {
 					events.shift();
 				}
 				while (event = this._updates_.shift()) { // Prevent endless loops, while keeping anything we added
-					if (!old.findEvent(event.worker, event.type, event.id)) {
+					if (!(event.type in this._datatypes) && !old.findEvent(event.worker, event.type, event.id)) {
 						done = false;
+						old.push($.extend({}, event));
+						event.worker = Worker.find(event.worker || this);
 						events.push(event);
 					}
 				}

@@ -415,7 +415,6 @@ Array.prototype.findEvent = function(worker, type, id) {
 	var length = this.length;
 	for (this._index++; this._index<length; this._index++) {
 		if (isEvent(this[this._index], this._worker, this._type, this._id)) {
-			this[this._index].worker = Worker.find(this[this._index].worker || this);
 			return this[this._index];
 		}
 	}
