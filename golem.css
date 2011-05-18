@@ -521,7 +521,7 @@
 #golem.golem-theme .ui-widget .ui-widget { font-size: 11px; }
 #golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: inherit; font-size: 11px; }
 #golem.golem-theme .ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
-#golem.golem-theme .ui-widget-content a { color: #222222; }
+#golem.golem-theme .ui-widget-content a { color: #3b5998; }
 #golem.golem-theme .ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }
 #golem.golem-theme .ui-widget-header a { color: #222222; }
 
@@ -563,7 +563,7 @@
 ----------------------------------*/
 
 /* states and images */
-#golem .ui-icon { width: 16px; height: 16px; background-position: 16px 16px; }
+#golem .ui-icon, #golem .golem-icon { width: 16px; height: 16px; background-position: 16px 16px; }
 #golem.golem-theme .ui-icon, #golem.golem-theme .ui-widget-content .ui-icon,#golem.golem-theme .ui-widget-header .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_222222_256x240.png); }
 #golem.golem-theme .ui-state-default .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_888888_256x240.png); }
 #golem.golem-theme .ui-state-hover .ui-icon, .ui-state-focus .ui-icon, #golem.golem-theme .ui-state-active .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_454545_256x240.png); }
@@ -750,6 +750,32 @@
 #golem .ui-icon-gripsmall-diagonal-se { background-position: -64px -224px; }
 #golem .ui-icon-grip-diagonal-se { background-position: -80px -224px; }
 
+#golem .golem-icon-debug { background-position: 0 0; }
+#golem .golem-icon-wiki { background-position: -16px 0; }
+
+#golem .golem-icon-star-off { background-position: 0 -16px; }
+#golem .golem-icon-star-on { background-position: -16px -16px; }
+#golem .golem-icon-zzz { background-position: -32px -16px; }
+#golem .golem-icon-important { background-position: -48px -16px; }
+#golem .golem-icon-facebook { background-position: -64px -16px; }
+
+#golem .golem-icon-gold { background-position: 0 -32px; }
+#golem .golem-icon-energy { background-position: -16px -32px; }
+#golem .golem-icon-health { background-position: -32px -32px; }
+#golem .golem-icon-stamina { background-position: -48px -32px; }
+#golem .golem-icon-exp { background-position: -64px -32px; }
+#golem .golem-icon-percent { background-position: -80px -32px; }
+#golem .golem-icon-favor { background-position: -96px -32px; }
+#golem .golem-icon-arena { background-position: -112px -32px; }
+
+#golem .golem-icon-guild { background-position: 0 -48px; }
+#golem .golem-icon-symbol-1 { background-position: -16px -48px; }
+#golem .golem-icon-symbol-2 { background-position: -32px -48px; }
+#golem .golem-icon-symbol-3 { background-position: -48px -48px; }
+#golem .golem-icon-symbol-4 { background-position: -64px -48px; }
+#golem .golem-icon-symbol-5 { background-position: -80px -48px; }
+#golem .golem-icon-potion-energy { background-position: -96px -48px; }
+#golem .golem-icon-potion-stamina { background-position: -112px -48px; }
 
 /* Misc visuals
 ----------------------------------*/
@@ -763,7 +789,9 @@
 
 /* Overlays */
 #golem.golem-theme .ui-widget-overlay { background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter:Alpha(Opacity=30); }
-#golem.golem-theme .ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter: Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }
+/*#golem.golem-theme .ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter: Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }*/
+#golem.golem-theme .ui-widget-shadow { box-shadow: 2px 2px 4px black; -webkit-box-shadow: 2px 2px 4px black; -moz-box-shadow: 2px 2px 4px black; }
+
 
 /*
  * jQuery UI Resizable 1.8.12

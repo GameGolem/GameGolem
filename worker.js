@@ -963,7 +963,7 @@ Worker.prototype._update = function(event, action) {
 				}
 			}
 		}
-		if (action === 'run' && Worker.updates[this.name] && this._updates_.length) { // Go through the event list and process each one
+		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
 			this._unflush();
 			old = this._updates_;
 			this._updates_ = [];

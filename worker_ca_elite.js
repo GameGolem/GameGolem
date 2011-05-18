@@ -48,50 +48,6 @@ Elite.display = [
 	}
 ];
 
-Elite.setup = function() {
-	Army.section('Elite', {
-		'title':'Elite',
-		'show':function(uid){
-			return (Army.get(['Elite',uid])
-				? (Army.get(['Elite',uid,'prefer'])
-					? '<img src="' + getImage('star_on') + '">'
-					: '<img src="' + getImage('star_off') + '">')
-				 + (Army.get(['Elite',uid,'elite'])
-					? ' <img src="' + getImage('timer') + '" title="Member until: ' + makeTime(Army.get(['Elite',uid,'elite'])) + '">'
-					: '')
-				 + (Army.get(['Elite',uid,'full'])
-					? ' <img src="' + getImage('timer_red') + '" title="Full until: ' + makeTime(Army.get(['Elite',uid,'full'])) + '">'
-					: '')
-				: (Army.get(['Army',uid,'member'])
-					? '<img src="' + getImage('star_off') + '">'
-					: '')
-				);
-		},
-		'sort':function(data,uid){
-			if (!('Elite' in data[uid]) && !('Army' in data[uid]) && !data[uid]['Army']) {
-				return 0;
-			}
-			return (('prefer' in data[uid]['Elite'] && data[uid]['Elite']['prefer']
-					? Date.now()
-					: 0)
-				+ ('elite' in data[uid]['Elite']
-					? Date.now() - parseInt(data[uid]['Elite']['elite'], 10)
-					: 0)
-				+ ('full' in data[uid]['Elite']
-					? Date.now() - parseInt(data[uid]['Elite']['full'], 10)
-					: 0));
-		},
-		'click':function(data,uid){
-			if (Army.get(['Elite',uid,'prefer'], false)) {
-				Army.set(['Elite',uid,'prefer']);
-			} else {
-				Army.set(['Elite',uid,'prefer'], true);
-			}
-			return true;
-		}
-	});
-};
-
 Elite.menu = function(worker, key) {
 	if (worker === this) {
 		if (!key) {
@@ -172,5 +128,46 @@ Elite.work = function(state) {
 		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite});
 	}
 	return true;
+};
+
+Elite.army = function(action, uid) {
+	switch(action) {
+	case 'title':
+		return 'Elite';
+	case 'show':
+		return (Army.get(['Elite',uid])
+			? (Army.get(['Elite',uid,'prefer'])
+				? '<span class="ui-icon golem-icon golem-icon-star-on" style="display:inline-block;"></span>'
+				: '<span class="ui-icon golem-icon golem-icon-star-off" style="display:inline-block;"></span>')
+			 + (Army.get(['Elite',uid,'elite'])
+				? '<span class="ui-icon ui-icon-check" title="Member until: ' + makeTime(Army.get(['Elite',uid,'elite'])) + '" style="display:inline-block;"></span>'
+				: '<span class="ui-icon" style="display:inline-block;"></span>')
+			 + (Army.get(['Elite',uid,'full'])
+				? '<span class="ui-icon ui-icon-clock" title="Full until: ' + makeTime(Army.get(['Elite',uid,'full'])) + '" style="display:inline-block;"></span>'
+				: '<span class="ui-icon" style="display:inline-block;"></span>')
+			: (Army.get(['Army',uid,'member'])
+				? '<span class="ui-icon golem-icon golem-icon-star-off" style="display:inline-block;"></span>'
+				: '<span class="ui-icon" style="display:inline-block;"></span>')
+			 + '<span class="ui-icon" style="display:inline-block;"></span><span class="ui-icon" style="display:inline-block;"></span>'
+			);
+	case 'sort':
+		var now = Date.now();
+		if (!Army.get(['Elite',uid]) && !Army.get(['Army',uid,'member'])) {
+			return 0;
+		}
+		return ((Army.get(['Elite',uid,'prefer'])
+				? now
+				: 0)
+			+ (Army.get(['Elite',uid,'elite'])
+				? now - parseInt(Army.get(['Elite',uid,'elite']), 10)
+				: 0)
+			+ (Army.get(['Elite',uid,'full'])
+				? now - parseInt(Army.get(['Elite',uid,'full']), 10)
+				: 0));
+	case 'click':
+		if (uid && Army.get(['Army',uid,'member'])) {
+			Army.toggle(['Elite',uid,'prefer'])
+		}
+	}
 };
 

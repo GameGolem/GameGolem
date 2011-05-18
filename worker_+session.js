@@ -94,11 +94,11 @@ Session.init = function() {
 			Session._set(['temp','active'], false);
 		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - option.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
-			Queue.set(['runtime','current']);
+			Queue.set(['temp','current']);
 			Session._set(['data','_active'], Session.temp._id);
 			Session._set(['temp','active'], true);
 		} else {// Not able to go active
-			Queue.set(['runtime','current']);
+			Queue.set(['temp','current']);
 			$(this).html('<b>Disabled</b><br><span>Another instance running!</span>');
 			if (!Session.temp.warning) {
 				(function(){

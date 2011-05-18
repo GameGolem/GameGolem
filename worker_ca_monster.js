@@ -1141,7 +1141,7 @@ Monster.parse = function(change) {
 //		this.runtime.used.stamina = 0;
 //		this.runtime.used.energy = 0;
 	} else if (Page.page === 'monster_dead') {
-		if (Queue.runtime.current === 'Monster' && this.runtime.mid) { // Only if we went here ourselves...
+		if (Queue.temp.current === 'Monster' && this.runtime.mid) { // Only if we went here ourselves...
 			log(LOG_WARN, 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
 			this.set(['data',this.runtime.mid]);
 		} else {

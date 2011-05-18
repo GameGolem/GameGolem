@@ -67,23 +67,7 @@ Army.defaults.castle_age = {
 		}
 	]
 };
-/*
-Army._overload('castle_age', 'setup', function() {
-	this.section('Changed', { // Second column = Info
-		'key':'Army',
-		'name':'Changed',
-		'show':'Changed',
-		'label':function(uid){
-			var changed = this.get(['Army',uid,'changed'],0), time = Math.floor((Date.now() - changed) / 86400000);
-			return this.get(['Army',uid]) && changed ? time<1 ? 'Today' : time + ' Day' + plural(time) + ' Ago' : '-';
-		},
-		'sort':function(uid){
-			return this.get(['Army',uid]) ? this.get(['Army',uid,'changed'],0) : null;
-		}
-	});
-	this._parent();
-});
-*/
+
 Army._overload('castle_age', 'init', function() {
 	this.runtime.extra = Math.max(1, this.runtime.extra);
 	this._watch(Player, 'data.armymax');

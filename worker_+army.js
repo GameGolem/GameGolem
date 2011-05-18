@@ -71,15 +71,6 @@ Army.setup = function(old_revision) {
 	// END
 };
 
-Army.init = function() {
-	$('#golem').append('<div id="golem-army-tooltip" class="golem-tooltip golem-shadow golem-overlay"><a>&nbsp;x&nbsp;</a><p></p></div>');
-	$('#golem-army-tooltip > a').click(function(){$('#golem-army-tooltip').hide();});
-	$('#golem-army-tooltip a[href*="keep.php"]').live('click', function(){
-		Page.to('keep_stats', $(this).attr('href').substr($(this).attr('href').indexOf('?')));
-		return false;
-	});
-};
-
 Army.set = function(what) {
 	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
@@ -96,129 +87,142 @@ Army.get = function(what) {
 	return this._get.apply(this, arguments);
 };
 
-Army.infolist = {
-	'UserID':'uid',
-	'Level':'level',
-	'Army Size':'army_size'
-};
-
-Army.sectionlist = {
-	'Army':{ //
-		'title':'Name',
-		'show':function(uid) {
-			return this.get(['Army',uid,'name'],'-').html_escape();
-		},
-		'tooltip':function(uid) {
+Army.army_name = function(action, uid) {
+	switch(action) {
+	case 'title':
+		return 'Name';
+	case 'show':
+		return Army._get(['Army',uid,'name'],'-').html_escape();
+	case 'sort':
+		return Army._get(['Army',uid,'name']);
+	case 'click':
+		if (uid) {
+			Army._unflush();
 			var i, obj = {};
-			for (i in this.data) {
-				if (this.data[i][uid]) {
-					obj[i] = this.data[i][uid];
+			for (i in Army.data) {
+				if (Army.data[i][uid]) {
+					obj[i] = Army.data[i][uid];
 				}
 			}
-			return $(Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(obj, null, '   ') + '</pre><br>');
+			Config.makeTooltip(Army._get(['Army',uid,'name']) || uid, Page.makeLink('keep.php', 'user=' + uid, 'Visit Keep') + '<hr><b>userID: </b>' + uid + '<br><hr><b>Raw Data:</b><pre>' + JSON.stringify(obj, null, '   ') + '</pre>');
 		}
-	},
-	'_info':{ // Second column = Info
-		'title':function(){
-			return 'Info (' + (findInObject(Army.infolist, Army.runtime.info) || '') + ')';
-		},
-		'show':function(uid){
-			return Army.runtime.info === 'uid' ? uid : this.get(['Army',uid,Army.runtime.info],'-');
-		},
-		'sort':function(uid){
-			return Army.runtime.info === 'uid' ? uid : this.get(['Army',uid,Army.runtime.info],'-');
-		}
+		return true;
 	}
 };
 
-Army.section = function(name, fn) { // Safe to call in setup()
-	// Add a section to the dashboard.
-	// callback = function(type, data), returns text or html string
-	// type = 'id', 'sort', 'tooltip'
-	this.sectionlist[name] = fn;
-};
-
-Army._getSection_ = function(show, key, uid) { // Named with underscores to prevent Debug overhead...
-	try {
-		if (isNumber(show)) {
-			show = objectIndex(this.sectionlist, show);
+Army.army = function(action, uid) {
+	var i, tmp, value, list = [], info = 'UserID', infolist = {
+		'UserID':'uid',
+		'Level':'level',
+		'FBName':'fbname',
+		'Seen':'seen',
+		'Changed':'changed',
+		'Army Size':'army_size'
+	};
+	switch(action) {
+	case 'title':
+		return 'Info (' + this.get(['runtime','info'],'UserID') + ')';
+	case 'info':
+		if ($('#golem-army-info').length) {
+			info = $('#golem-army-info').val();
 		}
-		switch(typeof this.sectionlist[show][key]) {
-			case 'string':
-				return this.sectionlist[show][key];
-			case 'function':
-				return this.sectionlist[show][key](uid);
-			default:
-				return '';
+		this.set(['runtime','info'], info)
+		for (i in infolist) {
+			list.push('<option value="' + i + '"' + (i === info ? ' selected' : '') + '>' + i + '</option>');
 		}
-	} catch(e){}// *Really* don't want to do anything in the catch as it's performance sensitive!
-	return '';
+		return 'Info: <select id="golem-army-info">' + list.join('') + '</select>';
+	case 'show':
+		tmp = infolist[this.get(['runtime','info'],'UserID')];
+		if (tmp === 'uid') {
+			value = uid;
+		} else {
+			value = this.get(['Army',uid,tmp],'-');
+			if (isNumber(value) && Math.abs(value - Date.now()) < (365 * 24 * 60 * 60 * 1000)) { // If it's probably a date
+				value = makeTime(value, 'R');
+			}
+		}
+		return value;
+	case 'sort':
+		return this.runtime.info === 'UserID' ? parseInt(uid,10) : this.get(['Army',uid,infolist[this.runtime.info]]);
+	}
 };
 
 Army.order = [];
 Army.dashboard = function(sort, rev) {
-	var i, j, k, label, show = this.runtime.show || 'Army', info = this.runtime.info, list = [], output = [], showsection = [], showinfo = [];
+	var i, j, k, label, show = this.get(['runtime','show'],'*'), list = [], output = [], section = [], title = [], showinfo = [], army_fn = [];
+	sort = isUndefined(sort) ? this.get(['runtime','sort'],0) : sort;
+	rev = isUndefined(rev) ? this.get(['runtime','rev'],false) : rev;
 	if ($('#golem-army-show').length) {
 		show = $('#golem-army-show').val();
 	}
-	if ($('#golem-army-info').length) {
-		info = $('#golem-army-info').val();
+	section.push('<option value="*"' + ('*' === show ? ' selected' : '') + '>All</option>');
+	for (i in this.data) {
+		section.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + i + '</option>');
 	}
-	if (typeof sort === 'undefined' || this.runtime.show !== show || this.runtime.info !== info) {
-		this.runtime.show = show;
-		this.runtime.info = info;
-		this.order = [];
-		for (i in this.data[show]) {
-			this.order.push(i);
+	army_fn.push('*');
+	showinfo.push(Army.army_name('info'));
+	th(title, Army.army_name('title'));
+	for (i in Workers) {
+		if (Workers[i].army) {
+			army_fn.push(i);
+			showinfo.push(Workers[i].army('info'));
+			th(title, Workers[i].army('title'));
 		}
 	}
-	for (i in this.data) {
-		showsection.push('<option value="' + i + '"' + (i === show ? ' selected' : '') + '>' + i + '</option>');
+	list.push('Limit entries to <select id="golem-army-show">' + section.join('') + '</select>, ' + showinfo.trim().join(', '));
+	if (!this.order.length || this.runtime.show !== show || !arguments.length) {
+		this.set(['runtime','show'], show);
+		this.order = [];
+		if (show === '*') {
+			for (i in this.data) {
+				for (j in this.data[i]) {
+					this.order.push(j);
+				}
+			}
+			this.order = this.order.unique();
+		} else {
+			for (i in this.data[show]) {
+				this.order.push(i);
+			}
+		}
 	}
-	for (i in this.infolist) {
-		showinfo.push('<option value="' + (this.infolist[i] || '') + '"' + (this.infolist[i] === info ? ' selected' : '') + '>' + i + '</option>');
-	}
-	list.push('Limit entries to <select id="golem-army-show">' + showsection.join('') + '</select> ... Info: <select id="golem-army-info">' + showinfo.join('') + '</select>');
-	if (sort !== this.runtime.sort || rev !== this.runtime.rev) {
-		this.runtime.sort = sort = typeof sort !== 'undefined' ? sort : (this.runtime.sort || 0);
-		this.runtime.rev = rev = typeof rev !== 'undefined' ? rev : (this.runtime.rev || false);
+	if (sort !== this.runtime.sort || rev !== this.runtime.rev || !arguments.length) {
+		this.set(['runtime','sort'], sort);
+		this.set(['runtime','rev'], rev);
 		this.order.sort(function(a,b) {
 			var aa = 0, bb = 0;
-			try {
-				aa = Army._getSection_(sort, 'show', a);
-			} catch(e1){}
-			try {
-				bb = Army._getSection_(sort, 'show', b);
-			} catch(e2){}
+//			try {
+				if (army_fn[sort] === '*') {
+					aa = Army.army_name('sort', a);
+					bb = Army.army_name('sort', b);
+				} else {
+					aa = Workers[army_fn[sort]].army('sort', a);
+					bb = Workers[army_fn[sort]].army('sort', b);
+				}
+//			} catch(e) {}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
 			}
 			return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 		});
 	}
-	th(output, 'UserID');
-	for (i in this.sectionlist) {
-		th(output, this._getSection_(i, 'title'));
-	}
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+
+	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + title.join('') + '</tr></thead><tbody>');
 	for (j=0; j<this.order.length; j++) {
 		output = [];
-		td(output, this.order[j]);
-		for (i in this.sectionlist) {
-			try {
-				k = this._getSection_(i, 'show', this.order[j]);
-				if (k) {
-					if (this.sectionlist[i]['tooltip'] || this.sectionlist[i]['click']) {
-						td(output, '<a>' + k + '</a>');
+		td(output, '<a>' + this.army_name('show', this.order[j]) + '</a>', 'id="golem_army_*_' + this.order[j] + '" style="cursor:pointer;"');
+		for (i in Workers) {
+			if (Workers[i].army) {
+				try {
+					k = Workers[i].army('show', this.order[j]) || '-';
+					if (Workers[i].army('click')) {
+						td(output, '<a>' + k + '</a>', 'id="golem_army_' + i + '_' + this.order[j] + '" style="cursor:pointer;"');
 					} else {
 						td(output, k);
 					}
-				} else {
-					td(output, '');
+				} catch(e) {
+					td(output, '-');
 				}
-			} catch(e3) {
-				log(LOG_WARN, e3.name + ' in Army.dashboard(): ' + i + '("label"): ' + e3.message);
-				td(output, '');
 			}
 		}
 		tr(list, output.join(''));//, 'style="height:25px;"');
@@ -226,29 +230,18 @@ Army.dashboard = function(sort, rev) {
 	list.push('</tbody></table>');
 	$('#golem-dashboard-Army').html(list.join(''));
 	$('#golem-dashboard-Army td:first-child,#golem-dashboard-Army th:first-child').css('text-align', 'left');
-	$('#golem-dashboard-Army select').change(function(e){Army._unflush();Army.dashboard();});// Force a redraw
+	$('#golem-dashboard-Army select').change(function() {Army._notify('data');});// Force a redraw
 	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-dashboard-Army td a').click(function(e){
-		e.stopPropagation();
-		var $this, section, uid, tooltip;
-		$this = $(this.wrappedJSObject || this);
-		try {
-			section = objectIndex(Army.sectionlist, $this.closest('td').index());
-			uid = Army.order[$this.closest('tr').index()];
-			Army._unflush();
-			if ('tooltip' in Army.sectionlist[section]) {
-				tooltip = Army._getSection_(section, 'tooltip', uid);
-				if (tooltip && tooltip !== '') {
-					$('#golem-army-tooltip > p').html(tooltip);
-					$('#golem-army-tooltip').css({
-						top:($this.offset().top + $this.height()),
-						left:$this.closest('td').offset().left
-					}).show();
-				}
+	$('#golem-dashboard-Army td').click(function(e){
+		var tmp = $(this).attr('id').regex(/^golem_army_(.*)_(\d+)$/i);
+		if (tmp.length) {
+			if (tmp[0] === '*') {
+				Army.army_name('click', tmp[1])
+			} else {
+				Workers[tmp[0]]('click', tmp[1])
 			}
-		} catch(e4) {
-			log(LOG_WARN, e4.name + ' in Army.dashboard(): ' + Army._getSection_($this.closest('td').index(),'name') + '(data,"tooltip"): ' + e4.message);
 		}
+		e.stopImmediatePropagation();
 		return false;
 	});
 };

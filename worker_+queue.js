@@ -10,7 +10,7 @@
 * Keeps track of the worker queue
 */
 var Queue = new Worker('Queue');
-Queue.data = null;
+Queue.data = Queue.runtime = null;
 
 // worker.work() return values for stateful - ie, only let other things interrupt when it's "safe"
 var QUEUE_FINISH	= 0;// Finished everything, let something else work
@@ -27,7 +27,7 @@ Queue.settings = {
 };
 
 // NOTE: ALL THIS CRAP MUST MOVE, Queue is a *SYSTEM* worker, so it must know nothing about CA workers or data
-Queue.runtime = {
+Queue.temp = {
 	current:null
 };
 
@@ -128,7 +128,7 @@ Queue.init = function(old_revision) {
 			} else if (Config.get(['option','debug'], false)) {
 				$('#golem_step').show();
 			}
-			Queue.set(['runtime','current']);
+			Queue.set(['temp','current']);
 		}
 	});
 	Config.addButton({
@@ -147,11 +147,11 @@ Queue.init = function(old_revision) {
 	this._watch('Page', 'temp.loading');
 	this._watch('Session', 'temp.active');
 	this._watch(this, 'option.pause');
-	this._watch(this, 'runtime.current');
+	this._watch(this, 'temp.current');
 	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
-	Title.alias('worker', 'Queue:runtime.current::None');
-	this._notify('runtime.current');
+	Title.alias('worker', 'Queue:temp.current::None');
+	this._notify('temp.current');
 };
 
 Queue.update = function(event, events) {
@@ -160,14 +160,14 @@ Queue.update = function(event, events) {
 		worker = event.worker;
 		i = worker._get(['option', '_disabled'], false);
 		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
-		if (i && this.runtime.current === worker.name) {
-			this.set(['runtime','current'], null);
+		if (i && this.temp.current === worker.name) {
+			this.set(['temp','current'], null);
 		}
 	}
-	if (events.getEvent(this, 'watch', 'runtime.current')) {
+	if (events.getEvent(this, 'watch', 'temp.current')) {
 		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		if (this.runtime.current) {
-			$('#'+Workers[this.runtime.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
+		if (this.temp.current) {
+			$('#'+Workers[this.temp.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
 		}
 	}
 	if (this.temp.sleep
@@ -197,13 +197,13 @@ Queue.update = function(event, events) {
 		for (i=0; i<this.option.queue.length; i++) {
 			worker = Workers[this.option.queue[i]];
 			if (!worker || !worker.work || !worker.display || worker._get(['option', '_disabled'], false) || worker._get(['option', '_sleep'], false)) {
-				if (worker && this.runtime.current === worker.name) {
-					this.set(['runtime','current']);
+				if (worker && this.temp.current === worker.name) {
+					this.set(['temp','current']);
 				}
 				continue;
 			}
-//			log(LOG_DEBUG, worker.name + '.work(' + (this.runtime.current === worker.name) + ');');
-			if (this.runtime.current === worker.name) {
+//			log(LOG_DEBUG, worker.name + '.work(' + (this.temp.current === worker.name) + ');');
+			if (this.temp.current === worker.name) {
 				worker._unflush();
 				Page.temp.enabled = true;
 				result = worker._work(true);
@@ -211,7 +211,7 @@ Queue.update = function(event, events) {
 				if (result === QUEUE_RELEASE) {
 					release = true;
 				} else if (!result) {// false or QUEUE_FINISH
-					this.set(['runtime','current']);
+					this.set(['temp','current']);
 				}
 			} else {
 				result = worker._work(false);
@@ -223,10 +223,10 @@ Queue.update = function(event, events) {
 				next = worker; // the worker who wants to take over
 			}
 		}
-		worker = Worker.find(this.runtime.current);
+		worker = Worker.find(this.temp.current);
 		if (next !== worker && (!worker || !worker.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			log(LOG_INFO, 'Trigger ' + next.name);
-			this.set(['runtime','current'], next.name);
+			this.set(['temp','current'], next.name);
 		}
 //		log(LOG_DEBUG, 'End Queue');
 	}

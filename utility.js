@@ -389,6 +389,16 @@ Array.prototype.lower = function(value) { // return the highest entry lower or e
 	return best;
 };
 
+Array.prototype.trim = function() { // Remove empty entries
+	var i = this.length, arr = [];
+	while (i--) {
+		if (this[i]) {
+			arr.unshift(this[i]);
+		}
+	}
+	return arr;
+}
+
 // Used for events in update(event, events)
 var isEvent = function(event, worker, type, id) {
 	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
@@ -734,6 +744,10 @@ Date.replaceChars = {
 	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
 	w: function() { return this.getDay(); },
 	z: function() { return "Not Yet Supported"; },
+	R: function() {
+		var i = (new Date() - this) / 1000;
+		return (i < (24 * 60 * 60) ? 'Today' : i < (2 * 24 * 60 * 60) ? 'Yesterday' : i < (7 * 24 * 60 * 60) ? Math.floor(i / (24 * 60 * 60)) + ' Days Ago' : i < (31 * 24 * 60 * 60) ? Math.floor(i / (7 * 24 * 60 * 60)) + ' Weeks Ago' : i < (365 * 24 * 60 * 60) ? Math.floor(i / (31 * 24 * 60 * 60)) + ' Months Ago' : Math.floor(i / (365 * 24 * 60 * 60)) + ' Years Ago');
+	},
 	// Week
 	W: function() { return "Not Yet Supported"; },
 	// Month

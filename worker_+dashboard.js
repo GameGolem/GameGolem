@@ -62,7 +62,8 @@ Dashboard.init = function(old_revision) {
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
 	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;display:none;"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
-	$('<span style="position:absolute;top:0;right:0;" class="ui-icon ui-icon-arrowthick-2-ne-sw"></span>').click(function(event){
+	$('<a style="position:absolute;top:3px;right:3px;" class="ui-icon ui-icon-circle-' + (this.option.expand ? 'minus' : 'plus') + '"></a>').click(function(event){
+		$(this).toggleClass('ui-icon-circle-minus ui-icon-circle-plus');
 		Dashboard.toggle(['option','expand']);
 	}).appendTo('#golem-dashboard');
 	$('#golem-dashboard')
@@ -87,9 +88,9 @@ Dashboard.init = function(old_revision) {
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
-		var worker = Workers[Dashboard.option.active];
+		var $this = $(this), worker = Workers[Dashboard.option.active];
 		worker._unflush();
-		worker.dashboard($(this).prevAll().length, $(this).attr('name')==='sort');
+		worker.dashboard($this.index(), $this.attr('name')==='sort');
 	});
 	this._resize();
 	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
@@ -97,7 +98,6 @@ Dashboard.init = function(old_revision) {
 	this._watch(this, 'option.expand');
 	this._watch(Config, 'option.advanced');
 	this._watch(Config, 'option.debug');
-	this._update({type:'watch', worker:this.option.active, id:'option.active'}); // Make sure we draw the first one, no id so we don't do excess processing...
 };
 
 Dashboard.update = function(event, events) {
@@ -129,8 +129,8 @@ Dashboard.update = function(event, events) {
 	}
 	if ((event = events.findEvent(this, 'resize'))
 	 || (event = events.findEvent(this, 'trigger'))
-	 || events.findEvent(this, 'watch', 'option.expand')
-	 || events.findEvent(this, 'init')) { // Make sure we're always in the right place
+	 || (event = events.findEvent(this, 'init'))
+	 || events.findEvent(this, 'watch', 'option.expand')) { // Make sure we're always in the right place
 		if (this.get(['option','expand'], false)) {
 			$el = $('#contentArea,#globalcss').eq(0);
 			width = $el.width();

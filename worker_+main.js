@@ -59,7 +59,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem" class="golem-startup"></div>'); // Set the theme from Theme.update('init')
+		$('#rightCol').prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -72,7 +72,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		if (old_revision !== revision) {
 			setItem('revision', revision);
 		}
-		$('#golem').removeClass('golem-startup');
+		$('#golem').css({'visibility':'visible'});
 	}
 	if (events.findEvent(null,'startup')) {
 		// Let's get jQuery running

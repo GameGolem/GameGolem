@@ -187,7 +187,7 @@ Config.update = function(event, events) {
 			}
 		} else if (event.id === 'option._sleep') { // Show the ZZZ icon
 //			log(LOG_LOG, worker.name + ' going to sleep...');
-			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden', !worker.get(['option','_sleep'], false));
+			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden');
 		} else if (event.id) { // Some option changed, so make sure we show that
 			id = event.id.slice('option.'.length);
 			if (id && id.length && ($el = $('#'+this.makeID(worker, id))).length === 1) {
@@ -252,6 +252,30 @@ Config.addButton = function(options) {
 		html.click(options.click);
 	}
 }
+
+Config.makeTooltip = function(title, content) {
+	var el = $('<div class="ui-widget ui-widget-shadow ui-helper-fixed" style="left:100px;top:100px;z-index:999;">' + // High z-index due to Facebook search bar
+		'<h3 class="ui-widget-header" style="padding:2px;cursor:move;">' + title +
+			'<span class="ui-icon ui-icon-close" style="float:right;cursor:pointer;"></span>' +
+		'</h3>' +
+		'<div class="ui-widget-content" style="padding:4px;"><div></div></div>' +
+	'</div>')
+	.draggable({
+		handle:'> h3',
+		containment:'window',
+		stack:'.tooltips'
+	})
+//	.resizable({ // Doesn't resize the widget-content properly
+//		autoHide: true,
+//		handles: 'se',
+//		minHeight: 100,
+//		minWidth: 100
+//	})
+	.appendTo('#golem');
+	$('.ui-widget-header span', el).click(function(){el.remove();});
+	$('.ui-widget-content > div', el).append(content);
+	el.show();
+};
 
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
 	var i, j, k, tmp, stop = false;
@@ -357,14 +381,14 @@ Config.makePanel = function(worker, args) {
 	if (!$('#'+worker.id).length) {
 		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
 			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
-			sleep = worker.get(['option','_sleep'], false) ? '' : ' style="display:none;"';
+			sleep = worker.get(['option','_sleep'], false) ? '' : ' ui-helper-hidden';
 		$('#golem_config').append(tmp = $(
 			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
 				'<h3 class="' + disabled + '">' +
 					'<a href="#">' +
 						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
 						worker.name +
-						'<img id="golem_sleep_' + worker.name + '" class="golem-image" src="' + getImage('zzz') + '"' + sleep + '>' +
+						'<img id="golem_sleep_' + worker.name + '" class="golem-image' + sleep + '" src="' + getImage('zzz') + '">' +
 					'</a>' +
 				'</h3>' +
 				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +
