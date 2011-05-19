@@ -10,6 +10,7 @@
 /********** Worker.Gift() **********
 * Auto accept gifts and return if needed
 * *** Needs to talk to Alchemy to work out what's being made
+* If we've got a rogue gift - http://apps.facebook.com/castle_age/army.php?act=acpt&uid=all
 */
 var Gift = new Worker('Gift');
 Gift.temp = null;

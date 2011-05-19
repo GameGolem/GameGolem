@@ -95,6 +95,11 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			}
 			$ = (unsafeWindow || window).jQuery.noConflict(true);
 		}
+		// Stop us running twice if via Bookmarklet etc
+		if ($('#golem').length) {
+			log(LOG_INFO, 'GameGolem: Already installed!');
+			return true;
+		}
 		// Identify Application
 		if (!APP) {
 			if (empty(this._apps_)) {
@@ -203,7 +208,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
 			GM_addStyle(GM_getResourceText('stylesheet'));
 		} else {
-			$('head').append('<link href="http://game-golem.googlecode.com/svn/trunk/golem.css" rel="stylesheet" type="text/css">');
+			$('head').append('<link href="http://rycochet.net/themes/default.css" rel="stylesheet" type="text/css">');
 		}
 	//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 		this._remind(0.1, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc

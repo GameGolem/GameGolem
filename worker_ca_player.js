@@ -51,113 +51,120 @@ Player.init = function() {
 };
 
 Player.parse = function(change) {
-	if (change) {
-		return false;
-	}
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
-	if ($('#'+APPID_+'energy_current_value').length) {
-		this.set('energy', $('#'+APPID_+'energy_current_value').text().regex(/(\d+)/) || 0);
-		Resources.add('Energy', data.energy, true);
-	}
-	if ($('#'+APPID_+'stamina_current_value').length) {
-		this.set('stamina', $('#'+APPID_+'stamina_current_value').text().regex(/(\d+)/) || 0);
-		Resources.add('Stamina', data.stamina, true);
-	}
-	if ($('#'+APPID_+'health_current_value').length) {
-		this.set('health', $('#'+APPID_+'health_current_value').text().regex(/(\d+)/) || 0);
-	}
-	if ($('#'+APPID_+'st_2_5 strong:not([title])').length) {
-		tmp = $('#'+APPID_+'st_2_5').text().regex(/(\d+)\s*\/\s*(\d+)/);
-		if (tmp) {
-			this.set('exp', tmp[0]);
-			this.set('maxexp', tmp[1]);
+	if (change) {
+		if (Page.page==='keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
+			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Various Stats</td></tr></thead><tbody>' +
+			'<tr><td>BSI:</td><td>' + this.get('bsi',0) + '</td></tr>' +
+			'<tr><td>LSI:</td><td>' + this.get('lsi',0) + '</td></tr>' +
+			'</tbody></table>';
+			$tmp.append('<div style="margin:-238px 18px 2px 21px;height:213px;border:1px solid #8b5928;padding:10px;color:black;background-color:#b2804f;font-size:10px;">' + tmp + '</div>');
 		}
-	}
-	this.set('cash', $('#'+APPID_+'gold_current_value').text().replace(/\D/g, '').regex(/(\d+)/));
-	this.set('level', $('#'+APPID_+'st_5').text().regex(/Level: (\d+)!/i));
-	this.set('armymax', $('a[href*="army.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/));
-	this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
-	this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
-	this.set('general', $('div.general_name_div3').first().text().trim());
-	this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
-	if (Page.page==='keep_stats') {
-		keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
-		if (keep.length) {
-			this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
-			tmp = $('td.statsTMainback img[src*="rank_medals"]');
-			if (tmp.length) {
-				this.set('battle',tmp.attr('src').filepart().regex(/(\d+)/));
+	} else {
+		if ($('#'+APPID_+'energy_current_value').length) {
+			this.set('energy', $('#'+APPID_+'energy_current_value').text().regex(/(\d+)/) || 0);
+			Resources.add('Energy', data.energy, true);
+		}
+		if ($('#'+APPID_+'stamina_current_value').length) {
+			this.set('stamina', $('#'+APPID_+'stamina_current_value').text().regex(/(\d+)/) || 0);
+			Resources.add('Stamina', data.stamina, true);
+		}
+		if ($('#'+APPID_+'health_current_value').length) {
+			this.set('health', $('#'+APPID_+'health_current_value').text().regex(/(\d+)/) || 0);
+		}
+		if ($('#'+APPID_+'st_2_5 strong:not([title])').length) {
+			tmp = $('#'+APPID_+'st_2_5').text().regex(/(\d+)\s*\/\s*(\d+)/);
+			if (tmp) {
+				this.set('exp', tmp[0]);
+				this.set('maxexp', tmp[1]);
 			}
-			tmp = $('td.statsTMainback img[src*="rank_medals_war"]');
-			if (tmp.length) {
-				this.set('war', tmp.attr('src').filepart().regex(/(\d+)/));
-			}
-			stats = $('div.attribute_stat_container', keep);
-			this.set('maxenergy', $(stats).eq(0).text().regex(/(\d+)/));
-			this.set('maxstamina', $(stats).eq(1).text().regex(/(\d+)/));
-			this.set('attack', $(stats).eq(2).text().regex(/(\d+)/));
-			this.set('defense', $(stats).eq(3).text().regex(/(\d+)/));
-			this.set('maxhealth', $(stats).eq(4).text().regex(/(\d+)/));
-			this.set('bank', parseInt($('td.statsTMainback b.money').text().replace(/\D/g,''), 10));
-			stats = $('.statsTB table table:contains("Total Income")').text().replace(/[^0-9$]/g,'').regex(/(\d+)\$(\d+)\$(\d+)/);
-			this.set('maxincome', stats[0]);
-			this.set('upkeep', stats[1]);
-			this.set('income', stats[2]);
-			Resources.add('Gold', data.bank + data.cash, true);
+		}
+		this.set('cash', $('#'+APPID_+'gold_current_value').text().replace(/\D/g, '').regex(/(\d+)/));
+		this.set('level', $('#'+APPID_+'st_5').text().regex(/Level: (\d+)!/i));
+		this.set('armymax', $('a[href*="army.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/));
+		this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
+		this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
+		this.set('general', $('div.general_name_div3').first().text().trim());
+		this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
+		if (Page.page==='keep_stats') {
+			keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
+			if (keep.length) {
+				this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
+				tmp = $('td.statsTMainback img[src*="rank_medals"]');
+				if (tmp.length) {
+					this.set('battle',tmp.attr('src').filepart().regex(/(\d+)/));
+				}
+				tmp = $('td.statsTMainback img[src*="rank_medals_war"]');
+				if (tmp.length) {
+					this.set('war', tmp.attr('src').filepart().regex(/(\d+)/));
+				}
+				stats = $('div.attribute_stat_container', keep);
+				this.set('maxenergy', $(stats).eq(0).text().regex(/(\d+)/));
+				this.set('maxstamina', $(stats).eq(1).text().regex(/(\d+)/));
+				this.set('attack', $(stats).eq(2).text().regex(/(\d+)/));
+				this.set('defense', $(stats).eq(3).text().regex(/(\d+)/));
+				this.set('maxhealth', $(stats).eq(4).text().regex(/(\d+)/));
+				this.set('bank', parseInt($('td.statsTMainback b.money').text().replace(/\D/g,''), 10));
+				stats = $('.statsTB table table:contains("Total Income")').text().replace(/[^0-9$]/g,'').regex(/(\d+)\$(\d+)\$(\d+)/);
+				this.set('maxincome', stats[0]);
+				this.set('upkeep', stats[1]);
+				this.set('income', stats[2]);
+				Resources.add('Gold', data.bank + data.cash, true);
 
-			// remember artifacts - useful for quest requirements
-			$tmp = $('.statsTTitle:contains("ARTIFACTS") + div div div a img');
-			if ($tmp.length) {
-				$tmp.each(function(i,el){
-					if ((tmp = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
-						artifacts[tmp] = $(el).attr('src').filepart();
-					}
-				});
-				this.set(['data','artifact'], artifacts);
+				// remember artifacts - useful for quest requirements
+				$tmp = $('.statsTTitle:contains("ARTIFACTS") + div div div a img');
+				if ($tmp.length) {
+					$tmp.each(function(i,el){
+						if ((tmp = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
+							artifacts[tmp] = $(el).attr('src').filepart();
+						}
+					});
+					this.set(['data','artifact'], artifacts);
+				}
 			}
-		}
-	} else if (Page.page === 'town_land') {
-		$tmp = $('.layout div[style*="town_header_land."]');
-		if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
-			var o = {};
-			$('div', $tmp.last().parent()).each(function(a, el) {
-				if (!o[a]) o[a] = {};
-				o[a].label = ($(el).text() || '').trim();
-			});
-			$('div', $tmp.last().parent().next()).each(function(a, el) {
-				if (!o[a]) o[a] = {};
-				o[a].value = ($(el).text() || '').trim();
-			});
-			//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
-			for (i in o) {
-				if (o[i].label && o[i].value) {
-					if (o[i].label.match(/Land Income:/i)) {
-						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
-							this.set('maxincome', tmp);
-						}
-					} else if (o[i].label.match(/Upkeep:/i)) {
-						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
-							this.set('upkeep', tmp);
-						}
-					} else if (o[i].label.match(/Income per Hour:/i)) {
-						if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
-							this.set('income', tmp);
+		} else if (Page.page === 'town_land') {
+			$tmp = $('.layout div[style*="town_header_land."]');
+			if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
+				var o = {};
+				$('div', $tmp.last().parent()).each(function(a, el) {
+					if (!o[a]) o[a] = {};
+					o[a].label = ($(el).text() || '').trim();
+				});
+				$('div', $tmp.last().parent().next()).each(function(a, el) {
+					if (!o[a]) o[a] = {};
+					o[a].value = ($(el).text() || '').trim();
+				});
+				//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
+				for (i in o) {
+					if (o[i].label && o[i].value) {
+						if (o[i].label.match(/Land Income:/i)) {
+							if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+								this.set('maxincome', tmp);
+							}
+						} else if (o[i].label.match(/Upkeep:/i)) {
+							if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+								this.set('upkeep', tmp);
+							}
+						} else if (o[i].label.match(/Income per Hour:/i)) {
+							if (isNumber(tmp = o[i].value.replace(/\D/g, '').regex(/(\d+)/))) {
+								this.set('income', tmp);
+							}
 						}
 					}
 				}
 			}
 		}
+		$('span.result_body').each(function(i,el){
+			var txt = $(el).text().replace(/,|\s+|\n/g, '');
+			History.add('income', sum(txt.regex(/Gain.*\$(\d+).*Cost|stealsGold:\+\$(\d+)|Youreceived\$(\d+)|Yougained\$(\d+)/i)));
+			if (txt.regex(/incomepaymentof\$(\d+)gold/i)){
+				History.set('land', sum(txt.regex(/incomepaymentof\$(\d+)gold|backinthemine:Extra(\d+)Gold|Yousuccessfullysold.*for$(\d+)/i)));
+			}
+		});
+		this.set('worth', this.get('cash', 0) + this.get('bank', 0));
+		$('#'+APPID_+'gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
 	}
-	$('span.result_body').each(function(i,el){
-		var txt = $(el).text().replace(/,|\s+|\n/g, '');
-		History.add('income', sum(txt.regex(/Gain.*\$(\d+).*Cost|stealsGold:\+\$(\d+)|Youreceived\$(\d+)|Yougained\$(\d+)/i)));
-		if (txt.regex(/incomepaymentof\$(\d+)gold/i)){
-			History.set('land', sum(txt.regex(/incomepaymentof\$(\d+)gold|backinthemine:Extra(\d+)Gold|Yousuccessfullysold.*for$(\d+)/i)));
-		}
-	});
-	this.set('worth', this.get('cash', 0) + this.get('bank', 0));
-	$('#'+APPID_+'gold_current_value').attr('title', 'Cash in Bank: $' + this.get('bank', 0).addCommas());
-	return false;
+	return true;
 };
 
 Player.update = function(event) {
