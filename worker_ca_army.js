@@ -136,9 +136,9 @@ Army._overload('castle_age', 'parse', function(change) {
 			this._set(['runtime','page'], 0);// No real members on this page so stop looking.
 			this._set(['runtime','check'], false);
 		}
-		tmp = $('img[src*="bonus_member.jpg"]');
+		tmp = $('img[src*="bonus_member.jpg"]').closest('tr');
 		if (tmp.length) {
-			this.set(['runtime','extra'], 1 + tmp.closest('tr').text().regex('Extra member x(\d+)'));
+			this.set(['runtime','extra'], 1 + tmp.text().trim(true).regex(/Extra member x(\d+)/i));
 //			log(LOG_DEBUG, 'Extra Army Members Found: '+Army.runtime.extra);
 		}
 		for (i in this.data.Army) {

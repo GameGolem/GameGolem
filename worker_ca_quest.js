@@ -58,7 +58,8 @@ Quest.land = [
 	'Earth II',
 	'Water II',
 	'Mist II',
-	'Mist III'
+	'Mist III',
+	'Fire II'
 ];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;

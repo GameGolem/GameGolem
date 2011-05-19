@@ -116,7 +116,7 @@ Session.init = function() {
 		}
 		Session._save('data');
 	});
-	$(window).unload(function(){Session.update({type:'unload'});}); // Not going via _update
+	$(window).unload(function(){Session._update('unload', 'run');});
 	this._revive(1); // Call us *every* 1 second - not ideal with loads of Session, but good enough for half a dozen or more
 	Title.alias('disable', 'Session:temp.active::(Disabled) ');
 };

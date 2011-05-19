@@ -10,6 +10,7 @@ rem Do not copy the "rem ..." lines
 rem ----------------------------------------------------------------------
 [Golem]
 ; golem: absolute path to this development branch, include trailing \
+; !!!IMPORTANT - ".\" WILL NOT WORK!!!
 golem:".\"
 
 [TortoiseSVN]
@@ -30,8 +31,9 @@ chrome_pack=0
 java="java.exe"
 compiler=""
 
-[Firefox]
-; firefox: path to the firefox install of Golem, *excluding* filename, no trailing "/" - which should be "rycochets_castle_age_gol.user.js"
+[Greasemonkey]
+; firefox: path to the greasemonkey install of Golem, *excluding* filename, no trailing "/" - which should be "rycochets_castle_age_gol.user.js"
+; this will also support Scriptish naming instead of GM - "rycochetscastleagegolem@golem.user.js"
 ; - winxp - C:\Documents and Settings\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol
 ; - win7  - C:\Users\???\AppData\Roaming\Mozilla\Firefox\Profiles\???.default\gm_scripts\rycochets_castle_age_gol
 firefox=""
@@ -74,14 +76,16 @@ if NOT EXIST "_manifest.txt" (
 	goto:eof
 )
 set manifest=
+set files=
 for /F "eol=#" %%a in (_manifest.txt) do (
 	if "!manifest!"=="" (set manifest="%%a") else (set manifest=!manifest!,"%%a")
+	if "!files!"=="" (set files=--js %%a) else (set files=!files! --js %%a)
 )
 
 rem ----------------------------------------------------------------------
 rem Delete old files...
 echo.Deleting old user.js files
-del /F /Q _normal.user.js _min.user.js 2>nul
+del /F /Q GameGolem.js GameGolem.min.js 2>nul
 
 rem ----------------------------------------------------------------------
 rem Current revision (assuming this copy is committed, so Update / Build / Commit)
@@ -99,15 +103,18 @@ if NOT "%revision%"=="0" (
 )
 
 rem ----------------------------------------------------------------------
-rem NORMAL VERSION - _normal.user.js
-echo.Joining files into _normal.user.js
-call:VReplace _head.tmpl >_normal.user.js
-type "_wrap_top.js" >>_normal.user.js 2>nul
+rem NORMAL VERSION - GameGolem.js
+echo.Joining files into GameGolem.js
+call:VReplace _head.tmpl >GameGolem.js
+type jquery-latest.min.js >>GameGolem.js 2>nul
+type jquery-ui.latest.min.js >>GameGolem.js 2>nul
+call:VReplace _head.tmpl >>GameGolem.js
+type _wrap_top.js >>GameGolem.js 2>nul
 for /F "eol=#" %%a in (_manifest.txt) do (
-	type "%%a" >>_normal.user.js 2>nul
+	type "%%a" >>GameGolem.js 2>nul
 )
-type "_wrap_bottom.js" >>_normal.user.js 2>nul
-set script=_normal.user.js
+type _wrap_bottom.js >>GameGolem.js 2>nul
+set script=GameGolem.js
 
 rem --------------------------------------------------------------------------------------
 rem MINIMISED VERSION - This will fail on errors so use is advised - required for release!
@@ -116,10 +123,15 @@ rem http://code.google.com/closure/compiler/
 if EXIST "%java%" (
 	if EXIST "%compiler%" (
 		echo.Creating minimised version - will display any syntax errors
-		call:VReplace _head.tmpl >_min.user.js
-		"%java%" -jar "%compiler%" --js "_normal.user.js" >> _min.user.js
+		call:VReplace _head.tmpl >GameGolem.min.js
+		type jquery-latest.min.js >>GameGolem.min.js 2>nul
+		type jquery-ui.latest.min.js >>GameGolem.min.js 2>nul
+		call:VReplace _head.tmpl >>GameGolem.min.js
+		type _wrap_top.js >>GameGolem.min.js 2>nul
+		"%java%" -jar "%compiler%" %files% >> GameGolem.min.js
+		type _wrap_bottom.js >>GameGolem.min.js 2>nul
 rem While is may be smaller to use the minimised version in places, generally that interferes with debugging...
-rem		set script=_min.user.js
+rem		set script=GameGolem.min.js
 	)
 )
 
@@ -133,8 +145,10 @@ if NOT EXIST "chrome\GameGolem\images" (
 	mkdir chrome\GameGolem\images
 )
 del /F /S /Q chrome\GameGolem >nul 2>nul
-call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
 copy /Y chrome\GameGolem.tmpl\* chrome\GameGolem >nul 2>nul
+call:VReplace .\chrome\manifest.tmpl >.\chrome\GameGolem\manifest.json
+copy /Y jquery-latest.min.js chrome\GameGolem\ >nul 2>nul
+copy /Y jquery-ui.latest.min.js chrome\GameGolem\ >nul 2>nul
 copy /Y images\*.png chrome\GameGolem\images >nul 2>nul
 copy /Y golem.css chrome\GameGolem >nul 2>nul
 for /F "eol=#" %%a in (_manifest.txt) do (
@@ -156,36 +170,19 @@ if "%chrome_pack%"=="1" (
 			copy /Y _version.js .\chrome >nul 2>nul
 		) ELSE (
 			echo.You need to obtain chrome\GameGolem.pem from Rycochet to build the Chrome extension.
+			echo.There is no need for building this is you are just editing for yourself - simply use the "Load Unpacked Extension..." button in the Chrome Extensions page.
 		)
 	)
 )
 
 rem ----------------------------------------------------------------------
-rem INSTALLED VERSION - Means you only need to hit F5 / refresh in Firefox
-rem Just change the path to your firefox installed version, only the '???' should need changing on Windows7
-rem No use installing the "normal" version if the minimised version has been created - no debugging via GreaseMonkey anyway...
-rem if EXIST "%firefox%" (
-rem 	echo.Installing new version to Firefox
-rem 	copy /Y %script% "%firefox%" >nul
-rem )
-FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO (
-	IF NOT "%%~F"=="" (
-		IF EXIST "%%F" (
-			echo.Installing new version to Firefox (%%F)
-			copy /Y %script% %%F\rycochets_castle_age_gol.user.js >nul 2>nul
-			copy /Y golem.css %%F\ >nul 2>nul
-		)
-	)
+rem GREASEMONKEY or SCRIPTISH VERSION - Means you only need to hit F5 / refresh in Firefox
+if NOT "%revision%"=="0" (
+	call:VReplace .\greasemonkey\GameGolem.user.tmpl >.\greasemonkey\GameGolem.user.js
+	copy /Y _version.js .\greasemonkey >nul 2>nul
 )
-
-FOR %%F IN ("%firefox4%","%firefox5%","%firefox6%") DO (
-	IF NOT "%%~F"=="" (
-		IF EXIST "%%F" (
-			echo.Installing new version to Firefox 4 (%%F)
-			copy /Y %script% %%F\rycochetscastleagegolem@golem.user.js >nul 2>nul
-			copy /Y golem.css %%F\ >nul 2>nul
-		)
-	)
+FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO (
+	IF NOT %%~F=="" IF EXIST "%%~F\golem.css" call:Firefox %%F
 )
 
 echo.Finished
@@ -223,4 +220,23 @@ for /f "tokens=* delims=" %%A in (%1) do (
 		echo.!line!
 	) ELSE echo.
 )
+goto:eof
+
+rem ----------------------------------------------------------------------
+rem Firefox path
+:Firefox
+if EXIST "%~1\GameGolem.js" goto:greasemonkey
+if EXIST "%1\GameGolem@golem.user.js" goto:scriptish
+goto:eof
+:greasemonkey
+echo.Installing new version to Greasemonkey (%~1)
+copy /Y golem.css "%~1\" >nul 2>nul
+copy /Y %script% "%~1\GameGolem.js" >nul 2>nul
+copy /Y .\greasemonkey\GameGolem.user.js "%~1\rycochets_castle_age_gol.user.js" >nul 2>nul
+goto:eof
+:scriptish
+echo.Installing new version to Scriptish (%~1)
+copy /Y golem.css "%~1\" >nul 2>nul
+copy /Y %script% "%~1\GameGolem@golem.user.js" >nul 2>nul
+copy /Y .\greasemonkey\GameGolem.user.js "%~1\rycochets_castle_age_gol@golem.user.js" >nul 2>nul
 goto:eof

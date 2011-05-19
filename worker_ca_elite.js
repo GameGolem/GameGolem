@@ -28,8 +28,6 @@ Elite.option = {
 };
 
 Elite.runtime = {
-	armylastpage:1,
-	armyextra:0,
 	waitelite:0,
 	nextelite:0
 };
@@ -72,6 +70,10 @@ Elite.parse = function(change) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + '\'s Elite Guard is full');
 				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
 				Elite.set(['runtime','nextelite']);
+			} else if (txt.match(/Sorry: You must be in Facebook User's Army to join their Elite Guard!/i)) {
+				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + ' is not in your army so can\'t join your Elite Guard');
+				Army.set(['Army',i,'member']);
+				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
 				Elite.set(['runtime','waitelite'], now);
@@ -94,12 +96,14 @@ Elite.update = function(event) {
 		if (check < now) {
 			Army.set(['Elite',i,'elite']);// Delete the old timers if they exist...
 			Army.set(['Elite',i,'full']);// Delete the old timers if they exist...
-			if (Army.get(['Elite',i,'prefer'], false)) {// Prefer takes precidence
-				next = i;
-				break;
-			}
-			if (!next && (!this.option.friends || Army.get(['Army',i,'friend'], false))) { // Only facebook friends unless we say otherwise
-				next = i;// Earlier in our army rather than later
+			if (Army.get(['Army',i,'member'], false)) {
+				if (Army.get(['Elite',i,'prefer'], false)) {// Prefer takes precidence
+					next = i;
+					break;
+				}
+				if (!next && (!this.option.friends || Army.get(['Army',i,'friend'], false))) { // Only facebook friends unless we say otherwise
+					next = i;// Earlier in our army rather than later
+				}
 			}
 		}
 	}

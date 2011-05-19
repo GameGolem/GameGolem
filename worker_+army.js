@@ -63,10 +63,12 @@ Army.setup = function(old_revision) {
 				this._set(['data','Army',i,'member'], true);
 			}
 		}
+		this.data._info = this.data._info || {};
 		for (i in this.data._info) { // Finally remove _info into Army
-			this._set(['data','Army',i], this.data._info[i]);
+			this._set(['data','Army',i], this._get(['data','_info',i],{}));
 			this._set(['data','_info',i])
 		}
+		this._set(['data','_info'])
 	}
 	// END
 };

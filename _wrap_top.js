@@ -1,1 +1,1 @@
-(function($){var jQuery = $;// Top wrapper
+(function($){var jQuery=$;

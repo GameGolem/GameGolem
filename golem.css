@@ -102,7 +102,7 @@
 
 #golem .golem-theme-button, #golem .golem-theme-panel {
 	border: 1px solid #d3d3d3;
-	background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
+	background: #e6e6e6 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
 	color: #555555;
 }
 
@@ -154,7 +154,7 @@
 #golem #golem_config_frame > h3 {
 	position: relative;
 	padding: 2px;
-	background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x;
+	background: #cccccc url(http://rycochet.net/themes/default/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x;
 	font-weight: bold;
 }
 /*
@@ -362,7 +362,7 @@
 
 #golem .golem-button:hover, #golem .golem-button-active {
 	border: 1px solid #aaaaaa;
-	background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
+	background: #dadada url(http://rycochet.net/themes/default/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
 }
 
 #golem img.golem-button, #golem img.golem-button-active {
@@ -390,7 +390,7 @@
 	border: 1px solid #aaaaaa;
 	border-bottom: 0 !important;
 	padding: 2px;
-	background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
+	background: #dadada url(http://rycochet.net/themes/default/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
 }
 
 #golem .golem-group-title {
@@ -520,56 +520,56 @@
 #golem.golem-theme .ui-widget { font-family: inherit; font-size: 11px; }
 #golem.golem-theme .ui-widget .ui-widget { font-size: 11px; }
 #golem.golem-theme .ui-widget input, #golem.golem-theme .ui-widget select, #golem.golem-theme .ui-widget textarea, #golem.golem-theme .ui-widget button { font-family: inherit; font-size: 11px; }
-#golem.golem-theme .ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
+#golem.golem-theme .ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(http://rycochet.net/themes/default/images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
 #golem.golem-theme .ui-widget-content a { color: #3b5998; }
-#golem.golem-theme .ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(http://cloutman.com/css/base/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }
+#golem.golem-theme .ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(http://rycochet.net/themes/default/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }
 #golem.golem-theme .ui-widget-header a { color: #222222; }
 
 /* Interaction states
 ----------------------------------*/
-#golem.golem-theme .ui-state-default, #golem.golem-theme .ui-widget-content .ui-state-default, #golem.golem-theme .ui-widget-header .ui-state-default { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://cloutman.com/css/base/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; }
+#golem.golem-theme .ui-state-default, #golem.golem-theme .ui-widget-content .ui-state-default, #golem.golem-theme .ui-widget-header .ui-state-default { border: 1px solid #d3d3d3; background: #e6e6e6 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #555555; }
 #golem.golem-theme .ui-state-default a, #golem.golem-theme .ui-state-default a:link, #golem.golem-theme .ui-state-default a:visited { color: #555555; text-decoration: none; }
-#golem.golem-theme .ui-state-hover, #golem.golem-theme .ui-widget-content .ui-state-hover, #golem.golem-theme .ui-widget-header .ui-state-hover, #golem.golem-theme .ui-state-focus, #golem.golem-theme .ui-widget-content .ui-state-focus, #golem.golem-theme .ui-widget-header .ui-state-focus { border: 1px solid #999999; background: #dadada url(http://cloutman.com/css/base/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; }
+#golem.golem-theme .ui-state-hover, #golem.golem-theme .ui-widget-content .ui-state-hover, #golem.golem-theme .ui-widget-header .ui-state-hover, #golem.golem-theme .ui-state-focus, #golem.golem-theme .ui-widget-content .ui-state-focus, #golem.golem-theme .ui-widget-header .ui-state-focus { border: 1px solid #999999; background: #dadada url(http://rycochet.net/themes/default/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; }
 #golem.golem-theme .ui-state-hover a, #golem.golem-theme .ui-state-hover a:hover { color: #212121; text-decoration: none; }
-#golem.golem-theme .ui-state-active, #golem.golem-theme .ui-widget-content .ui-state-active, #golem.golem-theme .ui-widget-header .ui-state-active { border: 1px solid #aaaaaa; background: #ffffff url(http://cloutman.com/css/base/images/ui-bg_glass_65_f0f0f0_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; }
+#golem.golem-theme .ui-state-active, #golem.golem-theme .ui-widget-content .ui-state-active, #golem.golem-theme .ui-widget-header .ui-state-active { border: 1px solid #aaaaaa; background: #ffffff url(http://rycochet.net/themes/default/images/ui-bg_glass_65_f0f0f0_1x400.png) 50% 50% repeat-x; font-weight: normal; color: #212121; }
 #golem.golem-theme .ui-state-active a, #golem.golem-theme .ui-state-active a:link, #golem.golem-theme .ui-state-active a:visited { color: #212121; text-decoration: none; }
 #golem.golem-theme .ui-widget :active { outline: none; }
 
 /* Interaction Cues
 ----------------------------------*/
-#golem.golem-theme .ui-state-highlight, #golem.golem-theme .ui-widget-content .ui-state-highlight, #golem.golem-theme .ui-widget-header .ui-state-highlight { border: 1px solid #fcefa1; background: #fbf9ee url(http://cloutman.com/css/base/images/ui-bg_glass_55_fbf9ee_1x400.png) 50% 50% repeat-x; color: #363636; }
+#golem.golem-theme .ui-state-highlight, #golem.golem-theme .ui-widget-content .ui-state-highlight, #golem.golem-theme .ui-widget-header .ui-state-highlight { border: 1px solid #fcefa1; background: #fbf9ee url(http://rycochet.net/themes/default/images/ui-bg_glass_55_fbf9ee_1x400.png) 50% 50% repeat-x; color: #363636; }
 #golem.golem-theme .ui-state-highlight a, #golem.golem-theme .ui-widget-content .ui-state-highlight a, #golem.golem-theme .ui-widget-header .ui-state-highlight a { color: #363636; }
-#golem.golem-theme .ui-state-error, #golem.golem-theme .ui-widget-content .ui-state-error, #golem.golem-theme .ui-widget-header .ui-state-error { border: 1px solid #cd0a0a; background: #fef1ec url(http://cloutman.com/css/base/images/ui-bg_glass_95_fef1ec_1x400.png) 50% 50% repeat-x; color: #cd0a0a; }
+#golem.golem-theme .ui-state-error, #golem.golem-theme .ui-widget-content .ui-state-error, #golem.golem-theme .ui-widget-header .ui-state-error { border: 1px solid #cd0a0a; background: #fef1ec url(http://rycochet.net/themes/default/images/ui-bg_glass_95_fef1ec_1x400.png) 50% 50% repeat-x; color: #cd0a0a; }
 #golem.golem-theme .ui-state-error a, #golem.golem-theme .ui-widget-content .ui-state-error a, #golem.golem-theme .ui-widget-header .ui-state-error a { color: #cd0a0a; }
 #golem.golem-theme .ui-state-error-text, #golem.golem-theme .ui-widget-content .ui-state-error-text, #golem.golem-theme .ui-widget-header .ui-state-error-text { color: #cd0a0a; }
 #golem.golem-theme .ui-priority-primary, #golem.golem-theme .ui-widget-content .ui-priority-primary, #golem.golem-theme .ui-widget-header .ui-priority-primary { font-weight: bold; }
 #golem.golem-theme .ui-priority-secondary, #golem.golem-theme .ui-widget-content .ui-priority-secondary, #golem.golem-theme .ui-widget-header .ui-priority-secondary { opacity: .7; filter: Alpha(Opacity=70); font-weight: normal; }
 #golem.golem-theme .ui-state-disabled, #golem.golem-theme .ui-widget-content .ui-state-disabled, #golem.golem-theme .ui-widget-header .ui-state-disabled { opacity: .50; filter: Alpha(Opacity=50); background-image: none; }
 
-#golem.golem-theme .red { background: #ffd3d3 url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffd3d3_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .red:hover { background: #ffc0c0 url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffc0c0_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .green { background: #d3ffd3 url(http://cloutman.com/css/base/images/ui-bg_glass_75_d3ffd3_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .green:hover { background: #c0ffc0 url(http://cloutman.com/css/base/images/ui-bg_glass_75_c0ffc0_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .blue { background: #d3d3ff url(http://cloutman.com/css/base/images/ui-bg_glass_75_d3d3ff_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .blue:hover { background: #c0c0ff url(http://cloutman.com/css/base/images/ui-bg_glass_75_c0c0ff_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .cyan { background: #d3ffff url(http://cloutman.com/css/base/images/ui-bg_glass_75_d3ffff_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .cyan:hover { background: #c0ffff url(http://cloutman.com/css/base/images/ui-bg_glass_75_c0ffff_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .yellow { background: #ffffd3 url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffffd3_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .yellow:hover { background: #ffffc0 url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffffc0_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .purple { background: #ffd3ff url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffd3ff_1x400.png) 50% 50% repeat-x !important; }
-#golem.golem-theme .purple:hover { background: #ffc0ff url(http://cloutman.com/css/base/images/ui-bg_glass_75_ffc0ff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .red { background: #ffd3d3 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffd3d3_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .red:hover { background: #ffc0c0 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffc0c0_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .green { background: #d3ffd3 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_d3ffd3_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .green:hover { background: #c0ffc0 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_c0ffc0_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .blue { background: #d3d3ff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_d3d3ff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .blue:hover { background: #c0c0ff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_c0c0ff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .cyan { background: #d3ffff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_d3ffff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .cyan:hover { background: #c0ffff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_c0ffff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .yellow { background: #ffffd3 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffffd3_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .yellow:hover { background: #ffffc0 url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffffc0_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .purple { background: #ffd3ff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffd3ff_1x400.png) 50% 50% repeat-x !important; }
+#golem.golem-theme .purple:hover { background: #ffc0ff url(http://rycochet.net/themes/default/images/ui-bg_glass_75_ffc0ff_1x400.png) 50% 50% repeat-x !important; }
 
 /* Icons
 ----------------------------------*/
 
 /* states and images */
 #golem .ui-icon, #golem .golem-icon { width: 16px; height: 16px; background-position: 16px 16px; }
-#golem.golem-theme .ui-icon, #golem.golem-theme .ui-widget-content .ui-icon,#golem.golem-theme .ui-widget-header .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_222222_256x240.png); }
-#golem.golem-theme .ui-state-default .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_888888_256x240.png); }
-#golem.golem-theme .ui-state-hover .ui-icon, .ui-state-focus .ui-icon, #golem.golem-theme .ui-state-active .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_454545_256x240.png); }
-#golem.golem-theme .ui-state-highlight .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_2e83ff_256x240.png); }
-#golem.golem-theme .ui-state-error .ui-icon,#golem.golem-theme .ui-state-error-text .ui-icon { background-image: url(http://cloutman.com/css/base/images/ui-icons_cd0a0a_256x240.png); }
-#golem .golem-icon { background-image: url(http://cloutman.com/css/base/images/golem-icons.png) !important; }
+#golem.golem-theme .ui-icon, #golem.golem-theme .ui-widget-content .ui-icon,#golem.golem-theme .ui-widget-header .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_222222_256x240.png); }
+#golem.golem-theme .ui-state-default .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_888888_256x240.png); }
+#golem.golem-theme .ui-state-hover .ui-icon, .ui-state-focus .ui-icon, #golem.golem-theme .ui-state-active .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_454545_256x240.png); }
+#golem.golem-theme .ui-state-highlight .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_2e83ff_256x240.png); }
+#golem.golem-theme .ui-state-error .ui-icon,#golem.golem-theme .ui-state-error-text .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_cd0a0a_256x240.png); }
+#golem .golem-icon { background-image: url(http://rycochet.net/themes/default/images/golem-icons.png) !important; }
 
 #golem .golem-menu-icon { position: absolute !important; top: 50%; margin-top: -8px; right: 2px; border-left: 1px solid #d3d3d3; }
 
@@ -788,8 +788,8 @@
 #golem.golem-theme .ui-corner-none { -moz-border-radius: 0 !important; -webkit-border-radius: 0 !important; border-radius: 0 !important; }
 
 /* Overlays */
-#golem.golem-theme .ui-widget-overlay { background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter:Alpha(Opacity=30); }
-/*#golem.golem-theme .ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #aaaaaa url(http://cloutman.com/css/base/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter: Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }*/
+#golem.golem-theme .ui-widget-overlay { background: #aaaaaa url(http://rycochet.net/themes/default/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter:Alpha(Opacity=30); }
+/*#golem.golem-theme .ui-widget-shadow { margin: -8px 0 0 -8px; padding: 8px; background: #aaaaaa url(http://rycochet.net/themes/default/images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; opacity: .30; filter: Alpha(Opacity=30); -moz-border-radius: 8px; -webkit-border-radius: 8px; border-radius: 8px; }*/
 #golem.golem-theme .ui-widget-shadow { box-shadow: 2px 2px 4px black; -webkit-box-shadow: 2px 2px 4px black; -moz-box-shadow: 2px 2px 4px black; }
 
 
