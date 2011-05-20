@@ -47,13 +47,13 @@ Update.init = function() {
 	switch(browser) {
 		case 'chrome':
 			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
 			break;
-		default:
-			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js';
+		default: // No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
+			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
 			break;
 	}
 	// Add an update button for everyone

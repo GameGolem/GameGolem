@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.5.1117
+ * GameGolem v31.6.1118
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.5.1117
+ * GameGolem v31.6.1118
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -452,8 +452,8 @@ h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow"
 var isRelease = false;
 var script_started = Date.now();
 // Version of the script
-var version = "31.5";
-var revision = 1117;
+var version = "31.6";
+var revision = 1118;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -3090,7 +3090,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	var i, j, k, tmp, stop = false;
 	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
 		'<h3 class="ui-widget-header">' +
-			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
+			'GameGolem ' + version + (!isRelease ? '.' + revision : '') +
 		'</h3>' +
 		'<div class="ui-widget-content" style="margin-top:-1px;padding:0 4px 4px 4px;">' +
 			'<div id="golem_info" style="margin:0 -4px;">' +
@@ -6679,13 +6679,13 @@ Update.init = function() {
 	switch(browser) {
 		case 'chrome':
 			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
 			break;
-		default:
-			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/_release.user.js';
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js';
+		default: // No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
+			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
+			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
+			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
 			break;
 	}
 	// Add an update button for everyone
@@ -13071,9 +13071,16 @@ Player.parse = function(change) {
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
 	if (change) {
 		if (Page.page==='keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
-			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Various Stats</td></tr></thead><tbody>' +
-			'<tr><td>BSI:</td><td>' + this.get('bsi',0) + '</td></tr>' +
-			'<tr><td>LSI:</td><td>' + this.get('lsi',0) + '</td></tr>' +
+			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Player Stats</td></tr></thead><tbody>' +
+			'<tr title="Battle Strength Index: Attack + defense / level. This is a gauge of your strength in PvP relative to others of the same level. Often seems to be regarded as the length of your CA [censored] given the importance many people regard it with."><td>BSI:</td><td>' + this.get('bsi') + '</td></tr>' +
+			'<tr title="Leveling Speed Index: 2X Stamina + energy / level. This is a gauge of how quickly you will level relative to others of the same level."><td>LSI:</td><td>' + this.get('lsi') + '</td></tr>' +
+			'<tr title="Guild Battle Strength Index: Attack + defense + health - 100 / level. Health is no longer a waste with Guild battles."><td>GBSI:</td><td>' + this.get('gbsi') + '</td></tr>' +
+			'<tr title="Skill Point Aquistion Efficiency Quotent: BSI + LSI + (Health -100) / level. This a overall gauge of your efficiency in playing Castle Age."><td>SPAEQ:</td><td>' + this.get('spaeq') + '</td></tr>' +
+			'<tr title="Monster Hunting Build Effective Quotent: Attack + 2X Stamina / level. This is a gauge of how effective a monter hunter you are relative to others of the same level."><td>MHBEQ:</td><td>' + this.get('mhbeq') + '</td></tr>' +
+			'<tr title="Attack + 0.7 * Defense"><td>Attack:</td><td>' + (data.attack + (0.7 * data.defense)).round(2) + '</td></tr>' +
+			'<tr title="Defense + 0.7 * Attack"><td>Defense:</td><td>' + (data.defense + (0.7 * data.attack)).round(2) + '</td></tr>' +
+			'<tr title="A label given to your build type."><td>Build:</td><td>' + this.get('build') + '</td></tr>' +
+			'<tr title="A rough label given to the best way for you to level up."><td>Role:</td><td>' + this.get('role') + '</td></tr>' +
 			'</tbody></table>';
 			$tmp.append('<div style="margin:-238px 18px 2px 21px;height:213px;border:1px solid #8b5928;padding:10px;color:black;background-color:#b2804f;font-size:10px;">' + tmp + '</div>');
 		}
@@ -13235,7 +13242,7 @@ Player.update = function(event) {
 };
 
 Player.get = function(what, def) {
-	var data = this.data;
+	var i, data = this.data;
 	switch(what) {
 		case 'cash_timer':		return (data.cash_time - Date.now()) / 1000;
 		case 'energy_timer':	return $('#'+APPID_+'energy_time_value').text().parseTimer();
@@ -13245,7 +13252,14 @@ Player.get = function(what, def) {
 		case 'bank':			return (data.bank - Bank.option.keep > 0) ? data.bank - Bank.option.keep : 0;
 		case 'bsi':				return ((data.attack + data.defense) / data.level).round(2);
 		case 'lsi':				return (((data.maxstamina * 2) + data.maxenergy) / data.level).round(2);
+		case 'gbsi':			return ((data.attack + data.defense + data.maxhealth - 100) / data.level).round(2);
+		case 'spaeq':			return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / this.get('level')).round(2);
+		case 'mhbeq':			return ((data.attack + (data.maxstamina * 2)) / data.level).round(2);
 		case 'csi':				return ((data.attack + data.defense + (data.maxstamina * 2) + data.maxenergy + data.maxhealth - 100) / data.level).round(2);
+		case 'build':			i = (data.attack / data.defense);
+								return (i >= 10 ? 'Destroyer' : i >= 2 ? 'Aggressor' : i >= 1.1 ? 'Offensive' : i <= 0.9 ? 'Defensive' : i <= 0.5 ? 'Paladin' : i <= 0.1 ? 'Wall' : 'Balanced');
+		case 'role':			i = (this.get('lsi') / this.get('bsi'));
+								return (i >= 4 ? 'Leveller' : i >= 1.6 ? 'Hunter' : i >= 1.3 ? 'Hunter Hybrid' : i >= 0.75 ? 'Balanced Hybrid' : i >= 0.6 ? 'Strong Hybrid' : i >= 0.25 ? 'PvPer' : 'Pure PvPer');
 		default: return this._get.apply(this, arguments);
 	}
 };

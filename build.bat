@@ -179,6 +179,7 @@ rem ----------------------------------------------------------------------
 rem GREASEMONKEY or SCRIPTISH VERSION - Means you only need to hit F5 / refresh in Firefox
 if NOT "%revision%"=="0" (
 	call:VReplace .\greasemonkey\GameGolem.user.tmpl >.\greasemonkey\GameGolem.user.js
+	call:VReplace .\greasemonkey\GameGolem.release.user.tmpl >.\greasemonkey\GameGolem.release.user.js
 	copy /Y _version.js .\greasemonkey >nul 2>nul
 )
 FOR %%F IN ("%firefox%","%firefox1%","%firefox2%") DO (

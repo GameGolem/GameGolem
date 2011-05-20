@@ -3,7 +3,7 @@
 // @namespace	golem
 // @description	Installer for Game Golem - Austoplayer for Castle Age.
 // @license		GNU Lesser General Public License; http://www.gnu.org/licenses/lgpl.html
-// @version		1.0
+// @version		1.1
 // @include		http://apps.facebook.com/castle_age/*
 // @include		https://apps.facebook.com/castle_age/*
 // ==/UserScript==
@@ -16,7 +16,7 @@
 // - http://code.google.com/p/game-golem/
 //
 // For the unshrunk Work In Progress version (which may introduce new bugs)
-// - http://game-golem.googlecode.com/svn/trunk/_normal.user.js
+// - http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js
 
 if (/^apps\.facebook\.com$/i.test(window.location.host)) {
 	var text = "Golem Installer\n\n" +
@@ -26,7 +26,7 @@ if (/^apps\.facebook\.com$/i.test(window.location.host)) {
 
 	window.setTimeout(function(){// Act 5 seconds after page load to prevent lockups etc
 		if (confirm(text)) {
-			window.location.href = 'http://game-golem.googlecode.com/svn/trunk/_normal.user.js';
+			window.location.href = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js';
 		}
 	},5000);
 }

@@ -281,7 +281,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	var i, j, k, tmp, stop = false;
 	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
 		'<h3 class="ui-widget-header">' +
-			'Game-Golem ' + (isRelease ? 'v'+version : 'r'+revision) +
+			'GameGolem ' + version + (!isRelease ? '.' + revision : '') +
 		'</h3>' +
 		'<div class="ui-widget-content" style="margin-top:-1px;padding:0 4px 4px 4px;">' +
 			'<div id="golem_info" style="margin:0 -4px;">' +
