@@ -128,7 +128,8 @@ if EXIST "%java%" (
 		type jquery-ui.latest.min.js >>GameGolem.min.js 2>nul
 		call:VReplace _head.tmpl >>GameGolem.min.js
 		type _wrap_top.js >>GameGolem.min.js 2>nul
-		"%java%" -jar "%compiler%" %files% >> GameGolem.min.js
+		"%java%" -jar "%compiler%"  %files% >> GameGolem.min.js
+rem		"%java%" -jar "%compiler%" --warning_level VERBOSE %files% >> GameGolem.min.js 2>error.log
 		type _wrap_bottom.js >>GameGolem.min.js 2>nul
 rem While is may be smaller to use the minimised version in places, generally that interferes with debugging...
 rem		set script=GameGolem.min.js

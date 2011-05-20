@@ -446,6 +446,21 @@ Monster.types = {
 		festival_timer: 259200, // 72 hours
 		festival: 'sylvanus'
 	},
+	ambrosia: {
+		name:'Ambrosia',
+		list:'boss_ambrosia_list.jpg',
+		image:'boss_ambrosia_large.jpg',
+		dead:'boss_ambrosia_dead.jpg',
+		achievement:1000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"]',
+		attack:[1,5,10,20,50] // Needs details
+//		festival_timer: 259200, // 72 hours
+//		festival: 'ambrosia'
+	},
+
+
 	// Epic Team
 	dragon_emerald: {
 		name:'Emerald Dragon',

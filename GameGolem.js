@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1118
+ * GameGolem v31.6.1119
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1118
+ * GameGolem v31.6.1119
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1118;
+var revision = 1119;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -5126,7 +5126,7 @@ Page.delTimer = function(id) {
 	this.set(['runtime','timers','golem_timer_'+id]);
 };
 
-/*
+/**
  * Set a value in one of our _datatypes
  * @param {string} page The page we need to visit
  * @param {number} age How long is it allowed to be stale before we need to visit it again (in seconds), use -1 for "now"
@@ -5146,10 +5146,10 @@ Page.stale = function(page, age, go) {
 	return true;
 };
 
-/*
+/**
  * Mark a page as stale, hinting to relevant workers that it needs a visit.
  * @param {string} page The page to mark as stale
- * @param {number} [when=Date.now()] Optional point when the page became stale.
+ * @param {number} when Optional point when the page became stale.
  */
 Page.setStale = function(page, when) {
 	var now = Date.now(),
@@ -5169,7 +5169,7 @@ Page.setStale = function(page, when) {
 	}
 };
 
-/*
+/**
  * Test if a page is considered stale.
  * @param {string} page The page to check for staleness
  * @param {number} [when] Optional check against a specific time.
@@ -11162,6 +11162,21 @@ Monster.types = {
 		festival_timer: 259200, // 72 hours
 		festival: 'sylvanus'
 	},
+	ambrosia: {
+		name:'Ambrosia',
+		list:'boss_ambrosia_list.jpg',
+		image:'boss_ambrosia_large.jpg',
+		dead:'boss_ambrosia_dead.jpg',
+		achievement:1000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"]',
+		attack:[1,5,10,20,50] // Needs details
+//		festival_timer: 259200, // 72 hours
+//		festival: 'ambrosia'
+	},
+
+
 	// Epic Team
 	dragon_emerald: {
 		name:'Emerald Dragon',
