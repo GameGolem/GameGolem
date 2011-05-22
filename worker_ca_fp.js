@@ -4,8 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.FP **********
 * Automatically buys FP refills
@@ -101,7 +100,7 @@ FP.notReady = function() {
 };
 
 FP.update = function(event) {
-	Dashboard.status(this, 'You have ' + makeImage('favor') + this.runtime.points + ' favor points.');
+	Dashboard.status(this, 'You have ' + Config.makeImage('favor') + this.runtime.points + ' favor points.');
 	this.set(['option','_sleep'], FP.notReady());
 //	log(LOG_WARN, 'a '+(Player.get(this.option.type,0) >= this.option.stat));
 //	log(LOG_WARN, 'b '+(Player.get('exp_needed', 0) < this.option.xp));

@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, getImage, log, warn, error, isUndefined
+	getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -36,11 +36,7 @@ Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
-		if (this.option.display === 'block') {
-			this.option.display = true;
-		} else {
-			delete this.option.display;
-		}
+		this.option.display = (this.option.display === true || this.option.display === 'block');
 	}
 	// END
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
@@ -240,6 +236,12 @@ Config.menu = function(worker, key) {
 };
 
 /** @this {Worker} */
+Config.makeImage = function(name, options) {
+	options = isObject(options) ? options : isString(options) ? {title:options} : {};
+	return '<span' + (options.id ? ' id="' + options.id + '"' : '') + (options.title ? ' title="' + options.title + '"' : '') + ' style="margin-bottom:-4px;' + (options.style ? options.style : '') + '"' + ' class="ui-icon golem-icon golem-icon-' + name + (options.className ? ' ' + options.className : '') + '"></span>';
+};
+
+/** @this {Worker} */
 Config.addButton = function(options) {
 	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
 		options.hide = true;
@@ -386,16 +388,14 @@ Config.makePanel = function(worker, args) {
 		args = worker.display;
 	}
 	if (!$('#'+worker.id).length) {
-		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
-			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
-			sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
+		var name = worker.name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit), sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
 		$('#golem_config').append(tmp = $(
-			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
-				'<h3 class="' + disabled + '">' +
+			'<div id="' + worker.id + '" name="' + name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
+				'<h3>' +
 					'<a href="#">' +
 						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
-						worker.name +
-						makeImage('zzz', worker.name + ' sleeping...', 'golem_sleep_' + worker.name, sleep) +
+						name +
+						this.makeImage('zzz', {title:name + ' sleeping...', id:'golem_sleep_' + name, className:sleep}) +
 					'</a>' +
 				'</h3>' +
 				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +

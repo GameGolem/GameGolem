@@ -29,11 +29,7 @@ Dashboard.option = {
 Dashboard.init = function(old_revision) {
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
-		if (this.option.display === 'block') {
-			this.option.display = true;
-		} else {
-			delete this.option.display;
-		}
+		this.option.display = (this.option.display === true || this.option.display === 'block');
 	}
 	// END
 	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide, selected = 0;
@@ -62,7 +58,7 @@ Dashboard.init = function(old_revision) {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;display:none;"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
+	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;' + (this.option.display ? '' : 'display:none;') + '"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
 	$('<a style="position:absolute;top:3px;right:3px;" class="ui-icon ui-icon-circle-' + (this.option.expand ? 'minus' : 'plus') + '"></a>').click(function(event){
 		$(this).toggleClass('ui-icon-circle-minus ui-icon-circle-plus');
 		Dashboard.toggle(['option','expand']);
@@ -85,7 +81,6 @@ Dashboard.init = function(old_revision) {
 		click:function(){
 			$(this).toggleClass('golem-button golem-button-active green');
 			$('#golem-dashboard').stop()[Dashboard.toggle(['option','display'], true) ? 'fadeIn' : 'fadeOut']('fast');
-			Dashboard._update(null, 'run');
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
@@ -145,9 +140,6 @@ Dashboard.update = function(event, events) {
 		}
 		offset = $el.offset();
 		$('#golem-dashboard')[event ? 'css' : 'animate']({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
-	}
-	if (events.findEvent(this, 'init') && this.option.display) {
-		$('#golem-dashboard').show();
 	}
 	return true;
 };

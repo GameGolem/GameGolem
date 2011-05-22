@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	makeImage, getItem, setItem, empty, compare, error
+	empty, compare, error
 */
 /* Worker Prototype
    ----------------
@@ -381,7 +381,7 @@ Worker.prototype._load = function(type, merge) {
 	}
 	this._pushStack();
 	path = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	raw = getItem(path);
+	raw = localStorage['golem.' + APP + '.' + path];
 	if (isString(raw)) { // JSON encoded string
 		try {
 			this._storage[type] = (path.length + raw.length) * 2; // x2 for unicode
@@ -391,8 +391,11 @@ Worker.prototype._load = function(type, merge) {
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
-		if (merge && !compare(data, this[type])) {
+		if (merge) {
 			this[type] = $.extend(true, {}, this[type], data);
+			if (!compare(data, this[type])) {
+				this._taint[type] = true; // Taint if we've changed from the default data
+			}
 		} else {
 			this[type] = data;
 			this._taint[type] = false;
@@ -655,12 +658,12 @@ Worker.prototype._save = function(type) {
 			return false; // exit so we don't try to save mangled data over good data
 		}
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-		if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
+		if (this._taint[type] || localStorage['golem.' + APP + '.' + n] !== v) { // First two are to save the extra localStorage access
 			this._pushStack();
 			this._taint[type] = false;
 			this._timestamps[type] = Date.now();
 			try {
-				setItem(n, v);
+				localStorage['golem.' + APP + '.' + n] = v;
 				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
 				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 				this._numvars[type] = metrics.num || 0;

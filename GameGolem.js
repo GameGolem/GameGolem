@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1123
+ * GameGolem v31.6.1124
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1123
+ * GameGolem v31.6.1124
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1123;
+var revision = 1124;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -638,32 +638,6 @@ var log = function(level, txt /*, obj, array etc*/){
 		console.log(args);
 	}
 };
-
-/**
- * Store data in localStorage
- * @param {string} n Name of the item to be stored (normally worker.type)
- * @param {string} v Value to be stored
- */
-var setItem = function(n, v) {
-	localStorage.setItem('golem.' + APP + '.' + n, v);
-};
-
-/**
- * Retreive data from localStorage
- * @param {string} n Name of the item to be stored (normally worker.type)
- * @return {string} Value to be retreived
- */
-var getItem = function(n) {
-	return localStorage.getItem('golem.' + APP + '.' + n);
-};
-
-/**
- * In Firefox / GreaseMonkey we currently use the GM storage area rather than localStorage...
- */
-if (browser === 'greasemonkey') {
-	setItem = GM_setValue;
-	getItem = GM_getValue;
-}
 
 // Prototypes to ease functionality
 
@@ -1454,10 +1428,6 @@ var getImage = function(name) {
 	return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
 };
 
-var makeImage = function(name, title, id, className) {
-	return '<img' + (id ? ' id="' + id + '"' : '') + ' class="ui-icon golem-icon golem-icon-' + name + (className ? ' ' + className : '') + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
-};
-
 var assert = function(test, msg, type) {
 	if (!test) {
 		throw {'name':type || 'Assert Error', 'message':msg};
@@ -1810,7 +1780,7 @@ Script.prototype.parse = function() {
 	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	makeImage, getItem, setItem, empty, compare, error
+	empty, compare, error
 */
 /* Worker Prototype
    ----------------
@@ -2186,7 +2156,7 @@ Worker.prototype._load = function(type, merge) {
 	}
 	this._pushStack();
 	path = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-	raw = getItem(path);
+	raw = localStorage['golem.' + APP + '.' + path];
 	if (isString(raw)) { // JSON encoded string
 		try {
 			this._storage[type] = (path.length + raw.length) * 2; // x2 for unicode
@@ -2196,8 +2166,11 @@ Worker.prototype._load = function(type, merge) {
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
-		if (merge && !compare(data, this[type])) {
+		if (merge) {
 			this[type] = $.extend(true, {}, this[type], data);
+			if (!compare(data, this[type])) {
+				this._taint[type] = true; // Taint if we've changed from the default data
+			}
 		} else {
 			this[type] = data;
 			this._taint[type] = false;
@@ -2460,12 +2433,12 @@ Worker.prototype._save = function(type) {
 			return false; // exit so we don't try to save mangled data over good data
 		}
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
-		if (this._taint[type] || getItem(n) !== v) { // First two are to save the extra getItem from being called
+		if (this._taint[type] || localStorage['golem.' + APP + '.' + n] !== v) { // First two are to save the extra localStorage access
 			this._pushStack();
 			this._taint[type] = false;
 			this._timestamps[type] = Date.now();
 			try {
-				setItem(n, v);
+				localStorage['golem.' + APP + '.' + n] = v;
 				this._storage[type] = (n.length + v.length) * 2; // x2 for unicode
 				this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 				this._numvars[type] = metrics.num || 0;
@@ -3176,7 +3149,7 @@ Coding.dashboard = function() {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, getImage, log, warn, error, isUndefined
+	getImage, log, warn, error, isUndefined
 */
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -3207,11 +3180,7 @@ Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
-		if (this.option.display === 'block') {
-			this.option.display = true;
-		} else {
-			delete this.option.display;
-		}
+		this.option.display = (this.option.display === true || this.option.display === 'block');
 	}
 	// END
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
@@ -3411,6 +3380,12 @@ Config.menu = function(worker, key) {
 };
 
 /** @this {Worker} */
+Config.makeImage = function(name, options) {
+	options = isObject(options) ? options : isString(options) ? {title:options} : {};
+	return '<span' + (options.id ? ' id="' + options.id + '"' : '') + (options.title ? ' title="' + options.title + '"' : '') + ' style="margin-bottom:-4px;' + (options.style ? options.style : '') + '"' + ' class="ui-icon golem-icon golem-icon-' + name + (options.className ? ' ' + options.className : '') + '"></span>';
+};
+
+/** @this {Worker} */
 Config.addButton = function(options) {
 	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
 		options.hide = true;
@@ -3557,16 +3532,14 @@ Config.makePanel = function(worker, args) {
 		args = worker.display;
 	}
 	if (!$('#'+worker.id).length) {
-		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
-			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
-			sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
+		var name = worker.name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit), sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
 		$('#golem_config').append(tmp = $(
-			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
-				'<h3 class="' + disabled + '">' +
+			'<div id="' + worker.id + '" name="' + name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
+				'<h3>' +
 					'<a href="#">' +
 						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
-						worker.name +
-						makeImage('zzz', worker.name + ' sleeping...', 'golem_sleep_' + worker.name, sleep) +
+						name +
+						this.makeImage('zzz', {title:name + ' sleeping...', id:'golem_sleep_' + name, className:sleep}) +
 					'</a>' +
 				'</h3>' +
 				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +
@@ -3908,11 +3881,7 @@ Dashboard.option = {
 Dashboard.init = function(old_revision) {
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
-		if (this.option.display === 'block') {
-			this.option.display = true;
-		} else {
-			delete this.option.display;
-		}
+		this.option.display = (this.option.display === true || this.option.display === 'block');
 	}
 	// END
 	var i, j, list = [], tabs = [], divs = [], active = this.option.active, hide, selected = 0;
@@ -3941,7 +3910,7 @@ Dashboard.init = function(old_revision) {
 		this._watch(Workers[i], 'data');
 		this._watch(Workers[i], 'option._hide_dashboard');
 	}
-	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;display:none;"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
+	$('#golem').append('<div id="golem-dashboard" class="ui-corner-none" style="position:absolute;' + (this.option.display ? '' : 'display:none;') + '"><ul class="ui-corner-none">' + tabs.join('') + '</ul><div>' + divs.join('') + '</div></div>');
 	$('<a style="position:absolute;top:3px;right:3px;" class="ui-icon ui-icon-circle-' + (this.option.expand ? 'minus' : 'plus') + '"></a>').click(function(event){
 		$(this).toggleClass('ui-icon-circle-minus ui-icon-circle-plus');
 		Dashboard.toggle(['option','expand']);
@@ -3964,7 +3933,6 @@ Dashboard.init = function(old_revision) {
 		click:function(){
 			$(this).toggleClass('golem-button golem-button-active green');
 			$('#golem-dashboard').stop()[Dashboard.toggle(['option','display'], true) ? 'fadeIn' : 'fadeOut']('fast');
-			Dashboard._update(null, 'run');
 		}
 	});
 	$('#golem-dashboard thead th').live('click', function(event){
@@ -4024,9 +3992,6 @@ Dashboard.update = function(event, events) {
 		}
 		offset = $el.offset();
 		$('#golem-dashboard')[event ? 'css' : 'animate']({'top':offset.top + margin, 'left':offset.left + margin, 'width':width - (2 * margin), 'height':height - (2 * margin)});
-	}
-	if (events.findEvent(this, 'init') && this.option.display) {
-		$('#golem-dashboard').show();
 	}
 	return true;
 };
@@ -4864,7 +4829,7 @@ History.makeGraph = function(type, title, options) {
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -4905,7 +4870,7 @@ Main.parse = function() {
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 	var i, old_revision, head, a, b;
 	if (events.findEvent(null,null,'kickstart')) {
-		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
+		old_revision = parseInt(localStorage['golem.' + APP + '.revision'] || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
 				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
@@ -4929,9 +4894,9 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			Workers[i]._update('init', 'run');
 		}
 		if (old_revision !== revision) {
-			setItem('revision', revision);
+			localStorage['golem.' + APP + '.revision'] = revision;
 		}
-		$('#golem').css({'visibility':'visible'});
+		$('#golem').css({'visibility':''});
 	}
 	if (events.findEvent(null,'startup')) {
 		// Let's get jQuery running
@@ -5088,7 +5053,7 @@ if (!Main.loaded) { // Prevent double-start
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Menu **********
 * Handles menu creation and selection for Config
@@ -5158,7 +5123,7 @@ Menu.init = function() {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, log, warn, error
+	log, warn, error
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -5731,23 +5696,12 @@ Queue.init = function(old_revision) {
 };
 
 Queue.update = function(event, events) {
-	var i, worker, result, next, release = false;
-	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
-		worker = event.worker;
-		i = worker._get(['option', '_disabled'], false);
-		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
-		if (i && this.temp.current === worker.name) {
-			this.set(['temp','current'], null);
-		}
+	var i, worker, result, next, release = false, tmp1, tmp2;
+	if (events.findEvent(null, 'watch', 'option._disabled') || events.findEvent(this, 'watch', 'temp.current') || events.findEvent(this, 'init')) { // A worker getting disabled / enabled
+		this.updateDisplay();
 	}
 	if (events.getEvent(this, 'watch', 'option.delay')) {
-		this._forget('run'); // Re-started later if possible
-	}
-	if (events.getEvent(this, 'watch', 'temp.current')) {
-		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		if (this.temp.current) {
-			$('#'+Workers[this.temp.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		}
+		this._forget('run'); // Re-started later
 	}
 	if (this.temp.sleep
 	 || events.findEvent(null, 'watch')
@@ -5806,6 +5760,7 @@ Queue.update = function(event, events) {
 		if (next !== worker && (!worker || !worker.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['temp','current'], next.name);
+			this.updateDisplay();
 		}
 //		log(LOG_DEBUG, 'End Queue');
 	}
@@ -5820,6 +5775,17 @@ Queue.menu = function(worker, key) {
 			}
 		} else if (key === 'enable') {
 			worker.set(['option','_disabled'], worker.option._disabled ? undefined : true);
+		}
+	}
+};
+
+Queue.updateDisplay = function() {
+	var i, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
+	for (i in Workers) {
+		if (Workers[i].display) {
+			$('#'+Workers[i].id+' > h3')
+				.toggleClass(tmp1, Workers[i]._get(['option','_disabled'], false))
+				.toggleClass(tmp2, (i === this.temp.current));
 		}
 	}
 };
@@ -6160,12 +6126,13 @@ Session.setup = function() {
 		this.set(['option','timeout'], Global.get(['option','session','timeout'], this.option.timeout));
 		Global.set(['option','session']);
 	}
+	var now = Date.now();
 	try {
-		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
-			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
+		if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
+			sessionStorage['golem.'+APP] = Session.temp._id = '#' + now;
 		}
 	} catch(e) {// sessionStorage not available
-		Session.temp._id = '#' + Date.now();
+		Session.temp._id = '#' + now;
 	}
 };
 
@@ -6418,19 +6385,15 @@ Settings.menu = function(worker, key) {
 				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
 					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
 						// Well, they've had two chances...
-						if (browser === 'greasemonkey') {
-							keys = GM_listValues();
-							while ((i = keys.pop())) {
-								GM_deleteValue(i);
-							}
-						} else {
-							for (i in localStorage) {
-								if (i.indexOf('golem.' + APP + '.') === 0) {
-									localStorage.removeItem(i);
-								}
+//						log(LOG_INFO, 'Reset: '+localStorage.length+' keys total');
+						for (i=0; i < localStorage.length; i++) {
+							while (i < localStorage.length && localStorage[i].indexOf('golem.' + APP + '.') === 0) {
+//								log(LOG_INFO, 'Reset: deleting key "'+localStorage[i]+'"');
+								delete localStorage[localStorage[i]];
 							}
 						}
-						window.location.replace(window.location.href);
+						Queue._forget('run'); // Just to be safe(ish)...
+						window.location = window.location.href;
 					}
 				}
 			}
@@ -6505,7 +6468,7 @@ Settings.dashboard = function() {
 		if (Config.option.advanced) {
 			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 		}
-		html += '<div style="position:relative;"><textarea id="golem_settings_edit" style="position:absolute;top:0;left:0;right:0;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea></div>';
+		html += '<div style="position:relative;"><textarea id="golem_settings_edit" style="position:absolute;width:98%;top:0;left:0;right:0;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea></div>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});
@@ -6641,7 +6604,7 @@ Title.alias = function(name,str) {
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Theme **********
 * Stores Theme-specific settings as well as allowing to change the theme.
@@ -7363,8 +7326,7 @@ Army._overload('castle_age', 'work', function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Bank **********
 * Auto-banking
@@ -7435,7 +7397,7 @@ Bank.work = function(state) {
 };
 
 Bank.update = function(event) {
-	Dashboard.status(this, makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>');
 	this.set('option._sleep', !(this.temp.force || (this.option.auto && Player.get('cash', 0) >= Math.max(10, this.option.above, this.option.hand))));
 };
 
@@ -7495,7 +7457,7 @@ Bank.menu = function(worker, key) {
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, getImage
+	getImage
 */
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
@@ -8151,8 +8113,7 @@ Battle.dashboard = function(sort, rev) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Blessing **********
 * Automatically receive blessings
@@ -8223,19 +8184,19 @@ Blessing.update = function(event){
          d = new Date(this.runtime.when);
          switch(this.option.which){
              case 'Energy':
-                 demi = makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
                  break;
              case 'Attack':
-                 demi = makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
                  break;
              case 'Defense':
-                 demi = makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
                  break;
              case 'Health':
-                 demi = makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
                  break;
              case 'Stamina':
-                 demi = makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
                  break;
              default:
                  demi = 'Unknown';
@@ -8441,7 +8402,7 @@ Elite.army = function(action, uid) {
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, bestObjValue,
+	bestObjValue,
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -9972,8 +9933,7 @@ Idle.work = function(state) {
 	Bank, Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Income **********
 * Auto-general for Income, also optional bank
@@ -10030,7 +9990,7 @@ Income.update = function(event) {
 	if ((this.set(['temp','income'], when <= 0))) {
 		this.set(['temp','bank'], true);
 	}
-	Dashboard.status(this, makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + Config.makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
 	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
 };
 
@@ -10368,7 +10328,7 @@ Land.work = function(state) {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, calc_rolling_weighted_average
+	calc_rolling_weighted_average
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -10561,7 +10521,7 @@ LevelUp.update = function(event, events) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' +
-			Page.addTimer('levelup', this.get('level_time')) + ' (' + makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
+			Page.addTimer('levelup', this.get('level_time')) + ' (' + Config.makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
 			makeTimer((this.get('refill_energy') - Date.now()) / 1000) + ' per energy, ' +
 			makeTimer((this.get('refill_stamina') - Date.now()) / 1000) + ' per stamina)</span>');
 	}
@@ -10802,7 +10762,7 @@ LevelUp.resource = function() {
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, calc_rolling_weighted_average, bestObjValue
+	calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
  * Automates Monster
@@ -12522,12 +12482,12 @@ Monster.update = function(event) {
 			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health', 0)) : 0);
 			stat_req = Math.max(0, (this.runtime[ensta[i]] || 0) - LevelUp.runtime[ensta[i]]);
 			if (stat_req || req_health) {
-				messages.push('Waiting for ' + (stat_req ? makeImage(ensta[i]) + stat_req : '')
-				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '')
+				messages.push('Waiting for ' + (stat_req ? Config.makeImage(ensta[i]) + stat_req : '')
+				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? Config.makeImage('health') + req_health : '')
 				+ ' to ' + defatt[i] + ' ' + fullname[defatt[i]]
-				+ ' (' + makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
+				+ ' (' + Config.makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? Config.makeImage('health') + req_health : '') + ')');
 			} else {
-				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + makeImage(ensta[i])
+				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + Config.makeImage(ensta[i])
 						+ (this.runtime[ensta[i]] || 0) + '+)');
 				this.runtime.mode = this.runtime.mode || defatt[i];
 				this.runtime.stat = this.runtime.stat || ensta[i];
@@ -12922,8 +12882,7 @@ Monster.conditions = function (type, conditions) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.News **********
 * Aggregate the news feed
@@ -13017,7 +12976,7 @@ News.parse = function(change) {
 			sort.sort(function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
 			for (j=0; j<sort.length; j++) {
 				i = sort[j];
-				list.push(Page.makeLink('keep.php', {casuser:i}, user[i].name) + ' <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '">' + makeImage('facebook') + '</a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
+				list.push(Page.makeLink('keep.php', {casuser:i}, user[i].name) + ' <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '">' + Config.makeImage('facebook') + '</a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
 			}
 			$('#'+APPID_+'battleUpdateBox .alertsContainer').prepend('<div style="padding: 0pt 0pt 10px;"><div class="alert_title">Summary:</div><div class="alert_content">' + list.join('<br>') + '</div></div>');
 		}
@@ -13366,8 +13325,7 @@ Player.get = function(what, def) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Potions **********
 * Automatically drinks potions
@@ -13463,7 +13421,7 @@ Potions.update = function(event) {
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
-			txt.push(makeImage('potion-'+l) + this.data[i] + '/' + this.option[i] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
+			txt.push(Config.makeImage('potion-'+l) + this.data[i] + '/' + this.option[i] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
 		}
 		if (!levelup && isNumber(this.option[i]) && this.data[i] > this.option[i] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
@@ -13493,8 +13451,7 @@ Potions.work = function(state) {
 	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Quest **********
 * Completes quests with a choice of general
@@ -14047,7 +14004,7 @@ Quest.update = function(event) {
 		}
 	}
 	if (best) {
-		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + makeImage('energy') + data.id[best].energy + ' = ' + makeImage('exp') + data.id[best].exp + ' + ' + makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
+		Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + Config.makeImage('energy') + data.id[best].energy + ' = ' + Config.makeImage('exp') + data.id[best].exp + ' + ' + Config.makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + Config.makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
 	} else {
 		Dashboard.status(this);
 	}
@@ -14917,8 +14874,7 @@ Quest.rdata =			// #419
 	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
@@ -15622,7 +15578,7 @@ Town.update = function(event, events) {
 		best_buy = null;
 		buy = 0;
 		upkeep = sell * (data[best_sell].upkeep || 0);
-		Dashboard.status(this, (this.option._disabled ? 'Would sell ' : 'Selling ') + sell + ' &times; ' + best_sell + ' for ' + makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
+		Dashboard.status(this, (this.option._disabled ? 'Would sell ' : 'Selling ') + sell + ' &times; ' + best_sell + ' for ' + Config.makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
@@ -15631,9 +15587,9 @@ Town.update = function(event, events) {
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
 		} else if (Bank.worth(cost + land_buffer)) {
-			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
-			Dashboard.status(this, 'Waiting for ' + makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + makeImage('gold') + '$' + cost.SI());
+			Dashboard.status(this, 'Waiting for ' + Config.makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI());
 		}
 	} else {
 		if (this.option.maxcost === 'INCR'){
@@ -16067,8 +16023,7 @@ Town.dup_map = {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Upgrade **********
 * Spends upgrade points
@@ -16168,7 +16123,7 @@ Upgrade.update = function(event, events) {
 	this.set(['runtime','next']);
 	for (i in data) {
 		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
-			Dashboard.status(this, 'Next point: ' + makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
 			this.set(['runtime','next'], i);
 			break;
 		}
@@ -16191,8 +16146,7 @@ Upgrade.work = function(state) {
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.FP **********
 * Automatically buys FP refills
@@ -16288,7 +16242,7 @@ FP.notReady = function() {
 };
 
 FP.update = function(event) {
-	Dashboard.status(this, 'You have ' + makeImage('favor') + this.runtime.points + ' favor points.');
+	Dashboard.status(this, 'You have ' + Config.makeImage('favor') + this.runtime.points + ' favor points.');
 	this.set(['option','_sleep'], FP.notReady());
 //	log(LOG_WARN, 'a '+(Player.get(this.option.type,0) >= this.option.stat));
 //	log(LOG_WARN, 'b '+(Player.get('exp_needed', 0) < this.option.xp));
@@ -16315,7 +16269,7 @@ FP.work = function(state) {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, log, warn, error
+	log, warn, error
 *//********** Worker.Guild() **********
 * Build your guild army
 * Auto-attack Guild targets
@@ -16537,7 +16491,7 @@ Guild.update = function(event) {
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('guild', 'Guild Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Tokens') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Guild.work = function(state) {
@@ -16630,7 +16584,7 @@ Guild.work = function(state) {
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, log, warn, error
+	log, warn, error
 *//********** Worker.Festival() **********
 * Build your festival army
 * Auto-attack Festival targets
@@ -16850,7 +16804,7 @@ Festival.update = function(event) {
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Festival.work = function(state) {

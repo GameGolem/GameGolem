@@ -4,8 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Blessing **********
 * Automatically receive blessings
@@ -76,19 +75,19 @@ Blessing.update = function(event){
          d = new Date(this.runtime.when);
          switch(this.option.which){
              case 'Energy':
-                 demi = makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
                  break;
              case 'Attack':
-                 demi = makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
                  break;
              case 'Defense':
-                 demi = makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
                  break;
              case 'Health':
-                 demi = makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
                  break;
              case 'Stamina':
-                 demi = makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
+                 demi = Config.makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
                  break;
              default:
                  demi = 'Unknown';

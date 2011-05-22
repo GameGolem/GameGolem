@@ -101,19 +101,15 @@ Settings.menu = function(worker, key) {
 				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
 					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
 						// Well, they've had two chances...
-						if (browser === 'greasemonkey') {
-							keys = GM_listValues();
-							while ((i = keys.pop())) {
-								GM_deleteValue(i);
-							}
-						} else {
-							for (i in localStorage) {
-								if (i.indexOf('golem.' + APP + '.') === 0) {
-									localStorage.removeItem(i);
-								}
+//						log(LOG_INFO, 'Reset: '+localStorage.length+' keys total');
+						for (i=0; i < localStorage.length; i++) {
+							while (i < localStorage.length && localStorage[i].indexOf('golem.' + APP + '.') === 0) {
+//								log(LOG_INFO, 'Reset: deleting key "'+localStorage[i]+'"');
+								delete localStorage[localStorage[i]];
 							}
 						}
-						window.location.replace(window.location.href);
+						Queue._forget('run'); // Just to be safe(ish)...
+						window.location = window.location.href;
 					}
 				}
 			}
@@ -188,7 +184,7 @@ Settings.dashboard = function() {
 		if (Config.option.advanced) {
 			html += '<input style="float:right;" id="golem_settings_save" type="button" value="Save">';
 		}
-		html += '<div style="position:relative;"><textarea id="golem_settings_edit" style="position:absolute;top:0;left:0;right:0;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea></div>';
+		html += '<div style="position:relative;"><textarea id="golem_settings_edit" style="position:absolute;width:98%;top:0;left:0;right:0;">' + JSON.stringify(Workers[this.temp.worker][this.temp.edit], null, '   ') + '</textarea></div>';
 	}
 	$('#golem-dashboard-Settings').html(html);
 	$('#golem_settings_refresh').click(function(){Settings.dashboard();});

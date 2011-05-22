@@ -54,12 +54,13 @@ Session.setup = function() {
 		this.set(['option','timeout'], Global.get(['option','session','timeout'], this.option.timeout));
 		Global.set(['option','session']);
 	}
+	var now = Date.now();
 	try {
-		if (!(Session.temp._id = sessionStorage.getItem('golem.'+APP))) {
-			sessionStorage.setItem('golem.'+APP, Session.temp._id = '#' + Date.now());
+		if (!(Session.temp._id = sessionStorage['golem.'+APP])) {
+			sessionStorage['golem.'+APP] = Session.temp._id = '#' + now;
 		}
 	} catch(e) {// sessionStorage not available
-		Session.temp._id = '#' + Date.now();
+		Session.temp._id = '#' + now;
 	}
 };
 

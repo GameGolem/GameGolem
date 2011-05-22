@@ -4,8 +4,7 @@
 	Battle, Generals, LevelUp, Player,
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
 */
 /********** Worker.Upgrade **********
 * Spends upgrade points
@@ -105,7 +104,7 @@ Upgrade.update = function(event, events) {
 	this.set(['runtime','next']);
 	for (i in data) {
 		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
-			Dashboard.status(this, 'Next point: ' + makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
 			this.set(['runtime','next'], i);
 			break;
 		}

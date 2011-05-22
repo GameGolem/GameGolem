@@ -156,23 +156,12 @@ Queue.init = function(old_revision) {
 };
 
 Queue.update = function(event, events) {
-	var i, worker, result, next, release = false;
-	for (event=events.findEvent(null, 'watch', 'option._disabled'); event; event=events.findEvent()) { // A worker getting disabled / enabled
-		worker = event.worker;
-		i = worker._get(['option', '_disabled'], false);
-		$('#'+worker.id+' > h3').toggleClass(Theme.get('Queue_disabled', 'ui-state-disabled'), i);
-		if (i && this.temp.current === worker.name) {
-			this.set(['temp','current'], null);
-		}
+	var i, worker, result, next, release = false, tmp1, tmp2;
+	if (events.findEvent(null, 'watch', 'option._disabled') || events.findEvent(this, 'watch', 'temp.current') || events.findEvent(this, 'init')) { // A worker getting disabled / enabled
+		this.updateDisplay();
 	}
 	if (events.getEvent(this, 'watch', 'option.delay')) {
-		this._forget('run'); // Re-started later if possible
-	}
-	if (events.getEvent(this, 'watch', 'temp.current')) {
-		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		if (this.temp.current) {
-			$('#'+Workers[this.temp.current].id+' > h3').addClass(Theme.get('Queue_active', 'ui-state-highlight'));
-		}
+		this._forget('run'); // Re-started later
 	}
 	if (this.temp.sleep
 	 || events.findEvent(null, 'watch')
@@ -231,6 +220,7 @@ Queue.update = function(event, events) {
 		if (next !== worker && (!worker || !worker.settings.stateful || next.settings.important || release)) {// Something wants to interrupt...
 			log(LOG_INFO, 'Trigger ' + next.name);
 			this.set(['temp','current'], next.name);
+			this.updateDisplay();
 		}
 //		log(LOG_DEBUG, 'End Queue');
 	}
@@ -245,6 +235,17 @@ Queue.menu = function(worker, key) {
 			}
 		} else if (key === 'enable') {
 			worker.set(['option','_disabled'], worker.option._disabled ? undefined : true);
+		}
+	}
+};
+
+Queue.updateDisplay = function() {
+	var i, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
+	for (i in Workers) {
+		if (Workers[i].display) {
+			$('#'+Workers[i].id+' > h3')
+				.toggleClass(tmp1, Workers[i]._get(['option','_disabled'], false))
+				.toggleClass(tmp2, (i === this.temp.current));
 		}
 	}
 };

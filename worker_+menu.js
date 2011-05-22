@@ -5,7 +5,7 @@
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Menu **********
 * Handles menu creation and selection for Config

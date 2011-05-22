@@ -5,7 +5,7 @@
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -46,7 +46,7 @@ Main.parse = function() {
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 	var i, old_revision, head, a, b;
 	if (events.findEvent(null,null,'kickstart')) {
-		old_revision = parseInt(getItem('revision') || 1061, 10); // Added code to support Revision checking in 1062;
+		old_revision = parseInt(localStorage['golem.' + APP + '.revision'] || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
 			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
 				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
@@ -70,9 +70,9 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			Workers[i]._update('init', 'run');
 		}
 		if (old_revision !== revision) {
-			setItem('revision', revision);
+			localStorage['golem.' + APP + '.revision'] = revision;
 		}
-		$('#golem').css({'visibility':'visible'});
+		$('#golem').css({'visibility':''});
 	}
 	if (events.findEvent(null,'startup')) {
 		// Let's get jQuery running

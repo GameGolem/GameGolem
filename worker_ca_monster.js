@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, calc_rolling_weighted_average, bestObjValue
+	calc_rolling_weighted_average, bestObjValue
 */
 /********** Worker.Monster **********
  * Automates Monster
@@ -1725,12 +1725,12 @@ Monster.update = function(event) {
 			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health', 0)) : 0);
 			stat_req = Math.max(0, (this.runtime[ensta[i]] || 0) - LevelUp.runtime[ensta[i]]);
 			if (stat_req || req_health) {
-				messages.push('Waiting for ' + (stat_req ? makeImage(ensta[i]) + stat_req : '')
-				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? makeImage('health') + req_health : '')
+				messages.push('Waiting for ' + (stat_req ? Config.makeImage(ensta[i]) + stat_req : '')
+				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? Config.makeImage('health') + req_health : '')
 				+ ' to ' + defatt[i] + ' ' + fullname[defatt[i]]
-				+ ' (' + makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? makeImage('health') + req_health : '') + ')');
+				+ ' (' + Config.makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? Config.makeImage('health') + req_health : '') + ')');
 			} else {
-				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + makeImage(ensta[i])
+				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + Config.makeImage(ensta[i])
 						+ (this.runtime[ensta[i]] || 0) + '+)');
 				this.runtime.mode = this.runtime.mode || defatt[i];
 				this.runtime.stat = this.runtime.stat || ensta[i];

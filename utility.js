@@ -167,32 +167,6 @@ var log = function(level, txt /*, obj, array etc*/){
 	}
 };
 
-/**
- * Store data in localStorage
- * @param {string} n Name of the item to be stored (normally worker.type)
- * @param {string} v Value to be stored
- */
-var setItem = function(n, v) {
-	localStorage.setItem('golem.' + APP + '.' + n, v);
-};
-
-/**
- * Retreive data from localStorage
- * @param {string} n Name of the item to be stored (normally worker.type)
- * @return {string} Value to be retreived
- */
-var getItem = function(n) {
-	return localStorage.getItem('golem.' + APP + '.' + n);
-};
-
-/**
- * In Firefox / GreaseMonkey we currently use the GM storage area rather than localStorage...
- */
-if (browser === 'greasemonkey') {
-	setItem = GM_setValue;
-	getItem = GM_getValue;
-}
-
 // Prototypes to ease functionality
 
 String.prototype.trim = function(inside) {
@@ -980,10 +954,6 @@ var getImage = function(name) {
 		return chrome.extension.getURL('images/'+name+'.png');
 	}
 	return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
-};
-
-var makeImage = function(name, title, id, className) {
-	return '<img' + (id ? ' id="' + id + '"' : '') + ' class="ui-icon golem-icon golem-icon-' + name + (className ? ' ' + className : '') + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
 };
 
 var assert = function(test, msg, type) {

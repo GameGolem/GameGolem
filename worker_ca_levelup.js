@@ -5,7 +5,7 @@
 	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, calc_rolling_weighted_average
+	calc_rolling_weighted_average
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -198,7 +198,7 @@ LevelUp.update = function(event, events) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' +
-			Page.addTimer('levelup', this.get('level_time')) + ' (' + makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
+			Page.addTimer('levelup', this.get('level_time')) + ' (' + Config.makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
 			makeTimer((this.get('refill_energy') - Date.now()) / 1000) + ' per energy, ' +
 			makeTimer((this.get('refill_stamina') - Date.now()) / 1000) + ' per stamina)</span>');
 	}

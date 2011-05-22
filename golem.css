@@ -744,7 +744,6 @@
 #golem .ui-icon-grip-diagonal-se { background-position: -80px -224px; }
 
 #golem .golem-icon { background-image: url(http://rycochet.net/themes/default/images/golem-icons.png) !important; }
-#golem img.golem-icon { margin-bottom: -4px; border: 0; }
 
 #golem .golem-icon-debug { background-position: 0 0; }
 #golem .golem-icon-wiki { background-position: -16px 0; }
