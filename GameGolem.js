@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1120
+ * GameGolem v31.6.1121
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1120
+ * GameGolem v31.6.1121
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1120;
+var revision = 1121;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1454,8 +1454,8 @@ var getImage = function(name) {
 	return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
 };
 
-var makeImage = function(name, title) {
-	return '<img class="ui-icon golem-icon golem-icon-' + name + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
+var makeImage = function(name, title, id, className) {
+	return '<img' + (id ? ' id="' + id + '"' : '') + ' class="ui-icon golem-icon golem-icon-' + name + (className ? ' ' + className : '') + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
 };
 
 var assert = function(test, msg, type) {
@@ -3517,7 +3517,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			containment: 'parent',
 			distance: 15,
 			handle: '> h3',
-			items: 'div:not(.golem-unsortable)',
+			items: '> div:not(.golem-unsortable)',
 			tolerance: 'pointer',
 			start: function(event) {
 				$('#golem_config').data('stop', true);
@@ -3559,14 +3559,14 @@ Config.makePanel = function(worker, args) {
 	if (!$('#'+worker.id).length) {
 		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
 			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
-			sleep = worker.get(['option','_sleep'], false) ? '' : ' ui-helper-hidden';
+			sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
 		$('#golem_config').append(tmp = $(
 			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
 				'<h3 class="' + disabled + '">' +
 					'<a href="#">' +
 						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
 						worker.name +
-						'<img id="golem_sleep_' + worker.name + '" class="golem-image' + sleep + '" src="' + getImage('zzz') + '">' +
+						makeImage('zzz', worker.name + ' sleeping...', 'golem_sleep_' + worker.name, sleep) +
 					'</a>' +
 				'</h3>' +
 				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +
@@ -14998,7 +14998,9 @@ Town.display = [
 	require:'number!="None"',
 	id:'upkeep',
 	label:'Max Upkeep',
-	text:true,
+	number:true,
+	min:0,
+	max:100,
 	after:'%',
 	help:'Enter maximum Total Upkeep in % of Total Income'
 }

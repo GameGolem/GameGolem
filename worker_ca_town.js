@@ -85,7 +85,9 @@ Town.display = [
 	require:'number!="None"',
 	id:'upkeep',
 	label:'Max Upkeep',
-	text:true,
+	number:true,
+	min:0,
+	max:100,
 	after:'%',
 	help:'Enter maximum Total Upkeep in % of Total Income'
 }

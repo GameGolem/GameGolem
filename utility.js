@@ -982,8 +982,8 @@ var getImage = function(name) {
 	return 'http://game-golem.googlecode.com/svn/trunk/images/'+name+'.png';
 };
 
-var makeImage = function(name, title) {
-	return '<img class="ui-icon golem-icon golem-icon-' + name + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
+var makeImage = function(name, title, id, className) {
+	return '<img' + (id ? ' id="' + id + '"' : '') + ' class="ui-icon golem-icon golem-icon-' + name + (className ? ' ' + className : '') + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
 };
 
 var assert = function(test, msg, type) {

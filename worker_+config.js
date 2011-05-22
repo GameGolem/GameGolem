@@ -346,7 +346,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			containment: 'parent',
 			distance: 15,
 			handle: '> h3',
-			items: 'div:not(.golem-unsortable)',
+			items: '> div:not(.golem-unsortable)',
 			tolerance: 'pointer',
 			start: function(event) {
 				$('#golem_config').data('stop', true);
@@ -388,14 +388,14 @@ Config.makePanel = function(worker, args) {
 	if (!$('#'+worker.id).length) {
 		var name, tmp, display = (worker.settings.advanced && !this.option.advanced) || (worker.settings.debug && !this.option.debug) || (worker.settings.exploit && !this.option.exploit),
 			disabled = worker.get(['option', '_disabled'], false) ? Theme.get('Queue_disabled', 'ui-state-disabled') : '',
-			sleep = worker.get(['option','_sleep'], false) ? '' : ' ui-helper-hidden';
+			sleep = worker.get(['option','_sleep'], false) ? '' : 'ui-helper-hidden';
 		$('#golem_config').append(tmp = $(
 			'<div id="' + worker.id + '" name="' + worker.name + '" class="' + (worker.settings.unsortable ? 'golem-unsortable' : '') + '"' + (display ? ' style="display:none;"' : '') + '>' +
 				'<h3 class="' + disabled + '">' +
 					'<a href="#">' +
 						(worker.settings.unsortable ? '<span class="ui-icon ui-icon-locked" style="float:left;margin-top:-2px;margin-left:-4px;"></span>' : '') +
 						worker.name +
-						'<img id="golem_sleep_' + worker.name + '" class="golem-image' + sleep + '" src="' + getImage('zzz') + '">' +
+						makeImage('zzz', worker.name + ' sleeping...', 'golem_sleep_' + worker.name, sleep) +
 					'</a>' +
 				'</h3>' +
 				'<div class="' + (worker.settings.advanced ? 'red' : '') + (worker.settings.debug ? ' blue' : '') + (worker.settings.exploit ? ' purple' : '') + '" style="font-size:smaller;"></div>' +
