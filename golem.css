@@ -468,7 +468,7 @@
 
 /* Layout helpers
 ----------------------------------*/
-#golem .ui-helper-hidden { display: none; }
+#golem .ui-helper-hidden { display: none !important; }
 #golem .ui-helper-fixed { position: fixed !important; }
 #golem .ui-helper-relative { position: relative !important; }
 #golem .ui-helper-hidden-accessible { position: absolute !important; clip: rect(1px 1px 1px 1px); clip: rect(1px,1px,1px,1px); }
