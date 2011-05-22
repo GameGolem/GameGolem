@@ -141,20 +141,20 @@ Monster.display = [
 			},{
 				id:'priority',
 				label:'Priority List',
-				require:'stop=="Priority List"',
+				require:'stop==="Priority List"',
 				textarea:true,
 				help:'Prioritized list of which monsters to attack'
 			},{
 				advanced:true,
 				id:'own',
 				label:'Never stop on Your Monsters',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				checkbox:true,
 				help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 			},{
 				advanced:true,
 				id:'rescue',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				label:'Rescue failing monsters',
 				checkbox:true,
 				help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -162,7 +162,7 @@ Monster.display = [
 				advanced:true,
 				id:'avoid_lost_cause',
 				label:'Avoid Lost-cause Monsters',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				checkbox:true,
 				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 			},{

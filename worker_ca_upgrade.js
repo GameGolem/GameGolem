@@ -11,7 +11,7 @@
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade');
-Upgrade.data = Upgrade.temp = null;
+Upgrade.data = null;
 
 Upgrade.settings = {
 	taint:true
@@ -22,50 +22,101 @@ Upgrade.defaults['castle_age'] = {
 };
 
 Upgrade.option = {
-	order:[]
+	script:''
 };
 
 Upgrade.runtime = {
-	working:false,
-	run:0
+	next:null
 };
+
+Upgrade.temp = {};
 
 Upgrade.display = [
 	{
-		label:'Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)'
+		info:'Use GolemScript to spend your Upgrade Points.'
 	},{
-		id:'order',
-		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
+		id:'script',
+		textarea:true
+	},{
+		title:'Help',
+		group:{
+			info:'The stats will be set in the order they are first set (use if() blocks to enforce order if it\'s important - you can easily have a "dump" stat at the end by this method).<br>' +
+			'Stats: <pre>stamina\nenergy\nattack\ndefense\nhealth</pre>' +
+			'Useful Functions: <pre>value = min(1,2,3);\nvalue = max(1,2,3);\nif (value1 === value2) {\n   do something\n}</pre>'
+		}
+	},{
+		title:'Examples',
+		group:[
+			{
+				title:'Simple Offensive',
+				group:{info:'<pre>attack = level * 5;\n' +
+					'defense = attack / 2;\n' +
+					'stamina = level;\n' +
+					'energy = level / 2;\n' +
+					'health++;</pre>'
+				}
+			},{
+				title:'Complex with fallback',
+				group:{info:'<pre>attack = level * 5;\n' +
+					'defense = level * 2.5;\n' +
+					'if (health < level) {\n' +
+					'   health = level;\n' +
+					'} else if (stamina < level) {\n' +
+					'   stamina = level;\n' +
+					'} else if (energy < level) {\n' +
+					'   energy = level;\n' +
+					'} else {\n' +
+					'   health++;\n' +
+					'}</pre>'
+				}
+			}
+		]
 	}
 ];
 
+Upgrade.script = null;
+
 Upgrade.init = function() {
+	this._watch(this, 'option.script');
 	this._watch(Player, 'data.upgrade');
 };
 
-Upgrade.parse = function(change) {
-	var result = $('div.results');
-	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
-		this.set('runtime.working', false);
-		this.set(['runtime','run'], this.runtime.run + 1);
+Upgrade.update = function(event, events) {
+	if (events.findEvent(this,'init') || events.findEvent(this,'watch','option.script')) {
+		this.temp = {};
+		this.script = new Script(this.option.script, {
+			'map':{
+				stamina:'Player.data.maxstamina',
+				energy:'Player.data.maxenergy',
+				health:'Player.data.maxhealth'
+			},
+			'default':Player.data,
+			'data':this.temp // So we can manually view it easily
+		});
+		this.script.run();
 	}
-	return false;
-};
-
-Upgrade.update = function(event) {
-	if (this.runtime.run >= this.option.order.length) {
-		this.set(['runtime','run'], 0);
+	var i, j, data = this.script.data, points = Player.get('upgrade'), need = {
+		'energy':1,
+		'stamina':2,
+		'attack':1,
+		'defense':1,
+		'health':1
+	};
+	this.set(['runtime','next']);
+	for (i in data) {
+		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
+			Dashboard.status(this, 'Next point: ' + makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
+			this.set(['runtime','next'], i);
+			break;
+		}
 	}
-	var points = Player.get('upgrade'), args;
-	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
+	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
+	return true;
 };
 
 Upgrade.work = function(state) {
-	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
-	if (!args) {
-		this.set(['runtime','run'], this.runtime.run + 1);
-	} else if (state) {
-		this.set(['runtime','working'], true);
+	var args = ({energy:'energy_max', stamina:'stamina_max', attack:'attack', defense:'defense', health:'health_max'})[this.runtime.next];
+	if (state) {
 		Page.to('keep_stats', {upgrade:args}, true);
 	}
 	return QUEUE_RELEASE;

@@ -145,6 +145,8 @@ Debug.display = [
 ];
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
+
+/** @this {Worker} */
 Debug.setup = function(old_revision) {
 	var i, j, p, wkr, fn;
 	// BEGIN Change of log options
@@ -315,6 +317,7 @@ GREASEMONKEY:
 	};
 };
 
+/** @this {Worker} */
 Debug.init = function(old_revision) {
 	var i, list = [];
 	// BEGIN: Change log message type from on/off to debug level
@@ -345,6 +348,7 @@ Debug.init = function(old_revision) {
 	});
 };
 
+/** @this {Worker} */
 Debug.update = function(event, events) {
 	if (events.findEvent(this, 'init')
 	 || events.findEvent(this, 'option')) {
@@ -364,6 +368,7 @@ Debug.update = function(event, events) {
 
 Debug.work = function(){};// Stub so we can be disabled
 
+/** @this {Worker} */
 Debug.menu = function(worker, key) {
 	if (!worker) {
 		if (!isUndefined(key)) {
@@ -391,6 +396,7 @@ Debug.menu = function(worker, key) {
 	}
 };
 
+/** @this {Worker} */
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {

@@ -41,6 +41,7 @@ Army.display = [
 ];
 */
 
+/** @this {Worker} */
 Army.setup = function(old_revision) {
 	// BEGIN Change of storage from "data.uid.section.xyz" to "data.section.uid.xyz"
 	if (old_revision <= 1113) {
@@ -73,6 +74,7 @@ Army.setup = function(old_revision) {
 	// END
 };
 
+/** @this {Worker} */
 Army.set = function(what) {
 	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
@@ -81,6 +83,7 @@ Army.set = function(what) {
 	return this._set.apply(this, arguments);
 };
 
+/** @this {Worker} */
 Army.get = function(what) {
 	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
@@ -89,6 +92,7 @@ Army.get = function(what) {
 	return this._get.apply(this, arguments);
 };
 
+/** @this {Worker} */
 Army.army_name = function(action, uid) {
 	switch(action) {
 	case 'title':
@@ -112,6 +116,7 @@ Army.army_name = function(action, uid) {
 	}
 };
 
+/** @this {Worker} */
 Army.army = function(action, uid) {
 	var i, tmp, value, list = [], info = 'UserID', infolist = {
 		'UserID':'uid',
@@ -150,6 +155,7 @@ Army.army = function(action, uid) {
 };
 
 Army.order = [];
+/** @this {Worker} */
 Army.dashboard = function(sort, rev) {
 	var i, j, k, label, show = this.get(['runtime','show'],'*'), list = [], output = [], section = [], title = [], showinfo = [], army_fn = [];
 	sort = isUndefined(sort) ? this.get(['runtime','sort'],0) : sort;

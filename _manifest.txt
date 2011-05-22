@@ -4,6 +4,7 @@
 ### Globals ###
 main.js
 utility.js
+script.js
 ### Worker class ###
 worker.js
 ### System workers ###

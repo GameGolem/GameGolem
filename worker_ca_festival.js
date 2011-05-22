@@ -125,7 +125,7 @@ Festival.init = function() {
 	}
 	// END
 
-	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	this._remind(300, 'tokens');// Gain more tokens every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
 		this._remind((this.runtime.start - now) / 1000, 'start');
 	}
@@ -151,7 +151,7 @@ Festival.parse = function(change) {
 				this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
 				this._forget('finish');
 				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600 
-						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 180;
+						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 300;
 				this._forget('finish');
 				this.set(['runtime','start'], i*1000 + now);
 				this._remind(i , 'start');
@@ -195,7 +195,7 @@ Festival.update = function(event) {
 		if (event.id === 'tokens') {
 			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
 			if (this.runtime.tokens < 10) {
-				this._remind(180, 'tokens');
+				this._remind(300, 'tokens');
 			}
 		} else if (event.id === 'start') {
 			this.set(['runtime','status'], 'start');

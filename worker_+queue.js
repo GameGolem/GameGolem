@@ -147,6 +147,7 @@ Queue.init = function(old_revision) {
 	this._watch('Page', 'temp.loading');
 	this._watch('Session', 'temp.active');
 	this._watch(this, 'option.pause');
+	this._watch(this, 'option.delay');
 	this._watch(this, 'temp.current');
 	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
@@ -163,6 +164,9 @@ Queue.update = function(event, events) {
 		if (i && this.temp.current === worker.name) {
 			this.set(['temp','current'], null);
 		}
+	}
+	if (events.getEvent(this, 'watch', 'option.delay')) {
+		this._forget('run'); // Re-started later if possible
 	}
 	if (events.getEvent(this, 'watch', 'temp.current')) {
 		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));

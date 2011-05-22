@@ -31,6 +31,7 @@ Config.temp = {
 	menu:null
 };
 
+/** @this {Worker} */
 Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
 	// BEGIN: Changing this.option.display to a bool
@@ -110,7 +111,7 @@ Config.init = function(old_revision) {
 				}
 			}
 			if (!handled) {
-				worker.set('option.'+tmp[1], val, null, true);
+				worker.set('option.'+tmp[1], val, null);
 				Worker.flush();
 			}
 		}
@@ -137,6 +138,7 @@ Config.init = function(old_revision) {
 	this._watch(this, 'option.exploit');
 };
 
+/** @this {Worker} */
 Config.update = function(event, events) {
 	var i, $el, $el2, worker, id, value, list, options = [];
 	if (events.findEvent(this, 'show') || events.findEvent(this, 'init')) {
@@ -210,6 +212,7 @@ Config.update = function(event, events) {
 	return true;
 };
 
+/** @this {Worker} */
 Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
@@ -236,6 +239,7 @@ Config.menu = function(worker, key) {
 	}
 };
 
+/** @this {Worker} */
 Config.addButton = function(options) {
 	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
 		options.hide = true;
@@ -253,6 +257,7 @@ Config.addButton = function(options) {
 	}
 }
 
+/** @this {Worker} */
 Config.makeTooltip = function(title, content) {
 	var el = $('<div class="ui-widget ui-widget-shadow ui-helper-fixed" style="left:100px;top:100px;z-index:999;">' + // High z-index due to Facebook search bar
 		'<h3 class="ui-widget-header" style="padding:2px;cursor:move;">' + title +
@@ -277,6 +282,7 @@ Config.makeTooltip = function(title, content) {
 	el.show();
 };
 
+/** @this {Worker} */
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
 	var i, j, k, tmp, stop = false;
 	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
@@ -364,6 +370,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	this._update('show');
 };
 
+/** @this {Worker} */
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -414,10 +421,12 @@ Config.makePanel = function(worker, args) {
 	this.addOption(worker, args);
 };
 
+/** @this {Worker} */
 Config.makeID = function(worker, id) {
 	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
 };
 
+/** @this {Worker} */
 Config.clearPanel = function(selector) {
 	this._init(); // Make sure we're properly loaded first!
 	if (isWorker(selector)) {
@@ -431,6 +440,7 @@ Config.clearPanel = function(selector) {
 	$(selector).empty();
 };
 
+/** @this {Worker} */
 Config.addOption = function(selector, args) {
 	this._init(); // Make sure we're properly loaded first!
 	var worker;
@@ -448,6 +458,7 @@ Config.addOption = function(selector, args) {
 	$(selector).append(this.makeOptions(worker, args));
 };
 
+/** @this {Worker} */
 Config.makeOptions = function(worker, args) {
 	this._init(); // Make sure we're properly loaded first!
 	if (isArray(args)) {
@@ -472,6 +483,7 @@ Config.makeOptions = function(worker, args) {
 	return $([]);
 };
 
+/** @this {Worker} */
 Config.makeOption = function(worker, args) {
 	var i, j, o, r, step, $option, tmp, name, txt = [], list = [];
 	o = $.extend({}, {
@@ -550,7 +562,7 @@ Config.makeOption = function(worker, args) {
 		} else if (o.number) {
 			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
 		} else if (o.textarea) {
-			txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
+			txt.push('<textarea' + o.real_id + ' cols="38" rows="5"' + (o.id ? '' : ' disabled') + ' style="margin-left:0;margin-right:0;" placeholder="Type here...">' + (o.value || '') + '</textarea>');
 		} else if (o.checkbox) {
 			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
 		} else if (o.button) {
@@ -633,6 +645,7 @@ Config.makeOption = function(worker, args) {
 			txt.push('</span>');
 		}
 		$option = $('<div class="ui-helper-clearfix">' + txt.join('') + '</div>');
+		$('textarea', $option).autoSize();
 		if (o.require || o.advanced || o.debug || o.exploit) {
 			try {
 				r = {depth:0};
@@ -650,7 +663,7 @@ Config.makeOption = function(worker, args) {
 					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
-					r.require.x = Script.parse(worker, 'option', o.require);
+					r.require.x = new Script(o.require, {'default':worker.get('option')});
 				}
 				this.temp.require.push(r.require);
 				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -665,6 +678,7 @@ Config.makeOption = function(worker, args) {
 	return $option;
 };
 
+/** @this {Worker} */
 Config.checkRequire = function(id) {
 	var i, show = true, require;
 	if (!isNumber(id) || !(require = this.temp.require[id])) {
@@ -683,7 +697,7 @@ Config.checkRequire = function(id) {
 		show = Config.option.exploit;
 	}
 	if (show && require.x) {
-		show = Script.interpret(require.x);
+		show = require.x.run();
 	}
 	if (require.show !== show) {
 		require.show = show;

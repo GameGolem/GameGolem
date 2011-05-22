@@ -210,6 +210,13 @@ Worker._resize_ = [];// Used for this._resize
 
 // Private functions - only override if you know exactly what you're doing
 /**
+ * For displaying in strings
+ */
+Worker.prototype.toString = Worker.prototype.toJSON = function() {
+	return '[worker ' + this.name + ']';
+};
+
+/**
  * Save all changed datatypes then set a delay to delete this.data if possible
  * NOTE: You should never call this directly - let Worker.flush() handle it instead!
  * @protected

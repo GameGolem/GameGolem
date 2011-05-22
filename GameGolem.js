@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1119
+ * GameGolem v31.6.1120
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1119
+ * GameGolem v31.6.1120
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1119;
+var revision = 1120;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -537,6 +537,15 @@ var isRegExp = function(obj) {
  */
 var isWorker = function(obj) {
 	return obj && obj.constructor === Worker;
+};
+
+/**
+ * Check if a passed object is a Script
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isScript = function(obj) {
+	return obj && obj.constructor === Script;
 };
 
 /**
@@ -1208,53 +1217,53 @@ Date.replaceChars = {
 	shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 	longDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
 	// Day
-	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
-	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
-	j: function() { return this.getDate(); },
-	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
-	N: function() { return this.getDay() + 1; },
-	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
-	w: function() { return this.getDay(); },
-	z: function() { return "Not Yet Supported"; },
-	R: function() {
+	/** @this {Date} */	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
+	/** @this {Date} */	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
+	/** @this {Date} */	j: function() { return this.getDate(); },
+	/** @this {Date} */	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
+	/** @this {Date} */	N: function() { return this.getDay() + 1; },
+	/** @this {Date} */	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
+	/** @this {Date} */	w: function() { return this.getDay(); },
+	/** @this {Date} */	z: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	R: function() {
 		var i = (new Date() - this) / 1000;
 		return (i < (24 * 60 * 60) ? 'Today' : i < (2 * 24 * 60 * 60) ? 'Yesterday' : i < (7 * 24 * 60 * 60) ? Math.floor(i / (24 * 60 * 60)) + ' Days Ago' : i < (31 * 24 * 60 * 60) ? Math.floor(i / (7 * 24 * 60 * 60)) + ' Weeks Ago' : i < (365 * 24 * 60 * 60) ? Math.floor(i / (31 * 24 * 60 * 60)) + ' Months Ago' : Math.floor(i / (365 * 24 * 60 * 60)) + ' Years Ago');
 	},
 	// Week
-	W: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	W: function() { return "Not Yet Supported"; },
 	// Month
-	F: function() { return Date.replaceChars.longMonths[this.getMonth()]; },
-	m: function() { return (this.getMonth() < 9 ? '0' : '') + (this.getMonth() + 1); },
-	M: function() { return Date.replaceChars.shortMonths[this.getMonth()]; },
-	n: function() { return this.getMonth() + 1; },
-	t: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	F: function() { return Date.replaceChars.longMonths[this.getMonth()]; },
+	/** @this {Date} */	m: function() { return (this.getMonth() < 9 ? '0' : '') + (this.getMonth() + 1); },
+	/** @this {Date} */	M: function() { return Date.replaceChars.shortMonths[this.getMonth()]; },
+	/** @this {Date} */	n: function() { return this.getMonth() + 1; },
+	/** @this {Date} */	t: function() { return "Not Yet Supported"; },
 	// Year
-	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
-	o: function() { return "Not Supported"; },
-	Y: function() { return this.getFullYear(); },
-	y: function() { return ('' + this.getFullYear()).substr(2); },
+	/** @this {Date} */	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
+	/** @this {Date} */	o: function() { return "Not Supported"; },
+	/** @this {Date} */	Y: function() { return this.getFullYear(); },
+	/** @this {Date} */	y: function() { return ('' + this.getFullYear()).substr(2); },
 	// Time
-	a: function() { return this.getHours() < 12 ? 'am' : 'pm'; },
-	A: function() { return this.getHours() < 12 ? 'AM' : 'PM'; },
-	B: function() { return "Not Yet Supported"; },
-	g: function() { return this.getHours() % 12 || 12; },
-	G: function() { return this.getHours(); },
-	h: function() { return ((this.getHours() % 12 || 12) < 10 ? '0' : '') + (this.getHours() % 12 || 12); },
-	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
-	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
-	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
-	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
+	/** @this {Date} */	a: function() { return this.getHours() < 12 ? 'am' : 'pm'; },
+	/** @this {Date} */	A: function() { return this.getHours() < 12 ? 'AM' : 'PM'; },
+	/** @this {Date} */	B: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	g: function() { return this.getHours() % 12 || 12; },
+	/** @this {Date} */	G: function() { return this.getHours(); },
+	/** @this {Date} */	h: function() { return ((this.getHours() % 12 || 12) < 10 ? '0' : '') + (this.getHours() % 12 || 12); },
+	/** @this {Date} */	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
+	/** @this {Date} */	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
+	/** @this {Date} */	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
+	/** @this {Date} */	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
 	// Timezone
-	e: function() { return "Not Yet Supported"; },
-	I: function() { return "Not Supported"; },
-	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
-	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
-	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
-	Z: function() { return -this.getTimezoneOffset() * 60; },
+	/** @this {Date} */	e: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	I: function() { return "Not Supported"; },
+	/** @this {Date} */	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
+	/** @this {Date} */	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
+	/** @this {Date} */	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
+	/** @this {Date} */	Z: function() { return -this.getTimezoneOffset() * 60; },
 	// Full Date/Time
-	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
-	r: function() { return this.toString(); },
-	U: function() { return this.getTime() / 1000; }
+	/** @this {Date} */	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
+	/** @this {Date} */	r: function() { return this.toString(); },
+	/** @this {Date} */	U: function() { return this.getTime() / 1000; }
 };
 
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
@@ -1304,8 +1313,8 @@ JSON.shallow = function(obj, depth, replacer, space) {
 					out = '[object Array]';
 				}
 			} else {
-				if (isWorker(o)) {
-					out = '[worker ' + o.name + ']';
+				if (isWorker(o) || isScript(o)) {
+					out = o.toString();
 				} else if (d > 0) {
 					out = {};
 					for (i in o) {
@@ -1446,7 +1455,7 @@ var getImage = function(name) {
 };
 
 var makeImage = function(name, title) {
-	return '<img class="golem-image" title="' + (title || name.ucfirst()) + '" src="' + getImage(name) + '">';
+	return '<img class="ui-icon golem-icon golem-icon-' + name + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
 };
 
 var assert = function(test, msg, type) {
@@ -1454,6 +1463,346 @@ var assert = function(test, msg, type) {
 		throw {'name':type || 'Assert Error', 'message':msg};
 	}
 };
+/*
+ * Scripting withing Golem.
+ * This is a scripting language built inside javascript.
+ * It has a javascript like syntax, however all local variables must begin with a # (#test etc)
+ */
+
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
+// _operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
+// values = option, path.to.option, number, "string"
+// components:
+//	"[^"]*"								- string
+//	'[^']*'								- string
+//	\d*\.?\d+(?:[eE][-+]?\d+)?			- number
+//	true|false							- boolean constants
+//	[#A-Za-z_]\w*(?:\.\w+)*				- variable
+//	[!=]==								- 3-char operators (comparators)
+//	[-+*/%<>!=]=						- 2-char operators (comparators)
+//	\|\|								- 2-char or operator
+//	&&									- 2-char and operator
+//	[-+*/%<>!=(){},;]					- 1-char operators
+
+// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
+// [["testing","blah"],"=",1234,"&",["yet","another","path"],"|",["something"],"&",["test","me"],">",5]
+
+/**
+ * Script class
+ * @constructor
+ * @param {string} source Source to the script
+ * @param {Object} options Various options for compiling and running
+ * - data:{} An object used for storing / retreiving variables from - only needed for persistance
+ * - default:{} An object used for read-only access if not found in data:
+ * - map:{} A translation map for shortcuts, must be fully qualified paths (ie, "energy":"Player.data.energy") - it will only be used so long as there isn't a "data:<map>" entry
+ */
+function Script(source, options) {
+	options = isObject(options) ? options : isString(options) ? {'data':options} : {};
+	this['map'] = options['map'] || {};
+	this['data'] = options['data'] || {};
+	this['default'] = options['default'] || {};
+	this['source'] = source || '';
+	this['script'] = source || [];
+	this['result'] = undefined;
+
+	this.parse();
+};
+
+Script.prototype.toString = Script.prototype.toJSON = function() {
+	return '[script \'' + this.source + '\']';
+};
+
+Script.prototype._find = function(op, table) {
+	var i = table.length;
+	while (i--) {
+		if (table[i][0] === op) {
+			return i;
+		}
+	}
+	return -1;
+};
+
+Script.prototype._operators = [ // Order of precidence, [name, expand_args, function]
+	// Unary/Prefix
+	['u++',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v + 1; return v;}],
+	['u--',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v - 1; return v;}],
+	['u+',	true,	function(l,r) {return parseInt(r,10);}],
+	['u-',	true,	function(l,r) {return -parseInt(r,10);}],
+	['u!',	true,	function(l,r) {return !r;}],
+	// Postfix
+	['p++',	false,	function(l,r) {var v = parseInt(this._expand(r),10) + 1; this.data[r] = v; return v;}],
+	['p--',	false,	function(l,r) {var v = parseInt(this._expand(r),10) - 1; this.data[r] = v; return v;}],
+	// Placeholders for Unary/Prefix/Postfix - only needed if there's not a normal one
+	['!',	true,	false],	// placeholder
+	['++',	true,	false],	// placeholder
+	['--',	true,	false],	// placeholder
+	// Maths
+	['*',	true,	function(l,r) {return l * r;}],
+	['/',	true,	function(l,r) {return l / r;}],
+	['%',	true,	function(l,r) {return l % r;}],
+	['+',	true,	function(l,r) {return l + r;}],
+	['-',	true,	function(l,r) {return l - r;}],
+	// Equality
+	['>',	true,	function(l,r) {return l > r;}],
+	['>=',	true,	function(l,r) {return l >= r;}],
+	['<=',	true,	function(l,r) {return l <= r;}],
+	['<',	true,	function(l,r) {return l < r;}],
+	['===',	true,	function(l,r) {return l === r;}],
+	['!==',	true,	function(l,r) {return l !== r;}],
+/*jslint eqeqeq:false */
+	['==',	true,	function(l,r) {return l == r;}],
+	['!=',	true,	function(l,r) {return l != r;}],
+/*jslint eqeqeq:true */
+	// Logical
+	['&&',	true,	function(l,r) {return l && r;}],
+	['||',	true,	function(l,r) {return l || r;}],
+	// Assignment
+	['=',	false,	function(l,r) {return (this.data[l] = this._expand(r));}],
+	['*=',	false,	function(l,r) {return (this.data[l] *= this._expand(r));}],
+	['/=',	false,	function(l,r) {return (this.data[l] /= this._expand(r));}],
+	['%=',	false,	function(l,r) {return (this.data[l] %= this._expand(r));}],
+	['+=',	false,	function(l,r) {return (this.data[l] += this._expand(r));}],
+	['-=',	false,	function(l,r) {return (this.data[l] -= this._expand(r));}]
+];
+
+Script.FN_EXPAND = 0; // function(expand(args)), expanded variables -> values
+Script.FN_RAW = 1; // function(args), unexpanded (so variable names are not changed to their values)
+Script.FN_CUSTOM = 2; // function(script, value_list, op_list)
+
+Script.prototype._functions = [ // [name, expand_args, function]
+	['min',		Script.FN_EXPAND,	function() {return Math.min.apply(Math, arguments);}],
+	['max',		Script.FN_EXPAND,	function() {return Math.max.apply(Math, arguments);}],
+	['round',	Script.FN_EXPAND,	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	Script.FN_EXPAND,	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	Script.FN_EXPAND,	function() {return Math.ceil.apply(Math, arguments);}],
+	['if',		Script.FN_CUSTOM,	function(script, value_list, op_list) { // if (test) {func} [else if (test) {func}]* [else {func}]?
+		var x, fn = 'if', test = false;
+		while (fn) {
+			x = fn === 'if' ? script.shift() : null; // Should probably report some sort of error if not an array...
+			fn = script.shift(); // Should probably report some sort of error if not an array...
+			if (!test && (!x || (test = this._interpret(x).pop()))) {
+				value_list = value_list.concat(this._interpret(fn));
+			}
+			if (script[0] !== 'else') {
+				break;
+			}
+			fn = script.shift(); // 'else'
+			if (script[0] === 'if') {
+				fn = script.shift();
+			}
+		}
+	}],
+	['for',	Script.FN_CUSTOM,	function(script, value_list, op_list) {
+		var a, i = 0; x = [[],[],[]], tmp = script.shift(), fn = script.shift(), now = Date.now();
+		while ((a = tmp.shift())) {
+			if (a === ';') {
+				x[++i] = [];
+			} else {
+				x[i].push(a);
+			}
+		}
+		// Should probably report some sort of error if not an array...
+		this._interpret(x[0]);
+		while (this._interpret(x[1]).pop() && Date.now() - now < 3000) { // 3 second limit on loops
+			this._interpret(fn);
+			this._interpret(x[2]);
+		}
+	}],
+	['while',	Script.FN_CUSTOM,	function(script, value_list, op_list) {
+		var x = script.shift(), fn = script.shift(), now = Date.now();
+		while (this._interpret(x).pop() && Date.now() - now < 3000) { // 3 second limit on loops
+			this._interpret(fn);
+		}
+	}],
+	['return',	Script.FN_CUSTOM,	function(script, value_list, op_list) {
+		var x = script.shift();
+		this.result = this._interpret(isArray(x) ? x : [x]);
+	}]
+];
+
+Script.prototype._expand = function(variable) { // Expand variables into values
+	var i;
+	if (isArray(variable)) {
+		i = variable.length;
+		while (i--) {
+			variable[i] = arguments.callee.call(this, variable[i]);
+		}
+	} else if (isString(variable)) {
+		if (/^".*"$/.test(variable) || /^'.*'$/.test(variable)) {
+			variable = variable.replace(/^"|^'|'$|"$/g, '');
+			i = '';
+			while (y = variable.match(/^(.*)\\(.)(.*)$/)) {
+				i = y[1] + y[2];
+				variable = y[3];
+			}
+			variable = i + variable;
+		} else if (/^[A-Z]\w*(?:\.\w+)*$/.test(variable)) {
+			i = variable.split('.');
+			variable = Workers[i[0]]._get(i.slice(1), false);
+		} else if (isUndefined(this['data'][variable])) {
+			if (this.map[variable]) {
+				i = this.map[variable].split('.');
+				variable = Workers[i[0]]._get(i.slice(1), false);
+			} else {
+				variable = this['default'][variable];
+			}
+		} else {
+			variable = this['data'][variable];
+		}
+	}
+	return variable;
+};
+
+Script.prototype._contract = function(variable, value) { // Push value back into variable
+};
+
+// Perform any operations of lower precedence than "op"
+// Both op_list and value_list are altered
+Script.prototype._operate = function(op, op_list, value_list) {
+	var i, tmp, fn, args;
+	while (op_list.length && op_list[0][0] <= op) {
+		tmp = op_list.shift();
+		fn = this._operators[tmp[0]][2];
+		if ((i = fn.length)) { // function takes set args
+			args = value_list.splice(-i, i);
+			// pad out values to the left, if missing
+			while (args.length < i) {
+				args.unshift(null);
+			}
+		} else {
+			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
+		}
+		if (this._operators[tmp[0]][1]) {
+			args = this._expand(args);
+		}
+//		log(LOG_LOG, 'Perform: '+this._operators[tmp[0]][0]+'('+args+')');
+		value_list.push(fn.apply(this, args));
+	}
+	if (this._operators[op]) {
+		op_list.unshift([op, value_list.length]);
+	}
+};
+
+// Interpret our script, return a single value
+Script.prototype._interpret = function(script) {
+	var x, y, z, fn, value_list = [], op_list = [], test;
+	script = script.slice(0); // Make sure we're a copy as we damage it
+	while (!this.result && (x = script.shift()) !== null && !isUndefined(x)) {
+		if (isArray(x)) {
+			value_list = value_list.concat(arguments.callee.call(this, x));
+		} else if (isString(x)) {
+			if (x === ';') {
+				this._operate.call(this, Number.MAX_VALUE, op_list, value_list);
+				value_list = [];
+				op_list = [];
+			} else if ((fn = this._find(x, this._operators)) >= 0) {
+				this._operate.call(this, fn, op_list, value_list);
+			} else if ((fn = this._find(x, this._functions)) >= 0) {
+				if (this._functions[fn][1] === Script.FN_CUSTOM) {
+					value_list.push(this._functions[fn][2].call(this, script, value_list, op_list));
+				} else {
+					x = script.shift(); // Should probably report some sort of error if not an array...
+					x = arguments.callee.call(this, x);
+					if (this._functions[fn][1] === Script.FN_EXPAND) {
+						x = this._expand(x);
+					}
+					value_list.push(this._functions[fn][2].apply(this, x));
+				}
+			} else { // A "normal" variable of some type
+				value_list.push(x);
+			}
+		} else { // number or boolean
+			value_list.push(x);
+		}
+	}
+	this._operate(Number.MAX_VALUE, op_list, value_list);
+	return this.result || value_list;
+};
+
+Script.prototype.run = function() {
+	this.result = undefined;
+	return this._expand((this._interpret(this.script)).pop());
+};
+
+Script.prototype.reset = function() {
+	this.data = {};
+	this.result = undefined;
+};
+
+Script.prototype.parse = function() {
+	var atoms = (this['source'] + ';').regex(new RegExp('[\\t\\v\\f \\u00a0\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u200b\\u2028\\u2029\\u3000]*' + // "/s" without "/n/r"
+	  '(' +
+		'"(?:\\\\.|[^"])*"' +				// string quoted with "
+		"|'(?:\\\\.|[^'])*'" +				// string quoted with '
+		'|\\d*\\.?\\d+(?:[eE][-+]?\\d+)?' +	// number
+		'|\\btrue\\b|\\bfalse\\b' +			// boolean
+		'|[#A-Za-z_]\\w*(?:\\.\\w+)*\\b' +	// variable
+		'|[!=]==' +							// 3-char operator
+		'|[-+*/%<>!=]=' +					// 2-char operator
+//		'|\\+\\+(?=\\s*[#A-Za-z_,;}])' +	// increment
+//		'|--(?=\\s*[#A-Za-z_,;}])' +		// decrement
+		'|\\+\\+' +							// increment
+		'|--' +								// decrement
+		'|&&' +								// boolean and
+		'|\\|\\|' +							// boolean or
+		'|[-+*/%<>!=]' +					// 1-char operator
+		'|[(){}\\n\\r;]' +					// grouping, separator, terminator
+		'|\\s+' +							// spaces
+		'|[^#\\w\\.\\s"]+' +				// other ?
+	  ')', 'gm'));
+//	log('Atoms: ' + JSON.stringify(atoms));
+	this['script'] = !atoms || !atoms.length ? [] : (function(map) {
+		var atom, path, script = [], i;
+		while ((atom = atoms.shift()) !== null && !isUndefined(atom)) {
+			if (atom === '(' || atom === '{') {
+				script.push(arguments.callee.call(this));
+			} else if (atom === ')') {
+				break;
+			} else if (atom === '}') {
+				if (!script.length || script[script.length-1] !== ';') {
+					script.push(';');
+				}
+				break;
+			} else if (atom === 'true') {
+				script.push(true);
+			} else if (atom === 'false') {
+				script.push(false);
+			} else if (atom === ';' || atom === '\n' || atom === '\r') { // newline
+				if (script.length && script[script.length-1] !== ';') {
+					script.push(';');
+				}
+			} else if ((i = this._find(atom, this._operators)) !== -1) { // operator
+				// unary op
+				if (!script.length || script[script.length-1] !== ';' || this._find(script[script.length-1], this._operators) !== -1) {
+					if (this._find('u' + atom, this._operators) !== -1) {
+						atom = 'u' + atom;
+					}
+				} else if (this._operators[i][2] === false) {
+					if (this._find('p' + atom, this._operators) !== -1) {
+						atom = 'p' + atom;
+					}
+				}
+				script.push(atom);
+			} else if (atom[0] === '#' // variable
+				|| isNumber(atom) // number
+				|| /^".*"$/.test(atom) // string
+				|| /^'.*'$/.test(atom) // string
+				//|| this._find(atom, this._operators) !== -1 // operator
+				|| this._find(atom, this._functions) !== -1) { // function
+				script.push(atom);
+			} else if (atom !== ',') { // if it's not a comma, then worker.datatype.key or path.to.key
+				script.push(atom);
+			}
+		}
+//		log(LOG_DEBUG, 'Script section: '+JSON.stringify(script));
+		if (script[script.length-1] === ';') {
+			script.pop();
+		}
+		return script;
+	}.call(this, this['map']));
+};
+
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -1665,6 +2014,13 @@ Worker._triggers_ = [];// Used for this._trigger
 Worker._resize_ = [];// Used for this._resize
 
 // Private functions - only override if you know exactly what you're doing
+/**
+ * For displaying in strings
+ */
+Worker.prototype.toString = Worker.prototype.toJSON = function() {
+	return '[worker ' + this.name + ']';
+};
+
 /**
  * Save all changed datatypes then set a delay to delete this.data if possible
  * NOTE: You should never call this directly - let Worker.flush() handle it instead!
@@ -2541,6 +2897,7 @@ Army.display = [
 ];
 */
 
+/** @this {Worker} */
 Army.setup = function(old_revision) {
 	// BEGIN Change of storage from "data.uid.section.xyz" to "data.section.uid.xyz"
 	if (old_revision <= 1113) {
@@ -2573,6 +2930,7 @@ Army.setup = function(old_revision) {
 	// END
 };
 
+/** @this {Worker} */
 Army.set = function(what) {
 	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
@@ -2581,6 +2939,7 @@ Army.set = function(what) {
 	return this._set.apply(this, arguments);
 };
 
+/** @this {Worker} */
 Army.get = function(what) {
 	var x = arguments[0] = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
 	if (!x.length || isNumber(x[0]) || !/[^\d]/.test(x[0])) {
@@ -2589,6 +2948,7 @@ Army.get = function(what) {
 	return this._get.apply(this, arguments);
 };
 
+/** @this {Worker} */
 Army.army_name = function(action, uid) {
 	switch(action) {
 	case 'title':
@@ -2612,6 +2972,7 @@ Army.army_name = function(action, uid) {
 	}
 };
 
+/** @this {Worker} */
 Army.army = function(action, uid) {
 	var i, tmp, value, list = [], info = 'UserID', infolist = {
 		'UserID':'uid',
@@ -2650,6 +3011,7 @@ Army.army = function(action, uid) {
 };
 
 Army.order = [];
+/** @this {Worker} */
 Army.dashboard = function(sort, rev) {
 	var i, j, k, label, show = this.get(['runtime','show'],'*'), list = [], output = [], section = [], title = [], showinfo = [], army_fn = [];
 	sort = isUndefined(sort) ? this.get(['runtime','sort'],0) : sort;
@@ -2840,6 +3202,7 @@ Config.temp = {
 	menu:null
 };
 
+/** @this {Worker} */
 Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
 	// BEGIN: Changing this.option.display to a bool
@@ -2919,7 +3282,7 @@ Config.init = function(old_revision) {
 				}
 			}
 			if (!handled) {
-				worker.set('option.'+tmp[1], val, null, true);
+				worker.set('option.'+tmp[1], val, null);
 				Worker.flush();
 			}
 		}
@@ -2946,6 +3309,7 @@ Config.init = function(old_revision) {
 	this._watch(this, 'option.exploit');
 };
 
+/** @this {Worker} */
 Config.update = function(event, events) {
 	var i, $el, $el2, worker, id, value, list, options = [];
 	if (events.findEvent(this, 'show') || events.findEvent(this, 'init')) {
@@ -3019,6 +3383,7 @@ Config.update = function(event, events) {
 	return true;
 };
 
+/** @this {Worker} */
 Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
@@ -3045,6 +3410,7 @@ Config.menu = function(worker, key) {
 	}
 };
 
+/** @this {Worker} */
 Config.addButton = function(options) {
 	if (options.advanced >= 0 && !Config.get(['option','advanced'],false)) {
 		options.hide = true;
@@ -3062,6 +3428,7 @@ Config.addButton = function(options) {
 	}
 }
 
+/** @this {Worker} */
 Config.makeTooltip = function(title, content) {
 	var el = $('<div class="ui-widget ui-widget-shadow ui-helper-fixed" style="left:100px;top:100px;z-index:999;">' + // High z-index due to Facebook search bar
 		'<h3 class="ui-widget-header" style="padding:2px;cursor:move;">' + title +
@@ -3086,6 +3453,7 @@ Config.makeTooltip = function(title, content) {
 	el.show();
 };
 
+/** @this {Worker} */
 Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc - UIStandardFrame_SidebarAds
 	var i, j, k, tmp, stop = false;
 	$('#golem').prepend(tmp = $('<div id="golem_config_frame" class="ui-widget ui-helper-hidden' + (this.option.fixed?' ui-helper-fixed':'') + '" style="width:' + $('#golem').width() + 'px;">' +
@@ -3173,6 +3541,7 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 	this._update('show');
 };
 
+/** @this {Worker} */
 Config.makePanel = function(worker, args) {
 	if (!isWorker(worker)) {
 		if (Worker.stack.length <= 1) {
@@ -3223,10 +3592,12 @@ Config.makePanel = function(worker, args) {
 	this.addOption(worker, args);
 };
 
+/** @this {Worker} */
 Config.makeID = function(worker, id) {
 	return PREFIX + worker.name.toLowerCase().replace(/[^0-9a-z]/g,'-') + '_' + id;
 };
 
+/** @this {Worker} */
 Config.clearPanel = function(selector) {
 	this._init(); // Make sure we're properly loaded first!
 	if (isWorker(selector)) {
@@ -3240,6 +3611,7 @@ Config.clearPanel = function(selector) {
 	$(selector).empty();
 };
 
+/** @this {Worker} */
 Config.addOption = function(selector, args) {
 	this._init(); // Make sure we're properly loaded first!
 	var worker;
@@ -3257,6 +3629,7 @@ Config.addOption = function(selector, args) {
 	$(selector).append(this.makeOptions(worker, args));
 };
 
+/** @this {Worker} */
 Config.makeOptions = function(worker, args) {
 	this._init(); // Make sure we're properly loaded first!
 	if (isArray(args)) {
@@ -3281,6 +3654,7 @@ Config.makeOptions = function(worker, args) {
 	return $([]);
 };
 
+/** @this {Worker} */
 Config.makeOption = function(worker, args) {
 	var i, j, o, r, step, $option, tmp, name, txt = [], list = [];
 	o = $.extend({}, {
@@ -3359,7 +3733,7 @@ Config.makeOption = function(worker, args) {
 		} else if (o.number) {
 			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
 		} else if (o.textarea) {
-			txt.push('<textarea' + o.real_id + ' cols="23" rows="5">' + (o.value || '') + '</textarea>');
+			txt.push('<textarea' + o.real_id + ' cols="38" rows="5"' + (o.id ? '' : ' disabled') + ' style="margin-left:0;margin-right:0;" placeholder="Type here...">' + (o.value || '') + '</textarea>');
 		} else if (o.checkbox) {
 			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
 		} else if (o.button) {
@@ -3442,6 +3816,7 @@ Config.makeOption = function(worker, args) {
 			txt.push('</span>');
 		}
 		$option = $('<div class="ui-helper-clearfix">' + txt.join('') + '</div>');
+		$('textarea', $option).autoSize();
 		if (o.require || o.advanced || o.debug || o.exploit) {
 			try {
 				r = {depth:0};
@@ -3459,7 +3834,7 @@ Config.makeOption = function(worker, args) {
 					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
-					r.require.x = Script.parse(worker, 'option', o.require);
+					r.require.x = new Script(o.require, {'default':worker.get('option')});
 				}
 				this.temp.require.push(r.require);
 				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -3474,6 +3849,7 @@ Config.makeOption = function(worker, args) {
 	return $option;
 };
 
+/** @this {Worker} */
 Config.checkRequire = function(id) {
 	var i, show = true, require;
 	if (!isNumber(id) || !(require = this.temp.require[id])) {
@@ -3492,7 +3868,7 @@ Config.checkRequire = function(id) {
 		show = Config.option.exploit;
 	}
 	if (show && require.x) {
-		show = Script.interpret(require.x);
+		show = require.x.run();
 	}
 	if (require.show !== show) {
 		require.show = show;
@@ -3528,6 +3904,7 @@ Dashboard.option = {
 	height:183
 };
 
+/** @this {Worker} */
 Dashboard.init = function(old_revision) {
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
@@ -3603,6 +3980,7 @@ Dashboard.init = function(old_revision) {
 	this._watch(Config, 'option.debug');
 };
 
+/** @this {Worker} */
 Dashboard.update = function(event, events) {
 	var i, advanced, debug, show, $el, offset, width, height, margin = 0;
 	if (events.findEvent(Config, 'watch', 'option.advanced') || events.findEvent(Config, 'watch', 'option.debug') || events.findEvent(null, 'watch', 'option._hide_dashboard')) {
@@ -3653,6 +4031,7 @@ Dashboard.update = function(event, events) {
 	return true;
 };
 
+/** @this {Worker} */
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i in this.data) {
@@ -3664,6 +4043,7 @@ Dashboard.dashboard = function() {
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
+/** @this {Worker} */
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
@@ -3671,6 +4051,7 @@ Dashboard.status = function(worker, value) {
 	}
 };
 
+/** @this {Worker} */
 Dashboard.menu = function(worker, key) {
 	if (worker) {
 		this._unflush();
@@ -3840,6 +4221,8 @@ Debug.display = [
 ];
 
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
+
+/** @this {Worker} */
 Debug.setup = function(old_revision) {
 	var i, j, p, wkr, fn;
 	// BEGIN Change of log options
@@ -4010,6 +4393,7 @@ GREASEMONKEY:
 	};
 };
 
+/** @this {Worker} */
 Debug.init = function(old_revision) {
 	var i, list = [];
 	// BEGIN: Change log message type from on/off to debug level
@@ -4040,6 +4424,7 @@ Debug.init = function(old_revision) {
 	});
 };
 
+/** @this {Worker} */
 Debug.update = function(event, events) {
 	if (events.findEvent(this, 'init')
 	 || events.findEvent(this, 'option')) {
@@ -4059,6 +4444,7 @@ Debug.update = function(event, events) {
 
 Debug.work = function(){};// Stub so we can be disabled
 
+/** @this {Worker} */
 Debug.menu = function(worker, key) {
 	if (!worker) {
 		if (!isUndefined(key)) {
@@ -4086,6 +4472,7 @@ Debug.menu = function(worker, key) {
 	}
 };
 
+/** @this {Worker} */
 Debug.dashboard = function(sort, rev) {
 	var i, o, list = [], order = [], output = [], data = this.temp, total = 0, rx = new RegExp('^'+this.option.worker);
 	for (i in data) {
@@ -5335,6 +5722,7 @@ Queue.init = function(old_revision) {
 	this._watch('Page', 'temp.loading');
 	this._watch('Session', 'temp.active');
 	this._watch(this, 'option.pause');
+	this._watch(this, 'option.delay');
 	this._watch(this, 'temp.current');
 	this._watch(this, 'temp.sleep');
 	Title.alias('pause', 'Queue:option.pause:(Pause) ');
@@ -5351,6 +5739,9 @@ Queue.update = function(event, events) {
 		if (i && this.temp.current === worker.name) {
 			this.set(['temp','current'], null);
 		}
+	}
+	if (events.getEvent(this, 'watch', 'option.delay')) {
+		this._forget('run'); // Re-started later if possible
 	}
 	if (events.getEvent(this, 'watch', 'temp.current')) {
 		$('#golem_config > div > h3').removeClass(Theme.get('Queue_active', 'ui-state-highlight'));
@@ -5650,44 +6041,22 @@ Resources.has = function(type, amount) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global console, isString, isArray, isNumber, isUndefined, Workers, Worker, Settings, $ */
-// Internal scripting language - never give access to eval() etc.
 
-// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-// [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
-// _operators - >,>=,=,==,<=,<,!=,!==,&,&&,|,||
-// values = option, path.to.option, number, "string"
-// components:
-//	"[^"]*"								- string
-//	'[^']*'								- string
-//	\d*\.?\d+(?:[eE][-+]?\d+)?			- number
-//	true|false							- boolean constants
-//	[#A-Za-z_]\w*(?:\.\w+)*				- variable
-//	[!=]==								- 3-char operators (comparators)
-//	[-+*/%<>!=]=						- 2-char operators (comparators)
-//	\|\|								- 2-char or operator
-//	&&									- 2-char and operator
-//	[-+*/%<>!=(){},;]					- 1-char operators
+var Scripting = new Worker('Script'); // The one and only time we're using the wrong name - BAD!!!
+Scripting.data = Scripting.temp = Scripting.runtime = null;
 
-// '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
-// [["testing","blah"],"=",1234,"&",["yet","another","path"],"|",["something"],"&",["test","me"],">",5]
-
-var Script = new Worker('Script');
-Script.data = Script.runtime = null;
-
-Script.option = {
-	worker:'Player',
-	type:'data'
-};
-
-Script.settings = {
+Scripting.settings = {
 	system:true,
-	debug:true,
+	advanced:true,
 	taint:true
 };
 
-Script.temp = {}; // Used for variables only!!!
+Scripting.option = {
+	path:'Player.data',
+	script:'' // Script shown in Dashboard
+};
 
-Script.dashboard = function() {
+Scripting.dashboard = function() {
 	var i, path = this.option.worker+'.'+this.option.type, html = '', list = [];
 	html += '<input id="golem_script_run" type="button" value="Run">';
 	html += ' Using: <select id="golem_script_worker">';
@@ -5697,330 +6066,42 @@ Script.dashboard = function() {
 	html += '</select>';
 	html += ' Result: <input id="golem_script_result" type="text" value="" disabled>';
 	html += '<input id="golem_script_clear" style="float:right;" type="button" value="Clear">';
-	html += '<div class="ui-helper-clearfix" style="border:1px solid #bdc7d8;padding:2px;"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:100%;" class="ui-helper-reset"></textarea></div>';
-	html += '<div class="ui-helper-clearfix" style="border:1px solid #bdc7d8;padding:2px;"><textarea id="golem_script_source" placeholder="Compiled code" style="width:100%;" class="ui-helper-reset" disabled></textarea></div>';
+	html += '<div class="ui-helper-clearfix"><textarea id="golem_script_edit" placeholder="Enter code here" style="width:98%;">' + (Scripting.option.script || '') + '</textarea></div>';
+	html += '<div class="ui-helper-clearfix"><h3><a>Variables</a></h3><pre id="golem_script_data">-</pre></div>';
+	html += '<div class="ui-helper-clearfix"><h3><a>Compiled code</a></h3><pre id="golem_script_source">-</pre></div>';
 	$('#golem-dashboard-Script').html(html);
-	$('#golem_script_worker').change(function(){
-		var path = $(this).val().regex(/([^.]*)\.?(.*)/);
-		if (path[0] in Workers) {
-			Script.option.worker = path[0];
-			Script.option.type = path[1];
-		} else {
-			Script.option.worker = Script.option.type = null;
+	$('#golem_script_edit').autoSize();
+	$('#golem_script_source').parent().accordion({
+		collapsible: true,
+		autoHeight: false,
+		clearStyle: true,
+		animated: 'blind',
+		active: this.get(['option','_config','source'], false) || 0,
+		change: function(event, ui){
+			Scripting.set(['option','_config','source'], ui.newHeader.length ? undefined : true, null, true); // Only set when *hiding* panel
 		}
 	});
-	$('#golem_script_source,#golem_script_edit').autoSize();
+	$('#golem_script_data').parent().accordion({
+		collapsible: true,
+		autoHeight: false,
+		clearStyle: true,
+		animated: 'blind',
+		active: this.get(['option','_config','data'], false) || 0,
+		change: function(event, ui){
+			Scripting.set(['option','_config','data'], ui.newHeader.length ? undefined : true, null, true); // Only set when *hiding* panel
+		}
+	});
+	$('#golem_script_worker').change(function(){Scripting.set(['option','path'], $(this).val());});
 	$('#golem_script_run').click(function(){
-		var script = Script.parse(Workers[Script.option.worker], Script.option.type, $('#golem_script_edit').val());
-		$('#golem_script_source').val(script.length ? JSON.stringify(script, null, '   ') : '').autoSize();
-		$('#golem_script_result').val(Script.interpret(script));
+		Scripting.set(['option','script'], $('#golem_script_edit').val());
+		var path = Scripting.option.path.regex(/([^.]*)\.(.*)/), script = new Script(Scripting.option.script, {
+			'default':Workers[path[0]].get(path[1], {})
+		});
+		$('#golem_script_result').val(script.run());
+		$('#golem_script_data').text(JSON.stringify(script.data, null, '   '));
+		$('#golem_script_source').text(JSON.stringify(script.script, null, '   '));
 	});
 	$('#golem_script_clear').click(function(){$('#golem_script_edit,#golem_script_source,#golem_script_result').val('');});
-};
-
-Script._find = function(op, table) {
-	var i = table.length;
-	while (i--) {
-		if (table[i][0] === op) {
-			return i;
-		}
-	}
-	return -1;
-};
-
-Script._operators = [ // Order of precidence, [name, expand_args, function]
-	// Unary/Prefix
-	//['u++',	false,	function(l,r) {return this.temp[r] += 1;}],
-	//['u--',	false,	function(l,r) {return this.temp[r] -= 1;}],
-	['u+',	true,	function(l,r) {return r;}],
-	['u-',	true,	function(l,r) {return -r;}],
-	['u!',	true,	function(l,r) {return !r;}],
-	['!',	true,	false],		// placeholder
-	// Postfix
-	//['p++',	false,	function(l) {var v = this.temp[l]; this.temp[l] += 1; return v;}],
-	//['++',	false,	false],	// placeholder
-	//['p--',	false,	function(l) {var v = this.temp[l]; this.temp[l] -= 1; return v;}],
-	//['--',	false,	false],	// placeholder
-	// Maths
-	['*',	true,	function(l,r) {return l * r;}],
-	['/',	true,	function(l,r) {return l / r;}],
-	['%',	true,	function(l,r) {return l % r;}],
-	['+',	true,	function(l,r) {return l + r;}],
-	['-',	true,	function(l,r) {return l - r;}],
-	// Equality
-	['>',	true,	function(l,r) {return l > r;}],
-	['>=',	true,	function(l,r) {return l >= r;}],
-	['<=',	true,	function(l,r) {return l <= r;}],
-	['<',	true,	function(l,r) {return l < r;}],
-	['===',	true,	function(l,r) {return l === r;}],
-	['!==',	true,	function(l,r) {return l !== r;}],
-/*jslint eqeqeq:false */
-	['==',	true,	function(l,r) {return l == r;}],
-	['!=',	true,	function(l,r) {return l != r;}],
-/*jslint eqeqeq:true */
-	// Logical
-	['&&',	true,	function(l,r) {return l && r;}],
-	['||',	true,	function(l,r) {return l || r;}],
-	// Assignment
-	['=',	false,	function(l,r) {return (this.temp[l] = this._expand(r));}],
-	['*=',	false,	function(l,r) {return (this.temp[l] *= this._expand(r));}],
-	['/=',	false,	function(l,r) {return (this.temp[l] /= this._expand(r));}],
-	['%=',	false,	function(l,r) {return (this.temp[l] %= this._expand(r));}],
-	['+=',	false,	function(l,r) {return (this.temp[l] += this._expand(r));}],
-	['-=',	false,	function(l,r) {return (this.temp[l] -= this._expand(r));}]
-];
-
-var FN_EXPAND = 0; // function(expand(args)), expanded variables -> values
-var FN_RAW = 1; // function(args), unexpanded (so variable names are not changed to their values)
-var FN_CUSTOM = 2; // function(script, value_list, op_list)
-
-Script._functions = [ // [name, expand_args, function]
-	['min',		FN_EXPAND,	function() {return Math.min.apply(Math, arguments);}],
-	['max',		FN_EXPAND,	function() {return Math.max.apply(Math, arguments);}],
-	['round',	FN_EXPAND,	function() {return Math.round.apply(Math, arguments);}],
-	['floor',	FN_EXPAND,	function() {return Math.floor.apply(Math, arguments);}],
-	['ceil',	FN_EXPAND,	function() {return Math.ceil.apply(Math, arguments);}],
-	['if',		FN_CUSTOM,	function(script, value_list, op_list) { // if (test) {func} [else if (test) {func}]* [else {func}]?
-		var x, fn = 'if', test = false;
-		while (fn) {
-			x = fn === 'if' ? script.shift() : null; // Should probably report some sort of error if not an array...
-			fn = script.shift(); // Should probably report some sort of error if not an array...
-			if (!test && (!x || (test = Script._interpret(x).pop()))) {
-				value_list = value_list.concat(Script._interpret(fn));
-			}
-			if (script[0] !== 'else') {
-				break;
-			}
-			fn = script.shift(); // 'else'
-			if (script[0] === 'if') {
-				fn = script.shift();
-			}
-		}
-	}],
-	['for',	FN_CUSTOM,	function(script, value_list, op_list) {
-		var a, i = 0; x = [[],[],[]], tmp = script.shift(), fn = script.shift(), now = Date.now();
-		while ((a = tmp.shift())) {
-			if (a === ';') {
-				x[++i] = [];
-			} else {
-				x[i].push(a);
-			}
-		}
-		// Should probably report some sort of error if not an array...
-		Script._interpret(x[0]);
-		while (Script._interpret(x[1]).pop() && Date.now() - now < 3000) { // 3 second limit on loops
-			Script._interpret(fn);
-			Script._interpret(x[2]);
-		}
-	}],
-	['while',	FN_CUSTOM,	function(script, value_list, op_list) {
-		var x = script.shift(), fn = script.shift(), now = Date.now();
-		while (Script._interpret(x).pop() && Date.now() - now < 3000) { // 3 second limit on loops
-			Script._interpret(fn);
-		}
-	}],
-	['return',	FN_CUSTOM,	function(script, value_list, op_list) {
-		var x = script.shift();
-		Script._return = Script._interpret(isArray(x) ? x : [x]);
-	}]
-];
-
-Script._expand = function(variable) { // Expand variables into values
-	if (variable) {
-		if (isArray(variable)) {
-			var i = variable.length;
-			while (i--) {
-				variable[i] = arguments.callee.call(this, variable[i]);
-			}
-		} else if (isString(variable) && variable[0] === '#') {
-			return this.temp[variable];
-		}
-	}
-	return variable;
-};
-
-// Perform any operations of lower precedence than "op"
-// Both op_list and value_list are altered
-Script._operate = function(op, op_list, value_list) {
-	var i, tmp, fn, args;
-	while (op_list.length && op_list[0][0] <= op) {
-		tmp = op_list.shift();
-		fn = this._operators[tmp[0]][2];
-		if ((i = fn.length)) { // function takes set args
-			args = value_list.splice(-i, i);
-			// pad out values to the left, if missing
-			while (args.length < i) {
-				args.unshift(null);
-			}
-		} else {
-			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
-		}
-		if (this._operators[tmp[0]][1]) {
-			args = this._expand(args);
-		}
-//		log(LOG_LOG, 'Perform: '+this._operators[tmp[0]][0]+'('+args+')');
-		value_list.push(fn.apply(this, args));
-	}
-	if (this._operators[op]) {
-		op_list.unshift([op, value_list.length]);
-	}
-};
-
-Script._return = undefined;
-
-// Interpret our script, return a single value
-Script._interpret = function(_script) {
-	var x, y, z, fn, value_list = [], op_list = [], script = _script.slice(0), test;
-	while (!this._return && (x = script.shift()) !== null && !isUndefined(x)) {
-		if (isArray(x)) {
-			value_list = value_list.concat(arguments.callee.call(this, x));
-		} else if (isString(x)) {
-			if (x === ';') {
-				this._operate(Number.MAX_VALUE, op_list, value_list);
-				value_list = [];
-				op_list = [];
-			} else if ((fn = Script._find(x, this._operators)) >= 0) {
-				this._operate(fn, op_list, value_list);
-			} else if ((fn = Script._find(x, this._functions)) >= 0) {
-				if (this._functions[fn][1] === FN_CUSTOM) {
-					value_list.push(this._functions[fn][2].call(this, script, value_list, op_list));
-				} else {
-					x = script.shift(); // Should probably report some sort of error if not an array...
-					x = arguments.callee.call(this, x);
-					if (this._functions[fn][1] === FN_EXPAND) {
-						x = this._expand(x);
-					}
-					value_list.push(this._functions[fn][2].apply(this, x));
-				}
-			} else if (/^[A-Z]\w*(?:\.\w+)*$/.test(x)) {
-				x = x.split('.');
-				value_list.push(Workers[x[0]]._get(x.slice(1), false));
-			} else if (/^".*"$/.test(x)) {
-				x = x.replace(/^"|"$/g, '');
-				z = '';
-				while (y = x.match(/^(.*)\\(.)(.*)$/)) {
-					z = y[1] + y[2];
-					x = y[3];
-				}
-				z += x;
-				value_list.push(z);
-			} else if (/^'.*'$/.test(x)) {
-				x = x.replace(/^'|'$/g, '');
-				z = '';
-				while (y = x.match(/^(.*)\\(.)(.*)$/)) {
-					z = y[1] + y[2];
-					x = y[3];
-				}
-				z += x;
-				value_list.push(z);
-			} else if (x[0] === '#') {
-				value_list.push(x);
-			} else {
-				log(LOG_ERROR, 'Bad string format: '+x);
-				value_list.push(x); // Should never hit this...
-			}
-		} else { // number or boolean
-			value_list.push(x);
-		}
-	}
-	this._operate(Number.MAX_VALUE, op_list, value_list);
-	return this._return || value_list;
-};
-
-Script.interpret = function(script) {
-	this.temp = {};
-	this._return = undefined;
-	return this._expand((this._interpret(script)).pop());
-};
-
-Script.parse = function(worker, datatype, text, map) {
-	var atoms = (text + ';').regex(new RegExp('\\s*(' +
-	  '"(?:\\\\.|[^"])*"' +					// string quoted with "
-	  "|'(?:\\\\.|[^'])*'" +				// string quoted with '
-	  '|\\d*\\.?\\d+(?:[eE][-+]?\\d+)?' +	// number
-	  '|\\btrue\\b|\\bfalse\\b' +			// boolean
-	  '|[#A-Za-z_]\\w*(?:\\.\\w+)*\\b' +	// variable
-	  '|[!=]==' +							// 3-char operator
-	  '|[-+*/%<>!=]=' +						// 2-char operator
-	  '|\\+\\+(?=\\s*[#A-Za-z_,;}])' +		// increment
-	  '|--(?=\\s*[#A-Za-z_,;}])' +			// decrement
-	  '|&&' +								// boolean and
-	  '|\\|\\|' +							// boolean or
-	  '|[-+*/%<>!=]' +						// 1-char operator
-	  '|[(){};]' +							// grouping, separator, terminator
-	  '|\\s+' +								// spaces
-	  '|[^#\\w\\.\\s"]+' +					// other ?
-	  ')', 'gm'));
-	if (atoms === null || isUndefined(atoms)) {
-		return []; // Empty script
-	}
-	map = map || {};
-	return (function() {
-		var atom, path, script = [], i;
-		while ((atom = atoms.shift()) !== null && !isUndefined(atom)) {
-			if (atom === '(' || atom === '{') {
-				script.push(arguments.callee());
-			} else if (atom === ')') {
-				break;
-			} else if (atom === '}') {
-				if (!script.length || script[script.length-1] !== ';') {
-					script.push(';');
-				}
-				break;
-			} else if (atom === 'true') {
-				script.push(true);
-			} else if (atom === 'false') {
-				script.push(false);
-			} else if (atom === ';') { // newline (resets values)
-				if (script.length && script[script.length-1] !== ';') {
-					script.push(atom);
-				}
-			} else if ((i = Script._find(atom, Script._operators)) !== -1) { // operator
-				// unary op
-				if (!script.length || Script._find(script[script.length-1], Script._operators) !== -1) {
-					if (Script._find('u' + atom, Script._operators) !== -1) {
-						//log(LOG_WARN, 'unary/prefix [' + atom + ']');
-						atom = 'u' + atom;
-					} else {
-						log(LOG_WARN, 'unary/prefix [' + atom + '] is not supported');
-					}
-				} else if (Script._operators[i][2] === false) {
-					if (Script._find('p' + atom, Script._operators) !== -1) {
-						//log(LOG_WARN, 'postifx [' + atom + ']');
-						atom = 'p' + atom;
-					} else {
-						log(LOG_WARN, 'postifx [' + atom + '] is not supported');
-					}
-				}
-				script.push(atom);
-			} else if (atom[0] === '#' // variable
-				|| isNumber(atom) // number
-				|| /^".*"$/.test(atom) // string
-				|| /^'.*'$/.test(atom) // string
-				//|| Script._find(atom, Script._operators) !== -1 // operator
-				|| Script._find(atom, Script._functions) !== -1) { // function
-				script.push(atom);
-			} else if (atom !== ',') { // if it's not a comma, then worker.datatype.key or path.to.key
-				if (map[atom]) {
-					path = map[atom].split('.');
-				} else {
-					path = atom.split('.');
-				}
-				if (!Workers[path[0]]) {
-					if (isUndefined(worker._datatypes[path[0]])) {
-						path.unshift(datatype);
-					}
-					path.unshift(worker.name);
-				}
-				script.push(path.join('.'));
-			}
-		}
-//		log(LOG_DEBUG, 'Script section: '+JSON.stringify(script));
-		if (script[script.length-1] === ';') {
-			script.pop();
-		}
-		return script;
-	}());
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
@@ -8142,19 +8223,19 @@ Blessing.update = function(event){
          d = new Date(this.runtime.when);
          switch(this.option.which){
              case 'Energy':
-                 demi = '<img class="golem-image" src="'+getImage('symbol_1')+'"> Ambrosia (' + this.option.which + ')';
+                 demi = makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
                  break;
              case 'Attack':
-                 demi = '<img class="golem-image" src="'+getImage('symbol_2')+'"> Malekus (' + this.option.which + ')';
+                 demi = makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
                  break;
              case 'Defense':
-                 demi = '<img class="golem-image" src="'+getImage('symbol_3')+'"> Corvintheus (' + this.option.which + ')';
+                 demi = makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
                  break;
              case 'Health':
-                 demi = '<img class="golem-image" src="'+getImage('symbol_4')+'"> Aurora (' + this.option.which + ')';
+                 demi = makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
                  break;
              case 'Stamina':
-                 demi = '<img class="golem-image" src="'+getImage('symbol_5')+'"> Azeron (' + this.option.which + ')';
+                 demi = makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
                  break;
              default:
                  demi = 'Unknown';
@@ -10857,20 +10938,20 @@ Monster.display = [
 			},{
 				id:'priority',
 				label:'Priority List',
-				require:'stop=="Priority List"',
+				require:'stop==="Priority List"',
 				textarea:true,
 				help:'Prioritized list of which monsters to attack'
 			},{
 				advanced:true,
 				id:'own',
 				label:'Never stop on Your Monsters',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				checkbox:true,
 				help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
 			},{
 				advanced:true,
 				id:'rescue',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				label:'Rescue failing monsters',
 				checkbox:true,
 				help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
@@ -10878,7 +10959,7 @@ Monster.display = [
 				advanced:true,
 				id:'avoid_lost_cause',
 				label:'Avoid Lost-cause Monsters',
-				require:'stop!="Priority List"',
+				require:'stop!=="Priority List"',
 				checkbox:true,
 				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 			},{
@@ -13382,7 +13463,7 @@ Potions.update = function(event) {
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
-			txt.push(makeImage('potion_'+l) + this.data[i] + '/' + this.option[i] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
+			txt.push(makeImage('potion-'+l) + this.data[i] + '/' + this.option[i] + (this.option._disabled ? '' : ' <a class="golem-potion-drink" name="'+i+'" title="Drink one of this potion">' + (this.runtime.type === i ? '[Don\'t Drink]' : '[Drink]') + '</a>'));
 		}
 		if (!levelup && isNumber(this.option[i]) && this.data[i] > this.option[i] && Player.get(l, 0) + 10 < Player.get('max' + l, 0)) {
 			this.set(['runtime','type'], i);
@@ -15991,7 +16072,7 @@ Town.dup_map = {
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade');
-Upgrade.data = Upgrade.temp = null;
+Upgrade.data = null;
 
 Upgrade.settings = {
 	taint:true
@@ -16002,50 +16083,101 @@ Upgrade.defaults['castle_age'] = {
 };
 
 Upgrade.option = {
-	order:[]
+	script:''
 };
 
 Upgrade.runtime = {
-	working:false,
-	run:0
+	next:null
 };
+
+Upgrade.temp = {};
 
 Upgrade.display = [
 	{
-		label:'Points will be allocated in this order, add multiple entries if wanted (ie, 3x Attack and 1x Defense would put &frac34; on Attack and &frac14; on Defense)'
+		info:'Use GolemScript to spend your Upgrade Points.'
 	},{
-		id:'order',
-		multiple:['Energy', 'Stamina', 'Attack', 'Defense', 'Health']
+		id:'script',
+		textarea:true
+	},{
+		title:'Help',
+		group:{
+			info:'The stats will be set in the order they are first set (use if() blocks to enforce order if it\'s important - you can easily have a "dump" stat at the end by this method).<br>' +
+			'Stats: <pre>stamina\nenergy\nattack\ndefense\nhealth</pre>' +
+			'Useful Functions: <pre>value = min(1,2,3);\nvalue = max(1,2,3);\nif (value1 === value2) {\n   do something\n}</pre>'
+		}
+	},{
+		title:'Examples',
+		group:[
+			{
+				title:'Simple Offensive',
+				group:{info:'<pre>attack = level * 5;\n' +
+					'defense = attack / 2;\n' +
+					'stamina = level;\n' +
+					'energy = level / 2;\n' +
+					'health++;</pre>'
+				}
+			},{
+				title:'Complex with fallback',
+				group:{info:'<pre>attack = level * 5;\n' +
+					'defense = level * 2.5;\n' +
+					'if (health < level) {\n' +
+					'   health = level;\n' +
+					'} else if (stamina < level) {\n' +
+					'   stamina = level;\n' +
+					'} else if (energy < level) {\n' +
+					'   energy = level;\n' +
+					'} else {\n' +
+					'   health++;\n' +
+					'}</pre>'
+				}
+			}
+		]
 	}
 ];
 
+Upgrade.script = null;
+
 Upgrade.init = function() {
+	this._watch(this, 'option.script');
 	this._watch(Player, 'data.upgrade');
 };
 
-Upgrade.parse = function(change) {
-	var result = $('div.results');
-	if (this.runtime.working && result.length && result.text().match(/You just upgraded your/i)) {
-		this.set('runtime.working', false);
-		this.set(['runtime','run'], this.runtime.run + 1);
+Upgrade.update = function(event, events) {
+	if (events.findEvent(this,'init') || events.findEvent(this,'watch','option.script')) {
+		this.temp = {};
+		this.script = new Script(this.option.script, {
+			'map':{
+				stamina:'Player.data.maxstamina',
+				energy:'Player.data.maxenergy',
+				health:'Player.data.maxhealth'
+			},
+			'default':Player.data,
+			'data':this.temp // So we can manually view it easily
+		});
+		this.script.run();
 	}
-	return false;
-};
-
-Upgrade.update = function(event) {
-	if (this.runtime.run >= this.option.order.length) {
-		this.set(['runtime','run'], 0);
+	var i, j, data = this.script.data, points = Player.get('upgrade'), need = {
+		'energy':1,
+		'stamina':2,
+		'attack':1,
+		'defense':1,
+		'health':1
+	};
+	this.set(['runtime','next']);
+	for (i in data) {
+		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
+			Dashboard.status(this, 'Next point: ' + makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
+			this.set(['runtime','next'], i);
+			break;
+		}
 	}
-	var points = Player.get('upgrade'), args;
-	this.set('option._sleep', !this.option.order.length || Player.get('upgrade') < (this.option.order[this.runtime.run]==='Stamina' ? 2 : 1));
+	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
+	return true;
 };
 
 Upgrade.work = function(state) {
-	var args = ({Energy:'energy_max', Stamina:'stamina_max', Attack:'attack', Defense:'defense', Health:'health_max'})[this.option.order[this.runtime.run]];
-	if (!args) {
-		this.set(['runtime','run'], this.runtime.run + 1);
-	} else if (state) {
-		this.set(['runtime','working'], true);
+	var args = ({energy:'energy_max', stamina:'stamina_max', attack:'attack', defense:'defense', health:'health_max'})[this.runtime.next];
+	if (state) {
 		Page.to('keep_stats', {upgrade:args}, true);
 	}
 	return QUEUE_RELEASE;
@@ -16616,7 +16748,7 @@ Festival.init = function() {
 	}
 	// END
 
-	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	this._remind(300, 'tokens');// Gain more tokens every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
 		this._remind((this.runtime.start - now) / 1000, 'start');
 	}
@@ -16642,7 +16774,7 @@ Festival.parse = function(change) {
 				this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
 				this._forget('finish');
 				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600 
-						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 180;
+						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 300;
 				this._forget('finish');
 				this.set(['runtime','start'], i*1000 + now);
 				this._remind(i , 'start');
@@ -16686,7 +16818,7 @@ Festival.update = function(event) {
 		if (event.id === 'tokens') {
 			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
 			if (this.runtime.tokens < 10) {
-				this._remind(180, 'tokens');
+				this._remind(300, 'tokens');
 			}
 		} else if (event.id === 'start') {
 			this.set(['runtime','status'], 'start');

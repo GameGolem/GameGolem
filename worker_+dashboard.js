@@ -25,6 +25,7 @@ Dashboard.option = {
 	height:183
 };
 
+/** @this {Worker} */
 Dashboard.init = function(old_revision) {
 	// BEGIN: Changing this.option.display to a bool
 	if (old_revision <= 1110) {
@@ -100,6 +101,7 @@ Dashboard.init = function(old_revision) {
 	this._watch(Config, 'option.debug');
 };
 
+/** @this {Worker} */
 Dashboard.update = function(event, events) {
 	var i, advanced, debug, show, $el, offset, width, height, margin = 0;
 	if (events.findEvent(Config, 'watch', 'option.advanced') || events.findEvent(Config, 'watch', 'option.debug') || events.findEvent(null, 'watch', 'option._hide_dashboard')) {
@@ -150,6 +152,7 @@ Dashboard.update = function(event, events) {
 	return true;
 };
 
+/** @this {Worker} */
 Dashboard.dashboard = function() {
 	var i, list = [];
 	for (i in this.data) {
@@ -161,6 +164,7 @@ Dashboard.dashboard = function() {
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
+/** @this {Worker} */
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
@@ -168,6 +172,7 @@ Dashboard.status = function(worker, value) {
 	}
 };
 
+/** @this {Worker} */
 Dashboard.menu = function(worker, key) {
 	if (worker) {
 		this._unflush();

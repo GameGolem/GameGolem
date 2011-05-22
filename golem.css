@@ -416,12 +416,6 @@
 	display: block;
 }
 
-#golem img.golem-image {
-	width: 16px;
-	height: 16px;
-	margin-bottom: -4px;
-}
-
 #golem .golem-menu {
 	display: none;
 	position: absolute;
@@ -492,7 +486,7 @@
 ----------------------------------*/
 
 /* states and images */
-#golem .ui-icon { display: block; text-indent: -99999px; overflow: hidden; background-repeat: no-repeat; }
+#golem .ui-icon { display: inline-block; text-indent: -99999px; overflow: hidden; background-repeat: no-repeat; }
 
 
 /* Misc visuals
@@ -569,7 +563,6 @@
 #golem.golem-theme .ui-state-hover .ui-icon, .ui-state-focus .ui-icon, #golem.golem-theme .ui-state-active .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_454545_256x240.png); }
 #golem.golem-theme .ui-state-highlight .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_2e83ff_256x240.png); }
 #golem.golem-theme .ui-state-error .ui-icon,#golem.golem-theme .ui-state-error-text .ui-icon { background-image: url(http://rycochet.net/themes/default/images/ui-icons_cd0a0a_256x240.png); }
-#golem .golem-icon { background-image: url(http://rycochet.net/themes/default/images/golem-icons.png) !important; }
 
 #golem .golem-menu-icon { position: absolute !important; top: 50%; margin-top: -8px; right: 2px; border-left: 1px solid #d3d3d3; }
 
@@ -750,6 +743,9 @@
 #golem .ui-icon-gripsmall-diagonal-se { background-position: -64px -224px; }
 #golem .ui-icon-grip-diagonal-se { background-position: -80px -224px; }
 
+#golem .golem-icon { background-image: url(http://rycochet.net/themes/default/images/golem-icons.png) !important; }
+#golem img.golem-icon { margin-bottom: -4px; border: 0; }
+
 #golem .golem-icon-debug { background-position: 0 0; }
 #golem .golem-icon-wiki { background-position: -16px 0; }
 
@@ -765,17 +761,21 @@
 #golem .golem-icon-stamina { background-position: -48px -32px; }
 #golem .golem-icon-exp { background-position: -64px -32px; }
 #golem .golem-icon-percent { background-position: -80px -32px; }
-#golem .golem-icon-favor { background-position: -96px -32px; }
-#golem .golem-icon-arena { background-position: -112px -32px; }
+#golem .golem-icon-attack { background-position: -96px -32px; }
+#golem .golem-icon-defense { background-position: -112px -32px; }
 
-#golem .golem-icon-guild { background-position: 0 -48px; }
-#golem .golem-icon-symbol-1 { background-position: -16px -48px; }
-#golem .golem-icon-symbol-2 { background-position: -32px -48px; }
-#golem .golem-icon-symbol-3 { background-position: -48px -48px; }
-#golem .golem-icon-symbol-4 { background-position: -64px -48px; }
-#golem .golem-icon-symbol-5 { background-position: -80px -48px; }
-#golem .golem-icon-potion-energy { background-position: -96px -48px; }
-#golem .golem-icon-potion-stamina { background-position: -112px -48px; }
+#golem .golem-icon-potion-energy { background-position: 0 -48px; }
+#golem .golem-icon-potion-stamina { background-position: -16px -48px; }
+
+#golem .golem-icon-symbol-1 { background-position: -0 -64px; }
+#golem .golem-icon-symbol-2 { background-position: -16px -64px; }
+#golem .golem-icon-symbol-3 { background-position: -32px -64px; }
+#golem .golem-icon-symbol-4 { background-position: -48px -64px; }
+#golem .golem-icon-symbol-5 { background-position: -64px -64px; }
+
+#golem .golem-icon-guild { background-position: 0 -80px; }
+#golem .golem-icon-favor { background-position: -16px -80px; }
+#golem .golem-icon-arena { background-position: -32px -80px; }
 
 /* Misc visuals
 ----------------------------------*/

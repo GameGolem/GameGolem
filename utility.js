@@ -68,6 +68,15 @@ var isWorker = function(obj) {
 };
 
 /**
+ * Check if a passed object is a Script
+ * @param {*} obj The object we wish to check
+ * @return {boolean} If it is or not
+ */
+var isScript = function(obj) {
+	return obj && obj.constructor === Script;
+};
+
+/**
  * Check if a passed object is an Error
  * @param {*} obj The object we wish to check
  * @return {boolean} If it is or not
@@ -736,53 +745,53 @@ Date.replaceChars = {
 	shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 	longDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
 	// Day
-	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
-	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
-	j: function() { return this.getDate(); },
-	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
-	N: function() { return this.getDay() + 1; },
-	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
-	w: function() { return this.getDay(); },
-	z: function() { return "Not Yet Supported"; },
-	R: function() {
+	/** @this {Date} */	d: function() { return (this.getDate() < 10 ? '0' : '') + this.getDate(); },
+	/** @this {Date} */	D: function() { return Date.replaceChars.shortDays[this.getDay()]; },
+	/** @this {Date} */	j: function() { return this.getDate(); },
+	/** @this {Date} */	l: function() { return Date.replaceChars.longDays[this.getDay()]; },
+	/** @this {Date} */	N: function() { return this.getDay() + 1; },
+	/** @this {Date} */	S: function() { return (this.getDate() % 10 === 1 && this.getDate() !== 11 ? 'st' : (this.getDate() % 10 === 2 && this.getDate() !== 12 ? 'nd' : (this.getDate() % 10 === 3 && this.getDate() !== 13 ? 'rd' : 'th'))); },
+	/** @this {Date} */	w: function() { return this.getDay(); },
+	/** @this {Date} */	z: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	R: function() {
 		var i = (new Date() - this) / 1000;
 		return (i < (24 * 60 * 60) ? 'Today' : i < (2 * 24 * 60 * 60) ? 'Yesterday' : i < (7 * 24 * 60 * 60) ? Math.floor(i / (24 * 60 * 60)) + ' Days Ago' : i < (31 * 24 * 60 * 60) ? Math.floor(i / (7 * 24 * 60 * 60)) + ' Weeks Ago' : i < (365 * 24 * 60 * 60) ? Math.floor(i / (31 * 24 * 60 * 60)) + ' Months Ago' : Math.floor(i / (365 * 24 * 60 * 60)) + ' Years Ago');
 	},
 	// Week
-	W: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	W: function() { return "Not Yet Supported"; },
 	// Month
-	F: function() { return Date.replaceChars.longMonths[this.getMonth()]; },
-	m: function() { return (this.getMonth() < 9 ? '0' : '') + (this.getMonth() + 1); },
-	M: function() { return Date.replaceChars.shortMonths[this.getMonth()]; },
-	n: function() { return this.getMonth() + 1; },
-	t: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	F: function() { return Date.replaceChars.longMonths[this.getMonth()]; },
+	/** @this {Date} */	m: function() { return (this.getMonth() < 9 ? '0' : '') + (this.getMonth() + 1); },
+	/** @this {Date} */	M: function() { return Date.replaceChars.shortMonths[this.getMonth()]; },
+	/** @this {Date} */	n: function() { return this.getMonth() + 1; },
+	/** @this {Date} */	t: function() { return "Not Yet Supported"; },
 	// Year
-	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
-	o: function() { return "Not Supported"; },
-	Y: function() { return this.getFullYear(); },
-	y: function() { return ('' + this.getFullYear()).substr(2); },
+	/** @this {Date} */	L: function() { return (((this.getFullYear()%4===0)&&(this.getFullYear()%100!==0)) || (this.getFullYear()%400===0)) ? '1' : '0'; },
+	/** @this {Date} */	o: function() { return "Not Supported"; },
+	/** @this {Date} */	Y: function() { return this.getFullYear(); },
+	/** @this {Date} */	y: function() { return ('' + this.getFullYear()).substr(2); },
 	// Time
-	a: function() { return this.getHours() < 12 ? 'am' : 'pm'; },
-	A: function() { return this.getHours() < 12 ? 'AM' : 'PM'; },
-	B: function() { return "Not Yet Supported"; },
-	g: function() { return this.getHours() % 12 || 12; },
-	G: function() { return this.getHours(); },
-	h: function() { return ((this.getHours() % 12 || 12) < 10 ? '0' : '') + (this.getHours() % 12 || 12); },
-	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
-	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
-	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
-	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
+	/** @this {Date} */	a: function() { return this.getHours() < 12 ? 'am' : 'pm'; },
+	/** @this {Date} */	A: function() { return this.getHours() < 12 ? 'AM' : 'PM'; },
+	/** @this {Date} */	B: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	g: function() { return this.getHours() % 12 || 12; },
+	/** @this {Date} */	G: function() { return this.getHours(); },
+	/** @this {Date} */	h: function() { return ((this.getHours() % 12 || 12) < 10 ? '0' : '') + (this.getHours() % 12 || 12); },
+	/** @this {Date} */	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
+	/** @this {Date} */	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
+	/** @this {Date} */	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
+	/** @this {Date} */	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
 	// Timezone
-	e: function() { return "Not Yet Supported"; },
-	I: function() { return "Not Supported"; },
-	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
-	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
-	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
-	Z: function() { return -this.getTimezoneOffset() * 60; },
+	/** @this {Date} */	e: function() { return "Not Yet Supported"; },
+	/** @this {Date} */	I: function() { return "Not Supported"; },
+	/** @this {Date} */	O: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + '00'; },
+	/** @this {Date} */	P: function() { return (-this.getTimezoneOffset() < 0 ? '-' : '+') + (Math.abs(this.getTimezoneOffset() / 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() / 60)) + ':' + (Math.abs(this.getTimezoneOffset() % 60) < 10 ? '0' : '') + (Math.abs(this.getTimezoneOffset() % 60)); },
+	/** @this {Date} */	T: function() { var m = this.getMonth(), result; this.setMonth(0); result = this.toTimeString().replace(/^.+ \(?([^\)]+)\)?$/, '$1'); this.setMonth(m); return result;},
+	/** @this {Date} */	Z: function() { return -this.getTimezoneOffset() * 60; },
 	// Full Date/Time
-	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
-	r: function() { return this.toString(); },
-	U: function() { return this.getTime() / 1000; }
+	/** @this {Date} */	c: function() { return this.format("Y-m-d") + "T" + this.format("H:i:sP"); },
+	/** @this {Date} */	r: function() { return this.toString(); },
+	/** @this {Date} */	U: function() { return this.getTime() / 1000; }
 };
 
 var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_val, limit) {
@@ -832,8 +841,8 @@ JSON.shallow = function(obj, depth, replacer, space) {
 					out = '[object Array]';
 				}
 			} else {
-				if (isWorker(o)) {
-					out = '[worker ' + o.name + ']';
+				if (isWorker(o) || isScript(o)) {
+					out = o.toString();
 				} else if (d > 0) {
 					out = {};
 					for (i in o) {
@@ -974,7 +983,7 @@ var getImage = function(name) {
 };
 
 var makeImage = function(name, title) {
-	return '<img class="golem-image" title="' + (title || name.ucfirst()) + '" src="' + getImage(name) + '">';
+	return '<img class="ui-icon golem-icon golem-icon-' + name + '" title="' + (title || name.ucfirst()) + '" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAA9JREFUeNpiYBgFyAAgwAABEAABO0JCSwAAAABJRU5ErkJggg==">';
 };
 
 var assert = function(test, msg, type) {
