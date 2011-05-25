@@ -44,7 +44,7 @@ Main.parse = function() {
 };
 
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
-	var i, old_revision, head, a, b;
+	var i, old_revision, head, a, b, tmp;
 	if (events.findEvent(null,null,'kickstart')) {
 		old_revision = parseInt(localStorage['golem.' + APP + '.revision'] || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
@@ -59,7 +59,12 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
+		tmp = $('#rightCol');
+		if (!tmp.length) {
+			log(LOG_INFO, 'GameGolem: Unable to find DOM parent, using <body> instead...');
+			tmp = $('body');
+		}
+		tmp.prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -139,6 +144,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			}
 		} catch(e) {
 			if (Main._retry_++ < 5) {// Try 5 times before we give up...
+				log(LOG_INFO, 'GameGolem: Unable to start properly (' + Main._retry_ + '/5)...');
 				this._remind(1, 'startup');
 				return true;
 			}
@@ -205,15 +211,12 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		// Now we're rolling
 		if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
 			$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
-		} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
-			GM_addStyle(GM_getResourceText('stylesheet'));
 		} else {
 			$('head').append('<link href="http://rycochet.net/themes/default.css" rel="stylesheet" type="text/css">');
 		}
-	//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 		this._remind(0.1, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 	}
-	return true;
+//	return true;
 };
 
 if (!Main.loaded) { // Prevent double-start

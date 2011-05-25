@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1124
+ * GameGolem v31.6.1125
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1124
+ * GameGolem v31.6.1125
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1124;
+var revision = 1125;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1495,14 +1495,14 @@ Script.prototype._find = function(op, table) {
 
 Script.prototype._operators = [ // Order of precidence, [name, expand_args, function]
 	// Unary/Prefix
-	['u++',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v + 1; return v;}],
-	['u--',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v - 1; return v;}],
+	['u++',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10); this._lvalue(r, v + 1); return v;}],
+	['u--',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10); this._lvalue(r, v - 1); return v;}],
 	['u+',	true,	function(l,r) {return parseInt(r,10);}],
 	['u-',	true,	function(l,r) {return -parseInt(r,10);}],
 	['u!',	true,	function(l,r) {return !r;}],
 	// Postfix
-	['p++',	false,	function(l,r) {var v = parseInt(this._expand(r),10) + 1; this.data[r] = v; return v;}],
-	['p--',	false,	function(l,r) {var v = parseInt(this._expand(r),10) - 1; this.data[r] = v; return v;}],
+	['p++',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10) + 1; this._lvalue(r, v); return v;}],
+	['p--',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10) - 1; this._lvalue(r, v); return v;}],
 	// Placeholders for Unary/Prefix/Postfix - only needed if there's not a normal one
 	['!',	true,	false],	// placeholder
 	['++',	true,	false],	// placeholder
@@ -1528,24 +1528,24 @@ Script.prototype._operators = [ // Order of precidence, [name, expand_args, func
 	['&&',	true,	function(l,r) {return l && r;}],
 	['||',	true,	function(l,r) {return l || r;}],
 	// Assignment
-	['=',	false,	function(l,r) {return (this.data[l] = this._expand(r));}],
-	['*=',	false,	function(l,r) {return (this.data[l] *= this._expand(r));}],
-	['/=',	false,	function(l,r) {return (this.data[l] /= this._expand(r));}],
-	['%=',	false,	function(l,r) {return (this.data[l] %= this._expand(r));}],
-	['+=',	false,	function(l,r) {return (this.data[l] += this._expand(r));}],
-	['-=',	false,	function(l,r) {return (this.data[l] -= this._expand(r));}]
+	['=',	false,	function(l,r) {return this._lvalue(l, this._rvalue(r));}],
+	['*=',	false,	function(l,r) {return this._lvalue(l, l * this._rvalue(r));}],
+	['/=',	false,	function(l,r) {return this._lvalue(l, l / this._rvalue(r));}],
+	['%=',	false,	function(l,r) {return this._lvalue(l, l % this._rvalue(r));}],
+	['+=',	false,	function(l,r) {return this._lvalue(l, l + this._rvalue(r));}],
+	['-=',	false,	function(l,r) {return this._lvalue(l, l - this._rvalue(r));}]
 ];
 
-Script.FN_EXPAND = 0; // function(expand(args)), expanded variables -> values
+Script.FN_rvalue = 0; // function(expand(args)), expanded variables -> values
 Script.FN_RAW = 1; // function(args), unexpanded (so variable names are not changed to their values)
 Script.FN_CUSTOM = 2; // function(script, value_list, op_list)
 
 Script.prototype._functions = [ // [name, expand_args, function]
-	['min',		Script.FN_EXPAND,	function() {return Math.min.apply(Math, arguments);}],
-	['max',		Script.FN_EXPAND,	function() {return Math.max.apply(Math, arguments);}],
-	['round',	Script.FN_EXPAND,	function() {return Math.round.apply(Math, arguments);}],
-	['floor',	Script.FN_EXPAND,	function() {return Math.floor.apply(Math, arguments);}],
-	['ceil',	Script.FN_EXPAND,	function() {return Math.ceil.apply(Math, arguments);}],
+	['min',		Script.FN_rvalue,	function() {return Math.min.apply(Math, arguments);}],
+	['max',		Script.FN_rvalue,	function() {return Math.max.apply(Math, arguments);}],
+	['round',	Script.FN_rvalue,	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	Script.FN_rvalue,	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	Script.FN_rvalue,	function() {return Math.ceil.apply(Math, arguments);}],
 	['if',		Script.FN_CUSTOM,	function(script, value_list, op_list) { // if (test) {func} [else if (test) {func}]* [else {func}]?
 		var x, fn = 'if', test = false;
 		while (fn) {
@@ -1591,9 +1591,12 @@ Script.prototype._functions = [ // [name, expand_args, function]
 	}]
 ];
 
-Script.prototype._expand = function(variable) { // Expand variables into values
-	var i;
-	if (isArray(variable)) {
+/**
+ * Find the value of a variable using const, default and data
+ */
+Script.prototype._rvalue = function(variable) { // Expand variables into values
+	var i, x, worker;
+	if (isArray(variable)) { // Special case - an array of variables
 		i = variable.length;
 		while (i--) {
 			variable[i] = arguments.callee.call(this, variable[i]);
@@ -1608,23 +1611,42 @@ Script.prototype._expand = function(variable) { // Expand variables into values
 			}
 			variable = i + variable;
 		} else if (/^[A-Z]\w*(?:\.\w+)*$/.test(variable)) {
-			i = variable.split('.');
-			variable = Workers[i[0]]._get(i.slice(1), false);
-		} else if (isUndefined(this['data'][variable])) {
-			if (this.map[variable]) {
-				i = this.map[variable].split('.');
-				variable = Workers[i[0]]._get(i.slice(1), false);
-			} else {
-				variable = this['default'][variable];
-			}
+			x = variable.split('.');
+			variable = Workers[x[0]]._get(x.slice(1), false);
 		} else {
-			variable = this['data'][variable];
+			if (isObject(this['data'])) {
+				i = this['data'][variable];
+			} else if (isString(this['data'])) {
+				x = (this['data'] + '.' + variable).split('.');
+				i = Workers[x[0]].get(x.slice(1))
+			} else {
+				i = undefined; // Error!!!
+			}
+			if (!isUndefined(i)) {
+				variable = i;
+			} else {
+				if (this.map[variable]) {
+					x = this.map[variable].split('.');
+					variable = Workers[x[0]]._get(x.slice(1), false);
+				} else {
+					variable = this['default'][variable];
+				}
+			}
 		}
 	}
 	return variable;
 };
 
-Script.prototype._contract = function(variable, value) { // Push value back into variable
+// Push value back into variable
+Script.prototype._lvalue = function(variable, value) {
+	if (isObject(this['data'])) {
+		this['data'][variable] = value;
+	} else if (isString(this['data'])) {
+		var x = (this['data'] + '.' + variable).split('.');
+		Workers[x[0]].set(x.slice(1), value);
+	} else {
+		// Error
+	}
 };
 
 // Perform any operations of lower precedence than "op"
@@ -1644,7 +1666,7 @@ Script.prototype._operate = function(op, op_list, value_list) {
 			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
 		}
 		if (this._operators[tmp[0]][1]) {
-			args = this._expand(args);
+			args = this._rvalue(args);
 		}
 //		log(LOG_LOG, 'Perform: '+this._operators[tmp[0]][0]+'('+args+')');
 		value_list.push(fn.apply(this, args));
@@ -1674,8 +1696,8 @@ Script.prototype._interpret = function(script) {
 				} else {
 					x = script.shift(); // Should probably report some sort of error if not an array...
 					x = arguments.callee.call(this, x);
-					if (this._functions[fn][1] === Script.FN_EXPAND) {
-						x = this._expand(x);
+					if (this._functions[fn][1] === Script.FN_rvalue) {
+						x = this._rvalue(x);
 					}
 					value_list.push(this._functions[fn][2].apply(this, x));
 				}
@@ -1690,13 +1712,32 @@ Script.prototype._interpret = function(script) {
 	return this.result || value_list;
 };
 
-Script.prototype.run = function() {
-	this.result = undefined;
-	return this._expand((this._interpret(this.script)).pop());
+/**
+ * Run the parsed script, optionally resetting the data first
+ * @param {Boolean} reset Should we clear data first?
+ */
+Script.prototype.run = function(reset) {
+	if (reset) {
+		this.reset();
+	} else {
+		this.result = undefined;
+	}
+	return this._rvalue((this._interpret(this.script)).pop());
 };
 
 Script.prototype.reset = function() {
-	this.data = {};
+	var x, i, data;
+	if (isObject(this['data'])) {
+		data = this['data'];
+	} else if (isString(this['data'])) {
+		x = this['data'].split('.');
+		data = Workers[x[0]].get(x.slice(1), {});
+	} else {
+		data = {}; // Error
+	}
+	for (i in data) {
+		delete data[i];
+	}
 	this.result = undefined;
 };
 
@@ -1960,15 +2001,11 @@ Worker.find = function(name) {
 };
 
 /**
- * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
+ * Automatically clear out any pending Update or Save actions.
  */
-Worker.updates = {};
-Worker.flushTimer = window.setTimeout(function(){Worker.flush();}, 250); // Kickstart everything running...
 Worker.flush = function() {
 	var i;
-	window.clearTimeout(Worker.flushTimer); // Prevent a pending call from running
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000); // Call flush again in another second
-	for (i in Worker.updates) {
+	for (i in Worker._updates_) {
 //		log(LOG_DEBUG, 'Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
 		Workers[i]._update(null, 'run');
 	}
@@ -1977,11 +2014,13 @@ Worker.flush = function() {
 		Workers[i]._flush();
 	}
 };
+Worker.flush._timer = window.setInterval(Worker.flush, 250); // Kickstart everything running...
 
 // Static Data
 Worker.stack = ['unknown'];// array of active workers, last at the start
 Worker._triggers_ = [];// Used for this._trigger
 Worker._resize_ = [];// Used for this._resize
+Worker._updates_ = {};// Used to reduce the workers we call _update() for
 
 // Private functions - only override if you know exactly what you're doing
 /**
@@ -2163,18 +2202,20 @@ Worker.prototype._load = function(type, merge) {
 			data = JSON.decode(raw, metrics);
 			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 			this._numvars[type] = metrics.num || 0;
+			if (merge) {
+				this[type] = $.extend(true, {}, this[type], data || {});
+				if (!compare(data, this[type])) {
+					this._taint[type] = true; // Taint if we've changed from the default data
+				}
+			} else {
+				this[type] = data;
+				this._taint[type] = false;
+			}
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
-		if (merge) {
-			this[type] = $.extend(true, {}, this[type], data);
-			if (!compare(data, this[type])) {
-				this._taint[type] = true; // Taint if we've changed from the default data
-			}
-		} else {
-			this[type] = data;
-			this._taint[type] = false;
-		}
+	} else if (merge && this[type]) {
+		this._taint[type] = true; // Taint if we've changed from the default data
 	}
 	this._popStack();
 };
@@ -2730,7 +2771,7 @@ Worker.prototype._update = function(event, action) {
 				event = {};
 			}
 			action = action || 'add';
-			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
+			if (event.type && isFunction(this.update)) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
 				if (action === 'add' || action === 'run' || action === 'delete') { // Delete from update queue
 					this._updates_.getEvent(event.worker, event.type, event.id);
@@ -2742,13 +2783,13 @@ Worker.prototype._update = function(event, action) {
 					this._updates_ = [];
 				}
 				if (this._updates_.length) {
-					Worker.updates[this.name] = true;
+					Worker._updates_[this.name] = true;
 				} else {
-					delete Worker.updates[this.name];
+					delete Worker._updates_[this.name];
 				}
 			}
 		}
-		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
+		if (action === 'run' && Worker._updates_[this.name]) { // Go through the event list and process each one
 			this._unflush();
 			old = this._updates_;
 			this._updates_ = [];
@@ -2760,13 +2801,9 @@ Worker.prototype._update = function(event, action) {
 			}
 			while (!done && events.length) {
 				try {
-					if (isFunction(this['update_'+events[0].type])) {
-						done = this['update_'+events[0].type](events[0], events);
-					} else {
-						done = this.update(events[0], events);
-					}
+					done = this.update(events[0], events);
 				}catch(e) {
-					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
+					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0], 2) + '): ' + e.message);
 				}
 				if (done) {
 					events = []; // Purely in case we need to add new events below
@@ -2782,7 +2819,7 @@ Worker.prototype._update = function(event, action) {
 					}
 				}
 			}
-			delete Worker.updates[this.name];
+			delete Worker._updates_[this.name];
 		}
 		this._popStack();
 	}
@@ -3214,7 +3251,6 @@ Config.init = function(old_revision) {
 		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			val = [];
 			$this.children().each(function(a,el){ val.push($(el).text()); });
-			worker.get(['option', tmp[1]]);
 			worker.set(['option', tmp[1]], val);
 		}
 	};
@@ -3228,13 +3264,13 @@ Config.init = function(old_revision) {
 			}
 		}
 		multi_change_fn($multiple[0]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('input.golem_delselect').live('click.golem', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
 		multi_change_fn($multiple[0]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('#golem_config input,textarea,select').live('change.golem', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
@@ -3252,7 +3288,7 @@ Config.init = function(old_revision) {
 			}
 			if (!handled) {
 				worker.set('option.'+tmp[1], val, null);
-				Worker.flush();
+//				Worker.flush();
 			}
 		}
 	});
@@ -3262,7 +3298,7 @@ Config.init = function(old_revision) {
 //		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('.ui-accordion-header').live('click', function(){
 		$(this).blur();
@@ -3271,7 +3307,7 @@ Config.init = function(old_revision) {
 		Config.set(['temp','menu']);
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
-		Worker.flush();
+//		Worker.flush();
 	});
 	this._watch(this, 'option.advanced');
 	this._watch(this, 'option.debug');
@@ -4868,7 +4904,7 @@ Main.parse = function() {
 };
 
 Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
-	var i, old_revision, head, a, b;
+	var i, old_revision, head, a, b, tmp;
 	if (events.findEvent(null,null,'kickstart')) {
 		old_revision = parseInt(localStorage['golem.' + APP + '.revision'] || 1061, 10); // Added code to support Revision checking in 1062;
 		if (old_revision > revision) {
@@ -4883,7 +4919,12 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		} else if (old_revision < revision) {
 			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
 		}
-		$('#rightCol').prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
+		tmp = $('#rightCol');
+		if (!tmp.length) {
+			log(LOG_INFO, 'GameGolem: Unable to find DOM parent, using <body> instead...');
+			tmp = $('body');
+		}
+		tmp.prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
 		for (i in Workers) {
 			Workers[i]._setup(old_revision);
 		}
@@ -4963,6 +5004,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			}
 		} catch(e) {
 			if (Main._retry_++ < 5) {// Try 5 times before we give up...
+				log(LOG_INFO, 'GameGolem: Unable to start properly (' + Main._retry_ + '/5)...');
 				this._remind(1, 'startup');
 				return true;
 			}
@@ -5029,15 +5071,12 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		// Now we're rolling
 		if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
 			$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
-		} else if (browser === 'greasemonkey' && GM_addStyle && GM_getResourceText) {
-			GM_addStyle(GM_getResourceText('stylesheet'));
 		} else {
 			$('head').append('<link href="http://rycochet.net/themes/default.css" rel="stylesheet" type="text/css">');
 		}
-	//	window.onbeforeunload = Worker.flush; // Make sure we've saved everything before quitting - not standard in all browsers
 		this._remind(0.1, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 	}
-	return true;
+//	return true;
 };
 
 if (!Main.loaded) { // Prevent double-start
@@ -5109,7 +5148,7 @@ Menu.init = function() {
 				Config.set(['temp','menu']);
 				$('#golem-menu').hide();
 			}
-			Worker.flush();
+//			Worker.flush();
 			event.stopPropagation();
 			return false;
 		})
@@ -6409,10 +6448,8 @@ Settings.dashboard = function() {
 	}
 	html += '</select>';
 	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
-	if (this.temp.worker && this.temp.edit) {
-		if (this.temp.edit === 'data') {
-			Workers[this.temp.worker]._unflush();
-		}
+	if (this.temp.worker && this.temp.edit === 'data') {
+		Workers[this.temp.worker]._unflush();
 	}
 	if (!this.temp.worker) {
 		total = rawtot = 0;
@@ -8119,7 +8156,7 @@ Battle.dashboard = function(sort, rev) {
 * Automatically receive blessings
 */
 var Blessing = new Worker('Blessing');
-Blessing.data = Blessing.temp = null;
+Blessing.temp = null;
 
 Blessing.settings = {
 	taint:true
@@ -8134,32 +8171,30 @@ Blessing.option = {
 };
 
 Blessing.runtime = {
+	upgrade:false,
 	when:0
 };
 
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
 Blessing.display = [
     {
+		id:'upgrade',
+		label:'Use Upgrade Rules',
+		checkbox:true,
+		help:'This will spend your blessing on the next stat point that your Upgrade worker wishes to use. If Upgrade doesn\'t want to spend anything, then fall back to Which below'
+	},{
 		id:'which',
 		label:'Which',
 		select:Blessing.which
     }
 ];
 
-Blessing.setup = function() {
-	// BEGIN: Use global "Show Status" instead of custom option
-	if ('display' in this.option) {
-		this.set(['option','_hide_status'], !this.option.display);
-		this.set(['option','display']);
-	}
-	// END
-};
-
 Blessing.init = function() {
-	var when = this.get(['runtime','when'],0);
+	var when = this.get(['runtime','when'], 0);
 	if (when) {
 		this._remind((when - Date.now()) / 1000, 'blessing');
 	}
+	this._watch(Upgrade, 'runtime.next');
 };
 
 Blessing.parse = function(change) {
@@ -8175,46 +8210,63 @@ Blessing.parse = function(change) {
 			this._remind((when - Date.now()) / 1000, 'blessing');
 		}
 	}
+//app46755028429_symbol_displaysymbols1
+//You have 28279 Demi Points!
+/*
+	this.set(['data','energy'], $('#'+APPID_+'symbol_displaysymbols1').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','attack'], $('#'+APPID_+'symbol_displaysymbols2').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','defense'], $('#'+APPID_+'symbol_displaysymbols3').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','health'], $('#'+APPID_+'symbol_displaysymbols4').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','stamina'], $('#'+APPID_+'symbol_displaysymbols5').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+*/
 	return false;
 };
 
 Blessing.update = function(event){
-    var d, demi;
-     if (this.option.which && this.option.which !== 'None'){
-         d = new Date(this.runtime.when);
-         switch(this.option.which){
-             case 'Energy':
-                 demi = Config.makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
-                 break;
-             case 'Attack':
-                 demi = Config.makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
-                 break;
-             case 'Defense':
-                 demi = Config.makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
-                 break;
-             case 'Health':
-                 demi = Config.makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
-                 break;
-             case 'Stamina':
-                 demi = Config.makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
-                 break;
-             default:
-                 demi = 'Unknown';
-                 break;
-         }
-         Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
-		 this.set(['option','_sleep'], Date.now() < this.runtime.when);
-     } else {
-         Dashboard.status(this);
- 		 this.set(['option','_sleep'], true);
-    }
+	var d, demi, which = this.option.which;
+	if (this.option.upgrade) {
+		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+	}
+	if (which && which !== 'None') {
+		which = which.ucfirst();
+		d = new Date(this.runtime.when);
+		switch(this.option.which.toLowerCase()) {
+			case 'energy':
+				demi = Config.makeImage('symbol-1') + ' Ambrosia (' + which + ')';
+				break;
+			case 'attack':
+				demi = Config.makeImage('symbol-2') + ' Malekus (' + which + ')';
+				break;
+			case 'defense':
+				demi = Config.makeImage('symbol-3') + ' Corvintheus (' + which + ')';
+				break;
+			case 'health':
+				demi = Config.makeImage('symbol-4') + ' Aurora (' + which + ')';
+				break;
+			case 'stamina':
+				demi = Config.makeImage('symbol-5') + ' Azeron (' + which + ')';
+				break;
+			default:
+				demi = 'Unknown';
+				break;
+		}
+		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+		this.set(['option','_sleep'], Date.now() < this.runtime.when);
+	} else {
+		Dashboard.status(this);
+		this.set(['option','_sleep'], true);
+	}
 };
 
 Blessing.work = function(state) {
 	if (!state || !Page.to('oracle_demipower')) {
 		return QUEUE_CONTINUE;
 	}
-	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which)+' input.imgButton');
+	var which = this.option.which;
+	if (this.option.upgrade) {
+		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+	}
+	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which.ucfirst())+' input.imgButton');
 	return QUEUE_RELEASE;
 };
 
@@ -8275,28 +8327,35 @@ Elite.menu = function(worker, key) {
 		}
 	}
 };
-
+/*
+<span class="linkwhite" style="font-size: 20px; color: #000000; font-family: Times New Roman;">
+	<a href="http://www.facebook.com/profile.php?id=505044944" target="_top" onclick="(new Image()).src = '/ajax/ct.php?app_id=46755028429&amp;action_type=3&amp;post_form_id=5896f7c9ab27881297e0f913ce1de48b&amp;position=3&amp;' + Math.random();return true;">
+		<span style="font-size: 35px; color: #ffffff;">"Andrew"</span>
+	</a>
+	, level 253 Baron
+</span>
+*/
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
-			uid = $('img', el[i]).attr('uid');
+//			uid = $('img', el[i]).attr('uid');
+			uid = $('.linkwhite a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
-				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + '\'s Elite Guard is full');
 				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
-				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/Sorry: You must be in Facebook User's Army to join their Elite Guard!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + ' is not in your army so can\'t join your Elite Guard');
-				Army.set(['Army',i,'member']);
-				Elite.set(['runtime','nextelite']);
+				Army.set(['Army',uid,'member']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
 				Elite.set(['runtime','waitelite'], now);
+			}
+			if (this.runtime.nextelite === uid) {
 				Elite.set(['runtime','nextelite']);
 			}
 		}
@@ -10766,6 +10825,11 @@ LevelUp.resource = function() {
 */
 /********** Worker.Monster **********
  * Automates Monster
+ */
+/*
+ * Attack Buttons:
+ *  5: seamonster_power.gif
+ * 10: serpent_10stam_attack.gif
  */
 var Monster = new Worker('Monster');
 Monster.temp = null;
@@ -16029,7 +16093,7 @@ Town.dup_map = {
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade');
-Upgrade.data = null;
+Upgrade.temp = null;
 
 Upgrade.settings = {
 	taint:true
@@ -16040,19 +16104,22 @@ Upgrade.defaults['castle_age'] = {
 };
 
 Upgrade.option = {
-	script:''
+	script:'',
+	cycle:true
 };
 
 Upgrade.runtime = {
 	next:null
 };
 
-Upgrade.temp = {};
-
 Upgrade.display = [
 	{
-		info:'Use GolemScript to spend your Upgrade Points.'
+		id:'cycle',
+		label:'Update "Next" Every Cycle',
+		checkbox:true,
+		help:'If this is checked then every time a point is spent it will run the Upgrade Script and recalculate what to do. If not, then it will calculate it once, and only recalculate when there is nothing else to spend. In either case, any changes to the script will force it to recalculate immediately.'
 	},{
+		title:'Upgrade Script',
 		id:'script',
 		textarea:true
 	},{
@@ -16097,11 +16164,15 @@ Upgrade.script = null;
 Upgrade.init = function() {
 	this._watch(this, 'option.script');
 	this._watch(Player, 'data.upgrade');
+	this._watch(Player, 'data.maxstamina');
+	this._watch(Player, 'data.maxenergy');
+	this._watch(Player, 'data.maxhealth');
+	this._watch(Player, 'data.attack');
+	this._watch(Player, 'data.defense');
 };
 
 Upgrade.update = function(event, events) {
-	if (events.findEvent(this,'init') || events.findEvent(this,'watch','option.script')) {
-		this.temp = {};
+	if (events.findEvent(this,'calc') || events.findEvent(this,'watch','option.script') || (this.option.cycle && events.findEvent(Player,'watch'))) {
 		this.script = new Script(this.option.script, {
 			'map':{
 				stamina:'Player.data.maxstamina',
@@ -16109,25 +16180,28 @@ Upgrade.update = function(event, events) {
 				health:'Player.data.maxhealth'
 			},
 			'default':Player.data,
-			'data':this.temp // So we can manually view it easily
+			'data':'Upgrade.data' // So we can manually view it easily
 		});
-		this.script.run();
+		this.script.run(true);
 	}
-	var i, j, data = this.script.data, points = Player.get('upgrade'), need = {
+	var i, j, points = Player.get('upgrade'), next = null, need = {
 		'energy':1,
 		'stamina':2,
 		'attack':1,
 		'defense':1,
 		'health':1
 	};
-	this.set(['runtime','next']);
-	for (i in data) {
-		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
-			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
-			this.set(['runtime','next'], i);
+	for (i in this.data) {
+		if (need[i] && (j = Player.get(['data',i],0)) < this.data[i]) {
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + this.data[i] + ')');
+			next = i;
 			break;
 		}
 	}
+	if (!next) {
+		this._update('calc');
+	}
+	this.set(['runtime','next'], next);
 	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
 	return true;
 };
@@ -16140,6 +16214,15 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+Upgrade.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['calc:Recalculate&nbsp;Points&nbsp;Now'];
+		} else if (key === 'calc') {
+			this._update('calc');
+		}
+	}
+};
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
@@ -16491,7 +16574,7 @@ Guild.update = function(event) {
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Guild.work = function(state) {
@@ -16504,8 +16587,9 @@ Guild.work = function(state) {
 			if (Page.page !== 'battle_guild_battle') {
 				if (Page.page !== 'battle_guild') {
 					Page.to('battle_guild');
-				} else {
-					Page.click('input[src*="dragon_list_btn"]');
+				} else if (!Page.click('input[src*="dragon_list_btn"]')) {
+					this.set('runtime.status', 'wait');
+					return QUEUE_FINISH;
 				}
 			} else {
 				if (this.runtime.status === 'collect') {

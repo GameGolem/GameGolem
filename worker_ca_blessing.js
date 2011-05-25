@@ -10,7 +10,7 @@
 * Automatically receive blessings
 */
 var Blessing = new Worker('Blessing');
-Blessing.data = Blessing.temp = null;
+Blessing.temp = null;
 
 Blessing.settings = {
 	taint:true
@@ -25,32 +25,30 @@ Blessing.option = {
 };
 
 Blessing.runtime = {
+	upgrade:false,
 	when:0
 };
 
 Blessing.which = ['None', 'Energy', 'Attack', 'Defense', 'Health', 'Stamina'];
 Blessing.display = [
     {
+		id:'upgrade',
+		label:'Use Upgrade Rules',
+		checkbox:true,
+		help:'This will spend your blessing on the next stat point that your Upgrade worker wishes to use. If Upgrade doesn\'t want to spend anything, then fall back to Which below'
+	},{
 		id:'which',
 		label:'Which',
 		select:Blessing.which
     }
 ];
 
-Blessing.setup = function() {
-	// BEGIN: Use global "Show Status" instead of custom option
-	if ('display' in this.option) {
-		this.set(['option','_hide_status'], !this.option.display);
-		this.set(['option','display']);
-	}
-	// END
-};
-
 Blessing.init = function() {
-	var when = this.get(['runtime','when'],0);
+	var when = this.get(['runtime','when'], 0);
 	if (when) {
 		this._remind((when - Date.now()) / 1000, 'blessing');
 	}
+	this._watch(Upgrade, 'runtime.next');
 };
 
 Blessing.parse = function(change) {
@@ -66,46 +64,63 @@ Blessing.parse = function(change) {
 			this._remind((when - Date.now()) / 1000, 'blessing');
 		}
 	}
+//app46755028429_symbol_displaysymbols1
+//You have 28279 Demi Points!
+/*
+	this.set(['data','energy'], $('#'+APPID_+'symbol_displaysymbols1').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','attack'], $('#'+APPID_+'symbol_displaysymbols2').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','defense'], $('#'+APPID_+'symbol_displaysymbols3').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','health'], $('#'+APPID_+'symbol_displaysymbols4').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+	this.set(['data','stamina'], $('#'+APPID_+'symbol_displaysymbols5').text().trim(true).regex(/You have (\d+) Demi Points/i), 'number');
+*/
 	return false;
 };
 
 Blessing.update = function(event){
-    var d, demi;
-     if (this.option.which && this.option.which !== 'None'){
-         d = new Date(this.runtime.when);
-         switch(this.option.which){
-             case 'Energy':
-                 demi = Config.makeImage('symbol-1', 'Energy') + ' Ambrosia (' + this.option.which + ')';
-                 break;
-             case 'Attack':
-                 demi = Config.makeImage('symbol-2', 'Attack') + ' Malekus (' + this.option.which + ')';
-                 break;
-             case 'Defense':
-                 demi = Config.makeImage('symbol-3', 'Defense') + ' Corvintheus (' + this.option.which + ')';
-                 break;
-             case 'Health':
-                 demi = Config.makeImage('symbol-4', 'Health') + ' Aurora (' + this.option.which + ')';
-                 break;
-             case 'Stamina':
-                 demi = Config.makeImage('symbol-5', 'Stamina') + ' Azeron (' + this.option.which + ')';
-                 break;
-             default:
-                 demi = 'Unknown';
-                 break;
-         }
-         Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
-		 this.set(['option','_sleep'], Date.now() < this.runtime.when);
-     } else {
-         Dashboard.status(this);
- 		 this.set(['option','_sleep'], true);
-    }
+	var d, demi, which = this.option.which;
+	if (this.option.upgrade) {
+		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+	}
+	if (which && which !== 'None') {
+		which = which.ucfirst();
+		d = new Date(this.runtime.when);
+		switch(this.option.which.toLowerCase()) {
+			case 'energy':
+				demi = Config.makeImage('symbol-1') + ' Ambrosia (' + which + ')';
+				break;
+			case 'attack':
+				demi = Config.makeImage('symbol-2') + ' Malekus (' + which + ')';
+				break;
+			case 'defense':
+				demi = Config.makeImage('symbol-3') + ' Corvintheus (' + which + ')';
+				break;
+			case 'health':
+				demi = Config.makeImage('symbol-4') + ' Aurora (' + which + ')';
+				break;
+			case 'stamina':
+				demi = Config.makeImage('symbol-5') + ' Azeron (' + which + ')';
+				break;
+			default:
+				demi = 'Unknown';
+				break;
+		}
+		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
+		this.set(['option','_sleep'], Date.now() < this.runtime.when);
+	} else {
+		Dashboard.status(this);
+		this.set(['option','_sleep'], true);
+	}
 };
 
 Blessing.work = function(state) {
 	if (!state || !Page.to('oracle_demipower')) {
 		return QUEUE_CONTINUE;
 	}
-	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which)+' input.imgButton');
+	var which = this.option.which;
+	if (this.option.upgrade) {
+		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+	}
+	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which.ucfirst())+' input.imgButton');
 	return QUEUE_RELEASE;
 };
 

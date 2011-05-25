@@ -55,28 +55,35 @@ Elite.menu = function(worker, key) {
 		}
 	}
 };
-
+/*
+<span class="linkwhite" style="font-size: 20px; color: #000000; font-family: Times New Roman;">
+	<a href="http://www.facebook.com/profile.php?id=505044944" target="_top" onclick="(new Image()).src = '/ajax/ct.php?app_id=46755028429&amp;action_type=3&amp;post_form_id=5896f7c9ab27881297e0f913ce1de48b&amp;position=3&amp;' + Math.random();return true;">
+		<span style="font-size: 35px; color: #ffffff;">"Andrew"</span>
+	</a>
+	, level 253 Baron
+</span>
+*/
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
-			uid = $('img', el[i]).attr('uid');
+//			uid = $('img', el[i]).attr('uid');
+			uid = $('.linkwhite a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
-				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + '\'s Elite Guard is full');
 				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
-				Elite.set(['runtime','nextelite']);
 			} else if (txt.match(/Sorry: You must be in Facebook User's Army to join their Elite Guard!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + ' is not in your army so can\'t join your Elite Guard');
-				Army.set(['Army',i,'member']);
-				Elite.set(['runtime','nextelite']);
+				Army.set(['Army',uid,'member']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
 				Elite.set(['runtime','waitelite'], now);
+			}
+			if (this.runtime.nextelite === uid) {
 				Elite.set(['runtime','nextelite']);
 			}
 		}

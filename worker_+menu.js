@@ -61,7 +61,7 @@ Menu.init = function() {
 				Config.set(['temp','menu']);
 				$('#golem-menu').hide();
 			}
-			Worker.flush();
+//			Worker.flush();
 			event.stopPropagation();
 			return false;
 		})

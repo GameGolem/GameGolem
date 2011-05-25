@@ -227,7 +227,7 @@ Guild.update = function(event) {
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Guild.work = function(state) {
@@ -240,8 +240,9 @@ Guild.work = function(state) {
 			if (Page.page !== 'battle_guild_battle') {
 				if (Page.page !== 'battle_guild') {
 					Page.to('battle_guild');
-				} else {
-					Page.click('input[src*="dragon_list_btn"]');
+				} else if (!Page.click('input[src*="dragon_list_btn"]')) {
+					this.set('runtime.status', 'wait');
+					return QUEUE_FINISH;
 				}
 			} else {
 				if (this.runtime.status === 'collect') {

@@ -10,6 +10,11 @@
 /********** Worker.Monster **********
  * Automates Monster
  */
+/*
+ * Attack Buttons:
+ *  5: seamonster_power.gif
+ * 10: serpent_10stam_attack.gif
+ */
 var Monster = new Worker('Monster');
 Monster.temp = null;
 

@@ -70,7 +70,6 @@ Config.init = function(old_revision) {
 		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
 			val = [];
 			$this.children().each(function(a,el){ val.push($(el).text()); });
-			worker.get(['option', tmp[1]]);
 			worker.set(['option', tmp[1]], val);
 		}
 	};
@@ -84,13 +83,13 @@ Config.init = function(old_revision) {
 			}
 		}
 		multi_change_fn($multiple[0]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('input.golem_delselect').live('click.golem', function(){
 		var $multiple = $(this).parent().children().first();
 		$multiple.children().selected().remove();
 		multi_change_fn($multiple[0]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('#golem_config input,textarea,select').live('change.golem', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
@@ -108,7 +107,7 @@ Config.init = function(old_revision) {
 			}
 			if (!handled) {
 				worker.set('option.'+tmp[1], val, null);
-				Worker.flush();
+//				Worker.flush();
 			}
 		}
 	});
@@ -118,7 +117,7 @@ Config.init = function(old_revision) {
 //		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
 		worker._unflush();
 		worker.menu(Worker.find(key[1]), key[2]);
-		Worker.flush();
+//		Worker.flush();
 	});
 	$('.ui-accordion-header').live('click', function(){
 		$(this).blur();
@@ -127,7 +126,7 @@ Config.init = function(old_revision) {
 		Config.set(['temp','menu']);
 		$('.golem-icon-menu-active').removeClass('golem-icon-menu-active');
 		$('#golem-menu').hide();
-		Worker.flush();
+//		Worker.flush();
 	});
 	this._watch(this, 'option.advanced');
 	this._watch(this, 'option.debug');

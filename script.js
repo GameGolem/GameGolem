@@ -60,14 +60,14 @@ Script.prototype._find = function(op, table) {
 
 Script.prototype._operators = [ // Order of precidence, [name, expand_args, function]
 	// Unary/Prefix
-	['u++',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v + 1; return v;}],
-	['u--',	false,	function(l,r) {var v = parseInt(this._expand(r),10); this.data[r] = v - 1; return v;}],
+	['u++',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10); this._lvalue(r, v + 1); return v;}],
+	['u--',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10); this._lvalue(r, v - 1); return v;}],
 	['u+',	true,	function(l,r) {return parseInt(r,10);}],
 	['u-',	true,	function(l,r) {return -parseInt(r,10);}],
 	['u!',	true,	function(l,r) {return !r;}],
 	// Postfix
-	['p++',	false,	function(l,r) {var v = parseInt(this._expand(r),10) + 1; this.data[r] = v; return v;}],
-	['p--',	false,	function(l,r) {var v = parseInt(this._expand(r),10) - 1; this.data[r] = v; return v;}],
+	['p++',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10) + 1; this._lvalue(r, v); return v;}],
+	['p--',	false,	function(l,r) {var v = parseInt(this._rvalue(r),10) - 1; this._lvalue(r, v); return v;}],
 	// Placeholders for Unary/Prefix/Postfix - only needed if there's not a normal one
 	['!',	true,	false],	// placeholder
 	['++',	true,	false],	// placeholder
@@ -93,24 +93,24 @@ Script.prototype._operators = [ // Order of precidence, [name, expand_args, func
 	['&&',	true,	function(l,r) {return l && r;}],
 	['||',	true,	function(l,r) {return l || r;}],
 	// Assignment
-	['=',	false,	function(l,r) {return (this.data[l] = this._expand(r));}],
-	['*=',	false,	function(l,r) {return (this.data[l] *= this._expand(r));}],
-	['/=',	false,	function(l,r) {return (this.data[l] /= this._expand(r));}],
-	['%=',	false,	function(l,r) {return (this.data[l] %= this._expand(r));}],
-	['+=',	false,	function(l,r) {return (this.data[l] += this._expand(r));}],
-	['-=',	false,	function(l,r) {return (this.data[l] -= this._expand(r));}]
+	['=',	false,	function(l,r) {return this._lvalue(l, this._rvalue(r));}],
+	['*=',	false,	function(l,r) {return this._lvalue(l, l * this._rvalue(r));}],
+	['/=',	false,	function(l,r) {return this._lvalue(l, l / this._rvalue(r));}],
+	['%=',	false,	function(l,r) {return this._lvalue(l, l % this._rvalue(r));}],
+	['+=',	false,	function(l,r) {return this._lvalue(l, l + this._rvalue(r));}],
+	['-=',	false,	function(l,r) {return this._lvalue(l, l - this._rvalue(r));}]
 ];
 
-Script.FN_EXPAND = 0; // function(expand(args)), expanded variables -> values
+Script.FN_rvalue = 0; // function(expand(args)), expanded variables -> values
 Script.FN_RAW = 1; // function(args), unexpanded (so variable names are not changed to their values)
 Script.FN_CUSTOM = 2; // function(script, value_list, op_list)
 
 Script.prototype._functions = [ // [name, expand_args, function]
-	['min',		Script.FN_EXPAND,	function() {return Math.min.apply(Math, arguments);}],
-	['max',		Script.FN_EXPAND,	function() {return Math.max.apply(Math, arguments);}],
-	['round',	Script.FN_EXPAND,	function() {return Math.round.apply(Math, arguments);}],
-	['floor',	Script.FN_EXPAND,	function() {return Math.floor.apply(Math, arguments);}],
-	['ceil',	Script.FN_EXPAND,	function() {return Math.ceil.apply(Math, arguments);}],
+	['min',		Script.FN_rvalue,	function() {return Math.min.apply(Math, arguments);}],
+	['max',		Script.FN_rvalue,	function() {return Math.max.apply(Math, arguments);}],
+	['round',	Script.FN_rvalue,	function() {return Math.round.apply(Math, arguments);}],
+	['floor',	Script.FN_rvalue,	function() {return Math.floor.apply(Math, arguments);}],
+	['ceil',	Script.FN_rvalue,	function() {return Math.ceil.apply(Math, arguments);}],
 	['if',		Script.FN_CUSTOM,	function(script, value_list, op_list) { // if (test) {func} [else if (test) {func}]* [else {func}]?
 		var x, fn = 'if', test = false;
 		while (fn) {
@@ -156,9 +156,12 @@ Script.prototype._functions = [ // [name, expand_args, function]
 	}]
 ];
 
-Script.prototype._expand = function(variable) { // Expand variables into values
-	var i;
-	if (isArray(variable)) {
+/**
+ * Find the value of a variable using const, default and data
+ */
+Script.prototype._rvalue = function(variable) { // Expand variables into values
+	var i, x, worker;
+	if (isArray(variable)) { // Special case - an array of variables
 		i = variable.length;
 		while (i--) {
 			variable[i] = arguments.callee.call(this, variable[i]);
@@ -173,23 +176,42 @@ Script.prototype._expand = function(variable) { // Expand variables into values
 			}
 			variable = i + variable;
 		} else if (/^[A-Z]\w*(?:\.\w+)*$/.test(variable)) {
-			i = variable.split('.');
-			variable = Workers[i[0]]._get(i.slice(1), false);
-		} else if (isUndefined(this['data'][variable])) {
-			if (this.map[variable]) {
-				i = this.map[variable].split('.');
-				variable = Workers[i[0]]._get(i.slice(1), false);
-			} else {
-				variable = this['default'][variable];
-			}
+			x = variable.split('.');
+			variable = Workers[x[0]]._get(x.slice(1), false);
 		} else {
-			variable = this['data'][variable];
+			if (isObject(this['data'])) {
+				i = this['data'][variable];
+			} else if (isString(this['data'])) {
+				x = (this['data'] + '.' + variable).split('.');
+				i = Workers[x[0]].get(x.slice(1))
+			} else {
+				i = undefined; // Error!!!
+			}
+			if (!isUndefined(i)) {
+				variable = i;
+			} else {
+				if (this.map[variable]) {
+					x = this.map[variable].split('.');
+					variable = Workers[x[0]]._get(x.slice(1), false);
+				} else {
+					variable = this['default'][variable];
+				}
+			}
 		}
 	}
 	return variable;
 };
 
-Script.prototype._contract = function(variable, value) { // Push value back into variable
+// Push value back into variable
+Script.prototype._lvalue = function(variable, value) {
+	if (isObject(this['data'])) {
+		this['data'][variable] = value;
+	} else if (isString(this['data'])) {
+		var x = (this['data'] + '.' + variable).split('.');
+		Workers[x[0]].set(x.slice(1), value);
+	} else {
+		// Error
+	}
 };
 
 // Perform any operations of lower precedence than "op"
@@ -209,7 +231,7 @@ Script.prototype._operate = function(op, op_list, value_list) {
 			args = value_list.splice(tmp[1], value_list.length - tmp[1]); // Args from the end
 		}
 		if (this._operators[tmp[0]][1]) {
-			args = this._expand(args);
+			args = this._rvalue(args);
 		}
 //		log(LOG_LOG, 'Perform: '+this._operators[tmp[0]][0]+'('+args+')');
 		value_list.push(fn.apply(this, args));
@@ -239,8 +261,8 @@ Script.prototype._interpret = function(script) {
 				} else {
 					x = script.shift(); // Should probably report some sort of error if not an array...
 					x = arguments.callee.call(this, x);
-					if (this._functions[fn][1] === Script.FN_EXPAND) {
-						x = this._expand(x);
+					if (this._functions[fn][1] === Script.FN_rvalue) {
+						x = this._rvalue(x);
 					}
 					value_list.push(this._functions[fn][2].apply(this, x));
 				}
@@ -255,13 +277,32 @@ Script.prototype._interpret = function(script) {
 	return this.result || value_list;
 };
 
-Script.prototype.run = function() {
-	this.result = undefined;
-	return this._expand((this._interpret(this.script)).pop());
+/**
+ * Run the parsed script, optionally resetting the data first
+ * @param {Boolean} reset Should we clear data first?
+ */
+Script.prototype.run = function(reset) {
+	if (reset) {
+		this.reset();
+	} else {
+		this.result = undefined;
+	}
+	return this._rvalue((this._interpret(this.script)).pop());
 };
 
 Script.prototype.reset = function() {
-	this.data = {};
+	var x, i, data;
+	if (isObject(this['data'])) {
+		data = this['data'];
+	} else if (isString(this['data'])) {
+		x = this['data'].split('.');
+		data = Workers[x[0]].get(x.slice(1), {});
+	} else {
+		data = {}; // Error
+	}
+	for (i in data) {
+		delete data[i];
+	}
 	this.result = undefined;
 };
 

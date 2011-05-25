@@ -185,15 +185,11 @@ Worker.find = function(name) {
 };
 
 /**
- * Automatically clear out any pending Update or Save actions. *MUST* be called to work.
+ * Automatically clear out any pending Update or Save actions.
  */
-Worker.updates = {};
-Worker.flushTimer = window.setTimeout(function(){Worker.flush();}, 250); // Kickstart everything running...
 Worker.flush = function() {
 	var i;
-	window.clearTimeout(Worker.flushTimer); // Prevent a pending call from running
-	Worker.flushTimer = window.setTimeout(Worker.flush, 1000); // Call flush again in another second
-	for (i in Worker.updates) {
+	for (i in Worker._updates_) {
 //		log(LOG_DEBUG, 'Worker.flush(): '+i+'._update('+JSON.stringify(Workers[i]._updates_)+')');
 		Workers[i]._update(null, 'run');
 	}
@@ -202,11 +198,13 @@ Worker.flush = function() {
 		Workers[i]._flush();
 	}
 };
+Worker.flush._timer = window.setInterval(Worker.flush, 250); // Kickstart everything running...
 
 // Static Data
 Worker.stack = ['unknown'];// array of active workers, last at the start
 Worker._triggers_ = [];// Used for this._trigger
 Worker._resize_ = [];// Used for this._resize
+Worker._updates_ = {};// Used to reduce the workers we call _update() for
 
 // Private functions - only override if you know exactly what you're doing
 /**
@@ -388,18 +386,20 @@ Worker.prototype._load = function(type, merge) {
 			data = JSON.decode(raw, metrics);
 			this._rawsize[type] = this._storage[type] + ((metrics.mod || 0) - (metrics.oh || 0)) * 2; // x2 for unicode
 			this._numvars[type] = metrics.num || 0;
+			if (merge) {
+				this[type] = $.extend(true, {}, this[type], data || {});
+				if (!compare(data, this[type])) {
+					this._taint[type] = true; // Taint if we've changed from the default data
+				}
+			} else {
+				this[type] = data;
+				this._taint[type] = false;
+			}
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
-		if (merge) {
-			this[type] = $.extend(true, {}, this[type], data);
-			if (!compare(data, this[type])) {
-				this._taint[type] = true; // Taint if we've changed from the default data
-			}
-		} else {
-			this[type] = data;
-			this._taint[type] = false;
-		}
+	} else if (merge && this[type]) {
+		this._taint[type] = true; // Taint if we've changed from the default data
 	}
 	this._popStack();
 };
@@ -955,7 +955,7 @@ Worker.prototype._update = function(event, action) {
 				event = {};
 			}
 			action = action || 'add';
-			if (event.type && (isFunction(this.update) || isFunction(this['update_'+event.type]))) {
+			if (event.type && isFunction(this.update)) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
 				if (action === 'add' || action === 'run' || action === 'delete') { // Delete from update queue
 					this._updates_.getEvent(event.worker, event.type, event.id);
@@ -967,13 +967,13 @@ Worker.prototype._update = function(event, action) {
 					this._updates_ = [];
 				}
 				if (this._updates_.length) {
-					Worker.updates[this.name] = true;
+					Worker._updates_[this.name] = true;
 				} else {
-					delete Worker.updates[this.name];
+					delete Worker._updates_[this.name];
 				}
 			}
 		}
-		if (action === 'run' && Worker.updates[this.name]) { // Go through the event list and process each one
+		if (action === 'run' && Worker._updates_[this.name]) { // Go through the event list and process each one
 			this._unflush();
 			old = this._updates_;
 			this._updates_ = [];
@@ -985,13 +985,9 @@ Worker.prototype._update = function(event, action) {
 			}
 			while (!done && events.length) {
 				try {
-					if (isFunction(this['update_'+events[0].type])) {
-						done = this['update_'+events[0].type](events[0], events);
-					} else {
-						done = this.update(events[0], events);
-					}
+					done = this.update(events[0], events);
 				}catch(e) {
-					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0]) + '): ' + e.message);
+					log(e, e.name + ' in ' + this.name + '.update(' + JSON.shallow(events[0], 2) + '): ' + e.message);
 				}
 				if (done) {
 					events = []; // Purely in case we need to add new events below
@@ -1007,7 +1003,7 @@ Worker.prototype._update = function(event, action) {
 					}
 				}
 			}
-			delete Worker.updates[this.name];
+			delete Worker._updates_[this.name];
 		}
 		this._popStack();
 	}

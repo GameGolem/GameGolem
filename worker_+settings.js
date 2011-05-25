@@ -125,10 +125,8 @@ Settings.dashboard = function() {
 	}
 	html += '</select>';
 	html += '<input id="golem_settings_refresh" type="button" value="Refresh">';
-	if (this.temp.worker && this.temp.edit) {
-		if (this.temp.edit === 'data') {
-			Workers[this.temp.worker]._unflush();
-		}
+	if (this.temp.worker && this.temp.edit === 'data') {
+		Workers[this.temp.worker]._unflush();
 	}
 	if (!this.temp.worker) {
 		total = rawtot = 0;

@@ -10,7 +10,7 @@
 * Spends upgrade points
 */
 var Upgrade = new Worker('Upgrade');
-Upgrade.data = null;
+Upgrade.temp = null;
 
 Upgrade.settings = {
 	taint:true
@@ -21,19 +21,22 @@ Upgrade.defaults['castle_age'] = {
 };
 
 Upgrade.option = {
-	script:''
+	script:'',
+	cycle:true
 };
 
 Upgrade.runtime = {
 	next:null
 };
 
-Upgrade.temp = {};
-
 Upgrade.display = [
 	{
-		info:'Use GolemScript to spend your Upgrade Points.'
+		id:'cycle',
+		label:'Update "Next" Every Cycle',
+		checkbox:true,
+		help:'If this is checked then every time a point is spent it will run the Upgrade Script and recalculate what to do. If not, then it will calculate it once, and only recalculate when there is nothing else to spend. In either case, any changes to the script will force it to recalculate immediately.'
 	},{
+		title:'Upgrade Script',
 		id:'script',
 		textarea:true
 	},{
@@ -78,11 +81,15 @@ Upgrade.script = null;
 Upgrade.init = function() {
 	this._watch(this, 'option.script');
 	this._watch(Player, 'data.upgrade');
+	this._watch(Player, 'data.maxstamina');
+	this._watch(Player, 'data.maxenergy');
+	this._watch(Player, 'data.maxhealth');
+	this._watch(Player, 'data.attack');
+	this._watch(Player, 'data.defense');
 };
 
 Upgrade.update = function(event, events) {
-	if (events.findEvent(this,'init') || events.findEvent(this,'watch','option.script')) {
-		this.temp = {};
+	if (events.findEvent(this,'calc') || events.findEvent(this,'watch','option.script') || (this.option.cycle && events.findEvent(Player,'watch'))) {
 		this.script = new Script(this.option.script, {
 			'map':{
 				stamina:'Player.data.maxstamina',
@@ -90,25 +97,28 @@ Upgrade.update = function(event, events) {
 				health:'Player.data.maxhealth'
 			},
 			'default':Player.data,
-			'data':this.temp // So we can manually view it easily
+			'data':'Upgrade.data' // So we can manually view it easily
 		});
-		this.script.run();
+		this.script.run(true);
 	}
-	var i, j, data = this.script.data, points = Player.get('upgrade'), need = {
+	var i, j, points = Player.get('upgrade'), next = null, need = {
 		'energy':1,
 		'stamina':2,
 		'attack':1,
 		'defense':1,
 		'health':1
 	};
-	this.set(['runtime','next']);
-	for (i in data) {
-		if (need[i] && (j = Player.get(['data',i],0)) < data[i]) {
-			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + data[i] + ')');
-			this.set(['runtime','next'], i);
+	for (i in this.data) {
+		if (need[i] && (j = Player.get(['data',i],0)) < this.data[i]) {
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + this.data[i] + ')');
+			next = i;
 			break;
 		}
 	}
+	if (!next) {
+		this._update('calc');
+	}
+	this.set(['runtime','next'], next);
 	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
 	return true;
 };
@@ -121,3 +131,12 @@ Upgrade.work = function(state) {
 	return QUEUE_RELEASE;
 };
 
+Upgrade.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['calc:Recalculate&nbsp;Points&nbsp;Now'];
+		} else if (key === 'calc') {
+			this._update('calc');
+		}
+	}
+};

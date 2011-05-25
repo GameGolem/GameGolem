@@ -772,9 +772,10 @@
 #golem .golem-icon-symbol-4 { background-position: -48px -64px; }
 #golem .golem-icon-symbol-5 { background-position: -64px -64px; }
 
-#golem .golem-icon-guild { background-position: 0 -80px; }
+#golem .golem-icon-token { background-position: 0 -80px; }
 #golem .golem-icon-favor { background-position: -16px -80px; }
 #golem .golem-icon-arena { background-position: -32px -80px; }
+#golem .golem-icon-guild { background-position: -48px -80px; }
 
 /* Misc visuals
 ----------------------------------*/
