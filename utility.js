@@ -558,7 +558,7 @@ var nmin = function(a) {
 
 var compare = function(left, right) {
 	var i;
-	if (typeof left !== typeof right) {
+	if (typeof left !== typeof right || isUndefined(left) !== isUndefined(right)) {
 		return false;
 	}
 	if (typeof left === 'object') {

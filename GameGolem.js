@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1125
+ * GameGolem v31.6.1126
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1125
+ * GameGolem v31.6.1126
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1125;
+var revision = 1126;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1030,7 +1030,7 @@ var nmin = function(a) {
 
 var compare = function(left, right) {
 	var i;
-	if (typeof left !== typeof right) {
+	if (typeof left !== typeof right || isUndefined(left) !== isUndefined(right)) {
 		return false;
 	}
 	if (typeof left === 'object') {
@@ -2232,7 +2232,7 @@ Worker.prototype._notify = function(path) {
 		if (isArray(this._watching[txt])) {
 			j = this._watching[txt].length;
 			while (j--) {
-				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt, path:path.join('.')});
+				Workers[this._watching[txt][j]]._update({worker:this, type:'watch', id:txt, path:path.join('.')});
 			}
 		}
 	}
@@ -2524,7 +2524,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
 						this._notify(path);// Notify the watchers...
 					}
 					this._taint[path[0]] = true;
-					this._update({type:path[0]});
+					this._update(path[0]);
 					if (isUndefined(value)) {
 						delete data[i];
 						return false;
@@ -5819,12 +5819,16 @@ Queue.menu = function(worker, key) {
 };
 
 Queue.updateDisplay = function() {
-	var i, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
+	var i, disabled, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
 	for (i in Workers) {
 		if (Workers[i].display) {
+			disabled = Workers[i]._get(['option','_disabled'], false);
+			if (disabled && i === this.temp.current) {
+				this.set(['temp','current'], null);
+			}
 			$('#'+Workers[i].id+' > h3')
-				.toggleClass(tmp1, Workers[i]._get(['option','_disabled'], false))
-				.toggleClass(tmp2, (i === this.temp.current));
+				.toggleClass(tmp1, disabled)
+				.toggleClass(tmp2, i === this.temp.current);
 		}
 	}
 };
@@ -8327,6 +8331,10 @@ Elite.menu = function(worker, key) {
 		}
 	}
 };
+
+Elite.init = function() {
+	this._watch(this, 'runtime.nextelite');
+};
 /*
 <span class="linkwhite" style="font-size: 20px; color: #000000; font-family: Times New Roman;">
 	<a href="http://www.facebook.com/profile.php?id=505044944" target="_top" onclick="(new Image()).src = '/ajax/ct.php?app_id=46755028429&amp;action_type=3&amp;post_form_id=5896f7c9ab27881297e0f913ce1de48b&amp;position=3&amp;' + Math.random();return true;">
@@ -8338,10 +8346,11 @@ Elite.menu = function(worker, key) {
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
+		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
+		log('uid: '+uid);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
 //			uid = $('img', el[i]).attr('uid');
-			uid = $('.linkwhite a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
@@ -8353,10 +8362,10 @@ Elite.parse = function(change) {
 				Army.set(['Army',uid,'member']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
-				Elite.set(['runtime','waitelite'], now);
+				this.set(['runtime','waitelite'], now);
 			}
 			if (this.runtime.nextelite === uid) {
-				Elite.set(['runtime','nextelite']);
+				this.set(['runtime','nextelite'], 0);
 			}
 		}
 	} else {
@@ -8367,7 +8376,7 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function(event) {
+Elite.update = function(event, events) {
 	var i, list, check, next, now = Date.now();
 	list = Army.get('Elite');// Try to keep the same guards
 	for (i in list) {
@@ -8389,7 +8398,7 @@ Elite.update = function(event) {
 	if (!next) {
 		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		for(i in list) {
-			if (!list[i].elite && !list[i].full && Army.get(['Army',i,'member'], false) && (!this.option.friends || Army.get(['Army',i,'friend'], false))) {// Only try to add a non-member who's not already added
+			if (!Army.get(['Elite',i]) && Army.get(['Army',i,'member']) && (!this.option.friends || Army.get(['Army',i,'friend']))) {// Only try to add a non-member who's not already added
 				next = i;
 				break;
 			}

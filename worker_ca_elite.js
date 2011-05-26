@@ -55,6 +55,10 @@ Elite.menu = function(worker, key) {
 		}
 	}
 };
+
+Elite.init = function() {
+	this._watch(this, 'runtime.nextelite');
+};
 /*
 <span class="linkwhite" style="font-size: 20px; color: #000000; font-family: Times New Roman;">
 	<a href="http://www.facebook.com/profile.php?id=505044944" target="_top" onclick="(new Image()).src = '/ajax/ct.php?app_id=46755028429&amp;action_type=3&amp;post_form_id=5896f7c9ab27881297e0f913ce1de48b&amp;position=3&amp;' + Math.random();return true;">
@@ -66,10 +70,11 @@ Elite.menu = function(worker, key) {
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
+		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
+		log('uid: '+uid);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
 //			uid = $('img', el[i]).attr('uid');
-			uid = $('.linkwhite a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
@@ -81,10 +86,10 @@ Elite.parse = function(change) {
 				Army.set(['Army',uid,'member']);
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
-				Elite.set(['runtime','waitelite'], now);
+				this.set(['runtime','waitelite'], now);
 			}
 			if (this.runtime.nextelite === uid) {
-				Elite.set(['runtime','nextelite']);
+				this.set(['runtime','nextelite'], 0);
 			}
 		}
 	} else {
@@ -95,7 +100,7 @@ Elite.parse = function(change) {
 	return false;
 };
 
-Elite.update = function(event) {
+Elite.update = function(event, events) {
 	var i, list, check, next, now = Date.now();
 	list = Army.get('Elite');// Try to keep the same guards
 	for (i in list) {
@@ -117,7 +122,7 @@ Elite.update = function(event) {
 	if (!next) {
 		list = Army.get('Army');// Otherwise lets just get anyone in the army
 		for(i in list) {
-			if (!list[i].elite && !list[i].full && Army.get(['Army',i,'member'], false) && (!this.option.friends || Army.get(['Army',i,'friend'], false))) {// Only try to add a non-member who's not already added
+			if (!Army.get(['Elite',i]) && Army.get(['Army',i,'member']) && (!this.option.friends || Army.get(['Army',i,'friend']))) {// Only try to add a non-member who's not already added
 				next = i;
 				break;
 			}

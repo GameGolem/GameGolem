@@ -240,12 +240,16 @@ Queue.menu = function(worker, key) {
 };
 
 Queue.updateDisplay = function() {
-	var i, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
+	var i, disabled, tmp1 = Theme._get('Queue_disabled', 'ui-state-disabled'), tmp2 = Theme._get('Queue_active', 'ui-state-highlight');
 	for (i in Workers) {
 		if (Workers[i].display) {
+			disabled = Workers[i]._get(['option','_disabled'], false);
+			if (disabled && i === this.temp.current) {
+				this.set(['temp','current'], null);
+			}
 			$('#'+Workers[i].id+' > h3')
-				.toggleClass(tmp1, Workers[i]._get(['option','_disabled'], false))
-				.toggleClass(tmp2, (i === this.temp.current));
+				.toggleClass(tmp1, disabled)
+				.toggleClass(tmp2, i === this.temp.current);
 		}
 	}
 };

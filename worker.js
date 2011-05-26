@@ -416,7 +416,7 @@ Worker.prototype._notify = function(path) {
 		if (isArray(this._watching[txt])) {
 			j = this._watching[txt].length;
 			while (j--) {
-				Workers[this._watching[txt][j]]._update({worker:this.name, type:'watch', id:txt, path:path.join('.')});
+				Workers[this._watching[txt][j]]._update({worker:this, type:'watch', id:txt, path:path.join('.')});
 			}
 		}
 	}
@@ -708,7 +708,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
 						this._notify(path);// Notify the watchers...
 					}
 					this._taint[path[0]] = true;
-					this._update({type:path[0]});
+					this._update(path[0]);
 					if (isUndefined(value)) {
 						delete data[i];
 						return false;
