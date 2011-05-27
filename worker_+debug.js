@@ -202,7 +202,7 @@ Debug.setup = function(old_revision) {
 									w[1] += t - Debug.stack[0][0];
 									w[2] += t;
 									if (Debug.temp[i][3]) {
-										log(Debug.option.trace, i + '(' + JSON.shallow(arguments, 2).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, ''));
+										log(Debug.option.trace, i + '(' + JSON.shallow(arguments, 3).replace(/^\[?|\]?$/g, '') + ') => ' + JSON.shallow(isUndefined(r) ? null : r, 2).replace(/^\[?|\]?$/g, ''));
 									}
 								}
 							}

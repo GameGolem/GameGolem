@@ -556,36 +556,41 @@ var nmin = function(a) {
 	return v;
 };
 
+/**
+ * Compare two unknown variables, and return if they are functionally the same (ignoring order of object keys etc)
+ * @param {*} left The left-hand variable
+ * @param {*} right The right-hand variable
+ * @return Boolean
+ */
 var compare = function(left, right) {
 	var i;
-	if (typeof left !== typeof right || isUndefined(left) !== isUndefined(right)) {
+	if (typeof left !== typeof right || isNull(left) !== isNull(right) || isObject(left) !== isObject(right)) {
 		return false;
 	}
-	if (typeof left === 'object') {
+	if (isObject(left)) {
 		if (length(left) !== length(right)) {
 			return false;
 		}
-		if (isArray(left)) {
-			i = left.length;
-			while (i--) {
-				if (!compare(left[i], right[i])) {
+		for (i in left) {
+			if (left.hasOwnProperty(i)) {
+				if (!right.hasOwnProperty(i) || !compare(left[i], right[i])) {
 					return false;
 				}
 			}
-		} else {
-			for (i in left) {
-				if (left.hasOwnProperty(i)) {
-					if (!right.hasOwnProperty(i)) {
-						return false;
-					} else if (!compare(left[i], right[i])) {
-						return false;
-					}
-				}
+		}
+		for (i in right) {
+			if (right.hasOwnProperty(i) && !left.hasOwnProperty(i)) {
+				return false;
 			}
-			for (i in right) {
-				if (right.hasOwnProperty(i) && !left.hasOwnProperty(i)) {
-					return false;
-				}
+		}
+	} else if (isArray(left)) {
+		i = left.length;
+		if (i !== right.length) {
+			return false;
+		}
+		while (i--) {
+			if (!compare(left[i], right[i])) {
+				return false;
 			}
 		}
 	} else {

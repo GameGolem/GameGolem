@@ -692,31 +692,26 @@ Worker.prototype._set = function(what, value, type, quiet) {
 	}
 	var i, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
-		switch ((path.length - depth) > 1) { // Can we go deeper?
-			case true:
-				if (!isObject(data[i])) {
-					data[i] = {};
-				}
-				if (!arguments.callee.call(this, data[i], path, value, depth+1) && depth >= 1 && empty(data[i])) {// Can clear out empty trees completely...
-					delete data[i];
-					return false;
-				}
-				break;
-			case false:
-				if (!compare(value, data[i])) {
-					if (!quiet) {
-						this._notify(path);// Notify the watchers...
-					}
-					this._taint[path[0]] = true;
-					this._update(path[0]);
-					if (isUndefined(value)) {
-						delete data[i];
-						return false;
-					} else {
-						data[i] = value;
-					}
-				}
-				break;
+		if ((path.length - depth) > 1) { // Can we go deeper?
+			if (!isObject(data[i])) {
+				data[i] = {};
+			}
+			if (!arguments.callee.call(this, data[i], path, value, depth+1) && depth >= 1 && empty(data[i])) {// Can clear out empty trees completely...
+				delete data[i];
+				return false;
+			}
+		} else if (!compare(value, data[i])) {
+			if (!quiet) {
+				this._notify(path);// Notify the watchers...
+			}
+			this._taint[path[0]] = true;
+			this._update(path[0]);
+			if (isUndefined(value)) {
+				delete data[i];
+				return false;
+			} else {
+				data[i] = value;
+			}
 		}
 		return true;
 	};

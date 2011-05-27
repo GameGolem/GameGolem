@@ -56,24 +56,12 @@ Elite.menu = function(worker, key) {
 	}
 };
 
-Elite.init = function() {
-	this._watch(this, 'runtime.nextelite');
-};
-/*
-<span class="linkwhite" style="font-size: 20px; color: #000000; font-family: Times New Roman;">
-	<a href="http://www.facebook.com/profile.php?id=505044944" target="_top" onclick="(new Image()).src = '/ajax/ct.php?app_id=46755028429&amp;action_type=3&amp;post_form_id=5896f7c9ab27881297e0f913ce1de48b&amp;position=3&amp;' + Math.random();return true;">
-		<span style="font-size: 35px; color: #ffffff;">"Andrew"</span>
-	</a>
-	, level 253 Baron
-</span>
-*/
 Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
-//			uid = $('img', el[i]).attr('uid');
 			if (txt.match(/Elite Guard, and they have joined/i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
@@ -88,7 +76,7 @@ Elite.parse = function(change) {
 				this.set(['runtime','waitelite'], now);
 			}
 			if (this.runtime.nextelite === uid) {
-				this.set(['runtime','nextelite'], 0);
+				this.set(['runtime','nextelite']);
 			}
 		}
 	} else {
