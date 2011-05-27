@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1126
+ * GameGolem v31.6.1127
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1126
+ * GameGolem v31.6.1127
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1126;
+var revision = 1127;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8347,7 +8347,6 @@ Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
-		log('uid: '+uid);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
 //			uid = $('img', el[i]).attr('uid');
@@ -8377,7 +8376,7 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function(event, events) {
-	var i, list, check, next, now = Date.now();
+	var i, list, check, next = 0, now = Date.now();
 	list = Army.get('Elite');// Try to keep the same guards
 	for (i in list) {
 		check = list[i].elite || list[i].full || 0;
@@ -8404,7 +8403,7 @@ Elite.update = function(event, events) {
 			}
 		}
 	}
-	this.set(['runtime','nextelite'], next);
+	this.set(['runtime','nextelite'], parseInt(next, 10)); // Make sure we're using a numeric uid
 	check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
 	if (next && this.runtime.waitelite) {
 		this._remind(check, 'recheck');

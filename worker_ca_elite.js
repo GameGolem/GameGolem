@@ -71,7 +71,6 @@ Elite.parse = function(change) {
 	if (Page.page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
-		log('uid: '+uid);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
 //			uid = $('img', el[i]).attr('uid');
@@ -101,7 +100,7 @@ Elite.parse = function(change) {
 };
 
 Elite.update = function(event, events) {
-	var i, list, check, next, now = Date.now();
+	var i, list, check, next = 0, now = Date.now();
 	list = Army.get('Elite');// Try to keep the same guards
 	for (i in list) {
 		check = list[i].elite || list[i].full || 0;
@@ -128,7 +127,7 @@ Elite.update = function(event, events) {
 			}
 		}
 	}
-	this.set(['runtime','nextelite'], next);
+	this.set(['runtime','nextelite'], parseInt(next, 10)); // Make sure we're using a numeric uid
 	check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
 	if (next && this.runtime.waitelite) {
 		this._remind(check, 'recheck');
