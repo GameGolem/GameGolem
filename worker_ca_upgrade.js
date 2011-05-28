@@ -101,7 +101,7 @@ Upgrade.update = function(event, events) {
 		});
 		this.script.run(true);
 	}
-	var i, j, points = Player.get('upgrade'), next = null, need = {
+	var i, j, points = Player.get('upgrade'), next = null, real = {'stamina':'maxstamina', 'energy':'maxenergy', 'health':'maxhealth'}, need = {
 		'energy':1,
 		'stamina':2,
 		'attack':1,
@@ -109,7 +109,7 @@ Upgrade.update = function(event, events) {
 		'health':1
 	};
 	for (i in this.data) {
-		if (need[i] && (j = Player.get(['data',i],0)) < this.data[i]) {
+		if (need[i] && (j = Player.get(['data',real[i] || i],0)) < this.data[i]) {
 			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + this.data[i] + ')');
 			next = i;
 			break;
