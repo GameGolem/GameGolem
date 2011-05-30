@@ -120,7 +120,7 @@ Blessing.work = function(state) {
 	if (this.option.upgrade) {
 		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
 	}
-	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(this.option.which.ucfirst())+' input.imgButton');
+	Page.click('#'+APPID_+'symbols_form_'+this.which.indexOf(which.ucfirst())+' input.imgButton');
 	return QUEUE_RELEASE;
 };
 
