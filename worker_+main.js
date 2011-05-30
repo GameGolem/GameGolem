@@ -5,7 +5,7 @@
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -190,7 +190,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 						while (p && !p.scrollTop) {p = p.parentNode;}
 						if (p) {s = p.scrollTop;}
 						e.style.height = '0px';
-						e.style.height = Math.max(e.scrollHeight, 13) + 'px';
+						e.style.height = Math.min(parseInt(e.style.maxHeight, 10) || 9999, Math.max(e.scrollHeight, 13)) + 'px';
 						if (p) {p.scrollTop = s;}
 						e.oldValueLength = e.value.length;
 					}

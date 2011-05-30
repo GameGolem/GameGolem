@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1129
+ * GameGolem v31.6.1130
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1129
+ * GameGolem v31.6.1130
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1129;
+var revision = 1130;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -476,7 +476,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	version, revision, isRelease
-	GM_setValue, GM_getValue, APP, APPID, PREFIX, log:true, debug, userID, imagepath
+	APP, APPID, PREFIX, log:true, debug, userID, imagepath
 	length:true
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	Workers, makeImage:true
@@ -2149,7 +2149,7 @@ Worker.prototype._get = function(what, def, type) {
 			data = data[x.shift()];
 		}
 		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-			return isNull(data) ? null : data.valueOf();
+			return isNull(data) ? null : data;
 		}
 //		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
 //			log(LOG_WARN, 'Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
@@ -2316,7 +2316,7 @@ Worker.prototype._pop = function(what, def, type, quiet) {
 		return old;
 	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-		return isNull(data) ? null : data.valueOf();
+		return isNull(data) ? null : data;
 	}
 	return def;
 };
@@ -2617,7 +2617,7 @@ Worker.prototype._shift = function(what, def, type, quiet) {
 		return old;
 	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-		return isNull(data) ? null : data.valueOf();
+		return isNull(data) ? null : data;
 	}
 	return def;
 };
@@ -4865,7 +4865,7 @@ History.makeGraph = function(type, title, options) {
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -5050,7 +5050,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 						while (p && !p.scrollTop) {p = p.parentNode;}
 						if (p) {s = p.scrollTop;}
 						e.style.height = '0px';
-						e.style.height = Math.max(e.scrollHeight, 13) + 'px';
+						e.style.height = Math.min(parseInt(e.style.maxHeight, 10) || 9999, Math.max(e.scrollHeight, 13)) + 'px';
 						if (p) {p.scrollTop = s;}
 						e.oldValueLength = e.value.length;
 					}
@@ -5092,7 +5092,7 @@ if (!Main.loaded) { // Prevent double-start
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome
 */
 /********** Worker.Menu **********
 * Handles menu creation and selection for Config
@@ -5189,7 +5189,8 @@ Page.temp = {
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
 	count:0,
-	enabled:false // Set to true in .work(true) - otherwise Page.to() should throw an error
+	enabled:false, // Set to true in .work(true) - otherwise Page.to() should throw an error
+	page:'' // Same as Page.page
 };
 
 Page.lastclick = null;
@@ -5330,17 +5331,17 @@ Page.update = function(event, events) {
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
 				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
-					Page.page = i;
+					Page.temp.page = Page.page = i;
 //					log(LOG_DEBUG, 'Page:' + Page.page);
 					return;
 				}
 			}
 		});
 		if (this.page === '') {
-			for (i in Page.pageNames) {
-				if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
-//					log(LOG_DEBUG, 'Page:' + Page.page);
-					Page.page = i;
+			for (i in this.pageNames) {
+				if (this.pageNames[i].selector && $(this.pageNames[i].selector).length) {
+					this.temp.page = this.page = i;
+//					log(LOG_DEBUG, 'Page:' + this.page);
 				}
 			}
 		}
@@ -6645,7 +6646,7 @@ Title.alias = function(name,str) {
 	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome, GM_addStyle, GM_getResourceText
+	unsafeWindow, log, warn, error, chrome
 */
 /********** Worker.Theme **********
 * Stores Theme-specific settings as well as allowing to change the theme.
@@ -11272,7 +11273,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[1,5,10,20,50] // Needs details
+		attack:[5,10,20,50] // Needs details
 //		festival_timer: 259200, // 72 hours
 //		festival: 'ambrosia'
 	},
@@ -13097,7 +13098,7 @@ Page.defaults.castle_age = {
 			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
 			monster_monster_list:	{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg'},
 			monster_remove_list:	{url:'player_monster_list.php', image:'mp_current_monsters.gif'},
-			monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="monster_header"]'},
+			monster_battle_monster:	{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]'},
 			keep_monster_active:	{url:'raid.php', image:'dragon_view_more.gif'},
 			festival_monster_list:	{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},
 			festival_battle_monster:{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},

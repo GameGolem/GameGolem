@@ -460,7 +460,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[1,5,10,20,50] // Needs details
+		attack:[5,10,20,50] // Needs details
 //		festival_timer: 259200, // 72 hours
 //		festival: 'ambrosia'
 	},

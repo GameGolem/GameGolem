@@ -32,7 +32,8 @@ Page.temp = {
 	retry:0, // Number of times we tried before hitting option.reload
 	checked:false, // Finished checking for new pages
 	count:0,
-	enabled:false // Set to true in .work(true) - otherwise Page.to() should throw an error
+	enabled:false, // Set to true in .work(true) - otherwise Page.to() should throw an error
+	page:'' // Same as Page.page
 };
 
 Page.lastclick = null;
@@ -173,17 +174,17 @@ Page.update = function(event, events) {
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
 				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
-					Page.page = i;
+					Page.temp.page = Page.page = i;
 //					log(LOG_DEBUG, 'Page:' + Page.page);
 					return;
 				}
 			}
 		});
 		if (this.page === '') {
-			for (i in Page.pageNames) {
-				if (Page.pageNames[i].selector && $(Page.pageNames[i].selector).length) {
-//					log(LOG_DEBUG, 'Page:' + Page.page);
-					Page.page = i;
+			for (i in this.pageNames) {
+				if (this.pageNames[i].selector && $(this.pageNames[i].selector).length) {
+					this.temp.page = this.page = i;
+//					log(LOG_DEBUG, 'Page:' + this.page);
 				}
 			}
 		}

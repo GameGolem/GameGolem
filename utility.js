@@ -4,7 +4,7 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
 	version, revision, isRelease
-	GM_setValue, GM_getValue, APP, APPID, PREFIX, log:true, debug, userID, imagepath
+	APP, APPID, PREFIX, log:true, debug, userID, imagepath
 	length:true
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
 	Workers, makeImage:true

@@ -328,7 +328,7 @@ Worker.prototype._get = function(what, def, type) {
 			data = data[x.shift()];
 		}
 		if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-			return isNull(data) ? null : data.valueOf();
+			return isNull(data) ? null : data;
 		}
 //		if (!isUndefined(data)) { // NOTE: Without this expect spam on undefined data
 //			log(LOG_WARN, 'Bad type in ' + this.name + '.get('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
@@ -495,7 +495,7 @@ Worker.prototype._pop = function(what, def, type, quiet) {
 		return old;
 	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-		return isNull(data) ? null : data.valueOf();
+		return isNull(data) ? null : data;
 	}
 	return def;
 };
@@ -796,7 +796,7 @@ Worker.prototype._shift = function(what, def, type, quiet) {
 		return old;
 	}, null, quiet);
 	if (!isUndefined(data) && (!type || (isFunction(type) && type(data)) || (isString(type) && typeof data === type))) {
-		return isNull(data) ? null : data.valueOf();
+		return isNull(data) ? null : data;
 	}
 	return def;
 };
