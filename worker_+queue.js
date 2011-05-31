@@ -173,7 +173,7 @@ Queue.update = function(event, events) {
 		}
 	}
 	if (this.temp.sleep) {
-		while (events.getEvent(this,'reminder')) { // Only delete the run timer if it's been triggered when we're "busy"
+		if (events.findEvent(this,'reminder')) { // Only delete the run timer if it's been triggered when we're "busy"
 			this._forget('run');
 		}
 	} else if (!this._timer('run')) {
