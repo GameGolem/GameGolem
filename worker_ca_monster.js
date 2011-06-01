@@ -944,11 +944,10 @@ Monster.init = function() {
 	this.name_re = new RegExp("^\\s*(.*\\S)\\s*'s\\s+(?:" + str + ')\\s*$', 'im');
 };
 
-Monster.parse = function(change) {
+Monster.page = function(page, change) {
 	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, parent = $('#'+APPID_+'app_body'), $children;
-	//log(LOG_WARN, 'Parsing ' + Page.page);
-	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.page)>=0) { // In a monster or raid
-		festival = Page.page === 'festival_battle_monster';
+	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(page)>=0) { // In a monster or raid
+		festival = (page === 'festival_battle_monster');
 		uid = $('img[linked][size="square"]').attr('uid');
 		//log(LOG_WARN, 'Parsing for Monster type');
 		for (i in types) {
@@ -977,7 +976,7 @@ Monster.parse = function(change) {
 			log(LOG_WARN, 'Unable to identify monster' + (!uid ? ' owner' : '') + (!type_label ? ' type' : ''));
 			return false;
 		}
-		mid = uid+'_' + (Page.page === 'festival_battle_monster' ? 'f' : (types[i].mpool || 4));
+		mid = uid+'_' + (page === 'festival_battle_monster' ? 'f' : (types[i].mpool || 4));
 		if (this.runtime.check === mid) {
 			this.set(['runtime','check'], false);
 		}
@@ -987,7 +986,7 @@ Monster.parse = function(change) {
 		monster.button_fail = 0;
 		type = types[type_label];
 		monster.last = now;
-		if (Page.page === 'festival_battle_monster') {
+		if (page === 'festival_battle_monster') {
 			monster.page = 'festival';
 		} else {
 			monster.page = 'keep';
@@ -1160,7 +1159,7 @@ Monster.parse = function(change) {
 		this._taint[data] = true;
 //		this.runtime.used.stamina = 0;
 //		this.runtime.used.energy = 0;
-	} else if (Page.page === 'monster_dead') {
+	} else if (page === 'monster_dead') {
 		if (Queue.temp.current === 'Monster' && this.runtime.mid) { // Only if we went here ourselves...
 			log(LOG_WARN, 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
 			this.set(['data',this.runtime.mid]);
@@ -1169,7 +1168,7 @@ Monster.parse = function(change) {
 		}
 		this.set(['runtime','check'], false);
 // Still need to do battle_raid
-	} else if (Page.page === 'festival_monster_list') { // Check monster / raid list
+	} else if (page === 'festival_monster_list') { // Check monster / raid list
 		for (mid in data) {
 			if (data[mid].page === 'festival'
 					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
@@ -1208,10 +1207,10 @@ Monster.parse = function(change) {
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 			}
 		}
-	} else if (Page.page === 'monster_monster_list') { // Check monster / raid list
+	} else if (page === 'monster_monster_list') { // Check monster / raid list
 		for (mid in data) {
 			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
 					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
@@ -1247,10 +1246,10 @@ Monster.parse = function(change) {
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 			}
 		}
-	} else if (Page.page === 'monster_remove_list') { // Check monster / raid list
+	} else if (page === 'monster_remove_list') { // Check monster / raid list
 		for (mid in data) {
 			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
 					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {

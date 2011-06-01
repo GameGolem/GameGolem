@@ -56,8 +56,8 @@ Elite.menu = function(worker, key) {
 	}
 };
 
-Elite.parse = function(change) {
-	if (Page.page === 'keep_eliteguard') {
+Elite.page = function(page, change) {
+	if (page === 'keep_eliteguard') {
 		var i, txt, uid, el = $('span.result_body'), now = Date.now();
 		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 		for (i=0; i<el.length; i++) {

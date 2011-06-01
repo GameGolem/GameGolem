@@ -75,7 +75,7 @@ Gift.init = function() {
 	}
 };
 
-Gift.parse = function(change) {
+Gift.page = function(page, change) {
 /*
 	if (change) {
 		if (change === 'facebook') {
@@ -85,8 +85,7 @@ Gift.parse = function(change) {
 	}
 */
 	var i, j, id, $tmp, gifts = this.data.gifts, todo = this.data.todo, received = this.data.received;
-	//alert('Gift.parse running');
-	if (Page.page === 'index') {
+	if (page === 'index') {
 		// We need to get the image of the gift from the index page.
 //		log(LOG_DEBUG, 'Checking for a waiting gift and getting the id of the gift.');
 		if ($('span.result_body').text().indexOf('has sent you a gift') >= 0) {
@@ -108,7 +107,7 @@ Gift.parse = function(change) {
 			this.runtime.gift_waiting = false;
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
-	} else if (Page.page === 'army_invite') {
+	} else if (page === 'army_invite') {
 		// Accepted gift first
 //		log(LOG_WARN, 'Checking for accepted gift.');
 		if (this.runtime.gift.sender_id) { // if we have already determined the ID of the sender
@@ -140,7 +139,7 @@ Gift.parse = function(change) {
 			this.runtime.gift = {}; // reset our runtime gift tracker
 		}
 	
-	} else if (Page.page === 'gift_accept'){
+	} else if (page === 'gift_accept'){
 		// Check for sent
 //		log('Checking for sent gifts.');
 		if (this.runtime.sent_id && $('div#'+APPID_+'results_main_wrapper').text().indexOf('You have sent') >= 0) {
@@ -157,7 +156,7 @@ Gift.parse = function(change) {
 			}
 		}
 		
-	} else if (Page.page === 'army_gifts') { // Parse for the current available gifts
+	} else if (page === 'army_gifts') { // Parse for the current available gifts
 //		log('Parsing gifts.');
 		gifts = this.data.gifts = {};
 		// Gifts start at 1

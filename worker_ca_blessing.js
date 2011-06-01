@@ -51,7 +51,7 @@ Blessing.init = function() {
 	this._watch(Upgrade, 'runtime.next');
 };
 
-Blessing.parse = function(change) {
+Blessing.page = function(page, change) {
 	var result = $('div.results'), time, when;
 	if (result.length) {
 		time = result.text().regex(/Please come back in: (\d+) hours and (\d+) minutes/i);

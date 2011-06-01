@@ -24,7 +24,7 @@ News.runtime = {
 	last:0
 };
 
-News.parse = function(change) {
+News.page = function(page, change) {
 	if (change) {
 		var xp = 0, bp = 0, wp = 0, win = 0, lose = 0, deaths = 0, cash = 0, i, j, list = [], user = {}, sort = [], last_time = this.get(['runtime','last'], 0), killed = false;
 		this.set(['runtime','last'], Date.now());

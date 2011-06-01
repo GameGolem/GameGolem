@@ -17,7 +17,7 @@ Page.defaults.castle_age = {
 		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', '#'+APPID_+'nvbar', '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
 		// '#app_content_'+APPID, 
 		this.pageNames = {
-//			facebook:				- not real, but used in worker.pages for worker.parse('facebook') on fb popup dialogs
+//			facebook:				- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
 			index:					{url:'index.php', selector:'#'+APPID_+'indexNewFeaturesBox'},
 			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
 			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},

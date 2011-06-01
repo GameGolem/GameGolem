@@ -275,16 +275,16 @@ Battle.init = function() {
 	});
 };
 
-/***** Battle.parse() *****
+/***** Battle.page() *****
 1. On the Battle Rank page parse out our current Rank and Battle Points
 2. On the Battle page
 2a. Check if we've just attacked someone and parse out the results
 2b. Parse the current Demi-Points
 2c. Check every possible target and if they're eligable then add them to the target list
 */
-Battle.parse = function(change) {
+Battle.page = function(page, change) {
 	var i, data, uid, info, $list, $el, tmp, rank, rank2, mode = this.option.type === 'War' ? 'war' : 'battle';
-	if (Page.page === 'battle_rank') {
+	if (page === 'battle_rank') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el) {
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
@@ -292,7 +292,7 @@ Battle.parse = function(change) {
 		});
 		this.set(['data','battle','rank'], data);
 		this.set(['data','battle','bp'], $('span:contains("Battle Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) Battle Points/i));
-	} else if (Page.page === 'battle_war') {
+	} else if (page === 'battle_war') {
 		data = {0:{name:'Newbie',points:0}};
 		$('tr[height="23"]').each(function(i,el){
 			var info = $(el).text().regex(/Rank (\d+) - (.*)\s*(\d+)/i);
@@ -300,7 +300,7 @@ Battle.parse = function(change) {
 		});
 		this.set(['data','war','bp'], $('span:contains("War Points.")', 'div:contains("You are a Rank")').text().replace(/,/g, '').regex(/with (\d+) War Points/i));
 		this.set(['data','war','rank'], data);
-	} else if (Page.page === 'battle_battle') {
+	} else if (page === 'battle_battle') {
 		data = this.data.user;
 		if ((uid = this.get(['runtime','attacking']))) {
 			tmp = $('div.results').text();

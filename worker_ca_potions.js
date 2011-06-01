@@ -72,7 +72,7 @@ Potions.init = function() {
 	this._watch(LevelUp, 'runtime.running');
 };
 
-Potions.parse = function(change) {
+Potions.page = function(page, change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
 	var potions = $('.result_body:contains("You have acquired the Energy Potion!")');
 	if (potions.length) {

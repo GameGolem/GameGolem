@@ -62,19 +62,19 @@ Generals.init = function(old_revision) {
 	}
 };
 
-Generals.parse = function(change) {
+Generals.page = function(page, change) {
 	var now = Date.now(), self = this, i, j, seen = {}, el, el2, tmp, name, item, icon;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
 			this.add(['data',name,'level'], 1);
-			if (Page.page !== (j = 'heroes_generals')) {
+			if (page !== (j = 'heroes_generals')) {
 				Page.setStale(j, now);
 			}
 		}
 	}
 
-	if (Page.page === 'heroes_generals') {
+	if (page === 'heroes_generals') {
 		tmp = $('.generalSmallContainer2');
 		for (i=0; i<tmp.length; i++) {
 			el = tmp[i];
@@ -104,7 +104,7 @@ Generals.parse = function(change) {
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.page(' + change + '): ' + e.message);
 			}
 		}
 
@@ -138,7 +138,7 @@ Generals.parse = function(change) {
 				this.set(['data',i]);
 			}
 		}
-	} else if (Page.page === 'heroes_heroes') {
+	} else if (page === 'heroes_heroes') {
 		// parse upkeep
 		if ((tmp = $('.mContTMainBack div:contains("Total Upkeep")')).length) {
 			j = ($('b.negative', tmp).text() || '').replace(/,/gm, '');
@@ -199,11 +199,11 @@ Generals.parse = function(change) {
 					self._transaction(true); // COMMIT TRANSACTION
 				} catch (e2) {
 					self._transaction(false); // ROLLBACK TRANSACTION on any error
-					log(LOG_ERROR, e2.name + ' in ' + self.name + '.parse(' + change + '): ' + e2.message);
+					log(e2, e2.name + ' in ' + self.name + '.page(' + page + ', ' + change + '): ' + e2.message);
 				}
 			}
 		}
-	} else if (Page.page === 'keep_stats') {
+	} else if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			tmp = $('.statsT2 .statsTTitle:contains("HEROES")').not(function(a) {

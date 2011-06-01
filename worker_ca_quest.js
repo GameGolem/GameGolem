@@ -169,7 +169,7 @@ Quest.init = function(old_revision) {
 	this._watch(LevelUp, 'runtime.quest');
 };
 
-Quest.parse = function(change) {
+Quest.page = function(page, change) {
 	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
 	if (Page.page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
@@ -288,7 +288,7 @@ Quest.parse = function(change) {
 			this._transaction(true); // COMMIT TRANSACTION
 		} catch(e) {
 			this._transaction(false); // ROLLBACK TRANSACTION on any error
-			log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+			log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 		}
 	}
 	for (i in purge) {

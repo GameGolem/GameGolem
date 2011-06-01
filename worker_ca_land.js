@@ -113,10 +113,10 @@ Land.init = function() {
 	this._watch(Page, 'data.town_land');	// watch for land triggers
 };
 
-Land.parse = function(change) {
+Land.page = function(page, change) {
 	var i, tmp, name, txt, modify = false;
 
-	if (Page.page === 'town_land') {
+	if (page === 'town_land') {
 		$('div[style*="town_land_bar."],div[style*="town_land_bar_special."]').each(function(a, el) {
 			if ((name = $('div img[alt]', el).attr('alt').trim())) {
 				if (!change) {
@@ -145,7 +145,7 @@ Land.parse = function(change) {
 						Land._transaction(true); // COMMIT TRANSACTION
 					} catch(e) {
 						Land._transaction(false); // ROLLBACK TRANSACTION on any error
-						log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+						log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 					}
 				} else if (Land.data[name]) {
 					$('strong:first', el).after(' (<span title="Return On Investment - higher is better"><strong>ROI</strong>: ' + ((Land.data[name].income * 100 * (Land.option.style ? 24 : 1)) / Land.data[name].cost).round(3) + '%' + (Land.option.style ? ' / Day' : '') + '</span>)');
@@ -153,7 +153,7 @@ Land.parse = function(change) {
 			}
 			modify = true;
 		});
-	} else if (Page.page === 'keep_stats') {
+	} else if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			$('.statsTTitle:contains("LAND") + .statsTMain .statUnit').each(function(a, el) {

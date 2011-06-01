@@ -34,7 +34,7 @@ Main.add = function(app, appid, appname, alt, fn) {
 	this._apps_[app] = [appid, appname, alt, fn];
 };
 
-Main.parse = function() {
+Main.page = function() {
 	try {
 		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
 		if (newpath) {

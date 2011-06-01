@@ -50,11 +50,11 @@ Alchemy.display = [
 	}
 ];
 
-Alchemy.parse = function(change) {
+Alchemy.page = function(page, change) {
 	var now = Date.now(), self = this, i, tmp,
 		ipurge = {}, rpurge = {}, spurge = {};
 
-	if (Page.page === 'keep_alchemy') {
+	if (page === 'keep_alchemy') {
 		tmp = $('div.ingredientUnit');
 
 		if (!tmp.length) {
@@ -128,7 +128,7 @@ Alchemy.parse = function(change) {
 			rpurge[name] = false;
 			self.set(['recipe', name], recipe);
 		});
-	} else if (Page.page === 'keep_stats') {
+	} else if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			// some ingredients are units

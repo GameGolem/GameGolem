@@ -138,9 +138,9 @@ Festival.init = function() {
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
-Festival.parse = function(change) {
+Festival.page = function(page, change) {
 	var now = Date.now(), tmp, i;
-	switch (Page.page) {
+	switch (page) {
 		case 'festival_guild':
 			tmp = $('#'+APPID_+'current_battle_info').text();
 			if (tmp.indexOf('BATTLE NOW!') > -1) {
@@ -187,6 +187,7 @@ Festival.parse = function(change) {
 			this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
 			break;
 	}
+	return false;
 };
 
 Festival.update = function(event) {

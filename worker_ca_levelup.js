@@ -120,7 +120,7 @@ LevelUp.init = function() {
 	this.runtime.exp = this.runtime.exp || Player.get('exp', 0); // Make sure we have a default...
 };
 
-LevelUp.parse = function(change) {
+LevelUp.page = function(page, change) {
 	if (change) {
 
 //		$('#'+APPID_+'st_2_5 strong').attr('title', Player.get('exp') + '/' + Player.get('maxexp') + ' at ' + this.get('exp_average').round(1).addCommas() + ' per hour').html(Player.get('exp_needed').addCommas() + '<span style="font-weight:normal;"><span style="color:rgb(25,123,48);" name="' + this.get('level_timer') + '"> ' + this.get('time') + '</span></span>');

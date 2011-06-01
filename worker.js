@@ -38,12 +38,10 @@ new Worker(name, pages, settings)
 .init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
-.parse(change)  - This can read data from the current page and cannot perform any actions.
-				change = false - Not allowed to change *anything*, cannot read from other Workers.
-				change = true - Can now change inline and read from other Workers.
-				return true - We need to run again with status=1
-				return QUEUE_RELEASE - We want to run again with status=1, but feel free to interrupt (makes us stateful)
-				return false - We're finished
+.page(page,change)  - This can read data from the current page and cannot perform any actions.
+				page (string|'facebook') - the name of the page we're on, may be "facebook" for a popup, same as Page.temp.page
+				change (true/false) - can we change the DOM (used to prevent one worker changing something another one needs)
+				return true - We need to run again with change=1
 .work(state)    - Do anything we need to do when it's our turn - this includes page changes. This is part the of Queue worker.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call, this.data is null
 				state = true - It's our turn, do everything - Only true if not interrupted, this.data is useable
@@ -85,7 +83,7 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._flush()				- Calls this._save() then deletes this.data if !this.settings.keep ** PRIVATE **
 ._unflush()				- Loads .data if it's not there already
 
-._parse(change)			- Calls this.parse(change) inside a try / catch block
+._page(page,change)		- Calls this.page(page,change) inside a try / catch block
 ._work(state)			- Calls this.work(state) inside a try / catch block
 
 ._update(event)			- Calls this.update(event), loading and flushing .data if needed. event = {worker:this, type:'init|data|option|runtime|reminder', [self:true], [id:'reminder id']}
@@ -460,19 +458,20 @@ Worker.prototype._overload = function(app, name, fn) {
 };
 
 /**
- * Wrapper for a worker's .parse() function from Page
+ * Wrapper for a worker's .page() function from Page
+ * @param {string} page The page name that we're on
  * @param {boolean} change Whether the worker is allowed to make changes to the html on the page
  * return {boolean} If the worker wants to change the page
  */
-Worker.prototype._parse = function(change) {
+Worker.prototype._page = function(page,change) {
 	this._pushStack();
 	var result = false;
-	if (this.parse) {
+	if (this.page) {
 		try {
 			this._unflush();
-			result = this.parse(change);
+			result = this.page(page,change);
 		}catch(e) {
-			log(e, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+			log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 		}
 	}
 	this._popStack();

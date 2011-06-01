@@ -9,7 +9,7 @@
 */
 /********** Worker Army Extension **********
 * This fills in your army information by overloading Worker.Army()
-* We are only allowed to replace Army.work() and Army.parse() - all other Army functions should only be overloaded if really needed
+* We are only allowed to replace Army.work() and Army.page() - all other Army functions should only be overloaded if really needed
 * This is the CA version
 */
 Army.defaults.castle_age = {
@@ -88,17 +88,17 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 	}
 });
 
-Army._overload('castle_age', 'parse', function(change) {
-	if (change && Page.page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
+Army._overload('castle_age', 'page', function(page, change) {
+	if (change && page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
 		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
 //		log('Not our keep, uid: '+uid);
 		if (uid && Army.get(['Army', uid], false)) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
-	} else if (!change && Page.page === 'army_viewarmy') {
-		var i, uid, who, page, start, now = Date.now(), count = 0, tmp, level, parent, spans;
+	} else if (!change && page === 'army_viewarmy') {
+		var i, uid, who, which, start, now = Date.now(), count = 0, tmp, level, parent, spans;
 		$tmp = $('table.layout table[width=740] div').first().children();
-		page = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
+		which = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
 		start = $tmp.eq(2).text().regex(/Displaying: (\d+) - \d+/);
 		tmp = $('td > a[href*="keep.php?casuser="]');
 		for (i=0; i<tmp.length; i++) {
@@ -123,13 +123,13 @@ Army._overload('castle_age', 'parse', function(change) {
 					this.set(['Army',uid,'level'], level);
 				}
 				this.set(['Army',uid,'seen'], now);
-				this.set(['Army',uid,'page'], page);
+				this.set(['Army',uid,'page'], which);
 				this.set(['Army',uid,'id'], start + i);
 				this._transaction(true); // COMMIT TRANSACTION
 //				log('Adding: ' + JSON.stringify(this.get(['Army',uid])));
 			} catch(e) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 			}
 		}
 		if (!i) {
@@ -143,7 +143,7 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 		for (i in this.data.Army) {
 			if (this.data.Army[i].member) {
-				if (this.get(['Army',i,'page']) === page && this.get(['Army',i,'seen']) !== now) {
+				if (this.get(['Army',i,'page']) === which && this.get(['Army',i,'seen']) !== now) {
 					this.set(['Army',i,'member']); // Forget this one, not found on the correct page
 				} else {
 					count++;// Lets count this one instead
@@ -152,14 +152,13 @@ Army._overload('castle_age', 'parse', function(change) {
 		}
 		this._set(['runtime','count'], count);
 		if (this.runtime.page) {
-			if (page !== this.runtime.page || (!this.runtime.check && Player.get('armymax',0) === (this.runtime.count + this.runtime.extra))) {
+			if (which !== this.runtime.page || (!this.runtime.check && Player.get('armymax',0) === (this.runtime.count + this.runtime.extra))) {
 				this._set(['runtime','page'], 0);
 				this._set(['runtime','check'], false);
 			} else {
-				this._set(['runtime','page'], page + 1);
+				this._set(['runtime','page'], which + 1);
 			}
 		}
-//		log(LOG_DEBUG, 'parse: Army.runtime = '+JSON.stringify(this.runtime));
 	}
 	return this._parent() || true;
 });

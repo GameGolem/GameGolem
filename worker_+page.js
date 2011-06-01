@@ -198,20 +198,20 @@ Page.update = function(event, events) {
 			if (Workers[i].pages
 			 && Workers[i].pages.indexOf
 			 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
-			 && Workers[i]._parse(false)) {
+			 && Workers[i]._page(this.temp.page, false)) {
 				list[i] = true;
 			}
 		}
 		for (i in list) {
-			Workers[i]._parse(true);
+			Workers[i]._page(this.temp.page, true);
 		}
 	}
 	if (events.findEvent(null,'trigger','facebook')) { // Need to act as if it's a page change
 		this._forget('retry');
 		this.set(['temp', 'loading'], false);
 		for (i in Workers) {
-			if (Workers[i].parse && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
-				Workers[i]._parse('facebook');
+			if (Workers[i].page && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
+				Workers[i]._page('facebook', false);
 			}
 		}
 	}

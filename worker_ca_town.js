@@ -372,7 +372,7 @@ Town.init = function() {
   // .layout td >div:contains("Owned Items:")
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
-Town.parse = function(change) {
+Town.page = function(page, change) {
 	var i, el, tmp, img, filename, name, count, now = Date.now(), self = this, modify = false, tmp;
 	if (Page.page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
@@ -486,7 +486,7 @@ Town.parse = function(change) {
 				changes++; // this must come after the transaction
 			} catch(e) {
 				self._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(LOG_ERROR, e.name + ' in ' + this.name + '.parse(' + change + '): ' + e.message);
+				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 			}
 		});
 

@@ -50,10 +50,10 @@ Player.init = function() {
 	this.set('cash_time', script_started + ($('*').html().regex(/gold_increase_ticker\((\d+),/) * 1000));
 };
 
-Player.parse = function(change) {
+Player.page = function(page, change) {
 	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
 	if (change) {
-		if (Page.page==='keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
+		if (page === 'keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
 			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Player Stats</td></tr></thead><tbody>' +
 			'<tr title="Battle Strength Index: Attack + defense / level. This is a gauge of your strength in PvP relative to others of the same level. Often seems to be regarded as the length of your CA [censored] given the importance many people regard it with."><td>BSI:</td><td>' + this.get('bsi') + '</td></tr>' +
 			'<tr title="Leveling Speed Index: 2X Stamina + energy / level. This is a gauge of how quickly you will level relative to others of the same level."><td>LSI:</td><td>' + this.get('lsi') + '</td></tr>' +
@@ -93,7 +93,7 @@ Player.parse = function(change) {
 		this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
 		this.set('general', $('div.general_name_div3').first().text().trim());
 		this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
-		if (Page.page==='keep_stats') {
+		if (page === 'keep_stats') {
 			keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
 			if (keep.length) {
 				this.set('myname', $('div.keep_stat_title_inc > span', keep).text().regex(/"(.*)"/));
@@ -129,7 +129,7 @@ Player.parse = function(change) {
 					this.set(['data','artifact'], artifacts);
 				}
 			}
-		} else if (Page.page === 'town_land') {
+		} else if (page === 'town_land') {
 			$tmp = $('.layout div[style*="town_header_land."]');
 			if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
 				var o = {};

@@ -79,7 +79,7 @@ FP.init = function() {
 	// END
 };
 
-FP.parse = function(change) {
+FP.page = function(page, change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
 	$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){
 		FP.set(['runtime','points'], $(el).text().regex(/You have : (\d+) points/i));

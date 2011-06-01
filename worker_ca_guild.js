@@ -138,9 +138,9 @@ Guild.init = function() {
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
-Guild.parse = function(change) {
+Guild.page = function(page, change) {
 	var now = Date.now(), tmp, i;
-	switch (Page.page) {
+	switch (page) {
 		case 'battle_guild':
 			if ($('input[src*="dragon_list_btn_2.jpg"]').length) {//fix
 				this.set(['runtime','status'], 'collect');
