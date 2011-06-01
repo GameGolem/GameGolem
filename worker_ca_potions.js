@@ -78,7 +78,7 @@ Potions.page = function(page, change) {
 	if (potions.length) {
 		Potions.set(['data','Energy'], Potions.data['Energy'] + potions.length);
 	}
-	if (Page.page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
+	if (page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		potions = {};
 		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);

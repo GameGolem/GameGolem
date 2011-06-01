@@ -237,8 +237,8 @@ Guild.work = function(state) {
 				return QUEUE_FINISH;
 			}
 		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
-			if (Page.page !== 'battle_guild_battle') {
-				if (Page.page !== 'battle_guild') {
+			if (Page.temp.page !== 'battle_guild_battle') {
+				if (Page.temp.page !== 'battle_guild') {
 					Page.to('battle_guild');
 				} else if (!Page.click('input[src*="dragon_list_btn"]')) {
 					this.set('runtime.status', 'wait');

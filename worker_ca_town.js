@@ -374,7 +374,7 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.page = function(page, change) {
 	var i, el, tmp, img, filename, name, count, now = Date.now(), self = this, modify = false, tmp;
-	if (Page.page === 'keep_stats') {
+	if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$)').parent());
@@ -411,7 +411,7 @@ Town.page = function(page, change) {
 				}
 			}
 		}
-	} else if (change && Page.page === 'town_blacksmith') {
+	} else if (change && page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
 			var name = ($('div img[alt]', el).attr('alt') || '').trim(),
 				icon = ($('div img[src]', el).attr('src') || '').filepart();
@@ -420,15 +420,15 @@ Town.page = function(page, change) {
 				$('div strong:first', el).parent().append('<br>'+self.data[name].type);
 			}
 		});
-	} else if (!change && (Page.page === 'town_soldiers' || Page.page === 'town_blacksmith' || Page.page === 'town_magic')) {
-		var unit = this.data, page = Page.page.substr(5), purge = {}, changes = 0, i, j, cost_adj = 1;
+	} else if (!change && (page === 'town_soldiers' || page === 'town_blacksmith' || page === 'town_magic')) {
+		var unit = this.data, purge = {}, changes = 0, i, j, cost_adj = 1;
 		for (i in unit) {
-			if (unit[i].page === page) {
+			if (unit[i].page === page.substr(5)) {
 				purge[i] = true;
 			}
 		}
 		// undo cost reduction general values on the magic page
-		if (page === 'magic' && (i = Generals.get(Player.get('general')))) {
+		if (page === 'town_magic' && (i = Generals.get(Player.get('general')))) {
 			if (i.stats && isNumber(j = i.stats.cost)) {
 				cost_adj = 100 / (100 - j);
 			}
@@ -446,7 +446,7 @@ Town.page = function(page, change) {
 				self._transaction(); // BEGIN TRANSACTION
 				name = self.qualify(name, icon);
 				delete purge[name];
-				self.set(['data',name,'page'], page);
+				self.set(['data',name,'page'], page.substr(5));
 				self.set(['data',name,'img'], icon);
 				self.set(['data',name,'own'], own);
 				Resources.add('_'+name, own, true);
@@ -471,7 +471,7 @@ Town.page = function(page, change) {
 						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});
 				}
-				if (page === 'blacksmith') {
+				if (page === 'town_blacksmith') {
 					for (i in self.blacksmith) {
 						if ((match = name.match(self.blacksmith[i]))) {
 							if (match[1].length > maxlen) {
@@ -502,7 +502,7 @@ Town.page = function(page, change) {
 		}
 
 		// trigger the item type caption pass
-		if (Page.page === 'town_blacksmith') {
+		if (page === 'town_blacksmith') {
 		    modify = true;
 		}
 	}

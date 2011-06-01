@@ -33,7 +33,7 @@ Page.temp = {
 	checked:false, // Finished checking for new pages
 	count:0,
 	enabled:false, // Set to true in .work(true) - otherwise Page.to() should throw an error
-	page:'' // Same as Page.page
+	page:'' // Old Page.page
 };
 
 Page.lastclick = null;
@@ -43,8 +43,6 @@ Page.runtime = {
 	timers:{}, // Tickers being displayed
 	stale:{}
 };
-
-Page.page = '';
 
 Page.pageNames = {}; //id:{url:'...', image:'filename.jpg', selector:'jquery selector'}
 
@@ -174,8 +172,8 @@ Page.update = function(event, events) {
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
 				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
-					Page.temp.page = Page.page = i;
-//					log(LOG_DEBUG, 'Page:' + Page.page);
+					Page.temp.page = i;
+//					log(LOG_DEBUG, 'Page:' + Page.temp.page);
 					return;
 				}
 			}

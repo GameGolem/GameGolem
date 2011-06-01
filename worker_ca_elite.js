@@ -62,7 +62,8 @@ Elite.page = function(page, change) {
 		uid = $('#'+APPID_+'app_body a[href*="facebook.com/profile.php?id="]').attr('href').regex(/id=(\d+)$/i);
 		for (i=0; i<el.length; i++) {
 			txt = $(el[i]).text().trim(true);
-			if (txt.match(/Elite Guard, and they have joined/i)) {
+//			if (txt.match(/Elite Guard, and they have joined/i)) {
+			if (txt.match(/You've joined /i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
 				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {

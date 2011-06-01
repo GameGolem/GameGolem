@@ -128,6 +128,7 @@ Config.init = function(old_revision) {
 		$('#golem-menu').hide();
 //		Worker.flush();
 	});
+	this._watch(this, 'data');
 	this._watch(this, 'option.advanced');
 	this._watch(this, 'option.debug');
 	this._watch(this, 'option.exploit');
@@ -142,7 +143,7 @@ Config.update = function(event, events) {
 		}
 		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
 	}
-	for (event=events.findEvent(null, 'data'); event; event=events.findEvent()) { // Changing one of our dropdown lists
+	for (event=events.getEvent(this, 'watch', 'data'); event; event=events.getEvent()) { // Changing one of our dropdown lists
 		list = [];
 		value = this.get(event.path);
 		if (isArray(value)) {

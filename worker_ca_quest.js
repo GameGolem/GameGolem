@@ -171,15 +171,15 @@ Quest.init = function(old_revision) {
 
 Quest.page = function(page, change) {
 	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
-	if (Page.page === 'quests_quest') {
+	if (page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
-	} else if (Page.page === 'quests_demiquests') {
+	} else if (page === 'quests_demiquests') {
 		area = 'demiquest';
-	} else if (Page.page === 'quests_atlantis') {
+	} else if (page === 'quests_atlantis') {
 		area = 'atlantis';
 	} else {
 		area = 'quest';
-		land = Page.page.regex(/quests_quest(\d+)/i) - 1;
+		land = page.regex(/quests_quest(\d+)/i) - 1;
 	}
 	for (i in data.id) {
 		if (data.id[i].area === area && (area !== 'quest' || data.id[i].land === land)) {
@@ -187,7 +187,7 @@ Quest.page = function(page, change) {
 		}
 	}
 	if ($('div.quests_background,div.quests_background_sub').length !== $('div.quests_background .quest_progress,div.quests_background_sub .quest_sub_progress').length) {
-		Page.to(Page.page, '');// Force a page reload as we're pretty sure it's a bad page load!
+		Page.to(page, '');// Force a page reload as we're pretty sure it's a bad page load!
 		return false;
 	}
 	quests = $('div.quests_background,div.quests_background_sub,div.quests_background_special');

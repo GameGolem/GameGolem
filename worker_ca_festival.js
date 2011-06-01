@@ -236,8 +236,8 @@ Festival.work = function(state) {
 				return QUEUE_FINISH;
 			}
 		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
-			if (Page.page !== 'festival_guild_battle') {
-				if (Page.page !== 'festival_guild') {
+			if (Page.temp.page !== 'festival_guild_battle') {
+				if (Page.temp.page !== 'festival_guild') {
 					Page.to('festival_guild');
 				} else {
 					Page.click('img.imgButton[src*="festival_arena_enter.jpg"]');

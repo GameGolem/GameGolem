@@ -178,11 +178,11 @@ LevelUp.update = function(event, events) {
 		if (exp > this.runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
 			if (this.runtime.stamina > stamina) {
-				this.set(['runtime','last_stamina'], (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'attack' : 'battle');
+				this.set(['runtime','last_stamina'], (Page.temp.page === 'keep_monster_active' || Page.temp.page === 'monster_battle_monster') ? 'attack' : 'battle');
 				calc_rolling_weighted_average(this.runtime, 'exp', exp - this.runtime.exp, 'stamina', this.runtime.stamina - stamina);
 			}
 			if (this.runtime.energy > energy) {
-				this.set(['runtime','last_energy'], (Page.page === 'keep_monster_active' || Page.page === 'monster_battle_monster') ? 'defend' : 'quest');
+				this.set(['runtime','last_energy'], (Page.temp.page === 'keep_monster_active' || Page.temp.page === 'monster_battle_monster') ? 'defend' : 'quest');
 				// Only need average for monster defense. Quest average is known.
 				if (this.runtime.last_energy === 'defend') {
 					calc_rolling_weighted_average(this.runtime, 'exp', exp - this.runtime.exp, 'energy', this.runtime.energy - energy);
