@@ -856,16 +856,16 @@ Worker.prototype._transaction = function(commit) {
  */
 Worker.prototype._trigger = function(selector, id) {
 	if (!Worker._triggers_.length) {
-		$('body').bind('DOMNodeInserted', function(event){
-			var i, t = Worker._triggers_, $target = $(event.target);
-			for (i=0; i<t.length; i++) {
-				if ($target.is(t[i][1])) {
-					t[i][0]._remind(0.5, '_trigger_'+id, {worker:t[i][0], type:'trigger', id:t[i][2], selector:t[i][1]});
+		$('body').bind('DOMNodeInserted DOMSubtreeModified', function(event){
+			var trigger = Worker._triggers_, i = trigger.length, $target = $(event.target);
+			while (i--) {
+				if ($target.is(trigger[i][1])) {
+					Workers[trigger[i][0]]._remind(0.5, '_trigger_'+trigger[i][1], {worker:trigger[i][0], type:'trigger', id:trigger[i][2], selector:trigger[i][1]});
 				}
 			}
 		});
 	}
-	Worker._triggers_.push([this, selector, id || selector]);
+	Worker._triggers_.push([this.name, selector, id || selector]);
 };
 
 /**
