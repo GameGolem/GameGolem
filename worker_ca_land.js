@@ -129,15 +129,15 @@ Land.page = function(page, change) {
 						assert(Land.set(['data',name,'own'], $('span:contains("Owned:")', el).text().replace(/[,\s]+/g, '').regex(/Owned:(\d+)/i), 'number'), 'Bad own count: '+name);
 //						Land.set(['data',name,'id']);
 						Land.set(['data',name,'buy']);
-						if ((tmp = $('form[id*="_prop_"]', el)).length) {
-							Land.set(['data',name,'id'], tmp.attr('id').regex(/_prop_(\d+)/i), 'number');
+						if ((tmp = $('form[id*="prop_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/prop_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
 								Land.push(['data',name,'buy'], parseFloat($(el).val()), 'number')
 							});
 						}
 						Land.set(['data',name,'sell']);
-						if ((tmp = $('form[id*="_propsell_"]', el)).length) {
-							Land.set(['data',name,'id'], tmp.attr('id').regex(/_propsell_(\d+)/i), 'number');
+						if ((tmp = $('form[id*="propsell_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/propsell_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
 								Land.push(['data',name,'sell'], parseFloat($(el).val()), 'number')
 							})

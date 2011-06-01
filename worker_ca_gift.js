@@ -126,10 +126,12 @@ Gift.page = function(page, change) {
 				return false;	// let the work function send us to the index page to get the info.
 			}
 //			log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
-			this.runtime.gift.sender_id = $('div.messages img[uid]').first().attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
-			if (this.runtime.gift.sender_id) {
-				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
-//				log(LOG_WARN, 'Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
+			if (($tmp = $('div.messages img[uid]').first()).length) {
+				this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
+				this.runtime.gift.sender_fb_name = $tmp.attr('title');
+			} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
+				this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
+				this.runtime.gift.sender_fb_name = $tmp.text();
 			} else {
 				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
 			}
@@ -336,16 +338,16 @@ Gift.work = function(state) {
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length) {
 				if ($('img[src*="gift_invite_castle_on"]').length){
-					if ($('div.unselected_list').children().length) {
+					if ($('.unselected_list').children().length) {
 						log('Sending out ' + this.data.gifts[i].name);
 						k = 0;
 						for (j=todo[i].length-1; j>=0; j--) {
 							if (k< 10) {	// Need to limit to 10 at a time
-								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
+								if (!$('.unselected_list input[value=\'' + todo[i][j] + '\']').length){
 //									log('User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
 								}
-								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
+								Page.click('.unselected_list input[value="' + todo[i][j] + '"]');
 								k++;
 							}
 						}

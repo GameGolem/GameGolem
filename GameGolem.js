@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1135
+ * GameGolem v31.6.1136
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1135
+ * GameGolem v31.6.1136
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1135;
+var revision = 1136;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9462,10 +9462,12 @@ Gift.page = function(page, change) {
 				return false;	// let the work function send us to the index page to get the info.
 			}
 //			log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
-			this.runtime.gift.sender_id = $('div.messages img[uid]').first().attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
-			if (this.runtime.gift.sender_id) {
-				this.runtime.gift.sender_fb_name = $('div.messages img[uid]').first().attr('title');
-//				log(LOG_WARN, 'Found ' + this.runtime.gift.sender_fb_name + "'s ID. (" + this.runtime.gift.sender_id + ')');
+			if (($tmp = $('div.messages img[uid]').first()).length) {
+				this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
+				this.runtime.gift.sender_fb_name = $tmp.attr('title');
+			} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
+				this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
+				this.runtime.gift.sender_fb_name = $tmp.text();
 			} else {
 				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
 			}
@@ -9672,16 +9674,16 @@ Gift.work = function(state) {
 			}
 			if ($('div[style*="giftpage_select"] div a[href*="giftSelection='+this.data.gifts[i].slot+'"]').length) {
 				if ($('img[src*="gift_invite_castle_on"]').length){
-					if ($('div.unselected_list').children().length) {
+					if ($('.unselected_list').children().length) {
 						log('Sending out ' + this.data.gifts[i].name);
 						k = 0;
 						for (j=todo[i].length-1; j>=0; j--) {
 							if (k< 10) {	// Need to limit to 10 at a time
-								if (!$('div.unselected_list input[value=\'' + todo[i][j] + '\']').length){
+								if (!$('.unselected_list input[value=\'' + todo[i][j] + '\']').length){
 //									log('User '+todo[i][j]+' wasn\'t in the CA friend list.');
 									continue;
 								}
-								Page.click('div.unselected_list input[value="' + todo[i][j] + '"]');
+								Page.click('.unselected_list input[value="' + todo[i][j] + '"]');
 								k++;
 							}
 						}
@@ -10195,15 +10197,15 @@ Land.page = function(page, change) {
 						assert(Land.set(['data',name,'own'], $('span:contains("Owned:")', el).text().replace(/[,\s]+/g, '').regex(/Owned:(\d+)/i), 'number'), 'Bad own count: '+name);
 //						Land.set(['data',name,'id']);
 						Land.set(['data',name,'buy']);
-						if ((tmp = $('form[id*="_prop_"]', el)).length) {
-							Land.set(['data',name,'id'], tmp.attr('id').regex(/_prop_(\d+)/i), 'number');
+						if ((tmp = $('form[id*="prop_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/prop_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
 								Land.push(['data',name,'buy'], parseFloat($(el).val()), 'number')
 							});
 						}
 						Land.set(['data',name,'sell']);
-						if ((tmp = $('form[id*="_propsell_"]', el)).length) {
-							Land.set(['data',name,'id'], tmp.attr('id').regex(/_propsell_(\d+)/i), 'number');
+						if ((tmp = $('form[id*="propsell_"]', el)).length) {
+							Land.set(['data',name,'id'], tmp.attr('id').regex(/propsell_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
 								Land.push(['data',name,'sell'], parseFloat($(el).val()), 'number')
 							})
