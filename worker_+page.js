@@ -167,7 +167,7 @@ Page.update = function(event, events) {
 			}
 		}
 		// NOTE: Need a better function to identify pages, this lot is bad for CPU
-		this.page = '';
+		this.temp.page = '';
 		$('img', $('#'+APPID_+'app_body')).each(function(i,el){
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
@@ -178,24 +178,24 @@ Page.update = function(event, events) {
 				}
 			}
 		});
-		if (this.page === '') {
+		if (this.temp.page === '') {
 			for (i in this.pageNames) {
 				if (this.pageNames[i].selector && $(this.pageNames[i].selector).length) {
-					this.temp.page = this.page = i;
-//					log(LOG_DEBUG, 'Page:' + this.page);
+					this.temp.page = i;
+//					log(LOG_DEBUG, 'Page:' + this.temp.page);
 				}
 			}
 		}
-		if (this.page !== '') {
-			this.set(['data',this.page], Date.now());
-			this.set(['runtime', 'stale', this.page]);
+		if (this.temp.page !== '') {
+			this.set(['data',this.temp.page], Date.now());
+			this.set(['runtime', 'stale', this.temp.page]);
 		}
-//		log(LOG_WARN, 'Page.update: ' + (this.page || 'Unknown page') + ' recognised');
+//		log(LOG_WARN, 'Page.update: ' + (this.temp.page || 'Unknown page') + ' recognised');
 		list = {};
 		for (i in Workers) {
 			if (Workers[i].pages
 			 && Workers[i].pages.indexOf
-			 && (Workers[i].pages.indexOf('*') >= 0 || (this.page !== '' && Workers[i].pages.indexOf(this.page) >= 0))
+			 && (Workers[i].pages.indexOf('*') >= 0 || (this.temp.page !== '' && Workers[i].pages.indexOf(this.temp.page) >= 0))
 			 && Workers[i]._page(this.temp.page, false)) {
 				list[i] = true;
 			}
@@ -251,10 +251,10 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 //		log(LOG_ERROR, 'Trying to load page when paused...');
 //		return true;
 //	}
-	if (!page || (!force && page === (this.temp.last || this.page))) {
+	if (!page || (!force && page === (this.temp.last || this.temp.page))) {
 		return true;
 	}
-	if (page !== (this.temp.last || this.page)) {
+	if (page !== (this.temp.last || this.temp.page)) {
 		this.clear();
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
