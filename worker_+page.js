@@ -116,15 +116,6 @@ Global._overload(null, 'work', function(state) {
 });
 
 Page.init = function() {
-	// BEGIN: Fix for before Config supported path'ed set
-	if (Global.get(['option','page'], false)) {
-		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
-		this.set(['option','reload'], Global.get(['option','page','reload'], this.option.reload));
-		this.set(['option','nochat'], Global.get(['option','page','nochat'], this.option.nochat));
-		this.set(['option','refresh'], Global.get(['option','page','refresh'], this.option.refresh));
-		Global.set(['option','page']);
-	}
-	// END
 	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
@@ -289,8 +280,8 @@ Page.retry = function() {
 		this.set(['temp','reload'], true);
 		this.set(['temp','loading'], true);
 		this._remind(delay,'retry',{worker:this, type:'init'});// Fake it to force a re-check
-		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
-		log(LOG_ERROR, 'Unexpected retry event.');
+		$('body').append('<div style="position:fixed;width:100%;top:50%;text-align:center;"><span style="font-size:36px;color:red;padding:0 4px 2px 4px;margin:-18px auto;background:white;border:1px solid red;border-radius:4px;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</span></div>');
+//		log(LOG_ERROR, 'Unexpected retry event.');
 	}
 };
 		

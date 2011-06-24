@@ -458,15 +458,15 @@ Town.page = function(page, change) {
 				self.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
 //				self.set(['data',name,'id'], null);
 				self.set(['data',name,'buy']);
-				if ((tmp = $('form[id*="_itemBuy_"]', el)).length) {
-					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
+				if ((tmp = $('form[id*="itemBuy_"]', el)).length) {
+					self.set(['data',name,'id'], tmp.attr('id').regex(/itemBuy_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
 						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
 					});
 				}
 				self.set(['data',name,'sell']);
-				if ((tmp = $('form[id*="_itemSell_"]', el)).length) {
-					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
+				if ((tmp = $('form[id*="itemSell_"]', el)).length) {
+					self.set(['data',name,'id'], tmp.attr('id').regex(/itemSell_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
 						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});

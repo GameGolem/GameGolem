@@ -75,7 +75,7 @@ Bank.work = function(state) {
 };
 
 Bank.update = function(event) {
-	Dashboard.status(this, Config.makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (' + Config.makeImage('gold') + '$' + Bank.worth().addCommas() + ' available)');
 	this.set('option._sleep', !(this.temp.force || (this.option.auto && Player.get('cash', 0) >= Math.max(10, this.option.above, this.option.hand))));
 };
 

@@ -297,7 +297,7 @@ Guild.work = function(state) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
 						//if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
-						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Guild.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Guild.option.suppress && besttarget[3] && besttarget[6])) || test))) {
 
 							best = el;
 							besttarget = target;

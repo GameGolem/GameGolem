@@ -94,14 +94,14 @@ Gift.page = function(page, change) {
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
 			log(LOG_WARN, this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
 			this.runtime.gift_waiting = true;
-			return true;
+//			return true;
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
 			log(LOG_WARN, this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
-			return true;
+//			return true;
 		} else {
 //			log(LOG_WARN, 'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
@@ -122,18 +122,17 @@ Gift.page = function(page, change) {
 //		log(LOG_WARN, 'Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
 		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
-			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
-				return false;	// let the work function send us to the index page to get the info.
-			}
-//			log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
-			if (($tmp = $('div.messages img[uid]').first()).length) {
-				this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
-				this.runtime.gift.sender_fb_name = $tmp.attr('title');
-			} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
-				this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
-				this.runtime.gift.sender_fb_name = $tmp.text();
-			} else {
-				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+			if (!this.runtime.gift.id) { // Do we have the info from the index page yet?
+//				log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
+				if (($tmp = $('div.messages img[uid]').first()).length) {
+					this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
+					this.runtime.gift.sender_fb_name = $tmp.attr('title');
+				} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
+					this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
+					this.runtime.gift.sender_fb_name = $tmp.text();
+				} else {
+					log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+				}
 			}
 		} else {
 //			log('No more waiting gifts. Did we miss the gift accepted page?');

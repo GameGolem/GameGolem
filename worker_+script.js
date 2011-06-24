@@ -12,7 +12,9 @@ Scripting.settings = {
 
 Scripting.option = {
 	path:'Player.data',
-	script:'' // Script shown in Dashboard
+	script:'', // Script shown in Dashboard
+	worker:'Player',
+	type:'data'
 };
 
 Scripting.dashboard = function() {
@@ -56,6 +58,8 @@ Scripting.dashboard = function() {
 		var path = Scripting.option.path.regex(/([^.]*)\.(.*)/), script = new Script(Scripting.option.script, {
 			'default':Workers[path[0]].get(path[1], {})
 		});
+		Scripting.set(['option','worker'], path[0]);
+		Scripting.set(['option','type'], path[1]);
 		$('#golem_script_result').val(script.run());
 		$('#golem_script_data').text(JSON.stringify(script.data, null, '   '));
 		$('#golem_script_source').text(JSON.stringify(script.script, null, '   '));

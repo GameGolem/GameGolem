@@ -47,7 +47,8 @@ Battle.option = {
 	prefer:[],
 	between:0,
 	risk:false,
-	stamina_reserve:0
+	stamina_reserve:0,
+	cache:100
 };
 
 Battle.runtime = {

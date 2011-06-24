@@ -54,14 +54,14 @@ Income.init = function(event) {
 };
 
 Income.update = function(event) {
-	var when = Player.get('cash_timer', 9999) - this.option.margin;
+	var income = Player.get('income', 0), when = Player.get('cash_timer', 9999) - this.option.margin;
 	if (when > 0) {
 		this._remind(when, 'income');
 	}
 	if ((this.set(['temp','income'], when <= 0))) {
 		this.set(['temp','bank'], true);
 	}
-	Dashboard.status(this, Config.makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + Config.makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + (income + History.get('income.average.24')).round(0).addCommas() + ' per hour (' + Config.makeImage('gold') + '$' + income.addCommas() + ' from land, ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '% upkeep)');
 	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
 };
 

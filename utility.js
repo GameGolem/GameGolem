@@ -488,20 +488,22 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 };
 
 var sum = function(a) { // Adds the values of all array entries together
-	var i, t = 0;
-	if (isArray(a)) {
-		i = a.length;
-		while(i--) {
-			t += arguments.callee(a[i]);
+	var i, t = 0, args = Array.prototype.slice.call(arguments);
+	while ((a = args.shift())) {
+		if (isArray(a)) {
+			i = a.length;
+			while(i--) {
+				t += arguments.callee(a[i]);
+			}
+		} else if (isObject(a)) {
+			for(i in a) {
+				t += arguments.callee(a[i]);
+			}
+		} else if (isNumber(a)) {
+			return a;
+		} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
+			return parseFloat(a);
 		}
-	} else if (isObject(a)) {
-		for(i in a) {
-			t += arguments.callee(a[i]);
-		}
-	} else if (isNumber(a)) {
-		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
-		return parseFloat(a);
 	}
 	return t;
 };

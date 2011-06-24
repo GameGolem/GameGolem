@@ -663,7 +663,7 @@ Config.makeOption = function(worker, args) {
 					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
-					r.require.x = new Script(o.require, {'default':worker.get('option')});
+					r.require.x = new Script(o.require, {'default':worker.name + '.option'});
 				}
 				this.temp.require.push(r.require);
 				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');

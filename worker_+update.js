@@ -160,10 +160,10 @@ Update.update = function(event) {
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
 		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
 		if (this.runtime.version > this.temp.version) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
 		}
 		if (!isRelease && this.runtime.revision > this.temp.revision) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '?' + Date.now() + '">New Beta Available</a></div>');
 		}
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
