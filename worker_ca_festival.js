@@ -29,7 +29,8 @@ Festival.option = {
 	safety:60000,
 	ignore:'',
 	limit:'',
-	cleric:false
+	cleric:false,
+	suppress:false
 };
 
 Festival.runtime = {
@@ -107,6 +108,11 @@ Festival.display = [
  		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		id:'suppress',
+		label:'Suppress Actives',
+		checkbox:true,
+		help:'Continue to fight stunned active targets with remaining health.'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -294,7 +300,7 @@ Festival.work = function(state) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
 						//log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]);
-						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
 							best = el;
 							besttarget = target;
 						}

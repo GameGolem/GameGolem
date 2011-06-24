@@ -29,7 +29,8 @@ Guild.option = {
 	safety:60000,
 	ignore:'',
 	limit:'',
-	cleric:false
+	cleric:false,
+	suppress:false
 };
 
 Guild.runtime = {
@@ -107,6 +108,11 @@ Guild.display = [
  		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		id:'suppress',
+		label:'Suppress Actives',
+		checkbox:true,
+		help:'Continue to fight stunned active targets with remaining health.'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -290,7 +296,9 @@ Guild.work = function(state) {
 						if (Guild.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						//if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
+
 							best = el;
 							besttarget = target;
 						}

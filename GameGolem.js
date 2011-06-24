@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1137
+ * GameGolem v31.6.1138
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1137
+ * GameGolem v31.6.1138
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1137;
+var revision = 1138;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -16334,7 +16334,8 @@ Guild.option = {
 	safety:60000,
 	ignore:'',
 	limit:'',
-	cleric:false
+	cleric:false,
+	suppress:false
 };
 
 Guild.runtime = {
@@ -16412,6 +16413,11 @@ Guild.display = [
  		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		id:'suppress',
+		label:'Suppress Actives',
+		checkbox:true,
+		help:'Continue to fight stunned active targets with remaining health.'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -16595,7 +16601,9 @@ Guild.work = function(state) {
 						if (Guild.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						//if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
+
 							best = el;
 							besttarget = target;
 						}
@@ -16650,7 +16658,8 @@ Festival.option = {
 	safety:60000,
 	ignore:'',
 	limit:'',
-	cleric:false
+	cleric:false,
+	suppress:false
 };
 
 Festival.runtime = {
@@ -16728,6 +16737,11 @@ Festival.display = [
  		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
+	},{
+		id:'suppress',
+		label:'Suppress Actives',
+		checkbox:true,
+		help:'Continue to fight stunned active targets with remaining health.'
 	},{
 		advanced:true,
 		id:'ignore',
@@ -16915,7 +16929,7 @@ Festival.work = function(state) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
 						//log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]);
-						if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
 							best = el;
 							besttarget = target;
 						}
