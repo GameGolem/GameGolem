@@ -91,7 +91,7 @@ Guild.display = [
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
 	},{
 		advanced:true,
 		id:'limit',
@@ -109,6 +109,7 @@ Guild.display = [
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
+		advanced:true,
 		id:'suppress',
 		label:'Suppress Actives',
 		checkbox:true,
@@ -268,7 +269,7 @@ Guild.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
 					
-						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target 
 								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
@@ -291,14 +292,34 @@ Guild.work = function(state) {
 								case 'health2':		test = target[3] > besttarget[3];	break;
 								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
 								case 'activity2':	test = target[6] > besttarget[6];	break;
+								case 'levelactive':
+									besttargetla = besttarget[1];
+									if (besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla < besttargetla;
+									break;
+								case 'levelactive2':
+									besttargetla = besttarget[1];
+									if (!besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (!target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla > besttargetla;
+									break;
 							}
 						}
 						if (Guild.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						//if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
 						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Guild.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Guild.option.suppress && besttarget[3] && besttarget[6])) || test))) {
-
 							best = el;
 							besttarget = target;
 						}
