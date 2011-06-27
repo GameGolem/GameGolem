@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1138
+ * GameGolem v31.6.1141
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1138
+ * GameGolem v31.6.1141
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1138;
+var revision = 1141;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -960,20 +960,22 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 };
 
 var sum = function(a) { // Adds the values of all array entries together
-	var i, t = 0;
-	if (isArray(a)) {
-		i = a.length;
-		while(i--) {
-			t += arguments.callee(a[i]);
+	var i, t = 0, args = Array.prototype.slice.call(arguments);
+	while ((a = args.shift())) {
+		if (isArray(a)) {
+			i = a.length;
+			while(i--) {
+				t += arguments.callee(a[i]);
+			}
+		} else if (isObject(a)) {
+			for(i in a) {
+				t += arguments.callee(a[i]);
+			}
+		} else if (isNumber(a)) {
+			return a;
+		} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
+			return parseFloat(a);
 		}
-	} else if (isObject(a)) {
-		for(i in a) {
-			t += arguments.callee(a[i]);
-		}
-	} else if (isNumber(a)) {
-		return a;
-	} else if (isString(a) && a.search(/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i) >= 0) {
-		return parseFloat(a);
 	}
 	return t;
 };
@@ -3843,7 +3845,7 @@ Config.makeOption = function(worker, args) {
 					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
-					r.require.x = new Script(o.require, {'default':worker.get('option')});
+					r.require.x = new Script(o.require, {'default':worker.name + '.option'});
 				}
 				this.temp.require.push(r.require);
 				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -5273,15 +5275,6 @@ Global._overload(null, 'work', function(state) {
 });
 
 Page.init = function() {
-	// BEGIN: Fix for before Config supported path'ed set
-	if (Global.get(['option','page'], false)) {
-		this.set(['option','timeout'], Global.get(['option','page','timeout'], this.option.timeout));
-		this.set(['option','reload'], Global.get(['option','page','reload'], this.option.reload));
-		this.set(['option','nochat'], Global.get(['option','page','nochat'], this.option.nochat));
-		this.set(['option','refresh'], Global.get(['option','page','refresh'], this.option.refresh));
-		Global.set(['option','page']);
-	}
-	// END
 	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
@@ -5446,8 +5439,8 @@ Page.retry = function() {
 		this.set(['temp','reload'], true);
 		this.set(['temp','loading'], true);
 		this._remind(delay,'retry',{worker:this, type:'init'});// Fake it to force a re-check
-		$('body').append('<div style="position:absolute;top:100;left:0;width:100%;"><div style="margin:auto;font-size:36px;color:red;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</div></div>');
-		log(LOG_ERROR, 'Unexpected retry event.');
+		$('body').append('<div style="position:fixed;width:100%;top:50%;text-align:center;"><span style="font-size:36px;color:red;padding:0 4px 2px 4px;margin:-18px auto;background:white;border:1px solid red;border-radius:4px;">ERROR: Reloading in ' + Page.addTimer('reload',delay * 1000, true) + '</span></div>');
+//		log(LOG_ERROR, 'Unexpected retry event.');
 	}
 };
 		
@@ -6061,7 +6054,9 @@ Scripting.settings = {
 
 Scripting.option = {
 	path:'Player.data',
-	script:'' // Script shown in Dashboard
+	script:'', // Script shown in Dashboard
+	worker:'Player',
+	type:'data'
 };
 
 Scripting.dashboard = function() {
@@ -6105,6 +6100,8 @@ Scripting.dashboard = function() {
 		var path = Scripting.option.path.regex(/([^.]*)\.(.*)/), script = new Script(Scripting.option.script, {
 			'default':Workers[path[0]].get(path[1], {})
 		});
+		Scripting.set(['option','worker'], path[0]);
+		Scripting.set(['option','type'], path[1]);
 		$('#golem_script_result').val(script.run());
 		$('#golem_script_data').text(JSON.stringify(script.data, null, '   '));
 		$('#golem_script_source').text(JSON.stringify(script.script, null, '   '));
@@ -6876,10 +6873,10 @@ Update.update = function(event) {
 	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
 		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
 		if (this.runtime.version > this.temp.version) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '">New Version Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
 		}
 		if (!isRelease && this.runtime.revision > this.temp.revision) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '">New Beta Available</a></div>');
+			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '?' + Date.now() + '">New Beta Available</a></div>');
 		}
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
@@ -7436,7 +7433,7 @@ Bank.work = function(state) {
 };
 
 Bank.update = function(event) {
-	Dashboard.status(this, Config.makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (Upkeep ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '%)<br>');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + Player.get('worth', 0).addCommas() + ' (' + Config.makeImage('gold') + '$' + Bank.worth().addCommas() + ' available)');
 	this.set('option._sleep', !(this.temp.force || (this.option.auto && Player.get('cash', 0) >= Math.max(10, this.option.above, this.option.hand))));
 };
 
@@ -7538,7 +7535,8 @@ Battle.option = {
 	prefer:[],
 	between:0,
 	risk:false,
-	stamina_reserve:0
+	stamina_reserve:0,
+	cache:100
 };
 
 Battle.runtime = {
@@ -9430,14 +9428,14 @@ Gift.page = function(page, change) {
 			this.runtime.gift.id = $('span.result_body img').attr('src').filepart();
 			log(LOG_WARN, this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you. (' + this.runtime.gift.id + ')');
 			this.runtime.gift_waiting = true;
-			return true;
+//			return true;
 		} else if ($('span.result_body').text().indexOf('warrior wants to join your Army') >= 0) {
 			this.runtime.gift.sender_ca_name = 'A Warrior';
 			this.runtime.gift.name = 'Random Soldier';
 			this.runtime.gift.id = 'random_soldier';
 			log(LOG_WARN, this.runtime.gift.sender_ca_name + ' has a ' + this.runtime.gift.name + ' waiting for you.');
 			this.runtime.gift_waiting = true;
-			return true;
+//			return true;
 		} else {
 //			log(LOG_WARN, 'No more waiting gifts. Did we miss the gift accepted page?');
 			this.runtime.gift_waiting = false;
@@ -9458,18 +9456,17 @@ Gift.page = function(page, change) {
 //		log(LOG_WARN, 'Checking for waiting gifts and getting the id of the sender if we already have the sender\'s name.');
 		if ($('div.messages').text().indexOf('a gift') >= 0) { // This will trigger if there are gifts waiting
 			this.runtime.gift_waiting = true;
-			if (!this.runtime.gift.id) { // We haven't gotten the info from the index page yet.
-				return false;	// let the work function send us to the index page to get the info.
-			}
-//			log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
-			if (($tmp = $('div.messages img[uid]').first()).length) {
-				this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
-				this.runtime.gift.sender_fb_name = $tmp.attr('title');
-			} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
-				this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
-				this.runtime.gift.sender_fb_name = $tmp.text();
-			} else {
-				log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+			if (!this.runtime.gift.id) { // Do we have the info from the index page yet?
+//				log(LOG_WARN, 'Sender Name: ' + $('div.messages img[title*="' + this.runtime.gift.sender_ca_name + '"]').first().attr('title'));
+				if (($tmp = $('div.messages img[uid]').first()).length) {
+					this.runtime.gift.sender_id = $tmp.attr('uid'); // get the ID of the gift sender. (The sender listed on the index page should always be the first sender listed on the army page.)
+					this.runtime.gift.sender_fb_name = $tmp.attr('title');
+				} else if (($tmp = $('div.messages a.fb_link').first()).length) { // web3
+					this.runtime.gift.sender_id = $tmp.attr('href').regex(/id=(\d+)$/i);
+					this.runtime.gift.sender_fb_name = $tmp.text();
+				} else {
+					log("Can't find the gift sender's ID: " + this.runtime.gift.sender_id);
+				}
 			}
 		} else {
 //			log('No more waiting gifts. Did we miss the gift accepted page?');
@@ -10038,14 +10035,14 @@ Income.init = function(event) {
 };
 
 Income.update = function(event) {
-	var when = Player.get('cash_timer', 9999) - this.option.margin;
+	var income = Player.get('income', 0), when = Player.get('cash_timer', 9999) - this.option.margin;
 	if (when > 0) {
 		this._remind(when, 'income');
 	}
 	if ((this.set(['temp','income'], when <= 0))) {
 		this.set(['temp','bank'], true);
 	}
-	Dashboard.status(this, Config.makeImage('gold') + '$' + (Player.get('income', 0) + History.get('income.average.24')).round(0).addCommas() + ' per hour (currently ' + Config.makeImage('gold') + '$' + Player.get('income', 0).addCommas() + ' from land)');
+	Dashboard.status(this, Config.makeImage('gold') + '$' + (income + History.get('income.average.24')).round(0).addCommas() + ' per hour (' + Config.makeImage('gold') + '$' + income.addCommas() + ' from land, ' + ((Player.get('upkeep', 0) / Player.get('maxincome', 1)) * 100).round(2) + '% upkeep)');
 	this.set(['option','_sleep'], !(this.option.general && this.temp.income) && !(this.option.bank && this.temp.bank));
 };
 
@@ -13023,7 +13020,7 @@ News.page = function(page, change) {
 			sort.sort(function(a,b){return (user[b].win + (user[b].lose / 100)) - (user[a].win + (user[a].lose / 100));});
 			for (j=0; j<sort.length; j++) {
 				i = sort[j];
-				list.push(Page.makeLink('keep.php', {casuser:i}, user[i].name) + ' <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '">' + Config.makeImage('facebook') + '</a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
+				list.push(Page.makeLink('keep.php', {casuser:i}, user[i].name) + ' <a target="_blank" href="http://www.facebook.com/profile.php?id=' + i + '"><img style="margin:0 0 -4px 0;border:0;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGFBMVEVFYp97j7pgeKzs7/VthbX///87WZn////b2o/BAAAACHRSTlP/////////AN6DvVkAAABDSURBVHjalM9BCgAgCERRzUbvf+OsNmoR9BeCbyFIViJjDbGDpgI0ARL4nmGuL8AqgPgJka8bAajvAB90g+Pb0hBgACBrBdAiqJK7AAAAAElFTkSuQmCC"></a> ' + (user[i].win ? 'beat you <span class="negative">' + user[i].win + '</span> time' + plural(user[i].win) : '') + (user[i].lose ? (user[i].win ? (user[i].deaths ? ', ' : ' and ') : '') + 'was beaten <span class="positive">' + user[i].lose + '</span> time' + plural(user[i].lose) : '') + (user[i].deaths ? (user[i].win || user[i].lose ? ' and ' : '') + 'killed you <span class="negative">' + user[i].deaths + '</span> time' + plural(user[i].deaths) : '') + '.');
 			}
 			$('#'+APPID_+'battleUpdateBox .alertsContainer').prepend('<div style="padding: 0pt 0pt 10px;"><div class="alert_title">Summary:</div><div class="alert_content">' + list.join('<br>') + '</div></div>');
 		}
@@ -15350,15 +15347,15 @@ Town.page = function(page, change) {
 				self.set(['data',name,'upkeep'], upkeep ? upkeep : undefined);
 //				self.set(['data',name,'id'], null);
 				self.set(['data',name,'buy']);
-				if ((tmp = $('form[id*="_itemBuy_"]', el)).length) {
-					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemBuy_(\d+)/i), 'number');
+				if ((tmp = $('form[id*="itemBuy_"]', el)).length) {
+					self.set(['data',name,'id'], tmp.attr('id').regex(/itemBuy_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
 						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
 					});
 				}
 				self.set(['data',name,'sell']);
-				if ((tmp = $('form[id*="_itemSell_"]', el)).length) {
-					self.set(['data',name,'id'], tmp.attr('id').regex(/_itemSell_(\d+)/i), 'number');
+				if ((tmp = $('form[id*="itemSell_"]', el)).length) {
+					self.set(['data',name,'id'], tmp.attr('id').regex(/itemSell_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
 						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
 					});
@@ -16396,7 +16393,7 @@ Guild.display = [
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
 	},{
 		advanced:true,
 		id:'limit',
@@ -16414,6 +16411,7 @@ Guild.display = [
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
+		advanced:true,
 		id:'suppress',
 		label:'Suppress Actives',
 		checkbox:true,
@@ -16573,7 +16571,7 @@ Guild.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
 					
-						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target 
 								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
@@ -16596,14 +16594,34 @@ Guild.work = function(state) {
 								case 'health2':		test = target[3] > besttarget[3];	break;
 								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
 								case 'activity2':	test = target[6] > besttarget[6];	break;
+								case 'levelactive':
+									besttargetla = besttarget[1];
+									if (besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla < besttargetla;
+									break;
+								case 'levelactive2':
+									besttargetla = besttarget[1];
+									if (!besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (!target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla > besttargetla;
+									break;
 							}
 						}
 						if (Guild.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						//if ((target[3] && (!best || cleric)) || (target[3] >= 200 && (besttarget[3] < 200 || test))) {
-						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
-
+						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Guild.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Guild.option.suppress && besttarget[3] && besttarget[6])) || test))) {
 							best = el;
 							besttarget = target;
 						}
@@ -16720,7 +16738,7 @@ Festival.display = [
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity'}
+		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
 	},{
 		advanced:true,
 		id:'limit',
@@ -16738,6 +16756,7 @@ Festival.display = [
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
+		advanced:true,
 		id:'suppress',
 		label:'Suppress Actives',
 		checkbox:true,
@@ -16899,7 +16918,7 @@ Festival.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
 					
-						var test = false, cleric = false, i = ignore.length, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target 
 								|| (Festival.option.defeat && Festival.data 
@@ -16923,6 +16942,28 @@ Festival.work = function(state) {
 								case 'health2':		test = target[3] > besttarget[3];	break;
 								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
 								case 'activity2':	test = target[6] > besttarget[6];	break;
+								case 'levelactive':
+									besttargetla = besttarget[1];
+									if (besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla < besttargetla;
+									break;
+								case 'levelactive2':
+									besttargetla = besttarget[1];
+									if (!besttarget[6]) {
+										besttargetla = -1.0/besttargetla;
+									}
+									targetla = target[1];
+									if (!target[6]) {
+										targetla = -1.0/targetla;
+									}
+									test = targetla > besttargetla;
+									break;
 							}
 						}
 						if (Festival.option.cleric) {
