@@ -75,6 +75,9 @@ Elite.page = function(page, change) {
 			} else if (txt.match(/YOUR Elite Guard is FULL!/i)) {
 				log(LOG_INFO, 'Elite guard full, wait '+Elite.option.every+' hours');
 				this.set(['runtime','waitelite'], now);
+			} else { //something weird - move on
+				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + 'couldn\'t join for some reason');
+				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
 			}
 			if (this.runtime.nextelite === uid) {
 				this.set(['runtime','nextelite']);
