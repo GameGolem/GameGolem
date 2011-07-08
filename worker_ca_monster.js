@@ -876,6 +876,19 @@ Monster.types = {
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
+	},
+	typhonus: {
+		name:'Typhonus, the Chimera',
+		list:'monster_chimera_list.jpg',
+		image:'monster_chimera_large.jpg',
+		dead:'monster_chimera_dead.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="smite"]',
+		attack:[5,10,20],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40]
 	}
 };
 

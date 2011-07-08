@@ -88,13 +88,13 @@ Generals.page = function(page, change) {
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
-				this.set(['data',name,'progress'], j = parseInt($('div.generals_indv_stats', el).next().children().children().children().next().attr('style').regex(/width: (\d*\.*\d+)%/im), 10));
+				this.set(['data',name,'progress'], j = parseInt($('.generals_indv_stats', el).next().children().eq(0).children().eq(0).children().eq(1).attr('style').regex(/width:(\d+\.?\d*)%/i), 10));
 				// If we just maxed level, remove the priority
 				if ((j || 0) >= 100) {
 					this.set(['data',name,'priority']);
 				}
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
-				j = parseInt($('div.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
+				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
 					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
