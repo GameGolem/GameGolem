@@ -11,7 +11,7 @@ rem ----------------------------------------------------------------------
 [Golem]
 ; golem: absolute path to this development branch, include trailing \
 ; !!!IMPORTANT - ".\" WILL NOT WORK!!!
-golem:".\"
+golem=".\"
 
 [TortoiseSVN]
 ; tortoise: if installed, allows the current Revision to be displayed
