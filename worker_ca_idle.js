@@ -38,7 +38,7 @@ Idle.option = {
 };
 
 Idle.when = {
-	0:			'Never',
+	0:		'Never',
 	60000:		'Every Minute',
 	900000:		'Quarter Hour',
 	1800000:	'Half Hour',
@@ -133,6 +133,8 @@ Idle.pages = {
 		'quests_quest11',
 		'quests_quest12',
 		'quests_quest13',
+		'quests_quest14',
+		'quests_quest15',
 		'quests_demiquests',
 		'quests_atlantis'
 	],
