@@ -94,11 +94,11 @@ Town.display = [
 
 /*
 Town.blacksmith = {
-	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|grinder|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword |sword$|talon|trident|wand|^Avenger$|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Excalibur|Holy Avenger|Incarnation|Ironhart's Might|Judgement|Justice|Lightbringer|Oathkeeper|Onslaught|Punisher|Soulforge/i,
-	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
-	Helmet:	/cowl|crown|helm|horns|mask|veil|Virtue of Fortitude/i,
-	Gloves:	/gauntlet|glove|hand|bracer|fist|Slayer's Embrace|Soul Crusher|Soul Eater|Virtue of Temperance/i,
-	Armor:	/armor|belt|chainmail|cloak|epaulets|gear|garb|pauldrons|plate|raiments|robe|tunic|vestment|Faerie Wings/i,
+	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|Greatsword|grinder|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword |sword$|talon|trident|wand|^Avenger$|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Excalibur|Holy Avenger|Incarnation|Ironhart's Might|Judgement|Justice|Lava Surge|Lightbringer|Oathkeeper|Onslaught|Punisher|Rocklasher|Soulforge|Tempest Might/i,
+	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Impenetrable Ice|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
+	Helmet:	/cowl|crown|helm|horns|Krown|mask|veil|Virtue of Fortitude/i,
+	Gloves:	/gauntlet|glove|hand|bracer|fist|Power Glaive|Slayer's Embrace|Soul Crusher|Snakes Grasp|Soul Eater|Stonegrasp|Virtue of Temperance/i,
+	Armor:	/armor|Battleplate|belt|chainmail|cloak|epaulets|gear|garb|Karapace|pauldrons|plate|raiments|robe|tunic|vestment|Ambition's Guard|Faerie Wings/i,
 	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
 };
 */
@@ -127,8 +127,9 @@ Town.blacksmith = {
       '|\\bcudgel\\b' +			// 1
       '|\\bdagger\\b' +			// 8 (mismatches 2)
       '|\\bedge\\b' +			// 1
-      '|\\bgreatsword\\b' +		// 2
+      '|\\bGreatsword\\b' +
       '|\\bgrinder\\b' +		// 1
+      '|\\bGreatsword\\b' +		// 1
       '|\\bhalberd\\b' +		// 1
       '|\\bhammer\\b' +			// 1
       '|\\bhellblade\\b' +		// 1
@@ -165,6 +166,7 @@ Town.blacksmith = {
       '|^Dragonbane$' +
       '|^Excalibur$' +
       '|^Exsanguinator$' +
+      '|^Fangblade$' +
       '|^Heart of the Woods$' +
       '|^Holy Avenger$' +
       '|^Incarnation$' +
@@ -172,6 +174,7 @@ Town.blacksmith = {
       "|^Ironhart's Might$" +
       '|^Judgement$' +
       '|^Justice$' +
+      '|^Lava Surge$' +
       '|^Lifebane$' +
       '|^Lightbringer$' +
       '|^Lion Fang$' +
@@ -182,11 +185,13 @@ Town.blacksmith = {
       '|^Path of the Tower$' +
       '|^Punisher$' +
       '|^Righteousness$' +
+      '|^Rocklasher$' +
       '|^Scytheblade$' +
       '|^Soul Siphon$' +
       '|^Soulforge$' +
       '|^Stormcrusher$' +
       '|^Syrens Call$' +
+      '|^Tempest Might$' +
       '|^The Disemboweler$' +
       '|^The Galvanizer$' +
       '|^The Reckoning$' +
@@ -210,7 +215,7 @@ Town.blacksmith = {
       '|^Hour Glass$' +
       '|^Ice Dagger$' +
       '|^Illvasan Crest$' +
- 	  '|^Impenetrable Ice$' +
+      '|^Impenetrable Ice$' +
       '|^Purgatory$' +
       '|^Serenes Arrow$' +
       '|^Sword of Redemption$' +
@@ -223,12 +228,14 @@ Town.blacksmith = {
       '|\\barmor\\b' +			// 22
       '|\\bbattlegarb\\b' +		// 1
       '|\\bbattlegear\\b' +		// 4
+      '|\\bBattleplate\\b' +		
       '|\\bbelt\\b' +			// 1
       '|\\bcarapace\\b' +		// 1
       '|\\bchainmail\\b' +		// 2
       '|\\bcloak\\b' +			// 7
       '|\\bepaulets\\b' +		// 1
       '|\\bgarb\\b' +			// 1
+      '|\\bKarapace\\b' +
       '|\\bpauldrons\\b' +		// 1
       '|\\bplate\\b' +			// 32
       '|\\bplatemail\\b' +		// 2
@@ -236,6 +243,7 @@ Town.blacksmith = {
       '|\\brobes?\\b' +			// 3+7
       '|\\btunic\\b' +			// 1
       '|\\bvestment\\b' +		// 1
+      "|^Ambition's Guard$" +
       '|^Braving the Storm$' +
       '|^Castle Rampart$' +
       '|^Death Ward$' +
@@ -255,6 +263,7 @@ Town.blacksmith = {
       '|\\bmask\\b' +			// 2
       '|\\btiara\\b' +			// 1
       '|\\bveil\\b' +			// 1
+      '|\\bKrown\\b' +
       '|^Virtue of Fortitude$' +
       ')', 'i'),
     Amulet: new RegExp('(' +
@@ -319,9 +328,12 @@ Town.blacksmith = {
       '|\\bhands?\\b' +			// 5+3
       '|^Natures Reach$' +
       '|^Poisons Touch$' +
+      '|^Power Glaive$' +
       "|^Slayer's Embrace$" +
+      '|^Snakes Grasp$' +
       '|^Soul Crusher$' +
       '|^Soul Eater$' +
+      '|^Stonegrasp$' +
       '|^Stormbinder$' +
       '|^Stormbringer$' +
       '|^Tempered Steel$' +
