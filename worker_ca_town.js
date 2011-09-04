@@ -92,261 +92,12 @@ Town.display = [
 }
 ];
 
-/*
-Town.blacksmith = {
-	Weapon: /axe|blade|bow|cleaver|cudgel|dagger|edge|Greatsword|grinder|halberd|lance|mace|morningstar|rod|saber|scepter|spear|staff|stave|sword |sword$|talon|trident|wand|^Avenger$|Celestas Devotion|Crystal Rod|Daedalus|Deliverance|Dragonbane|Excalibur|Holy Avenger|Incarnation|Ironhart's Might|Judgement|Justice|Lava Surge|Lightbringer|Oathkeeper|Onslaught|Punisher|Rocklasher|Soulforge|Tempest Might/i,
-	Shield:	/aegis|buckler|shield|tome|Defender|Dragon Scale|Frost Tear Dagger|Harmony|Impenetrable Ice|Sword of Redemption|Terra's Guard|The Dreadnought|Purgatory|Zenarean Crest/i,
-	Helmet:	/cowl|crown|helm|horns|Krown|mask|veil|Virtue of Fortitude/i,
-	Gloves:	/gauntlet|glove|hand|bracer|fist|Power Glaive|Slayer's Embrace|Soul Crusher|Snakes Grasp|Soul Eater|Stonegrasp|Virtue of Temperance/i,
-	Armor:	/armor|Battleplate|belt|chainmail|cloak|epaulets|gear|garb|Karapace|pauldrons|plate|raiments|robe|tunic|vestment|Ambition's Guard|Faerie Wings/i,
-	Amulet:	/amulet|bauble|charm|crystal|eye|flask|insignia|jewel|lantern|memento|necklace|orb|pendant|shard|signet|soul|talisman|trinket|Heart of Elos|Mark of the Empire|Paladin's Oath|Poseidons Horn| Ring|Ring of|Ruby Ore|Terra's Heart|Thawing Star|Transcendence/i
-};
-*/
-
-  // I know, I know, really verbose, but don't gripe unless it doesn't match
-  // better than the short list above.  This is based on a generated list that
-  // ensures the list has no outstanding mismatches or conflicts given all
-  // known items as of a given date.
-
-  // as of Tue Apr 12 11:25:28 2011 UTC
-Town.blacksmith = {
-      // Feral Staff is a multi-pass match:
-      //   shield.11{Feral Staff}, weapon.5{Staff}
-      // Frost Tear Dagger is a multi-pass match:
-      //   shield.17{Frost Tear Dagger}, weapon.6{Dagger}
-      // Ice Dagger is a multi-pass match:
-      //   shield.10{Ice Dagger}, weapon.6{Dagger}
-      // Sword of Redemption is a multi-pass match:
-      //   shield.19{Sword of Redemption}, weapon.5{Sword}
-    Weapon: new RegExp('(' +
-      '\\baxe\\b' +				// 13
-      '|\\bblades?\\b' +		// 27+1
-      '|\\bbow\\b' +			// 8
-      '|\\bclaw\\b' +			// 1
-      '|\\bcleaver\\b' +		// 1
-      '|\\bcudgel\\b' +			// 1
-      '|\\bdagger\\b' +			// 8 (mismatches 2)
-      '|\\bedge\\b' +			// 1
-      '|\\bGreatsword\\b' +
-      '|\\bgrinder\\b' +		// 1
-      '|\\bGreatsword\\b' +		// 1
-      '|\\bhalberd\\b' +		// 1
-      '|\\bhammer\\b' +			// 1
-      '|\\bhellblade\\b' +		// 1
-      '|\\bkatara\\b' +			// 1
-      '|\\bkingblade\\b' +		// 1
-      '|\\blance\\b' +			// 2
-      '|\\blongsword\\b' +		// 1
-      '|\\bmace\\b' +			// 6
-      '|\\bmorningstar\\b' +	// 1
-      '|\\bpike\\b' +			// 1
-      '|\\brapier\\b' +			// 1
-      '|\\brod\\b' +			// 2
-      '|\\bsaber\\b' +			// 4
-      '|\\bscepter\\b' +		// 1
-      '|\\bshortsword\\b' +		// 1
-      '|\\bspear\\b' +			// 3
-      '|\\bstaff\\b' +			// 9 (mismatches 1)
-      '|\\bstaves\\b' +			// 1
-      '|\\bsword\\b' +			// 17 (mismatches 1)
-      '|\\btalon\\b' +			// 1
-      '|\\btrident\\b' +		// 2
-      '|\\bwand\\b' +			// 3
-      '|^Arachnid Slayer$' +
-      '|^Atonement$' +
-      '|^Avenger$' +
-      '|^Bloodblade$' +
-      '|^Bonecrusher$' +
-      '|^Celestas Devotion$' +
-      '|^Daedalus$' +
-      '|^Death Dealer$' +
-      '|^Deathbellow$' +
-      '|^Deliverance$' +
-      '|^Draganblade$' +
-      '|^Dragonbane$' +
-      '|^Excalibur$' +
-      '|^Exsanguinator$' +
-      '|^Fangblade$' +
-      '|^Heart of the Woods$' +
-      '|^Holy Avenger$' +
-      '|^Incarnation$' +
-      '|^Inoculator$' +
-      "|^Ironhart's Might$" +
-      '|^Judgement$' +
-      '|^Justice$' +
-      '|^Lava Surge$' +
-      '|^Lifebane$' +
-      '|^Lightbringer$' +
-      '|^Lion Fang$' +
-      '|^Moonclaw$' +
-      '|^Oathkeeper$' +
-      "|^Oberon's Might$" +
-      '|^Onslaught$' +
-      '|^Path of the Tower$' +
-      '|^Punisher$' +
-      '|^Righteousness$' +
-      '|^Rocklasher$' +
-      '|^Scytheblade$' +
-      '|^Soul Siphon$' +
-      '|^Soulforge$' +
-      '|^Stormcrusher$' +
-      '|^Syrens Call$' +
-      '|^Tempest Might$' +
-      '|^The Disemboweler$' +
-      '|^The Galvanizer$' +
-      '|^The Reckoning$' +
-      '|^Virtue of Justice$' +
-      ')', 'i'),
-    Shield: new RegExp('(' +
-      '\\baegis\\b' +			// 4
-      '|\\bbuckler\\b' +		// 1
-      '|\\bdeathshield\\b' +	// 1
-      '|\\bdefender\\b' +		// 5
-      '|\\bprotector\\b' +		// 1
-      '|\\bshield\\b' +			// 22
-      '|\\btome\\b' +			// 4
-      '|^Absolution$' +
-      '|^Crest of the Griffin$' +
-      '|^Dragon Scale$' +
-      '|^Feral Staff$' +
-      '|^Frost Tear Dagger$' +
-      '|^Harmony$' +
-      '|^Heart of the Pride$' +
-      '|^Hour Glass$' +
-      '|^Ice Dagger$' +
-      '|^Illvasan Crest$' +
-      '|^Impenetrable Ice$' +
-      '|^Purgatory$' +
-      '|^Serenes Arrow$' +
-      '|^Sword of Redemption$' +
-      "|^Terra's Guard$" +
-      '|^The Dreadnought$' +
-      '|^Zenarean Crest$' +
-      ')', 'i'),
-    Armor: new RegExp('(' +
-      '\\barmguard\\b' +		// 1
-      '|\\barmor\\b' +			// 22
-      '|\\bbattlegarb\\b' +		// 1
-      '|\\bbattlegear\\b' +		// 4
-      '|\\bBattleplate\\b' +		
-      '|\\bbelt\\b' +			// 1
-      '|\\bcarapace\\b' +		// 1
-      '|\\bchainmail\\b' +		// 2
-      '|\\bcloak\\b' +			// 7
-      '|\\bepaulets\\b' +		// 1
-      '|\\bgarb\\b' +			// 1
-      '|\\bKarapace\\b' +
-      '|\\bpauldrons\\b' +		// 1
-      '|\\bplate\\b' +			// 32
-      '|\\bplatemail\\b' +		// 2
-      '|\\braiments\\b' +		// 5
-      '|\\brobes?\\b' +			// 3+7
-      '|\\btunic\\b' +			// 1
-      '|\\bvestment\\b' +		// 1
-      "|^Ambition's Guard$" +
-      '|^Braving the Storm$' +
-      '|^Castle Rampart$' +
-      '|^Death Ward$' +
-      '|^Deathrune Hellplate$' +
-      '|^Faerie Wings$' +
-      '|^Innocence$' +
-      '|^Plated Earth$' +
-      ')', 'i'),
-    Helmet: new RegExp('(' +
-      '\\bcowl\\b' +			// 1
-      '|\\bcrown\\b' +			// 13
-      '|\\bdoomhelm\\b' +		// 1
-      '|\\bhelm\\b' +			// 38
-      '|\\bhelmet\\b' +			// 2
-      '|\\bhorns\\b' +			// 1
-      '|\\bmane\\b' +			// 1
-      '|\\bmask\\b' +			// 2
-      '|\\btiara\\b' +			// 1
-      '|\\bveil\\b' +			// 1
-      '|\\bKrown\\b' +
-      '|^Virtue of Fortitude$' +
-      ')', 'i'),
-    Amulet: new RegExp('(' +
-      '\\bamulet\\b' +			// 18
-      '|\\bband\\b' +			// 2
-      '|\\bbauble\\b' +			// 1
-      '|\\bcharm\\b' +			// 2
-      '|\\bcross\\b' +			// 1
-      '|\\bearrings\\b' +		// 1
-      '|\\beye\\b' +			// 3
-      '|\\bflask\\b' +			// 1
-      '|\\bheirloom\\b' +		// 1
-      '|\\binsignia\\b' +		// 3
-      '|\\bjewel\\b' +			// 3
-      '|\\blantern\\b' +		// 1
-      '|\\blocket\\b' +			// 2
-      '|\\bmark\\b' +			// 1
-      '|\\bmedallion\\b' +		// 1
-      '|\\bmemento\\b' +		// 1
-      '|\\bnecklace\\b' +		// 4
-      '|\\bpendant\\b' +		// 11
-      '|\\brelic\\b' +			// 1
-      '|\\bring\\b' +			// 8
-      '|\\bruby\\b' +			// 1
-      '|\\bseal\\b' +			// 4
-      '|\\bshard\\b' +			// 6
-      '|\\bsignet\\b' +			// 8
-      '|\\bsunstone\\b' +		// 1
-      '|\\btalisman\\b' +		// 1
-      '|\\btrinket\\b' +		// 2
-      '|^Air Orb$' +
-      '|^Blue Lotus Petal$' +
-      '|^Crystal of Lament$' +
-      '|^Dragon Ashes$' +
-      '|^Earth Orb$' +
-      '|^Force of Nature$' +
-      '|^Gold Bar$' +
-      '|^Heart of Elos$' +
-      '|^Ice Orb$' +
-      "|^Keira's Soul$" +
-      '|^Lava Orb$' +
-      '|^Magic Mushrooms$' +
-      "|^Paladin's Oath$" +
-      '|^Poseidons Horn$' +
-      '|^Shadowmoon$' +
-      '|^Silver Bar$' +
-      '|^Soul Catcher$' +
-      '|^Temptations Lure$' +
-      "|^Terra's Heart$" +
-      '|^Thawing Star$' +
-      '|^Tooth of Gehenna$' +
-      '|^Transcendence$' +
-      '|^Tribal Crest$' +
-      '|^Vincents Soul$' +
-      ')', 'i'),
-    Gloves: new RegExp('(' +
-      '\\bbracer\\b' +			// 1
-      '|\\bfists?\\b' +			// 1+1
-      '|\\bgauntlets?\\b' +		// 10+4
-      '|\\bgloves?\\b' +		// 2+2
-      '|\\bhandguards\\b' +		// 1
-      '|\\bhands?\\b' +			// 5+3
-      '|^Natures Reach$' +
-      '|^Poisons Touch$' +
-      '|^Power Glaive$' +
-      "|^Slayer's Embrace$" +
-      '|^Snakes Grasp$' +
-      '|^Soul Crusher$' +
-      '|^Soul Eater$' +
-      '|^Stonegrasp$' +
-      '|^Stormbinder$' +
-      '|^Stormbringer$' +
-      '|^Tempered Steel$' +
-      '|^Virtue of Temperance$' +
-      ')', 'i')
-};
-
 Town.setup = function() {
 	Resources.use('Gold');
 };
 
 Town.init = function() {
-	var now = Date.now(), i;
+	var now = Date.now(), i, o, p;
 
 	this._watch(Player, 'data.worth');			// cash available
 	this._watch(Player, 'data.army');			// current army size
@@ -379,6 +130,14 @@ Town.init = function() {
 		}
 		this.set('runtime.magic');
 	}
+
+	// create item classification regexp from rrestr generated strings
+	o = this.rrestr;
+	p = {};
+	for (i in o) {
+		p[i.ucfirst()] = new RegExp('(' + o[i] + ')', 'i');
+	}
+	this.blacksmith = p;
 };
 
   // .layout td >div:contains("Owned Items:")

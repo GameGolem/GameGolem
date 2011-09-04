@@ -50,7 +50,9 @@ worker_ca_page.js
 worker_ca_player.js
 worker_ca_potions.js
 worker_ca_quest.js
+worker_ca_quest_data.js
 worker_ca_town.js
+worker_ca_town_data.js
 worker_ca_upgrade.js
 worker_ca_fp.js
 worker_ca_guild.js
