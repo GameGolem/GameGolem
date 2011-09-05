@@ -464,6 +464,19 @@ Monster.types = {
 //		festival_timer: 259200, // 72 hours
 //		festival: 'ambrosia'
 	},
+	malekus: {
+		name:'Malekus',
+		list:'boss_malekus_list.jpg',
+		image:'boss_malekus_large.jpg',
+		dead:'boss_malekus_dead.jpg',
+		achievement:11000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20, 50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
 
 
 	// Epic Team
@@ -885,10 +898,23 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="smite"]',
-		attack:[5,10,20],
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40]
+		defend:[10,20,40,100]
+	},
+	thanatos: {
+		name:'Thanatos of Fire',
+		list:'monster_thanatos2_list_ca.jpg',
+		image:'monster_thanatos2_large_ca.jpg',
+		dead:'monster_thanatos2_dead_ca.jpg',
+		achievement:6000000,
+		timer:604800, // 168 hours
+		mpool:100,
+		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20, 50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
 	}
 };
 
