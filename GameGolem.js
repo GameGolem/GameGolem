@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1154
+ * GameGolem v31.6.1155
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1154
+ * GameGolem v31.6.1155
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1154;
+var revision = 1155;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8521,7 +8521,7 @@ Generals.init = function(old_revision) {
 };
 
 Generals.page = function(page, change) {
-	var now = Date.now(), self = this, i, j, seen = {}, el, el2, tmp, name, item, icon;
+	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
@@ -8546,15 +8546,24 @@ Generals.page = function(page, change) {
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
-				this.set(['data',name,'progress'], j = parseInt($('.generals_indv_stats', el).next().children().eq(0).children().eq(0).children().eq(1).attr('style').regex(/width:(\d+\.?\d*)%/i), 10));
-				// If we just maxed level, remove the priority
-				if ((j || 0) >= 100) {
-					this.set(['data',name,'priority']);
+				if ((k = $('.generals_indv_stats ~ div div[style*="background-color"]', el)).length) {
+					if (isNumber(j = (k.attr('style') || '').regex(/width:\s*([-+]?\d*\.?\d+)%/im))) {
+						// over cap progression fix, for when stuck at X/0%
+						// negative width and level at least 4+
+						if (level >= 4 && j < 0) {
+							j = 100;
+						}
+						this.set(['data',name,'progress'], j);
+						// If we just maxed level, remove the priority
+						if (j >= 100) {
+							this.set(['data',name,'priority']);
+						}
+					}
 				}
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
-					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
+					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.get(['data',name,'skills'], '').regex(/(\d*) Hour Cooldown/im))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
@@ -10351,7 +10360,7 @@ Land.work = function(state) {
 	} else {
 		this.set('runtime.lastlevel', Player.get('level'));
 		if (this.runtime.buy < 0) {
-			if (!(o = $('form#app'+APPID+'_propsell_'+this.data[this.runtime.best].id)).length) {
+			if (!(o = $('form#app'+APPID_+'propsell_'+this.data[this.runtime.best].id)).length) {
 				log(LOG_WARN, 'Can\'t find Land sell form for',
 				  this.runtime.best,
 				  'id[' + this.data[this.runtime.best].id + ']');
@@ -10366,7 +10375,7 @@ Land.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else if (this.runtime.buy > 0) {
-			if (!(o = $('form#app'+APPID+'_prop_'+this.data[this.runtime.best].id)).length) {
+			if (!(o = $('form#app'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
 				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
 				this._remind(60.1, 'buy_land');

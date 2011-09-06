@@ -63,7 +63,7 @@ Generals.init = function(old_revision) {
 };
 
 Generals.page = function(page, change) {
-	var now = Date.now(), self = this, i, j, seen = {}, el, el2, tmp, name, item, icon;
+	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
@@ -88,15 +88,24 @@ Generals.page = function(page, change) {
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
-				this.set(['data',name,'progress'], j = parseInt($('.generals_indv_stats', el).next().children().eq(0).children().eq(0).children().eq(1).attr('style').regex(/width:(\d+\.?\d*)%/i), 10));
-				// If we just maxed level, remove the priority
-				if ((j || 0) >= 100) {
-					this.set(['data',name,'priority']);
+				if ((k = $('.generals_indv_stats ~ div div[style*="background-color"]', el)).length) {
+					if (isNumber(j = (k.attr('style') || '').regex(/width:\s*([-+]?\d*\.?\d+)%/im))) {
+						// over cap progression fix, for when stuck at X/0%
+						// negative width and level at least 4+
+						if (level >= 4 && j < 0) {
+							j = 100;
+						}
+						this.set(['data',name,'progress'], j);
+						// If we just maxed level, remove the priority
+						if (j >= 100) {
+							this.set(['data',name,'priority']);
+						}
+					}
 				}
 				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
-					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.data[name].skills.regex(/(\d*) Hour Cooldown/im))));
+					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.get(['data',name,'skills'], '').regex(/(\d*) Hour Cooldown/im))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
