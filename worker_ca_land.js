@@ -2,10 +2,11 @@
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	APP, APPID_, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_INFO,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	makeImage, assert
 */
 /********** Worker.Land **********
 * Auto-buys property
@@ -132,15 +133,15 @@ Land.page = function(page, change) {
 						if ((tmp = $('form[id*="prop_"]', el)).length) {
 							Land.set(['data',name,'id'], tmp.attr('id').regex(/prop_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
-								Land.push(['data',name,'buy'], parseFloat($(el).val()), 'number')
+								Land.push(['data',name,'buy'], parseFloat($(el).val()), 'number');
 							});
 						}
 						Land.set(['data',name,'sell']);
 						if ((tmp = $('form[id*="propsell_"]', el)).length) {
 							Land.set(['data',name,'id'], tmp.attr('id').regex(/propsell_(\d+)/i), 'number');
 							$('select[name="amount"] option', tmp).each(function(b, el) {
-								Land.push(['data',name,'sell'], parseFloat($(el).val()), 'number')
-							})
+								Land.push(['data',name,'sell'], parseFloat($(el).val()), 'number');
+							});
 						}
 						Land._transaction(true); // COMMIT TRANSACTION
 					} catch(e) {
@@ -291,7 +292,7 @@ Land.work = function(state) {
 			}
 		} else if (this.runtime.buy > 0) {
 			if (!(o = $('form#app'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
-				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + this.data[this.runtime.best].id + ']');
+				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + APPID_+this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
 				this._remind(60.1, 'buy_land');
 				return QUEUE_RELEASE;

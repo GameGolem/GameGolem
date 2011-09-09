@@ -3,9 +3,10 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_INFO,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	bestObjValue,
+	bestObjValue, nmax, assert
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -63,7 +64,7 @@ Generals.init = function(old_revision) {
 };
 
 Generals.page = function(page, change) {
-	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon;
+	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon, info, stats, costs;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
@@ -83,16 +84,17 @@ Generals.page = function(page, change) {
 				name = $('.general_name_div3_padding', el).text().trim();
 				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
 				seen[name] = true;
-				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val()), 'number') !== false, 'Bad general id: '+name);
-				assert(this.set(['data',name,'type'], parseInt($('input[name=itype]', el).val()), 'number') !== false, 'Bad general type: '+name);
+				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val(), 10), 'number') !== false, 'Bad general id: '+name);
+				assert(this.set(['data',name,'type'], parseInt($('input[name=itype]', el).val(), 10), 'number') !== false, 'Bad general type: '+name);
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
+				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
 				if ((k = $('.generals_indv_stats ~ div div[style*="background-color"]', el)).length) {
 					if (isNumber(j = (k.attr('style') || '').regex(/width:\s*([-+]?\d*\.?\d+)%/im))) {
 						// over cap progression fix, for when stuck at X/0%
 						// negative width and level at least 4+
-						if (level >= 4 && j < 0) {
+						if (this.get(['data',name,'level'], 4, 'number') && j < 0) {
 							j = 100;
 						}
 						this.set(['data',name,'progress'], j);
@@ -102,13 +104,12 @@ Generals.page = function(page, change) {
 						}
 					}
 				}
-				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/\<[^>]*\>|\s+/gm,' ').trim());
+				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
 					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.get(['data',name,'skills'], '').regex(/(\d*) Hour Cooldown/im))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
-				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
 				this.set(['data',name,'own'], 1);
 				this._transaction(true); // COMMIT TRANSACTION
 			} catch(e) {
@@ -126,7 +127,7 @@ Generals.page = function(page, change) {
 				item = $(el).attr('title');
 				icon = ($(el).attr('src') || '').filepart();
 				if (isString(item)) {
-					item = item.replace('[not owned]', ' ').replace(/\<^>]*\>|\s+/gim, ' ').trim();
+					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim();
 					if ((j = item.match(/^\s*([^:]*\w)\s*:\s*(.*\w)\s*$/i))) {
 						item = Town.qualify(j[1], icon);
 						Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
@@ -246,8 +247,10 @@ Generals.resource = function() {
 };
 
 Generals.update = function(event, events) {
-	var data = this.data, i, j, k, o, p, pa, priority_list = [], list = [],
+	var data = this.data, i, j, k, o, p, s, x, y,
+		pa, priority_list = [], list = [],
 		pattack, pdefense, maxstamina, maxenergy, stamina, energy,
+		health, maxhealth, num, cap, item, str,
 		army, armymax, gen_att, gen_def, war_att, war_def,
 		invade = Town.get('runtime.invade'),
 		duel = Town.get('runtime.duel'),
@@ -273,7 +276,9 @@ Generals.update = function(event, events) {
 			}
 			k += p.own || 0;
 			if (p.skills) {
-				var x, y, num = 0, cap = 0, item, str = null;
+				num = 0;
+				cap = 0;
+				str = null;
 				if ((x = p.skills.regex(/\bevery (\d+) ([\w\s']*\w)/im))) {
 					num = x[0];
 					str = x[1];
@@ -472,7 +477,7 @@ Generals.update = function(event, events) {
 
 			// invade calcs
 
-			j = Math.floor((invade.attack || 0) + gen_att +
+			j = Math.floor((invade.attack || 0) + gen_att
 			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
 			  + (((p.stats && p.stats.patt) || 0)
 			  + pattack) * army)
@@ -481,7 +486,7 @@ Generals.update = function(event, events) {
 			  + pdefense) * army) * 0.7);
 			this.set(['data',i,'stats','invade','att'], j ? j : undefined);
 
-			j = Math.floor((invade.defend || 0) + gen_def +
+			j = Math.floor((invade.defend || 0) + gen_def
 			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
 			  + ((((p.stats && p.stats.patt) || 0)
 			  + ((p.stats && p.stats.patt_when_att) || 0))
@@ -494,7 +499,7 @@ Generals.update = function(event, events) {
 
 			// duel calcs
 
-			j = Math.floor((duel.attack || 0) +
+			j = Math.floor((duel.attack || 0)
 			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
 			  + ((p.stats && p.stats.patt) || 0)
 			  + pattack)
@@ -503,7 +508,7 @@ Generals.update = function(event, events) {
 			  + pdefense) * 0.7);
 			this.set(['data',i,'stats','duel','att'], j ? j : undefined);
 
-			j = Math.floor((duel.defend || 0) +
+			j = Math.floor((duel.defend || 0)
 			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
 			  + ((p.stats && p.stats.patt) || 0)
 			  + ((p.stats && p.stats.patt_when_att) || 0)
@@ -535,7 +540,7 @@ Generals.update = function(event, events) {
 			// monster calcs
 
 			// not quite right, gear defense not counted on monster attack
-			j = Math.floor(((duel.attack || 0) +
+			j = Math.floor(((duel.attack || 0)
 			  + (p.att || 0) + ((p.stats && p.stats.att) || 0)
 			  + ((p.stats && p.stats.patt) || 0)
 			  + pattack
@@ -544,7 +549,7 @@ Generals.update = function(event, events) {
 			this.set(['data',i,'stats','monster','att'], j ? j : undefined);
 
 			// not quite right, gear attack not counted on monster defense
-			j = Math.floor((duel.defend || 0) +
+			j = Math.floor((duel.defend || 0)
 			  + ((p.stats && p.stats.def) || p.att || 0)
 			  + ((p.stats && p.stats.pdef) || 0)
 			  + pdefense
@@ -780,7 +785,7 @@ Generals.dashboard = function(sort, rev) {
 	this.set('runtime.rev', rev);
 	if (typeof sort !== 'undefined') {
 		this.order.sort(function(a,b) {
-			var aa, bb, type, x;
+			var aa, bb, type, x, i;
 			if (sort === 1) {
 				aa = a;
 				bb = b;
@@ -841,7 +846,7 @@ Generals.dashboard = function(sort, rev) {
 		td(output, (j = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === j ? 'style="font-weight:bold;"' : ''));
 		td(output, (j = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === j ? 'style="font-weight:bold;"' : ''));
- 		tr(list, output.join(''));
+		tr(list, output.join(''));
 	}
 
 	list.push('</tbody></table>');
@@ -891,4 +896,3 @@ Generals.dashboard = function(sort, rev) {
 	}
 };
 
-// vi: ts=4
