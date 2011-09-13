@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1156
+ * GameGolem v31.6.1157
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1156
+ * GameGolem v31.6.1157
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1156;
+var revision = 1157;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -10365,8 +10365,8 @@ Land.work = function(state) {
 	} else {
 		this.set('runtime.lastlevel', Player.get('level'));
 		if (this.runtime.buy < 0) {
-			if (!(o = $('form#app'+APPID_+'propsell_'+this.data[this.runtime.best].id)).length) {
-				log(LOG_WARN, 'Can\'t find Land sell form for',
+			if (!(o = $('form#'+APPID_+'propsell_'+this.data[this.runtime.best].id)).length) {
+				log(LOG_WARN, "Can't find Land sell form for",
 				  this.runtime.best,
 				  'id[' + this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
@@ -10380,8 +10380,8 @@ Land.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else if (this.runtime.buy > 0) {
-			if (!(o = $('form#app'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
-				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + APPID_+this.data[this.runtime.best].id + ']');
+			if (!(o = $('form#'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
+				log(LOG_WARN, "Can't find Land buy form for " + this.runtime.best + ' id[' + APPID_+this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
 				this._remind(60.1, 'buy_land');
 				return QUEUE_RELEASE;
@@ -10835,10 +10835,11 @@ LevelUp.resource = function() {
 /*global
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
+	APP, APPID, APPID_, log, debug, userID, imagepath,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_NO_ACTION,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	calc_rolling_weighted_average, bestObjValue
+	calc_rolling_weighted_average, bestObjValue, assert
 */
 /********** Worker.Monster **********
  * Automates Monster
@@ -10852,7 +10853,7 @@ var Monster = new Worker('Monster');
 Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
-	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster monster_dead monster_remove_list'
+	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster festival_monster2_list monster_dead monster_remove_list'
 };
 
 Monster.option = {
@@ -10886,7 +10887,7 @@ Monster.option = {
 	lost_cause_hours:5,
 	rescue:false,
 	risk:false,
-    points:false,
+	points:false,
 	remove:false
 };
 
@@ -11201,7 +11202,9 @@ Monster.types = {
 		siege:false,
 		attack:[1,5],
 		festival_timer: 345600, // 96 hours
-		festival: 'stonegiant'
+		festival: 'stonegiant',
+		festival_damage: 30000,
+		festival_worth: 100
 	},
 	gildamesh: {
 		name:'Gildamesh, the Orc King',
@@ -11215,7 +11218,9 @@ Monster.types = {
 		siege:false,
 		attack:[1,5],
 		festival_timer: 345600, // 96 hours
-		festival: 'orcking'
+		festival: 'orcking',
+		festival_damage: 30000,
+		festival_worth: 50
 	},
 	keira: {
 		name:'Keira the Dread Knight',
@@ -11252,8 +11257,10 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		siege:false,
 		attack:[1,5],
-		festival_timer: 320400, // 89 hours
-		festival: 'mephistopheles'
+		festival_timer: 259200, // 72 hours (was 89 hours?)
+		festival: 'mephistopheles',
+		festival_damage: 50000,
+		festival_worth: [150,200]
 	},
 	skaar: {
 		name:'Skaar Deathrune',
@@ -11269,7 +11276,11 @@ Monster.types = {
 		defend:[10,10,20,40,100],
 		defense_img:'shield_img',
 		festival_timer: 432000, // 120 hours
-		festival: 'skaar_boss'
+		festival: 'skaar_boss',
+		festival_timer2: 691200, // 192 hours
+		festival_damage: 1000000,
+		festival_worth: 500,
+		festival_worth2: 150
 	},
 	sylvanus: {
 		name:'Sylvana the Sorceress Queen',
@@ -11282,7 +11293,9 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[1,5],
 		festival_timer: 259200, // 72 hours
-		festival: 'sylvanus'
+		festival: 'sylvanus',
+		festival_damage: 30000,
+		festival_worth: 150
 	},
 	ambrosia: {
 		name:'Ambrosia',
@@ -11293,9 +11306,11 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
-		attack:[5,10,20,50] // Needs details
-//		festival_timer: 259200, // 72 hours
-//		festival: 'ambrosia'
+		attack:[5,10,20,50], // Needs details
+		festival: 'ambrosia',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 500
 	},
 	malekus: {
 		name:'Malekus',
@@ -11308,7 +11323,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20, 50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'malekus', // ?
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 550
 	},
 
 
@@ -11338,7 +11357,9 @@ Monster.types = {
 		siege:false,
 		attack:[5,10],
 		festival_timer: 345600, // 96 hours
-		festival: 'dragon_blue'
+		festival: 'dragon_blue',
+		festival_damage: 30000,
+		festival_worth: 200
 	},
 	dragon_gold: {
 		name:'Gold Dragon',
@@ -11352,7 +11373,9 @@ Monster.types = {
 		siege:false,
 		attack:[5,10],
 		festival_timer: 345600, // 96 hours
-		festival: 'dragon_yellow'
+		festival: 'dragon_yellow',
+		festival_damage: 30000,
+		festival_worth: 250
 	},
 	dragon_red: {
 		name:'Ancient Red Dragon',
@@ -11367,7 +11390,9 @@ Monster.types = {
 		siege:false,
 		attack:[5,10],
 		festival_timer: 345600, // 96 hours
-		festival: 'dragon_red'
+		festival: 'dragon_red',
+		festival_damage: 50000,
+		festival_worth: 250
 	},
 	serpent_amethyst: { 
 		name:'Amethyst Sea Serpent',
@@ -11384,7 +11409,9 @@ Monster.types = {
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
 		festival_timer: 345600, // 96 hours
-		festival: 'seamonster_purple'
+		festival: 'seamonster_purple',
+		festival_damage: 30000,
+		festival_worth: 300
 	},
 	serpent_ancient: { 
 		name:'Ancient Sea Serpent',
@@ -11401,7 +11428,9 @@ Monster.types = {
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
 		festival_timer: 345600, // 96 hours
-		festival: 'seamonster_red'
+		festival: 'seamonster_red',
+		festival_damage: 30000,
+		festival_worth: [250,300]
 	},
 	serpent_emerald: { 
 		name:'Emerald Sea Serpent',
@@ -11418,7 +11447,9 @@ Monster.types = {
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
 		festival_timer: 345600, // 96 hours
-		festival: 'seamonster_green'
+		festival: 'seamonster_green',
+		festival_damage: 30000,
+		festival_worth: 150
 	},
 	serpent_sapphire: {
 		name:'Sapphire Sea Serpent',
@@ -11435,7 +11466,9 @@ Monster.types = {
 		defend_button:'input[name="Defend against Monster"]',
 		defend:[10],
 		festival_timer: 345600, // 96 hours
-		festival: 'seamonster_blue'
+		festival: 'seamonster_blue',
+		festival_damage: 30000,
+		festival_worth: 200
 	},
 	// Epic World
 	cronus: {
@@ -11449,7 +11482,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[10,20,50,100,200],
 		festival_timer: 691200, // 192 hours
-		festival: 'hydra'
+		festival: 'hydra',
+		festival_damage: 500000,
+		festival_damage2: 50000,
+		festival_worth: 300,
+		festival_worth2: 200
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
@@ -11478,7 +11515,10 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="fortify"]',
 		defend:[10,10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'earth_element'
+		festival: 'earth_element',
+		festival_damage: 1000000,
+		festival_worth: 350,
+		festival_worth2: 150
 	},
 	ragnarok: {
 		name:'Ragnarok, The Ice Elemental',
@@ -11494,7 +11534,10 @@ Monster.types = {
 		defend:[10,10,20,40,100],
 		defense_img:'shield_img',
 		festival_timer: 691200, // 192 hours
-		festival: 'water_element'
+		festival: 'water_element',
+		festival_damage: 1000000,
+		festival_worth: 400,
+		festival_worth2: 300
 	},
 	gehenna: {
 		name:'Gehenna',
@@ -11509,7 +11552,10 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'fire_element'
+		festival: 'fire_element',
+		festival_damage: 1000000,
+		festival_worth: 500,
+		festival_worth2: 250
 	},
 	valhalla: {
 		name:'Valhalla, The Air Elemental',
@@ -11524,7 +11570,10 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
-		festival: 'air_element'
+		festival: 'air_element',
+		festival_damage: 1000000,
+		festival_worth: 575,
+		festival_worth2: 250
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
@@ -11539,7 +11588,10 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'volcanic_new'
+		festival: 'volcanic_new',
+		festival_damage: 1000000,
+		festival_worth: 500,
+		festival_worth2: 200
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
@@ -11552,7 +11604,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'alpha_volcanic_new',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 300
 	},
 	azriel: {
 		name:'Azriel, the Angel of Wrath',
@@ -11567,7 +11623,10 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
-		festival: 'boss_azriel'
+		festival: 'boss_azriel',
+		festival_damage: 1000000,
+		festival_worth: 550,
+		festival_worth2: 200
 	},
 	red_plains: {
 		name:'War of the Red Plains',
@@ -11596,7 +11655,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'boss_corvintheus',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 575
 	},
 	agamemnon: {
 		name:'Agamemnon the Overseer',
@@ -11611,7 +11674,9 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
 		festival_timer: 691200, // 192 hours
-		festival : 'agamemnon'
+		festival: 'agamemnon',
+		festival_damage: null,
+		festival_worth: null
 	},
 	jahanna: {
 		name:'Jahanna, Priestess of Aurora',
@@ -11624,7 +11689,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100,200]
+		defend:[20,40,100,200],
+		festival: 'jahanna',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 400
 	},
 	aurora: {
 		name:'Aurora',
@@ -11637,7 +11706,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100,200]
+		defend:[20,40,100,200],
+		festival: 'aurora',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 550
 	},
 	rebellion: {
 		name:'Aurelius, Lion\'s Rebellion',
@@ -11669,7 +11742,10 @@ Monster.types = {
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
 		festival: 'alpha_mephistopheles',
-		festival_mpool: 1
+		festival_mpool: 1,
+		festival_damage: 1000000,
+		festival_worth: 550,
+		festival_worth2: 500
 	},
 	giant_kromash: {
 		name:'Kromash',
@@ -11682,7 +11758,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'storm_giant',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 100
 	},
 	giant_glacius: {
 		name:'Glacius',
@@ -11695,7 +11775,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'frost_giant',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 350
 	},
 	giant_shardros: {
 		name:'Shardros',
@@ -11708,7 +11792,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'mountain_giant',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 50
 	},
 	giant_magmos: {
 		name:'Magmos',
@@ -11721,7 +11809,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'lava_giant',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 300
 	},
 	typhonus: {
 		name:'Typhonus, the Chimera',
@@ -11734,7 +11826,11 @@ Monster.types = {
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100]
+		defend:[10,20,40,100],
+		festival: 'chimera',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 500
 	},
 	thanatos: {
 		name:'Thanatos of Fire',
@@ -11750,6 +11846,64 @@ Monster.types = {
 		defend:[10,20,40,100]
 	}
 };
+
+// festival tower 1:
+// 1.1: bronze
+// 1.1.1	Colossus of Terra					96		30,000		100
+// 1.1.2	Gildamesh, the Orc King				96		30,000		50
+// 1.1.3	The Emerald Sea Serpent				96		30,000		150
+// 1.1.4	The Frost Dragon					96		30,000		200 
+// 1.2: silver
+// 1.2.1	Sylvanas, The Sorceress Queen		72		30,000		150
+// 1.2.2	The Amethyst Sea Serpent			96		30,000		300
+// 1.2.3	The Sapphire Sea Serpent			96		30,000		200
+// 1.2.4	The Gold Dragon						96		30,000		250
+// 1.3: gold
+// 1.3.1	*Skaar Deathrune					120		1,000,000	500
+// 1.3.2	Mephistopheles						72		50,000		150-200
+// 1.3.3	The Ancient Sea Serpent				96		30,000		250-300
+// 1.3.4	The Ancient Red Dragon				96		50,000		250 
+// 1.4: platinum
+// 1.4.1	*Bahamut, The Volcanic Dragon		192		1,000,000	500
+// 1.4.2	*Ragnarok, the Ice Elemental		192		1,000,000	400
+// 1.4.3	*Cronus, The World Hydra			192		500,000		300
+// 1.4.4	*Genesis, The Earth Elemental		192		1,000,000	350 
+// 1.5: vanguard
+// 1.5.1	*Valhalla, The Air Elemental		192		1,000,000	575
+// 1.5.2	*Gehenna, The Fire Elemental		192		1,000,000	500
+// 1.5.3	*Azriel, the Angel of Wrath			192		1,000,000	550
+// 1.5.4	*Alpha Mephistopheles				192		1,000,000	550 
+// 1.6: boss
+// 1.6.1	Agamemnon, the Overseer				192		None		None 
+
+// festival tower 2:
+// 2.1: bronze
+// 2.1.1	Kromash, the Storm Giant			192		1,000,000	100
+// 2.1.2	Shardros, the Mountain Giant		192		1,000,000	50
+// 2.1.3	*Genesis, The Earth Elemental		192		1,000,000	150
+// 2.1.4	*Cronus, The World Hydra			192		50,000		200 
+// 2.2: silver
+// 2.2.1	*Skaar Deathrune					192		1,000,000	150
+// 2.2.2	*Ragnarok, the Ice Elemental		192		1,000,000	300
+// 2.2.3	*Bahamut, the Volcanic Dragon		192		1,000,000	200
+// 2.2.4	*Gehenna, the Fire Elemental		192		1,000,000	250 
+// 2.3: gold
+// 2.3.1	*Alpha Mephistopheles				192		1,000,000	500
+// 2.3.2	*Azriel, the Angel of Wrath			192		1,000,000	200
+// 2.3.3	Alpha Bahamut, the Volcanic King	192		1,000,000	300
+// 2.3.4	*Valhalla, the Air Elemental		192		1,000,000	250 
+// 2.4: platinum
+// 2.4.1	Typhonus, the Chimera				192		1,000,000	500
+// 2.4.2	Jahanna, Priestess of Aurora		192		1,000,000	400
+// 2.4.3	Magmos, the Lava Giant				192		1,000,000	300
+// 2.4.4	Glacius, the Frost Giant			192		1,000,000	350 
+// 2.5: vanguard
+// 2.5.1	Corvintheus							192		1,000,000	575
+// 2.5.2	Ambrosia							192		1,000,000	500
+// 2.5.3	Malekus								192		1,000,000	550
+// 2.5.4	Aurora								192		1,000,000	550 
+// 2.6: boss
+// 2.6.1	Alexandra, the Unbreakable			192		None		None 
 
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
@@ -12029,13 +12183,13 @@ Monster.page = function(page, change) {
 		}
 		this.set(['runtime','check'], false);
 // Still need to do battle_raid
-	} else if (page === 'festival_monster_list') { // Check monster / raid list
+	} else if (page === 'festival_monster_list' || page === 'festival_monster2_list') { // Check monster / raid list
 		for (mid in data) {
 			if (data[mid].page === 'festival' && (data[mid].state !== 'assist' || data[mid].finish < now)) {
 				data[mid].state = null;
 			}
 		}
-		list = $('div[style*="festival_monster_list_middle.jpg"]')
+		list = $('div[style*="festival_monster_list_middle.jpg"]');
 		for (i=0; i<list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
@@ -12047,6 +12201,9 @@ Monster.page = function(page, change) {
 				assert(name = $children.eq(2).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
 //				log(LOG_WARN, 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
 				mid = uid + '_f';
+				if (page === 'festival_monster2_list') {
+					this.set(['data',mid,'tower'], 2);
+				}
 				this.set(['data',mid,'type'], type);
 				this.set(['data',mid,'name'], name);
 				this.set(['data',mid,'page'], 'festival');
@@ -12077,7 +12234,7 @@ Monster.page = function(page, change) {
 				data[mid].state = null;
 			}
 		}
-		list = $('div[style*="monsterlist_container.gif"]')
+		list = $('div[style*="monsterlist_container.gif"]');
 		for (i=0; i<list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
@@ -12744,6 +12901,9 @@ Monster.check = function(mid, message, prefix, suffix) {
 		mpool = type.festival_mpool || type.mpool;
 		if (type.festival) {
 			mmid = '&mid=' + type.festival;
+			if (monster.tower) {
+				mmid += '&tower=' + monster.tower;
+			}
 			if (prefix.indexOf('remove_list') >= 0) {
 				mmid += '&remove_monsterKey=' + type.festival;
 			}
@@ -12764,12 +12924,12 @@ Monster.check = function(mid, message, prefix, suffix) {
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, type, monster, args, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
+	var i, j, o, type, monster, festival, args, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
 		engage:0,
 		assist:1,
 		reward:2,
 		complete:3
-	}, blank, image_url, color, mid, uid, title, v, vv, tt, cc;
+	}, blank, image_url, color, mid, uid, mpool, title, v, vv, tt, cc;
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (mid in this.data) {
@@ -12845,7 +13005,18 @@ Monster.dashboard = function(sort, rev) {
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		args = '?casuser=' + uid + (type.mpool ? '&mpool=' + (monster.page === 'festival' && type.festival_mpool? type.festival_mpool  : type.mpool) : '') + (monster.page === 'festival' ? ('&mid=' + type.festival) : '');
+		args = '?casuser=' + uid;
+		mpool = type.mpool ? ('&mpool=' + type.mpool) : '';
+		if (festival) {
+			if (type.festival_mpool) {
+				mpool = '&mpool=' + type.festival_mpool;
+			}
+			mpool += '&mid=' + type.festival;
+			if (monster.tower) {
+				mpool += '&tower=' + monster.tower;
+			}
+		}
+		args += mpool;
 		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
@@ -13096,7 +13267,7 @@ News.page = function(page, change) {
 /*global
 	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, APPID_, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
@@ -13148,7 +13319,8 @@ Page.defaults.castle_age = {
 			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif'},
 			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]'},
 			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif'},
-			festival_monster_list:		{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},
+			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]'},
+			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]'},
 			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},
 			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
 			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
@@ -13175,7 +13347,7 @@ Page.defaults.castle_age = {
 			army_newsfeed:			{url:'army_news_feed.php', selector:'#'+APPID_+'army_feed_header'},
 			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
 //			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
-		}
+		};
 	}
 };
 

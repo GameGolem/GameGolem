@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	APP, APPID, APPID_, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	makeImage
@@ -54,7 +54,8 @@ Page.defaults.castle_age = {
 			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif'},
 			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]'},
 			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif'},
-			festival_monster_list:		{url:'festival_tower.php?tab=monster',  selector:'div[style*="festival_monster_list_middle.jpg"]'},
+			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]'},
+			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]'},
 			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},
 			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
 			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
@@ -81,7 +82,7 @@ Page.defaults.castle_age = {
 			army_newsfeed:			{url:'army_news_feed.php', selector:'#'+APPID_+'army_feed_header'},
 			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
 //			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
-		}
+		};
 	}
 };
 

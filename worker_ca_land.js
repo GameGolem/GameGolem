@@ -276,8 +276,8 @@ Land.work = function(state) {
 	} else {
 		this.set('runtime.lastlevel', Player.get('level'));
 		if (this.runtime.buy < 0) {
-			if (!(o = $('form#app'+APPID_+'propsell_'+this.data[this.runtime.best].id)).length) {
-				log(LOG_WARN, 'Can\'t find Land sell form for',
+			if (!(o = $('form#'+APPID_+'propsell_'+this.data[this.runtime.best].id)).length) {
+				log(LOG_WARN, "Can't find Land sell form for",
 				  this.runtime.best,
 				  'id[' + this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
@@ -291,8 +291,8 @@ Land.work = function(state) {
 				return QUEUE_CONTINUE;
 			}
 		} else if (this.runtime.buy > 0) {
-			if (!(o = $('form#app'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
-				log(LOG_WARN, 'Can\'t find Land buy form for ' + this.runtime.best + ' id[' + APPID_+this.data[this.runtime.best].id + ']');
+			if (!(o = $('form#'+APPID_+'prop_'+this.data[this.runtime.best].id)).length) {
+				log(LOG_WARN, "Can't find Land buy form for " + this.runtime.best + ' id[' + APPID_+this.data[this.runtime.best].id + ']');
 				this.set('runtime.snooze', Date.now() + 60000);
 				this._remind(60.1, 'buy_land');
 				return QUEUE_RELEASE;
