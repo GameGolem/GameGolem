@@ -580,16 +580,17 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
 			this.set(['data',i,'stats','cash'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bDecreases? Soldier Cost by (\d+)%/gi));
+			j = nmax(0, skillcombo.regex(/\bSoldier Cost by (\d*\.?\d+)%/gi));
 			this.set(['data',i,'stats','cost'], j ? j : undefined);
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
 			this.set(['data',i,'stats','demi'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bIncrease Income by (\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bIncome by (\d*\.?\d+)\b/gi));
 			this.set(['data',i,'stats','income'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bInfluence (\d+)% Faster\b/gi));
+			j = nmax(0, skillcombo.regex(/\bInfluence (\d*\.?\d+)% Faster\b/gi),
+			  skillcombo.regex(/\bQuest (\d*\.?\d+)% Faster\b/gi));
 			this.set(['data',i,'stats','influence'], j ? j : undefined);
 
 			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d+)% Drops|\bitems from quests by (\d+)%/gi));

@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1157
+ * GameGolem v31.6.1158
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1157
+ * GameGolem v31.6.1158
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1157;
+var revision = 1158;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -9038,16 +9038,17 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
 			this.set(['data',i,'stats','cash'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bDecreases? Soldier Cost by (\d+)%/gi));
+			j = nmax(0, skillcombo.regex(/\bSoldier Cost by (\d*\.?\d+)%/gi));
 			this.set(['data',i,'stats','cost'], j ? j : undefined);
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
 			this.set(['data',i,'stats','demi'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bIncrease Income by (\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bIncome by (\d*\.?\d+)\b/gi));
 			this.set(['data',i,'stats','income'], j ? j : undefined);
 
-			j = nmax(0, skillcombo.regex(/\bInfluence (\d+)% Faster\b/gi));
+			j = nmax(0, skillcombo.regex(/\bInfluence (\d*\.?\d+)% Faster\b/gi),
+			  skillcombo.regex(/\bQuest (\d*\.?\d+)% Faster\b/gi));
 			this.set(['data',i,'stats','influence'], j ? j : undefined);
 
 			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d+)% Drops|\bitems from quests by (\d+)%/gi));
@@ -13745,7 +13746,7 @@ Quest.settings = {
 };
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_quest13 quests_quest14 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_quest13 quests_quest14 quests_quest15 quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
