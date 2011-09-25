@@ -423,12 +423,14 @@ Generals.update = function(event, events) {
 				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * Town.get(['data',o[0],'own'], 0, 'number'));
 			}
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b|\bPlayer Attack by ([-+]\d+)\b|\bConvert ([-+]?\d*\.?\d+) Attack\b/gi))
+			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Attack by \+?(\d+)\b|([-+]\d*\.?\d+) Player Attack\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Player Attack by ([-+]\d+)\b|\bConvert -?(\d*\.?\d+) Attack\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned|/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + all_stats + (k.pattack || 0));
 			this.set(['data',i,'stats','patt'], j ? j : undefined);
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Player Defense by ([-+]?\d*\.?\d+)/gi))
+			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Defense by \+?(\d*\.?\d+)|([-+]\d*\.?\d+) Player Defense/gi))
+			  - sum(skillcombo.regex(/Decreases? Player Defense by -?(\d*\.?\d+)|\bConvert -?(\d*\.?\d+) Defense\b/gi))
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 3 Health\b/gi)) * maxhealth / 3)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + all_stats + (k.pdefense || 0));

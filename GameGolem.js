@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1160
+ * GameGolem v31.6.1161
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1160
+ * GameGolem v31.6.1161
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1160;
+var revision = 1161;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -8882,12 +8882,14 @@ Generals.update = function(event, events) {
 				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * Town.get(['data',o[0],'own'], 0, 'number'));
 			}
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b|\bPlayer Attack by ([-+]\d+)\b|\bConvert ([-+]?\d*\.?\d+) Attack\b/gi))
+			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Attack by \+?(\d+)\b|([-+]\d*\.?\d+) Player Attack\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Player Attack by ([-+]\d+)\b|\bConvert -?(\d*\.?\d+) Attack\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned|/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + all_stats + (k.pattack || 0));
 			this.set(['data',i,'stats','patt'], j ? j : undefined);
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense|Player Defense by ([-+]?\d*\.?\d+)/gi))
+			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Defense by \+?(\d*\.?\d+)|([-+]\d*\.?\d+) Player Defense/gi))
+			  - sum(skillcombo.regex(/Decreases? Player Defense by -?(\d*\.?\d+)|\bConvert -?(\d*\.?\d+) Defense\b/gi))
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 3 Health\b/gi)) * maxhealth / 3)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + all_stats + (k.pdefense || 0));
