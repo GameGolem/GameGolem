@@ -559,19 +559,24 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi));
 			this.set(['runtime','multipliers',i], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bMax Energy by ([-+]?\d+)\b|([-+]?\d+) Max Energy\b/gi))
+			j = sum(skillcombo.regex(/\bIncreases? Max Energy by \+?(\d+)\b|([-+]\d+) Max Energy\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Energy by -?(\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bMax Energy by ([-+]\d+)\b|([-+]?\d+) Max Energy\b/gi))
 			  - (sum(skillcombo.regex(/\bTransfer (\d+)% Max Energy to\b/gi)) * Player.get('maxenergy') / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			  + all_stats;
 			this.set(['data',i,'stats','maxenergy'], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bMax Stamina by ([-+]?\d+)|([-+]?\d+) Max Stamina/gi))
+			j = sum(skillcombo.regex(/\bIncreases? Max Stamina by \+?(\d+)|([-+]\d+) Max Stamina/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Stamina by -?(\d+)/gi))
 			  - (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to\b/gi)) * maxstamina / 100).round(0)
 			  + (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * maxenergy / 200).round(0)
 			  + all_stats;
 			this.set(['data',i,'stats','maxstamina'], j ? j : undefined);
 
-			j = all_stats;
+			j = sum(skillcombo.regex(/\bIncreases? Max Health by \+?(\d+)\b|([-+]\d+) Max Health\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Health by -?(\d+)\b/gi))
+			  + all_stats;
 			this.set(['data',i,'stats','maxhealth'], j ? j : undefined);
 
 			j = skillcombo.regex(/Bank Fee/gi) ? 100 : 0;
