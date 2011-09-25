@@ -350,7 +350,7 @@ Script.prototype.parse = function() {
 				}
 			} else if ((i = this._find(atom, this._operators)) !== -1) { // operator
 				// unary op
-				if (!script.length || script[script.length-1] !== ';' || this._find(script[script.length-1], this._operators) !== -1) {
+				if (!script.length || script[script.length-1] === ';' || this._find(script[script.length-1], this._operators) !== -1) {
 					if (this._find('u' + atom, this._operators) !== -1) {
 						atom = 'u' + atom;
 					}

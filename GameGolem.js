@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1158
+ * GameGolem v31.6.1159
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1158
+ * GameGolem v31.6.1159
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1158;
+var revision = 1159;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -1792,7 +1792,7 @@ Script.prototype.parse = function() {
 				}
 			} else if ((i = this._find(atom, this._operators)) !== -1) { // operator
 				// unary op
-				if (!script.length || script[script.length-1] !== ';' || this._find(script[script.length-1], this._operators) !== -1) {
+				if (!script.length || script[script.length-1] === ';' || this._find(script[script.length-1], this._operators) !== -1) {
 					if (this._find('u' + atom, this._operators) !== -1) {
 						atom = 'u' + atom;
 					}
@@ -6886,8 +6886,9 @@ Update.update = function(event) {
 // Add "Castle Age" to known applications
 Main.add('castle_age', '46755028429', 'Castle Age', /^http:\/\/web3.castleagegame.com\/castle_ws\/index.php/i, function() {
 	if (!isFacebook) {
-		userID = $('#main_bntp img').attr('src').regex(/graph.facebook.com\/(\d+)\/picture/i);
-		imagepath = 'http://image4.castleagegame.com/graphics/';
+		userID = ($('#main_bntp img').attr('src') || '').regex(/graph.facebook.com\/(\d+)\/picture/i);
+		// imagepath = 'http://image4.castleagegame.com/graphics/';
+		imagepath = ($('#AjaxLoadIcon img').attr('src') || '').pathpart();
 		var fn = function(){
 			var left = Math.max(0, Math.floor(($('body').width() - 1030) / 2));
 			$('#rightCol').css({'padding-left':(left + 781) + 'px'});
