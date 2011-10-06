@@ -26,10 +26,19 @@ Generals.defaults['castle_age'] = {
 };
 
 Generals.option = {
+	fast:true,
 	zin:false
 };
 
 Generals.display = [
+	{
+		id:'fast',
+		label:'Use fast general links',
+		checkbox:true,
+		help:'Fast general links will use a single URL to select a general.'
+		  + " This avoids the extra Generals page overhead and is faster, but sometimes does't work."
+		  + ' Disabling this will select generals in the same manner a person would, via the Generals page and clicking on an image.'
+	},
 	{
 		id:'zin',
 		label:'Automatically use Zin',
@@ -653,6 +662,8 @@ Generals.update = function(event, events) {
 };
 
 Generals.to = function(name) {
+	var id, type, el;
+
 	this._unflush();
 	if (name) {
 		name = this.best(name);
@@ -668,9 +679,35 @@ Generals.to = function(name) {
 		log(LOG_INFO, 'General rejected due to energy or stamina loss: ' + Player.get('general') + ' to ' + name);
 		return true;
 	}
-	log(LOG_WARN, 'General change: ' + Player.get('general') + ' to ' + name);
-	var id = this.get(['data',name,'id']), type = this.get(['data',name,'type']);
-	Page.to('heroes_generals', isNumber(id) && isNumber(type) ? {item:id, itype:type} : null, true);
+
+	id = this.get(['data',name,'id']);
+	type = this.get(['data',name,'type']);
+
+	if (this.get('option.fast') && isNumber(id) && isNumber(type)) {
+		log(LOG_INFO, 'General fast change: ' + Player.get('general') + ' to ' + name);
+		Page.to('heroes_generals', {item:id, itype:type}, true);
+	} else if (isNumber(id)) {
+		if (!Page.to('heroes_generals')) {
+			return false;
+		} else if (!(el = $('.generalSmallContainer2 form input[name="item"][value="'+id+'"]')).length) {
+			log(LOG_WARN, "Can't find select form for General: " + name);
+			return null;
+		} else if (!(el = $(el).closest('form')).length) {
+			log(LOG_WARN, "Can't refind select form for General: " + name);
+			return null;
+		} else if (!(el = $('input.imgButton[type="image"]', el)).length) {
+			log(LOG_WARN, "Can't find select button for General: " + name);
+			return null;
+		} else if (Page.click(el)) {
+			log(LOG_INFO, 'General change: ' + Player.get('general') + ' to ' + name);
+		} else {
+			log(LOG_DEBUG, '# might be a page click cooldown');
+		}
+	} else {
+		log(LOG_WARN, "Can't change to General: " + name);
+		return null;
+	}
+
 	return false;
 };
 
@@ -839,7 +876,7 @@ Generals.dashboard = function(sort, rev) {
 		p = this.get(['data',i]) || {};
 		output = [];
 		j = this.get([p, 'weaponbonus']);
-		td(output, '<a class="golem-link" href="generals.php?item=' + p.id + '&itype=' + p.type + '"><img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '"></a>');
+		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '">'));
 		td(output, i);
 		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
 		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))

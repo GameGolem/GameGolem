@@ -121,11 +121,6 @@ Page.init = function() {
 	if (this.option.nochat) {
 		$('#fbDockChat').hide();
 	}
-	$('.golem-link').live('click', function(event){
-		if (!Page.to($(this).attr('href'), null, false)) {
-			return false;
-		}
-	});
 	this._revive(1, 'timers');// update() once every second to update any timers
 };
 

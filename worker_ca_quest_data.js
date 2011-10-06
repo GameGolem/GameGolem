@@ -1,9 +1,10 @@
 /*jslint
+    tailcomma: true,
 */
 
-Quest.rts = 1313617925;	// Wed Aug 17 21:52:05 2011 UTC
+Quest.rts = 1317205601;	// Wed Sep 28 10:26:41 2011 UTC
 
-Quest.rdata =			// #466
+Quest.rdata =			// #471
 {
 	'a demonic transformation':			{ 'reps_q4':  40 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -179,6 +180,7 @@ Quest.rdata =			// #466
 	'end of the road':					{ 'reps_q9':  17 },
 	'energy rift':						{ 'reps_q14': 11 },
 	'enlist captain morgan':			{ 'reps_q11':  0 },
+	'entrance':							{ 'reps_a2':   0 },
 	'entrance denied':					{ 'reps_q12': 12 },
 	'entrance to terra':				{ 'reps_q1':   9 },
 	'equip soldiers':					{ 'reps_q6':  25 },
@@ -241,6 +243,7 @@ Quest.rdata =			// #466
 	'find your way out':				{ 'reps_q7':  15 },
 	'fire and brimstone':				{ 'reps_q7':  12 },
 	'forest of ash':					{ 'reps_d4':  11 },
+	'fortress':							{ 'reps_a2':   8 },
 	'freeing arielle':					{ 'reps_q12': 10 },
 	'furest hellblade':					{ 'reps_d3':  17 },
 	'gain access':						{ 'reps_q10':  0 },
@@ -304,6 +307,7 @@ Quest.rdata =			// #466
 	'nighttime infiltration':			{ 'reps_q14': 13 },
 	'outmaneuver lothar':				{ 'reps_q12':  0 },
 	'outpost entrance':					{ 'reps_q11': 12 },
+	'path':								{ 'reps_a2':   0 },
 	'path to heaven':					{ 'reps_q8':  11 },
 	'persuade terra':					{ 'reps_q12':  0 },
 	'pick up the orc trail':			{ 'reps_q1':   6 },
@@ -445,6 +449,7 @@ Quest.rdata =			// #466
 	'the water temple':					{ 'reps_q2':  17 },
 	'til morning comes':				{ 'reps_q12': 13 },
 	'towards rodinia':					{ 'reps_q15':  0 },
+	'town':								{ 'reps_a2':   0 },
 	'track down soldiers':				{ 'reps_d5':  12 },
 	'track lothar':						{ 'reps_q12':  0 },
 	'track sylvana':					{ 'reps_d1':  12 },
@@ -459,6 +464,7 @@ Quest.rdata =			// #466
 	'triste':							{ 'reps_q3':  20 },
 	'undead crusade':					{ 'reps_q6':  17 },
 	'underground path':					{ 'reps_q12':  8 },
+	'underwater':						{ 'reps_a2':   0 },
 	'underwater ruins':					{ 'reps_a1':  20 },
 	'unholy war':						{ 'reps_q6':  20 },
 	'unlikely alliance':				{ 'reps_q14': 10 },

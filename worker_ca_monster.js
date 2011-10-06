@@ -871,7 +871,7 @@ Monster.types = {
 		timer:604800, // 168 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
-		attack:[10,20,50,100,200],
+		attack:[10,20,50,100], // removed 200 attack as per forums post
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
 		festival: 'aurora',
@@ -1236,7 +1236,7 @@ Monster.page = function(page, change) {
 			this.set(['runtime','button','count'], $(type.attack_button).length);
 		}
 		// Need to also parse what our class is for Bahamut.  (Can probably just look for the strengthen button to find warrior class.)
-		for (i in this.class_img){
+		for (i = 0; i < this.class_img.length; i++) {
 			if ($(this.class_img[i]).length){
 				this.set(['data',mid,'mclass'], i);
 				break;
@@ -1260,7 +1260,7 @@ Monster.page = function(page, change) {
 		if ((this.get(['data',mid,'secondary']) || this.get(['data',mid,'warrior'])) && !$(type.defend_button).length) {
 			this.set(['data',mid,'no_heal'], true);
 		}
-		for (i in this.health_img){
+		for (i = 0; i < this.health_img.length; i++) {
 			if ($(this.health_img[i]).length){
 				$health = $(this.health_img[i]).parent();
 				this.set(['data',mid,'health'], $health.length ? (100 * $health.width() / $health.parent().width()) : 0);
@@ -1272,7 +1272,7 @@ Monster.page = function(page, change) {
 			if (type.defense_img === 'shield_img') {
 				this.set(['data',mid,'defense'], 100);
 			}
-			for (i in this.shield_img){
+			for (i = 0; i < this.shield_img.length; i++) {
 				if ($(this.shield_img[i]).length){
 					$dispel = $(this.shield_img[i]).parent();
 					this.set(['data',mid,'defense'], 100 * (1 - ($dispel.width() / ($dispel.next().length ? $dispel.width() + $dispel.next().width() : $dispel.parent().width()))));
@@ -1282,7 +1282,7 @@ Monster.page = function(page, change) {
 		}
 		if (!type.defense_img || type.defense_img === 'defense_img') {
 			// If we know this monster should have a defense image and don't find it, 
-			for (i in this.defense_img){
+			for (i = 0; i < this.defense_img.length; i++) {
 				if ($(this.defense_img[i]).length){
 					$defense = $(this.defense_img[i]).parent();
 					this.set(['data',mid,'defense'], $defense.width() / ($defense.next().length ? $defense.width() + $defense.next().width() : $defense.parent().width()) * 100);
