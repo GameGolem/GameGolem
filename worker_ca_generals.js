@@ -3,7 +3,7 @@
 	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals:true, Idle, LevelUp, Player, Town,
 	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
-	LOG_ERROR, LOG_WARN, LOG_INFO,
+	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
 	bestObjValue, nmax, assert
@@ -432,16 +432,30 @@ Generals.update = function(event, events) {
 				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * Town.get(['data',o[0],'own'], 0, 'number'));
 			}
 
-			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Attack by \+?(\d+)\b|([-+]\d*\.?\d+) Player Attack\b/gi))
-			  - sum(skillcombo.regex(/\bDecreases? Player Attack by ([-+]\d+)\b|\bConvert -?(\d*\.?\d+) Attack\b/gi))
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned|/gi)) * ((this.runtime.heroes || 0) - 1)
+			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b/gi))
+			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
+			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
+			  + sum(skillcombo.regex(/\bPlayer Attack by ([-+]\d*\.?\d+)\s*[,;]/gi))
+			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Attack\b/gi))
+			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to\b/gi))
+			  * pattack / 100).round(0)
+			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to Attack\b/gi)) * pdefense / 100).round(0)
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
+			  + sum(skillcombo.regex(/\bPlayer Attack is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
+			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 4 Health\b/gi)) * maxhealth / 4)
 			  + all_stats + (k.pattack || 0));
 			this.set(['data',i,'stats','patt'], j ? j : undefined);
 
-			j = Math.floor(sum(skillcombo.regex(/\bIncreases? Player Defense by \+?(\d*\.?\d+)|([-+]\d*\.?\d+) Player Defense/gi))
-			  - sum(skillcombo.regex(/Decreases? Player Defense by -?(\d*\.?\d+)|\bConvert -?(\d*\.?\d+) Defense\b/gi))
+			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense/gi))
+			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
+			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
+			  + sum(skillcombo.regex(/\bPlayer Defense by ([-+]\d*\.?\d+)\s*[,;]/gi))
+			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Defense\b/gi))
+			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to\b/gi)) * pdefense / 100).round(0)
+			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to Defense\b/gi)) * pattack / 100).round(0)
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
+			  + sum(skillcombo.regex(/\bPlayer Defense is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 3 Health\b/gi)) * maxhealth / 3)
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + all_stats + (k.pdefense || 0));
 			this.set(['data',i,'stats','pdef'], j ? j : undefined);
 
@@ -570,23 +584,34 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi));
 			this.set(['runtime','multipliers',i], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bIncreases? Max Energy by \+?(\d+)\b|([-+]\d+) Max Energy\b/gi))
-			  - sum(skillcombo.regex(/\bDecreases? Max Energy by -?(\d+)\b/gi))
-			  + sum(skillcombo.regex(/\bMax Energy by ([-+]\d+)\b|([-+]?\d+) Max Energy\b/gi))
-			  - (sum(skillcombo.regex(/\bTransfer (\d+)% Max Energy to\b/gi)) * Player.get('maxenergy') / 100).round(0)
-			  + (sum(skillcombo.regex(/\bTransfer (\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
+			j = sum(skillcombo.regex(/\bMax Energy by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Max Energy by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Energy by -?(\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\+(\d*\.?\d+) energy to /gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Energy\b/gi))
+			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Energy to\b/gi)) * Player.get('maxenergy') / 100).round(0)
+			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
 			  + all_stats;
 			this.set(['data',i,'stats','maxenergy'], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bIncreases? Max Stamina by \+?(\d+)|([-+]\d+) Max Stamina/gi))
-			  - sum(skillcombo.regex(/\bDecreases? Max Stamina by -?(\d+)/gi))
-			  - (sum(skillcombo.regex(/Transfer (\d+)% Max Stamina to\b/gi)) * maxstamina / 100).round(0)
-			  + (sum(skillcombo.regex(/Transfer (\d+)% Max Energy to Max Stamina/gi)) * maxenergy / 200).round(0)
+			j = sum(skillcombo.regex(/\bMax Stamina by ([-+]\d*\.?\d+)/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Max Stamina by \+?(\d*\.?\d+)/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Stamina by -?(\d*\.?\d+)/gi))
+			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) stamina to /gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Stamina/gi))
+			  - (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Stamina to\b/gi)) * maxstamina / 100).round(0)
+			  + (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Energy to Max Stamina/gi)) * maxenergy / 200).round(0)
 			  + all_stats;
 			this.set(['data',i,'stats','maxstamina'], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bIncreases? Max Health by \+?(\d+)\b|([-+]\d+) Max Health\b/gi))
-			  - sum(skillcombo.regex(/\bDecreases? Max Health by -?(\d+)\b/gi))
+			j = sum(skillcombo.regex(/\bMax Health by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Max Health by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Max Health by -?(\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) health to /gi))
+			  + sum(skillcombo.regex(/\bPlayer Health by ([-+]?\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Health\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Health\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Health\b/gi))
 			  + all_stats;
 			this.set(['data',i,'stats','maxhealth'], j ? j : undefined);
 
