@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Dashboard, Page, Resources,
+	Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
@@ -51,7 +52,7 @@ Alchemy.display = [
 ];
 
 Alchemy.page = function(page, change) {
-	var now = Date.now(), self = this, i, tmp,
+	var now = Date.now(), self = this, i, b, c, tmp, icon, name,
 		ipurge = {}, rpurge = {}, spurge = {};
 
 	if (page === 'keep_alchemy') {
@@ -71,8 +72,8 @@ Alchemy.page = function(page, change) {
 
 		// ingredients list
 		tmp.each(function(a, el) {
-			var icon = ($('img', el).attr('src') || '').filepart();
-			var c = ($(el).text() || '').regex(/\bx\s*(\d+)\b/im);
+			var icon = ($('img', el).attr('src') || '').filepart(),
+				c = ($(el).text() || '').regex(/\bx\s*(\d+)\b/im);
 			ipurge[icon] = false;
 			if (isNumber(c)) {
 				self.set(['ingredients', icon], c);
@@ -112,8 +113,8 @@ Alchemy.page = function(page, change) {
 			}
 			recipe.ingredients = {};
 			$('div.recipeImgContainer', el).parent().each(function(b, el2) {
-				var icon = ($('img', el2).attr('src') || '').filepart();
-				var c = ($(el2).text() || '').regex(/\bx\s*(\d+)\b/im) || 1;
+				var icon = ($('img', el2).attr('src') || '').filepart(),
+					c = ($(el2).text() || '').regex(/\bx\s*(\d+)\b/im) || 1;
 				recipe.ingredients[icon] = c;
 				// Make sure we know an ingredient exists
 				if (!(icon in self.data.ingredients)) {
@@ -134,15 +135,14 @@ Alchemy.page = function(page, change) {
 			// some ingredients are units
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$")').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
-				n = Town.qualify(n, i);
-				if (i in this.data.ingredients) {
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				name = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				c = ($(tmp[i]).text() || '').regex(/\bX\s*(\d+)\b/im);
+				name = Town.qualify(name, icon);
+				if (this.data.ingredients.hasOwnProperty(icon)) {
 					if (isNumber(c)) {
-						this.set(['ingredients', i], c);
+						this.set(['ingredients', icon], c);
 					}
 				}
 			}
@@ -150,27 +150,25 @@ Alchemy.page = function(page, change) {
 			// some ingredients are items
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
-				n = Town.qualify(n, i);
-				if (i in this.data.ingredients) {
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				name = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				c = ($(tmp[i]).text() || '').regex(/\bX\s*(\d+)\b/im);
+				name = Town.qualify(name, icon);
+				if (this.data.ingredients.hasOwnProperty(icon)) {
 					if (isNumber(c)) {
-						this.set(['ingredients', i], c);
+						this.set(['ingredients', icon], c);
 					}
 				}
 			}
 
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ALCHEMY INGREDIENTS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-				if (i) {
-					this.set(['ingredients', i], c || 1);
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				c = $(tmp[i]).text().regex(/\bX\s*(\d+)\b/i);
+				if (icon) {
+					this.set(['ingredients', icon], c || 1);
 				} else {
 					Page.setStale('keep_alchemy', now);
 				}
@@ -208,7 +206,7 @@ Alchemy.page = function(page, change) {
 };
 
 Alchemy.update = function(event) {
-	var now = Date.now(), best = null, recipe = this.data.recipe, r, i, s;
+	var now = Date.now(), best = null, recipe = this.data.recipe, r, i;
 
 	if (recipe) {
 		for (r in recipe) {
@@ -225,13 +223,11 @@ Alchemy.update = function(event) {
 		}
 	}
 
-	s = undefined;
-	if (!best) {
-		s = 'Nothing to do.';
+	if (best) {
+		Dashboard.status(this, (this.option._disabled ? 'Would perform ' : 'Perform ') + best);
 	} else {
-		s = (this.option._disabled ? 'Would perform ' : 'Perform ') + best;
+		Dashboard.status(this);
 	}
-	Dashboard.status(this, s);
 
 	this.set('runtime.best', best);
 

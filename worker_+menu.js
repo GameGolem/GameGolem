@@ -1,11 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$:true, Worker, Army, Menu:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome
+	$, Worker, Workers, Config, Theme,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	getImage
 */
 /********** Worker.Menu **********
 * Handles menu creation and selection for Config
@@ -22,14 +21,26 @@ Menu.init = function() {
 	Config._init(); // We patch into the output of Config.init so it must finish first
 	$('<span class="ui-icon golem-menu-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '"></span>')
 		.click(function(event) {
-			var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.closest('div').attr('name')), name = worker ? worker.name : '';
+			var i, j, k, w, keys, ord, hr = false, html = '',
+				$this = $(this.wrappedJSObject || this),
+				worker = Worker.find($this.closest('div').attr('name')),
+				name = worker ? worker.name : '';
 			if (Config.get(['temp','menu']) !== name) {
 				Config.set(['temp','menu'], name);
+				ord = [];
+				ord.push('Queue');
+				ord.push('Dashboard');
 				for (i in Workers) {
-					if (Workers[i].menu) {
+					if (!ord.find(i)) {
+						ord.push(i);
+					}
+				}
+				for (i = 0; i < ord.length; i++) {
+					w = ord[i];
+					if (isFunction(Workers[w].menu)) {
 						hr = true;
-						Workers[i]._unflush();
-						keys = Workers[i].menu(worker) || [];
+						Workers[w]._unflush();
+						keys = Workers[w].menu(worker) || [];
 						for (j=0; j<keys.length; j++) {
 							k = keys[j].regex(/([^:]*):?(.*)/);
 							if (k[0] === '---') {
@@ -40,13 +51,13 @@ Menu.init = function() {
 									hr = false;
 								}
 								switch (k[1].charAt(0)) {
-									case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-									case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-									case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-									case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
-									default:	break;
+								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
+								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
+								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
+								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								default:	break;
 								}
-								html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
+								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
 							}
 						}
 					}

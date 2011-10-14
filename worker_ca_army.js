@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Page,
+	Army, Generals, Idle, Player,
+	APP, APPID, PREFIX, userID, imagepath, isFacebook,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	assert
 */
 /********** Worker Army Extension **********
 * This fills in your army information by overloading Worker.Army()
@@ -89,23 +91,24 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 });
 
 Army._overload('castle_age', 'page', function(page, change) {
+	var now = Date.now(), i, tmp, $tmp, uid, who, which, start, count, level, parent, spans;
 	if (change && page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
-		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
+		uid = $('.linkwhite a').attr('href').regex(/[=](\d+)$/);
 //		log('Not our keep, uid: '+uid);
 		if (uid && Army.get(['Army', uid], false)) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
 	} else if (!change && page === 'army_viewarmy') {
-		var i, uid, who, which, start, now = Date.now(), count = 0, tmp, level, parent, spans;
+		count = 0;
 		$tmp = $('table.layout table[width=740] div').first().children();
-		which = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
+		which = $tmp.eq(1).html().regex(/<div[^>]*>(\d+)<\/div>/);
 		start = $tmp.eq(2).text().regex(/Displaying: (\d+) - \d+/);
 		tmp = $('td > a[href*="keep.php?casuser="]');
 		for (i=0; i<tmp.length; i++) {
 			try {
 				this._transaction(); // BEGIN TRANSACTION
 				uid = $(tmp[i]).attr('href').regex(/casuser=(\d*)$/i);
-				parent = $(tmp[i]).closest('td').next()
+				parent = $(tmp[i]).closest('td').next();
 				who = $(parent).find('a').eq(-1).text();
 				spans = $(parent).find('span[style]');
 				level = $(spans).eq(1).text().regex(/(\d+) Commander/i);

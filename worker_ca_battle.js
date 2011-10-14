@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle:true, Generals, LevelUp, Monster, Player,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	$, Worker, Config, Dashboard, History, Page, Queue, Resources,
+	Generals, LevelUp, Monster, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath, isFacebook,
+	isRelease, version, revision, Workers, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	getImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	length, sum, tr, th, td, plural, getImage
 */
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
@@ -36,7 +38,7 @@ Battle.option = {
 	points:'Invade',
 	monster:true,
 //	arena:false,
-	losses:5,
+	losses:1,
 	type:'Invade',
 	bp:'Always',
 	limit:0,
@@ -80,8 +82,8 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'general_choice',
-		label:'Use General',
 		require:'!general',
+		label:'Use General',
 		select:'generals'
 	},{
 		id:'stamina_reserve',
@@ -121,8 +123,8 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		before:'<center>Target Ranks</center>',
 		require:'bp=="Always"',
+		before:'<center>Target Ranks</center>',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -144,7 +146,9 @@ Battle.display = [
 			7200000:'2 hours',
 			21600000:'6 hours',
 			43200000:'12 hours',
-			86400000:'24 hours'
+			86400000:'1 day',
+			172800000:'2 days',
+			259200000:'3 days'
 		},
 		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
 	},{
@@ -221,17 +225,6 @@ Battle.init = function() {
 	}
 */
 //	this.option.arena = false;// ARENA!!!!!!
-	// make a custom Config type of for rank, based on number so it carries forward on level ups
-	list = {};
-	if (this.get(['data',mode,'rank'])) {
-		rank = Player.get(mode, 0);
-		for (i in this.data[mode].rank){
-			list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
-		}
-	} else {
-		list[0] = '(0) Newbie';
-	}
-	Config.set('limit_list', list);
 
 	// map old "(#) rank" string into the number
 	i = this.get('option.limit');
@@ -247,11 +240,11 @@ Battle.init = function() {
 
 	$('.Battle-prefer-on').live('click', function(event) {
 		Battle._unflush();
-		var uid = $(this).attr('name');
-		var prefs = Battle.get('option.prefer');
+		var uid = $(this).attr('name'),
+			prefs = Battle.get('option.prefer');
 		if (uid && prefs.find(uid)) {
 			prefs.remove(uid);
-			Battle._taint['option'] = true;
+			Battle._taint['option'] = Date.now();
 			Battle._notify('option.prefer');
 		}
 		$(this).removeClass('Battle-prefer-on');
@@ -262,11 +255,11 @@ Battle.init = function() {
 
 	$('.Battle-prefer-off').live('click', function(event) {
 		Battle._unflush();
-		var uid = $(this).attr('name');
-		var prefs = Battle.get('option.prefer');
+		var uid = $(this).attr('name'),
+			prefs = Battle.get('option.prefer');
 		if (uid && !prefs.find(uid)) {
 			prefs.push(uid);
-			Battle._taint['option'] = true;
+			Battle._taint['option'] = Date.now();
 			Battle._notify('option.prefer');
 		}
 		$(this).removeClass('Battle-prefer-off');
@@ -355,7 +348,7 @@ Battle.page = function(page, change) {
 		rank = {
 			battle: Player.get('battle',0),
 			war: Player.get('war',0)
-		}
+		};
 		$list = $('#'+APPID_+'app_body table.layout table table tr:even');
 		for (i=0; i<$list.length; i++) {
 			$el = $list[i];
@@ -370,7 +363,7 @@ Battle.page = function(page, change) {
 			rank2 = {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
-			}
+			};
 			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank[mode]- rank2[mode] >= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
@@ -399,10 +392,26 @@ Battle.page = function(page, change) {
 4e. Choose a random entry from our list (targets with more entries have more chance of being picked)
 5. Update the Status line
 */
-Battle.update = function(event) {
+Battle.update = function(event, events) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false), tmp;
 	tmp = this.get(['data',mode], {});
 	status.push('Rank ' + rank + ' ' + this.get([tmp,'rank',rank,'name'], 'unknown', 'string') + ' with ' + this.get([tmp,'bp'], 0, 'number').addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+
+	if (events.findEvent(null, 'init') || events.findEvent(this, 'data')) {
+		// make a custom Config type of for rank,
+		// based on number so it carries forward on level ups
+		list = {};
+		if (this.get(['data',mode,'rank'])) {
+			rank = Player.get(mode, 0);
+			for (i in this.data[mode].rank){
+				list[i-rank] = '(' + (i-rank) + ') ' + this.data[mode].rank[i].name;
+			}
+		} else {
+			list[0] = '(0) Newbie';
+		}
+		Config.set('limit_list', list);
+	}
+
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
@@ -530,6 +539,8 @@ Battle.update = function(event) {
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));
+
+	return true;
 };
 
 /***** Battle.work() *****
@@ -581,17 +592,17 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle', prefs, pref_img_on, pref_img_off, pref_img_end, str;
 	for (i in data) {
 		points[data[i].align]++;
 	}
-	var prefs = {};
+	prefs = {};
 	for (i = 0; i < this.option.prefer.length; i++) {
 		prefs[this.option.prefer[i]] = 1;
 	}
-	var pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
-	var pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
-	var pref_img_end = '">';
+	pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
+	pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
+	pref_img_end = '">';
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in data) {
@@ -607,7 +618,7 @@ Battle.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
-		var str = '';
+		str = '';
 		this.order.sort(function(a,b) {
 			var aa, bb;
 			if (sorttype[sort] === '*pref') {

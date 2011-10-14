@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1164
+ * GameGolem v31.6.1165
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1164
+ * GameGolem v31.6.1165
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1164;
+var revision = 1165;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -470,16 +470,21 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 		browser = 'greasemonkey'; // Treating separately as Firefox will get a "real" extension at some point.
 	}
 }
+// needed for stable trunk links when developing
+var trunk_revision = 1164;
+try {
+    trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || 1164;
+} catch (e97) {
+    console.log(e97.name + ' in Main: ' + e97.message);
+}
+console.log('GameGolem: trunk_revision ' + trunk_revision);
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
+	$, Workers, Worker, Resources, Script,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision,
 	browser, window, localStorage, console, chrome
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	version, revision, isRelease
-	APP, APPID, PREFIX, log:true, debug, userID, imagepath
-	length:true
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	Workers, makeImage:true
+	log:true, length:true
 */
 // Utility functions
 
@@ -599,21 +604,21 @@ var isNull = function(obj) {
  * @param {string=} txt The message to log
  * NOTE: Will be replaced by Debug Worker if present!
  */
-var LOG_INFO = 0;
-var LOG_LOG = 1
-var LOG_WARN = 2;
-var LOG_ERROR = 3;
+var LOG_ERROR = 0;
+var LOG_WARN = 1;
+var LOG_LOG = 2;
+var LOG_INFO = 3;
 var LOG_DEBUG = 4;
 var LOG_USER1 = 5;
 var LOG_USER2 = 6;
 var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
-var log = function(level, txt /*, obj, array etc*/){
+var log = function(lvl, txt /*, obj, array etc*/){
 	var level, args = Array.prototype.slice.call(arguments), prefix = [],
 		date = [true, true, true, true, true, true, true, true, true, true],
-		rev = [false, false, true, true, true, true, true, true, true, true],
-		worker = [false, true, true, true, true, true, true, true, true, true];
+		rev = [true, true, true, true, true, true, true, true, true, true],
+		worker = [true, true, true, true, true, true, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 9);
 	} else if (isError(args[0])) {
@@ -643,9 +648,13 @@ var log = function(level, txt /*, obj, array etc*/){
 
 String.prototype.trim = function(inside) {
 	if (inside) {
-		this.replace(/^\s+$/gm, ' ')
+		this.replace(/^\s+$/gm, ' ');
 	}
 	return this.replace(/^\s+|\s+$/gm, '');
+};
+
+String.prototype.innerTrim = function() {
+	return this.replace(/\s+/gm, ' ');
 };
 
 String.prototype.filepart = function() {
@@ -852,13 +861,28 @@ Array.prototype.trim = function() { // Remove empty entries
 		}
 	}
 	return arr;
-}
+};
 
 // Used for events in update(event, events)
-var isEvent = function(event, worker, type, id) {
-	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
+var isEvent = function(event, worker, type, id, path) {
+	//
+	if ((!worker || Worker.find(event.worker) === Worker.find(worker))
+	  && (!type || event.type === type)
+	  && (!id || event.id === id)
+	  && (!path || event.path === path)
+	) {
 		return true;
 	}
+	//
+	/*
+	if ((isUndefined(worker) || (worker === null ? !event.worker : Worker.find(event.worker)  === Worker.find(worker)))
+	  && (isUndefined(type) || (type === null ? !event.type : event.type === type))
+	  && (isUndefined(id) || (id === null ? !event.id : event.id === id))
+	  && (isUndefined(path) || (path === null ? !event.path : event.path === path))
+	) {
+		return true;
+	}
+	*/
 	return false;
 };
  
@@ -870,16 +894,17 @@ var isEvent = function(event, worker, type, id) {
  * @param {?string=} id The event id we're looking for
  * @return {?Object}
  */
-Array.prototype.findEvent = function(worker, type, id) {
+Array.prototype.findEvent = function(worker, type, id, path) {
 	if (worker || type || id) {
 		this._worker = worker;
 		this._type = type;
 		this._id = id;
+		this._path = path;
 		this._index = -1;
 	}
 	var length = this.length;
 	for (this._index++; this._index<length; this._index++) {
-		if (isEvent(this[this._index], this._worker, this._type, this._id)) {
+		if (isEvent(this[this._index], this._worker, this._type, this._id, this._path)) {
 			return this[this._index];
 		}
 	}
@@ -894,8 +919,8 @@ Array.prototype.findEvent = function(worker, type, id) {
  * @param {?string=} id The event id we're looking for
  * @return {?Object}
  */
-Array.prototype.getEvent = function(worker, type, id) {
-	var event = this.findEvent(worker, type, id);
+Array.prototype.getEvent = function(worker, type, id, path) {
+	var event = this.findEvent(worker, type, id, path);
 	if (this._index >= 0 && this._index < this.length) {
 		this.splice(this._index--, 1);
 	}
@@ -1388,7 +1413,7 @@ JSON.encode = function(obj, replacer, space, metrics) {
 };
 
 JSON.decode = function(str, metrics) {
-	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj) {
+	var i, obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj) {
 		var i, to;
 		if (isObject(obj)) {
 			to = {};
@@ -1439,6 +1464,110 @@ var assert = function(test, msg, type) {
 	if (!test) {
 		throw {'name':type || 'Assert Error', 'message':msg};
 	}
+};
+
+Number.prototype.toTimespan = function(allowPast) {
+	var str = '', ms = this, ago = false, u, v;
+
+	if (allowPast && ms < 0) {
+		ago = true;
+		ms = Math.abs(ms);
+	}
+
+	if (ms >= (u = 365*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' year' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 30*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' month' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 7*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' week' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' day' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' hour' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' minute' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' second' + plural(v);
+		ms -= v * u;
+	}
+	if (ms % 1000) {
+		if (str !== '') { str += ', '; }
+		v = ms % 1000;
+		str += v + ' milli' + plural(v);
+		ms -= v * u;
+	}
+
+	if (str === '') {
+		str = 'now';
+	} else if (ago) {
+		str += ' ago';
+	}
+
+	return str;
+};
+
+Number.prototype.toTimespanShort = function(words, allowPast) {
+	var str = '', ms = this, u, x = 1, ago = false;
+
+	if (allowPast && ms < 0) {
+		ago = true;
+		ms = Math.abs(ms);
+	}
+
+	if (ms >= (u = 365*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' year' : 'yr');
+	} else if (ms >= (u = 30*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' month' : 'mo');
+	} else if (ms >= (u = 7*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' week' : 'wk');
+	} else if (ms >= (u = 24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' day' : 'dy');
+	} else if (ms >= (u = 60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' hour' : 'hr');
+	} else if (ms >= (u = 60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' minute' : 'm');
+	} else if (ms >= (u = 1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' second' : 's');
+	} else if (ms > 0) {
+		str = '' + (x = ms) + (words ? ' milli' : 'ms');
+	} else {
+		str = 'now';
+	}
+	if (words) {
+		str += plural(x.SI());
+	}
+
+	if (ago) {
+		str = '-' + str;
+	}
+
+	return str;
 };
 /*
  * Scripting withing Golem.
@@ -1823,12 +1952,11 @@ Script.prototype.parse = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	empty, compare, error
+	$,
+	APP, APPID, userID, imagepath, browser, localStorage, window,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker,
+	empty, compare
 */
 /* Worker Prototype
    ----------------
@@ -1852,7 +1980,7 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
-				taint (true/false) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
+				taint (timestamp/0) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
 				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
@@ -2114,6 +2242,24 @@ Worker.prototype._forget = function(id) {
 };
 
 /**
+ * Forget all _remind and _revive timers
+ */
+Worker.prototype._forgetAll = function() {
+	var i;
+
+	for (i in this._reminders) {
+		if (this._reminders.hasOwnProperty(i)) {
+			if (i[0] === 'i') {
+				window.clearInterval(this._reminders[i]);
+			} else if (i[0] === 't') {
+				window.clearTimeout(this._reminders[i]);
+			}
+			delete this._reminders[i];
+		}
+	}
+};
+
+/**
  * Get a value from one of our _datatypes
  * @param {(string|array)} what The path.to.data / [path, to, data] we want - (optionally [Object DATA, subpath, to, data] relative to DATA)
  * @param {*} def The default value to return if the path we want doesn't exist
@@ -2145,6 +2291,7 @@ Worker.prototype._get = function(what, def, type) {
 				}
 			}
 		}
+		 
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
@@ -2163,7 +2310,7 @@ Worker.prototype._get = function(what, def, type) {
 /**
  * This is called after _setup. All data exists and our worker is valid for this APP
  */
-Worker.prototype._init = function(old_revision) {
+Worker.prototype._init = function(old_revision, fresh) {
 	if (this._loaded) {
 		return;
 	}
@@ -2171,7 +2318,7 @@ Worker.prototype._init = function(old_revision) {
 	this._loaded = true;
 	if (this.init) {
 		try {
-			this.init(old_revision);
+			this.init(old_revision, fresh);
 		}catch(e) {
 			log(e, e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
@@ -2210,17 +2357,17 @@ Worker.prototype._load = function(type, merge) {
 			if (merge) {
 				this[type] = $.extend(true, {}, this[type], data || {});
 				if (!compare(data, this[type])) {
-					this._taint[type] = true; // Taint if we've changed from the default data
+					this._taint[type] = Date.now(); // Taint if we've changed from the default data
 				}
 			} else {
 				this[type] = data;
-				this._taint[type] = false;
+				this._taint[type] = 0;
 			}
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
 	} else if (merge && this[type]) {
-		this._taint[type] = true; // Taint if we've changed from the default data
+		this._taint[type] = Date.now(); // Taint if we've changed from the default data
 	}
 	this._popStack();
 };
@@ -2418,7 +2565,7 @@ Worker.prototype._replace = function(type, data) {
 			this._notify(i);
 		}
 	}
-	this._taint[type] = true;
+	this._taint[type] = Date.now();
 	this._save(type);
 };
 
@@ -2482,7 +2629,7 @@ Worker.prototype._save = function(type) {
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 		if (this._taint[type] || localStorage['golem.' + APP + '.' + n] !== v) { // First two are to save the extra localStorage access
 			this._pushStack();
-			this._taint[type] = false;
+			this._taint[type] = 0;
 			this._timestamps[type] = Date.now();
 			try {
 				localStorage['golem.' + APP + '.' + n] = v;
@@ -2526,7 +2673,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
 			if (!quiet) {
 				this._notify(path);// Notify the watchers...
 			}
-			this._taint[path[0]] = true;
+			this._taint[path[0]] = Date.now();
 			this._update(path[0]);
 			if (isUndefined(value)) {
 				delete data[i];
@@ -2567,7 +2714,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
  * First function called in our worker. This is where we decide if we are to become an active worker, or should be deleted.
  * Calls .setup() for worker-specific setup.
  */
-Worker.prototype._setup = function(old_revision) {
+Worker.prototype._setup = function(old_revision, fresh) {
 	this._pushStack();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		var i;
@@ -2591,7 +2738,7 @@ Worker.prototype._setup = function(old_revision) {
 		}
 		if (this.setup) {
 			try {
-				this.setup(old_revision);
+				this.setup(old_revision, fresh);
 			}catch(e) {
 				log(e, e.name + ' in ' + this.name + '.setup(): ' + e.message);
 			}
@@ -2775,7 +2922,7 @@ Worker.prototype._update = function(event, action) {
 			if (event.type && isFunction(this.update)) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
 				if (action === 'add' || action === 'run' || action === 'delete') { // Delete from update queue
-					this._updates_.getEvent(event.worker, event.type, event.id);
+					this._updates_.getEvent(event.worker, event.type, event.id, event.path);
 				}
 				if (action === 'add' || action === 'run') { // Add to update queue, old key already deleted
 					this._updates_.unshift($.extend({}, event));
@@ -2811,8 +2958,10 @@ Worker.prototype._update = function(event, action) {
 				} else {
 					events.shift();
 				}
-				while (event = this._updates_.shift()) { // Prevent endless loops, while keeping anything we added
-					if (!(event.type in this._datatypes) && !old.findEvent(event.worker, event.type, event.id)) {
+				while ((event = this._updates_.shift())) { // Prevent endless loops, while keeping anything we added
+					if (!this._datatypes.hasOwnProperty(event.type)
+					  && !old.findEvent(event.worker, event.type, event.id)
+					) {
 						done = false;
 						old.push($.extend({}, event));
 						event.worker = Worker.find(event.worker || this);
@@ -2867,12 +3016,12 @@ Worker.prototype._work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers, Config, Page,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isUndefined,
+	makeTime, tr, th, td
 */
 /********** Worker.Army **********
 * Stores data by facebook userid for any worker that wants to use it.
@@ -2927,16 +3076,16 @@ Army.setup = function(old_revision) {
 		for (i in this.data.Army) { // Second change the uid.Army bool to be Army.uid.member
 			if (this.data.Army[i] === true) {
 				this._set(['data','Army',i], this._get(['data','_info',i],{}));
-				this._set(['data','_info',i])
+				this._set(['data','_info',i]);
 				this._set(['data','Army',i,'member'], true);
 			}
 		}
 		this.data._info = this.data._info || {};
 		for (i in this.data._info) { // Finally remove _info into Army
 			this._set(['data','Army',i], this._get(['data','_info',i],{}));
-			this._set(['data','_info',i])
+			this._set(['data','_info',i]);
 		}
-		this._set(['data','_info'])
+		this._set(['data','_info']);
 	}
 	// END
 };
@@ -3000,7 +3149,7 @@ Army.army = function(action, uid) {
 		if ($('#golem-army-info').length) {
 			info = $('#golem-army-info').val();
 		}
-		this.set(['runtime','info'], info)
+		this.set(['runtime','info'], info);
 		for (i in infolist) {
 			list.push('<option value="' + i + '"' + (i === info ? ' selected' : '') + '>' + i + '</option>');
 		}
@@ -3107,28 +3256,28 @@ Army.dashboard = function(sort, rev) {
 	$('#golem-dashboard-Army td:first-child,#golem-dashboard-Army th:first-child').css('text-align', 'left');
 	$('#golem-dashboard-Army select').change(function() {Army._notify('data');});// Force a redraw
 	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-dashboard-Army td').click(function(e){
+	$('#golem-dashboard-Army td').click(function(event) {
 		var tmp = $(this).attr('id').regex(/^golem_army_(.*)_(\d+)$/i);
 		if (tmp.length) {
 			if (tmp[0] === '*') {
-				Army.army_name('click', tmp[1])
+				Army.army_name('click', tmp[1]);
 			} else {
-				Workers[tmp[0]]('click', tmp[1])
+				Workers[tmp[0]].army('click', tmp[1]);
 			}
 		}
-		e.stopImmediatePropagation();
+		event.stopImmediatePropagation();
 		return false;
 	});
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Coding:true,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Dashboard, History, Page, Queue,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
-	GM_listValues, GM_deleteValue, localStorage
+	isArray, isBoolean, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Coding **********
 * Just some coding nifo about current workers - nothing special
@@ -3182,12 +3331,12 @@ Coding.dashboard = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources, Script,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	getImage, log, warn, error, isUndefined
+	$, Workers, Worker, Queue, Script,
+	APP, APPID, APPID_, APPNAME, PREFIX, userID, imagepath, isFacebook,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isUndefined, isWorker,
+	Divisor, getImage, isEvent
 */
 /********** Worker.Config **********
 * Has everything to do with the config
@@ -3224,7 +3373,7 @@ Config.init = function(old_revision) {
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
 	if (old_revision <= 1106) { // Not sure real revision
 		for (i in Workers) {
-			if (Workers[i].option && ('_enabled' in Workers[i].option)) {
+			if (Workers[i].option && Workers[i].option.hasOwnProperty('_enabled')) {
 				if (!Workers[i].option._enabled) {
 					Workers[i].set(['option','_disabled'], true);
 				}
@@ -3249,7 +3398,10 @@ Config.init = function(old_revision) {
 	this.makeWindow(); // Creates all UI stuff
 	multi_change_fn = function(el) {
 		var $this = $(el), tmp, worker, val;
-		if ($this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
+		if ($this.attr('id')
+		  && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i))
+		  && (worker = Worker.find(tmp[0]))
+		) {
 			val = [];
 			$this.children().each(function(a,el){ val.push($(el).text()); });
 			worker.set(['option', tmp[1]], val);
@@ -3257,7 +3409,9 @@ Config.init = function(old_revision) {
 	};
 
 	$('input.golem_addselect').live('click.golem', function(){
-		var i, value, values = $(this).prev().val().split(','), $multiple = $(this).parent().children().first();
+		var i, value,
+			values = $(this).prev().val().split(','),
+			$multiple = $(this).parent().children().first();
 		for (i=0; i<values.length; i++) {
 			value = values[i].trim();
 			if (value) {
@@ -3275,7 +3429,11 @@ Config.init = function(old_revision) {
 	});
 	$('#golem_config input,textarea,select').live('change.golem', function(){
 		var $this = $(this), tmp, worker, val, handled = false;
-		if ($this.is('#golem_config :input:not(:button)') && $this.attr('id') && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i)) && (worker = Worker.find(tmp[0]))) {
+		if ($this.is('#golem_config :input:not(:button)')
+		  && $this.attr('id')
+		  && (tmp = $this.attr('id').slice(PREFIX.length).regex(/([^_]*)_(.*)/i))
+		  && (worker = Worker.find(tmp[0]))
+		) {
 			if ($this.attr('type') === 'checkbox') {
 				val = $this.prop('checked');
 			} else if ($this.attr('multiple')) {
@@ -3295,13 +3453,25 @@ Config.init = function(old_revision) {
 	});
 	$('#golem').append('<div id="golem-menu" class="golem-menu golem-shadow"></div>');
 	$('.golem-menu > div').live('click.golem', function(event) {
-		var i, $this = $(this.wrappedJSObject || this), key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/), worker = Worker.find(key[0]);
-//		log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
-		worker._unflush();
-		worker.menu(Worker.find(key[1]), key[2]);
+		var $this = $(this.wrappedJSObject || this),
+			key = $this.attr('name').regex(/^([^.]*)\.([^.]*)\.(.*)/),
+			worker = Worker.find(key[0]);
+		if (!isWorker(worker)) {
+			log(LOG_WARN, 'Worker ' + key[0] + ' seems to have vanished!');
+		} else if (!isFunction(worker.menu)) {
+			log(LOG_WARN, worker.name + '.menu() seems to have vanished!');
+		} else {
+//			log(key[0] + '.menu(' + key[1] + ', ' + key[2] + ')');
+			worker._unflush();
+			try {
+				worker.menu.call(worker, Worker.find(key[1]), key[2]);
+			} catch (e) {
+				log(e, e.name + ' in ' + worker.name + '.menu(' + key[1] + ',' + key[2] + '): ' + e.message);
+			}
+		}
 //		Worker.flush();
 	});
-	$('.ui-accordion-header').live('click', function(){
+	$('.ui-accordion-header,.golem-panel-header').live('click', function(){
 		$(this).blur();
 	});
 	$('body').live('click.golem', function(event){ // Any click hides it, relevant handling done above
@@ -3310,6 +3480,7 @@ Config.init = function(old_revision) {
 		$('#golem-menu').hide();
 //		Worker.flush();
 	});
+
 	this._watch(this, 'data');
 	this._watch(this, 'option.advanced');
 	this._watch(this, 'option.debug');
@@ -3318,75 +3489,118 @@ Config.init = function(old_revision) {
 
 /** @this {Worker} */
 Config.update = function(event, events) {
-	var i, $el, $el2, worker, id, value, list, options = [];
-	if (events.findEvent(this, 'show') || events.findEvent(this, 'init')) {
-		if (this.option.display) {
-			$('#golem_config').show();
-		}
-		$('#golem_config_frame').removeClass('ui-helper-hidden');// make sure everything is created before showing (css sometimes takes another second to load though)
-	}
-	for (event=events.getEvent(this, 'watch', 'data'); event; event=events.getEvent()) { // Changing one of our dropdown lists
-		list = [];
-		value = this.get(event.path);
-		if (isArray(value)) {
-			for (i=0; i<value.length; i++) {
-				list.push('<option value="' + value[i] + '">' + value[i] + '</option>');
+	var i, j, k, x, tmp, evt, worker, id, value, list,
+		show = false, options = [], handled = {};
+
+	//log(LOG_DEBUG, '# events: ' + JSON.shallow(events,3));
+
+	for (j = 0; j < events.length; j++) {
+		evt = events[j];
+		if (isEvent(evt, this, 'init')) {
+			for (id in this.data) {
+				if (handled[id]) {
+				    continue;
+				}
+				handled[id] = true;
+				list = this.data[id];
+				k = [];
+				if (isArray(list)) {
+					for (i = 0; i < list.length; i++) {
+						k.push('<option value="'+list[i]+'">' + list[i] + '</option>');
+					}
+				} else if (isObject(list)) {
+					for (i in list) {
+						k.push('<option value="'+i+'">' + list[i] + '</option>');
+					}
+				}
+				list = k.join('');
+				tmp = $('.golem_'+id);
+				for (i = 0; i < tmp.length; i++) {
+					k = ($(tmp[i]).attr('id') || '').regex(/^golem\d+_([^_]+)_(.+)$/);
+					worker = Worker.find(k[0]);
+					value = worker ? worker.get(['option',k[1]]) : $(tmp[i]).val();
+					$(tmp[i]).html(list).val(value);
+				}
 			}
-		} else if (isObject(value)) {
-			for (i in value) {
-				list.push('<option value="' + i + '">' + value[i] + '</option>');
+			show = true;
+		} else if (isEvent(evt, this, 'show')) {
+			show = true;
+		} else if (isEvent(evt, this, 'watch', 'option.advanced')
+		  || isEvent(evt, this, 'watch', 'option.debug')
+		  || isEvent(evt, this, 'watch', 'option.exploit')
+		) {
+			for (i in Workers) {
+				if (Workers[i].settings.advanced
+				  || Workers[i].settings.debug
+				  || Workers[i].settings.exploit
+				) {
+					$('#'+Workers[i].id).css('display',
+					  ((!Workers[i].settings.advanced || this.option.advanced)
+					  && (!Workers[i].settings.debug || this.option.debug)
+					  && (!Workers[i].settings.exploit || this.option.exploit))
+					  ? '' : 'none');
+				}
 			}
-		}
-		list = list.join('');
-		$('select.golem_' + event.path.slice('data.'.length)).each(function(a,el){
-			var worker = Worker.find($(el).closest('div.golem-panel').attr('id')), val = worker ? worker.get(['option', $(el).attr('id').regex(/_([^_]*)$/i)]) : null;
-			$(el).html(list).val(val);
-		});
-	}
-	if (events.getEvent(this, 'watch', 'option.advanced')
-	 || events.getEvent(this, 'watch', 'option.debug')
-	 || events.getEvent(this, 'watch', 'option.exploit')) {
-		for (i in Workers) {
-			if (Workers[i].settings.advanced || Workers[i].settings.debug || Workers[i].settings.exploit) {
-				$('#'+Workers[i].id).css('display', ((!Workers[i].settings.advanced || this.option.advanced) && (!Workers[i].settings.debug || this.option.debug) && (!Workers[i].settings.exploit || this.option.exploit)) ? '' : 'none');
-			}
-		}
-	}
-	for (event=events.findEvent(null, 'watch'); event; event=events.findEvent()) {
-		worker = event.worker;
-		if (event.id === 'option._config') {
-			if (event.path === 'option._config._show') { // Fold / unfold a config panel
-				i = worker.get(event.path, false) && 0;
-				id = worker.id;
-			} else { // Fold / unfold a group panel
-				i = worker.get(event.path, false) || 0;
-				id = worker.id + '_' + event.path.slice('option._config.'.length);
-			}
-			if (i !== $('#' + id).accordion('option','active')) {
-				$('#' + id).accordion('activate', i);
-			}
-		} else if (event.id === 'option._sleep') { // Show the ZZZ icon
-//			log(LOG_LOG, worker.name + ' going to sleep...');
-			$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden');
-		} else if (event.id) { // Some option changed, so make sure we show that
-			id = event.id.slice('option.'.length);
-			if (id && id.length && ($el = $('#'+this.makeID(worker, id))).length === 1) {
-				if ($el.attr('type') === 'checkbox') {
-					$el.prop('checked', worker.get(event.id, false));
-				} else if ($el.attr('multiple')) {
-					$el.empty();
-					worker.get(event.id, [], isArray).forEach(function(val){
-						$el.append('<option>'+val+'</option>');
-					});
-				} else if ($el.attr('value')) {
-					$el.prop('value', worker.get(event.id));
+		} else if (isEvent(evt, null, 'watch')) {
+			worker = evt.worker;
+			if ((k = evt.id) === 'option._config') {
+				i = evt.path.slice(k.length + 1);
+				if (i === '_show') {
+					// Fold / unfold a config panel
+					id = worker.id;
+					value = 0;
 				} else {
-					$el.val(worker.get(event.id));
+					// Fold / unfold a group panel
+					id = worker.id + '_' + i;
+					value = worker.get(evt.path) || 0;
+				}
+				if (value !== $('#'+id).accordion('option','active')) {
+					$('#'+id).accordion('activate', value);
+				}
+			} else if (k === 'option._sleep') {
+				// Show the ZZZ icon
+//				log(LOG_LOG, worker.name + ' going to sleep...');
+				$('#golem_sleep_' + worker.name).toggleClass('ui-helper-hidden', !worker.get(['option','_sleep']));
+			} else if (k === 'data') {
+				// Some option changed, so make sure we show that
+				id = evt.path.slice(k.length + 1);
+				if (id && !handled[id]) {
+					handled[id] = true;
+					list = this.data[id];
+					k = [];
+					if (isArray(list)) {
+						for (i = 0; i < list.length; i++) {
+							k.push('<option value="'+list[i]+'">' + list[i] + '</option>');
+						}
+					} else if (isObject(list)) {
+						for (i in list) {
+							k.push('<option value="'+i+'">' + list[i] + '</option>');
+						}
+					}
+					list = k.join('');
+					tmp = $('.golem_'+id);
+					for (i = 0; i < tmp.length; i++) {
+						k = ($(tmp[i]).attr('id') || '').regex(/^golem\d+_([^_]+)_(.+)$/);
+						worker = Worker.find(k[0]);
+						value = worker ? worker.get(['option',k[1]]) : $(tmp[i]).val();
+						$(tmp[i]).html(list).val(value);
+					}
 				}
 			}
 		}
 	}
+
+	if (show) {
+		if (this.option.display) {
+			$('#golem_config').show();
+		}
+		// make sure everything is created before showing
+		// (css sometimes takes another second to load though)
+		$('#golem_config_frame').removeClass('ui-helper-hidden');
+	}
+
 	this.checkRequire();
+
 	return true;
 };
 
@@ -3439,7 +3653,7 @@ Config.addButton = function(options) {
 	if (options.click) {
 		html.click(options.click);
 	}
-}
+};
 
 /** @this {Worker} */
 Config.makeTooltip = function(title, content) {
@@ -3497,7 +3711,9 @@ Config.makeWindow = function() {  // Make use of the Facebook CSS for width etc 
 			$('#golem_config').toggle('blind'); //Config.option.fixed?null:
 		}
 	});
-	for (i in Workers) { // Propagate all before and after settings
+
+	// Propagate all before and after settings
+	for (i in Workers) {
 		if (Workers[i].settings.before) {
 			for (j=0; j<Workers[i].settings.before.length; j++) {
 				k = Worker.find(Workers[i].settings.before[j]);
@@ -3667,14 +3883,13 @@ Config.makeOptions = function(worker, args) {
 
 /** @this {Worker} */
 Config.makeOption = function(worker, args) {
-	var i, j, o, r, step, $option, tmp, name, txt = [], list = [];
+	var i, j, o, r, v, step, $option, tmp, name, txt = [], list = [];
 	o = $.extend({}, {
 		before: '',
 		after: '',
 		suffix: '',
 		className: '',
 		between: 'to',
-		size: 18,
 		min: 0,
 		max: 100,
 		real_id: ''
@@ -3740,48 +3955,60 @@ Config.makeOption = function(worker, args) {
 				txt.push(o.info);
 			}
 		} else if (o.text) {
-			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + o.size + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 18) + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
 		} else if (o.number) {
-			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="6"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
+			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 6) + '"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
 		} else if (o.textarea) {
-			txt.push('<textarea' + o.real_id + ' cols="38" rows="5"' + (o.id ? '' : ' disabled') + ' style="margin-left:0;margin-right:0;" placeholder="Type here...">' + (o.value || '') + '</textarea>');
+			txt.push('<textarea' + o.real_id + ' cols="' + (o.cols || 20) + '" rows="' + (o.rows || 5) + '"' + (o.id ? '' : ' disabled') + ' style="float:right;margin-left:0;margin-right:0;' + (o.resize ? 'resize:'+o.resize+';' : '') + '" placeholder="Type here...">');
+			txt.push(o.value || '');
+			txt.push('</textarea>');
 		} else if (o.checkbox) {
 			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
 		} else if (o.button) {
 			txt.push('<input type="button"' + o.real_id + ' value="' + o.label + '">');
 		} else if (o.select) {
-			if (typeof o.select === 'function') {
-				o.select = o.select.call(worker, o.id);
+			v = isFunction(o.select) ? o.select.call(worker, o.id) : o.select;
+			if (isString(v)) {
+				o.className = ' class="golem_'+v+'"';
+				i = this.get(['data',v]);
+				if (isObject(i) || isArray(i) || isNumber(i)) {
+					this._watch(this, 'data.'+v); // set up a watch on the data
+					v = i;
+				}
 			}
-			switch (typeof o.select) {
-				case 'number':
-					step = Divisor(o.select);
-					for (i=0; i<=o.select; i+=step) {
-						list.push('<option' + (o.value==i ? ' selected' : '') + '>' + i + '</option>');
-					}
-					break;
-				case 'string':
-					o.className = ' class="golem_'+o.select+'"';
-					if (this.data && this.data[o.select] && (typeof this.data[o.select] === 'array' || typeof this.data[o.select] === 'object')) {
-						o.select = this.data[o.select];
-					} else {
-						break;
-					} // deliberate fallthrough
-				case 'array':
-				case 'object':
-					if (isArray(o.select)) {
-						for (i=0; i<o.select.length; i++) {
-							list.push('<option value="' + o.select[i] + '"' + (o.value==o.select[i] ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-						}
-					} else {
-						for (i in o.select) {
-							list.push('<option value="' + i + '"' + (o.value==i ? ' selected' : '') + '>' + o.select[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-						}
-					}
-					break;
+			if (isObject(v)) {
+				for (i in v) {
+					/*jslint eqeqeq:false*/
+					list.push('<option value="'+i+'"' + (o.value==i ? ' selected' : '') + '>' + v[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					/*jslint eqeqeq:true*/
+				}
+			} else if (isArray(v)) {
+				for (i = 0; i < v.length; i++) {
+					/*jslint eqeqeq:false*/
+					list.push('<option value="'+v[i]+'"' + (o.value==v[i] ? ' selected' : '') + '>' + v[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					/*jslint eqeqeq:true*/
+				}
+			} else if (isNumber(v)) {
+				step = Divisor(v);
+				for (i = 0; i <= v; i += step) {
+					/*jslint eqeqeq:false*/
+					list.push('<option value="'+i+'"' + (o.value==i ? ' selected' : '') + '>' + i + (o.suffix ? ' '+o.suffix : '')+ '</option>');
+					/*jslint eqeqeq:true*/
+				}
 			}
 			txt.push('<select' + o.real_id + o.className + o.alt + '>' + list.join('') + '</select>');
 		} else if (o.multiple) {
+			v = isFunction(o.multiple) ? o.multiple.call(worker, o.id) : o.multiple;
+			if (isString(v)) {
+				o.className = ' class="golem_'+v+'"';
+				i = this.get(['data',v]);
+				if (isObject(i) || isArray(i) || isNumber(i)) {
+					this._watch(this, 'data.'+v); // set up a watch on the data
+					v = i;
+				}
+			}
+
+			// prepare the "selected" set
 			if (isArray(o.value)) {
 				for (i = 0; i < o.value.length; i++) {
 					list.push('<option>'+o.value[i]+'</option>');
@@ -3792,33 +4019,30 @@ Config.makeOption = function(worker, args) {
 				}
 			}
 			txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
-			if (typeof o.multiple === 'string') {
-				txt.push('<input class="golem_select" type="text" size="' + o.size + '">');
+
+			// prepare the selection list
+			if (isString(v)) {
+				txt.push('<input class="golem_select" type="text" size="' + (o.cols || o.size || 18) + '">');
 			} else {
 				list = [];
-				switch (typeof o.multiple) {
-					case 'number':
-						step = Divisor(o.select);
-						for (i=0; i<=o.multiple; i+=step) {
-							list.push('<option>' + i + '</option>');
+				if (isObject(v)) {
+					for (i in v) {
+						list.push('<option value="'+i+'">' + v[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
 						}
-						break;
-					case 'array':
-					case 'object':
-						if (isArray(o.multiple)) {
-							for (i=0; i<o.multiple.length; i++) {
-								list.push('<option value="' + o.multiple[i] + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-						} else {
-							for (i in o.multiple) {
-								list.push('<option value="' + i + '">' + o.multiple[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
-							}
-						}
-						break;
+				} else if (isArray(v)) {
+					for (i = 0; i < v.length; i++) {
+						list.push('<option value="'+v[i]+'">' + v[i] + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					}
+				} else if (isNumber(v)) {
+					step = Divisor(v);
+					for (i = 0; i <= v; i += step) {
+						list.push('<option value="'+i+'">' + i + (o.suffix ? ' '+o.suffix : '') + '</option>');
+					}
 				}
-				txt.push('<select class="golem_select">'+list.join('')+'</select>');
+				txt.push('<select class="golem_select">' + list.join('') + '</select>');
 			}
-			txt.push('<input type="button" class="golem_addselect" value="Add" /><input type="button" class="golem_delselect" value="Del" />');
+			txt.push('<input type="button" class="golem_addselect" value="Add" />');
+			txt.push('<input type="button" class="golem_delselect" value="Del" />');
 		}
 		if (o.after) {
 			txt.push(' '+o.after);
@@ -3845,7 +4069,7 @@ Config.makeOption = function(worker, args) {
 					$option.addClass('purple').css({border:'1px solid red'});
 				}
 				if (o.require) {
-					r.require.x = new Script(o.require, {'default':worker.name + '.option'});
+					r.require.x = new Script(o.require, {'default':worker.get('option')});
 				}
 				this.temp.require.push(r.require);
 				$option.attr('id', 'golem_require_'+(this.temp.require.length-1)).css('display', this.checkRequire(this.temp.require.length - 1) ? '' : 'none');
@@ -3869,17 +4093,13 @@ Config.checkRequire = function(id) {
 		}
 		return;
 	}
-	if (require.advanced) {
-		show = Config.option.advanced;
-	}
-	if (require.debug) {
-		show = Config.option.debug;
-	}
-	if (show && require.exploit) {
-		show = Config.option.exploit;
-	}
-	if (show && require.x) {
-		show = require.x.run();
+	if ((require.advanced && !Config.option.advanced)
+	  || (require.debug && !Config.option.debug)
+	  || (require.exploit && !Config.option.exploit)
+	  || (require.x && !require.x.run())
+	) {
+		//log(LOG_DEBUG, '# '+id+': ' + JSON.shallow(require,3));
+		show = false;
 	}
 	if (require.show !== show) {
 		require.show = show;
@@ -3890,12 +4110,11 @@ Config.checkRequire = function(id) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Config,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
@@ -3940,7 +4159,7 @@ Dashboard.init = function(old_revision) {
 			if (hide) {
 				this.set(['option','active'], this.name);
 			} else {
-				selected = j
+				selected = j;
 			}
 		}
 		tabs.push('<li class="' + (hide ? 'ui-helper-hidden' : '') + (Workers[i].settings.advanced ? ' red' : Workers[i].settings.debug ? ' blue' : '') + '"><a href="#golem-dashboard-' + i + '">' + (i===this.name ? '&nbsp;*&nbsp;' : i) + '</a></li>');
@@ -4036,13 +4255,28 @@ Dashboard.update = function(event, events) {
 
 /** @this {Worker} */
 Dashboard.dashboard = function() {
-	var i, list = [];
+	var i, j, s, list = [];
+
 	for (i in this.data) {
-		if (!Workers[i]._get(['option','_hide_status'], false)) {
-			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
+		if (Workers[i]) {
+			j = Workers[i]._get(['option','_hide_status'], 2, 'number');
+		} else {
+			j = null;
+		}
+		s = this.data[i];
+		if (j === 1 && !s) {
+			s = '<i>Nothing to do.</i>';
+		}
+		if ((j === 2 || j === true) && s && /\bNothing to do\b/i.test(s)) {
+			s = null;
+		}
+		if (j && s) {
+			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + s + '</td></tr>');
 		}
 	}
+
 	list.sort(); // Ok with plain text as first thing that can change is name
+
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
@@ -4050,27 +4284,53 @@ Dashboard.dashboard = function() {
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
-		this.set(['data', w.name], value);
+		this.set(['data', w.name], value ? value : null);
 	}
 };
 
 /** @this {Worker} */
 Dashboard.menu = function(worker, key) {
+	var i, keys;
+
 	if (worker) {
 		this._unflush();
 		if (!key) {
-			var keys = [];
+			keys = [];
 			if (this.data[worker.name]) {
 				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
 			}
-			if (worker.dashboard) {
+			if (isFunction(worker.dashboard)) {
 				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+			}
+			if (this.data.hasOwnProperty(worker.name)
+			  || this.get(['temp','status',worker.name])
+			) {
+				i = worker.get(['option','_hide_status'], 2, 'number');
+				if (i === true) { i = 2; }
+				if (i !== 1 && i !== 2) { i = 0; }
+				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide&nbsp;Status');
+				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show&nbsp;Status');
+				keys.push('status2:' + (i === 2 ? '=' : '') + 'Viable&nbsp;Status');
 			}
 			return keys;
 		} else {
 			switch (key) {
-				case 'status':		worker.set(['option','_hide_status'], worker.option._hide_status ? undefined : true);	break;
-				case 'dashboard':	worker.set(['option','_hide_dashboard'], worker.option._hide_dashboard ? undefined : true);	break;
+			case 'status0':
+				worker.set(['option','_hide_status'], 0);
+				break;
+			case 'status1':
+				worker.set(['option','_hide_status'], 1);
+				break;
+			case 'status2':
+				worker.set(['option','_hide_status'], 2);
+				break;
+			case 'dashboard':
+				if (worker.get('option._hide_dashboard')) {
+					worker.set(['option','_hide_dashboard']);
+				} else {
+					worker.set(['option','_hide_dashboard'], true);
+				}
+				break;
 			}
 			this._notify('data');
 		}
@@ -4079,12 +4339,13 @@ Dashboard.menu = function(worker, key) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player, Config,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
-	makeImage
+	$, Workers, Worker, Config,
+	APP, APPID, PREFIX, userID, imagepath, script_started,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG,
+	error:true, warn:true, log:true,
+	isArray, isBoolean, isError, isFunction, isNumber, isObject, isString, isUndefined, isWorker,
+	length, tr, th, td, getImage
 */
 /********** Worker.Debug **********
 * Profiling information
@@ -4109,13 +4370,13 @@ Debug.option = {
 	trace:4,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
 	logexception:LOG_ERROR, // Default when it's an exception
-	loglevel:LOG_INFO, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
+	loglevel:LOG_LOG, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
 	logs:{
-		0:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:false,	stack:false,	prefix:''	},
-		1:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
-		2:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false,	prefix:''	},
-		3:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
-		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
+		0:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true,	prefix:''	},
+		1:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false,	prefix:''	},
+		2:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		3:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		5:{ /* LOG_USER1 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		6:{ /* LOG_USER2 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		7:{ /* LOG_USER3 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
@@ -4165,7 +4426,18 @@ Debug.display = [
 			},{
 				id:'trace',
 				label:'Tracing',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'}
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				}
 			}
 		]
 	},{
@@ -4174,16 +4446,38 @@ Debug.display = [
 			{
 				id:'logdef',
 				label:'Default log',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				},
 				help:'This is for log() lines that do not have an exception or LOG_* as the first argument'
 			},{
 				id:'logexception',
 				label:'Default exception',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				},
 				help:'This is for log() lines that have an exception as the first argument'
 			},{
 				group:function() {
-					var i, options = [], levels = ['Info', 'Log', 'Warn', 'Error', 'Debug', 'User1', 'User2', 'User3', 'User4', 'User5'];
+					var i, options = [], levels = ['Error', 'Warn', 'Log', 'Info', 'Debug', 'User1', 'User2', 'User3', 'User4', 'User5'];
 					for (i=0; i<levels.length; i++) {
 						options.push({
 							title:i + ': ' + levels[i],
@@ -4191,11 +4485,26 @@ Debug.display = [
 								{
 									id:'logs.'+i+'.display',
 									label:'Display',
-									select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
+									select:{
+										'-':'Disabled',
+										'error':'console.error()',
+										'warn':'console.warn()',
+										'log':'console.log()',
+										'info':'console.info()',
+										'debug':'console.debug()'
+									}
 								},{
 									id:'logs.'+i+'.date',
 									label:'Timestamp',
-									select:{'-':'None', 'G:i':'13:24', 'G:i:s':'13:24:56', 'G:i:s.u':'13:24:56.001', 'D G:i':'Mon 13:24', 'D G:i:s':'Mon 13:24:56', 'D G:i:s.u':'Mon 13:24:56.001'}
+									select:{
+										'-':'None',
+										'G:i':'13:24',
+										'G:i:s':'13:24:56',
+										'G:i:s.u':'13:24:56.001',
+										'D G:i':'Mon 13:24',
+										'D G:i:s':'Mon 13:24:56',
+										'D G:i:s.u':'Mon 13:24:56.001'
+									}
 								},{
 									id:'logs.'+i+'.prefix',
 									label:'Prefix',
@@ -4226,8 +4535,8 @@ Debug.display = [
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 
 /** @this {Worker} */
-Debug.setup = function(old_revision) {
-	var i, j, p, wkr, fn;
+Debug.setup = function(old_revision, fresh) {
+	var i, j, o, p, wkr, fn;
 	// BEGIN Change of log options
 	if (old_revision <= 1111 && this.option.log) {
 		this.set(['option','logs','0','display'], this.get(['option','log','0'], 'info'));
@@ -4246,6 +4555,34 @@ Debug.setup = function(old_revision) {
 	}
 	if (old_revision <= 1112 && isBoolean(this.option.trace)) {
 		this.set(['option','trace'], this.option.trace ? LOG_DEBUG : LOG_LOG);
+	}
+	// reverse order of info/log/warn/error to error/warn/log/info
+	if (old_revision <= 1164 && !fresh) {
+		o = {0:'error', 1:'warn', 2:'log', 3:'info'};
+		p = {};
+		for (i = 0; i <= 3; i++) {
+			p[i] = $.extend({}, this.get(['option','logs',i]));
+		}
+		for (i = 0; i <= 3; i++) {
+			if (isObject(p[3 - i]) && length(p[3-i])) {
+				log('# option.logs.'+i+' = p['+(3-i)+']');
+				this.set(['option','logs',i], p[3-i]);
+				//log('# option.logs.'+i+'.display = '+o[i]);
+				//this.set(['option','logs',i,'display'], o[i]);
+			}
+		}
+		if (isNumber(i = this.get(j = 'option.logdef', 1)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
+		if (isNumber(i = this.get(j = 'option.logexception', 3)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
+		if (isNumber(i = this.get(j = 'option.loglevel', 3)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
 	}
 	// END
 	// Go through every worker and replace their functions with a stub function
@@ -4303,8 +4640,10 @@ Debug.setup = function(old_revision) {
 	}
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global logging function for better log reporting
-	log = function(level, txt /*, obj, array etc*/){
-		var i, j, worker, name, line = '', level, tmp, stack, args = Array.prototype.slice.call(arguments), prefix = [], suffix = [], display = '-';
+	log = function(lvl, txt /*, obj, array etc*/){
+		var i, j, worker, name, line = '', level, tmp, stack,
+			args = Array.prototype.slice.call(arguments),
+			prefix = [], suffix = [], display = '-';
 		if (isNumber(args[0])) {
 			level = Math.range(0, args.shift(), 9);
 		} else if (isError(args[0])) {
@@ -4363,7 +4702,7 @@ GREASEMONKEY:
 					worker = Debug.stack[i][1];
 					name = Debug.stack[i][2].callee._name;
 					if (stack && browser === 'chrome') { // Chrome format stack trace
-						while (tmp = stack.shift()) {
+						while ((tmp = stack.shift())) {
 							if (tmp.indexOf('Worker.'+name+' ') >= 0 && tmp.indexOf(worker.toLowerCase()) >= 0) {
 								break;
 							}
@@ -4388,9 +4727,17 @@ GREASEMONKEY:
 			}
 			args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
 			try {
-				console[display] ? console[display].apply(console.firebug ? window : console, args) : console.log.apply(console.firebug ? window : console, args);
+				if (isFunction(console[display])) {
+					console[display].apply(console.firebug ? window : console, args);
+				} else {
+					console.log.apply(console.firebug ? window : console, args);
+				}
 			} catch(e) { // FF4 fix - doesn't like .apply
-				console[display] ? console[display](args) : console.log(args);
+				if (isFunction(console[display])) {
+					console[display](args);
+				} else {
+					console.log(args);
+				}
 			}
 		}
 	};
@@ -4398,10 +4745,10 @@ GREASEMONKEY:
 
 /** @this {Worker} */
 Debug.init = function(old_revision) {
-	var i, list = [];
+	var i, list = [], type;
 	// BEGIN: Change log message type from on/off to debug level
 	if (old_revision <= 1097) {
-		var type = ['info', 'log', 'warn', 'error', 'debug'];
+		type = ['info', 'log', 'warn', 'error', 'debug'];
 		for (i in this.option.log) {
 			if (this.option.log[i] === true) {
 				this.option.log[i] = type[i];
@@ -4455,10 +4802,10 @@ Debug.menu = function(worker, key) {
 		} else if (Config.option.advanced || Config.option.debug) {
 			var levels = [
 				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
-				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Info',
-				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Log',
-				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Warn',
-				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Error',
+				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Error',
+				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Warn',
+				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Log',
+				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Info',
 				'4:' + (this.option.loglevel === 4 ? '=' : '') + 'Debug'
 			];
 			if (Config.option.debug) {
@@ -4537,12 +4884,9 @@ Debug.dashboard = function(sort, rev) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser
 */
 /********** Worker.Global **********
 * Purely here for global options - save having too many system panels
@@ -4562,12 +4906,14 @@ Global.settings = {
 Global.display = [];
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History:true, Page, Queue, Resources, Land,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers,
+	Land, Player,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, warn,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	sum, tr, th, td
 */
 /********** Worker.History **********
 * History of anything we want.
@@ -4862,12 +5208,12 @@ History.makeGraph = function(type, title, options) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$:true, Worker, Army, Main:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome
+	$:true, Workers, Worker, Page,
+	APP:true, APPID:true, APPID_:true, APPNAME:true, PREFIX:true, userID:true, imagepath:true, isFacebook:true,
+	isRelease, version, revision, trunk_revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isRegExp, isString, isUndefined,
+	unsafeWindow, chrome, localStorage, confirm, empty
 */
 /********** Worker.Main **********
 * Initial kickstart of Golem.
@@ -4897,51 +5243,46 @@ Main.add = function(app, appid, appname, alt, fn) {
 };
 
 Main.page = function() {
+	var i, j, k, newpath, locs = [
+		'#app_content_'+APPID+' img:first',
+		'#iframe_canvas body img:first',
+		'body img:first'
+	];
+
 	try {
-		var newpath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart();
+		for (i = 0; i < locs.length; i++) {
+			if ((j = $(locs[i])).length) {
+				if (!isString(k = j.attr('src'))) {
+					log(LOG_WARN, '# bad selector.'+i+': ' + locs[i]
+					  + ' gives [' + JSON.shallow(j,2) + ']'
+					);
+				} else if ((newpath = k.pathpart()).length > 0) {
+					//log(LOG_DEBUG, '# page.newpath.'+i+' = ' + newpath);
+					break;
+				}
+			}
+		}
 		if (newpath) {
 			imagepath = newpath;
 		}
-	} catch(e) {}
+	} catch(e) {
+		log(e, e.name + ' in ' + this.name + '.page(): ' + e.message);
+	}
 };
 
-Main.update = function(event, events) { // Using events with multiple returns because any of them are before normal running and are to stop Golem...
-	var i, old_revision, head, a, b, tmp;
-	if (events.findEvent(null,null,'kickstart')) {
-		old_revision = parseInt(localStorage['golem.' + APP + '.revision'] || 1061, 10); // Added code to support Revision checking in 1062;
-		if (old_revision > revision) {
-			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
-				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
-				'This may result in errors or other unexpected actions!' + "\n\n" +
-				'Are you sure you want to use this earlier version?' + "\n" +
-				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
-				return true;
-			}
-			log(LOG_INFO, 'GameGolem: Reverting from r' + old_revision + ' to r' + revision);
-		} else if (old_revision < revision) {
-			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
+// Using events with multiple returns because any of them are before normal running and are to stop Golem...
+Main.update = function(event, events) {
+	var a, b, i, j, k, v, head, tmp, old_revision, fresh = false;
+
+	if (events.findEvent(null, 'startup')
+	  || events.findEvent(null, 'reminder', 'startup')
+	) {
+		// Stop us running twice if via Bookmarklet etc
+		if (document.getElementById('golem')) {
+			log(LOG_INFO, 'GameGolem: Already installed!');
+			return true;
 		}
-		tmp = $('#rightCol');
-		if (!tmp.length) {
-			log(LOG_INFO, 'GameGolem: Unable to find DOM parent, using <body> instead...');
-			tmp = $('body');
-		}
-		tmp.prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
-		for (i in Workers) {
-			Workers[i]._setup(old_revision);
-		}
-		for (i in Workers) {
-			Workers[i]._init(old_revision);
-		}
-		for (i in Workers) {
-			Workers[i]._update('init', 'run');
-		}
-		if (old_revision !== revision) {
-			localStorage['golem.' + APP + '.revision'] = revision;
-		}
-		$('#golem').css({'visibility':''});
-	}
-	if (events.findEvent(null,'startup')) {
+
 		// Let's get jQuery running
 		if (!$ || !$.support || !$.ui) {
 			if (!this._jQuery_) {
@@ -4962,11 +5303,7 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			}
 			$ = (unsafeWindow || window).jQuery.noConflict(true);
 		}
-		// Stop us running twice if via Bookmarklet etc
-		if ($('#golem').length) {
-			log(LOG_INFO, 'GameGolem: Already installed!');
-			return true;
-		}
+
 		// Identify Application
 		if (!APP) {
 			if (empty(this._apps_)) {
@@ -4995,43 +5332,134 @@ Main.update = function(event, events) { // Using events with multiple returns be
 				return true;
 			}
 		}
+
 		// Once we hit this point we have our APP and can start things rolling
 		try {
-			//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user); //$('script').text().regex(/user:(\d+),/i);
+			//userID = (unsafeWindow || window).presence && parseInt((unsafeWindow || window).presence.user);
 			if (!userID || !isNumber(userID)) {
-				userID = $('script').text().regex(/user:(\d+),/i);
+				userID = ($('script').text() || '').regex(/user:["']?(\d+)["']?[,}]/i);
 			}
-			if (!imagepath) {
+			if (!imagepath || !isString(imagepath)) {
 				imagepath = $('#app_content_'+APPID+' img:eq(0)').attr('src').pathpart(); // #'+APPID_+'app_body_container
 			}
 		} catch(e) {
 			if (Main._retry_++ < 5) {// Try 5 times before we give up...
-				log(LOG_INFO, 'GameGolem: Unable to start properly (' + Main._retry_ + '/5)...');
+				log(LOG_WARN, 'GameGolem: Unable to start properly (' + Main._retry_ + '/5)...'
+				  + e.name + ' in ' + this.name + '.update(): ' + e.message
+				);
 				this._remind(1, 'startup');
 				return true;
 			}
 		}
-		if (!userID || !imagepath || !isNumber(userID)) {
-			log(LOG_INFO, 'ERROR: Bad Page Load!!!');
+
+		if (!userID || !imagepath || !isNumber(userID) || !isString(imagepath)) {
+			log(LOG_WARN, 'ERROR: Bad Page Load!!!');
 			window.setTimeout(Page.reload, 5000); // Force reload without retrying
 			return true;
 		}
+
+		// -----------------------------------------------------------
+		// if we got here, we have an app, a userid, so we are set
+		// -----------------------------------------------------------
+
+		Main.scheme = window.location.protocol + '//';
+		Main.domain = window.location.hostname;
+		Main.path = window.location.pathname.pathpart();
+
 		// jQuery selector extensions
-		$.expr[':'].css = function(obj, index, meta, stack) { // $('div:css(width=740)')
-			var args = meta[3].regex(/([\w-]+)\s*([<>=]+)\s*(\d+)/), value = parseFloat($(obj).css(args[0]));
-			switch(args[1]) {
-				case '<':	return value < args[2];
-				case '<=':	return value <= args[2];
-				case '>':	return value > args[2];
-				case '>=':	return value >= args[2];
-				case '=':
-				case '==':	return value === args[2];
-				case '!=':	return value !== args[2];
-				default:
-					log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
-					return false;
+
+		// $('div:css(width=740)')
+		$.expr[':'].css = function(obj, index, meta, stack) {
+			var args, value;
+			if (isString(meta[3])) {
+				if ((args = meta[3].regex(/^\s*([-\w]+)\s*([!<>=]+)\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*$/))) {
+					value = parseFloat($(obj).css(args[0]));
+					switch (args[1]) {
+					case '<':	return value < args[2];
+					case '<=':	return value <= args[2];
+					case '>':	return value > args[2];
+					case '>=':	return value >= args[2];
+					case '=':
+					case '==':	return value === args[2];
+					case '!=':	return value !== args[2];
+					default:
+						log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
+						return false;
+					}
+				} else if ((args = meta[3].regex(/^\s*([-\w]+)\s*([!<>=]+)\s*(.*)$/))) {
+					value = $(obj).css(args[0]);
+					switch (args[1]) {
+					case '<':	return value < args[2];
+					case '<=':	return value <= args[2];
+					case '>':	return value > args[2];
+					case '>=':	return value >= args[2];
+					case '=':
+					case '==':	return value === args[2];
+					case '!=':	return value !== args[2];
+					default:
+						log(LOG_ERROR, 'Bad jQuery selector: $:css(' + args[0] + ' ' + args[1] + ' ' + args[2] + ')');
+						return false;
+					}
+				}
 			}
 		};
+
+		$.expr[':'].colour = function(obj, index, meta, stack) {
+			var c1, c2, x,
+				colors = {
+					black:'#000000',
+					white:'#ffffff'
+				};
+			if (isString(meta[3])) {
+				c1 = $(obj).css('color').trim();
+				c2 = meta[3].trim();
+
+				// rgb, #, name
+				if ((x = c1.replace(/\s+/gm, '').regex(/^rgb\((\d+),(\d+),(\d+)\)$/i))) {
+					c1 = '#';
+					c1 += Math.range(0, x[0], 255).hex(2);
+					c1 += Math.range(0, x[1], 255).hex(2);
+					c1 += Math.range(0, x[2], 255).hex(2);
+				} else if ((x = c1.match(/^#([0-9a-fA-F]+)$/))) {
+					c1 = '#';
+					if (x[1].length < 6) {
+						c1 += '00000'.substr(6 - x[1].length);
+					}
+					c1 += x[1].toLowerCase();
+				} else if ((x = colors[c1.innerTrim().toLowerCase()])) {
+					c1 = x;
+				} else {
+					log(LOG_ERROR, 'Bad jQuery selector: $:colour.1(' + c1 + ')');
+					return false;
+				}
+
+				// rgb, #, name
+				if ((x = c2.replace(/\s+/gm, '').regex(/^rgb\((\d+),(\d+),(\d+)\)$/i))) {
+					c2 = '#';
+					c2 += Math.range(0, x[0], 255).hex(2);
+					c2 += Math.range(0, x[1], 255).hex(2);
+					c2 += Math.range(0, x[2], 255).hex(2);
+				} else if ((x = c2.match(/^#([0-9a-fA-F]+)$/))) {
+					c2 = '#';
+					if (x[1].length < 6) {
+						c2 += '00000'.substr(6 - x[1].length);
+					}
+					c2 += x[1].toLowerCase();
+				} else if ((x = colors[c2.innerTrim().toLowerCase()])) {
+					c2 = x;
+				} else {
+					log(LOG_ERROR, 'Bad jQuery selector: $:colour.2(' + c2.innerTrim() + ')');
+					return false;
+				}
+
+				//log(LOG_INFO, '# color c1['+c1+'] c2['+c2+']');
+				return c1 === c2;
+			} else {
+				log(LOG_ERROR, 'Bad jQuery selector: $:colour(' + JSON.shallow(meta) + ')');
+				return false;
+			}
+		};
+
 		$.expr[':'].golem = function(obj, index, meta, stack) { // $('input:golem(worker,id)') - selects correct id
 			var args = meta[3].toLowerCase().split(',');
 			return $(obj).attr('id') === PREFIX + args[0].trim().replace(/[^0-9a-z]/g,'-') + '_' + args[1].trim();
@@ -5039,10 +5467,11 @@ Main.update = function(event, events) { // Using events with multiple returns be
 		$.expr[':'].regex = function(obj, index, meta, stack) { // $('div:regex(^\stest\s$)') - selects if the text() matches this
 			var ac = arguments.callee, rx = ac['_'+meta[3]]; // Cache the regex - it's quite expensive to construct
 			if (!rx) {
-				rx = ac['_'+meta[3]] = new RegExp(meta[3],'i');
+				rx = ac['_'+meta[3]] = new RegExp(meta[3], 'im');
 			}
 			return rx.test($(obj).text());
 		};
+
 		// jQuery extra functions
 		$.fn.autoSize = function() {
 			function autoSize(e) {
@@ -5067,18 +5496,100 @@ Main.update = function(event, events) { // Using events with multiple returns be
 			});
 			return this;
 		};
+
 		$.fn.selected = function() {
 			return $(this).filter(function(){return this.selected;});
 		};
+
 		// Now we're rolling
 		if (browser === 'chrome' && chrome && chrome.extension && chrome.extension.getURL) {
 			$('head').append('<link href="' + chrome.extension.getURL('golem.css') + '" rel="stylesheet" type="text/css">');
 		} else {
-			$('head').append('<link href="http://rycochet.net/themes/default.css" rel="stylesheet" type="text/css">');
+			//$('head').append('<link href="http://rycochet.net/themes/default.css" rel="stylesheet" type="text/css">');
+			$('head').append('<link href="http://game-golem.googlecode.com/svn-history/r'+trunk_revision+'/trunk/golem.css" rel="stylesheet" type="text/css">');
 		}
 		this._remind(0.1, 'kickstart'); // Give a (tiny) delay for CSS files to finish loading etc
 	}
-//	return true;
+
+	if (events.findEvent(null, 'reminder', 'kickstart')) {
+		old_revision = parseInt(localStorage['golem.' + APP + '.revision'], 10);
+		if (!old_revision) {
+			log(LOG_INFO, 'GameGolem: Fresh install of ' + APPNAME + ' r' + revision);
+			fresh = true;
+			// Added code to support Revision checking in 1062
+			old_revision = 1061;
+		} else if (old_revision > revision) {
+			if (!confirm('GAME-GOLEM WARNING!!!' + "\n\n" +
+				'You have reverted to an earlier version of GameGolem!' + "\n\n" +
+				'This may result in errors or other unexpected actions!' + "\n\n" +
+				'Are you sure you want to use this earlier version?' + "\n" +
+				'(selecting "Cancel" will prevent Golem from running and preserve your current data)')) {
+				return true;
+			}
+			log(LOG_INFO, 'GameGolem: Reverting from r' + old_revision + ' to r' + revision);
+		} else if (old_revision < revision) {
+			log(LOG_INFO, 'GameGolem: Updating ' + APPNAME + ' from r' + old_revision + ' to r' + revision);
+		}
+		tmp = $('#rightCol');
+		if (!tmp.length) {
+			log(LOG_INFO, 'GameGolem: Unable to find DOM parent, using <body> instead...');
+			tmp = $('body');
+		}
+		tmp.prepend('<div id="golem" style="visibility:hidden;"></div>'); // Set the theme from Theme.update('init')
+
+		for (i in Workers) {
+			Workers[i]._setup(old_revision, fresh);
+		}
+		for (i in Workers) {
+			Workers[i]._init(old_revision, fresh);
+		}
+		for (i in Workers) {
+			Workers[i]._update('init', 'run');
+		}
+		if (old_revision !== revision) {
+			localStorage['golem.' + APP + '.revision'] = revision;
+		}
+
+		try {
+		k = 0;
+		for (i = 0; i < localStorage.length; i++) {
+			j = localStorage.key(i);
+			if (isString(j)) {
+				k += j.length * 2 + 16;
+				if (isString(v = localStorage[j])) {
+					k += v.length * 2;
+					if (!/^golem\./i.test(j)) {
+						//log(LOG_INFO, '# ls.'+i+'[' + j + '] = ' + v.length + ':[' + v + ']');
+					}
+				} else {
+					//log(LOG_INFO, '# ls.'+i+'[' + j + '] = (type ' + (typeof v) + ')');
+				}
+			} else {
+				//log(LOG_INFO, '# ls.'+i+'[' + JSON.shallow(j) + '] : (type ' + (typeof j) + ')');
+			}
+		}
+		log(LOG_INFO, 'GameGolem: localStorage at ' + k.addCommas() + '/5,242,880 (' + (k / 52428.8).SI() + '%)');
+		} catch (e2) {
+			log(e2, e2.name + ' in Main startup: ' + e2.message);
+		}
+
+		$('#golem').css({'visibility':''});
+	}
+
+	return true;
+};
+
+Main.shutdown = function() {
+	var i;
+
+	if (!isUndefined(i = Worker.flush._timer)) {
+		window.clearInterval(i);
+		delete Worker.flush._timer;
+	}
+
+	for (i in Workers) {
+		Workers[i]._forgetAll(); 
+	}
 };
 
 if (!Main.loaded) { // Prevent double-start
@@ -5089,12 +5600,11 @@ if (!Main.loaded) { // Prevent double-start
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$:true, Worker, Army, Menu:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome
+	$, Worker, Workers, Config, Theme,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	getImage
 */
 /********** Worker.Menu **********
 * Handles menu creation and selection for Config
@@ -5111,14 +5621,26 @@ Menu.init = function() {
 	Config._init(); // We patch into the output of Config.init so it must finish first
 	$('<span class="ui-icon golem-menu-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '"></span>')
 		.click(function(event) {
-			var i, j, k, keys, hr = false, html = '', $this = $(this.wrappedJSObject || this), worker = Worker.find($this.closest('div').attr('name')), name = worker ? worker.name : '';
+			var i, j, k, w, keys, ord, hr = false, html = '',
+				$this = $(this.wrappedJSObject || this),
+				worker = Worker.find($this.closest('div').attr('name')),
+				name = worker ? worker.name : '';
 			if (Config.get(['temp','menu']) !== name) {
 				Config.set(['temp','menu'], name);
+				ord = [];
+				ord.push('Queue');
+				ord.push('Dashboard');
 				for (i in Workers) {
-					if (Workers[i].menu) {
+					if (!ord.find(i)) {
+						ord.push(i);
+					}
+				}
+				for (i = 0; i < ord.length; i++) {
+					w = ord[i];
+					if (isFunction(Workers[w].menu)) {
 						hr = true;
-						Workers[i]._unflush();
-						keys = Workers[i].menu(worker) || [];
+						Workers[w]._unflush();
+						keys = Workers[w].menu(worker) || [];
 						for (j=0; j<keys.length; j++) {
 							k = keys[j].regex(/([^:]*):?(.*)/);
 							if (k[0] === '---') {
@@ -5129,13 +5651,13 @@ Menu.init = function() {
 									hr = false;
 								}
 								switch (k[1].charAt(0)) {
-									case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-									case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-									case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-									case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
-									default:	break;
+								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
+								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
+								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
+								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								default:	break;
 								}
-								html += '<div name="' + i + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
+								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
 							}
 						}
 					}
@@ -5159,12 +5681,13 @@ Menu.init = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Global,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	log, warn, error
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	makeTimer
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -5292,7 +5815,7 @@ Page.update = function(event, events) {
 			if (time <= -604800) { // Delete old timers 1 week after "now?"
 				this.set(['runtime','timers',i]);
 			} else {
-				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?')
+				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?');
 			}
 		}
 	}
@@ -5313,7 +5836,7 @@ Page.update = function(event, events) {
 		}
 		// NOTE: Need a better function to identify pages, this lot is bad for CPU
 		this.temp.page = '';
-		$('img', $('#'+APPID_+'app_body')).each(function(i,el){
+		$('img', $('#'+APPID_+'app_body')).each(function(a,el){
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
 				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {
@@ -5566,11 +6089,12 @@ Page.isStale = function(page, when) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Config, Dashboard, Global, Page, Resources, Session, Title, Theme,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	getImage
 */
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
@@ -5598,7 +6122,33 @@ Queue.temp = {
 };
 
 Queue.option = {
-	queue: ['Global', 'Debug', 'Resources', 'Generals', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Guild', 'Festival', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle', 'FP'], // Must match worker names exactly - even by case
+	queue: [
+	    'Global',
+	    'Debug',
+	    'Resources',
+	    'Generals',
+	    'Income',		// comes first because it has a small window of success
+	    'LevelUp',
+	    'Heal',			// heal above health dependant workers
+	    'Blessing',		// blessing above upgrade to give those priority
+	    'Upgrade',
+	    'Potions',		// potions used above any resource dependant workers
+	    //'Arena',		// when in service should likely be above festival
+	    'Festival',		// festival above guild to focus more on it
+	    'Guild',
+	    'Elite',		// elite above monster/quest/battle for guard advantage
+	    'Monster',
+	    'Quest',
+	    'Battle',
+	    'Land',			// land above town so land buy/sell happens first
+	    'Alchemy',		// alchemy above town so we don't buy things we can make
+	    'Town',
+	    'Bank',
+	    'Gift',			// only partially effective on web3, and sometimes slow
+	    'Army',			// sometimes slow
+	    'Idle',
+	    'FP'			// high risk worker, must be manually pulled above idle
+	], // Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	pause: false
@@ -5822,12 +6372,12 @@ Queue.updateDisplay = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isUndefined
 */
 /********** Worker.Resources **********
 * Store and report Resources
@@ -5978,7 +6528,7 @@ Resources.add = function(type, amount, absolute) {
 			// Store the new value
 			this.set(['runtime','types',type], this.runtime.types[type] + amount);
 			// Now fill any pots...
-			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type]));
+			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type], 10));
 			if (amount > 0 && this.option.types[type] === 2) {
 				for (worker in this.option.buckets) {
 					if (type in this.option.buckets[worker]) {
@@ -6036,8 +6586,16 @@ Resources.has = function(type, amount) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global console, isString, isArray, isNumber, isUndefined, Workers, Worker, Settings, $ */
-
+/*global
+	$, Worker, Workers, Script, Settings,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	isArray, isFunction, isNumber, isObject, isString, isUndefined
+*/
+/********** Worker.Scripting **********
+*/
 var Scripting = new Worker('Script'); // The one and only time we're using the wrong name - BAD!!!
 Scripting.data = Scripting.temp = Scripting.runtime = null;
 
@@ -6106,12 +6664,13 @@ Scripting.dashboard = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Global, Queue, Title,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	sessionStorage
 */
 /********** Worker.Session **********
 * Deals with multiple Tabs/Windows being open at the same time...
@@ -6199,7 +6758,7 @@ Session.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green');
 			Session._set(['data','_active'], null);
 			Session._set(['temp','active'], false);
-		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - option.timeout) {
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Session.option.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			Queue.set(['temp','current']);
 			Session._set(['data','_active'], Session.temp._id);
@@ -6265,7 +6824,7 @@ Session.updateTimestamps = function() {
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
 Session.update = function(event, events) {
-	var i, l, now = Date.now(), unload;
+	var now = Date.now(), i, l, unload;
 	if (events.findEvent(this,'reminder') || (unload = events.findEvent(this,'unload'))) {
 		this._load('data');
 		if (unload) {
@@ -6311,19 +6870,20 @@ Session.update = function(event, events) {
 			this.updateTimestamps();
 			$('#golem_session').show();
 		}
-		this._taint.data = true;
+		this._taint['data'] = now;
 		this._save('data');
 	}
 	return true;
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
-	GM_listValues, GM_deleteValue, localStorage
+	$, Worker, Workers, Config, Dashboard, Main, // Page, Queue, Settings:true,
+	//Battle, Generals, LevelUp, Player,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	plural, localStorage, confirm, alert
 */
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
@@ -6360,7 +6920,7 @@ Settings.init = function() {
 };
 
 Settings.menu = function(worker, key) {
-	var i, keys = [];
+	var i, j, k, keys = [];
 	if (worker) {
 		if (!key) {
 			if (Config.option.advanced) {
@@ -6398,6 +6958,7 @@ Settings.menu = function(worker, key) {
 			if (Config.option.advanced) {
 				keys.push('---');
 				keys.push('reset:!Reset&nbsp;Golem');
+				keys.push('reset:!Wipe&nbsp;Golem');
 			}
 			return keys;
 		} else {
@@ -6416,18 +6977,63 @@ Settings.menu = function(worker, key) {
 					}
 				}
 			} else if (key === 'reset') {
-				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
+				keys = [];
+				k = localStorage.length;
+				for (i = 0; i < localStorage.length; i++) {
+					j = localStorage.key(i);
+					if (isString(j) && j.indexOf('golem.' + APP + '.') === 0) {
+						keys.push(j);
+					}
+				}
+				if (confirm('IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on '+APPNAME+'.\n\nAre you sure?'
+				  + ' (' + keys.length + '/' + k + ' keys)'
+				)) {
 					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
 						// Well, they've had two chances...
-//						log(LOG_INFO, 'Reset: '+localStorage.length+' keys total');
-						for (i=0; i < localStorage.length; i++) {
-							while (i < localStorage.length && localStorage[i].indexOf('golem.' + APP + '.') === 0) {
-//								log(LOG_INFO, 'Reset: deleting key "'+localStorage[i]+'"');
-								delete localStorage[localStorage[i]];
+//						log(LOG_INFO, 'Reset: '+keys.length+'/'+k+' keys total');
+						Main.shutdown();
+						try {
+							while (keys.length > 0) {
+								j = keys.pop();
+								localStorage.removeItem(j);
+								if ((i = localStorage.getItem(j)) !== null) {
+									throw new Error('removeItem failed on ' + j + ' [' + JSON.shallow(i) + ']');
+								}
 							}
+							window.location.replace(window.location.href);
+						} catch (e) {
+							log(e, e.name + ' in ' + this.name + '.menu(): ' + e.message);
 						}
-						Queue._forget('run'); // Just to be safe(ish)...
-						window.location = window.location.href;
+					}
+				}
+			} else if (key === 'wipe') {
+				keys = [];
+				k = localStorage.length;
+				for (i = 0; i < localStorage.length; i++) {
+					j = localStorage.key(i);
+					if (isString(j) && j.indexOf('golem.') === 0) {
+						keys.push(j);
+					}
+				}
+				if (confirm('IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on ALL Apps.\n\nAre you sure?'
+				  + ' (' + keys.length + '/' + k + ' keys)'
+				)) {
+					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used.\n\nAre you REALLY sure??")) {
+						// Well, they've had two chances...
+//						log(LOG_INFO, 'Wipe: '+keys.length+'/'+k+' keys total');
+						Main.shutdown();
+						try {
+							while (keys.length > 0) {
+								j = keys.pop();
+								localStorage.removeItem(j);
+								if ((i = localStorage.getItem(j)) !== null) {
+									throw new Error('removeItem failed on ' + j + ' [' + JSON.shallow(i) + ']');
+								}
+							}
+							window.location.replace(window.location.href);
+						} catch (e2) {
+							log(e2, e2.name + ' in ' + this.name + '.menu(): ' + e2.message);
+						}
 					}
 				}
 			}
@@ -6532,12 +7138,12 @@ Settings.dashboard = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Global,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Title **********
 * Changes the window title to user defined data.
@@ -6631,12 +7237,11 @@ Title.alias = function(name,str) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$:true, Worker, Army, Theme:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
+	$, Worker, Workers, Config, Global,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Theme **********
 * Stores Theme-specific settings as well as allowing to change the theme.
@@ -6708,12 +7313,12 @@ Theme.update = function(event, events) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease:true, version, revision, Workers, PREFIX, window, browser, GM_xmlhttpRequest,
+	$, Worker, Workers, Config,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease:true, version, revision, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Update **********
 * Checks if there's an update to the script, and lets the user update if there is.
@@ -6752,17 +7357,15 @@ Update.init = function() {
 	this.set(['temp','revision'], revision);
 	this.set(['runtime','version'], this.runtime.version || version);
 	this.set(['runtime','revision'], this.runtime.revision || revision);
-	switch(browser) {
-		case 'chrome':
-			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
-			break;
-		default: // No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
-			Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
-			Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
-			Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
-			break;
+	if (browser === 'chrome') {
+		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
+	} else {
+		// No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
+		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
 	}
 	// Add an update button for everyone
 	Config.addButton({
@@ -6807,6 +7410,7 @@ Update.init = function() {
 		}
 	});
 	$('head').bind('DOMNodeInserted', function(event){
+		var tmp;
 		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
 			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
 			if (tmp) {
@@ -6896,12 +7500,13 @@ Main.add('castle_age', '46755028429', 'Castle Age', /^http:\/\/web3.castleagegam
 });
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Dashboard, Page, Resources,
+	Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Alchemy **********
 * Get all ingredients and recipes
@@ -6947,7 +7552,7 @@ Alchemy.display = [
 ];
 
 Alchemy.page = function(page, change) {
-	var now = Date.now(), self = this, i, tmp,
+	var now = Date.now(), self = this, i, b, c, tmp, icon, name,
 		ipurge = {}, rpurge = {}, spurge = {};
 
 	if (page === 'keep_alchemy') {
@@ -6967,8 +7572,8 @@ Alchemy.page = function(page, change) {
 
 		// ingredients list
 		tmp.each(function(a, el) {
-			var icon = ($('img', el).attr('src') || '').filepart();
-			var c = ($(el).text() || '').regex(/\bx\s*(\d+)\b/im);
+			var icon = ($('img', el).attr('src') || '').filepart(),
+				c = ($(el).text() || '').regex(/\bx\s*(\d+)\b/im);
 			ipurge[icon] = false;
 			if (isNumber(c)) {
 				self.set(['ingredients', icon], c);
@@ -7008,8 +7613,8 @@ Alchemy.page = function(page, change) {
 			}
 			recipe.ingredients = {};
 			$('div.recipeImgContainer', el).parent().each(function(b, el2) {
-				var icon = ($('img', el2).attr('src') || '').filepart();
-				var c = ($(el2).text() || '').regex(/\bx\s*(\d+)\b/im) || 1;
+				var icon = ($('img', el2).attr('src') || '').filepart(),
+					c = ($(el2).text() || '').regex(/\bx\s*(\d+)\b/im) || 1;
 				recipe.ingredients[icon] = c;
 				// Make sure we know an ingredient exists
 				if (!(icon in self.data.ingredients)) {
@@ -7030,15 +7635,14 @@ Alchemy.page = function(page, change) {
 			// some ingredients are units
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*UNITS\\s*$")').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
-				n = Town.qualify(n, i);
-				if (i in this.data.ingredients) {
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				name = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				c = ($(tmp[i]).text() || '').regex(/\bX\s*(\d+)\b/im);
+				name = Town.qualify(name, icon);
+				if (this.data.ingredients.hasOwnProperty(icon)) {
 					if (isNumber(c)) {
-						this.set(['ingredients', i], c);
+						this.set(['ingredients', icon], c);
 					}
 				}
 			}
@@ -7046,27 +7650,25 @@ Alchemy.page = function(page, change) {
 			// some ingredients are items
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var n = ($(b).attr('title') || $(b).attr('alt') || '').trim();
-				var c = ($(el).text() || '').regex(/\bX\s*(\d+)\b/im);
-				n = Town.qualify(n, i);
-				if (i in this.data.ingredients) {
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				name = ($(b).attr('title') || $(b).attr('alt') || '').trim();
+				c = ($(tmp[i]).text() || '').regex(/\bX\s*(\d+)\b/im);
+				name = Town.qualify(name, icon);
+				if (this.data.ingredients.hasOwnProperty(icon)) {
 					if (isNumber(c)) {
-						this.set(['ingredients', i], c);
+						this.set(['ingredients', icon], c);
 					}
 				}
 			}
 
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ALCHEMY INGREDIENTS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
-				el = tmp[i];
-				var b = $('a img[src]', el);
-				var i = ($(b).attr('src') || '').filepart();
-				var c = $(el).text().regex(/\bX\s*(\d+)\b/i);
-				if (i) {
-					this.set(['ingredients', i], c || 1);
+				b = $('a img[src]', tmp[i]);
+				icon = ($(b).attr('src') || '').filepart();
+				c = $(tmp[i]).text().regex(/\bX\s*(\d+)\b/i);
+				if (icon) {
+					this.set(['ingredients', icon], c || 1);
 				} else {
 					Page.setStale('keep_alchemy', now);
 				}
@@ -7104,7 +7706,7 @@ Alchemy.page = function(page, change) {
 };
 
 Alchemy.update = function(event) {
-	var now = Date.now(), best = null, recipe = this.data.recipe, r, i, s;
+	var now = Date.now(), best = null, recipe = this.data.recipe, r, i;
 
 	if (recipe) {
 		for (r in recipe) {
@@ -7121,13 +7723,11 @@ Alchemy.update = function(event) {
 		}
 	}
 
-	s = undefined;
-	if (!best) {
-		s = 'Nothing to do.';
+	if (best) {
+		Dashboard.status(this, (this.option._disabled ? 'Would perform ' : 'Perform ') + best);
 	} else {
-		s = (this.option._disabled ? 'Would perform ' : 'Perform ') + best;
+		Dashboard.status(this);
 	}
-	Dashboard.status(this, s);
 
 	this.set('runtime.best', best);
 
@@ -7154,12 +7754,14 @@ Alchemy.work = function(state) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Page,
+	Army, Generals, Idle, Player,
+	APP, APPID, PREFIX, userID, imagepath, isFacebook,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	assert
 */
 /********** Worker Army Extension **********
 * This fills in your army information by overloading Worker.Army()
@@ -7243,23 +7845,24 @@ Army._overload('castle_age', 'menu', function(worker, key) {
 });
 
 Army._overload('castle_age', 'page', function(page, change) {
+	var now = Date.now(), i, tmp, $tmp, uid, who, which, start, count, level, parent, spans;
 	if (change && page === 'keep_stats' && !$('.keep_attribute_section').length) { // Not our own keep
-		var uid = $('.linkwhite a').attr('href').regex(/=(\d+)$/);
+		uid = $('.linkwhite a').attr('href').regex(/[=](\d+)$/);
 //		log('Not our keep, uid: '+uid);
 		if (uid && Army.get(['Army', uid], false)) {
 			$('.linkwhite').append(' ' + Page.makeLink('army_viewarmy', {action:'delete', player_id:uid}, 'Remove Member [x]'));
 		}
 	} else if (!change && page === 'army_viewarmy') {
-		var i, uid, who, which, start, now = Date.now(), count = 0, tmp, level, parent, spans;
+		count = 0;
 		$tmp = $('table.layout table[width=740] div').first().children();
-		which = $tmp.eq(1).html().regex(/\<div[^>]*\>(\d+)\<\/div\>/);
+		which = $tmp.eq(1).html().regex(/<div[^>]*>(\d+)<\/div>/);
 		start = $tmp.eq(2).text().regex(/Displaying: (\d+) - \d+/);
 		tmp = $('td > a[href*="keep.php?casuser="]');
 		for (i=0; i<tmp.length; i++) {
 			try {
 				this._transaction(); // BEGIN TRANSACTION
 				uid = $(tmp[i]).attr('href').regex(/casuser=(\d*)$/i);
-				parent = $(tmp[i]).closest('td').next()
+				parent = $(tmp[i]).closest('td').next();
 				who = $(parent).find('a').eq(-1).text();
 				spans = $(parent).find('span[style]');
 				level = $(spans).eq(1).text().regex(/(\d+) Commander/i);
@@ -7354,11 +7957,12 @@ Army._overload('castle_age', 'work', function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Dashboard, Page, Queue, // Army, History, Resources,
+	Generals, Player, //Battle, LevelUp,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Bank **********
 * Auto-banking
@@ -7484,12 +8088,14 @@ Bank.menu = function(worker, key) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle:true, Generals, LevelUp, Monster, Player,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	$, Worker, Config, Dashboard, History, Page, Queue, Resources,
+	Generals, LevelUp, Monster, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath, isFacebook,
+	isRelease, version, revision, Workers, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	getImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	length, sum, tr, th, td, plural, getImage
 */
 /********** Worker.Battle **********
 * Battling other players (NOT raid or Arena)
@@ -7520,7 +8126,7 @@ Battle.option = {
 	points:'Invade',
 	monster:true,
 //	arena:false,
-	losses:5,
+	losses:1,
 	type:'Invade',
 	bp:'Always',
 	limit:0,
@@ -7564,8 +8170,8 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'general_choice',
-		label:'Use General',
 		require:'!general',
+		label:'Use General',
 		select:'generals'
 	},{
 		id:'stamina_reserve',
@@ -7605,8 +8211,8 @@ Battle.display = [
 	},{
 		advanced:true,
 		id:'limit',
-		before:'<center>Target Ranks</center>',
 		require:'bp=="Always"',
+		before:'<center>Target Ranks</center>',
 		select:'limit_list',
 		after: '<center>and above</center>',
 		help:'When Get Battle Points is Always, only fights targets at selected rank and above yours.'
@@ -7628,7 +8234,9 @@ Battle.display = [
 			7200000:'2 hours',
 			21600000:'6 hours',
 			43200000:'12 hours',
-			86400000:'24 hours'
+			86400000:'1 day',
+			172800000:'2 days',
+			259200000:'3 days'
 		},
 		help:'Stop yourself from being as noticed, but may result in fewer attacks and slower advancement'
 	},{
@@ -7705,17 +8313,6 @@ Battle.init = function() {
 	}
 */
 //	this.option.arena = false;// ARENA!!!!!!
-	// make a custom Config type of for rank, based on number so it carries forward on level ups
-	list = {};
-	if (this.get(['data',mode,'rank'])) {
-		rank = Player.get(mode, 0);
-		for (i in this.data[mode].rank){
-			list[i - rank] = '(' + (i - rank) + ') ' + this.data[mode].rank[i].name;
-		}
-	} else {
-		list[0] = '(0) Newbie';
-	}
-	Config.set('limit_list', list);
 
 	// map old "(#) rank" string into the number
 	i = this.get('option.limit');
@@ -7731,11 +8328,11 @@ Battle.init = function() {
 
 	$('.Battle-prefer-on').live('click', function(event) {
 		Battle._unflush();
-		var uid = $(this).attr('name');
-		var prefs = Battle.get('option.prefer');
+		var uid = $(this).attr('name'),
+			prefs = Battle.get('option.prefer');
 		if (uid && prefs.find(uid)) {
 			prefs.remove(uid);
-			Battle._taint['option'] = true;
+			Battle._taint['option'] = Date.now();
 			Battle._notify('option.prefer');
 		}
 		$(this).removeClass('Battle-prefer-on');
@@ -7746,11 +8343,11 @@ Battle.init = function() {
 
 	$('.Battle-prefer-off').live('click', function(event) {
 		Battle._unflush();
-		var uid = $(this).attr('name');
-		var prefs = Battle.get('option.prefer');
+		var uid = $(this).attr('name'),
+			prefs = Battle.get('option.prefer');
 		if (uid && !prefs.find(uid)) {
 			prefs.push(uid);
-			Battle._taint['option'] = true;
+			Battle._taint['option'] = Date.now();
 			Battle._notify('option.prefer');
 		}
 		$(this).removeClass('Battle-prefer-off');
@@ -7839,7 +8436,7 @@ Battle.page = function(page, change) {
 		rank = {
 			battle: Player.get('battle',0),
 			war: Player.get('war',0)
-		}
+		};
 		$list = $('#'+APPID_+'app_body table.layout table table tr:even');
 		for (i=0; i<$list.length; i++) {
 			$el = $list[i];
@@ -7854,7 +8451,7 @@ Battle.page = function(page, change) {
 			rank2 = {
 				battle: info.regex(/Battle:[^(]+\(Rank (\d+)\)/i),
 				war: info.regex(/War:[^(]+\(Rank (\d+)\)/i)
-			}
+			};
 			if (uid && info && ((Battle.option.bp === 'Always' && rank2[mode] - rank[mode] >= this.option.limit) || (Battle.option.bp === 'Never' && rank[mode]- rank2[mode] >= 5) || Battle.option.bp === "Don't Care")) {
 				this.set(['data','user',uid,'name'], $('a', $el).text().trim());
 				this.set(['data','user',uid,'level'], info.regex(/\(Level (\d+)\)/i));
@@ -7883,10 +8480,26 @@ Battle.page = function(page, change) {
 4e. Choose a random entry from our list (targets with more entries have more chance of being picked)
 5. Update the Status line
 */
-Battle.update = function(event) {
+Battle.update = function(event, events) {
 	var i, j, data = this.data.user, list = [], points = false, status = [], army = Player.get('army',0), level = Player.get('level'), mode = this.option.type === 'War' ? 'war' : 'battle', rank = Player.get(mode,0), count = 0, skip, limit, enabled = !this.get(['option', '_disabled'], false), tmp;
 	tmp = this.get(['data',mode], {});
 	status.push('Rank ' + rank + ' ' + this.get([tmp,'rank',rank,'name'], 'unknown', 'string') + ' with ' + this.get([tmp,'bp'], 0, 'number').addCommas() + ' Battle Points, Targets: ' + length(data) + ' / ' + this.option.cache);
+
+	if (events.findEvent(null, 'init') || events.findEvent(this, 'data')) {
+		// make a custom Config type of for rank,
+		// based on number so it carries forward on level ups
+		list = {};
+		if (this.get(['data',mode,'rank'])) {
+			rank = Player.get(mode, 0);
+			for (i in this.data[mode].rank){
+				list[i-rank] = '(' + (i-rank) + ') ' + this.data[mode].rank[i].name;
+			}
+		} else {
+			list[0] = '(0) Newbie';
+		}
+		Config.set('limit_list', list);
+	}
+
 	if (event.type === 'watch' && event.id === 'option.prefer') {
 		this.dashboard();
 		return;
@@ -8014,6 +8627,8 @@ Battle.update = function(event) {
 		}
 	}
 	Dashboard.status(this, status.join('<br>'));
+
+	return true;
 };
 
 /***** Battle.work() *****
@@ -8065,17 +8680,17 @@ Battle.rank = function(name) {
 
 Battle.order = [];
 Battle.dashboard = function(sort, rev) {
-	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle';
+	var i, o, points = [0, 0, 0, 0, 0, 0], list = [], output = [], sorttype = ['align', 'name', 'level', 'rank', 'army', '*pref', 'win', 'loss', 'hide'], data = this.data.user, army = Player.get('army',0), level = Player.get('level',0), mode = this.option.type === 'War' ? 'war' : 'battle', prefs, pref_img_on, pref_img_off, pref_img_end, str;
 	for (i in data) {
 		points[data[i].align]++;
 	}
-	var prefs = {};
+	prefs = {};
 	for (i = 0; i < this.option.prefer.length; i++) {
 		prefs[this.option.prefer[i]] = 1;
 	}
-	var pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
-	var pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
-	var pref_img_end = '">';
+	pref_img_on = '<img class="Battle-prefer-on" src="' + getImage('star_on') + '" title="Click to remove from preferred list." name="';
+	pref_img_off = '<img class="Battle-prefer-off" src="' + getImage('star_off') + '" title="Click to add to preferred list." name="';
+	pref_img_end = '">';
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (i in data) {
@@ -8091,7 +8706,7 @@ Battle.dashboard = function(sort, rev) {
 	this.runtime.sort = sort;
 	this.runtime.rev = rev;
 	if (typeof sorttype[sort] === 'string') {
-		var str = '';
+		str = '';
 		this.order.sort(function(a,b) {
 			var aa, bb;
 			if (sorttype[sort] === '*pref') {
@@ -8148,11 +8763,12 @@ Battle.dashboard = function(sort, rev) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Dashboard, Page,
+	Upgrade,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Blessing **********
 * Automatically receive blessings
@@ -8274,12 +8890,14 @@ Blessing.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
+	$, Worker, Workers, Army, Dashboard, Page, // Config, History, Queue,
+	//Battle, Generals, LevelUp, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	makeTime
 */
 /********** Worker.Elite() **********
 * Build your elite army
@@ -8412,6 +9030,8 @@ Elite.work = function(state) {
 };
 
 Elite.army = function(action, uid) {
+	var now = Date.now(), x, y, z;
+
 	switch(action) {
 	case 'title':
 		return 'Elite';
@@ -8432,35 +9052,42 @@ Elite.army = function(action, uid) {
 			 + '<span class="ui-icon" style="display:inline-block;"></span><span class="ui-icon" style="display:inline-block;"></span>'
 			);
 	case 'sort':
-		var now = Date.now();
+		// sorting arranged by preferred flag, elite timer, full timer
 		if (!Army.get(['Elite',uid]) && !Army.get(['Army',uid,'member'])) {
 			return 0;
 		}
-		return ((Army.get(['Elite',uid,'prefer'])
-				? now
-				: 0)
-			+ (Army.get(['Elite',uid,'elite'])
-				? now - parseInt(Army.get(['Elite',uid,'elite']), 10)
-				: 0)
-			+ (Army.get(['Elite',uid,'full'])
-				? now - parseInt(Army.get(['Elite',uid,'full']), 10)
-				: 0));
+		x = Army.get(['Elite',uid,'prefer']);
+		y = Army.get(['Elite',uid,'elite'], 0);
+		z = Army.get(['Elite',uid,'full'], 0);
+		// 1e8 and 1e16 magic numbers simply allow for 24 hours of milliseconds
+		// xyyyyyyyyzzzzzzzz
+		// ||......|++++++++- full ms delta
+		// |++++++++--------- elite ms delta (shifted by 1e8)
+		// +----------------- preferred flag (shifted by 1e16)
+		if (y) {
+			x = (x ? 1e16 : 0) + (y > now ? y-now : 0) * 1e8 + ((x && z > now) ? z-now : 0);
+		} else {
+			x = (x ? 1e16 : 0) + (1e8-1 - (z > now ? z-now : 0));
+		}
+		return x;
 	case 'click':
 		if (uid && Army.get(['Army',uid,'member'])) {
-			Army.toggle(['Elite',uid,'prefer'])
+			Army.toggle(['Elite',uid,'prefer']);
 		}
+		return true;
 	}
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals:true, Idle, LevelUp, Player, Town,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
-	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG,
+	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	LevelUp, Player, Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	bestObjValue, nmax, assert
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	sum, getAttDef, tr, th, td, makeTime, nmax, assert
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -8527,7 +9154,7 @@ Generals.init = function(old_revision) {
 };
 
 Generals.page = function(page, change) {
-	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon, info, stats, costs;
+	var now = Date.now(), i, j, k, s, seen = {}, el, el2, tmp, name, item, icon, info, stats, costs, level;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
@@ -8544,7 +9171,7 @@ Generals.page = function(page, change) {
 			el = tmp[i];
 			try {
 				this._transaction(); // BEGIN TRANSACTION
-				name = $('.general_name_div3_padding', el).text().trim();
+				name = $('.general_name_div3_padding', el).text().trim(true).replace(/\*+$/, '');
 				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
 				seen[name] = true;
 				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val(), 10), 'number') !== false, 'Bad general id: '+name);
@@ -8552,12 +9179,14 @@ Generals.page = function(page, change) {
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
-				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
+				if (isNumber(level = parseInt($(el).text().regex(/Level (\d+)/im), 10))) {
+				    this.set(['data',name,'level'], level);
+				}
 				if ((k = $('.generals_indv_stats ~ div div[style*="background-color"]', el)).length) {
 					if (isNumber(j = (k.attr('style') || '').regex(/width:\s*([-+]?\d*\.?\d+)%/im))) {
 						// over cap progression fix, for when stuck at X/0%
 						// negative width and level at least 4+
-						if (this.get(['data',name,'level'], 4, 'number') && j < 0) {
+						if (level >= 4 && j < 0) {
 							j = 100;
 						}
 						this.set(['data',name,'progress'], j);
@@ -8567,10 +9196,11 @@ Generals.page = function(page, change) {
 						}
 					}
 				}
-				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
+				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
-					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.get(['data',name,'skills'], '').regex(/(\d*) Hour Cooldown/im))));
+					k = this.get(['data',name,'skills']) || s || '';
+					this.set(['data',name,'charge'], now + Math.floor(3600000 * ((1-j/100) * (k.regex(/(\d*) Hours? Cooldown/im) || 0))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'own'], 1);
@@ -8582,9 +9212,9 @@ Generals.page = function(page, change) {
 		}
 
 		// parse general equipment, including those not yet owned
-		name = $('div.general_name_div3').first().text().trim();
+		name = $('.general_name_div3').first().text().trim();
 		if (this.get(['data',name])) {
-			tmp = $('div[style*="model_items.jpg"] img[title]');
+			tmp = $('div[style*="model_items."] img[title]');
 			for (i=0; i<tmp.length; i++) {
 				el = tmp[i];
 				item = $(el).attr('title');
@@ -8598,16 +9228,19 @@ Generals.page = function(page, change) {
 					}
 				}
 			}
-			i = ($('div.general_pic_div3 a img[title]').first().attr('title') || '').trim();
-			if (i && (j = i.regex(/\bmax\.? (\d+)\b/im))) {
-				this.set(['data', name, 'stats', 'cap'], j);
+			i = ($('div.general_pic_div3 a img[title]').first().attr('title') || '').trim(true);
+			if (i) {
+				this.set(['data',name,'skills'], i);
+				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/im))) {
+					this.set(['data',name,'cap'], j);
+				}
 			}
-			this.set(['data',name,'seen'], now);
+			this.set(['runtime','last',name], now);
 		}
 
-		// purge generals we didn't see
+		// purge owned generals we didn't see
 		for (i in this.data) {
-			if (!seen[i]) {
+			if (!seen[i] && this.data[i]['own']) {
 				this.set(['data',i]);
 			}
 		}
@@ -8625,67 +9258,72 @@ Generals.page = function(page, change) {
 		for (j = 0; j < tmp.length; j++) {
 			el = tmp[j];
 			el2 = $('.hero_buy_image img', el);
-			name = ($(el2).attr('title') || '').trim();
+			name = ($(el2).attr('title') || '').trim(true).replace(/\*+$/, '');
 			if (name) {
+				seen[name] = true;
 				try {
-					self._transaction(); // BEGIN TRANSACTION
+					this._transaction(); // BEGIN TRANSACTION
 					icon = ($(el2).attr('src') || '').filepart();
 					info = $('.hero_buy_info', el);
 					stats = $('.hero_select_stats', el);
 					costs = $('.hero_buy_costs', el);
 					i = $('form', costs).attr('id') || '';
 					if (isNumber(i = i.regex(/^app\d+_item(?:buy|sell)_(\d+)$/i))) {
-						self.set(['data',name,'id'], i);
+						this.set(['data',name,'id'], i);
 					}
 
 					if (icon) {
-						self.set(['data',name,'img'], icon);
+						this.set(['data',name,'img'], icon);
 					}
 
 					// only use these atk/def values if we don't know this general
-					if (!self.data[name]) {
+					if (!this.get(['data',name])) {
 						i = $('div:contains("Attack")', stats).text() || '';
 						if (isNumber(i = i.regex(/\b(\d+)\s*Attack\b/im))) {
-							self.set(['data',name,'att'], i);
+							this.set(['data',name,'att'], i);
 						}
 
 						i = $('div:contains("Defense")', stats).text() || '';
 						if (isNumber(i = i.regex(/\b(\d+)\s*Defense\b/im))) {
-							self.set(['data',name,'def'], i);
+							this.set(['data',name,'def'], i);
 						}
 					}
 
 					i = $(costs).text() || '';
 					if ((i = i.regex(/\bRecruited:\s*(\w+)\b/im))) {
-						self.set(['data',name,'own'], i.toLowerCase() === 'yes' ? 1 : 0);
+						this.set(['data',name,'own'], i.toLowerCase() === 'yes' ? 1 : 0);
 					}
 
 					i = $('.gold', costs).text() || '';
 					if (isNumber(i = i.replace(/,/gm, '').regex(/\$(\d+)\b/im))) {
-						self.set(['data',name,'cost'], i);
+						this.set(['data',name,'cost'], i);
 					}
 
 					i = $('div:contains("Upkeep") .negative', info).text() || '';
 					if (isNumber(i = i.replace(/,/gm, '').regex(/\$(\d+)\b/im))) {
-						self.set(['data',name,'upkeep'], i);
+						this.set(['data',name,'upkeep'], i);
 					}
-					self._transaction(true); // COMMIT TRANSACTION
+					this._transaction(true); // COMMIT TRANSACTION
 				} catch (e2) {
-					self._transaction(false); // ROLLBACK TRANSACTION on any error
-					log(e2, e2.name + ' in ' + self.name + '.page(' + page + ', ' + change + '): ' + e2.message);
+					this._transaction(false); // ROLLBACK TRANSACTION on any error
+					log(e2, e2.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e2.message);
 				}
+			}
+		}
+
+		// purge unowned generals we didn't see
+		for (i in this.data) {
+			if (!seen[i] && !this.data[i]['own']) {
+				this.set(['data',i]);
 			}
 		}
 	} else if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			tmp = $('.statsT2 .statsTTitle:contains("HEROES")').not(function(a) {
-				return !$(this).text().regex(/^\s*HEROES\s*$/im);
-			});
-			tmp = $('.statUnit', $(tmp).parent());
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*HEROES\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
 				el = $('a img[src]', tmp[i]);
-				name = ($(el).attr('title') || $(el).attr('alt') || '').trim();
+				name = ($(el).attr('title') || $(el).attr('alt') || '').trim(true).replace(/\*+$/, '');
 
 				// new general(s), trigger page visits
 				if (name && !this.get(['data',name])) {
@@ -8710,8 +9348,8 @@ Generals.resource = function() {
 };
 
 Generals.update = function(event, events) {
-	var data = this.data, i, j, k, o, p, s, x, y,
-		pa, priority_list = [], list = [],
+	var data = this.data, i, j, k, o, p, s, x, y, evt,
+		pa, priority_list, list,
 		pattack, pdefense, maxstamina, maxenergy, stamina, energy,
 		health, maxhealth, num, cap, item, str,
 		army, armymax, gen_att, gen_def, war_att, war_def,
@@ -8720,39 +9358,44 @@ Generals.update = function(event, events) {
 		war = Town.get('runtime.war'),
 		attack, attack_bonus, att_when_att = 0, current_att,
 		defend, defense_bonus, def_when_att = 0, current_def,
-		monster_att = 0, monster_multiplier = 1,
+		monster_att = 0,
 		listpush = function(list,i){list.push(i);},
-		skillcombo, calcStats = false, all_stats, bests;
+		skillcombo, equipcombo, all_stats, stats,
+		calcStats = false, bests;
 
-	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
+	//log(LOG_DEBUG, '# events: ' + JSON.shallow(events,2));
+
+	if ((evt = events.findEvent(this, 'init'))
+	  || (evt = events.findEvent(this, 'data'))
+	) {
 		bests = true;
 
+		list = [];
+		priority_list = [];
 		k = 0;
 		for (i in data) {
 			list.push(i);
 			p = data[i];
-			if ((isNumber(j = p.progress) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
-				priority_list.push([i, p.priority]);
+			if ((isNumber(j = p['progress']) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+				priority_list.push([i, p['priority']]);
 			}
-			if (!p.stats) { // Force an update if stats not yet calculated
+			if (!p['stats']) { // Force an update if stats not yet calculated
 				this.set(['runtime','force'], true);
 			}
-			k += p.own || 0;
-			if (p.skills) {
+			k += p['own'] || 0;
+			s = p['skills'] || p['skillsbase'] || '';
+			if (s) {
 				num = 0;
-				cap = 0;
+				cap = p['cap'] || 0;
 				str = null;
-				if ((x = p.skills.regex(/\bevery (\d+) ([\w\s']*\w)/im))) {
+				if ((x = s.regex(/\bevery (\d+) ([\w\s']*\w)/im))) {
 					num = x[0];
 					str = x[1];
-				} else if ((x = p.skills.regex(/\bevery ([\w\s']*\w)/im))) {
+				} else if ((x = s.regex(/\bevery ([\w\s']*\w)/im))) {
 					num = 1;
 					str = x;
 				}
-				if (p.stats && p.stats.cap) {
-					cap = Math.max(cap, p.stats.cap);
-				}
-				if ((x = p.skills.regex(/\bmax\.? (\d+)/i))) {
+				if ((x = s.regex(/\bmax\.? (\d+)/i))) {
 					cap = Math.max(cap, x);
 				}
 				if (str) {
@@ -8777,7 +9420,7 @@ Generals.update = function(event, events) {
 			}
 		}
 
-		// need this since we now store unpurchased heroes also
+		// need this count since we now store unpurchased heroes also
 		this.set('runtime.heroes', k);
 
 		if ((i = priority_list.length)) {
@@ -8789,8 +9432,10 @@ Generals.update = function(event, events) {
 				this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
 			}
 		}
+
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any','under max level'].concat(list.sort())); 
+		list = ['any','under max level'].concat(list.sort());
+		Config.set('generals', list); 
 	}
 	
 	// busy stuff, so watch how often it runs
@@ -8824,17 +9469,16 @@ Generals.update = function(event, events) {
 		for (i in data) {
 			p = data[i];
 
+			// remove obsolete data
 			this.set(['data',i,'invade']);
 			this.set(['data',i,'duel']);
 			this.set(['data',i,'war']);
 			this.set(['data',i,'monster']);
 			this.set(['data',i,'potential']);
-			this.set(['data',i,'stats','stamina']);
-			this.set(['data',i,'stats','energy']);
 
-			// update the weapon bonus list
+			// update the equipment bonus list
 			s = '';
-			if ((o = p.equip)) {
+			if ((o = p['equip'])) {
 				for (j in o) {
 					if (Town.get(['data',j,'own'], 0, 'number') > 0) {
 						if (s !== '') { s += '; '; }
@@ -8844,11 +9488,20 @@ Generals.update = function(event, events) {
 			}
 			if (s) {
 				this.set(['data',i,'weaponbonus'], s);
+				equipcombo = ';' + s + ';';
 			} else {
 				this.set(['data',i,'weaponbonus']);
+				equipcombo = '';
 			}
+			equipcombo = equipcombo.replace(/\s*;\s*\.|\s*\.\s*;/g, ';');
 
-			skillcombo = ';' + (p.skills || '') + ';' + s + ';';
+			skillcombo = ';' + (p['skills'] || p['skillsbase'] || '') + ';' + s + ';';
+			skillcombo = skillcombo.replace(/\s+and\s+|\.\s+/ig, ', ');
+			skillcombo = skillcombo.replace(/\s*;\s*\.|\s*\.\s*;/g, ';');
+			skillcombo = skillcombo.replace(/\byou\b/gi, 'you');
+			skillcombo = skillcombo.replace(/\byour\b/gi, 'your');
+			skillcombo = skillcombo.replace(/\bopposing\b/gi, 'opposing');
+			skillcombo = skillcombo.replace(/\bwhile equip/gi, 'when equip');
 
 			// .att
 			// .def
@@ -8877,72 +9530,167 @@ Generals.update = function(event, events) {
 			//   .cost
 			//   .cash
 
+			stats = {};
+
 			all_stats = sum(skillcombo.regex(/\bAll Stats by ([-+]?\d*\.?\d+)\b/gi)) || 0;
 
+			// special handling for count based stat bonuses
+			// assumes only one of these will apply to a given general
 			k = {};
-			if ((o = skillcombo.regex(/\bEvery (\d+) ([^;]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
-				k['p'+o[2].toLowerCase()] = Math.floor(o[3] * Math.floor(Town.get(['data',o[1],'own'], 0, 'number') / (o[0] || 1)));
-			} else if ((o = skillcombo.regex(/\bEvery ([^;]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
-				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * Town.get(['data',o[0],'own'], 0, 'number'));
+			if ((o = skillcombo.regex(/([-+]?\d*\.?\d+)(?:\s+Player)? (Attack|Defense) for Every (\d+) ([^;(]*\w)/i))) {
+				// handle a plural requirement name
+				if ((j = o[3].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[3],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[3],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[0] * Math.floor(j / (o[2] || 1)));
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/([-+]?\d*\.?\d+)(?:\s+Player)? (Attack|Defense) for Every ([^;(]*\w)/i))) {
+				if ((j = o[2].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[2],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[2],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[0] * j);
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\bEvery (\d+) ([^;(]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
+				// handle a plural requirement name
+				if ((j = o[1].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[1],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[1],'own'], 0, 'number');
+				}
+				k['p'+o[2].toLowerCase()] = Math.floor(o[3] * Math.floor(j / (o[0] || 1)));
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\bEvery ([^;(]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
+				// handle a plural requirement name
+				if ((j = o[0].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[0],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[0],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * j);
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\b(\d*\.?\d+) (Attack|Defense) if you own ([^;(]*\w)\b/i))) {
+				if (this.get(['data',o[2],'own'])) {
+					k['p'+p[1].toLowerCase()] = o[0];
+				} else {
+					log(LOG_DEBUG, '# checked for '+o[0]+' '+o[1]+' bonus'
+					  + ', but '+o[2]+' not owned'
+					);
+				}
 			}
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b/gi))
+			  + sum(skillcombo.regex(/\bAttack by ([-+]\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
 			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/\bPlayer Attack by ([-+]\d*\.?\d+)\s*[,;]/gi))
-			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Attack\b/gi))
-			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to\b/gi))
-			  * pattack / 100).round(0)
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Attack to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Attack\b/gi))
+			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to\b/gi)) * pattack / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to Attack\b/gi)) * pdefense / 100).round(0)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + sum(skillcombo.regex(/\bPlayer Attack is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 4 Health\b/gi)) * maxhealth / 4)
 			  + all_stats + (k.pattack || 0));
-			this.set(['data',i,'stats','patt'], j ? j : undefined);
+			if (j) { stats['patt'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense/gi))
+			  + sum(skillcombo.regex(/\bDefense by ([-+]\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
 			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/\bPlayer Defense by ([-+]\d*\.?\d+)\s*[,;]/gi))
-			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Defense\b/gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Defense to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Defense\b/gi))
 			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to\b/gi)) * pdefense / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to Defense\b/gi)) * pattack / 100).round(0)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + sum(skillcombo.regex(/\bPlayer Defense is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 3 Health\b/gi)) * maxhealth / 3)
 			  + all_stats + (k.pdefense || 0));
-			this.set(['data',i,'stats','pdef'], j ? j : undefined);
+			if (j) { stats['pdef'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) [Aa]ttack [Tt]o [A-Z]/g))
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack when[^;]*equipped\b/gi)));
-			this.set(['data',i,'stats','att'], j ? j : undefined);
+			// gear bonus while equipped
+			j = Math.floor(0.001
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Attack\b[^;]*\bwhen\b[^;]*\bequip/gi))
+			  + sum(equipcombo.regex(/\bwhen\b[^;]*\bequip[^;]* (-?\d*\.?\d+) Attack\b/gi)));
+			if (j) { stats['att2'] = j; }
+			j = Math.floor(0.001
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Defense\b[^;]*\bwhen\b[^;]*\bequip/gi))
+			  + sum(equipcombo.regex(/\bwhen\b[^;]*\bequip[^;]* (-?\d*\.?\d+) Defense\b/gi)));
+			if (j) { stats['def2'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to\b/gi))
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense when[^;]*equipped\b/gi)));
-			this.set(['data',i,'stats','def'], j ? j : undefined);
+			// gear bonuses when not equipped
+			j = Math.floor(0.001 - (stats['att2'] || 0)
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Attack\b/gi)));
+			if (j) { stats['att'] = j; }
+			j = Math.floor(0.001 - (stats['def2'] || 0)
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Defense\b/gi)));
+			if (j) { stats['def'] = j; }
 
-			j = ((p.att || 0)
-			  + ((p.stats && p.stats.att) || 0)
-			  + ((p.def || 0)
-			  + ((p.stats && p.stats.def) || 0)) * 0.7).round(1);
+			j = (((stats['att'] || 0) + (p['att'] || 0))
+			  + ((stats['def'] || 0) + (p['def'] || 0)) * 0.7).round(1);
 			this.set(['data',i,'tot_att'], j ? j : undefined);
-			this.set(['data',i,'stats','tot_att']);
 
-			j = (((p.att || 0)
-			  + ((p.stats && p.stats.att) || 0)) * 0.7
-			  + (p.def || 0)
-			  + ((p.stats && p.stats.def) || 0)).round(1);
+			j = (((stats['att'] || 0) + (p['att'] || 0)) * 0.7
+			  + ((stats['def'] || 0) + (p['def'] || 0))).round(1);
 			this.set(['data',i,'tot_def'], j ? j : undefined);
-			this.set(['data',i,'stats','tot_def']);
 
-			j = sum(skillcombo.regex(/([-+]?\d+) Monster attack\b/gi));
-			this.set(['data',i,'stats','matt'], j ? j : undefined);
+			j = sum(skillcombo.regex(/([-+]?\d+) Monster attack\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Attack by ([-+]?\d+) against Monsters?\b/gi));
+			if (j) { stats['matt'] = j; }
 
-			j = sum(skillcombo.regex(/\bPlayer Attack when Defending by ([-+]?\d+)\b|([-+]?\d+) Attack when attacked\b/gi));
-			this.set(['data',i,'stats','patt_when_att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bPlayer Attack when Defending by ([-+]?\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack when attacked\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Attack is increased an additional (\d*\.?\d+) when attacked\b/gi)));
+			if (j) { stats['patt_when_att'] = j; }
 
-			j = sum(skillcombo.regex(/\bPlayer Defense when Defending by ([-+]?\d+)\b|([-+]?\d+) Defense when attacked\b/gi));
-			this.set(['data',i,'stats','pdef_when_att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bPlayer Defense when Defending by ([-+]?\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense when attacked\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Defense is increased an additional (\d*\.?\d+) when attacked\b/gi)));
+			if (j) { stats['pdef_when_att'] = j; }
+
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack to your War Council when\b/gi)) * 17
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack to your War Council for the next \d+ attacks?\b/gi)) * 17
+			  - sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to Opposing War Council when\b/gi)) * 17
+			  - sum(skillcombo.regex(/\bWar Attacks ([-+]?\d*\.?\d+) Attack to your opponents War Council\b/gi)) * 17);
+			if (j) { stats['watt'] = j; }
+
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to your War Council when\b/gi)) * 17
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to your War Council for the next \d+ attacks?\b/gi)) * 17);
+			if (j) { stats['wdef'] = j; }
 
 			army = Math.min(armymax + nmax(0, skillcombo.regex(/\b(\d+) Army members?/gi)), nmax(0, skillcombo.regex(/\bArmy Limit to (\d+)\b/gi)) || 501);
 
@@ -8952,144 +9700,226 @@ Generals.update = function(event, events) {
 			war_att = getAttDef(data, listpush, 'att', 6);
 			war_def = getAttDef(data, listpush, 'def', 6);
 
-			monster_multiplier = 1.1 + sum(skillcombo.regex(/([-+]?\d+)% Critical\b/gi))/100;
+			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
+			if (j) { stats['crits'] = j; }
 
 			// invade calcs
 
-			j = Math.floor((invade.attack || 0) + gen_att
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + (((p.stats && p.stats.patt) || 0)
-			  + pattack) * army)
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * army) * 0.7);
-			this.set(['data',i,'stats','invade','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (invade.attack || 0) + gen_att
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + (pattack + (stats['patt'] || 0)) * army)
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + (pdefense + (stats['pdef'] || 0)) * army) * 0.7);
+			stats['invade'] = {};
+			stats['invade']['att'] = j;
 
-			j = Math.floor((invade.defend || 0) + gen_def
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0))
-			  + pattack) * army) * 0.7
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0))
-			  + pdefense) * army));
-			this.set(['data',i,'stats','invade','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (invade.defend || 0) + gen_def
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + (pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * army) * 0.7
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + (pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)) * army));
+			stats['invade']['def'] = j;
 
 			// duel calcs
 
-			j = Math.floor((duel.attack || 0)
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + pattack)
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * 0.7);
-			this.set(['data',i,'stats','duel','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.attack || 0)
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0))
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0)) * 0.7);
+			stats['duel'] = {};
+			stats['duel']['att'] = j;
 
-			j = Math.floor((duel.defend || 0)
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0)
-			  + pattack) * 0.7
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0)
-			  + pdefense));
-			this.set(['data',i,'stats','duel','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.defend || 0)
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * 0.7
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)));
+			stats['duel']['def'] = j;
 
 			// war calcs
 
-			j = Math.floor((duel.attack || 0) + war_att
-			  + (((p.stats && p.stats.patt) || 0)
-			  + pattack)
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * 0.7);
-			this.set(['data',i,'stats','war','att'], j ? j : undefined);
+			// note: only counting patt/pdef at 5/17 power tops
 
-			j = Math.floor((duel.defend || 0) + war_def
-			  + (((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0)
-			  + pattack) * 0.7
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0)
-			  + pdefense));
-			this.set(['data',i,'stats','war','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.attack || 0) + war_att
+			  + (stats['watt'] || 0)
+			  + (stats['wdef'] || 0) * 0.7
+			  + ((pattack + (stats['patt'] || 0))
+			  + (pdefense + (stats['pdef'] || 0)) * 0.7)
+			  * 5 / 17);
+			stats['war'] = {};
+			stats['war']['att'] = j;
+
+			j = Math.floor(0.001
+			  + (duel.defend || 0) + war_def
+			  + (stats['watt'] || 0) * 0.7
+			  + (stats['wdef'] || 0)
+			  + ((pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * 0.7
+			  + (pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)))
+			  * 5 / 17);
+			stats['war']['def'] = j;
 
 			// monster calcs
 
 			// not quite right, gear defense not counted on monster attack
-			j = Math.floor(((duel.attack || 0)
-			  + (p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + pattack
-			  + ((p.stats && p.stats.matt) || 0))
-			  * monster_multiplier);
-			this.set(['data',i,'stats','monster','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + ((duel.attack || 0)
+			  + (stats['matt'] || 0)
+			  + (p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0))
+			  * (110 + (stats['crits'] || 0)) / 100);
+			stats['monster'] = {};
+			stats['monster']['att'] = j;
 
 			// not quite right, gear attack not counted on monster defense
-			j = Math.floor((duel.defend || 0)
-			  + ((p.stats && p.stats.def) || p.att || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + pdefense
-			  + ((p.stats && p.stats.mdef) || 0));
-			this.set(['data',i,'stats','monster','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.defend || 0)
+			  + (stats['mdef'] || 0)
+			  + (p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0));
+			stats['monster']['def'] = j;
 
-			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi));
+			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi),
+			  skillcombo.regex(/Power Attacks now use (\d+) times the stamina/gi));
+			if (j) { stats['multiplier'] = j; }
 			this.set(['runtime','multipliers',i], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bMax Energy by ([-+]\d*\.?\d+)\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bEnergy by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Energy by \+?(\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Energy by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Energy by -?(\d*\.?\d+)\b/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Energy by -?(\d*\.?\d+)\b/gi))
-			  + sum(skillcombo.regex(/\+(\d*\.?\d+) energy to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Energy to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Energy\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Energy when\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Energy\b/gi))
 			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Energy to\b/gi)) * Player.get('maxenergy') / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
-			  + all_stats;
-			this.set(['data',i,'stats','maxenergy'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxenergy'] = j; }
 
-			j = sum(skillcombo.regex(/\bMax Stamina by ([-+]\d*\.?\d+)/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bMax Stamina by ([-+]\d*\.?\d+)/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Stamina by \+?(\d*\.?\d+)/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Stamina by \+?(\d*\.?\d+)/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Stamina by -?(\d*\.?\d+)/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Stamina by -?(\d*\.?\d+)/gi))
-			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) stamina to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Stamina to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Stamina\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Stamina when\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Stamina/gi))
 			  - (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Stamina to\b/gi)) * maxstamina / 100).round(0)
 			  + (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Energy to Max Stamina/gi)) * maxenergy / 200).round(0)
-			  + all_stats;
-			this.set(['data',i,'stats','maxstamina'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxstamina'] = j; }
 
-			j = sum(skillcombo.regex(/\bMax Health by ([-+]\d*\.?\d+)\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bMax Health by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Health by \+?(\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Health by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Health by -?(\d*\.?\d+)\b/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Health by -?(\d*\.?\d+)\b/gi))
-			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) health to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Health to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Health\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Health when\b/gi))
 			  + sum(skillcombo.regex(/\bPlayer Health by ([-+]?\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Health\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Health\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Health\b/gi))
-			  + all_stats;
-			this.set(['data',i,'stats','maxhealth'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxhealth'] = j; }
 
 			j = skillcombo.regex(/Bank Fee/gi) ? 100 : 0;
-			this.set(['data',i,'stats','bank'], j ? j : undefined);
+			if (j) { stats['bank'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
-			this.set(['data',i,'stats','cash'], j ? j : undefined);
+			if (j) { stats['cash'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bSoldier Cost by (\d*\.?\d+)%/gi));
-			this.set(['data',i,'stats','cost'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/\bSoldier Cost by -?(\d*\.?\d+)%/gi),
+			  skillcombo.regex(/\bsoldier costs are decreased by -?(\d*\.?\d+)% when you purchase soldiers\b/gi));
+			if (j) { stats['cost'] = j; }
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
-			this.set(['data',i,'stats','demi'], j ? j : undefined);
+			if (j) { stats['demi'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bIncome by (\d*\.?\d+)\b/gi));
-			this.set(['data',i,'stats','income'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/(\d*\.?\d+)% more income\b/gi),
+			  skillcombo.regex(/\bIncome by \+?(\d*\.?\d+)\b/gi));
+			if (j) { stats['income'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bInfluence (\d*\.?\d+)% Faster\b/gi),
-			  skillcombo.regex(/\bQuest (\d*\.?\d+)% Faster\b/gi));
-			this.set(['data',i,'stats','influence'], j ? j : undefined);
+			  skillcombo.regex(/\bQuests? (\d*\.?\d+)% Faster\b/gi));
+			if (j) { stats['influence'] = j; }
 
-			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d+)% Drops|\bitems from quests by (\d+)%/gi));
-			this.set(['data',i,'stats','item'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
+			if (j) { stats['item'] = j; }
+
+			// Guild skills
+
+			j = nmax(0,
+			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/i),
+			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/i));
+			if (j) { stats['guild_deflect_passive'] = j; }
+
+			if (skillcombo.match(/\bDeals Extra Damage In Battles\b/i)) {
+				j = 5;
+			} else {
+				j = nmax(0, skillcombo.regex(/\bDeals additional (\d+) Damage In Battles\b/));
+			}
+			if (j) { stats['guild_damage'] = j; }
+
+			// Sanna
+			j = nmax(0,
+			  skillcombo.regex(/\bHeal for additional (\d+) Health as a Cleric in a Guild Battle\b/i),
+			  skillcombo.regex(/\bHeal for an additional (\d+) Health\s*;/i));
+			if (j) { stats['guild_cleric_heal_gate'] = j; }
+
+			// Zurran
+			j = nmax(0,
+			  skillcombo.regex(/\bDeal additional (\d+) damage as a Mage in a Guild Battle\b/i),
+			  skillcombo.regex(/\bDeal additional (\d+) damage with Mage passive ability\b/i),
+			  skillcombo.regex(/\bDeal an additional (\d+) Damage\s*[;,]/i));
+			if (j) { stats['guild_mage_damage_gate'] = j; }
+
+			// Elaida
+			j = nmax(0, skillcombo.regex(/\bHeal for an additional (\d*\.?\d+) Health with Heal Ability\b/i));
+			if (j) { stats['guild_cleric_heal'] = j; }
+
+			// Shivak
+			j = nmax(0, skillcombo.regex(/\bIncrease Fortitude Effect by ([-+]?\d*\.?\d+)% Health with Heal Ability\b/i));
+			if (j) { stats['guild_cleric_fortitude'] = j; }
+
+			// Anya
+			j = nmax(0, skillcombo.regex(/\b(\d*\.?\d+)% chance to Polymorph opponent\b/gi));
+			if (j) { stats['guild_mage_polymorph'] = j; }
+
+			// Syren
+			j = nmax(0, skillcombo.regex(/\bconfused target has additional (\d*\.?\d+)% chance to attack themselves\b/gi));
+			if (j) { stats['guild_mage_confuse'] = j; }
+
+			// Raziel the Silent
+			j = nmax(0, skillcombo.regex(/\bIncrease Evade chance in Guild Battles and Monsters by (\d*\.?\d+)\b/gi));
+			if (j) { stats['guild_rogue_evade'] = j; }
+
+			// Aethyx
+			j = nmax(0, skillcombo.regex(/\bIncreases Poison damage by ([-+]?\d*\.?\d+)\b/i));
+			k = 5 + nmax(0, skillcombo.regex(/\bIncreases Poison\b[^;]*\bduration by ([-+]?\d*\.?\d+)\b/i));
+			if (j * k) { stats['guild_rogue_poison'] = j * k; }
+
+			// Ameron
+			j = nmax(0, skillcombo.regex(/\bDeal an additional (\d*\.?\d+) to each surrounding enemy with Whirlwind\b/gi));
+			if (j) { stats['guild_warrior_whirlwind'] = j; }
+
+			// Meekah
+			j = nmax(0, skillcombo.regex(/\bIncrease Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
+			if (j) { stats['guild_warrior_confidence'] = j; }
+
+			this.set(['data',i,'stats'], stats);
 
 			this.set(['runtime','armymax'], Math.max(army, this.runtime.armymax));
 		}
@@ -9103,19 +9933,24 @@ Generals.update = function(event, events) {
 
 		for (i in this.data) {
 			p = this.data[i];
-			if (p.stats && p.own) {
-				for (j in p.stats) {
-					if (isNumber(p.stats[j])) {
-						if ((bests[j] || -1e99) < p.stats[j]) {
-							bests[j] = p.stats[j];
+			if ((stats = p['stats']) && p['own']) {
+				for (j in stats) {
+					if ((j === 'monster' || j === 'crits')
+					  && (stats['multiplier'] || 0) > 1
+					) {
+						// make sure we don't count a pa multiplier in monster-based bests
+						continue;
+					} else if (isNumber(stats[j])) {
+						if ((bests[j] || -1e99) < stats[j]) {
+							bests[j] = stats[j];
 							list[j] = i;
 						}
-					} else if (isObject(p.stats[j])) {
-						for (k in p.stats[j]) {
-							if (isNumber(p.stats[j][k])) {
+					} else if (isObject(stats[j])) {
+						for (k in stats[j]) {
+							if (isNumber(stats[j][k])) {
 								o = j + '-' + k;
-								if ((bests[o] || -1e99) < p.stats[j][k]) {
-									bests[o] = p.stats[j][k];
+								if ((bests[o] || -1e99) < stats[j][k]) {
+									bests[o] = stats[j][k];
 									list[o] = i;
 								}
 							}
@@ -9163,7 +9998,7 @@ Generals.to = function(name) {
 	type = this.get(['data',name,'type']);
 
 	if (this.get('option.fast') && isNumber(id) && isNumber(type)) {
-		log(LOG_INFO, 'General fast change: ' + Player.get('general') + ' to ' + name);
+		log(LOG_DEBUG, 'General fast change: ' + Player.get('general') + ' to ' + name);
 		Page.to('heroes_generals', {item:id, itype:type}, true);
 	} else if (isNumber(id)) {
 		if (!Page.to('heroes_generals')) {
@@ -9178,7 +10013,7 @@ Generals.to = function(name) {
 			log(LOG_WARN, "Can't find select button for General: " + name);
 			return null;
 		} else if (Page.click(el)) {
-			log(LOG_INFO, 'General change: ' + Player.get('general') + ' to ' + name);
+			log(LOG_DEBUG, 'General change: ' + Player.get('general') + ' to ' + name);
 		} else {
 			log(LOG_DEBUG, '# might be a page click cooldown');
 		}
@@ -9279,7 +10114,7 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var self = this, i, j, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
+	var self = this, i, j, k, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
 		sorttype = [
 			'img',
 			'name',
@@ -9309,16 +10144,16 @@ Generals.dashboard = function(sort, rev) {
 	this.set('runtime.rev', rev);
 	if (typeof sort !== 'undefined') {
 		this.order.sort(function(a,b) {
-			var aa, bb, type, x, i;
+			var aa, bb, type, x;
 			if (sort === 1) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
 				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
 				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
-			} else if ((i = sorttype[sort])) {
-				aa = self.get(['data',a].concat(i.split('.')), 0, 'number');
-				bb = self.get(['data',b].concat(i.split('.')), 0, 'number');
+			} else if ((x = sorttype[sort])) {
+				aa = self.get(['data',a].concat(x.split('.')), 0, 'number');
+				bb = self.get(['data',b].concat(x.split('.')), 0, 'number');
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -9355,7 +10190,8 @@ Generals.dashboard = function(sort, rev) {
 		p = this.get(['data',i]) || {};
 		output = [];
 		j = this.get([p, 'weaponbonus']);
-		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '">'));
+		k = p['skills'] || p['skillsbase'] || 'none';
+		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + k + (j ? '; Weapon Bonus: ' + j : '') + '">'));
 		td(output, i);
 		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
 		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))
@@ -9422,12 +10258,14 @@ Generals.dashboard = function(sort, rev) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Dashboard, Page,
+	Generals, Idle,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_INTERRUPT_OK,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	length
 */
 /********** Worker.Gift() **********
 * Auto accept gifts and return if needed
@@ -9477,9 +10315,9 @@ Gift.display = [
 ];
 
 Gift.init = function() {
-	delete this.data.uid;
-	delete this.data.lastgift;
-	if (length(this.data.gifts)) {
+	this.set('data.uid');
+	this.set('data.lastgift');
+	if (length(this.get('data.gifts', {}))) {
 		var i, gift_ids = [], random_gift_id;
 		for (i in this.data.gifts) {
 			gift_ids.push(i);
@@ -9487,11 +10325,11 @@ Gift.init = function() {
 		for (i in this.data.todo) {
 			if (!(/\D/g).test(i)) {	// If we have an old entry
 				random_gift_id = Math.floor(Math.random() * gift_ids.length);
-				if (!this.data.todo[gift_ids[random_gift_id]]) {
-					this.data.todo[gift_ids[random_gift_id]] = [];
+				if (!isArray(this.get(['data','todo',gift_ids[random_gift_id]]))) {
+					this.set(['data','todo',gift_ids[random_gift_id]], []);
 				}
-				this.data.todo[gift_ids[random_gift_id]].push(i);
-				delete this.data.todo[i];
+				this.push(['data','todo',gift_ids[random_gift_id]], i);
+				this.set(['data','todo',i]);
 			}
 		}
 	}
@@ -9803,12 +10641,13 @@ Gift.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Page,
+	Player,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Heal **********
 * Auto-Heal above a stamina level
@@ -9876,12 +10715,11 @@ Heal.me = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers, Page,
+	Generals,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Idle **********
 * Set the idle general
@@ -9894,7 +10732,8 @@ Idle.defaults['castle_age'] = {};
 
 Idle.settings ={
 	after:['LevelUp'],
-	taint:true
+	taint:true,
+	no_disable:true
 };
 
 Idle.option = {
@@ -9902,9 +10741,9 @@ Idle.option = {
 	index:86400000,
 	generals:604800000,
 	alchemy:86400000,
-	quests:0,
-	town:0,
-	keep:0,
+	quests:604800000,
+	town:86400000,
+	keep:3600000,
 //	arena:0,
 	battle:900000,
 	guild:0,
@@ -10011,6 +10850,7 @@ Idle.pages = {
 		'quests_quest13',
 		'quests_quest14',
 		'quests_quest15',
+		//'quests_quest16', // not yet on web3
 		'quests_demiquests',
 		'quests_atlantis'
 	],
@@ -10033,7 +10873,7 @@ Idle.init = function() {
 };
 
 Idle.work = function(state) {
-	var now = Date.now(), i, j, p;
+	var now = Date.now(), i, j, k, p;
 
 	if (!state) {
 		return true;
@@ -10042,11 +10882,11 @@ Idle.work = function(state) {
 	// handle the generals tour first, to avoid thrashing with the Idle general
 	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
 		for (j in p) {
-			if (p[j] && p[j].own && (p[j].seen || 0) + this.option[i] <= now) {
+			if ((k = Generals.get(['runtime','last',j], 0)) + this.option[i] <= now) {
 				if (Generals.to(j) === null) {
 					// if we can't change the general now due to stats or error
-					// just add an hour to the last seen time and try later
-					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
+					// just try again in an hour
+					Generals.set(['runtime','last',j], Math.max(k, now + 60*60*1000 - this.option[i]));
 				}
 				return true;
 			}
@@ -10059,7 +10899,7 @@ Idle.work = function(state) {
 
 	for (i in this.pages) {
 		if (this.option[i]) {
-			for (p=0; p<this.pages[i].length; p++) {
+			for (p = 0; p < this.pages[i].length; p++) {
 				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
 					return true;
 				}
@@ -10071,11 +10911,13 @@ Idle.work = function(state) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History,
+	Bank, Generals, Player,
+	APP, APPID, PREFIX, log, debug, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Income **********
 * Auto-general for Income, also optional bank
@@ -10155,13 +10997,14 @@ Income.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID_, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
-	LOG_ERROR, LOG_WARN, LOG_INFO,
+	$, Worker, Workers, Dashboard, History, Page, Resources,
+	Bank, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, assert
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	assert
 */
 /********** Worker.Land **********
 * Auto-buys property
@@ -10408,7 +11251,7 @@ Land.update = function(event, events) {
 			Dashboard.status(this, 'Saved $' + worth.SI() + ' of $' + this.runtime.save_amount.SI() + ' for future land.');
 		}
 	} else {
-		Dashboard.status(this, 'Nothing to do.');
+		Dashboard.status(this);
 	}
 
 	this.set(['option','_sleep'],
@@ -10466,12 +11309,14 @@ Land.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources, //Army,
+	Battle, Generals, Heal, Monster, Player, Quest, //Bank, Income, LevelUp:true,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	calc_rolling_weighted_average
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	bestObjValue, makeTimer, calc_rolling_weighted_average
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -10575,6 +11420,7 @@ LevelUp.init = function() {
 		this.set('option.general_choice', 'under max level');
 	}
 	// END
+
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.exp');
 	this._watch(Player, 'data.energy');
@@ -10597,15 +11443,15 @@ LevelUp.page = function(page, change) {
 				return;
 			}
 			var txt = $(el).text().replace(/,|\t/g, ''), x;
-			x = txt.regex(/([+-]\d+) Experience/i);
+			x = txt.regex(/([-+]\d+) Experience/i);
 			if (x) { History.add('exp+battle', x); }
 			x = (txt.regex(/\+\$(\d+)/i) || 0) - (txt.regex(/\-\$(\d+)/i) || 0);
 			if (x) { History.add('income+battle', x); }
-			x = txt.regex(/([+-]\d+) Battle Points/i);
+			x = txt.regex(/([-+]\d+) Battle Points/i);
 			if (x) { History.add('bp+battle', x); }
-			x = txt.regex(/([+-]\d+) Stamina/i);
+			x = txt.regex(/([-+]\d+) Stamina/i);
 			if (x) { History.add('stamina+battle', x); }
-			x = txt.regex(/([+-]\d+) Energy/i);
+			x = txt.regex(/([-+]\d+) Energy/i);
 			if (x) { History.add('energy+battle', x); }
 		});
 	}
@@ -10613,13 +11459,22 @@ LevelUp.page = function(page, change) {
 };
 
 LevelUp.update = function(event, events) {
-	var i, energy = Player.get('energy',0), stamina = Player.get('stamina',0), exp = Player.get('exp',0);
+	var now = Date.now(), i, worker, stat,
+		energy = Player.get('energy', 0, 'number'),
+		maxenergy = Player.get('maxenergy', 0, 'number'),
+		stamina = Player.get('stamina', 0, 'number'),
+		maxstamina = Player.get('maxstamina', 0, 'number'),
+		health = Player.get('health', 0, 'number'),
+		exp = Player.get('exp', 0, 'number'),
+		maxexp = Player.get('maxexp', 0, 'number');
+
 	if (events.findEvent(this, 'watch', 'runtime.force.energy') && this.get(['runtime','force','energy'])) {
 		log(LOG_INFO, 'Forcing energy burn...');
 	}
 	if (events.findEvent(this, 'watch', 'runtime.force.stamina') && this.get(['runtime','force','stamina'])) {
 		log(LOG_INFO, 'Forcing stamina burn...');
 	}
+
 	if (this.option._disabled) {
 		this.set(['runtime','running'], false);
 		this.set(['runtime','quest'], null);
@@ -10627,11 +11482,15 @@ LevelUp.update = function(event, events) {
 		this.set(['runtime','force','stamina'], false);
 	} else if (events.findEvent('Player')) {
 		// Check if stamina/energy is maxed and should be forced
-		this.set(['runtime','force','energy'], energy >= Player.get('maxenergy',0));
-		this.set(['runtime','force','stamina'], stamina >= Player.get('maxstamina',0));
+		this.set(['runtime','force','energy'], energy >= maxenergy);
+		this.set(['runtime','force','stamina'], stamina >= maxstamina);
 		// Preserve independence of queue system worker by putting exception code into CA workers
 		for (i in Workers) {
-			if ((worker = Workers[i]) && isFunction(worker.resource) && !worker.get(['option', '_disabled'], false) && (stat = worker.resource())) { // && !worker.get(['option', '_sleep'], false)
+			if ((worker = Workers[i])
+			  && isFunction(worker.resource)
+			  && !worker.get(['option', '_disabled'], false)
+			  && (stat = worker.resource())
+			) { // && !worker.get(['option', '_sleep'], false)
 				if (stat === 'energy') {
 					this.set(['runtime','force','energy'], true);
 				} else if (stat === 'stamina') {
@@ -10640,6 +11499,7 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
+
 	if (events.findEvent('Player') || !length(this.runtime.quests)) {
 		if (exp > this.runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -10656,20 +11516,27 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
+
 	this.set(['runtime','energy'], Math.max(0, energy - (this.runtime.force.energy ? 0 : Resources.get(['option','reserve','Energy'], 0))));
 	this.set(['runtime','stamina'], Math.max(0, stamina - (this.runtime.force.stamina ? 0 : Resources.get(['option','reserve','Stamina'], 0))));
 	this.set(['runtime','exp'], exp);
 	this.set(['runtime','heal_me'], !this.option._disabled && this.runtime.stamina && this.runtime.force.stamina && Player.get('health') < 13);
 	//log(LOG_DEBUG, 'next action ' + LevelUp.findAction('best', energy, stamina, Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', energy, stamina, Player.get('exp_needed')).exp);
+
 	if (this.runtime.running) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' +
 			Page.addTimer('levelup', this.get('level_time')) + ' (' + Config.makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
-			makeTimer((this.get('refill_energy') - Date.now()) / 1000) + ' per energy, ' +
-			makeTimer((this.get('refill_stamina') - Date.now()) / 1000) + ' per stamina)</span>');
+			makeTimer((this.get('refill_energy') - now) / 1000) + ' per energy, ' +
+			makeTimer((this.get('refill_stamina') - now) / 1000) + ' per stamina)</span>');
 	}
-	this.set(['option','_sleep'], !this.runtime.running || !this.runtime.heal_me);
+
+	this.set(['option','_sleep'],
+	  !this.runtime.running
+	  || !this.runtime.heal_me
+	);
+
 	return true;
 };
 
@@ -10772,10 +11639,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			log(LOG_WARN, 'Big action is stamina. Exp use:' + staminaAction.exp + '/' + exp);
 			staminaAction.big = true;
 			return staminaAction;
-		} else {
-			log(LOG_WARN, 'Big action not found');
-			return nothing;
 		}
+		log(LOG_WARN, 'Big action not found');
+		return nothing;
 	case 'energy':
 		//log(LOG_WARN, 'monster runtime defending ' + Monster.get('runtime.defending'));
 		if ((Monster.get('runtime.defending')
@@ -10811,10 +11677,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				exp : quests[i].exp,
 				quest : i
 			};
-		} else {
-			log(LOG_WARN, 'No appropriate quest found');
-			return nothing;
 		}
+		log(LOG_WARN, 'No appropriate quest found');
+		return nothing;
 	case 'defend':
 		stat = 'energy';
 		value = energy;
@@ -10897,15 +11762,17 @@ LevelUp.resource = function() {
 			return stat;
 		}
 	}
-};/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+};
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	$, Worker, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, APPID_, log, debug, userID, imagepath,
-	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG,
+	APP, APPID, APPID_, userID, imagepath,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_NO_ACTION,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	calc_rolling_weighted_average, bestObjValue, assert
+	isArray, isFunction, isNumber, isObject, isString, isWorker
+	findInObject, bestObjValue, plural, sum, tr, th, td,
+	calc_rolling_weighted_average, assert
 */
 /********** Worker.Monster **********
  * Automates Monster
@@ -11020,14 +11887,17 @@ Monster.display = [
 			},{
 				id:'min_to_attack',
 				label:'Attack Over',
-				text:1,
+				number:20,
+				min:0,
+				max:100,
+				step:1,
 				help:'Attack if defense is over this value. Range of 0% to 100%.',
 				after:'%'
 			},{
 				id:'use_tactics',
 				label:'Use tactics',
 				checkbox:true,
-				help:'Use tactics to improve damage when it\'s available (may lower exp ratio)'
+				help:"Use tactics to improve damage when it's available (may lower exp ratio)"
 			},{
 				id:'choice',
 				label:'Attack',
@@ -11066,16 +11936,17 @@ Monster.display = [
 			},{
 				advanced:true,
 				id:'avoid_lost_cause',
-				label:'Avoid Lost-cause Monsters',
 				require:'stop!=="Priority List"',
+				label:'Avoid Lost-cause Monsters',
 				checkbox:true,
 				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
 			},{
 				advanced:true,
 				id:'lost_cause_hours',
-				label:'Lost-cause if ETD is',
 				require:'avoid_lost_cause',
-				after:'hours after timer',
+				label:'Lost-cause if ETD is',
+				after:'hours late',
+				cols:4,
 				text:true,
 				help:'# of Hours Monster must be behind before preventing attacks.'
 			},{
@@ -11115,7 +11986,10 @@ Monster.display = [
 					},{
 						id:'defend',
 						label:'Defend Below',
-						text:30,
+						number:30,
+						min:0,
+						max:100,
+						step:1,
 						help:'Defend if defense is under this value. Range of 0% to 100%.',
 						after:'%'
 					},{
@@ -11160,13 +12034,13 @@ Monster.display = [
 				require:'raid!="Duel" && raid!="Duel x5"',
 				label:'Target Army Ratio',
 				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-				help:'Smaller number for smaller target army. Reduce this number if you\'re losing in Invade'
+				help:"Smaller number for smaller target army. Reduce this number if you're losing in Invade"
 			},{
 				id:'levelratio',
 				require:'raid!="Invade" && raid!="Invade x5"',
 				label:'Target Level Ratio',
 				select:['Any', 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-				help:'Smaller number for lower target level. Reduce this number if you\'re losing a lot'
+				help:"Smaller number for lower target level. Reduce this number if you're losing a lot"
 			},{
 				id:'force1',
 				label:'Force +1',
@@ -11373,6 +12247,8 @@ Monster.types = {
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"]',
 		attack:[5,10,20,50], // Needs details
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
 		festival: 'ambrosia',
 		festival_timer2: 691200, // 192 hours
 		festival_damage2: 1000000,
@@ -11386,7 +12262,10 @@ Monster.types = {
 		achievement:11000000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20, 50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11613,7 +12492,10 @@ Monster.types = {
 		achievement:1000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11631,7 +12513,10 @@ Monster.types = {
 		achievement:1000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
@@ -11649,7 +12534,10 @@ Monster.types = {
 		achievement:2000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11667,7 +12555,10 @@ Monster.types = {
 		achievement:6000000, // Guesswork
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11684,7 +12575,10 @@ Monster.types = {
 		achievement:6000000, // ~0.5%, 2X = ~1%
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11702,7 +12596,10 @@ Monster.types = {
 		achievement:2500,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
 		tactics:[5,10,20,50],
@@ -11718,7 +12615,10 @@ Monster.types = {
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11735,7 +12635,10 @@ Monster.types = {
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
@@ -11752,7 +12655,10 @@ Monster.types = {
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100,200],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
@@ -11769,7 +12675,10 @@ Monster.types = {
 		achievement:5000000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[10,20,50,100], // removed 200 attack as per forums post
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[20,40,100,200],
@@ -11779,14 +12688,17 @@ Monster.types = {
 		festival_worth2: 550
 	},
 	rebellion: {
-		name:'Aurelius, Lion\'s Rebellion',
+		name:"Aurelius, Lion's Rebellion",
 		list:'nm_aurelius_list.jpg',
 		image:'nm_aurelius_large.jpg',
 		dead:'nm_aurelius_large_dead.jpg',
 		achievement:1000,
 		timer:604800, // 168 hours
 		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
 		tactics:[5,10,20,50],
@@ -11802,9 +12714,13 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend_button:'input[name="Attack Dragon"][src*="heal"]'
+		  + ',input[name="Attack Dragon"][src*="strengthen"]',
 		defend:[10,20,40,100],
 		festival_timer: 691200, // 192 hours
 		festival: 'alpha_mephistopheles',
@@ -11821,7 +12737,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11838,7 +12757,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11855,7 +12777,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11872,7 +12797,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11889,7 +12817,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20,50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100],
@@ -11906,7 +12837,10 @@ Monster.types = {
 		achievement:6000000,
 		timer:604800, // 168 hours
 		mpool:100,
-		attack_button:'input[name="Attack Dragon"][src*="stab"],input[name="Attack Dragon"][src*="bolt"],input[name="Attack Dragon"][src*="smite"],input[name="Attack Dragon"][src*="bash"]',
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
 		attack:[5,10,20, 50],
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
@@ -11975,21 +12909,26 @@ Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_backgr
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
 Monster.defense_img = ['img[src$="nm_green.jpg"]', 'img[src$="seamonster_ship_health.jpg"]'];
 Monster.secondary_img = 'img[src$="nm_stun_bar.gif"]';
-Monster.class_img = ['div[style*="nm_bottom"] img[src$="nm_class_warrior.jpg"]',
-				'div[style*="nm_bottom"] img[src$="nm_class_cleric.jpg"]',
-				'div[style*="nm_bottom"] img[src$="nm_class_rogue.jpg"]',
-				'div[style*="nm_bottom"] img[src$="nm_class_mage.jpg"]',
-				'div[style*="nm_bottom"] img[src$="nm_class_ranger.jpg"]',
-				'div[style*="nm_bottom"] img[src$="nm_class_warlock.jpg"]'];
+Monster.class_img = [
+	'div[style*="nm_bottom"] img[src$="nm_class_warrior.jpg"]',
+	'div[style*="nm_bottom"] img[src$="nm_class_cleric.jpg"]',
+	'div[style*="nm_bottom"] img[src$="nm_class_rogue.jpg"]',
+	'div[style*="nm_bottom"] img[src$="nm_class_mage.jpg"]',
+	'div[style*="nm_bottom"] img[src$="nm_class_ranger.jpg"]',
+	'div[style*="nm_bottom"] img[src$="nm_class_warlock.jpg"]'
+];
 Monster.class_name = ['Warrior', 'Cleric', 'Rogue', 'Mage', 'Ranger', 'Warlock'];
-Monster.secondary_off = 'img[src$="nm_s_off_cripple.gif"],img[src$="nm_s_off_deflect.gif"]';
-Monster.secondary_on = 'input[name="Attack Dragon"][src*="cripple"],input[name="Attack Dragon"][src*="deflect"]';
+Monster.secondary_off = 'img[src$="nm_s_off_cripple.gif"]'
+  + ',img[src$="nm_s_off_deflect.gif"]';
+Monster.secondary_on = 'input[name="Attack Dragon"][src*="cripple"]'
+  + ',input[name="Attack Dragon"][src*="deflect"]';
 Monster.warrior = 'input[name="Attack Dragon"][src*="strengthen"]';
 Monster.raid_buttons = {
 	'Invade':	'input[src$="raid_attack_button.gif"]:first',
 	'Invade x5':'input[src$="raid_attack_button3.gif"]:first',
 	'Duel':		'input[src$="raid_attack_button2.gif"]:first',
-	'Duel x5':	'input[src$="raid_attack_button4.gif"]:first'};
+	'Duel x5':	'input[src$="raid_attack_button4.gif"]:first'
+};
 Monster.name_re = null;
 Monster.name2_re = /^\s*(.*\S)\s*'s\b/im; // secondary player/monster name match regexp
 
@@ -12037,10 +12976,11 @@ Monster.init = function() {
 };
 
 Monster.page = function(page, change) {
-	var i, uid, name, type, tmp, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, now = Date.now(), ensta = ['energy','stamina'], x, festival, parent = $('#'+APPID_+'app_body'), $children;
+	var now = Date.now(), i, uid, name, type, tmp, txt, dmg, fort, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, ensta = ['energy','stamina'], x, festival, parent = $('#'+APPID_+'app_body'), $children;
+
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(page)>=0) { // In a monster or raid
 		festival = (page === 'festival_battle_monster');
-		uid = $('img[linked][size="square"]').attr('uid') || $('img[width="52"][height="52"]').attr('src').regex(/facebook\.com\/(\d+)\/picture/i);
+		uid = $('img[linked][size="square"]').attr('uid') || ($('img[width="52"][height="52"]').attr('src') || '').regex(/facebook\.com\/(\d+)\/picture/i);
 		//log(LOG_WARN, 'Parsing for Monster type');
 		for (i in types) {
 			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length 
@@ -12080,7 +13020,7 @@ Monster.page = function(page, change) {
 		monster = data[mid];
 		this.set(['data',mid,'page'], page === 'festival_battle_monster' ? 'festival' : 'keep');
 		this.set(['data',mid,'name'], $('a[href="keep.php?casuser=' + uid + '"]').first().text());
-//		this.set(['data',mid,'name'], $('img[linked][size="square"]').parent().parent().parent().text().replace('\'s summoned','').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim());
+//		this.set(['data',mid,'name'], $('img[linked][size="square"]').parent().parent().parent().text().replace("'s summoned",'').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim());
 		if (dead) {
 			// Will this catch Raid format rewards?
 			if ($('input[src*="collect_reward_button"]').length) {
@@ -12112,12 +13052,12 @@ Monster.page = function(page, change) {
 								,ensta[i],this.runtime.used[ensta[i]],10);
 						//log(LOG_WARN, 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[type_label]['avg_damage_per_' + ensta[i]]);
 						if (Player.get('general') === 'Banthus Archfiend' 
-								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now()) {
-							Generals.set(['data','Banthus Archfiend','charge'],Date.now() + 4320000);
+								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < now) {
+							Generals.set(['data','Banthus Archfiend','charge'],now + 4320000);
 						}
 						if (Player.get('general') === 'Zin'
-								&& Generals.get(['data','Zin','charge'],1e99) < Date.now()) {
-							Generals.set(['data','Zin','charge'],Date.now() + 82800000);
+								&& Generals.get(['data','Zin','charge'],1e99) < now) {
+							Generals.set(['data','Zin','charge'],now + 82800000);
 						}
 					}
 					this.set(['runtime','used',ensta[i]], 0);
@@ -12204,25 +13144,41 @@ Monster.page = function(page, change) {
 			this.set(['data',mid,'phase'], $('input[name*="help with"]').attr('title').regex(/ (.*)/i));
 			//log(LOG_WARN, 'Assisted on '+this.get(['data',mid,'phase'])+'.');
 		}
-		$('img[src*="siege_small"]').each(function(i,el){
-			var /*siege = $(el).parent().next().next().next().children().eq(0).text(),*/ dmg = $(el).parent().next().next().next().children().eq(1).text().replace(/\D/g,'').regex(/(\d+)/);
+		tmp = $('img[src*="siege_small"]');
+		for (i = 0; i < tmp.length; i++) {
+			//siege = $(tmp[i]).parent().next().next().next().children().eq(0).text();
+			dmg = $(tmp[i]).parent().next().next().next().children().eq(1).text().replace(/\D/g,'').regex(/(\d+)/);
 			//log(LOG_WARN, 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			Monster.add(['data',mid,'damage','siege'], dmg / (types[type_label].orcs ? 1000 : 1));
-		});
-//		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){
-		$('img[src*="team_attack_icon"]').closest('tr').each(function(i,el){
-			var user = $('a', el).attr('href').regex(/user=(\d+)/i), tmp, dmg, fort;
-			tmp = $('td', el).last().text().replace(/[^0-9\/]/g,'');
-			dmg = tmp.regex(/(\d+)/);
-			fort = tmp.regex(/\/(\d+)/);
-			if (user === userID){
-				Monster.set(['data',mid,'damage','user','manual'], dmg - Monster.get(['data',mid,'damage','user','script'], 0));
-				Monster.set(['data',mid,'defend','manual'], fort - Monster.get(['data',mid,'defend','script'], 0));
-				Monster.set(['data',mid,'stamina','manual'], Math.round(Monster.get(['data',mid,'damage','user','manual'], 0) / Monster.get(['runtime','monsters',type_label,'avg_damage_per_stamina'], 1)));
-			} else {
-				Monster.add(['data',mid,'damage','others'], dmg);
+		}
+//		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){}
+		tmp = $('.dragonContainer img[src*="team_attack_icon."]').closest('tr');
+		if (!tmp.length) {
+			if ((tmp = $('.dragonContainer img[src*="like_button2."]')).length) {
+				tmp = $('table', tmp.closest('td'));
 			}
-		});
+		}
+		if (tmp.length) {
+			tmp = $('td a[href*="keep.php?casuser="]', tmp);
+		}
+		for (i = 0; i < tmp.length; i++) {
+			uid = $(tmp[i]).attr('href').regex(/user=(\d+)\b/i);
+			txt = ($(tmp[i]).closest('td').next().text() || '').replace(/[^\d\/]+/gm, '');
+			dmg = tmp.regex(/^(\d+)/);
+			fort = tmp.regex(/\/(\d+)/);
+			if (uid === userID){
+				if (!this.get(['data',mid,'state'])
+				  && this.get(['data',mid,'finish'], 0, 'number') > now
+				) {
+					this.set(['data',mid,'state'], 'engage');
+				}
+				this.set(['data',mid,'damage','user','manual'], dmg - this.get(['data',mid,'damage','user','script'], 0));
+				this.set(['data',mid,'defend','manual'], fort - this.get(['data',mid,'defend','script'], 0));
+				this.set(['data',mid,'stamina','manual'], Math.round(this.get(['data',mid,'damage','user','manual'], 0) / this.get(['runtime','monsters',type_label,'avg_damage_per_stamina'], 1)));
+			} else {
+				this.add(['data',mid,'damage','others'], dmg);
+			}
+		}
 		// If we're doing our first attack then add them without having to visit list
 		if (this.get(['data',mid,'state']) === 'assist' && sum(this.get(['data',mid,'damage','user'], 0))) {
 			this.set(['data',mid,'state'], 'engage');
@@ -12327,9 +13283,9 @@ Monster.page = function(page, change) {
 					break; // Should probably delete, but keep it on the list...
 				}
 				this._transaction(true); // COMMIT TRANSACTION
-			} catch(e) {
+			} catch(e2) {
 				this._transaction(false); // ROLLBACK TRANSACTION on any error
-				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
+				log(e2, e2.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e2.message);
 			}
 		}
 	} else if (page === 'monster_remove_list') { // Check monster / raid list
@@ -12380,7 +13336,8 @@ Monster.update = function(event) {
 	if (event.type === 'runtime' && event.worker.name !== 'LevelUp') {
 		return;
 	}
-	var i, j, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, now = Date.now(), waiting_ok;
+	var now = Date.now(), i, j, o, p, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, waiting_ok, condition, searchterm, attack_found, defend_found, attack_overach, defend_overach, suborder, defense_kind, button, order;
+
 	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
 	this.runtime.big = this.runtime.values.attack = this.runtime.values.defend = [];
 	limit = this.runtime.limit;
@@ -12412,12 +13369,16 @@ Monster.update = function(event) {
 	});
 	waiting_ok = !this.option.hide && !LevelUp.runtime.force.stamina;
 	if (this.option.stop === 'Priority List') {
-		var condition, searchterm, attack_found = false, defend_found = false, attack_overach = false, defend_overach = false, o, suborder, p, defense_kind, button, order = [];
+		attack_found = false;
+		defend_found = false;
+		attack_overach = false;
+		defend_overach = false;
+		order = [];
 		this.runtime.banthus = [];
 		if (this.option.priority) {
 			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/[, ]*\|[, ]*/g,'|').split(',');
 		}
-		order.push('your ','\'s'); // Catch all at end in case no other match
+		order.push('your ',"'s"); // Catch all at end in case no other match
 		for (o=0; o<order.length; o++) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
@@ -12447,7 +13408,7 @@ Monster.update = function(event) {
 					//If this monster does not match, skip to next one
 					// Or if this monster is dead, skip to next one
 					if (	matched_mids.indexOf(mid)>=0
-							||((monster.name === 'You' ? 'Your' : monster.name + '\'s')
+							||((monster.name === 'You' ? 'Your' : monster.name + "'s")
 								+ ' ' + type.name).toLowerCase().indexOf(searchterm) < 0
 							|| monster.ignore) {
 						continue;
@@ -12638,7 +13599,7 @@ Monster.update = function(event) {
 			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.runtime.limit :0;
 			if (	!monster.ignore
 					&& monster.state === 'engage'
-					&& monster.finish > Date.now()	) {
+					&& monster.finish > now	) {
 				uid = mid.replace(/_.+/,'');
 				/*jslint eqeqeq:false*/
 				if (uid == userID && this.option.own) {
@@ -12778,7 +13739,7 @@ Monster.update = function(event) {
 			this.runtime.button[i].query = list[i][0][2];
 			uid = mid.replace(/_.+/,'');
 			type = this.types[this.data[mid].type];
-			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + '\'s ')) + type.name;
+			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + "'s ")) + type.name;
 		} else {
 			this.runtime[i] = false;
 		}
@@ -12842,7 +13803,7 @@ Monster.update = function(event) {
 						&& monster.page !== 'festival') {
 					//log(LOG_WARN, 'remove ' + mid + ' userid ' + userID + ' uid ' + uid + ' now ' + (uid === userID) + ' new ' + (parseFloat(uid) === userID));
 					this.check(mid, 'Removing ', 'remove_list','');
-				} else if (monster.last < Date.now() - this.option.check_interval * (monster.remove ? 5 : 1)) {
+				} else if (monster.last < now - this.option.check_interval * (monster.remove ? 5 : 1)) {
 					this.check(mid, 'Reviewing ', 'casuser','');
 				}
 				if (this.runtime.message) {
@@ -12851,7 +13812,11 @@ Monster.update = function(event) {
 			}
 		}
 	}
-	Dashboard.status(this, messages.length ? messages.join('<br>') : 'Nothing to do.');
+	if (messages.length) {
+	    Dashboard.status(this, messages.join('<br>'));
+	} else {
+	    Dashboard.status(this);
+	}
 	if(!Queue.option.pause){
 		if(LevelUp.runtime.running){
 			this.runtime.limit = 100;
@@ -12900,9 +13865,9 @@ Monster.work = function(state) {
 		btn = $(Monster.raid_buttons[this.option.raid]);
 	} else {
 		//Primary method of finding button.
-		log(LOG_WARN, 'Try to ' + mode + ' ' + monster.name + '\'s ' + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
+		log(LOG_WARN, 'Try to ' + mode + ' ' + monster.name + "'s " + type.name + ' for ' + this.runtime[stat] + ' ' + stat);
 		if (!$(this.runtime.button[mode].query).length || this.runtime.button[mode].pick >= $(this.runtime.button[mode].query).length) {
-//			log(LOG_WARN, 'Unable to find '  + mode + ' button for ' + monster.name + '\'s ' + type.name + ' (' + this.runtime.button[mode].query + ')');
+//			log(LOG_WARN, 'Unable to find '  + mode + ' button for ' + monster.name + "'s " + type.name + ' (' + this.runtime.button[mode].query + ')');
 		} else {
 //			log(LOG_WARN, ' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
 			btn = $(this.runtime.button[mode].query).eq(this.runtime.button[mode].pick);
@@ -12911,7 +13876,7 @@ Monster.work = function(state) {
 		if (!btn || !btn.length){
 			monster.button_fail = (monster.button_fail || 0) + 1;
 			if (monster.button_fail > 10){
-				log(LOG_LOG, 'Ignoring Monster ' + monster.name + '\'s ' + type.name + ': Unable to locate ' + (this.runtime.button[mode].pick || 'unknown') + ' ' + mode + ' button ' + monster.button_fail + ' times!');
+				log(LOG_LOG, 'Ignoring Monster ' + monster.name + "'s " + type.name + ': Unable to locate ' + (this.runtime.button[mode].pick || 'unknown') + ' ' + mode + ' button ' + monster.button_fail + ' times!');
 				monster.ignore = true;
 				monster.button_fail = 0;
 			}
@@ -12957,7 +13922,7 @@ Monster.check = function(mid, message, prefix, suffix) {
 	uid = mid.replace(/_.+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + '\'s') : '') + ' ' + type.name;
+		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + "'s") : '') + ' ' + type.name;
 		Dashboard.status(this, this.runtime.message);
 	}
 	this.runtime.page = type.raid ? 'battle_raid' 
@@ -13149,11 +14114,12 @@ Monster.dashboard = function(sort, rev) {
 		}
 		td(output, vv, tt);
 
-		var activity = sum(monster.damage && monster.damage.user) + sum(monster.defend);
+		// activity
+		v = sum(monster.damage && monster.damage.user) + sum(monster.defend);
 		if (monster.ach > 0 || monster.max > 0) {
-			if (monster.max > 0 && activity >= monster.max) {
+			if (monster.max > 0 && v >= monster.max) {
 				color = 'red';
-			} else if (monster.ach > 0 && activity >= monster.ach) {
+			} else if (monster.ach > 0 && v >= monster.ach) {
 				color = 'orange';
 			} else {
 				color = 'green';
@@ -13161,12 +14127,10 @@ Monster.dashboard = function(sort, rev) {
 		} else {
 			color = 'black';
 		}
-
-		// activity
 		td(output,
 			(blank || monster.state !== 'engage' || (typeof monster.damage === undefined || typeof monster.damage.user === 'undefined'))
 				? ''
-				: '<span style="color: ' + color + ';">' + activity.addCommas() + '</span>',
+				: '<span style="color: ' + color + ';">' + v.addCommas() + '</span>',
 			blank
 				? ''
 				: 'title="' + ( sum(monster.damage && monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
@@ -13223,11 +14187,13 @@ Monster.conditions = function (type, conditions) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, History, Page,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	plural
 */
 /********** Worker.News **********
 * Aggregate the news feed
@@ -13331,12 +14297,9 @@ News.page = function(page, change) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Global:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, APPID_, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers, Page,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser
 */
 /********** Worker.Page for Castle Age **********
 * Add defaults to Page for "Castle Age"
@@ -13350,81 +14313,84 @@ Page.defaults.castle_age = {
 		this.pageNames = {
 //			facebook:			- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
 			index:				{url:'index.php', selector:'#'+APPID_+'indexNewFeaturesBox'},
-			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif'}, // If we ever get this then it means a new land...
-			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif'},
-			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif'},
-			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif'},
-			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif'},
-			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif'},
-			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif'},
-			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif'},
-			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif'},
-			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif'},
-			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif'},
-			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif'},
-			quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif'},
-			quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif'},
-			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif'},
-			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif'},
-			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif'},
-			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif'},
-			battle_battle:			{url:'battle.php', image:'battle_on.gif'},
-			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif'},
+			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif', skip:true}, // If we ever get this then it means a new land...
+			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif', skip:true},
+			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif', skip:true},
+			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif', skip:true},
+			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif', skip:true},
+			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif', skip:true},
+			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif', skip:true},
+			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif', skip:true},
+			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif', skip:true},
+			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif', skip:true},
+			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif', skip:true},
+			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif', skip:true},
+			quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif', skip:true},
+			quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif', skip:true},
+			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif', skip:true},
+			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif', skip:true},
+			quests_quest16:			{url:'quests.php?land=16', image:'tab_perdition_big.gif', skip:true},
+			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif', skip:true},
+			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif', skip:true},
+			battle_battle:			{url:'battle.php', image:'battle_on.gif', skip:true},
+			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif', skip:true},
 			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
 			battle_war:			{url:'war_rank.php', image:'tab_war_on.gif'},
-			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif'},
-			battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg'},
+			battle_raid:			{url:'raid.php', image:'tab_raid_on.gif', skip:true},
+			battle_arena:			{url:'arena.php', image:'arena3_featurebuttonv2.jpg', skip:true},
 
 			battle_arena_battle:		{url:'arena_battle.php', selector:'#'+APPID_+'arena_battle_banner_section', skip:true},
-			festival_guild:			{url:'festival_battle_home.php', selector:'div[style*="festival_arena_home_background.jpg"]'},
+			festival_guild:			{url:'festival_battle_home.php', selector:'div[style*="festival_arena_home_background.jpg"]', skip:true},
 			festival_guild_battle:		{url:'festival_guild_battle.php', selector:'#'+APPID_+'guild_battle_section', skip:true},
-			battle_guild:			{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]'},
+			battle_guild:			{url:'guild_current_battles.php', selector:'div[style*="guild_current_battles_title.gif"]', skip:true},
 			battle_guild_battle:		{url:'guild_battle.php', selector:'#'+APPID_+'guild_battle_banner_section', skip:true},
-			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg'},
-			monster_monster_list:		{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg'},
-			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif'},
-			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]'},
-			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif'},
-			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]'},
-			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]'},
-			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif'},
-			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]'},
-			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif'},
-			monster_class:			{url:'view_class_progress.php', selector:'#'+APPID_+'choose_class_header'},
+			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg', skip:true},
+			monster_monster_list:		{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg', skip:true},
+			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif', skip:true},
+			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]', skip:true},
+			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif', skip:true},
+			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]', skip:true},
+			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]', skip:true},
+			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif', skip:true},
+			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]', skip:true},
+			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif', skip:true},
+			monster_class:			{url:'view_class_progress.php', selector:'#'+APPID_+'choose_class_header', skip:true},
 			heroes_heroes:			{url:'mercenary.php', image:'tab_heroes_on.gif'},
 			heroes_generals:		{url:'generals.php', image:'tab_generals_on.gif'},
 			town_soldiers:			{url:'soldiers.php', image:'tab_soldiers_on.gif'},
 			town_blacksmith:		{url:'item.php', image:'tab_black_smith_on.gif'},
 			town_magic:			{url:'magic.php', image:'tab_magic_on.gif'},
 			town_land:			{url:'land.php', image:'tab_land_on.gif'},
-			oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif'},
-			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif'},
-			oracle_treasurealpha:		{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif'},
-//			oracle_treasurevanguard:	{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif'},
-//			oracle_treasureonslaught:	{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif'},
+			oracle_oracle:			{url:'oracle.php', image:'oracle_on.gif', skip:true},
+			oracle_demipower:		{url:'symbols.php', image:'demi_on.gif', skip:true},
+			oracle_treasurealpha:		{url:'treasure_chest.php', image:'tab_treasure_alpha_on.gif', skip:true},
+//			oracle_treasurevanguard:	{url:'treasure_chest.php?treasure_set=alpha', image:'tab_treasure_vanguard_on.gif', skip:true},
+//			oracle_treasureonslaught:	{url:'treasure_chest.php?treasure_set=onslaught', image:'tab_treasure_onslaught_on.gif', skip:true},
 			keep_stats:			{url:'keep.php', image:'tab_stats_on.gif'},
-			keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif'},
-			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif'},
-			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif'},
-			army_invite:			{url:'army.php', image:'invite_on.gif'},
-			army_gifts:			{url:'gift.php', selector:'#'+APPID_+'giftContainer'},
-			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif'},
-			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif'},
-			army_newsfeed:			{url:'army_news_feed.php', selector:'#'+APPID_+'army_feed_header'},
-			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]'}
-//			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif'}
+			keep_eliteguard:		{url:'party.php', image:'tab_elite_guard_on.gif', skip:true},
+			keep_achievements:		{url:'achievements.php', image:'tab_achievements_on.gif', skip:true},
+			keep_alchemy:			{url:'alchemy.php', image:'tab_alchemy_on.gif', skip:true},
+			army_invite:			{url:'army.php', image:'invite_on.gif', skip:true},
+			army_gifts:			{url:'gift.php', selector:'#'+APPID_+'giftContainer', skip:true},
+			army_viewarmy:			{url:'army_member.php', image:'view_army_on.gif', skip:true},
+			army_sentinvites:		{url:'army_reqs.php', image:'sent_invites_on.gif', skip:true},
+			army_newsfeed:			{url:'army_news_feed.php', selector:'#'+APPID_+'army_feed_header', skip:true},
+			gift_accept:			{url:'gift_accept.php', selector:'div[style*="gift_background.jpg"]', skip:true}
+//			apprentice_collect:		{url:'apprentice.php?collect=true', image:'ma_view_progress2.gif', skip:true}
 		};
 	}
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
-	Bank, Battle, Generals, LevelUp, Player:true, Title,
-	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Dashboard, History, Resources, Title,
+	Bank,
+	APP, APPID, APPID_, PREFIX, userID, imagepath, script_started,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	Divisor, sum
 */
 /********** Worker.Player **********
 * Gets all current stats we can see
@@ -13470,7 +14436,7 @@ Player.init = function() {
 };
 
 Player.page = function(page, change) {
-	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
+	var i, o, data = this.data, keep, stats, tmp, $tmp, b, icon, name;
 	if (change) {
 		if (page === 'keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
 			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Player Stats</td></tr></thead><tbody>' +
@@ -13538,26 +14504,26 @@ Player.page = function(page, change) {
 				Resources.add('Gold', data.bank + data.cash, true);
 
 				// remember artifacts - useful for quest requirements
-				$tmp = $('.statsTTitle:contains("ARTIFACTS") + div div div a img');
-				if ($tmp.length) {
-					$tmp.each(function(i,el){
-						if ((tmp = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
-							artifacts[tmp] = $(el).attr('src').filepart();
-						}
-					});
-					this.set(['data','artifact'], artifacts);
+				tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ARTIFACTS\\s*$)').parent());
+
+				for (i = 0; i < tmp; i++) {
+					b = $('a img[src]', tmp[i]);
+					icon = ($(b).attr('src') || '').filepart();
+					name = ($(b).attr('title') || $(b).attr('alt') || '').trim(true);
+					name = this.qualify(name, icon, 'artifact', true); // artifacts should be unique...
+					this.set(['data','artifact',name], icon);
 				}
 			}
 		} else if (page === 'town_land') {
 			$tmp = $('.layout div[style*="town_header_land."]');
 			if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
-				var o = {};
+				o = {};
 				$('div', $tmp.last().parent()).each(function(a, el) {
-					if (!o[a]) o[a] = {};
+					if (!o[a]) { o[a] = {}; }
 					o[a].label = ($(el).text() || '').trim();
 				});
 				$('div', $tmp.last().parent().next()).each(function(a, el) {
-					if (!o[a]) o[a] = {};
+					if (!o[a]) { o[a] = {}; }
 					o[a].value = ($(el).text() || '').trim();
 				});
 				//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
@@ -13594,8 +14560,11 @@ Player.page = function(page, change) {
 };
 
 Player.update = function(event) {
+	var i, j, list, types, step, fn;
+
 	if (event.type === 'data' || event.type === 'init') {
-		var i, j, types = ['stamina', 'energy', 'health'], list, step;
+		types = ['stamina', 'energy', 'health'];
+		fn = function(a, b) { return a - b; };
 		for (j=0; j<types.length; j++) {
 			list = [];
 			step = Divisor(this.data['max'+types[j]]);
@@ -13606,25 +14575,25 @@ Player.update = function(event) {
 				step = this.data['max' + types[j]] || 10;
 				for (i in { 1:1, 5:1, 10:1, 20:1, 50:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			} else if (types[j] === 'energy') {
 				step = this.data['max' + types[j]] || 15;
 				for (i in { 10:1, 20:1, 40:1, 100:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			} else if (types[j] === 'health') {
 				step = this.data['max' + types[j]] || 100;
 				for (i in { 1:1, 9:1, 10:1, 11:1, 12:1, 13:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			}
-			Config.set(types[j], list.sort(function(a,b){return a-b;}).unique());
+			Config.set(types[j], list.sort(fn).unique());
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
@@ -13634,12 +14603,13 @@ Player.update = function(event) {
 		} else {
 			this.set(['data', event.id], $(event.selector).text().replace(/\D/g, '').regex(/(\d+)/));
 			switch (event.id) {
-				case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
-				case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
-				case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
 			}
 		}
 	}
+
 	Dashboard.status(this);
 };
 
@@ -13668,11 +14638,13 @@ Player.get = function(what, def) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, Page,
+	LevelUp, Player,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker
 */
 /********** Worker.Potions **********
 * Automatically drinks potions
@@ -13710,7 +14682,25 @@ Potions.display = function(){
 			opts.push({
 				id:i,
 				label:'Maximum '+i+' Potions',
-				select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
+				select:{
+					0:0,
+					1:1,
+					2:2,
+					3:3,
+					4:4,
+					5:5,
+					10:10,
+					15:15,
+					20:20,
+					25:25,
+					30:30,
+					35:35,
+					36:36,
+					37:37,
+					38:38,
+					39:39,
+					infinite:'&infin;'
+				},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
 		}
@@ -13778,7 +14768,11 @@ Potions.update = function(event) {
 	if (!this.option._disabled && this.runtime.type && this.runtime.amount){
 		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
 	}
-	Dashboard.status(this, txt.join(', '));
+	if (txt.length) {
+	    Dashboard.status(this, txt.join(', '));
+	} else {
+	    Dashboard.status(this);
+	}
 	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
 };
 
@@ -13794,11 +14788,14 @@ Potions.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	Alchemy, Bank, Generals, LevelUp, Monster, Player, Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isObject, isFunction, isNumber, isString, isWorker, isArray,
+	tr, th, td, assert, isEvent
 */
 /********** Worker.Quest **********
 * Completes quests with a choice of general
@@ -13811,18 +14808,23 @@ Quest.settings = {
 };
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_quest13 quests_quest14 quests_quest15 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4'
+	  + ' quests_quest5 quests_quest6 quests_quest7 quests_quest8'
+	  + ' quests_quest9 quests_quest10 quests_quest11 quests_quest12'
+	  + ' quests_quest13 quests_quest14 quests_quest15 quests_quest16'
+	  + ' quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
 	general:true,
 	general_choice:'any',
-	what:'Influence',
+	what:'Advancement',
 	ignorecomplete:true,
-	unique:true,
+	unique:false,
 	monster:'When able',
 	bank:true,
-	energy_reserve:0
+	energy_reserve:0,
+	diag:0
 };
 
 Quest.runtime = {
@@ -13853,7 +14855,8 @@ Quest.land = [
 	'Mist II',
 	'Mist III',
 	'Fire II',
-	'Pangaea'
+	'Pangaea',
+	'Perdition'
 ];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -13889,10 +14892,10 @@ Quest.display = [
 	},{
 		advanced:true,
 		id:'ignorecomplete',
+		require:'what=="Cartigan" || what=="Vampire Lord"',
 		label:'Only do incomplete quests',
 		checkbox:true,
-		help:'Will only do quests that aren\'t at 100% influence',
-		require:'what=="Cartigan" || what=="Vampire Lord"'
+		help:"Will only do quests that aren't at 100% influence."
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -13905,6 +14908,21 @@ Quest.display = [
 		id:'bank',
 		label:'Automatically Bank',
 		checkbox:true
+	},{
+		advanced:true,
+		id:'diag',
+		require:'Debug.option.loglevel>=3',
+		label:'Diagnostics level',
+		select:{
+			0:'None',
+			1:'Light',
+			2:'Medium',
+			3:'Heavy'
+		},
+		help:'Normally should be set to "None" when not trying to diagnose a specific problem.'
+		  + " When trying to determine why a particular quest is not chosen as you'd expect"
+		  + ', you can try increasing the level and watching the results in the console logging.'
+		  + ' Be sure to set back to "None" when you are done or it will quickly fill your console and may slow down your browser.'
 	}
 ];
 
@@ -13962,6 +14980,8 @@ Quest.init = function(old_revision) {
 	this._watch(Player, 'data.exp');
 	this._watch(LevelUp, 'runtime.energy');
 	this._watch(LevelUp, 'runtime.quest');
+	this._watch(Alchemy, 'data.summons');
+	this._watch(Alchemy, 'data.ingredients');
 };
 
 Quest.page = function(page, change) {
@@ -13993,7 +15013,7 @@ Quest.page = function(page, change) {
 			if (!tmp.length || !tmp.val()) {
 				continue;
 			}
-			assert(id = parseInt(tmp.val() || '0'), 'Bad quest id: '+tmp.val());
+			assert(id = parseInt(tmp.val() || '0', 10), 'Bad quest id: '+tmp.val());
 			this._transaction(); // BEGIN TRANSACTION
 			delete purge[id]; // We've found it, and further errors shouldn't delete it
 			name = undefined;
@@ -14099,250 +15119,658 @@ Quest.page = function(page, change) {
   // watch Town if we passed up a preferred quest due to a missing req.
 
 Quest.update = function(event, events) {
-	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, data = this.data, maxenergy = Player.get('maxenergy',999), eff, best_adv_eff = 1e10, best_inf_eff = 1e10, cmp, oi, ob;
+	var i, s, x, unit, oi, ob, list, items, ok, best = null,
+		data = this.data,
+		energy = Player.get('energy', 0),
+		maxenergy = Player.get('maxenergy', 9999),
+		diag = this.option.diag || 0, usable_energy;
+
+	//log(LOG_INFO, '# events: ' + JSON.shallow(events,3));
+
+	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
+		list = [];
+		items = {};
+
+		for (i in data.id) {
+			oi = data.id[i];
+			if (oi.item && oi.type !== 3) {
+				list.push(oi.item);
+			}
+			for (unit in oi.units) {
+				if ((oi.units[unit] || 0) > 999) {
+					log(LOG_WARN, '# Bad units: ' + JSON.shallow(oi, 3));
+				}
+				items[unit] = Math.max(items[unit] || 0, oi.units[unit]);
+			}
+		}
+
+		Config.set('quest_reward', [
+			'Nothing',
+			'Cartigan',
+			'Vampire Lord',
+			'Subquests',
+			'Advancement',
+			'Influence',
+			'Inf+Exp',
+			'Experience',
+			'Inf+Cash',
+			'Cash'
+		].concat(list.unique().sort()));
+
+		for (unit in items) {
+			Resources.set(['data', '_'+unit, 'quest'], items[unit]);
+		}
+	}
+
+	// check that we've seen all available pages at least once
+	list = this.defaults['castle_age'].pages.split(/\s+/);
+	ok = true;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] !== 'quests_quest' // old placebo, just in case...
+		  && list[i] !== 'quests_quest16' // pangaea not yet on web3
+		  && /^quests_/.test(list[i])
+		  && !Page.get(list[i])
+		) {
+			this.set(['runtime','best'], null);
+			this.set(['runtime','energy'], 0);
+			ok = false;
+			break;
+		}
+	}
+	if (ok && !Page.get(i = 'keep_alchemy')) {
+		this.set(['runtime','best'], null);
+		this.set(['runtime','energy'], 0);
+		ok = false;
+	}
+
+	best = this.runtime.best;
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get(['runtime','quest']))
+	) {
+		// Only override if it has an actual quest for us
+		best = i;
+	}
+
+	// see if there's a reason to recalc the best quest
+	if (ok) {
+		if (best) {
+			ok = false;
+			for (i = 0; i < events.length; i++) {
+				if (isEvent(events[i], this, 'runtime')
+				  || isEvent(events[i], this, 'temp')
+				) {
+					// just our own tinkering here, so we don't need to recalc
+					continue;
+				} else {
+					ok = true;
+					break;
+				}
+			}
+		}
+
+		best = this.getBest(maxenergy);
+	}
+
+	/*
 	if (events.findEvent(this, 'watch', 'runtime.best')) {// Only change the display when we change what to do
 		if ((best = this.runtime.best)) {
 			log(LOG_LOG, 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 			Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + Config.makeImage('energy') + data.id[best].energy + ' = ' + Config.makeImage('exp') + data.id[best].exp + ' + ' + Config.makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + Config.makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
 		} else {
-			Dashboard.status(this, '<i>Nothing to do</i>');
+			Dashboard.status(this);
 		}
 		best = null;
 	}
-	if (events.findEvent(Town) || events.findEvent(this, 'data') || events.findEvent(this, 'option')) {
-		// First let's update the Quest dropdown list(s)...
-		if (event.type === 'init' || event.type === 'data') {
-			for (i in data.id) {
-				if (data.id[i].item && data.id[i].type !== 3) {
-					list.push(data.id[i].item);
-				}
-				for (unit in data.id[i].units) {
-					items[unit] = Math.max(items[unit] || 0, data.id[i].units[unit]);
-				}
-			}
-			Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(list.unique().sort()));
-			for (unit in items) {
-				if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
-					Resources.set(['data','_'+unit,'quest'], items[unit]);
-				}
-			}
-		}
-		// Now choose the next quest...
-		if (this.option.unique) {// Boss monster quests first - to unlock the next area
-			for (i in data.id) {
-				if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
-					continue;
-				}
-				if (data.id[i].type === 3 && !Alchemy.get(['ingredients', data.id[i].itemimg], 0, 'number') && (!best || data.id[i].energy < data.id[best].energy)) {
-					best = i;
-				}
-			}
-		}
-		if (!best && this.option.what !== 'Nothing') {
-			if (this.option.what !== 'Vampire Lord' || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24) {
-				has_vampire = true; // Stop trying once we've got the required number of Vampire Lords
-			}
-			if (this.option.what !== 'Cartigan' || Generals.get(['data','Cartigan','own'], 0, 'number') || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3)) {
-				// Sword of the Faithless x3 - The Long Path, Burning Gates
-				// Crystal of Lament x3 - Fiery Awakening
-				// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
-				has_cartigan = true; // Stop trying once we've got the general or the ingredients
-			}
-	//		log(LOG_WARN, 'option = ' + this.option.what);
-	//		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
-			for (i in data.id) {
-				// Skip quests we can't afford or can't equip the general for
-				oi = data.id[i];
-				if (oi.energy > maxenergy 
-						|| !Generals.test(oi.general || 'any')
-						|| (LevelUp.runtime.general && oi.general)) {
-					continue;
-				}
-				if (oi.units) {
-					own = 0;
-					need = 0;
-					noCanDo = false;
-					for (unit in oi.units) {
-						need = oi.units[unit];
-						if (!Player.get(['artifact', i]) || need !== 1) {
-							own = Town.get([unit, 'own'], 0, 'number');
-							if (need > own) {	// Need more than we own, skip this quest.
-								noCanDo = true;	// set flag
-								break;	// no need to check more prerequisites.
-							}
-						}
-					}
-					if (noCanDo) {
-						continue;	// Skip to the next quest in the list
-					}
-				}
-				eff = oi.eff || (oi.energy * this.wiki_reps(oi));
-				if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
-					eff = Math.ceil(eff * (100 - oi.influence) / 100);
-				}
-				switch(this.option.what) { // Automatically fallback on type - but without changing option
-					case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
-						ob = data.id[best_vampire];
-						// order: inf<100, <energy, >exp, >cash (vampire)
-						if (!has_vampire && isNumber(oi.land) &&
-						  oi.land === 5 && oi.type === 1 &&
-						  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
-						  (!best_vampire ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_vampire = i;
-						}// Deliberate fallthrough
-					case 'Cartigan': // Random Encounters in various Underworld Quests
-						ob = data.id[best_cartigan];
-						// order: inf<100, <energy, >exp, >cash (cartigan)
-						if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6 &&
-						  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
-						  (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3) ||
-						  ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3) ||
-						  ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3)) &&
-						  (!best_cartigan ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_cartigan = i;
-						}// Deliberate fallthrough
-					case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
-						ob = data.id[best_subquest];
-						// order: <energy, >exp, >cash (subquests)
-						if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100 &&
-						  (!best_subquest ||
-						  (cmp = oi.energy - ob.energy) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_subquest = i;
-						}// Deliberate fallthrough
-					case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-						if (isNumber(oi.land) && oi.land > best_land) { // No need to revisit old lands - leave them to Influence
-							best_land = oi.land;
-							best_advancement = null;
-							best_adv_eff = 1e10;
-						}
-						ob = data.id[best_advancement];
-						// order: <effort, >exp, >cash, <energy (advancement)
-						if (oi.type !== 2 && isNumber(oi.land) &&
-						  //oi.level === 1 &&  // Need to check if necessary to do boss to unlock next land without requiring orb
-						  oi.land >= best_land &&
-						  ((isNumber(oi.influence) && Generals.test(oi.general) && oi.level <= 1 && oi.influence < 100) || (oi.type === 3 && !Alchemy.get(['ingredients', oi.itemimg], 0, 'number'))) &&
-						  (!best_advancement ||
-						  (cmp = eff - best_adv_eff) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
-							best_land = Math.max(best_land, oi.land);
-							best_advancement = i;
-							best_adv_eff = eff;
-						}// Deliberate fallthrough
-					case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-						ob = data.id[best_influence];
-						// order: <effort, >exp, >cash, <energy (influence)
-						if (isNumber(oi.influence) &&
-						  (!oi.general || Generals.test(oi.general)) &&
-						  oi.influence < 100 &&
-						  (!best_influence ||
-						  (cmp = eff - best_inf_eff) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
-							best_influence = i;
-							best_inf_eff = eff;
-						}// Deliberate fallthrough
-					case 'Experience': // Find the best exp per energy quest
-						ob = data.id[best_experience];
-						// order: >exp, inf<100, >cash, <energy (experience)
-						if (!best_experience ||
-						  (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best_experience = i;
-						}
-						break;
-					case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
-						ob = data.id[best_experience];
-						// order: inf<100, >exp, >cash, <energy (inf+exp)
-						if (!best_experience ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best_experience = i;
-						}
-						break;
-					case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
-						ob = data.id[best];
-						// order: inf<100, >cash, >exp, <energy (inf+cash)
-						if (!best ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best = i;
-						}
-						break;
-					case 'Cash': // Find the best (average) cash per energy quest
-						ob = data.id[best];
-						// order: >cash, inf<100, >exp, <energy (cash)
-						if (!best ||
-						  (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best = i;
-						}
-						break;
-					default: // For everything else, there's (cheap energy) items...
-						ob = data.id[best];
-						// order: <energy, inf<100, >exp, >cash (item)
-						if (oi.item === this.option.what &&
-						  (!best ||
-						  (cmp = oi.energy - ob.energy) < 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best = i;
-						}
-						break;
-				}
-			}
-			switch(this.option.what) { // Automatically fallback on type - but without changing option
-				case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
-				case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
-				case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
-				case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
-				case 'Influence':	best = best_influence || best_experience;break;
-				case 'Inf+Exp':		best = best_experience;break;
-				case 'Experience':	best = best_experience;break;
-				default:break;
-			}
-		}
+	*/
+
+	if (best !== this.runtime.best) {
 		this.set(['runtime','best'], best);
-		this.set(['runtime','energy'], best ? data.id[best].energy : 0);
+		this.set(['runtime','energy'], best ? this.get(['data','id',best,'energy'], 0, 'number') : 0);
 	}
-	best = LevelUp.get(['runtime','quest'], this.runtime.best, 'string'); // Only override if it has an actual quest for us
+
+	s = undefined;
+	best = this.get('runtime.best');
+	if (best && (oi = this.get(['data','id',best]))) {
+		s = '';
+		if (isNumber(oi.land)) {
+			s += this.land[oi.land];
+		} else {
+			s += this.area[oi.area];
+		}
+		s += ': ' + oi.name;
+		s += ' (' + Config.makeImage('energy', 'Energy') + oi.energy;
+		s += ' = ' + Config.makeImage('exp', 'Experience') + oi.exp;
+		s += ' + ' + Config.makeImage('gold', 'Gold') + '$' + oi.reward.SI();
+		if (oi.item) {
+			if ((i = oi.itemimg) || (i = Town.get([oi.item,'img']))) {
+				s += ' + <img style="width:16px;height:16px;margin-bottom:-4px;"';
+				s += ' src="' + imagepath + i + '"';
+				s += ' title="' + oi.item + '"> ';
+			} else {
+				s += ' + ' + oi.item;
+			}
+		}
+		if (isNumber(i = oi.influence) && i < 100) {
+			s += ' @ ' + Config.makeImage('percent', 'Influence') + i + '%';
+		}
+		s += ')';
+	}
+	Dashboard.status(this, s);
+
+	/*
 	this.set(['option','_sleep'], !best
-		|| this.data.id[best].energy > (LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve)
-		|| (!LevelUp.runtime.levelup
-			&& ((this.option.monster === 'When able' && Monster.get('runtime.defending'))
-				|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.runtime.force.energy)))));
+	  || p.energy > (LevelUp.get('runtime.force.energy') ? LevelUp.get('runtime.energy', 0) : LevelUp.get('runtime.energy', 0) - this.option.energy_reserve)
+	  || (!LevelUp.runtime.levelup
+	  && ((this.option.monster === 'When able' && Monster.get('runtime.defending'))
+	  || (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.get('runtime.force.energy'))))));
+	*/
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get('runtime.force.energy', 0))
+	) {
+		usable_energy = i;
+	} else if (this.option.monster === 'When able'
+	  && Monster.get('runtime.defending')
+	) {
+		usable_energy = 0;
+	} else if (this.option.monster !== 'Wait for') {
+		usable_energy = Math.max(0, energy - Math.max(0, this.option.energy_reserve));
+	}
+
+	this.set(['option','_sleep'],
+	  ok
+	  && (!this.runtime.best
+	  || this.get('runtime.energy', 1e10, 'number') > usable_energy)
+	);
+
+	best = this.get('runtime.best', 0, 'number');
+	log(LOG_INFO, '# sleep ' + this.option._sleep
+	  + ', ok ' + ok
+	  + ', best ' + best
+	  + (best ? this.get('runtime.energy', 1e99, 'number') + ' ('+this.get(['id',best,'name'])+')' : '')
+	  + ', energy(' + this.runtime.energy + ')'
+	  + ' > usable_energy(' + usable_energy + ')'
+	);
+
 	return true;
 };
 
+Quest.getBest = function(maxenergy) {
+	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo,
+		has_cartigan, has_vampire,
+		best, best_cartigan, best_vampire, best_subquest, best_advancement,
+		best_influence, best_experience, best_land, best_adv_eff, best_inf_eff,
+		data = this.get('data'),
+		diag = this.option.diag || 0;
+
+	best = null;
+	best_cartigan = null;
+	best_vampire = null;
+	best_subquest = null;
+	best_advancement = null;
+	best_influence = null;
+	best_experience = null;
+	best_land = 0;
+	best_adv_eff = 1e10;
+	best_inf_eff = 1e10;
+	has_cartigan = false;
+	has_vampire = false;
+
+	// Now choose the next quest...
+
+	if (this.option.unique) {
+		// Boss monster quests first - to unlock the next area
+		for (i in data.id) {
+			oi = data.id[i];
+
+			// Skip quests we can't afford
+			if (oi.energy > maxenergy) {
+				continue;
+			}
+
+			if (oi.type === 3 && (!best || oi.energy < ob.energy)
+			  && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')
+			) {
+				best = i;
+				ob = oi;
+			}
+		}
+	}
+
+	if (!best && this.option.what !== 'Nothing') {
+		if (diag) {
+			log(LOG_INFO, '# -----[ determining best quest ]-----');
+		}
+
+		if (this.option.what !== 'Vampire Lord'
+		  || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24
+		) {
+			// Stop trying once we've got the required number of Vampire Lords
+			has_vampire = true;
+		}
+
+		if (this.option.what !== 'Cartigan'
+		  || Generals.get(['data','Cartigan','own'], 0, 'number')
+		  || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3
+		  && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3
+		  && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3)
+		) {
+			// Sword of the Faithless x3 - The Long Path, Burning Gates
+			// Crystal of Lament x3 - Fiery Awakening
+			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
+			has_cartigan = true; // Stop trying once we've got the general or the ingredients
+		}
+
+//		log(LOG_WARN, 'option = ' + this.option.what);
+//		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
+
+		for (i in data.id) {
+			// Skip quests we can't afford or can't equip the general for
+			oi = data.id[i];
+
+			x = 'any';
+			if (oi.energy > maxenergy
+			  || !Generals.test(oi.general || 'any')
+			  || ((x = LevelUp.get('runtime.general', 'any')) && oi.general)
+			) {
+				if (diag >= 2) {
+					log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+					  + ' due to energy ' + oi.energy + ' > ' + maxenergy
+					  + ' or general ' + oi.general
+					  + ' or != LevelUp ' + x
+					);
+				}
+				continue;
+			}
+
+			if (oi.units) {
+				own = 0;
+				need = 0;
+				noCanDo = false;
+				for (unit in oi.units) {
+					need = oi.units[unit];
+					if (!Player.get(['artifact', i]) || need !== 1) {
+						own = Town.get([unit, 'own'], 0, 'number');
+						if (need > own) {	// Need more than we own, skip this quest.
+							if (diag >= 2) {
+								log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+								  + ' due to missing '
+								  + (need - own) + '/' + need + ' ' + unit
+								);
+							}
+							noCanDo = true;	// set flag
+							break;	// no need to check more prerequisites.
+						}
+					}
+				}
+				if (noCanDo) {
+					continue;	// Skip to the next quest in the list
+				}
+			}
+
+			eff = oi.eff || (oi.energy * this.wiki_reps(oi));
+			if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
+				eff = Math.ceil(eff * (100 - oi.influence) / 100);
+			}
+
+			// Automatically fallback on type - but without changing option
+			switch (this.option.what) {
+			case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
+				ob = data.id[best_vampire];
+				// order: inf<100, <energy, >exp, >cash (vampire)
+				ok = false;
+				if (!has_vampire && isNumber(oi.land)
+				  && oi.land === 5 && oi.type === 1
+				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed vampire reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_vampire
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best vampire ' + i + ':' + oi.name
+						  + ' > ' + best_vampire
+						);
+					}
+					best_vampire = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Cartigan': // Random Encounters in various Underworld Quests
+				ob = data.id[best_cartigan];
+				// order: inf<100, <energy, >exp, >cash (cartigan)
+				ok = false;
+				if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6
+				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
+				  && (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
+				  || ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
+				  || ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed cartigan reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_cartigan
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best cartigan ' + i + ':' + oi.name
+						  + ' > ' + best_cartigan
+						);
+					}
+					best_cartigan = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
+				ob = data.id[best_subquest];
+				// order: <energy, >exp, >cash (subquests)
+				ok = false;
+				if (oi.type === 2
+				  && isNumber(oi.influence) && oi.influence < 100
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_subquest
+				  || (cmp = oi.energy - ob.energy) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best subquest ' + i + ':' + oi.name
+						  + ' > ' + best_cartigan
+						);
+					}
+					best_subquest = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
+				// No need to revisit old lands - leave them to Influence
+				if (isNumber(oi.land) && oi.land > best_land) {
+					if (diag && best_advancement) {
+						log(LOG_INFO, '# found a higher land ' + this.land[oi.land]
+						  + ', skipping advancement ' + best_advancement + ':' + this.data.id[best_advancement].name
+						  + ' in ' + this.land[best_land]
+						);
+					}
+					best_land = oi.land;
+					best_advancement = null;
+					best_adv_eff = 1e10;
+				}
+				ob = data.id[best_advancement];
+				// order: <effort, >exp, >cash, <energy (advancement)
+				ok = false;
+				if (oi.type !== 2 && isNumber(oi.land)
+				  //&& oi.level === 1 // Need to check if necessary to do boss to unlock next land without requiring orb
+				  && oi.land >= best_land
+				  && ((isNumber(oi.influence) && oi.influence < 100 && Generals.test(oi.general) && oi.level <= 1)
+				  || (oi.type === 3 && Alchemy.get(['summons',oi.itemimg]) && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# artifact ' + oi.item
+						  + ' [' + oi.itemimg + '] = '
+						  + JSON.shallow(Alchemy.get(['ingredients',oi.itemimg]))
+						);
+					}
+					ok = true;
+				} else if (diag >= 2) {
+					log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_advancement
+				  || (cmp = eff - best_adv_eff) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best advancement ' + i + ':' + oi.name
+						  + ' in ' + this.land[oi.land]
+						  + ' > ' + best_advancement
+						);
+					}
+					best_land = Math.max(best_land, oi.land);
+					best_advancement = i;
+					best_adv_eff = eff;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Influence': // Find the cheapest energy cost quest with influence under 100%
+				ob = data.id[best_influence];
+				// order: <effort, >exp, >cash, <energy (influence)
+				ok = false;
+				if (isNumber(oi.influence)
+				  && (!oi.general || Generals.test(oi.general))
+				  && oi.influence < 100
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_influence
+				  || (cmp = eff - best_inf_eff) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best influence ' + i + ':' + oi.name
+						  + ' > ' + best_influence
+						);
+					}
+					best_influence = i;
+					best_inf_eff = eff;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Experience': // Find the best exp per energy quest
+				ob = data.id[best_experience];
+				// order: >exp, inf<100, >cash, <energy (experience)
+				if (!best_experience
+				  || (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best experience ' + i + ':' + oi.name
+						  + ' > ' + best_experience
+						);
+					}
+					best_experience = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping experience ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
+				ob = data.id[best_experience];
+				// order: inf<100, >exp, >cash, <energy (inf+exp)
+				if (!best_experience
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best inf+exp ' + i + ':' + oi.name
+						  + ' > ' + best_experience
+						);
+					}
+					best_experience = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping inf+exp ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
+				ob = data.id[best];
+				// order: inf<100, >cash, >exp, <energy (inf+cash)
+				if (!best
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best inf+cash ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping inf+cash ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Cash': // Find the best (average) cash per energy quest
+				ob = data.id[best];
+				// order: >cash, inf<100, >exp, <energy (cash)
+				if (!best
+				  || (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best cash ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping cash ' + i + ':' + oi.name);
+				}
+				break;
+			default: // For everything else, there's (cheap energy) items...
+				ob = data.id[best];
+				// order: <energy, inf<100, >exp, >cash (item)
+				ok = false;
+				if (oi.item === this.option.what) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed ['+this.option.what+'] reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best
+				  || (cmp = oi.energy - ob.energy) < 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best default ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name);
+				}
+				break;
+			}
+		}
+
+		if (diag) {
+			log(LOG_INFO, '# bests'
+			  + (best_vampire ? ' | vampire ' + best_vampire + ':' + this.data.id[best_vampire].name : '')
+			  + (best_cartigan ? ' | cartigan ' + best_cartigan + ':' + this.data.id[best_cartigan].name : '')
+			  + (best_subquest ? ' | subquest ' + best_subquest + ':' + this.data.id[best_subquest].name : '')
+			  + (best_advancement ? ' | advancement ' + best_advancement + ':' + this.data.id[best_advancement].name : '')
+			  + (best_influence ? ' | influence ' + best_influence + ':' + this.data.id[best_influence].name : '')
+			  + (best ? ' | other ' + best + ':' + this.data.id[best].name : '')
+			);
+		}
+
+		// Automatically fallback on type - but without changing option
+		switch (this.option.what) {
+		case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
+		case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
+		case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
+		case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
+		case 'Influence':	best = best_influence || best_experience;break;
+		case 'Inf+Exp':		best = best_experience;break;
+		case 'Experience':	best = best_experience;break;
+		default:break;
+		}
+
+		if (diag) {
+			log(LOG_INFO, '# best pick ' + best + ':' + this.data.id[best].name);
+		}
+	}
+
+	return best;
+};
+
 Quest.work = function(state) {
-	var mid, general = 'any', best = LevelUp.get(['runtime','quest'], this.runtime.best, 'string'), useable_energy = LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve, quest, button;
-	if (state && this.data.id[best].energy > useable_energy && this.option.bank) {
+	var i, list, mid, quest, button, name,
+		general = 'any',
+		energy = Player.get('energy');
+
+	if (!this.runtime.best) {
+		list = this.defaults['castle_age'].pages.split(/\s+/);
+		// looks like stale quest info
+		for (i = 0; i < list.length; i++) {
+			if (list[i] !== 'quests_quest' // old placebo, just in case...
+			  && list[i] !== 'quests_quest16' // pangaea not yet on web3
+			  && /^quests_/.test(list[i])
+			  && !Page.get(list[i])
+			) {
+				if (!state || !Page.to(list[i])) {
+					return QUEUE_CONTINUE;
+				}
+			}
+		}
+		if (!Page.get(i = 'keep_alchemy')) {
+			if (!state || !Page.to(i)) {
+				return QUEUE_CONTINUE;
+			}
+		}
+	}
+
+	if (!this.runtime.best
+	  || !(quest = this.get(['data','id',this.runtime.best]))
+	) {
+		return QUEUE_FINISH;
+	}
+
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get(['runtime','quest']))
+	) {
+		// Only override if it has an actual quest for us
+		best = i;
+		if (this.runtime.best === best
+		  && (i = LevelUp.get('runtime.general'))
+		  && !Generals.test(i)
+		) {
+			general = i;
+		}
+	}
+
+	if ((quest.energy || 1e99) > energy && this.option.bank) {
 		if (!Bank.stash()) {
 			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
+
 //	If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
 //	if ((LevelUp.runtime.levelup && !LevelUp.runtime.quest)
 //	|| (!LevelUp.runtime.levelup 
@@ -14350,74 +15778,75 @@ Quest.work = function(state) {
 //			|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.runtime.force.energy))))) {
 //		return QUEUE_FINISH;
 //	}
-	if (!state) {
-		return QUEUE_CONTINUE;
-	}
-	quest = this.data.id[best]
-	if (this.option.general) {
-		if (quest.general && isNumber(quest.influence) && quest.influence < 100) {
+
+	if (general === 'any') {
+		if (!this.option.general) {
+			general = this.option.general_choice || 'any';
+		} else if (quest.general
+		  && isNumber(quest.influence) && quest.influence < 100
+		) {
 			general = quest.general;
 		} else {
 			general = Generals.best('under max level');
-			switch(this.option.what) {
-				case 'Vampire Lord':
-				case 'Cartigan':
-					if (quest.general) {
-						general = quest.general;
-					} else {
-						if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
-							general = Generals.best('influence');
-						}
-						if (general === 'any') {
-							general = Generals.best('item');
-						}
-					}
-					break;
-				case 'Subquests':
-				case 'Advancement':
-				case 'Influence':
-				case 'Inf+Exp':
-				case 'Experience':
-				case 'Inf+Cash':
-				case 'Cash':
-					if (isNumber(quest.influence) && quest.influence < 100) {
-						if (quest.general) {
-							general = quest.general;
-						} else if (general === 'any') {
-							general = Generals.best('influence');
-						}
-					}
-					break;
-				default:
-					if (isNumber(quest.influence) && quest.influence < 100) {
-						if (quest.general) {
-							general = quest.general;
-						} else if (general === 'any') {
-							general = Generals.best('influence');
-						}
+			switch (this.option.what) {
+			case 'Vampire Lord':
+			case 'Cartigan':
+				if (quest.general) {
+					general = quest.general;
+				} else {
+					if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
+						general = Generals.best('influence');
 					}
 					if (general === 'any') {
 						general = Generals.best('item');
 					}
-					break;
+				}
+				break;
+			case 'Subquests':
+			case 'Advancement':
+			case 'Influence':
+			case 'Inf+Exp':
+			case 'Experience':
+			case 'Inf+Cash':
+			case 'Cash':
+				if (isNumber(quest.influence) && quest.influence < 100) {
+					if (quest.general) {
+						general = quest.general;
+					} else if (general === 'any') {
+						general = Generals.best('influence');
+					}
+				}
+				break;
+			default:
+				if (isNumber(quest.influence) && quest.influence < 100) {
+					if (quest.general) {
+						general = quest.general;
+					} else if (general === 'any') {
+						general = Generals.best('influence');
+					}
+				}
+				if (general === 'any') {
+					general = Generals.best('item');
+				}
+				break;
 			}
 			if (general === 'any') {
 				general = 'cash';
 			}
 		}
-	} else {
-		general = this.option.general_choice;
 	}
-	if (!Generals.to(LevelUp.runtime.general || general)) {
+
+	if (!Generals.to(general)) {
 		return QUEUE_CONTINUE;
 	}
+
 	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
 	log(LOG_WARN, 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
 	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (LevelUp.runtime.general && quest.general));
 	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		this.add(['data','id',best,'button_fail'], 1);
-		if (quest.button_fail > 5){
-			log(LOG_WARN, 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
+		if (quest.button_fail > 5) {
+			log(LOG_WARN, "Can't find button for " + quest.name + ', so deleting and re-visiting page...');
 			this.set(['data','id',best]);
 			this.set(['runtime','best'], null);
 			Page.reload();
@@ -14425,24 +15854,30 @@ Quest.work = function(state) {
 		} else {
 			switch(quest.area) {
 			case 'quest':
-				Page.to('quests_quest' + (quest.land + 1),null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_quest' + (quest.land + 1),null,true)) {
+					return QUEUE_CONTINUE;
+				}
+				break;
 			case 'demiquest':
-				Page.to('quests_demiquests',null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_demiquests',null,true)) {
+					return QUEUE_CONTINUE;
+				}
 			case 'atlantis':
-				Page.to('quests_atlantis',null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_atlantis',null,true)) {
+					return QUEUE_CONTINUE;
+				}
 			default:
-				log(LOG_LOG, 'Can\'t get to quest area!');
+				log(LOG_LOG, "Can't get to quest area!");
 				return QUEUE_FINISH;
 			}
 		}
 	}
+
 	Page.click(button);
 	LevelUp.set(['runtime','quest'], null);
-	if (quest.type === 3) {// Just completed a boss quest
-		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {// Add one as we've just gained it...
+
+	if (quest.type === 3) { // Just completed a boss quest
+		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) { // Add one as we've just gained it...
 			Alchemy.set(['ingredients', quest.itemimg], 1);
 		}
 		// This won't work since we just clicked the quest above.
@@ -14450,11 +15885,12 @@ Quest.work = function(state) {
 			Page.to('quests_quest' + (quest.land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
+
 	return QUEUE_RELEASE;
 };
 
 Quest.dashboard = function(sort, rev) {
-	var self = this, i, j, k, o, r, quest, list = [], output = [], vv, tt, cc, span, v, eff;
+	var self = this, i, j, k, o, r, quest, list = [], output = [], vv, tt, cc, span, v, eff, v1, v2, lo, hi;
 	if (typeof sort === 'undefined') {
 		this.temp.order = [];
 		for (i in this.data.id) {
@@ -14603,10 +16039,10 @@ Quest.dashboard = function(sort, rev) {
 				}
 				tt += 'reps ' + v;
 				if (quest.m_d && quest.m_c) {
-					var v1 = 100 * quest.m_c / quest.m_d;
-					var v2 = 2 / quest.m_c;
-					var lo = Math.ceil(v1 - v2);
-					var hi = Math.ceil(v1 + v2);
+					v1 = 100 * quest.m_c / quest.m_d;
+					v2 = 2 / quest.m_c;
+					lo = Math.ceil(v1 - v2);
+					hi = Math.ceil(v1 + v2);
 					if (lo < hi) {
 						tt += ' [' + lo + ',' + hi + ']';
 					}
@@ -14769,7 +16205,6 @@ Quest.wiki_reps = function(quest, pure) {
 };
 
 /*jslint
-    tailcomma: true,
 */
 
 Quest.rts = 1317205601;	// Wed Sep 28 10:26:41 2011 UTC
@@ -15252,11 +16687,14 @@ Quest.rdata =			// #471
 // vi: ts=4
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	$, Worker, Workers, Config, Dashboard, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isUndefined,
+	length, sum, getAttDef, tr, th, td
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
@@ -15308,9 +16746,9 @@ Town.display = [
 	label:'Buy Number',
 	select:['None', 'Minimum', 'Army', 'Army+', 'Max Army'],
 	help:'Minimum will only buy items need for quests if enabled.'
-		+ ' Army will buy up to your army size (modified by some generals).'
-		+ ' Army+ is like Army on purchases and Max Army on sales.'
-		+ ' Max Army will buy up to 541 regardless of army size.'
+	  + ' Army will buy up to your army size (modified by some generals).'
+	  + ' Army+ is like Army on purchases and Max Army on sales.'
+	  + ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
 	require:'number!="None" && number!="Minimum"',
@@ -15396,7 +16834,7 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.page = function(page, change) {
-	var i, el, tmp, img, filename, name, count, now = Date.now(), self = this, modify = false, tmp;
+	var now = Date.now(), self = this, i, j, el, tmp, img, filename, name, count, unit, purge, changes, cost_adj, modify = false;
 	if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
@@ -15416,7 +16854,6 @@ Town.page = function(page, change) {
 				}
 			}
 
-			tmp = $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)');
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
 				el = tmp[i];
@@ -15433,6 +16870,16 @@ Town.page = function(page, change) {
 					this.set(['data', name, 'own'], count);
 				}
 			}
+
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ARTIFACTS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
+				img = $('a img[src]', el);
+				filename = ($(img).attr('src') || '').filepart();
+				name = this.qualify(($(img).attr('title') || $(img).attr('alt') || '').trim(), filename); // names aren't unique for items
+				this.set(['data', name, 'type'], 'artifact');
+				this.set(['data', name, 'own'], 1);
+			}
 		}
 	} else if (change && page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
@@ -15444,7 +16891,10 @@ Town.page = function(page, change) {
 			}
 		});
 	} else if (!change && (page === 'town_soldiers' || page === 'town_blacksmith' || page === 'town_magic')) {
-		var unit = this.data, purge = {}, changes = 0, i, j, cost_adj = 1;
+		unit = this.data;
+		purge = {};
+		changes = 0;
+		cost_adj = 1;
 		for (i in unit) {
 			if (unit[i].page === page.substr(5)) {
 				purge[i] = true;
@@ -15484,14 +16934,14 @@ Town.page = function(page, change) {
 				if ((tmp = $('form[id*="itemBuy_"]', el)).length) {
 					self.set(['data',name,'id'], tmp.attr('id').regex(/itemBuy_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number');
 					});
 				}
 				self.set(['data',name,'sell']);
 				if ((tmp = $('form[id*="itemSell_"]', el)).length) {
 					self.set(['data',name,'id'], tmp.attr('id').regex(/itemSell_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number');
 					});
 				}
 				if (page === 'town_blacksmith') {
@@ -15586,7 +17036,7 @@ Town.getWar = function() {
 };
 
 Town.update = function(event, events) {
-	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep,
+	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost,
 		data = this.data,
 		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
 		upkeep = Player.get('upkeep', 0, 'number'),
@@ -15706,7 +17156,7 @@ Town.update = function(event, events) {
 //			log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
 		if (need > have) { // Want to buy more                                
 			if (!best_quest && data[u].buy && data[u].buy.length) {
-				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / Player.get('maxincome')) * 100) && i > 1 && (!best_buy || need > buy)) {
+				if (data[u].cost <= max_cost && this.option.upkeep >= (((upkeep + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / maxincome) * 100) && i > 1 && (!best_buy || need > buy)) {
 //						log(LOG_WARN, 'Buy: '+need);
 					best_buy = u;
 					buy = have + i; // this.buy() takes an absolute value
@@ -15736,11 +17186,11 @@ Town.update = function(event, events) {
 		best_sell = null;
 		sell = 0;
 		cost = (buy - data[best_buy].own) * data[best_buy].cost;
-		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
+		net_upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
 		} else if (Bank.worth(cost + land_buffer)) {
-			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (net_upkeep ? ' (Upkeep: $' + net_upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + Config.makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI());
 		}
@@ -15791,6 +17241,7 @@ Town.work = function(state) {
 };
 
 Town.buy = function(item, number) { // number is absolute including already owned
+	var qty, $form;
 	this._unflush();
 	if (!this.data[item] || !this.data[item].id || !this.data[item].buy || !this.data[item].buy.length || !Bank.worth(this.runtime.cost)) {
 		return true; // We (pretend?) we own them
@@ -15798,8 +17249,8 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = this.data[item].buy.lower(number);
-	var $form = $('form#'+APPID_+'itemBuy_' + this.data[item].id);
+	qty = this.data[item].buy.lower(number);
+	$form = $('form#'+APPID_+'itemBuy_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 		$('select[name="amount"]', $form).val(qty);
@@ -15810,6 +17261,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 };
 
 Town.sell = function(item, number) { // number is absolute including already owned
+	var qty, $form;
 	this._unflush();
 	if (!this.data[item] || !this.data[item].id || !this.data[item].sell || !this.data[item].sell.length) {
 		return true;
@@ -15817,8 +17269,8 @@ Town.sell = function(item, number) { // number is absolute including already own
 	if (!Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = this.data[item].sell.lower(number);
-	var $form = $('form#'+APPID_+'itemSell_' + this.data[item].id);
+	qty = this.data[item].sell.lower(number);
+	$form = $('form#'+APPID_+'itemSell_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 		$('select[name="amount"]', $form).val(qty);
@@ -15828,7 +17280,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	return false;
 };
 
-format_unit_str = function(name) {
+Town.format_unit_str = function(name) {
     var i, j, k, n, m, p, s, str;
 
 	if (name && ((p = Town.get(['data',name])) || (p = Generals.get(['data',name])))) {
@@ -15924,7 +17376,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			if (p.use) {
 				output.push(p.use[type+'_'+x]+' &times; ');
 			}
-			output.push(format_unit_str(units[i]));
+			output.push(this.format_unit_str(units[i]));
 			output.push('</div>');
 		}
 	}
@@ -15937,7 +17389,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var lset = [], rset = [], generals = Generals.get(), best, tmp,
+	var i, best, tmp, lset = [], rset = [], generals = Generals.get(),
 		fn_own = function(list, i, units) {
 			if (units[i].own) {
 				list.push(i);
@@ -16043,7 +17495,7 @@ Town.dashboard = function() {
 		lset.push('<div style="height:25px;margin:1px;">');
 		lset.push('<img src="' + imagepath + generals[best].img + '"');
 		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		lset.push(format_unit_str(best));
+		lset.push(this.format_unit_str(best));
 		lset.push('</div>');
 	}
 	lset.push(makeTownDash(tmp, fn_page_blacksmith, 'att', 'duel'));
@@ -16063,7 +17515,7 @@ Town.dashboard = function() {
 		rset.push('<div style="height:25px;margin:1px;">');
 		rset.push('<img src="' + imagepath + generals[best].img + '"');
 		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		rset.push(format_unit_str(best));
+		rset.push(this.format_unit_str(best));
 		rset.push('</div>');
 	}
 	rset.push(makeTownDash(tmp, fn_page_blacksmith, 'def', 'duel'));
@@ -16171,12 +17623,11 @@ Town.dup_map = {
 	}
 };
 /*jslint
-    tailcomma: true,
 */
 
-Town.rts = 1317386624;	// Fri Sep 30 12:43:44 2011 UTC
+Town.rts = 1317951162;	// Fri Oct  7 01:32:42 2011 UTC
 
-Town.rdata =			// #1013
+Town.rdata =			// #1017
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adriana':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_adriana.jpg', 'skills': "Decrease opposing War Council's Defense by -3" },
@@ -16353,6 +17804,7 @@ Town.rdata =			// #1013
 	'Cid':							{ 'atk':   5, 'def':   6, 'type': 'hero', 'img': 'hero_cid.jpg' },
 	'Cid Helm':						{ 'atk':   3, 'def':   7, 'type': 'helmet', 'img': 'gift_cid2_complete.jpg' },
 	'Cid Saber':					{ 'atk':   6, 'def':   5, 'type': 'weapon', 'img': 'eq_cid_complete.jpg' },
+	'Circlet of Light':				{ 'atk':  16, 'def':  19, 'type': 'helmet' },
 	'Claymore of Zeventis':			{ 'atk':  28, 'def':  28, 'type': 'weapon', 'img': 'eq_zeventis_weapon.jpg' },
 	'Cleric':						{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
 	'Cloudslayer Blade':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_cloudslayer_weapon.jpg' },
@@ -16882,6 +18334,7 @@ Town.rdata =			// #1013
 	'Poisonous Spider':				{ 'atk':  14, 'def':  14, 'type': 'unit', 'img': 'soldier_spider_1.jpg' },
 	'Poisons Touch':				{ 'atk':  11, 'def':   9, 'type': 'gloves', 'img': 'eq_aethyx_gauntlet.jpg' },
 	'Poseidons Horn':				{ 'atk':   7, 'def':   3, 'type': 'amulet', 'img': 'alchemy_weapon_horn_done.jpg' },
+	"Praetor's Seal":				{ 'atk':  14, 'def':  15, 'type': 'amulet' },
 	'Prismatic Staff':				{ 'atk':  17, 'def':  14, 'type': 'weapon', 'img': 'eq_azalia_weapon.jpg' },
 	'Prophetic Wand':				{ 'atk':  17, 'def':  21, 'type': 'weapon', 'img': 'eq_shivak_weapon.jpg' },
 	'Punisher':						{ 'atk':  14, 'def':  11, 'type': 'weapon', 'img': 'eq_death_epic_weapon.jpg' },
@@ -17017,6 +18470,7 @@ Town.rdata =			// #1013
 	'Spartan Warrior':				{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'soldier_spartan.jpg' },
 	'Spellweaver Cloak':			{ 'atk':  13, 'def':  13, 'type': 'armor', 'img': 'eq_godric_armor.jpg' },
 	'Staff of Jahanna':				{ 'atk':  26, 'def':  30, 'type': 'weapon', 'img': 'eq_jahanna_weapon.jpg' },
+	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon' },
 	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon' },
 	'Staff of Vigor':				{ 'atk':   8, 'def':   5, 'type': 'weapon', 'img': 'gift_elizabeth3_complete.jpg' },
 	'Staff of the Lifeless':		{ 'atk':  25, 'def':  20, 'type': 'weapon', 'img': 'eq_aurora_staff.jpg' },
@@ -17060,6 +18514,7 @@ Town.rdata =			// #1013
 	'Sylvanas Orb':					{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_sylvanas_orb.jpg' },
 	'Syren':						{ 'atk':  23, 'def':  19, 'type': 'hero', 'img': 'hero_syren.jpg', 'skills': 'Increase Confuse effect' },
 	'Syrens Call':					{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_syren_weapon.jpg' },
+	'Tefaera':						{ 'atk':  21, 'def':  26, 'type': 'hero', 'skills': 'Increase Revive/Resurrect Effect' },
 	'Tempered Steel':				{ 'atk':   6, 'def':   5, 'type': 'gloves', 'img': 'eq_raid_reward_300.jpg' },
 	'Tempest Crown':				{ 'atk':   3, 'def':   1, 'type': 'helmet', 'img': 'demi_energy_helm.jpg' },
 	'Tempest Elemental':			{ 'atk':  55, 'def':  50, 'type': 'unit', 'img': 'eq_valhalla_minion.jpg' },
@@ -17233,7 +18688,7 @@ Town.rrestr =
 	  '|\\bshortsword\\b' +		// 1
 	  '|\\bslicer\\b' +			// 1
 	  '|\\bspear\\b' +			// 3
-	  '|\\bstaff\\b' +			// 10 (mismatches 1)
+	  '|\\bstaff\\b' +			// 11 (mismatches 1)
 	  '|\\bstaves\\b' +			// 1
 	  '|\\bsword\\b' +			// 17 (mismatches 1)
 	  '|\\btalon\\b' +			// 1
@@ -17356,7 +18811,8 @@ Town.rrestr =
 	  '|^Strength of Oaks$' +
 	  '',
 	'helmet':
-	  '\\bcowl\\b' +			// 1
+	  '\\bcirclet\\b' +			// 1
+	  '|\\bcowl\\b' +			// 1
 	  '|\\bcrown\\b' +			// 14
 	  '|\\bdoomhelm\\b' +		// 1
 	  '|\\bhelm\\b' +			// 52
@@ -17393,7 +18849,7 @@ Town.rrestr =
 	  '|\\brelic\\b' +			// 1
 	  '|\\bring\\b' +			// 15
 	  '|\\bruby\\b' +			// 2
-	  '|\\bseal\\b' +			// 4
+	  '|\\bseal\\b' +			// 5
 	  '|\\bshard\\b' +			// 6
 	  '|\\bsignet\\b' +			// 10
 	  '|\\bsunstone\\b' +		// 1
@@ -17450,11 +18906,12 @@ Town.rrestr =
 // vi: ts=4
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, Page, Script,
+	Player,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Upgrade **********
 * Spends upgrade points
@@ -17592,11 +19049,13 @@ Upgrade.menu = function(worker, key) {
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	$, Workers, Worker, Config, Dashboard, History, Page,
+	Generals, LevelUp, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_NO_ACTION,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.FP **********
 * Automatically buys FP refills
@@ -17615,7 +19074,7 @@ FP.defaults['castle_age'] = {
 
 FP.option = {
 	type:'stamina',
-	general_choice:'any',
+	general:'any',
 	xp:2800,
 	times:0,
 	fps:100,
@@ -17714,12 +19173,13 @@ FP.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Generals, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	log, warn, error
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 *//********** Worker.Guild() **********
 * Build your guild army
 * Auto-attack Guild targets
@@ -17749,7 +19209,7 @@ Guild.option = {
 
 Guild.runtime = {
 	tokens:10,
-	status:'none',// none, wait, start, fight, collect
+	status:null, // wait, start, fight, collect
 	start:0,
 	finish:0,
 	rank:0,
@@ -17772,7 +19232,7 @@ Guild.temp = {
 Guild.display = [
 	{
 		id:'general',
- 		label:'Use Best General',
+		label:'Use Best General',
 		checkbox:true
 	},{
 		advanced:true,
@@ -17782,7 +19242,7 @@ Guild.display = [
 		select:'generals'
 	},{
 		id:'start',
- 		label:'Automatically Start',
+		label:'Automatically Start',
 		checkbox:true
 	},{
 		id:'delay',
@@ -17791,7 +19251,7 @@ Guild.display = [
 		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
 	},{
 		id:'collect',
- 		label:'Collect Rewards',
+		label:'Collect Rewards',
 		checkbox:true
 	},{
 		id:'tokens',
@@ -17814,12 +19274,12 @@ Guild.display = [
 		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
 	},{
 		id:'cleric',
- 		label:'Attack Clerics First',
+		label:'Attack Clerics First',
 		checkbox:true,
 		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
 	},{
 		id:'defeat',
- 		label:'Avoid Defeat',
+		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
@@ -17913,7 +19373,7 @@ Guild.page = function(page, change) {
 };
 
 Guild.update = function(event) {
-	var now = Date.now();
+	var now = Date.now(), status;
 	if (event.type === 'reminder') {
 		if (event.id === 'tokens') {
 			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
@@ -17940,7 +19400,8 @@ Guild.update = function(event) {
 		this.set(['runtime','burn'], true);
 	}
 	this.set(['option','_sleep'],
-		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
+		   Page.get('battle_guild')
+		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
 			&& (!this.option.delay || this.runtime.finish - 3600000  >= now - this.option.delay)
@@ -17948,12 +19409,15 @@ Guild.update = function(event) {
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
+	status = this.get('runtime.status', 'wait');
+	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Guild.work = function(state) {
 	if (state) {
-		if (this.runtime.status === 'wait') {
+		if (!Page.get('battle_guild')
+		  || this.get('runtime.status', 'wait') === 'wait'
+		) {
 			if (!Page.to('battle_guild')) {
 				return QUEUE_FINISH;
 			}
@@ -17981,13 +19445,13 @@ Guild.work = function(state) {
 						return QUEUE_CONTINUE;
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
-					
+					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
+
 						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-						if (!target 
+						if (!target
 								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
-								|| (isNumber(Guild.option.limit) 
+								|| (isNumber(Guild.option.limit)
 									&& target[1] > Player.get('level',0) + Guild.option.limit)) {
 							return;
 						}
@@ -18059,12 +19523,13 @@ Guild.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources,
+	Generals, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	log, warn, error
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 *//********** Worker.Festival() **********
 * Build your festival army
 * Auto-attack Festival targets
@@ -18094,7 +19559,7 @@ Festival.option = {
 
 Festival.runtime = {
 	tokens:10,
-	status:'start',// wait, start, fight, collect
+	status:null, // wait, start, fight, collect
 	start:0,
 	finish:0,
 	rank:0,
@@ -18117,7 +19582,7 @@ Festival.temp = {
 Festival.display = [
 	{
 		id:'general',
- 		label:'Use Best General',
+		label:'Use Best General',
 		checkbox:true
 	},{
 		advanced:true,
@@ -18127,7 +19592,7 @@ Festival.display = [
 		select:'generals'
 	},{
 		id:'start',
- 		label:'Automatically Start',
+		label:'Automatically Start',
 		checkbox:true
 	},{
 		id:'delay',
@@ -18136,7 +19601,7 @@ Festival.display = [
 		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
 	},{
 		id:'collect',
- 		label:'Collect Rewards',
+		label:'Collect Rewards',
 		checkbox:true
 	},{
 		id:'tokens',
@@ -18159,12 +19624,12 @@ Festival.display = [
 		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
 	},{
 		id:'cleric',
- 		label:'Attack Clerics First',
+		label:'Attack Clerics First',
 		checkbox:true,
 		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
 	},{
 		id:'defeat',
- 		label:'Avoid Defeat',
+		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
@@ -18216,7 +19681,7 @@ Festival.page = function(page, change) {
 			} else {
 				this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
 				this._forget('finish');
-				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600 
+				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600
 						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 300;
 				this._forget('finish');
 				this.set(['runtime','start'], i*1000 + now);
@@ -18257,7 +19722,7 @@ Festival.page = function(page, change) {
 };
 
 Festival.update = function(event) {
-	var now = Date.now();
+	var now = Date.now(), status;
 	if (event.type === 'reminder') {
 		if (event.id === 'tokens') {
 			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
@@ -18283,8 +19748,10 @@ Festival.update = function(event) {
 	} else if (this.runtime.tokens >= 10 || (this.runtime.finish || 0) - this.option.safety <= now) {
 		this.set(['runtime','burn'], true);
 	}
+
 	this.set(['option','_sleep'],
-		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
+		   Page.get('festival_guild')
+		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
 			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
@@ -18292,12 +19759,15 @@ Festival.update = function(event) {
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
+	status = this.get('runtime.status', 'wait');
+	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Festival.work = function(state) {
 	if (state) {
-		if (this.runtime.status === 'wait') {
+		if (!Page.get('festival_guild')
+		  || this.get('runtime.status', 'wait') === 'wait'
+		) {
 			if (!Page.to('festival_guild')) {
 				return QUEUE_FINISH;
 			}
@@ -18328,14 +19798,14 @@ Festival.work = function(state) {
 						Page.click('input[src*="guild_enter_battle_button.gif"]');
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
-					
+					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
+
 						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-						if (!target 
-								|| (Festival.option.defeat && Festival.data 
+						if (!target
+								|| (Festival.option.defeat && Festival.data
 									&& Festival.data[target[0]])
-								|| (isNumber(Festival.option.limit) 
+								|| (isNumber(Festival.option.limit)
 									&& target[1] > Player.get('level',0) + Festival.option.limit)) {
 							return;
 						}

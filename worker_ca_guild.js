@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	Generals, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, sortObject, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	log, warn, error
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 *//********** Worker.Guild() **********
 * Build your guild army
 * Auto-attack Guild targets
@@ -35,7 +36,7 @@ Guild.option = {
 
 Guild.runtime = {
 	tokens:10,
-	status:'none',// none, wait, start, fight, collect
+	status:null, // wait, start, fight, collect
 	start:0,
 	finish:0,
 	rank:0,
@@ -58,7 +59,7 @@ Guild.temp = {
 Guild.display = [
 	{
 		id:'general',
- 		label:'Use Best General',
+		label:'Use Best General',
 		checkbox:true
 	},{
 		advanced:true,
@@ -68,7 +69,7 @@ Guild.display = [
 		select:'generals'
 	},{
 		id:'start',
- 		label:'Automatically Start',
+		label:'Automatically Start',
 		checkbox:true
 	},{
 		id:'delay',
@@ -77,7 +78,7 @@ Guild.display = [
 		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
 	},{
 		id:'collect',
- 		label:'Collect Rewards',
+		label:'Collect Rewards',
 		checkbox:true
 	},{
 		id:'tokens',
@@ -100,12 +101,12 @@ Guild.display = [
 		help:'Positive values are levels above your own, negative are below. Leave blank for no limit'
 	},{
 		id:'cleric',
- 		label:'Attack Clerics First',
+		label:'Attack Clerics First',
 		checkbox:true,
 		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
 	},{
 		id:'defeat',
- 		label:'Avoid Defeat',
+		label:'Avoid Defeat',
 		checkbox:true,
 		help:'This will prevent you attacking a target that you have already lost to'
 	},{
@@ -199,7 +200,7 @@ Guild.page = function(page, change) {
 };
 
 Guild.update = function(event) {
-	var now = Date.now();
+	var now = Date.now(), status;
 	if (event.type === 'reminder') {
 		if (event.id === 'tokens') {
 			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
@@ -226,7 +227,8 @@ Guild.update = function(event) {
 		this.set(['runtime','burn'], true);
 	}
 	this.set(['option','_sleep'],
-		   !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
+		   Page.get('battle_guild')
+		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
 			&& (!this.option.delay || this.runtime.finish - 3600000  >= now - this.option.delay)
@@ -234,12 +236,15 @@ Guild.update = function(event) {
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
-	Dashboard.status(this, 'Status: ' + this.temp.status[this.runtime.status] + (this.runtime.status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (this.runtime.status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
+	status = this.get('runtime.status', 'wait');
+	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
 };
 
 Guild.work = function(state) {
 	if (state) {
-		if (this.runtime.status === 'wait') {
+		if (!Page.get('battle_guild')
+		  || this.get('runtime.status', 'wait') === 'wait'
+		) {
 			if (!Page.to('battle_guild')) {
 				return QUEUE_FINISH;
 			}
@@ -267,13 +272,13 @@ Guild.work = function(state) {
 						return QUEUE_CONTINUE;
 					}
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(i,el){
-					
+					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
+
 						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-						if (!target 
+						if (!target
 								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
-								|| (isNumber(Guild.option.limit) 
+								|| (isNumber(Guild.option.limit)
 									&& target[1] > Player.get('level',0) + Guild.option.limit)) {
 							return;
 						}

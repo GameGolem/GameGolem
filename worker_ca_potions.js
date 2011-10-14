@@ -1,10 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, Page,
+	LevelUp, Player,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker
 */
 /********** Worker.Potions **********
 * Automatically drinks potions
@@ -42,7 +44,25 @@ Potions.display = function(){
 			opts.push({
 				id:i,
 				label:'Maximum '+i+' Potions',
-				select:{0:0,5:5,10:10,15:15,20:20,25:25,30:30,35:35,39:39,infinite:'&infin;'},
+				select:{
+					0:0,
+					1:1,
+					2:2,
+					3:3,
+					4:4,
+					5:5,
+					10:10,
+					15:15,
+					20:20,
+					25:25,
+					30:30,
+					35:35,
+					36:36,
+					37:37,
+					38:38,
+					39:39,
+					infinite:'&infin;'
+				},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
 		}
@@ -110,7 +130,11 @@ Potions.update = function(event) {
 	if (!this.option._disabled && this.runtime.type && this.runtime.amount){
 		txt.push('Drinking ' + this.runtime.amount + 'x ' + this.runtime.type + ' potion');
 	}
-	Dashboard.status(this, txt.join(', '));
+	if (txt.length) {
+	    Dashboard.status(this, txt.join(', '));
+	} else {
+	    Dashboard.status(this);
+	}
 	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
 };
 

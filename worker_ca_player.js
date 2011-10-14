@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Window,
-	Bank, Battle, Generals, LevelUp, Player:true, Title,
-	APP, APPID, log, debug, script_started, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Dashboard, History, Resources, Title,
+	Bank,
+	APP, APPID, APPID_, PREFIX, userID, imagepath, script_started,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	Divisor, sum
 */
 /********** Worker.Player **********
 * Gets all current stats we can see
@@ -51,7 +53,7 @@ Player.init = function() {
 };
 
 Player.page = function(page, change) {
-	var i, data = this.data, keep, stats, tmp, $tmp, artifacts = {};
+	var i, o, data = this.data, keep, stats, tmp, $tmp, b, icon, name;
 	if (change) {
 		if (page === 'keep_stats' && ($tmp = $('.keep_healer_section').first()).length) {
 			tmp = '<table style="width:100%;"><thead><tr><td colspan="2" style="font-weight:bold;text-align:center;">Player Stats</td></tr></thead><tbody>' +
@@ -119,26 +121,26 @@ Player.page = function(page, change) {
 				Resources.add('Gold', data.bank + data.cash, true);
 
 				// remember artifacts - useful for quest requirements
-				$tmp = $('.statsTTitle:contains("ARTIFACTS") + div div div a img');
-				if ($tmp.length) {
-					$tmp.each(function(i,el){
-						if ((tmp = ($(el).attr('title') || $(el).attr('alt') || '').trim())) {
-							artifacts[tmp] = $(el).attr('src').filepart();
-						}
-					});
-					this.set(['data','artifact'], artifacts);
+				tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ARTIFACTS\\s*$)').parent());
+
+				for (i = 0; i < tmp; i++) {
+					b = $('a img[src]', tmp[i]);
+					icon = ($(b).attr('src') || '').filepart();
+					name = ($(b).attr('title') || $(b).attr('alt') || '').trim(true);
+					name = this.qualify(name, icon, 'artifact', true); // artifacts should be unique...
+					this.set(['data','artifact',name], icon);
 				}
 			}
 		} else if (page === 'town_land') {
 			$tmp = $('.layout div[style*="town_header_land."]');
 			if ($tmp.length && ($tmp = $('div div:contains("Land Income:")', $tmp)).length) {
-				var o = {};
+				o = {};
 				$('div', $tmp.last().parent()).each(function(a, el) {
-					if (!o[a]) o[a] = {};
+					if (!o[a]) { o[a] = {}; }
 					o[a].label = ($(el).text() || '').trim();
 				});
 				$('div', $tmp.last().parent().next()).each(function(a, el) {
-					if (!o[a]) o[a] = {};
+					if (!o[a]) { o[a] = {}; }
 					o[a].value = ($(el).text() || '').trim();
 				});
 				//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
@@ -175,8 +177,11 @@ Player.page = function(page, change) {
 };
 
 Player.update = function(event) {
+	var i, j, list, types, step, fn;
+
 	if (event.type === 'data' || event.type === 'init') {
-		var i, j, types = ['stamina', 'energy', 'health'], list, step;
+		types = ['stamina', 'energy', 'health'];
+		fn = function(a, b) { return a - b; };
 		for (j=0; j<types.length; j++) {
 			list = [];
 			step = Divisor(this.data['max'+types[j]]);
@@ -187,25 +192,25 @@ Player.update = function(event) {
 				step = this.data['max' + types[j]] || 10;
 				for (i in { 1:1, 5:1, 10:1, 20:1, 50:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			} else if (types[j] === 'energy') {
 				step = this.data['max' + types[j]] || 15;
 				for (i in { 10:1, 20:1, 40:1, 100:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			} else if (types[j] === 'health') {
 				step = this.data['max' + types[j]] || 100;
 				for (i in { 1:1, 9:1, 10:1, 11:1, 12:1, 13:1 }) {
 					if (step >= i) {
-						list.push(parseInt(i));
+						list.push(parseInt(i, 10));
 					}
 				}
 			}
-			Config.set(types[j], list.sort(function(a,b){return a-b;}).unique());
+			Config.set(types[j], list.sort(fn).unique());
 		}
 		History.set('bank', this.data.bank);
 		History.set('exp', this.data.exp);
@@ -215,12 +220,13 @@ Player.update = function(event) {
 		} else {
 			this.set(['data', event.id], $(event.selector).text().replace(/\D/g, '').regex(/(\d+)/));
 			switch (event.id) {
-				case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
-				case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
-				case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
+			case 'energy':	Resources.add('Energy', this.data[event.id], true);	break;
+			case 'stamina':	Resources.add('Stamina', this.data[event.id], true);	break;
+			case 'cash':	Resources.add('Gold', this.data[event.id], true);	break;
 			}
 		}
 	}
+
 	Dashboard.status(this);
 };
 

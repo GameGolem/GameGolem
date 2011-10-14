@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, Heal, Income, LevelUp:true, Monster, Player, Quest,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources, //Army,
+	Battle, Generals, Heal, Monster, Player, Quest, //Bank, Income, LevelUp:true,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	calc_rolling_weighted_average
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	bestObjValue, makeTimer, calc_rolling_weighted_average
 */
 /********** Worker.LevelUp **********
 * Will give us a quicker level-up, optionally changing the general to gain extra stats
@@ -109,6 +111,7 @@ LevelUp.init = function() {
 		this.set('option.general_choice', 'under max level');
 	}
 	// END
+
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.exp');
 	this._watch(Player, 'data.energy');
@@ -131,15 +134,15 @@ LevelUp.page = function(page, change) {
 				return;
 			}
 			var txt = $(el).text().replace(/,|\t/g, ''), x;
-			x = txt.regex(/([+-]\d+) Experience/i);
+			x = txt.regex(/([-+]\d+) Experience/i);
 			if (x) { History.add('exp+battle', x); }
 			x = (txt.regex(/\+\$(\d+)/i) || 0) - (txt.regex(/\-\$(\d+)/i) || 0);
 			if (x) { History.add('income+battle', x); }
-			x = txt.regex(/([+-]\d+) Battle Points/i);
+			x = txt.regex(/([-+]\d+) Battle Points/i);
 			if (x) { History.add('bp+battle', x); }
-			x = txt.regex(/([+-]\d+) Stamina/i);
+			x = txt.regex(/([-+]\d+) Stamina/i);
 			if (x) { History.add('stamina+battle', x); }
-			x = txt.regex(/([+-]\d+) Energy/i);
+			x = txt.regex(/([-+]\d+) Energy/i);
 			if (x) { History.add('energy+battle', x); }
 		});
 	}
@@ -147,13 +150,22 @@ LevelUp.page = function(page, change) {
 };
 
 LevelUp.update = function(event, events) {
-	var i, energy = Player.get('energy',0), stamina = Player.get('stamina',0), exp = Player.get('exp',0);
+	var now = Date.now(), i, worker, stat,
+		energy = Player.get('energy', 0, 'number'),
+		maxenergy = Player.get('maxenergy', 0, 'number'),
+		stamina = Player.get('stamina', 0, 'number'),
+		maxstamina = Player.get('maxstamina', 0, 'number'),
+		health = Player.get('health', 0, 'number'),
+		exp = Player.get('exp', 0, 'number'),
+		maxexp = Player.get('maxexp', 0, 'number');
+
 	if (events.findEvent(this, 'watch', 'runtime.force.energy') && this.get(['runtime','force','energy'])) {
 		log(LOG_INFO, 'Forcing energy burn...');
 	}
 	if (events.findEvent(this, 'watch', 'runtime.force.stamina') && this.get(['runtime','force','stamina'])) {
 		log(LOG_INFO, 'Forcing stamina burn...');
 	}
+
 	if (this.option._disabled) {
 		this.set(['runtime','running'], false);
 		this.set(['runtime','quest'], null);
@@ -161,11 +173,15 @@ LevelUp.update = function(event, events) {
 		this.set(['runtime','force','stamina'], false);
 	} else if (events.findEvent('Player')) {
 		// Check if stamina/energy is maxed and should be forced
-		this.set(['runtime','force','energy'], energy >= Player.get('maxenergy',0));
-		this.set(['runtime','force','stamina'], stamina >= Player.get('maxstamina',0));
+		this.set(['runtime','force','energy'], energy >= maxenergy);
+		this.set(['runtime','force','stamina'], stamina >= maxstamina);
 		// Preserve independence of queue system worker by putting exception code into CA workers
 		for (i in Workers) {
-			if ((worker = Workers[i]) && isFunction(worker.resource) && !worker.get(['option', '_disabled'], false) && (stat = worker.resource())) { // && !worker.get(['option', '_sleep'], false)
+			if ((worker = Workers[i])
+			  && isFunction(worker.resource)
+			  && !worker.get(['option', '_disabled'], false)
+			  && (stat = worker.resource())
+			) { // && !worker.get(['option', '_sleep'], false)
 				if (stat === 'energy') {
 					this.set(['runtime','force','energy'], true);
 				} else if (stat === 'stamina') {
@@ -174,6 +190,7 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
+
 	if (events.findEvent('Player') || !length(this.runtime.quests)) {
 		if (exp > this.runtime.exp && $('span.result_body:contains("xperience")').length) {
 			// Experience has increased...
@@ -190,20 +207,27 @@ LevelUp.update = function(event, events) {
 			}
 		}
 	}
+
 	this.set(['runtime','energy'], Math.max(0, energy - (this.runtime.force.energy ? 0 : Resources.get(['option','reserve','Energy'], 0))));
 	this.set(['runtime','stamina'], Math.max(0, stamina - (this.runtime.force.stamina ? 0 : Resources.get(['option','reserve','Stamina'], 0))));
 	this.set(['runtime','exp'], exp);
 	this.set(['runtime','heal_me'], !this.option._disabled && this.runtime.stamina && this.runtime.force.stamina && Player.get('health') < 13);
 	//log(LOG_DEBUG, 'next action ' + LevelUp.findAction('best', energy, stamina, Player.get('exp_needed')).exp + ' big ' + LevelUp.findAction('big', energy, stamina, Player.get('exp_needed')).exp);
+
 	if (this.runtime.running) {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Hour: ' + this.get('exp_average').round(1).addCommas() + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">LevelUp Running Now!</span>');
 	} else {
 		Dashboard.status(this, '<span title="Exp Possible: ' + this.get('exp_possible') + ', per Energy: ' + this.get('exp_per_energy').round(2) + ', per Stamina: ' + this.get('exp_per_stamina').round(2) + '">' + this.get('time') + ' after ' +
 			Page.addTimer('levelup', this.get('level_time')) + ' (' + Config.makeImage('exp') + this.get('exp_average').round(1).addCommas() + ' per hour) (refills: ' +
-			makeTimer((this.get('refill_energy') - Date.now()) / 1000) + ' per energy, ' +
-			makeTimer((this.get('refill_stamina') - Date.now()) / 1000) + ' per stamina)</span>');
+			makeTimer((this.get('refill_energy') - now) / 1000) + ' per energy, ' +
+			makeTimer((this.get('refill_stamina') - now) / 1000) + ' per stamina)</span>');
 	}
-	this.set(['option','_sleep'], !this.runtime.running || !this.runtime.heal_me);
+
+	this.set(['option','_sleep'],
+	  !this.runtime.running
+	  || !this.runtime.heal_me
+	);
+
 	return true;
 };
 
@@ -306,10 +330,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 			log(LOG_WARN, 'Big action is stamina. Exp use:' + staminaAction.exp + '/' + exp);
 			staminaAction.big = true;
 			return staminaAction;
-		} else {
-			log(LOG_WARN, 'Big action not found');
-			return nothing;
 		}
+		log(LOG_WARN, 'Big action not found');
+		return nothing;
 	case 'energy':
 		//log(LOG_WARN, 'monster runtime defending ' + Monster.get('runtime.defending'));
 		if ((Monster.get('runtime.defending')
@@ -345,10 +368,9 @@ LevelUp.findAction = function(mode, energy, stamina, exp) {
 				exp : quests[i].exp,
 				quest : i
 			};
-		} else {
-			log(LOG_WARN, 'No appropriate quest found');
-			return nothing;
 		}
+		log(LOG_WARN, 'No appropriate quest found');
+		return nothing;
 	case 'defend':
 		stat = 'energy';
 		value = energy;

@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player, Config,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, error:true, warn:true, log:true, getImage, isUndefined, script_started,
-	makeImage
+	$, Workers, Worker, Config,
+	APP, APPID, PREFIX, userID, imagepath, script_started,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG,
+	error:true, warn:true, log:true,
+	isArray, isBoolean, isError, isFunction, isNumber, isObject, isString, isUndefined, isWorker,
+	length, tr, th, td, getImage
 */
 /********** Worker.Debug **********
 * Profiling information
@@ -30,13 +31,13 @@ Debug.option = {
 	trace:4,
 	logdef:LOG_LOG, // Default level when no LOG_* set...
 	logexception:LOG_ERROR, // Default when it's an exception
-	loglevel:LOG_INFO, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
+	loglevel:LOG_LOG, // Maximum level to show (set by menu) - can turn off individual levels in Debug config
 	logs:{
-		0:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:false,	stack:false,	prefix:''	},
-		1:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
-		2:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false,	prefix:''	},
-		3:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
-		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:true,	worker:true,	stack:true,		prefix:''	},
+		0:{ /* LOG_ERROR */	display:'error',date:true,	revision:true,	worker:true,	stack:true,	prefix:''	},
+		1:{ /* LOG_WARN */	display:'warn',	date:true,	revision:true,	worker:true,	stack:false,	prefix:''	},
+		2:{ /* LOG_LOG */	display:'log',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		3:{ /* LOG_INFO */	display:'info',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
+		4:{ /* LOG_DEBUG */	display:'debug',date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		5:{ /* LOG_USER1 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		6:{ /* LOG_USER2 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
 		7:{ /* LOG_USER3 */	display:'-',	date:true,	revision:false,	worker:true,	stack:false,	prefix:''	},
@@ -86,7 +87,18 @@ Debug.display = [
 			},{
 				id:'trace',
 				label:'Tracing',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'}
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				}
 			}
 		]
 	},{
@@ -95,16 +107,38 @@ Debug.display = [
 			{
 				id:'logdef',
 				label:'Default log',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				},
 				help:'This is for log() lines that do not have an exception or LOG_* as the first argument'
 			},{
 				id:'logexception',
 				label:'Default exception',
-				select:{0:'LOG_INFO', 1:'LOG_LOG', 2:'LOG_WARN', 3:'LOG_ERROR', 4:'LOG_DEBUG', 5:'LOG_USER1', 6:'LOG_USER2', 7:'LOG_USER3', 8:'LOG_USER4', 9:'LOG_USER5'},
+				select:{
+					0:'LOG_ERROR',
+					1:'LOG_WARN',
+					2:'LOG_LOG',
+					3:'LOG_INFO',
+					4:'LOG_DEBUG',
+					5:'LOG_USER1',
+					6:'LOG_USER2',
+					7:'LOG_USER3',
+					8:'LOG_USER4',
+					9:'LOG_USER5'
+				},
 				help:'This is for log() lines that have an exception as the first argument'
 			},{
 				group:function() {
-					var i, options = [], levels = ['Info', 'Log', 'Warn', 'Error', 'Debug', 'User1', 'User2', 'User3', 'User4', 'User5'];
+					var i, options = [], levels = ['Error', 'Warn', 'Log', 'Info', 'Debug', 'User1', 'User2', 'User3', 'User4', 'User5'];
 					for (i=0; i<levels.length; i++) {
 						options.push({
 							title:i + ': ' + levels[i],
@@ -112,11 +146,26 @@ Debug.display = [
 								{
 									id:'logs.'+i+'.display',
 									label:'Display',
-									select:{'-':'Disabled', 'info':'console.info()', 'log':'console.log()', 'warn':'console.warn()', 'error':'console.error()', 'debug':'console.debug()'}
+									select:{
+										'-':'Disabled',
+										'error':'console.error()',
+										'warn':'console.warn()',
+										'log':'console.log()',
+										'info':'console.info()',
+										'debug':'console.debug()'
+									}
 								},{
 									id:'logs.'+i+'.date',
 									label:'Timestamp',
-									select:{'-':'None', 'G:i':'13:24', 'G:i:s':'13:24:56', 'G:i:s.u':'13:24:56.001', 'D G:i':'Mon 13:24', 'D G:i:s':'Mon 13:24:56', 'D G:i:s.u':'Mon 13:24:56.001'}
+									select:{
+										'-':'None',
+										'G:i':'13:24',
+										'G:i:s':'13:24:56',
+										'G:i:s.u':'13:24:56.001',
+										'D G:i':'Mon 13:24',
+										'D G:i:s':'Mon 13:24:56',
+										'D G:i:s.u':'Mon 13:24:56.001'
+									}
 								},{
 									id:'logs.'+i+'.prefix',
 									label:'Prefix',
@@ -147,8 +196,8 @@ Debug.display = [
 Debug.stack = [];// Stack tracing = [[time, worker, function, args], ...]
 
 /** @this {Worker} */
-Debug.setup = function(old_revision) {
-	var i, j, p, wkr, fn;
+Debug.setup = function(old_revision, fresh) {
+	var i, j, o, p, wkr, fn;
 	// BEGIN Change of log options
 	if (old_revision <= 1111 && this.option.log) {
 		this.set(['option','logs','0','display'], this.get(['option','log','0'], 'info'));
@@ -167,6 +216,34 @@ Debug.setup = function(old_revision) {
 	}
 	if (old_revision <= 1112 && isBoolean(this.option.trace)) {
 		this.set(['option','trace'], this.option.trace ? LOG_DEBUG : LOG_LOG);
+	}
+	// reverse order of info/log/warn/error to error/warn/log/info
+	if (old_revision <= 1164 && !fresh) {
+		o = {0:'error', 1:'warn', 2:'log', 3:'info'};
+		p = {};
+		for (i = 0; i <= 3; i++) {
+			p[i] = $.extend({}, this.get(['option','logs',i]));
+		}
+		for (i = 0; i <= 3; i++) {
+			if (isObject(p[3 - i]) && length(p[3-i])) {
+				log('# option.logs.'+i+' = p['+(3-i)+']');
+				this.set(['option','logs',i], p[3-i]);
+				//log('# option.logs.'+i+'.display = '+o[i]);
+				//this.set(['option','logs',i,'display'], o[i]);
+			}
+		}
+		if (isNumber(i = this.get(j = 'option.logdef', 1)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
+		if (isNumber(i = this.get(j = 'option.logexception', 3)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
+		if (isNumber(i = this.get(j = 'option.loglevel', 3)) <= 3) {
+		    log('# '+j+' = '+(3-i));
+		    this.set(j, 3 - i);
+		}
 	}
 	// END
 	// Go through every worker and replace their functions with a stub function
@@ -224,8 +301,10 @@ Debug.setup = function(old_revision) {
 	}
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global logging function for better log reporting
-	log = function(level, txt /*, obj, array etc*/){
-		var i, j, worker, name, line = '', level, tmp, stack, args = Array.prototype.slice.call(arguments), prefix = [], suffix = [], display = '-';
+	log = function(lvl, txt /*, obj, array etc*/){
+		var i, j, worker, name, line = '', level, tmp, stack,
+			args = Array.prototype.slice.call(arguments),
+			prefix = [], suffix = [], display = '-';
 		if (isNumber(args[0])) {
 			level = Math.range(0, args.shift(), 9);
 		} else if (isError(args[0])) {
@@ -284,7 +363,7 @@ GREASEMONKEY:
 					worker = Debug.stack[i][1];
 					name = Debug.stack[i][2].callee._name;
 					if (stack && browser === 'chrome') { // Chrome format stack trace
-						while (tmp = stack.shift()) {
+						while ((tmp = stack.shift())) {
 							if (tmp.indexOf('Worker.'+name+' ') >= 0 && tmp.indexOf(worker.toLowerCase()) >= 0) {
 								break;
 							}
@@ -309,9 +388,17 @@ GREASEMONKEY:
 			}
 			args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '') + suffix.join("\n");
 			try {
-				console[display] ? console[display].apply(console.firebug ? window : console, args) : console.log.apply(console.firebug ? window : console, args);
+				if (isFunction(console[display])) {
+					console[display].apply(console.firebug ? window : console, args);
+				} else {
+					console.log.apply(console.firebug ? window : console, args);
+				}
 			} catch(e) { // FF4 fix - doesn't like .apply
-				console[display] ? console[display](args) : console.log(args);
+				if (isFunction(console[display])) {
+					console[display](args);
+				} else {
+					console.log(args);
+				}
 			}
 		}
 	};
@@ -319,10 +406,10 @@ GREASEMONKEY:
 
 /** @this {Worker} */
 Debug.init = function(old_revision) {
-	var i, list = [];
+	var i, list = [], type;
 	// BEGIN: Change log message type from on/off to debug level
 	if (old_revision <= 1097) {
-		var type = ['info', 'log', 'warn', 'error', 'debug'];
+		type = ['info', 'log', 'warn', 'error', 'debug'];
 		for (i in this.option.log) {
 			if (this.option.log[i] === true) {
 				this.option.log[i] = type[i];
@@ -376,10 +463,10 @@ Debug.menu = function(worker, key) {
 		} else if (Config.option.advanced || Config.option.debug) {
 			var levels = [
 				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
-				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Info',
-				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Log',
-				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Warn',
-				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Error',
+				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Error',
+				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Warn',
+				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Log',
+				'3:' + (this.option.loglevel === 3 ? '=' : '') + 'Info',
 				'4:' + (this.option.loglevel === 4 ? '=' : '') + 'Debug'
 			];
 			if (Config.option.debug) {

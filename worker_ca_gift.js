@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Dashboard, Page,
+	Generals, Idle,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_INTERRUPT_OK,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	length
 */
 /********** Worker.Gift() **********
 * Auto accept gifts and return if needed
@@ -55,9 +57,9 @@ Gift.display = [
 ];
 
 Gift.init = function() {
-	delete this.data.uid;
-	delete this.data.lastgift;
-	if (length(this.data.gifts)) {
+	this.set('data.uid');
+	this.set('data.lastgift');
+	if (length(this.get('data.gifts', {}))) {
 		var i, gift_ids = [], random_gift_id;
 		for (i in this.data.gifts) {
 			gift_ids.push(i);
@@ -65,11 +67,11 @@ Gift.init = function() {
 		for (i in this.data.todo) {
 			if (!(/\D/g).test(i)) {	// If we have an old entry
 				random_gift_id = Math.floor(Math.random() * gift_ids.length);
-				if (!this.data.todo[gift_ids[random_gift_id]]) {
-					this.data.todo[gift_ids[random_gift_id]] = [];
+				if (!isArray(this.get(['data','todo',gift_ids[random_gift_id]]))) {
+					this.set(['data','todo',gift_ids[random_gift_id]], []);
 				}
-				this.data.todo[gift_ids[random_gift_id]].push(i);
-				delete this.data.todo[i];
+				this.push(['data','todo',gift_ids[random_gift_id]], i);
+				this.set(['data','todo',i]);
 			}
 		}
 	}

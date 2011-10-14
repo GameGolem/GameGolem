@@ -1,11 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$:true, Worker, Army, Theme:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP:true, APPID:true, APPNAME:true, userID:true, imagepath:true, isRelease, version, revision, Workers, PREFIX:true, Images, window, browser,
+	$, Worker, Workers, Config, Global,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	unsafeWindow, log, warn, error, chrome
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Theme **********
 * Stores Theme-specific settings as well as allowing to change the theme.

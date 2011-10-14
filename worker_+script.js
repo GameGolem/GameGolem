@@ -1,6 +1,14 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-/*global console, isString, isArray, isNumber, isUndefined, Workers, Worker, Settings, $ */
-
+/*global
+	$, Worker, Workers, Script, Settings,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
+	isArray, isFunction, isNumber, isObject, isString, isUndefined
+*/
+/********** Worker.Scripting **********
+*/
 var Scripting = new Worker('Script'); // The one and only time we're using the wrong name - BAD!!!
 Scripting.data = Scripting.temp = Scripting.runtime = null;
 

@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources, Settings:true,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, APPNAME,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime, makeImage,
-	GM_listValues, GM_deleteValue, localStorage
+	$, Worker, Workers, Config, Dashboard, Main, // Page, Queue, Settings:true,
+	//Battle, Generals, LevelUp, Player,
+	APP, APPID, APPNAME, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	plural, localStorage, confirm, alert
 */
 /********** Worker.Settings **********
 * Save and Load settings by name - never does anything to CA beyond Page.reload()
@@ -42,7 +43,7 @@ Settings.init = function() {
 };
 
 Settings.menu = function(worker, key) {
-	var i, keys = [];
+	var i, j, k, keys = [];
 	if (worker) {
 		if (!key) {
 			if (Config.option.advanced) {
@@ -80,6 +81,7 @@ Settings.menu = function(worker, key) {
 			if (Config.option.advanced) {
 				keys.push('---');
 				keys.push('reset:!Reset&nbsp;Golem');
+				keys.push('reset:!Wipe&nbsp;Golem');
 			}
 			return keys;
 		} else {
@@ -98,18 +100,63 @@ Settings.menu = function(worker, key) {
 					}
 				}
 			} else if (key === 'reset') {
-				if (confirm("IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on "+APPNAME+".\n\nAre you sure?")) {
+				keys = [];
+				k = localStorage.length;
+				for (i = 0; i < localStorage.length; i++) {
+					j = localStorage.key(i);
+					if (isString(j) && j.indexOf('golem.' + APP + '.') === 0) {
+						keys.push(j);
+					}
+				}
+				if (confirm('IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on '+APPNAME+'.\n\nAre you sure?'
+				  + ' (' + keys.length + '/' + k + ' keys)'
+				)) {
 					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used on "+APPNAME+".\n\nAre you REALLY sure??")) {
 						// Well, they've had two chances...
-//						log(LOG_INFO, 'Reset: '+localStorage.length+' keys total');
-						for (i=0; i < localStorage.length; i++) {
-							while (i < localStorage.length && localStorage[i].indexOf('golem.' + APP + '.') === 0) {
-//								log(LOG_INFO, 'Reset: deleting key "'+localStorage[i]+'"');
-								delete localStorage[localStorage[i]];
+//						log(LOG_INFO, 'Reset: '+keys.length+'/'+k+' keys total');
+						Main.shutdown();
+						try {
+							while (keys.length > 0) {
+								j = keys.pop();
+								localStorage.removeItem(j);
+								if ((i = localStorage.getItem(j)) !== null) {
+									throw new Error('removeItem failed on ' + j + ' [' + JSON.shallow(i) + ']');
+								}
 							}
+							window.location.replace(window.location.href);
+						} catch (e) {
+							log(e, e.name + ' in ' + this.name + '.menu(): ' + e.message);
 						}
-						Queue._forget('run'); // Just to be safe(ish)...
-						window.location = window.location.href;
+					}
+				}
+			} else if (key === 'wipe') {
+				keys = [];
+				k = localStorage.length;
+				for (i = 0; i < localStorage.length; i++) {
+					j = localStorage.key(i);
+					if (isString(j) && j.indexOf('golem.') === 0) {
+						keys.push(j);
+					}
+				}
+				if (confirm('IMPORTANT WARNING!!!\n\nAbout to delete all data for Golem on ALL Apps.\n\nAre you sure?'
+				  + ' (' + keys.length + '/' + k + ' keys)'
+				)) {
+					if (confirm("VERY IMPORTANT WARNING!!!\n\nThis will clear everything, reload the page, and make Golem act like it is the first time it has ever been used.\n\nAre you REALLY sure??")) {
+						// Well, they've had two chances...
+//						log(LOG_INFO, 'Wipe: '+keys.length+'/'+k+' keys total');
+						Main.shutdown();
+						try {
+							while (keys.length > 0) {
+								j = keys.pop();
+								localStorage.removeItem(j);
+								if ((i = localStorage.getItem(j)) !== null) {
+									throw new Error('removeItem failed on ' + j + ' [' + JSON.shallow(i) + ']');
+								}
+							}
+							window.location.replace(window.location.href);
+						} catch (e2) {
+							log(e2, e2.name + ' in ' + this.name + '.menu(): ' + e2.message);
+						}
 					}
 				}
 			}

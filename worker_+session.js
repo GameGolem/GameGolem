@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Config, Global, Queue, Title,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	sessionStorage
 */
 /********** Worker.Session **********
 * Deals with multiple Tabs/Windows being open at the same time...
@@ -93,7 +94,7 @@ Session.init = function() {
 			$(this).html('<b>Disabled</b>').toggleClass('red green');
 			Session._set(['data','_active'], null);
 			Session._set(['temp','active'], false);
-		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - option.timeout) {
+		} else if (!Session.data._active || typeof Session.data._sessions[Session.data._active] === 'undefined' || Session.data._sessions[Session.data._active] < Date.now() - Session.option.timeout) {
 			$(this).html('Enabled').toggleClass('red green');
 			Queue.set(['temp','current']);
 			Session._set(['data','_active'], Session.temp._id);
@@ -159,7 +160,7 @@ Session.updateTimestamps = function() {
 4. If there are other open instances then show the "Enabled/Disabled" button
 */
 Session.update = function(event, events) {
-	var i, l, now = Date.now(), unload;
+	var now = Date.now(), i, l, unload;
 	if (events.findEvent(this,'reminder') || (unload = events.findEvent(this,'unload'))) {
 		this._load('data');
 		if (unload) {
@@ -205,7 +206,7 @@ Session.update = function(event, events) {
 			this.updateTimestamps();
 			$('#golem_session').show();
 		}
-		this._taint.data = true;
+		this._taint['data'] = now;
 		this._save('data');
 	}
 	return true;

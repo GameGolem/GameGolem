@@ -1,11 +1,11 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army:true, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers, Config, Page,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isUndefined,
+	makeTime, tr, th, td
 */
 /********** Worker.Army **********
 * Stores data by facebook userid for any worker that wants to use it.
@@ -60,16 +60,16 @@ Army.setup = function(old_revision) {
 		for (i in this.data.Army) { // Second change the uid.Army bool to be Army.uid.member
 			if (this.data.Army[i] === true) {
 				this._set(['data','Army',i], this._get(['data','_info',i],{}));
-				this._set(['data','_info',i])
+				this._set(['data','_info',i]);
 				this._set(['data','Army',i,'member'], true);
 			}
 		}
 		this.data._info = this.data._info || {};
 		for (i in this.data._info) { // Finally remove _info into Army
 			this._set(['data','Army',i], this._get(['data','_info',i],{}));
-			this._set(['data','_info',i])
+			this._set(['data','_info',i]);
 		}
-		this._set(['data','_info'])
+		this._set(['data','_info']);
 	}
 	// END
 };
@@ -133,7 +133,7 @@ Army.army = function(action, uid) {
 		if ($('#golem-army-info').length) {
 			info = $('#golem-army-info').val();
 		}
-		this.set(['runtime','info'], info)
+		this.set(['runtime','info'], info);
 		for (i in infolist) {
 			list.push('<option value="' + i + '"' + (i === info ? ' selected' : '') + '>' + i + '</option>');
 		}
@@ -240,16 +240,16 @@ Army.dashboard = function(sort, rev) {
 	$('#golem-dashboard-Army td:first-child,#golem-dashboard-Army th:first-child').css('text-align', 'left');
 	$('#golem-dashboard-Army select').change(function() {Army._notify('data');});// Force a redraw
 	$('#golem-dashboard-Army thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
-	$('#golem-dashboard-Army td').click(function(e){
+	$('#golem-dashboard-Army td').click(function(event) {
 		var tmp = $(this).attr('id').regex(/^golem_army_(.*)_(\d+)$/i);
 		if (tmp.length) {
 			if (tmp[0] === '*') {
-				Army.army_name('click', tmp[1])
+				Army.army_name('click', tmp[1]);
 			} else {
-				Workers[tmp[0]]('click', tmp[1])
+				Workers[tmp[0]].army('click', tmp[1]);
 			}
 		}
-		e.stopImmediatePropagation();
+		event.stopImmediatePropagation();
 		return false;
 	});
 };

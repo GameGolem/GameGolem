@@ -1,11 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
+	$, Worker, Workers, Army, Dashboard, Page, // Config, History, Queue,
+	//Battle, Generals, LevelUp, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	makeTime
 */
 /********** Worker.Elite() **********
 * Build your elite army
@@ -138,6 +140,8 @@ Elite.work = function(state) {
 };
 
 Elite.army = function(action, uid) {
+	var now = Date.now(), x, y, z;
+
 	switch(action) {
 	case 'title':
 		return 'Elite';
@@ -158,23 +162,29 @@ Elite.army = function(action, uid) {
 			 + '<span class="ui-icon" style="display:inline-block;"></span><span class="ui-icon" style="display:inline-block;"></span>'
 			);
 	case 'sort':
-		var now = Date.now();
+		// sorting arranged by preferred flag, elite timer, full timer
 		if (!Army.get(['Elite',uid]) && !Army.get(['Army',uid,'member'])) {
 			return 0;
 		}
-		return ((Army.get(['Elite',uid,'prefer'])
-				? now
-				: 0)
-			+ (Army.get(['Elite',uid,'elite'])
-				? now - parseInt(Army.get(['Elite',uid,'elite']), 10)
-				: 0)
-			+ (Army.get(['Elite',uid,'full'])
-				? now - parseInt(Army.get(['Elite',uid,'full']), 10)
-				: 0));
+		x = Army.get(['Elite',uid,'prefer']);
+		y = Army.get(['Elite',uid,'elite'], 0);
+		z = Army.get(['Elite',uid,'full'], 0);
+		// 1e8 and 1e16 magic numbers simply allow for 24 hours of milliseconds
+		// xyyyyyyyyzzzzzzzz
+		// ||......|++++++++- full ms delta
+		// |++++++++--------- elite ms delta (shifted by 1e8)
+		// +----------------- preferred flag (shifted by 1e16)
+		if (y) {
+			x = (x ? 1e16 : 0) + (y > now ? y-now : 0) * 1e8 + ((x && z > now) ? z-now : 0);
+		} else {
+			x = (x ? 1e16 : 0) + (1e8-1 - (z > now ? z-now : 0));
+		}
+		return x;
 	case 'click':
 		if (uid && Army.get(['Army',uid,'member'])) {
-			Army.toggle(['Elite',uid,'prefer'])
+			Army.toggle(['Elite',uid,'prefer']);
 		}
+		return true;
 	}
 };
 

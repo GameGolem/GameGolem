@@ -1,10 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
+	$, Worker, Workers, Config, Dashboard, Page, Queue, Resources,
 	Bank, Battle, Generals, LevelUp, Player, Quest, Land,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isArray, isFunction, isNumber, isObject, isString, isUndefined,
+	length, sum, getAttDef, tr, th, td
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
@@ -56,9 +59,9 @@ Town.display = [
 	label:'Buy Number',
 	select:['None', 'Minimum', 'Army', 'Army+', 'Max Army'],
 	help:'Minimum will only buy items need for quests if enabled.'
-		+ ' Army will buy up to your army size (modified by some generals).'
-		+ ' Army+ is like Army on purchases and Max Army on sales.'
-		+ ' Max Army will buy up to 541 regardless of army size.'
+	  + ' Army will buy up to your army size (modified by some generals).'
+	  + ' Army+ is like Army on purchases and Max Army on sales.'
+	  + ' Max Army will buy up to 541 regardless of army size.'
 },{
 	id:'sell',
 	require:'number!="None" && number!="Minimum"',
@@ -144,7 +147,7 @@ Town.init = function() {
   // .layout td >div div[style*="town_unit_bar."]
   // .layout td >div div[style*="town_unit_bar_owned."]
 Town.page = function(page, change) {
-	var i, el, tmp, img, filename, name, count, now = Date.now(), self = this, modify = false, tmp;
+	var now = Date.now(), self = this, i, j, el, tmp, img, filename, name, count, unit, purge, changes, cost_adj, modify = false;
 	if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
@@ -164,7 +167,6 @@ Town.page = function(page, change) {
 				}
 			}
 
-			tmp = $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)');
 			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ITEMS\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
 				el = tmp[i];
@@ -181,6 +183,16 @@ Town.page = function(page, change) {
 					this.set(['data', name, 'own'], count);
 				}
 			}
+
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*ARTIFACTS\\s*$)').parent());
+			for (i=0; i<tmp.length; i++) {
+				el = tmp[i];
+				img = $('a img[src]', el);
+				filename = ($(img).attr('src') || '').filepart();
+				name = this.qualify(($(img).attr('title') || $(img).attr('alt') || '').trim(), filename); // names aren't unique for items
+				this.set(['data', name, 'type'], 'artifact');
+				this.set(['data', name, 'own'], 1);
+			}
 		}
 	} else if (change && page === 'town_blacksmith') {
 		$('div[style*="town_unit_bar."],div[style*="town_unit_bar_owned."]').each(function(i,el) {
@@ -192,7 +204,10 @@ Town.page = function(page, change) {
 			}
 		});
 	} else if (!change && (page === 'town_soldiers' || page === 'town_blacksmith' || page === 'town_magic')) {
-		var unit = this.data, purge = {}, changes = 0, i, j, cost_adj = 1;
+		unit = this.data;
+		purge = {};
+		changes = 0;
+		cost_adj = 1;
 		for (i in unit) {
 			if (unit[i].page === page.substr(5)) {
 				purge[i] = true;
@@ -232,14 +247,14 @@ Town.page = function(page, change) {
 				if ((tmp = $('form[id*="itemBuy_"]', el)).length) {
 					self.set(['data',name,'id'], tmp.attr('id').regex(/itemBuy_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'buy'], parseInt($(el).val(), 10), 'number');
 					});
 				}
 				self.set(['data',name,'sell']);
 				if ((tmp = $('form[id*="itemSell_"]', el)).length) {
 					self.set(['data',name,'id'], tmp.attr('id').regex(/itemSell_(\d+)/i), 'number');
 					$('select[name="amount"] option', tmp).each(function(b, el) {
-						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number')
+						self.push(['data',name,'sell'], parseInt($(el).val(), 10), 'number');
 					});
 				}
 				if (page === 'town_blacksmith') {
@@ -334,7 +349,7 @@ Town.getWar = function() {
 };
 
 Town.update = function(event, events) {
-	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost, upkeep,
+	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost,
 		data = this.data,
 		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
 		upkeep = Player.get('upkeep', 0, 'number'),
@@ -454,7 +469,7 @@ Town.update = function(event, events) {
 //			log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
 		if (need > have) { // Want to buy more                                
 			if (!best_quest && data[u].buy && data[u].buy.length) {
-				if (data[u].cost <= max_cost && this.option.upkeep >= (((Player.get('upkeep') + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / Player.get('maxincome')) * 100) && i > 1 && (!best_buy || need > buy)) {
+				if (data[u].cost <= max_cost && this.option.upkeep >= (((upkeep + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / maxincome) * 100) && i > 1 && (!best_buy || need > buy)) {
 //						log(LOG_WARN, 'Buy: '+need);
 					best_buy = u;
 					buy = have + i; // this.buy() takes an absolute value
@@ -484,11 +499,11 @@ Town.update = function(event, events) {
 		best_sell = null;
 		sell = 0;
 		cost = (buy - data[best_buy].own) * data[best_buy].cost;
-		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
+		net_upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
 			Dashboard.status(this, '<i>Deferring to Land</i>');
 		} else if (Bank.worth(cost + land_buffer)) {
-			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (net_upkeep ? ' (Upkeep: $' + net_upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
 		} else {
 			Dashboard.status(this, 'Waiting for ' + Config.makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI());
 		}
@@ -539,6 +554,7 @@ Town.work = function(state) {
 };
 
 Town.buy = function(item, number) { // number is absolute including already owned
+	var qty, $form;
 	this._unflush();
 	if (!this.data[item] || !this.data[item].id || !this.data[item].buy || !this.data[item].buy.length || !Bank.worth(this.runtime.cost)) {
 		return true; // We (pretend?) we own them
@@ -546,8 +562,8 @@ Town.buy = function(item, number) { // number is absolute including already owne
 	if (!Generals.to(this.option.general ? 'cost' : 'any') || !Bank.retrieve(this.runtime.cost) || !Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = this.data[item].buy.lower(number);
-	var $form = $('form#'+APPID_+'itemBuy_' + this.data[item].id);
+	qty = this.data[item].buy.lower(number);
+	$form = $('form#'+APPID_+'itemBuy_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Buying ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost).addCommas());
 		$('select[name="amount"]', $form).val(qty);
@@ -558,6 +574,7 @@ Town.buy = function(item, number) { // number is absolute including already owne
 };
 
 Town.sell = function(item, number) { // number is absolute including already owned
+	var qty, $form;
 	this._unflush();
 	if (!this.data[item] || !this.data[item].id || !this.data[item].sell || !this.data[item].sell.length) {
 		return true;
@@ -565,8 +582,8 @@ Town.sell = function(item, number) { // number is absolute including already own
 	if (!Page.to('town_'+this.data[item].page)) {
 		return false;
 	}
-	var qty = this.data[item].sell.lower(number);
-	var $form = $('form#'+APPID_+'itemSell_' + this.data[item].id);
+	qty = this.data[item].sell.lower(number);
+	$form = $('form#'+APPID_+'itemSell_' + this.data[item].id);
 	if ($form.length) {
 		log(LOG_WARN, 'Selling ' + qty + ' x ' + item + ' for $' + (qty * Town.data[item].cost / 2).addCommas());
 		$('select[name="amount"]', $form).val(qty);
@@ -576,7 +593,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 	return false;
 };
 
-format_unit_str = function(name) {
+Town.format_unit_str = function(name) {
     var i, j, k, n, m, p, s, str;
 
 	if (name && ((p = Town.get(['data',name])) || (p = Generals.get(['data',name])))) {
@@ -672,7 +689,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			if (p.use) {
 				output.push(p.use[type+'_'+x]+' &times; ');
 			}
-			output.push(format_unit_str(units[i]));
+			output.push(this.format_unit_str(units[i]));
 			output.push('</div>');
 		}
 	}
@@ -685,7 +702,7 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var lset = [], rset = [], generals = Generals.get(), best, tmp,
+	var i, best, tmp, lset = [], rset = [], generals = Generals.get(),
 		fn_own = function(list, i, units) {
 			if (units[i].own) {
 				list.push(i);
@@ -791,7 +808,7 @@ Town.dashboard = function() {
 		lset.push('<div style="height:25px;margin:1px;">');
 		lset.push('<img src="' + imagepath + generals[best].img + '"');
 		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		lset.push(format_unit_str(best));
+		lset.push(this.format_unit_str(best));
 		lset.push('</div>');
 	}
 	lset.push(makeTownDash(tmp, fn_page_blacksmith, 'att', 'duel'));
@@ -811,7 +828,7 @@ Town.dashboard = function() {
 		rset.push('<div style="height:25px;margin:1px;">');
 		rset.push('<img src="' + imagepath + generals[best].img + '"');
 		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		rset.push(format_unit_str(best));
+		rset.push(this.format_unit_str(best));
 		rset.push('</div>');
 	}
 	rset.push(makeTownDash(tmp, fn_page_blacksmith, 'def', 'duel'));

@@ -3,6 +3,7 @@
 #########################################
 ### Globals ###
 main.js
+revision.js
 utility.js
 script.js
 ### Worker class ###

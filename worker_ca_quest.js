@@ -1,10 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Alchemy, Bank, Battle, Generals, LevelUp, Monster, Player, Town,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
+	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	Alchemy, Bank, Generals, LevelUp, Monster, Player, Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	isObject, isFunction, isNumber, isString, isWorker, isArray,
+	tr, th, td, assert, isEvent
 */
 /********** Worker.Quest **********
 * Completes quests with a choice of general
@@ -17,18 +20,23 @@ Quest.settings = {
 };
 
 Quest.defaults['castle_age'] = {
-	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4 quests_quest5 quests_quest6 quests_quest7 quests_quest8 quests_quest9 quests_quest10 quests_quest11 quests_quest12 quests_quest13 quests_quest14 quests_quest15 quests_demiquests quests_atlantis'
+	pages:'quests_quest1 quests_quest2 quests_quest3 quests_quest4'
+	  + ' quests_quest5 quests_quest6 quests_quest7 quests_quest8'
+	  + ' quests_quest9 quests_quest10 quests_quest11 quests_quest12'
+	  + ' quests_quest13 quests_quest14 quests_quest15 quests_quest16'
+	  + ' quests_demiquests quests_atlantis'
 };
 
 Quest.option = {
 	general:true,
 	general_choice:'any',
-	what:'Influence',
+	what:'Advancement',
 	ignorecomplete:true,
-	unique:true,
+	unique:false,
 	monster:'When able',
 	bank:true,
-	energy_reserve:0
+	energy_reserve:0,
+	diag:0
 };
 
 Quest.runtime = {
@@ -59,7 +67,8 @@ Quest.land = [
 	'Mist II',
 	'Mist III',
 	'Fire II',
-	'Pangaea'
+	'Pangaea',
+	'Perdition'
 ];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -95,10 +104,10 @@ Quest.display = [
 	},{
 		advanced:true,
 		id:'ignorecomplete',
+		require:'what=="Cartigan" || what=="Vampire Lord"',
 		label:'Only do incomplete quests',
 		checkbox:true,
-		help:'Will only do quests that aren\'t at 100% influence',
-		require:'what=="Cartigan" || what=="Vampire Lord"'
+		help:"Will only do quests that aren't at 100% influence."
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -111,6 +120,21 @@ Quest.display = [
 		id:'bank',
 		label:'Automatically Bank',
 		checkbox:true
+	},{
+		advanced:true,
+		id:'diag',
+		require:'Debug.option.loglevel>=3',
+		label:'Diagnostics level',
+		select:{
+			0:'None',
+			1:'Light',
+			2:'Medium',
+			3:'Heavy'
+		},
+		help:'Normally should be set to "None" when not trying to diagnose a specific problem.'
+		  + " When trying to determine why a particular quest is not chosen as you'd expect"
+		  + ', you can try increasing the level and watching the results in the console logging.'
+		  + ' Be sure to set back to "None" when you are done or it will quickly fill your console and may slow down your browser.'
 	}
 ];
 
@@ -168,6 +192,8 @@ Quest.init = function(old_revision) {
 	this._watch(Player, 'data.exp');
 	this._watch(LevelUp, 'runtime.energy');
 	this._watch(LevelUp, 'runtime.quest');
+	this._watch(Alchemy, 'data.summons');
+	this._watch(Alchemy, 'data.ingredients');
 };
 
 Quest.page = function(page, change) {
@@ -199,7 +225,7 @@ Quest.page = function(page, change) {
 			if (!tmp.length || !tmp.val()) {
 				continue;
 			}
-			assert(id = parseInt(tmp.val() || '0'), 'Bad quest id: '+tmp.val());
+			assert(id = parseInt(tmp.val() || '0', 10), 'Bad quest id: '+tmp.val());
 			this._transaction(); // BEGIN TRANSACTION
 			delete purge[id]; // We've found it, and further errors shouldn't delete it
 			name = undefined;
@@ -305,250 +331,658 @@ Quest.page = function(page, change) {
   // watch Town if we passed up a preferred quest due to a missing req.
 
 Quest.update = function(event, events) {
-	var i, unit, own, need, noCanDo = false, best = null, best_cartigan = null, best_vampire = null, best_subquest = null, best_advancement = null, best_influence = null, best_experience = null, best_land = 0, has_cartigan = false, has_vampire = false, list = [], items = {}, data = this.data, maxenergy = Player.get('maxenergy',999), eff, best_adv_eff = 1e10, best_inf_eff = 1e10, cmp, oi, ob;
+	var i, s, x, unit, oi, ob, list, items, ok, best = null,
+		data = this.data,
+		energy = Player.get('energy', 0),
+		maxenergy = Player.get('maxenergy', 9999),
+		diag = this.option.diag || 0, usable_energy;
+
+	//log(LOG_INFO, '# events: ' + JSON.shallow(events,3));
+
+	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
+		list = [];
+		items = {};
+
+		for (i in data.id) {
+			oi = data.id[i];
+			if (oi.item && oi.type !== 3) {
+				list.push(oi.item);
+			}
+			for (unit in oi.units) {
+				if ((oi.units[unit] || 0) > 999) {
+					log(LOG_WARN, '# Bad units: ' + JSON.shallow(oi, 3));
+				}
+				items[unit] = Math.max(items[unit] || 0, oi.units[unit]);
+			}
+		}
+
+		Config.set('quest_reward', [
+			'Nothing',
+			'Cartigan',
+			'Vampire Lord',
+			'Subquests',
+			'Advancement',
+			'Influence',
+			'Inf+Exp',
+			'Experience',
+			'Inf+Cash',
+			'Cash'
+		].concat(list.unique().sort()));
+
+		for (unit in items) {
+			Resources.set(['data', '_'+unit, 'quest'], items[unit]);
+		}
+	}
+
+	// check that we've seen all available pages at least once
+	list = this.defaults['castle_age'].pages.split(/\s+/);
+	ok = true;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] !== 'quests_quest' // old placebo, just in case...
+		  && list[i] !== 'quests_quest16' // pangaea not yet on web3
+		  && /^quests_/.test(list[i])
+		  && !Page.get(list[i])
+		) {
+			this.set(['runtime','best'], null);
+			this.set(['runtime','energy'], 0);
+			ok = false;
+			break;
+		}
+	}
+	if (ok && !Page.get(i = 'keep_alchemy')) {
+		this.set(['runtime','best'], null);
+		this.set(['runtime','energy'], 0);
+		ok = false;
+	}
+
+	best = this.runtime.best;
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get(['runtime','quest']))
+	) {
+		// Only override if it has an actual quest for us
+		best = i;
+	}
+
+	// see if there's a reason to recalc the best quest
+	if (ok) {
+		if (best) {
+			ok = false;
+			for (i = 0; i < events.length; i++) {
+				if (isEvent(events[i], this, 'runtime')
+				  || isEvent(events[i], this, 'temp')
+				) {
+					// just our own tinkering here, so we don't need to recalc
+					continue;
+				} else {
+					ok = true;
+					break;
+				}
+			}
+		}
+
+		best = this.getBest(maxenergy);
+	}
+
+	/*
 	if (events.findEvent(this, 'watch', 'runtime.best')) {// Only change the display when we change what to do
 		if ((best = this.runtime.best)) {
 			log(LOG_LOG, 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
 			Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + Config.makeImage('energy') + data.id[best].energy + ' = ' + Config.makeImage('exp') + data.id[best].exp + ' + ' + Config.makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + Config.makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
 		} else {
-			Dashboard.status(this, '<i>Nothing to do</i>');
+			Dashboard.status(this);
 		}
 		best = null;
 	}
-	if (events.findEvent(Town) || events.findEvent(this, 'data') || events.findEvent(this, 'option')) {
-		// First let's update the Quest dropdown list(s)...
-		if (event.type === 'init' || event.type === 'data') {
-			for (i in data.id) {
-				if (data.id[i].item && data.id[i].type !== 3) {
-					list.push(data.id[i].item);
-				}
-				for (unit in data.id[i].units) {
-					items[unit] = Math.max(items[unit] || 0, data.id[i].units[unit]);
-				}
-			}
-			Config.set('quest_reward', ['Nothing', 'Cartigan', 'Vampire Lord', 'Subquests', 'Advancement', 'Influence', 'Inf+Exp', 'Experience', 'Inf+Cash', 'Cash'].concat(list.unique().sort()));
-			for (unit in items) {
-				if (Resources.get(['data','_'+unit,'quest'], -1) !== items[unit]) {
-					Resources.set(['data','_'+unit,'quest'], items[unit]);
-				}
-			}
-		}
-		// Now choose the next quest...
-		if (this.option.unique) {// Boss monster quests first - to unlock the next area
-			for (i in data.id) {
-				if (data.id[i].energy > maxenergy) {// Skip quests we can't afford
-					continue;
-				}
-				if (data.id[i].type === 3 && !Alchemy.get(['ingredients', data.id[i].itemimg], 0, 'number') && (!best || data.id[i].energy < data.id[best].energy)) {
-					best = i;
-				}
-			}
-		}
-		if (!best && this.option.what !== 'Nothing') {
-			if (this.option.what !== 'Vampire Lord' || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24) {
-				has_vampire = true; // Stop trying once we've got the required number of Vampire Lords
-			}
-			if (this.option.what !== 'Cartigan' || Generals.get(['data','Cartigan','own'], 0, 'number') || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3 && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3)) {
-				// Sword of the Faithless x3 - The Long Path, Burning Gates
-				// Crystal of Lament x3 - Fiery Awakening
-				// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
-				has_cartigan = true; // Stop trying once we've got the general or the ingredients
-			}
-	//		log(LOG_WARN, 'option = ' + this.option.what);
-	//		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
-			for (i in data.id) {
-				// Skip quests we can't afford or can't equip the general for
-				oi = data.id[i];
-				if (oi.energy > maxenergy 
-						|| !Generals.test(oi.general || 'any')
-						|| (LevelUp.runtime.general && oi.general)) {
-					continue;
-				}
-				if (oi.units) {
-					own = 0;
-					need = 0;
-					noCanDo = false;
-					for (unit in oi.units) {
-						need = oi.units[unit];
-						if (!Player.get(['artifact', i]) || need !== 1) {
-							own = Town.get([unit, 'own'], 0, 'number');
-							if (need > own) {	// Need more than we own, skip this quest.
-								noCanDo = true;	// set flag
-								break;	// no need to check more prerequisites.
-							}
-						}
-					}
-					if (noCanDo) {
-						continue;	// Skip to the next quest in the list
-					}
-				}
-				eff = oi.eff || (oi.energy * this.wiki_reps(oi));
-				if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
-					eff = Math.ceil(eff * (100 - oi.influence) / 100);
-				}
-				switch(this.option.what) { // Automatically fallback on type - but without changing option
-					case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
-						ob = data.id[best_vampire];
-						// order: inf<100, <energy, >exp, >cash (vampire)
-						if (!has_vampire && isNumber(oi.land) &&
-						  oi.land === 5 && oi.type === 1 &&
-						  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
-						  (!best_vampire ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_vampire = i;
-						}// Deliberate fallthrough
-					case 'Cartigan': // Random Encounters in various Underworld Quests
-						ob = data.id[best_cartigan];
-						// order: inf<100, <energy, >exp, >cash (cartigan)
-						if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6 &&
-						  (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100)) &&
-						  (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3) ||
-						  ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3) ||
-						  ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3)) &&
-						  (!best_cartigan ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_cartigan = i;
-						}// Deliberate fallthrough
-					case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
-						ob = data.id[best_subquest];
-						// order: <energy, >exp, >cash (subquests)
-						if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100 &&
-						  (!best_subquest ||
-						  (cmp = oi.energy - ob.energy) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best_subquest = i;
-						}// Deliberate fallthrough
-					case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
-						if (isNumber(oi.land) && oi.land > best_land) { // No need to revisit old lands - leave them to Influence
-							best_land = oi.land;
-							best_advancement = null;
-							best_adv_eff = 1e10;
-						}
-						ob = data.id[best_advancement];
-						// order: <effort, >exp, >cash, <energy (advancement)
-						if (oi.type !== 2 && isNumber(oi.land) &&
-						  //oi.level === 1 &&  // Need to check if necessary to do boss to unlock next land without requiring orb
-						  oi.land >= best_land &&
-						  ((isNumber(oi.influence) && Generals.test(oi.general) && oi.level <= 1 && oi.influence < 100) || (oi.type === 3 && !Alchemy.get(['ingredients', oi.itemimg], 0, 'number'))) &&
-						  (!best_advancement ||
-						  (cmp = eff - best_adv_eff) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
-							best_land = Math.max(best_land, oi.land);
-							best_advancement = i;
-							best_adv_eff = eff;
-						}// Deliberate fallthrough
-					case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-						ob = data.id[best_influence];
-						// order: <effort, >exp, >cash, <energy (influence)
-						if (isNumber(oi.influence) &&
-						  (!oi.general || Generals.test(oi.general)) &&
-						  oi.influence < 100 &&
-						  (!best_influence ||
-						  (cmp = eff - best_inf_eff) < 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0))) {
-							best_influence = i;
-							best_inf_eff = eff;
-						}// Deliberate fallthrough
-					case 'Experience': // Find the best exp per energy quest
-						ob = data.id[best_experience];
-						// order: >exp, inf<100, >cash, <energy (experience)
-						if (!best_experience ||
-						  (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best_experience = i;
-						}
-						break;
-					case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
-						ob = data.id[best_experience];
-						// order: inf<100, >exp, >cash, <energy (inf+exp)
-						if (!best_experience ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best_experience = i;
-						}
-						break;
-					case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
-						ob = data.id[best];
-						// order: inf<100, >cash, >exp, <energy (inf+cash)
-						if (!best ||
-						  (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0 ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best = i;
-						}
-						break;
-					case 'Cash': // Find the best (average) cash per energy quest
-						ob = data.id[best];
-						// order: >cash, inf<100, >exp, <energy (cash)
-						if (!best ||
-						  (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = oi.energy - ob.energy) < 0)) {
-							best = i;
-						}
-						break;
-					default: // For everything else, there's (cheap energy) items...
-						ob = data.id[best];
-						// order: <energy, inf<100, >exp, >cash (item)
-						if (oi.item === this.option.what &&
-						  (!best ||
-						  (cmp = oi.energy - ob.energy) < 0 ||
-						  (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0) ||
-						  (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0) ||
-						  (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))) {
-							best = i;
-						}
-						break;
-				}
-			}
-			switch(this.option.what) { // Automatically fallback on type - but without changing option
-				case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
-				case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
-				case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
-				case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
-				case 'Influence':	best = best_influence || best_experience;break;
-				case 'Inf+Exp':		best = best_experience;break;
-				case 'Experience':	best = best_experience;break;
-				default:break;
-			}
-		}
+	*/
+
+	if (best !== this.runtime.best) {
 		this.set(['runtime','best'], best);
-		this.set(['runtime','energy'], best ? data.id[best].energy : 0);
+		this.set(['runtime','energy'], best ? this.get(['data','id',best,'energy'], 0, 'number') : 0);
 	}
-	best = LevelUp.get(['runtime','quest'], this.runtime.best, 'string'); // Only override if it has an actual quest for us
+
+	s = undefined;
+	best = this.get('runtime.best');
+	if (best && (oi = this.get(['data','id',best]))) {
+		s = '';
+		if (isNumber(oi.land)) {
+			s += this.land[oi.land];
+		} else {
+			s += this.area[oi.area];
+		}
+		s += ': ' + oi.name;
+		s += ' (' + Config.makeImage('energy', 'Energy') + oi.energy;
+		s += ' = ' + Config.makeImage('exp', 'Experience') + oi.exp;
+		s += ' + ' + Config.makeImage('gold', 'Gold') + '$' + oi.reward.SI();
+		if (oi.item) {
+			if ((i = oi.itemimg) || (i = Town.get([oi.item,'img']))) {
+				s += ' + <img style="width:16px;height:16px;margin-bottom:-4px;"';
+				s += ' src="' + imagepath + i + '"';
+				s += ' title="' + oi.item + '"> ';
+			} else {
+				s += ' + ' + oi.item;
+			}
+		}
+		if (isNumber(i = oi.influence) && i < 100) {
+			s += ' @ ' + Config.makeImage('percent', 'Influence') + i + '%';
+		}
+		s += ')';
+	}
+	Dashboard.status(this, s);
+
+	/*
 	this.set(['option','_sleep'], !best
-		|| this.data.id[best].energy > (LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve)
-		|| (!LevelUp.runtime.levelup
-			&& ((this.option.monster === 'When able' && Monster.get('runtime.defending'))
-				|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.runtime.force.energy)))));
+	  || p.energy > (LevelUp.get('runtime.force.energy') ? LevelUp.get('runtime.energy', 0) : LevelUp.get('runtime.energy', 0) - this.option.energy_reserve)
+	  || (!LevelUp.runtime.levelup
+	  && ((this.option.monster === 'When able' && Monster.get('runtime.defending'))
+	  || (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.get('runtime.force.energy'))))));
+	*/
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get('runtime.force.energy', 0))
+	) {
+		usable_energy = i;
+	} else if (this.option.monster === 'When able'
+	  && Monster.get('runtime.defending')
+	) {
+		usable_energy = 0;
+	} else if (this.option.monster !== 'Wait for') {
+		usable_energy = Math.max(0, energy - Math.max(0, this.option.energy_reserve));
+	}
+
+	this.set(['option','_sleep'],
+	  ok
+	  && (!this.runtime.best
+	  || this.get('runtime.energy', 1e10, 'number') > usable_energy)
+	);
+
+	best = this.get('runtime.best', 0, 'number');
+	log(LOG_INFO, '# sleep ' + this.option._sleep
+	  + ', ok ' + ok
+	  + ', best ' + best
+	  + (best ? this.get('runtime.energy', 1e99, 'number') + ' ('+this.get(['id',best,'name'])+')' : '')
+	  + ', energy(' + this.runtime.energy + ')'
+	  + ' > usable_energy(' + usable_energy + ')'
+	);
+
 	return true;
 };
 
+Quest.getBest = function(maxenergy) {
+	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo,
+		has_cartigan, has_vampire,
+		best, best_cartigan, best_vampire, best_subquest, best_advancement,
+		best_influence, best_experience, best_land, best_adv_eff, best_inf_eff,
+		data = this.get('data'),
+		diag = this.option.diag || 0;
+
+	best = null;
+	best_cartigan = null;
+	best_vampire = null;
+	best_subquest = null;
+	best_advancement = null;
+	best_influence = null;
+	best_experience = null;
+	best_land = 0;
+	best_adv_eff = 1e10;
+	best_inf_eff = 1e10;
+	has_cartigan = false;
+	has_vampire = false;
+
+	// Now choose the next quest...
+
+	if (this.option.unique) {
+		// Boss monster quests first - to unlock the next area
+		for (i in data.id) {
+			oi = data.id[i];
+
+			// Skip quests we can't afford
+			if (oi.energy > maxenergy) {
+				continue;
+			}
+
+			if (oi.type === 3 && (!best || oi.energy < ob.energy)
+			  && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')
+			) {
+				best = i;
+				ob = oi;
+			}
+		}
+	}
+
+	if (!best && this.option.what !== 'Nothing') {
+		if (diag) {
+			log(LOG_INFO, '# -----[ determining best quest ]-----');
+		}
+
+		if (this.option.what !== 'Vampire Lord'
+		  || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24
+		) {
+			// Stop trying once we've got the required number of Vampire Lords
+			has_vampire = true;
+		}
+
+		if (this.option.what !== 'Cartigan'
+		  || Generals.get(['data','Cartigan','own'], 0, 'number')
+		  || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3
+		  && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3
+		  && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') >= 3)
+		) {
+			// Sword of the Faithless x3 - The Long Path, Burning Gates
+			// Crystal of Lament x3 - Fiery Awakening
+			// Soul Eater x3 - Fire and Brimstone, Deathrune Castle
+			has_cartigan = true; // Stop trying once we've got the general or the ingredients
+		}
+
+//		log(LOG_WARN, 'option = ' + this.option.what);
+//		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
+
+		for (i in data.id) {
+			// Skip quests we can't afford or can't equip the general for
+			oi = data.id[i];
+
+			x = 'any';
+			if (oi.energy > maxenergy
+			  || !Generals.test(oi.general || 'any')
+			  || ((x = LevelUp.get('runtime.general', 'any')) && oi.general)
+			) {
+				if (diag >= 2) {
+					log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+					  + ' due to energy ' + oi.energy + ' > ' + maxenergy
+					  + ' or general ' + oi.general
+					  + ' or != LevelUp ' + x
+					);
+				}
+				continue;
+			}
+
+			if (oi.units) {
+				own = 0;
+				need = 0;
+				noCanDo = false;
+				for (unit in oi.units) {
+					need = oi.units[unit];
+					if (!Player.get(['artifact', i]) || need !== 1) {
+						own = Town.get([unit, 'own'], 0, 'number');
+						if (need > own) {	// Need more than we own, skip this quest.
+							if (diag >= 2) {
+								log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+								  + ' due to missing '
+								  + (need - own) + '/' + need + ' ' + unit
+								);
+							}
+							noCanDo = true;	// set flag
+							break;	// no need to check more prerequisites.
+						}
+					}
+				}
+				if (noCanDo) {
+					continue;	// Skip to the next quest in the list
+				}
+			}
+
+			eff = oi.eff || (oi.energy * this.wiki_reps(oi));
+			if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
+				eff = Math.ceil(eff * (100 - oi.influence) / 100);
+			}
+
+			// Automatically fallback on type - but without changing option
+			switch (this.option.what) {
+			case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
+				ob = data.id[best_vampire];
+				// order: inf<100, <energy, >exp, >cash (vampire)
+				ok = false;
+				if (!has_vampire && isNumber(oi.land)
+				  && oi.land === 5 && oi.type === 1
+				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed vampire reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_vampire
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best vampire ' + i + ':' + oi.name
+						  + ' > ' + best_vampire
+						);
+					}
+					best_vampire = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Cartigan': // Random Encounters in various Underworld Quests
+				ob = data.id[best_cartigan];
+				// order: inf<100, <energy, >exp, >cash (cartigan)
+				ok = false;
+				if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6
+				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
+				  && (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
+				  || ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
+				  || ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed cartigan reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_cartigan
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best cartigan ' + i + ':' + oi.name
+						  + ' > ' + best_cartigan
+						);
+					}
+					best_cartigan = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
+				ob = data.id[best_subquest];
+				// order: <energy, >exp, >cash (subquests)
+				ok = false;
+				if (oi.type === 2
+				  && isNumber(oi.influence) && oi.influence < 100
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_subquest
+				  || (cmp = oi.energy - ob.energy) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best subquest ' + i + ':' + oi.name
+						  + ' > ' + best_cartigan
+						);
+					}
+					best_subquest = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
+				// No need to revisit old lands - leave them to Influence
+				if (isNumber(oi.land) && oi.land > best_land) {
+					if (diag && best_advancement) {
+						log(LOG_INFO, '# found a higher land ' + this.land[oi.land]
+						  + ', skipping advancement ' + best_advancement + ':' + this.data.id[best_advancement].name
+						  + ' in ' + this.land[best_land]
+						);
+					}
+					best_land = oi.land;
+					best_advancement = null;
+					best_adv_eff = 1e10;
+				}
+				ob = data.id[best_advancement];
+				// order: <effort, >exp, >cash, <energy (advancement)
+				ok = false;
+				if (oi.type !== 2 && isNumber(oi.land)
+				  //&& oi.level === 1 // Need to check if necessary to do boss to unlock next land without requiring orb
+				  && oi.land >= best_land
+				  && ((isNumber(oi.influence) && oi.influence < 100 && Generals.test(oi.general) && oi.level <= 1)
+				  || (oi.type === 3 && Alchemy.get(['summons',oi.itemimg]) && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# artifact ' + oi.item
+						  + ' [' + oi.itemimg + '] = '
+						  + JSON.shallow(Alchemy.get(['ingredients',oi.itemimg]))
+						);
+					}
+					ok = true;
+				} else if (diag >= 2) {
+					log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_advancement
+				  || (cmp = eff - best_adv_eff) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best advancement ' + i + ':' + oi.name
+						  + ' in ' + this.land[oi.land]
+						  + ' > ' + best_advancement
+						);
+					}
+					best_land = Math.max(best_land, oi.land);
+					best_advancement = i;
+					best_adv_eff = eff;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Influence': // Find the cheapest energy cost quest with influence under 100%
+				ob = data.id[best_influence];
+				// order: <effort, >exp, >cash, <energy (influence)
+				ok = false;
+				if (isNumber(oi.influence)
+				  && (!oi.general || Generals.test(oi.general))
+				  && oi.influence < 100
+				) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best_influence
+				  || (cmp = eff - best_inf_eff) < 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best influence ' + i + ':' + oi.name
+						  + ' > ' + best_influence
+						);
+					}
+					best_influence = i;
+					best_inf_eff = eff;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name);
+				}
+				// Deliberate fallthrough
+			case 'Experience': // Find the best exp per energy quest
+				ob = data.id[best_experience];
+				// order: >exp, inf<100, >cash, <energy (experience)
+				if (!best_experience
+				  || (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best experience ' + i + ':' + oi.name
+						  + ' > ' + best_experience
+						);
+					}
+					best_experience = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping experience ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
+				ob = data.id[best_experience];
+				// order: inf<100, >exp, >cash, <energy (inf+exp)
+				if (!best_experience
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best inf+exp ' + i + ':' + oi.name
+						  + ' > ' + best_experience
+						);
+					}
+					best_experience = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping inf+exp ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
+				ob = data.id[best];
+				// order: inf<100, >cash, >exp, <energy (inf+cash)
+				if (!best
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best inf+cash ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping inf+cash ' + i + ':' + oi.name);
+				}
+				break;
+			case 'Cash': // Find the best (average) cash per energy quest
+				ob = data.id[best];
+				// order: >cash, inf<100, >exp, <energy (cash)
+				if (!best
+				  || (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best cash ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping cash ' + i + ':' + oi.name);
+				}
+				break;
+			default: // For everything else, there's (cheap energy) items...
+				ob = data.id[best];
+				// order: <energy, inf<100, >exp, >cash (item)
+				ok = false;
+				if (oi.item === this.option.what) {
+					ok = true;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# failed ['+this.option.what+'] reqs ' + i + ':' + oi.name);
+				}
+				if (ok && (!best
+				  || (cmp = oi.energy - ob.energy) < 0
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
+				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
+				) {
+					if (diag) {
+						log(LOG_INFO, '# best default ' + i + ':' + oi.name
+						  + ' > ' + best
+						);
+					}
+					best = i;
+				} else if (diag >= 3) {
+					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name);
+				}
+				break;
+			}
+		}
+
+		if (diag) {
+			log(LOG_INFO, '# bests'
+			  + (best_vampire ? ' | vampire ' + best_vampire + ':' + this.data.id[best_vampire].name : '')
+			  + (best_cartigan ? ' | cartigan ' + best_cartigan + ':' + this.data.id[best_cartigan].name : '')
+			  + (best_subquest ? ' | subquest ' + best_subquest + ':' + this.data.id[best_subquest].name : '')
+			  + (best_advancement ? ' | advancement ' + best_advancement + ':' + this.data.id[best_advancement].name : '')
+			  + (best_influence ? ' | influence ' + best_influence + ':' + this.data.id[best_influence].name : '')
+			  + (best ? ' | other ' + best + ':' + this.data.id[best].name : '')
+			);
+		}
+
+		// Automatically fallback on type - but without changing option
+		switch (this.option.what) {
+		case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
+		case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
+		case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
+		case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
+		case 'Influence':	best = best_influence || best_experience;break;
+		case 'Inf+Exp':		best = best_experience;break;
+		case 'Experience':	best = best_experience;break;
+		default:break;
+		}
+
+		if (diag) {
+			log(LOG_INFO, '# best pick ' + best + ':' + this.data.id[best].name);
+		}
+	}
+
+	return best;
+};
+
 Quest.work = function(state) {
-	var mid, general = 'any', best = LevelUp.get(['runtime','quest'], this.runtime.best, 'string'), useable_energy = LevelUp.runtime.force.energy ? LevelUp.runtime.energy : LevelUp.runtime.energy - this.option.energy_reserve, quest, button;
-	if (state && this.data.id[best].energy > useable_energy && this.option.bank) {
+	var i, list, mid, quest, button, name,
+		general = 'any',
+		energy = Player.get('energy');
+
+	if (!this.runtime.best) {
+		list = this.defaults['castle_age'].pages.split(/\s+/);
+		// looks like stale quest info
+		for (i = 0; i < list.length; i++) {
+			if (list[i] !== 'quests_quest' // old placebo, just in case...
+			  && list[i] !== 'quests_quest16' // pangaea not yet on web3
+			  && /^quests_/.test(list[i])
+			  && !Page.get(list[i])
+			) {
+				if (!state || !Page.to(list[i])) {
+					return QUEUE_CONTINUE;
+				}
+			}
+		}
+		if (!Page.get(i = 'keep_alchemy')) {
+			if (!state || !Page.to(i)) {
+				return QUEUE_CONTINUE;
+			}
+		}
+	}
+
+	if (!this.runtime.best
+	  || !(quest = this.get(['data','id',this.runtime.best]))
+	) {
+		return QUEUE_FINISH;
+	}
+
+	if (!state) {
+		return QUEUE_CONTINUE;
+	}
+
+	if (!LevelUp.option._disabled
+	  && (i = LevelUp.get(['runtime','quest']))
+	) {
+		// Only override if it has an actual quest for us
+		best = i;
+		if (this.runtime.best === best
+		  && (i = LevelUp.get('runtime.general'))
+		  && !Generals.test(i)
+		) {
+			general = i;
+		}
+	}
+
+	if ((quest.energy || 1e99) > energy && this.option.bank) {
 		if (!Bank.stash()) {
 			return QUEUE_CONTINUE;
 		}
 		return QUEUE_FINISH;
 	}
+
 //	If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
 //	if ((LevelUp.runtime.levelup && !LevelUp.runtime.quest)
 //	|| (!LevelUp.runtime.levelup 
@@ -556,74 +990,75 @@ Quest.work = function(state) {
 //			|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.runtime.force.energy))))) {
 //		return QUEUE_FINISH;
 //	}
-	if (!state) {
-		return QUEUE_CONTINUE;
-	}
-	quest = this.data.id[best]
-	if (this.option.general) {
-		if (quest.general && isNumber(quest.influence) && quest.influence < 100) {
+
+	if (general === 'any') {
+		if (!this.option.general) {
+			general = this.option.general_choice || 'any';
+		} else if (quest.general
+		  && isNumber(quest.influence) && quest.influence < 100
+		) {
 			general = quest.general;
 		} else {
 			general = Generals.best('under max level');
-			switch(this.option.what) {
-				case 'Vampire Lord':
-				case 'Cartigan':
-					if (quest.general) {
-						general = quest.general;
-					} else {
-						if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
-							general = Generals.best('influence');
-						}
-						if (general === 'any') {
-							general = Generals.best('item');
-						}
-					}
-					break;
-				case 'Subquests':
-				case 'Advancement':
-				case 'Influence':
-				case 'Inf+Exp':
-				case 'Experience':
-				case 'Inf+Cash':
-				case 'Cash':
-					if (isNumber(quest.influence) && quest.influence < 100) {
-						if (quest.general) {
-							general = quest.general;
-						} else if (general === 'any') {
-							general = Generals.best('influence');
-						}
-					}
-					break;
-				default:
-					if (isNumber(quest.influence) && quest.influence < 100) {
-						if (quest.general) {
-							general = quest.general;
-						} else if (general === 'any') {
-							general = Generals.best('influence');
-						}
+			switch (this.option.what) {
+			case 'Vampire Lord':
+			case 'Cartigan':
+				if (quest.general) {
+					general = quest.general;
+				} else {
+					if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
+						general = Generals.best('influence');
 					}
 					if (general === 'any') {
 						general = Generals.best('item');
 					}
-					break;
+				}
+				break;
+			case 'Subquests':
+			case 'Advancement':
+			case 'Influence':
+			case 'Inf+Exp':
+			case 'Experience':
+			case 'Inf+Cash':
+			case 'Cash':
+				if (isNumber(quest.influence) && quest.influence < 100) {
+					if (quest.general) {
+						general = quest.general;
+					} else if (general === 'any') {
+						general = Generals.best('influence');
+					}
+				}
+				break;
+			default:
+				if (isNumber(quest.influence) && quest.influence < 100) {
+					if (quest.general) {
+						general = quest.general;
+					} else if (general === 'any') {
+						general = Generals.best('influence');
+					}
+				}
+				if (general === 'any') {
+					general = Generals.best('item');
+				}
+				break;
 			}
 			if (general === 'any') {
 				general = 'cash';
 			}
 		}
-	} else {
-		general = this.option.general_choice;
 	}
-	if (!Generals.to(LevelUp.runtime.general || general)) {
+
+	if (!Generals.to(general)) {
 		return QUEUE_CONTINUE;
 	}
+
 	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
 	log(LOG_WARN, 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
 	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (LevelUp.runtime.general && quest.general));
 	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
 		this.add(['data','id',best,'button_fail'], 1);
-		if (quest.button_fail > 5){
-			log(LOG_WARN, 'Can\'t find button for ' + quest.name + ', so deleting and re-visiting page...');
+		if (quest.button_fail > 5) {
+			log(LOG_WARN, "Can't find button for " + quest.name + ', so deleting and re-visiting page...');
 			this.set(['data','id',best]);
 			this.set(['runtime','best'], null);
 			Page.reload();
@@ -631,24 +1066,30 @@ Quest.work = function(state) {
 		} else {
 			switch(quest.area) {
 			case 'quest':
-				Page.to('quests_quest' + (quest.land + 1),null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_quest' + (quest.land + 1),null,true)) {
+					return QUEUE_CONTINUE;
+				}
+				break;
 			case 'demiquest':
-				Page.to('quests_demiquests',null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_demiquests',null,true)) {
+					return QUEUE_CONTINUE;
+				}
 			case 'atlantis':
-				Page.to('quests_atlantis',null,true);
-				return QUEUE_CONTINUE;
+				if (!Page.to('quests_atlantis',null,true)) {
+					return QUEUE_CONTINUE;
+				}
 			default:
-				log(LOG_LOG, 'Can\'t get to quest area!');
+				log(LOG_LOG, "Can't get to quest area!");
 				return QUEUE_FINISH;
 			}
 		}
 	}
+
 	Page.click(button);
 	LevelUp.set(['runtime','quest'], null);
-	if (quest.type === 3) {// Just completed a boss quest
-		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {// Add one as we've just gained it...
+
+	if (quest.type === 3) { // Just completed a boss quest
+		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) { // Add one as we've just gained it...
 			Alchemy.set(['ingredients', quest.itemimg], 1);
 		}
 		// This won't work since we just clicked the quest above.
@@ -656,11 +1097,12 @@ Quest.work = function(state) {
 			Page.to('quests_quest' + (quest.land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
+
 	return QUEUE_RELEASE;
 };
 
 Quest.dashboard = function(sort, rev) {
-	var self = this, i, j, k, o, r, quest, list = [], output = [], vv, tt, cc, span, v, eff;
+	var self = this, i, j, k, o, r, quest, list = [], output = [], vv, tt, cc, span, v, eff, v1, v2, lo, hi;
 	if (typeof sort === 'undefined') {
 		this.temp.order = [];
 		for (i in this.data.id) {
@@ -809,10 +1251,10 @@ Quest.dashboard = function(sort, rev) {
 				}
 				tt += 'reps ' + v;
 				if (quest.m_d && quest.m_c) {
-					var v1 = 100 * quest.m_c / quest.m_d;
-					var v2 = 2 / quest.m_c;
-					var lo = Math.ceil(v1 - v2);
-					var hi = Math.ceil(v1 + v2);
+					v1 = 100 * quest.m_c / quest.m_d;
+					v2 = 2 / quest.m_c;
+					lo = Math.ceil(v1 - v2);
+					hi = Math.ceil(v1 + v2);
 					if (lo < hi) {
 						tt += ' [' + lo + ',' + hi + ']';
 					}

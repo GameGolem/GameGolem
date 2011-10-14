@@ -1,12 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals:true, Idle, LevelUp, Player, Town,
-	APP, APPID, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
-	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG,
+	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	LevelUp, Player, Town,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	bestObjValue, nmax, assert
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	sum, getAttDef, tr, th, td, makeTime, nmax, assert
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -73,7 +74,7 @@ Generals.init = function(old_revision) {
 };
 
 Generals.page = function(page, change) {
-	var now = Date.now(), self = this, i, j, k, seen = {}, el, el2, tmp, name, item, icon, info, stats, costs;
+	var now = Date.now(), i, j, k, s, seen = {}, el, el2, tmp, name, item, icon, info, stats, costs, level;
 
 	if (($('div.results').text() || '').match(/has gained a level!/i)) {
 		if ((name = Player.get('general'))) { // Our stats have changed but we don't care - they'll update as soon as we see the Generals page again...
@@ -90,7 +91,7 @@ Generals.page = function(page, change) {
 			el = tmp[i];
 			try {
 				this._transaction(); // BEGIN TRANSACTION
-				name = $('.general_name_div3_padding', el).text().trim();
+				name = $('.general_name_div3_padding', el).text().trim(true).replace(/\*+$/, '');
 				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
 				seen[name] = true;
 				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val(), 10), 'number') !== false, 'Bad general id: '+name);
@@ -98,12 +99,14 @@ Generals.page = function(page, change) {
 				assert(this.set(['data',name,'img'], $('.imgButton', el).attr('src').filepart(), 'string'), 'Bad general image: '+name);
 				assert(this.set(['data',name,'att'], $('.generals_indv_stats_padding div:eq(0)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general attack: '+name);
 				assert(this.set(['data',name,'def'], $('.generals_indv_stats_padding div:eq(1)', el).text().regex(/(\d+)/), 'number') !== false, 'Bad general defense: '+name);
-				this.set(['data',name,'level'], parseInt($(el).text().regex(/Level (\d+)/im), 10));
+				if (isNumber(level = parseInt($(el).text().regex(/Level (\d+)/im), 10))) {
+				    this.set(['data',name,'level'], level);
+				}
 				if ((k = $('.generals_indv_stats ~ div div[style*="background-color"]', el)).length) {
 					if (isNumber(j = (k.attr('style') || '').regex(/width:\s*([-+]?\d*\.?\d+)%/im))) {
 						// over cap progression fix, for when stuck at X/0%
 						// negative width and level at least 4+
-						if (this.get(['data',name,'level'], 4, 'number') && j < 0) {
+						if (level >= 4 && j < 0) {
 							j = 100;
 						}
 						this.set(['data',name,'progress'], j);
@@ -113,10 +116,11 @@ Generals.page = function(page, change) {
 						}
 					}
 				}
-				this.set(['data',name,'skills'], $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
+				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
-					this.set(['data',name,'charge'], Date.now() + Math.floor(3600000 * ((1-j/100) * this.get(['data',name,'skills'], '').regex(/(\d*) Hour Cooldown/im))));
+					k = this.get(['data',name,'skills']) || s || '';
+					this.set(['data',name,'charge'], now + Math.floor(3600000 * ((1-j/100) * (k.regex(/(\d*) Hours? Cooldown/im) || 0))));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'own'], 1);
@@ -128,9 +132,9 @@ Generals.page = function(page, change) {
 		}
 
 		// parse general equipment, including those not yet owned
-		name = $('div.general_name_div3').first().text().trim();
+		name = $('.general_name_div3').first().text().trim();
 		if (this.get(['data',name])) {
-			tmp = $('div[style*="model_items.jpg"] img[title]');
+			tmp = $('div[style*="model_items."] img[title]');
 			for (i=0; i<tmp.length; i++) {
 				el = tmp[i];
 				item = $(el).attr('title');
@@ -144,16 +148,19 @@ Generals.page = function(page, change) {
 					}
 				}
 			}
-			i = ($('div.general_pic_div3 a img[title]').first().attr('title') || '').trim();
-			if (i && (j = i.regex(/\bmax\.? (\d+)\b/im))) {
-				this.set(['data', name, 'stats', 'cap'], j);
+			i = ($('div.general_pic_div3 a img[title]').first().attr('title') || '').trim(true);
+			if (i) {
+				this.set(['data',name,'skills'], i);
+				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/im))) {
+					this.set(['data',name,'cap'], j);
+				}
 			}
-			this.set(['data',name,'seen'], now);
+			this.set(['runtime','last',name], now);
 		}
 
-		// purge generals we didn't see
+		// purge owned generals we didn't see
 		for (i in this.data) {
-			if (!seen[i]) {
+			if (!seen[i] && this.data[i]['own']) {
 				this.set(['data',i]);
 			}
 		}
@@ -171,67 +178,72 @@ Generals.page = function(page, change) {
 		for (j = 0; j < tmp.length; j++) {
 			el = tmp[j];
 			el2 = $('.hero_buy_image img', el);
-			name = ($(el2).attr('title') || '').trim();
+			name = ($(el2).attr('title') || '').trim(true).replace(/\*+$/, '');
 			if (name) {
+				seen[name] = true;
 				try {
-					self._transaction(); // BEGIN TRANSACTION
+					this._transaction(); // BEGIN TRANSACTION
 					icon = ($(el2).attr('src') || '').filepart();
 					info = $('.hero_buy_info', el);
 					stats = $('.hero_select_stats', el);
 					costs = $('.hero_buy_costs', el);
 					i = $('form', costs).attr('id') || '';
 					if (isNumber(i = i.regex(/^app\d+_item(?:buy|sell)_(\d+)$/i))) {
-						self.set(['data',name,'id'], i);
+						this.set(['data',name,'id'], i);
 					}
 
 					if (icon) {
-						self.set(['data',name,'img'], icon);
+						this.set(['data',name,'img'], icon);
 					}
 
 					// only use these atk/def values if we don't know this general
-					if (!self.data[name]) {
+					if (!this.get(['data',name])) {
 						i = $('div:contains("Attack")', stats).text() || '';
 						if (isNumber(i = i.regex(/\b(\d+)\s*Attack\b/im))) {
-							self.set(['data',name,'att'], i);
+							this.set(['data',name,'att'], i);
 						}
 
 						i = $('div:contains("Defense")', stats).text() || '';
 						if (isNumber(i = i.regex(/\b(\d+)\s*Defense\b/im))) {
-							self.set(['data',name,'def'], i);
+							this.set(['data',name,'def'], i);
 						}
 					}
 
 					i = $(costs).text() || '';
 					if ((i = i.regex(/\bRecruited:\s*(\w+)\b/im))) {
-						self.set(['data',name,'own'], i.toLowerCase() === 'yes' ? 1 : 0);
+						this.set(['data',name,'own'], i.toLowerCase() === 'yes' ? 1 : 0);
 					}
 
 					i = $('.gold', costs).text() || '';
 					if (isNumber(i = i.replace(/,/gm, '').regex(/\$(\d+)\b/im))) {
-						self.set(['data',name,'cost'], i);
+						this.set(['data',name,'cost'], i);
 					}
 
 					i = $('div:contains("Upkeep") .negative', info).text() || '';
 					if (isNumber(i = i.replace(/,/gm, '').regex(/\$(\d+)\b/im))) {
-						self.set(['data',name,'upkeep'], i);
+						this.set(['data',name,'upkeep'], i);
 					}
-					self._transaction(true); // COMMIT TRANSACTION
+					this._transaction(true); // COMMIT TRANSACTION
 				} catch (e2) {
-					self._transaction(false); // ROLLBACK TRANSACTION on any error
-					log(e2, e2.name + ' in ' + self.name + '.page(' + page + ', ' + change + '): ' + e2.message);
+					this._transaction(false); // ROLLBACK TRANSACTION on any error
+					log(e2, e2.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e2.message);
 				}
+			}
+		}
+
+		// purge unowned generals we didn't see
+		for (i in this.data) {
+			if (!seen[i] && !this.data[i]['own']) {
+				this.set(['data',i]);
 			}
 		}
 	} else if (page === 'keep_stats') {
 		// Only when it's our own keep and not someone elses
 		if ($('.keep_attribute_section').length) {
-			tmp = $('.statsT2 .statsTTitle:contains("HEROES")').not(function(a) {
-				return !$(this).text().regex(/^\s*HEROES\s*$/im);
-			});
-			tmp = $('.statUnit', $(tmp).parent());
+			tmp = $('.statUnit', $('.statsT2 .statsTTitle:regex(^\\s*HEROES\\s*$)').parent());
 			for (i=0; i<tmp.length; i++) {
 				el = $('a img[src]', tmp[i]);
-				name = ($(el).attr('title') || $(el).attr('alt') || '').trim();
+				name = ($(el).attr('title') || $(el).attr('alt') || '').trim(true).replace(/\*+$/, '');
 
 				// new general(s), trigger page visits
 				if (name && !this.get(['data',name])) {
@@ -256,8 +268,8 @@ Generals.resource = function() {
 };
 
 Generals.update = function(event, events) {
-	var data = this.data, i, j, k, o, p, s, x, y,
-		pa, priority_list = [], list = [],
+	var data = this.data, i, j, k, o, p, s, x, y, evt,
+		pa, priority_list, list,
 		pattack, pdefense, maxstamina, maxenergy, stamina, energy,
 		health, maxhealth, num, cap, item, str,
 		army, armymax, gen_att, gen_def, war_att, war_def,
@@ -266,39 +278,44 @@ Generals.update = function(event, events) {
 		war = Town.get('runtime.war'),
 		attack, attack_bonus, att_when_att = 0, current_att,
 		defend, defense_bonus, def_when_att = 0, current_def,
-		monster_att = 0, monster_multiplier = 1,
+		monster_att = 0,
 		listpush = function(list,i){list.push(i);},
-		skillcombo, calcStats = false, all_stats, bests;
+		skillcombo, equipcombo, all_stats, stats,
+		calcStats = false, bests;
 
-	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
+	//log(LOG_DEBUG, '# events: ' + JSON.shallow(events,2));
+
+	if ((evt = events.findEvent(this, 'init'))
+	  || (evt = events.findEvent(this, 'data'))
+	) {
 		bests = true;
 
+		list = [];
+		priority_list = [];
 		k = 0;
 		for (i in data) {
 			list.push(i);
 			p = data[i];
-			if ((isNumber(j = p.progress) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
-				priority_list.push([i, p.priority]);
+			if ((isNumber(j = p['progress']) ? j : 100) < 100) { // Take all existing priorities and change them to rank starting from 1 and keeping existing order.
+				priority_list.push([i, p['priority']]);
 			}
-			if (!p.stats) { // Force an update if stats not yet calculated
+			if (!p['stats']) { // Force an update if stats not yet calculated
 				this.set(['runtime','force'], true);
 			}
-			k += p.own || 0;
-			if (p.skills) {
+			k += p['own'] || 0;
+			s = p['skills'] || p['skillsbase'] || '';
+			if (s) {
 				num = 0;
-				cap = 0;
+				cap = p['cap'] || 0;
 				str = null;
-				if ((x = p.skills.regex(/\bevery (\d+) ([\w\s']*\w)/im))) {
+				if ((x = s.regex(/\bevery (\d+) ([\w\s']*\w)/im))) {
 					num = x[0];
 					str = x[1];
-				} else if ((x = p.skills.regex(/\bevery ([\w\s']*\w)/im))) {
+				} else if ((x = s.regex(/\bevery ([\w\s']*\w)/im))) {
 					num = 1;
 					str = x;
 				}
-				if (p.stats && p.stats.cap) {
-					cap = Math.max(cap, p.stats.cap);
-				}
-				if ((x = p.skills.regex(/\bmax\.? (\d+)/i))) {
+				if ((x = s.regex(/\bmax\.? (\d+)/i))) {
 					cap = Math.max(cap, x);
 				}
 				if (str) {
@@ -323,7 +340,7 @@ Generals.update = function(event, events) {
 			}
 		}
 
-		// need this since we now store unpurchased heroes also
+		// need this count since we now store unpurchased heroes also
 		this.set('runtime.heroes', k);
 
 		if ((i = priority_list.length)) {
@@ -335,8 +352,10 @@ Generals.update = function(event, events) {
 				this.set(['data',priority_list[i][0],'priority'], parseInt(i, 10)+1);
 			}
 		}
+
 		// "any" MUST remain lower case - all real generals are capitalised so this provides the first and most obvious difference
-		Config.set('generals', ['any','under max level'].concat(list.sort())); 
+		list = ['any','under max level'].concat(list.sort());
+		Config.set('generals', list); 
 	}
 	
 	// busy stuff, so watch how often it runs
@@ -370,17 +389,16 @@ Generals.update = function(event, events) {
 		for (i in data) {
 			p = data[i];
 
+			// remove obsolete data
 			this.set(['data',i,'invade']);
 			this.set(['data',i,'duel']);
 			this.set(['data',i,'war']);
 			this.set(['data',i,'monster']);
 			this.set(['data',i,'potential']);
-			this.set(['data',i,'stats','stamina']);
-			this.set(['data',i,'stats','energy']);
 
-			// update the weapon bonus list
+			// update the equipment bonus list
 			s = '';
-			if ((o = p.equip)) {
+			if ((o = p['equip'])) {
 				for (j in o) {
 					if (Town.get(['data',j,'own'], 0, 'number') > 0) {
 						if (s !== '') { s += '; '; }
@@ -390,11 +408,20 @@ Generals.update = function(event, events) {
 			}
 			if (s) {
 				this.set(['data',i,'weaponbonus'], s);
+				equipcombo = ';' + s + ';';
 			} else {
 				this.set(['data',i,'weaponbonus']);
+				equipcombo = '';
 			}
+			equipcombo = equipcombo.replace(/\s*;\s*\.|\s*\.\s*;/g, ';');
 
-			skillcombo = ';' + (p.skills || '') + ';' + s + ';';
+			skillcombo = ';' + (p['skills'] || p['skillsbase'] || '') + ';' + s + ';';
+			skillcombo = skillcombo.replace(/\s+and\s+|\.\s+/ig, ', ');
+			skillcombo = skillcombo.replace(/\s*;\s*\.|\s*\.\s*;/g, ';');
+			skillcombo = skillcombo.replace(/\byou\b/gi, 'you');
+			skillcombo = skillcombo.replace(/\byour\b/gi, 'your');
+			skillcombo = skillcombo.replace(/\bopposing\b/gi, 'opposing');
+			skillcombo = skillcombo.replace(/\bwhile equip/gi, 'when equip');
 
 			// .att
 			// .def
@@ -423,72 +450,167 @@ Generals.update = function(event, events) {
 			//   .cost
 			//   .cash
 
+			stats = {};
+
 			all_stats = sum(skillcombo.regex(/\bAll Stats by ([-+]?\d*\.?\d+)\b/gi)) || 0;
 
+			// special handling for count based stat bonuses
+			// assumes only one of these will apply to a given general
 			k = {};
-			if ((o = skillcombo.regex(/\bEvery (\d+) ([^;]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
-				k['p'+o[2].toLowerCase()] = Math.floor(o[3] * Math.floor(Town.get(['data',o[1],'own'], 0, 'number') / (o[0] || 1)));
-			} else if ((o = skillcombo.regex(/\bEvery ([^;]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
-				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * Town.get(['data',o[0],'own'], 0, 'number'));
+			if ((o = skillcombo.regex(/([-+]?\d*\.?\d+)(?:\s+Player)? (Attack|Defense) for Every (\d+) ([^;(]*\w)/i))) {
+				// handle a plural requirement name
+				if ((j = o[3].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[3],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[3],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[0] * Math.floor(j / (o[2] || 1)));
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/([-+]?\d*\.?\d+)(?:\s+Player)? (Attack|Defense) for Every ([^;(]*\w)/i))) {
+				if ((j = o[2].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[2],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[2],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[0] * j);
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\bEvery (\d+) ([^;(]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
+				// handle a plural requirement name
+				if ((j = o[1].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[1],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[1],'own'], 0, 'number');
+				}
+				k['p'+o[2].toLowerCase()] = Math.floor(o[3] * Math.floor(j / (o[0] || 1)));
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\bEvery ([^;(]*?\w)(?:\s*Increase|\s*Decrease)?(?:\s+Player)? (Attack|Defense) by ([-+]?\d*\.?\d+)/i))) {
+				// handle a plural requirement name
+				if ((j = o[0].regex(/^(.+)s$/i))) {
+					j = Town.get(['data',j,'own'], 0, 'number')
+					  || Town.get(['data',o[0],'own'], 0, 'number');
+				} else {
+					j = Town.get(['data',o[0],'own'], 0, 'number');
+				}
+				k['p'+o[1].toLowerCase()] = Math.floor(o[2] * j);
+				/*
+				log(LOG_DEBUG, '# ' + i
+				  + ' +k:' + JSON.shallow(k,2)
+				  + ' from o:' + JSON.shallow(o,2)
+				);
+				*/
+			} else if ((o = skillcombo.regex(/\b(\d*\.?\d+) (Attack|Defense) if you own ([^;(]*\w)\b/i))) {
+				if (this.get(['data',o[2],'own'])) {
+					k['p'+p[1].toLowerCase()] = o[0];
+				} else {
+					log(LOG_DEBUG, '# checked for '+o[0]+' '+o[1]+' bonus'
+					  + ', but '+o[2]+' not owned'
+					);
+				}
 			}
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack\b/gi))
+			  + sum(skillcombo.regex(/\bAttack by ([-+]\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
 			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Attack by (\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/\bPlayer Attack by ([-+]\d*\.?\d+)\s*[,;]/gi))
-			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Attack\b/gi))
-			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to\b/gi))
-			  * pattack / 100).round(0)
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Attack to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Attack\b/gi))
+			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to\b/gi)) * pattack / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to Attack\b/gi)) * pdefense / 100).round(0)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Attack for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + sum(skillcombo.regex(/\bPlayer Attack is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 4 Health\b/gi)) * maxhealth / 4)
 			  + all_stats + (k.pattack || 0));
-			this.set(['data',i,'stats','patt'], j ? j : undefined);
+			if (j) { stats['patt'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense/gi))
+			  + sum(skillcombo.regex(/\bDefense by ([-+]\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/[,;]\s*Increases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
 			  - sum(skillcombo.regex(/[,;]\s*Decreases? Player Defense by (\d*\.?\d+)\s*[,;]/gi))
 			  + sum(skillcombo.regex(/\bPlayer Defense by ([-+]\d*\.?\d+)\s*[,;]/gi))
-			  + sum(skillcombo.regex(/\bConvert ([-+]?\d*\.?\d+) Defense\b/gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Defense to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Defense\b/gi))
 			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Defense to\b/gi)) * pdefense / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Attack to Defense\b/gi)) * pattack / 100).round(0)
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Defense for every Hero Owned\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + sum(skillcombo.regex(/\bPlayer Defense is increased by ([-+]?\d*\.?\d+) for every Hero player owns\b/gi)) * ((this.runtime.heroes || 0) - 1)
 			  + (sum(skillcombo.regex(/\bPlayer Defense by ([-+]?\d*\.?\d+) for every 3 Health\b/gi)) * maxhealth / 3)
 			  + all_stats + (k.pdefense || 0));
-			this.set(['data',i,'stats','pdef'], j ? j : undefined);
+			if (j) { stats['pdef'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) [Aa]ttack [Tt]o [A-Z]/g))
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack when[^;]*equipped\b/gi)));
-			this.set(['data',i,'stats','att'], j ? j : undefined);
+			// gear bonus while equipped
+			j = Math.floor(0.001
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Attack\b[^;]*\bwhen\b[^;]*\bequip/gi))
+			  + sum(equipcombo.regex(/\bwhen\b[^;]*\bequip[^;]* (-?\d*\.?\d+) Attack\b/gi)));
+			if (j) { stats['att2'] = j; }
+			j = Math.floor(0.001
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Defense\b[^;]*\bwhen\b[^;]*\bequip/gi))
+			  + sum(equipcombo.regex(/\bwhen\b[^;]*\bequip[^;]* (-?\d*\.?\d+) Defense\b/gi)));
+			if (j) { stats['def2'] = j; }
 
-			j = Math.floor(sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to\b/gi))
-			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense when[^;]*equipped\b/gi)));
-			this.set(['data',i,'stats','def'], j ? j : undefined);
+			// gear bonuses when not equipped
+			j = Math.floor(0.001 - (stats['att2'] || 0)
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Attack\b/gi)));
+			if (j) { stats['att'] = j; }
+			j = Math.floor(0.001 - (stats['def2'] || 0)
+			  + sum(equipcombo.regex(/(-?\d*\.?\d+) Defense\b/gi)));
+			if (j) { stats['def'] = j; }
 
-			j = ((p.att || 0)
-			  + ((p.stats && p.stats.att) || 0)
-			  + ((p.def || 0)
-			  + ((p.stats && p.stats.def) || 0)) * 0.7).round(1);
+			j = (((stats['att'] || 0) + (p['att'] || 0))
+			  + ((stats['def'] || 0) + (p['def'] || 0)) * 0.7).round(1);
 			this.set(['data',i,'tot_att'], j ? j : undefined);
-			this.set(['data',i,'stats','tot_att']);
 
-			j = (((p.att || 0)
-			  + ((p.stats && p.stats.att) || 0)) * 0.7
-			  + (p.def || 0)
-			  + ((p.stats && p.stats.def) || 0)).round(1);
+			j = (((stats['att'] || 0) + (p['att'] || 0)) * 0.7
+			  + ((stats['def'] || 0) + (p['def'] || 0))).round(1);
 			this.set(['data',i,'tot_def'], j ? j : undefined);
-			this.set(['data',i,'stats','tot_def']);
 
-			j = sum(skillcombo.regex(/([-+]?\d+) Monster attack\b/gi));
-			this.set(['data',i,'stats','matt'], j ? j : undefined);
+			j = sum(skillcombo.regex(/([-+]?\d+) Monster attack\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Attack by ([-+]?\d+) against Monsters?\b/gi));
+			if (j) { stats['matt'] = j; }
 
-			j = sum(skillcombo.regex(/\bPlayer Attack when Defending by ([-+]?\d+)\b|([-+]?\d+) Attack when attacked\b/gi));
-			this.set(['data',i,'stats','patt_when_att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bPlayer Attack when Defending by ([-+]?\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack when attacked\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Attack is increased an additional (\d*\.?\d+) when attacked\b/gi)));
+			if (j) { stats['patt_when_att'] = j; }
 
-			j = sum(skillcombo.regex(/\bPlayer Defense when Defending by ([-+]?\d+)\b|([-+]?\d+) Defense when attacked\b/gi));
-			this.set(['data',i,'stats','pdef_when_att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bPlayer Defense when Defending by ([-+]?\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense when attacked\b/gi))
+			  + sum(skillcombo.regex(/\bPlayer Defense is increased an additional (\d*\.?\d+) when attacked\b/gi)));
+			if (j) { stats['pdef_when_att'] = j; }
+
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack to your War Council when\b/gi)) * 17
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Attack to your War Council for the next \d+ attacks?\b/gi)) * 17
+			  - sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to Opposing War Council when\b/gi)) * 17
+			  - sum(skillcombo.regex(/\bWar Attacks ([-+]?\d*\.?\d+) Attack to your opponents War Council\b/gi)) * 17);
+			if (j) { stats['watt'] = j; }
+
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to your War Council when\b/gi)) * 17
+			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Defense to your War Council for the next \d+ attacks?\b/gi)) * 17);
+			if (j) { stats['wdef'] = j; }
 
 			army = Math.min(armymax + nmax(0, skillcombo.regex(/\b(\d+) Army members?/gi)), nmax(0, skillcombo.regex(/\bArmy Limit to (\d+)\b/gi)) || 501);
 
@@ -498,144 +620,226 @@ Generals.update = function(event, events) {
 			war_att = getAttDef(data, listpush, 'att', 6);
 			war_def = getAttDef(data, listpush, 'def', 6);
 
-			monster_multiplier = 1.1 + sum(skillcombo.regex(/([-+]?\d+)% Critical\b/gi))/100;
+			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
+			if (j) { stats['crits'] = j; }
 
 			// invade calcs
 
-			j = Math.floor((invade.attack || 0) + gen_att
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + (((p.stats && p.stats.patt) || 0)
-			  + pattack) * army)
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * army) * 0.7);
-			this.set(['data',i,'stats','invade','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (invade.attack || 0) + gen_att
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + (pattack + (stats['patt'] || 0)) * army)
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + (pdefense + (stats['pdef'] || 0)) * army) * 0.7);
+			stats['invade'] = {};
+			stats['invade']['att'] = j;
 
-			j = Math.floor((invade.defend || 0) + gen_def
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0))
-			  + pattack) * army) * 0.7
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0))
-			  + pdefense) * army));
-			this.set(['data',i,'stats','invade','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (invade.defend || 0) + gen_def
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + (pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * army) * 0.7
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + (pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)) * army));
+			stats['invade']['def'] = j;
 
 			// duel calcs
 
-			j = Math.floor((duel.attack || 0)
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + pattack)
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * 0.7);
-			this.set(['data',i,'stats','duel','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.attack || 0)
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0))
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0)) * 0.7);
+			stats['duel'] = {};
+			stats['duel']['att'] = j;
 
-			j = Math.floor((duel.defend || 0)
-			  + ((p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0)
-			  + pattack) * 0.7
-			  + ((p.def || 0) + ((p.stats && p.stats.def) || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0)
-			  + pdefense));
-			this.set(['data',i,'stats','duel','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.defend || 0)
+			  + ((p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * 0.7
+			  + ((p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)));
+			stats['duel']['def'] = j;
 
 			// war calcs
 
-			j = Math.floor((duel.attack || 0) + war_att
-			  + (((p.stats && p.stats.patt) || 0)
-			  + pattack)
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + pdefense) * 0.7);
-			this.set(['data',i,'stats','war','att'], j ? j : undefined);
+			// note: only counting patt/pdef at 5/17 power tops
 
-			j = Math.floor((duel.defend || 0) + war_def
-			  + (((p.stats && p.stats.patt) || 0)
-			  + ((p.stats && p.stats.patt_when_att) || 0)
-			  + pattack) * 0.7
-			  + (((p.stats && p.stats.pdef) || 0)
-			  + ((p.stats && p.stats.pdef_when_att) || 0)
-			  + pdefense));
-			this.set(['data',i,'stats','war','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.attack || 0) + war_att
+			  + (stats['watt'] || 0)
+			  + (stats['wdef'] || 0) * 0.7
+			  + ((pattack + (stats['patt'] || 0))
+			  + (pdefense + (stats['pdef'] || 0)) * 0.7)
+			  * 5 / 17);
+			stats['war'] = {};
+			stats['war']['att'] = j;
+
+			j = Math.floor(0.001
+			  + (duel.defend || 0) + war_def
+			  + (stats['watt'] || 0) * 0.7
+			  + (stats['wdef'] || 0)
+			  + ((pattack + (stats['patt'] || 0) + (stats['patt_when_att'] || 0)) * 0.7
+			  + (pdefense + (stats['pdef'] || 0) + (stats['pdef_when_att'] || 0)))
+			  * 5 / 17);
+			stats['war']['def'] = j;
 
 			// monster calcs
 
 			// not quite right, gear defense not counted on monster attack
-			j = Math.floor(((duel.attack || 0)
-			  + (p.att || 0) + ((p.stats && p.stats.att) || 0)
-			  + ((p.stats && p.stats.patt) || 0)
-			  + pattack
-			  + ((p.stats && p.stats.matt) || 0))
-			  * monster_multiplier);
-			this.set(['data',i,'stats','monster','att'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + ((duel.attack || 0)
+			  + (stats['matt'] || 0)
+			  + (p['att'] || 0) + (stats['att'] || 0) + (stats['att2'] || 0)
+			  + pattack + (stats['patt'] || 0))
+			  * (110 + (stats['crits'] || 0)) / 100);
+			stats['monster'] = {};
+			stats['monster']['att'] = j;
 
 			// not quite right, gear attack not counted on monster defense
-			j = Math.floor((duel.defend || 0)
-			  + ((p.stats && p.stats.def) || p.att || 0)
-			  + ((p.stats && p.stats.pdef) || 0)
-			  + pdefense
-			  + ((p.stats && p.stats.mdef) || 0));
-			this.set(['data',i,'stats','monster','def'], j ? j : undefined);
+			j = Math.floor(0.001
+			  + (duel.defend || 0)
+			  + (stats['mdef'] || 0)
+			  + (p['def'] || 0) + (stats['def'] || 0) + (stats['def2'] || 0)
+			  + pdefense + (stats['pdef'] || 0));
+			stats['monster']['def'] = j;
 
-			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi));
+			j = nmax(0, skillcombo.regex(/Increase Power Attacks by (\d+)/gi),
+			  skillcombo.regex(/Power Attacks now use (\d+) times the stamina/gi));
+			if (j) { stats['multiplier'] = j; }
 			this.set(['runtime','multipliers',i], j ? j : undefined);
 
-			j = sum(skillcombo.regex(/\bMax Energy by ([-+]\d*\.?\d+)\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bEnergy by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Energy by \+?(\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Energy by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Energy by -?(\d*\.?\d+)\b/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Energy by -?(\d*\.?\d+)\b/gi))
-			  + sum(skillcombo.regex(/\+(\d*\.?\d+) energy to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Energy to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Energy\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Energy when\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Energy\b/gi))
 			  - (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Energy to\b/gi)) * Player.get('maxenergy') / 100).round(0)
 			  + (sum(skillcombo.regex(/\bTransfer (\d*\.?\d+)% Max Stamina to Max Energy/gi)) * Player.get('maxstamina') / 100*2).round(0)
-			  + all_stats;
-			this.set(['data',i,'stats','maxenergy'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxenergy'] = j; }
 
-			j = sum(skillcombo.regex(/\bMax Stamina by ([-+]\d*\.?\d+)/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bMax Stamina by ([-+]\d*\.?\d+)/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Stamina by \+?(\d*\.?\d+)/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Stamina by \+?(\d*\.?\d+)/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Stamina by -?(\d*\.?\d+)/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Stamina by -?(\d*\.?\d+)/gi))
-			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) stamina to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Stamina to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Stamina\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Stamina when\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Stamina/gi))
 			  - (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Stamina to\b/gi)) * maxstamina / 100).round(0)
 			  + (sum(skillcombo.regex(/Transfer (\d*\.?\d+)% Max Energy to Max Stamina/gi)) * maxenergy / 200).round(0)
-			  + all_stats;
-			this.set(['data',i,'stats','maxstamina'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxstamina'] = j; }
 
-			j = sum(skillcombo.regex(/\bMax Health by ([-+]\d*\.?\d+)\b/gi))
+			j = Math.floor(0.001
+			  + sum(skillcombo.regex(/\bMax Health by ([-+]\d*\.?\d+)\b/gi))
+			  + sum(skillcombo.regex(/\bIncreases? Health by \+?(\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/\bIncreases? Max Health by \+?(\d*\.?\d+)\b/gi))
+			  - sum(skillcombo.regex(/\bDecreases? Health by -?(\d*\.?\d+)\b/gi))
 			  - sum(skillcombo.regex(/\bDecreases? Max Health by -?(\d*\.?\d+)\b/gi))
-			  + sum(skillcombo.regex(/\+?(\d*\.?\d+) health to /gi))
+			  - sum(skillcombo.regex(/\bConvert (\d*\.?\d+) Health to\b/gi))
+			  + sum(skillcombo.regex(/\bConvert (\d*\.?\d+) \w+ to Health\b/gi))
+			  + sum(skillcombo.regex(/(-?\d*\.?\d+) Health when\b/gi))
 			  + sum(skillcombo.regex(/\bPlayer Health by ([-+]?\d*\.?\d+)\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Max Health\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Player Health\b/gi))
 			  + sum(skillcombo.regex(/([-+]?\d*\.?\d+) Health\b/gi))
-			  + all_stats;
-			this.set(['data',i,'stats','maxhealth'], j ? j : undefined);
+			  + all_stats);
+			if (j) { stats['maxhealth'] = j; }
 
 			j = skillcombo.regex(/Bank Fee/gi) ? 100 : 0;
-			this.set(['data',i,'stats','bank'], j ? j : undefined);
+			if (j) { stats['bank'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
-			this.set(['data',i,'stats','cash'], j ? j : undefined);
+			if (j) { stats['cash'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bSoldier Cost by (\d*\.?\d+)%/gi));
-			this.set(['data',i,'stats','cost'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/\bSoldier Cost by -?(\d*\.?\d+)%/gi),
+			  skillcombo.regex(/\bsoldier costs are decreased by -?(\d*\.?\d+)% when you purchase soldiers\b/gi));
+			if (j) { stats['cost'] = j; }
 
 			j = skillcombo.regex(/Extra Demi Points/gi) ? 5 : 0;
-			this.set(['data',i,'stats','demi'], j ? j : undefined);
+			if (j) { stats['demi'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bIncome by (\d*\.?\d+)\b/gi));
-			this.set(['data',i,'stats','income'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/(\d*\.?\d+)% more income\b/gi),
+			  skillcombo.regex(/\bIncome by \+?(\d*\.?\d+)\b/gi));
+			if (j) { stats['income'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bInfluence (\d*\.?\d+)% Faster\b/gi),
-			  skillcombo.regex(/\bQuest (\d*\.?\d+)% Faster\b/gi));
-			this.set(['data',i,'stats','influence'], j ? j : undefined);
+			  skillcombo.regex(/\bQuests? (\d*\.?\d+)% Faster\b/gi));
+			if (j) { stats['influence'] = j; }
 
-			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d+)% Drops|\bitems from quests by (\d+)%/gi));
-			this.set(['data',i,'stats','item'], j ? j : undefined);
+			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
+			if (j) { stats['item'] = j; }
+
+			// Guild skills
+
+			j = nmax(0,
+			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/i),
+			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/i));
+			if (j) { stats['guild_deflect_passive'] = j; }
+
+			if (skillcombo.match(/\bDeals Extra Damage In Battles\b/i)) {
+				j = 5;
+			} else {
+				j = nmax(0, skillcombo.regex(/\bDeals additional (\d+) Damage In Battles\b/));
+			}
+			if (j) { stats['guild_damage'] = j; }
+
+			// Sanna
+			j = nmax(0,
+			  skillcombo.regex(/\bHeal for additional (\d+) Health as a Cleric in a Guild Battle\b/i),
+			  skillcombo.regex(/\bHeal for an additional (\d+) Health\s*;/i));
+			if (j) { stats['guild_cleric_heal_gate'] = j; }
+
+			// Zurran
+			j = nmax(0,
+			  skillcombo.regex(/\bDeal additional (\d+) damage as a Mage in a Guild Battle\b/i),
+			  skillcombo.regex(/\bDeal additional (\d+) damage with Mage passive ability\b/i),
+			  skillcombo.regex(/\bDeal an additional (\d+) Damage\s*[;,]/i));
+			if (j) { stats['guild_mage_damage_gate'] = j; }
+
+			// Elaida
+			j = nmax(0, skillcombo.regex(/\bHeal for an additional (\d*\.?\d+) Health with Heal Ability\b/i));
+			if (j) { stats['guild_cleric_heal'] = j; }
+
+			// Shivak
+			j = nmax(0, skillcombo.regex(/\bIncrease Fortitude Effect by ([-+]?\d*\.?\d+)% Health with Heal Ability\b/i));
+			if (j) { stats['guild_cleric_fortitude'] = j; }
+
+			// Anya
+			j = nmax(0, skillcombo.regex(/\b(\d*\.?\d+)% chance to Polymorph opponent\b/gi));
+			if (j) { stats['guild_mage_polymorph'] = j; }
+
+			// Syren
+			j = nmax(0, skillcombo.regex(/\bconfused target has additional (\d*\.?\d+)% chance to attack themselves\b/gi));
+			if (j) { stats['guild_mage_confuse'] = j; }
+
+			// Raziel the Silent
+			j = nmax(0, skillcombo.regex(/\bIncrease Evade chance in Guild Battles and Monsters by (\d*\.?\d+)\b/gi));
+			if (j) { stats['guild_rogue_evade'] = j; }
+
+			// Aethyx
+			j = nmax(0, skillcombo.regex(/\bIncreases Poison damage by ([-+]?\d*\.?\d+)\b/i));
+			k = 5 + nmax(0, skillcombo.regex(/\bIncreases Poison\b[^;]*\bduration by ([-+]?\d*\.?\d+)\b/i));
+			if (j * k) { stats['guild_rogue_poison'] = j * k; }
+
+			// Ameron
+			j = nmax(0, skillcombo.regex(/\bDeal an additional (\d*\.?\d+) to each surrounding enemy with Whirlwind\b/gi));
+			if (j) { stats['guild_warrior_whirlwind'] = j; }
+
+			// Meekah
+			j = nmax(0, skillcombo.regex(/\bIncrease Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
+			if (j) { stats['guild_warrior_confidence'] = j; }
+
+			this.set(['data',i,'stats'], stats);
 
 			this.set(['runtime','armymax'], Math.max(army, this.runtime.armymax));
 		}
@@ -649,19 +853,24 @@ Generals.update = function(event, events) {
 
 		for (i in this.data) {
 			p = this.data[i];
-			if (p.stats && p.own) {
-				for (j in p.stats) {
-					if (isNumber(p.stats[j])) {
-						if ((bests[j] || -1e99) < p.stats[j]) {
-							bests[j] = p.stats[j];
+			if ((stats = p['stats']) && p['own']) {
+				for (j in stats) {
+					if ((j === 'monster' || j === 'crits')
+					  && (stats['multiplier'] || 0) > 1
+					) {
+						// make sure we don't count a pa multiplier in monster-based bests
+						continue;
+					} else if (isNumber(stats[j])) {
+						if ((bests[j] || -1e99) < stats[j]) {
+							bests[j] = stats[j];
 							list[j] = i;
 						}
-					} else if (isObject(p.stats[j])) {
-						for (k in p.stats[j]) {
-							if (isNumber(p.stats[j][k])) {
+					} else if (isObject(stats[j])) {
+						for (k in stats[j]) {
+							if (isNumber(stats[j][k])) {
 								o = j + '-' + k;
-								if ((bests[o] || -1e99) < p.stats[j][k]) {
-									bests[o] = p.stats[j][k];
+								if ((bests[o] || -1e99) < stats[j][k]) {
+									bests[o] = stats[j][k];
 									list[o] = i;
 								}
 							}
@@ -709,7 +918,7 @@ Generals.to = function(name) {
 	type = this.get(['data',name,'type']);
 
 	if (this.get('option.fast') && isNumber(id) && isNumber(type)) {
-		log(LOG_INFO, 'General fast change: ' + Player.get('general') + ' to ' + name);
+		log(LOG_DEBUG, 'General fast change: ' + Player.get('general') + ' to ' + name);
 		Page.to('heroes_generals', {item:id, itype:type}, true);
 	} else if (isNumber(id)) {
 		if (!Page.to('heroes_generals')) {
@@ -724,7 +933,7 @@ Generals.to = function(name) {
 			log(LOG_WARN, "Can't find select button for General: " + name);
 			return null;
 		} else if (Page.click(el)) {
-			log(LOG_INFO, 'General change: ' + Player.get('general') + ' to ' + name);
+			log(LOG_DEBUG, 'General change: ' + Player.get('general') + ' to ' + name);
 		} else {
 			log(LOG_DEBUG, '# might be a page click cooldown');
 		}
@@ -825,7 +1034,7 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var self = this, i, j, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
+	var self = this, i, j, k, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
 		sorttype = [
 			'img',
 			'name',
@@ -855,16 +1064,16 @@ Generals.dashboard = function(sort, rev) {
 	this.set('runtime.rev', rev);
 	if (typeof sort !== 'undefined') {
 		this.order.sort(function(a,b) {
-			var aa, bb, type, x, i;
+			var aa, bb, type, x;
 			if (sort === 1) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
 				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
 				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
-			} else if ((i = sorttype[sort])) {
-				aa = self.get(['data',a].concat(i.split('.')), 0, 'number');
-				bb = self.get(['data',b].concat(i.split('.')), 0, 'number');
+			} else if ((x = sorttype[sort])) {
+				aa = self.get(['data',a].concat(x.split('.')), 0, 'number');
+				bb = self.get(['data',b].concat(x.split('.')), 0, 'number');
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -901,7 +1110,8 @@ Generals.dashboard = function(sort, rev) {
 		p = this.get(['data',i]) || {};
 		output = [];
 		j = this.get([p, 'weaponbonus']);
-		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + this.get([p,'skills'], 'none') + (j ? '; Weapon Bonus: ' + j : '') + '">'));
+		k = p['skills'] || p['skillsbase'] || 'none';
+		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + k + (j ? '; Weapon Bonus: ' + j : '') + '">'));
 		td(output, i);
 		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
 		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))

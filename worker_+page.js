@@ -1,11 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page:true, Queue, Resources, Global,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers, Global,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	log, warn, error
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	makeTimer
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -133,7 +134,7 @@ Page.update = function(event, events) {
 			if (time <= -604800) { // Delete old timers 1 week after "now?"
 				this.set(['runtime','timers',i]);
 			} else {
-				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?')
+				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?');
 			}
 		}
 	}
@@ -154,7 +155,7 @@ Page.update = function(event, events) {
 		}
 		// NOTE: Need a better function to identify pages, this lot is bad for CPU
 		this.temp.page = '';
-		$('img', $('#'+APPID_+'app_body')).each(function(i,el){
+		$('img', $('#'+APPID_+'app_body')).each(function(a,el){
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
 				if (Page.pageNames[i].image && filename === Page.pageNames[i].image) {

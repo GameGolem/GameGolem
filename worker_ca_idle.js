@@ -1,11 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Worker, Workers, Page,
+	Generals,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Idle **********
 * Set the idle general
@@ -18,7 +17,8 @@ Idle.defaults['castle_age'] = {};
 
 Idle.settings ={
 	after:['LevelUp'],
-	taint:true
+	taint:true,
+	no_disable:true
 };
 
 Idle.option = {
@@ -26,9 +26,9 @@ Idle.option = {
 	index:86400000,
 	generals:604800000,
 	alchemy:86400000,
-	quests:0,
-	town:0,
-	keep:0,
+	quests:604800000,
+	town:86400000,
+	keep:3600000,
 //	arena:0,
 	battle:900000,
 	guild:0,
@@ -135,6 +135,7 @@ Idle.pages = {
 		'quests_quest13',
 		'quests_quest14',
 		'quests_quest15',
+		//'quests_quest16', // not yet on web3
 		'quests_demiquests',
 		'quests_atlantis'
 	],
@@ -157,7 +158,7 @@ Idle.init = function() {
 };
 
 Idle.work = function(state) {
-	var now = Date.now(), i, j, p;
+	var now = Date.now(), i, j, k, p;
 
 	if (!state) {
 		return true;
@@ -166,11 +167,11 @@ Idle.work = function(state) {
 	// handle the generals tour first, to avoid thrashing with the Idle general
 	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
 		for (j in p) {
-			if (p[j] && p[j].own && (p[j].seen || 0) + this.option[i] <= now) {
+			if ((k = Generals.get(['runtime','last',j], 0)) + this.option[i] <= now) {
 				if (Generals.to(j) === null) {
 					// if we can't change the general now due to stats or error
-					// just add an hour to the last seen time and try later
-					Generals.set(['data',j,seen], Math.range((p[j].seen || 0), now + 3600000 - this.option[i], now));
+					// just try again in an hour
+					Generals.set(['runtime','last',j], Math.max(k, now + 60*60*1000 - this.option[i]));
 				}
 				return true;
 			}
@@ -183,7 +184,7 @@ Idle.work = function(state) {
 
 	for (i in this.pages) {
 		if (this.option[i]) {
-			for (p=0; p<this.pages[i].length; p++) {
+			for (p = 0; p < this.pages[i].length; p++) {
 				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
 					return true;
 				}

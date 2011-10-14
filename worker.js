@@ -1,11 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, browser, localStorage, window,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, isUndefined, isNull, plural, makeTime,
-	empty, compare, error
+	$,
+	APP, APPID, userID, imagepath, browser, localStorage, window,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker,
+	empty, compare
 */
 /* Worker Prototype
    ----------------
@@ -29,7 +28,7 @@ new Worker(name, pages, settings)
 				keep (true/false) - without this data is flushed when not used - only keep if other workers regularly access you
 				important (true/false) - can interrupt stateful workers [false]
 				stateful (true/false) - only interrupt when we return QUEUE_RELEASE from work(true)
-				taint (true/false) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
+				taint (timestamp/0) - don't save unless data is marked as tainted - otherwise will perform a comparison between old and new data
 				gm_only (true/false) - only enable worker if we're running under greasemonkey
 .display		- Create the display object for the settings page.
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
@@ -291,6 +290,24 @@ Worker.prototype._forget = function(id) {
 };
 
 /**
+ * Forget all _remind and _revive timers
+ */
+Worker.prototype._forgetAll = function() {
+	var i;
+
+	for (i in this._reminders) {
+		if (this._reminders.hasOwnProperty(i)) {
+			if (i[0] === 'i') {
+				window.clearInterval(this._reminders[i]);
+			} else if (i[0] === 't') {
+				window.clearTimeout(this._reminders[i]);
+			}
+			delete this._reminders[i];
+		}
+	}
+};
+
+/**
  * Get a value from one of our _datatypes
  * @param {(string|array)} what The path.to.data / [path, to, data] we want - (optionally [Object DATA, subpath, to, data] relative to DATA)
  * @param {*} def The default value to return if the path we want doesn't exist
@@ -322,6 +339,7 @@ Worker.prototype._get = function(what, def, type) {
 				}
 			}
 		}
+		 
 		while (x.length && !isUndefined(data)) {
 			data = data[x.shift()];
 		}
@@ -340,7 +358,7 @@ Worker.prototype._get = function(what, def, type) {
 /**
  * This is called after _setup. All data exists and our worker is valid for this APP
  */
-Worker.prototype._init = function(old_revision) {
+Worker.prototype._init = function(old_revision, fresh) {
 	if (this._loaded) {
 		return;
 	}
@@ -348,7 +366,7 @@ Worker.prototype._init = function(old_revision) {
 	this._loaded = true;
 	if (this.init) {
 		try {
-			this.init(old_revision);
+			this.init(old_revision, fresh);
 		}catch(e) {
 			log(e, e.name + ' in ' + this.name + '.init(): ' + e.message);
 		}
@@ -387,17 +405,17 @@ Worker.prototype._load = function(type, merge) {
 			if (merge) {
 				this[type] = $.extend(true, {}, this[type], data || {});
 				if (!compare(data, this[type])) {
-					this._taint[type] = true; // Taint if we've changed from the default data
+					this._taint[type] = Date.now(); // Taint if we've changed from the default data
 				}
 			} else {
 				this[type] = data;
-				this._taint[type] = false;
+				this._taint[type] = 0;
 			}
 		} catch(e) {
 			log(e, this.name + '._load(' + type + '): Not JSON data, should only appear once for each type...');
 		}
 	} else if (merge && this[type]) {
-		this._taint[type] = true; // Taint if we've changed from the default data
+		this._taint[type] = Date.now(); // Taint if we've changed from the default data
 	}
 	this._popStack();
 };
@@ -595,7 +613,7 @@ Worker.prototype._replace = function(type, data) {
 			this._notify(i);
 		}
 	}
-	this._taint[type] = true;
+	this._taint[type] = Date.now();
 	this._save(type);
 };
 
@@ -659,7 +677,7 @@ Worker.prototype._save = function(type) {
 		n = (this._rootpath ? userID + '.' : '') + type + '.' + this.name;
 		if (this._taint[type] || localStorage['golem.' + APP + '.' + n] !== v) { // First two are to save the extra localStorage access
 			this._pushStack();
-			this._taint[type] = false;
+			this._taint[type] = 0;
 			this._timestamps[type] = Date.now();
 			try {
 				localStorage['golem.' + APP + '.' + n] = v;
@@ -703,7 +721,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
 			if (!quiet) {
 				this._notify(path);// Notify the watchers...
 			}
-			this._taint[path[0]] = true;
+			this._taint[path[0]] = Date.now();
 			this._update(path[0]);
 			if (isUndefined(value)) {
 				delete data[i];
@@ -744,7 +762,7 @@ Worker.prototype._set = function(what, value, type, quiet) {
  * First function called in our worker. This is where we decide if we are to become an active worker, or should be deleted.
  * Calls .setup() for worker-specific setup.
  */
-Worker.prototype._setup = function(old_revision) {
+Worker.prototype._setup = function(old_revision, fresh) {
 	this._pushStack();
 	if (this.settings.system || empty(this.defaults) || this.defaults[APP]) {
 		var i;
@@ -768,7 +786,7 @@ Worker.prototype._setup = function(old_revision) {
 		}
 		if (this.setup) {
 			try {
-				this.setup(old_revision);
+				this.setup(old_revision, fresh);
 			}catch(e) {
 				log(e, e.name + ' in ' + this.name + '.setup(): ' + e.message);
 			}
@@ -952,7 +970,7 @@ Worker.prototype._update = function(event, action) {
 			if (event.type && isFunction(this.update)) {
 				event.worker = isWorker(event.worker) ? event.worker.name : event.worker || this.name;
 				if (action === 'add' || action === 'run' || action === 'delete') { // Delete from update queue
-					this._updates_.getEvent(event.worker, event.type, event.id);
+					this._updates_.getEvent(event.worker, event.type, event.id, event.path);
 				}
 				if (action === 'add' || action === 'run') { // Add to update queue, old key already deleted
 					this._updates_.unshift($.extend({}, event));
@@ -988,8 +1006,10 @@ Worker.prototype._update = function(event, action) {
 				} else {
 					events.shift();
 				}
-				while (event = this._updates_.shift()) { // Prevent endless loops, while keeping anything we added
-					if (!(event.type in this._datatypes) && !old.findEvent(event.worker, event.type, event.id)) {
+				while ((event = this._updates_.shift())) { // Prevent endless loops, while keeping anything we added
+					if (!this._datatypes.hasOwnProperty(event.type)
+					  && !old.findEvent(event.worker, event.type, event.id)
+					) {
 						done = false;
 						old.push($.extend({}, event));
 						event.worker = Worker.find(event.worker || this);

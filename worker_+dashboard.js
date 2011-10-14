@@ -1,11 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Dashboard:true, History, Page:true, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Config,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.Dashboard **********
 * Displays statistics and other useful info
@@ -50,7 +49,7 @@ Dashboard.init = function(old_revision) {
 			if (hide) {
 				this.set(['option','active'], this.name);
 			} else {
-				selected = j
+				selected = j;
 			}
 		}
 		tabs.push('<li class="' + (hide ? 'ui-helper-hidden' : '') + (Workers[i].settings.advanced ? ' red' : Workers[i].settings.debug ? ' blue' : '') + '"><a href="#golem-dashboard-' + i + '">' + (i===this.name ? '&nbsp;*&nbsp;' : i) + '</a></li>');
@@ -146,13 +145,28 @@ Dashboard.update = function(event, events) {
 
 /** @this {Worker} */
 Dashboard.dashboard = function() {
-	var i, list = [];
+	var i, j, s, list = [];
+
 	for (i in this.data) {
-		if (!Workers[i]._get(['option','_hide_status'], false)) {
-			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + this.data[i] + '</td></tr>');
+		if (Workers[i]) {
+			j = Workers[i]._get(['option','_hide_status'], 2, 'number');
+		} else {
+			j = null;
+		}
+		s = this.data[i];
+		if (j === 1 && !s) {
+			s = '<i>Nothing to do.</i>';
+		}
+		if ((j === 2 || j === true) && s && /\bNothing to do\b/i.test(s)) {
+			s = null;
+		}
+		if (j && s) {
+			list.push('<tr><th>' + i + ':</th><td id="golem-status-' + i + '">' + s + '</td></tr>');
 		}
 	}
+
 	list.sort(); // Ok with plain text as first thing that can change is name
+
 	$('#golem-dashboard-Dashboard').html('<table cellspacing="0" cellpadding="0" class="golem-status">' + list.join('') + '</table>');
 };
 
@@ -160,27 +174,53 @@ Dashboard.dashboard = function() {
 Dashboard.status = function(worker, value) {
 	var w = Worker.find(worker);
 	if (w) {
-		this.set(['data', w.name], value);
+		this.set(['data', w.name], value ? value : null);
 	}
 };
 
 /** @this {Worker} */
 Dashboard.menu = function(worker, key) {
+	var i, keys;
+
 	if (worker) {
 		this._unflush();
 		if (!key) {
-			var keys = [];
+			keys = [];
 			if (this.data[worker.name]) {
 				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
 			}
-			if (worker.dashboard) {
+			if (isFunction(worker.dashboard)) {
 				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+			}
+			if (this.data.hasOwnProperty(worker.name)
+			  || this.get(['temp','status',worker.name])
+			) {
+				i = worker.get(['option','_hide_status'], 2, 'number');
+				if (i === true) { i = 2; }
+				if (i !== 1 && i !== 2) { i = 0; }
+				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide&nbsp;Status');
+				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show&nbsp;Status');
+				keys.push('status2:' + (i === 2 ? '=' : '') + 'Viable&nbsp;Status');
 			}
 			return keys;
 		} else {
 			switch (key) {
-				case 'status':		worker.set(['option','_hide_status'], worker.option._hide_status ? undefined : true);	break;
-				case 'dashboard':	worker.set(['option','_hide_dashboard'], worker.option._hide_dashboard ? undefined : true);	break;
+			case 'status0':
+				worker.set(['option','_hide_status'], 0);
+				break;
+			case 'status1':
+				worker.set(['option','_hide_status'], 1);
+				break;
+			case 'status2':
+				worker.set(['option','_hide_status'], 2);
+				break;
+			case 'dashboard':
+				if (worker.get('option._hide_dashboard')) {
+					worker.set(['option','_hide_dashboard']);
+				} else {
+					worker.set(['option','_hide_dashboard'], true);
+				}
+				break;
 			}
 			this._notify('data');
 		}

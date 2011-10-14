@@ -1,5 +1,4 @@
 /*jslint
-    tailcomma: true,
 */
 
 Quest.rts = 1317205601;	// Wed Sep 28 10:26:41 2011 UTC

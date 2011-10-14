@@ -1,12 +1,13 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Bank, Battle, Generals, LevelUp, Player,
-	APP, APPID_, warn, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser, console,
-	LOG_ERROR, LOG_WARN, LOG_INFO,
+	$, Worker, Workers, Dashboard, History, Page, Resources,
+	Bank, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser, console,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage, assert
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	assert
 */
 /********** Worker.Land **********
 * Auto-buys property
@@ -253,7 +254,7 @@ Land.update = function(event, events) {
 			Dashboard.status(this, 'Saved $' + worth.SI() + ' of $' + this.runtime.save_amount.SI() + ' for future land.');
 		}
 	} else {
-		Dashboard.status(this, 'Nothing to do.');
+		Dashboard.status(this);
 	}
 
 	this.set(['option','_sleep'],

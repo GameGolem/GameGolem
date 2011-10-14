@@ -1,10 +1,11 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue:true, Resources, Window,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, window, browser,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	$, Workers, Worker, Config, Dashboard, Global, Page, Resources, Session, Title, Theme,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
+	getImage
 */
 /********** Worker.Queue() **********
 * Keeps track of the worker queue
@@ -32,7 +33,33 @@ Queue.temp = {
 };
 
 Queue.option = {
-	queue: ['Global', 'Debug', 'Resources', 'Generals', 'Income', 'LevelUp', 'Elite', 'Quest', 'Monster', 'Battle', 'Guild', 'Festival', 'Heal', 'Land', 'Town', 'Bank', 'Alchemy', 'Blessing', 'Gift', 'Upgrade', 'Potions', 'Army', 'Idle', 'FP'], // Must match worker names exactly - even by case
+	queue: [
+	    'Global',
+	    'Debug',
+	    'Resources',
+	    'Generals',
+	    'Income',		// comes first because it has a small window of success
+	    'LevelUp',
+	    'Heal',			// heal above health dependant workers
+	    'Blessing',		// blessing above upgrade to give those priority
+	    'Upgrade',
+	    'Potions',		// potions used above any resource dependant workers
+	    //'Arena',		// when in service should likely be above festival
+	    'Festival',		// festival above guild to focus more on it
+	    'Guild',
+	    'Elite',		// elite above monster/quest/battle for guard advantage
+	    'Monster',
+	    'Quest',
+	    'Battle',
+	    'Land',			// land above town so land buy/sell happens first
+	    'Alchemy',		// alchemy above town so we don't buy things we can make
+	    'Town',
+	    'Bank',
+	    'Gift',			// only partially effective on web3, and sometimes slow
+	    'Army',			// sometimes slow
+	    'Idle',
+	    'FP'			// high risk worker, must be manually pulled above idle
+	], // Must match worker names exactly - even by case
 	delay: 5,
 	clickdelay: 5,
 	pause: false

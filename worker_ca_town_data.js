@@ -1,10 +1,9 @@
 /*jslint
-    tailcomma: true,
 */
 
-Town.rts = 1317386624;	// Fri Sep 30 12:43:44 2011 UTC
+Town.rts = 1317951162;	// Fri Oct  7 01:32:42 2011 UTC
 
-Town.rdata =			// #1013
+Town.rdata =			// #1017
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adriana':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_adriana.jpg', 'skills': "Decrease opposing War Council's Defense by -3" },
@@ -181,6 +180,7 @@ Town.rdata =			// #1013
 	'Cid':							{ 'atk':   5, 'def':   6, 'type': 'hero', 'img': 'hero_cid.jpg' },
 	'Cid Helm':						{ 'atk':   3, 'def':   7, 'type': 'helmet', 'img': 'gift_cid2_complete.jpg' },
 	'Cid Saber':					{ 'atk':   6, 'def':   5, 'type': 'weapon', 'img': 'eq_cid_complete.jpg' },
+	'Circlet of Light':				{ 'atk':  16, 'def':  19, 'type': 'helmet' },
 	'Claymore of Zeventis':			{ 'atk':  28, 'def':  28, 'type': 'weapon', 'img': 'eq_zeventis_weapon.jpg' },
 	'Cleric':						{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
 	'Cloudslayer Blade':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_cloudslayer_weapon.jpg' },
@@ -710,6 +710,7 @@ Town.rdata =			// #1013
 	'Poisonous Spider':				{ 'atk':  14, 'def':  14, 'type': 'unit', 'img': 'soldier_spider_1.jpg' },
 	'Poisons Touch':				{ 'atk':  11, 'def':   9, 'type': 'gloves', 'img': 'eq_aethyx_gauntlet.jpg' },
 	'Poseidons Horn':				{ 'atk':   7, 'def':   3, 'type': 'amulet', 'img': 'alchemy_weapon_horn_done.jpg' },
+	"Praetor's Seal":				{ 'atk':  14, 'def':  15, 'type': 'amulet' },
 	'Prismatic Staff':				{ 'atk':  17, 'def':  14, 'type': 'weapon', 'img': 'eq_azalia_weapon.jpg' },
 	'Prophetic Wand':				{ 'atk':  17, 'def':  21, 'type': 'weapon', 'img': 'eq_shivak_weapon.jpg' },
 	'Punisher':						{ 'atk':  14, 'def':  11, 'type': 'weapon', 'img': 'eq_death_epic_weapon.jpg' },
@@ -845,6 +846,7 @@ Town.rdata =			// #1013
 	'Spartan Warrior':				{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'soldier_spartan.jpg' },
 	'Spellweaver Cloak':			{ 'atk':  13, 'def':  13, 'type': 'armor', 'img': 'eq_godric_armor.jpg' },
 	'Staff of Jahanna':				{ 'atk':  26, 'def':  30, 'type': 'weapon', 'img': 'eq_jahanna_weapon.jpg' },
+	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon' },
 	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon' },
 	'Staff of Vigor':				{ 'atk':   8, 'def':   5, 'type': 'weapon', 'img': 'gift_elizabeth3_complete.jpg' },
 	'Staff of the Lifeless':		{ 'atk':  25, 'def':  20, 'type': 'weapon', 'img': 'eq_aurora_staff.jpg' },
@@ -888,6 +890,7 @@ Town.rdata =			// #1013
 	'Sylvanas Orb':					{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_sylvanas_orb.jpg' },
 	'Syren':						{ 'atk':  23, 'def':  19, 'type': 'hero', 'img': 'hero_syren.jpg', 'skills': 'Increase Confuse effect' },
 	'Syrens Call':					{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_syren_weapon.jpg' },
+	'Tefaera':						{ 'atk':  21, 'def':  26, 'type': 'hero', 'skills': 'Increase Revive/Resurrect Effect' },
 	'Tempered Steel':				{ 'atk':   6, 'def':   5, 'type': 'gloves', 'img': 'eq_raid_reward_300.jpg' },
 	'Tempest Crown':				{ 'atk':   3, 'def':   1, 'type': 'helmet', 'img': 'demi_energy_helm.jpg' },
 	'Tempest Elemental':			{ 'atk':  55, 'def':  50, 'type': 'unit', 'img': 'eq_valhalla_minion.jpg' },
@@ -1061,7 +1064,7 @@ Town.rrestr =
 	  '|\\bshortsword\\b' +		// 1
 	  '|\\bslicer\\b' +			// 1
 	  '|\\bspear\\b' +			// 3
-	  '|\\bstaff\\b' +			// 10 (mismatches 1)
+	  '|\\bstaff\\b' +			// 11 (mismatches 1)
 	  '|\\bstaves\\b' +			// 1
 	  '|\\bsword\\b' +			// 17 (mismatches 1)
 	  '|\\btalon\\b' +			// 1
@@ -1184,7 +1187,8 @@ Town.rrestr =
 	  '|^Strength of Oaks$' +
 	  '',
 	'helmet':
-	  '\\bcowl\\b' +			// 1
+	  '\\bcirclet\\b' +			// 1
+	  '|\\bcowl\\b' +			// 1
 	  '|\\bcrown\\b' +			// 14
 	  '|\\bdoomhelm\\b' +		// 1
 	  '|\\bhelm\\b' +			// 52
@@ -1221,7 +1225,7 @@ Town.rrestr =
 	  '|\\brelic\\b' +			// 1
 	  '|\\bring\\b' +			// 15
 	  '|\\bruby\\b' +			// 2
-	  '|\\bseal\\b' +			// 4
+	  '|\\bseal\\b' +			// 5
 	  '|\\bshard\\b' +			// 6
 	  '|\\bsignet\\b' +			// 10
 	  '|\\bsunstone\\b' +		// 1

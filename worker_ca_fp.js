@@ -1,10 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime
+	$, Workers, Worker, Config, Dashboard, History, Page,
+	Generals, LevelUp, Player,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_NO_ACTION,
+	isArray, isFunction, isNumber, isObject, isString, isWorker
 */
 /********** Worker.FP **********
 * Automatically buys FP refills
@@ -23,7 +25,7 @@ FP.defaults['castle_age'] = {
 
 FP.option = {
 	type:'stamina',
-	general_choice:'any',
+	general:'any',
 	xp:2800,
 	times:0,
 	fps:100,

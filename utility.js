@@ -1,13 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
+	$, Workers, Worker, Resources, Script,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision,
 	browser, window, localStorage, console, chrome
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources,
-	Battle, Generals, LevelUp, Player,
-	version, revision, isRelease
-	APP, APPID, PREFIX, log:true, debug, userID, imagepath
-	length:true
-	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH
-	Workers, makeImage:true
+	log:true, length:true
 */
 // Utility functions
 
@@ -127,21 +124,21 @@ var isNull = function(obj) {
  * @param {string=} txt The message to log
  * NOTE: Will be replaced by Debug Worker if present!
  */
-var LOG_INFO = 0;
-var LOG_LOG = 1
-var LOG_WARN = 2;
-var LOG_ERROR = 3;
+var LOG_ERROR = 0;
+var LOG_WARN = 1;
+var LOG_LOG = 2;
+var LOG_INFO = 3;
 var LOG_DEBUG = 4;
 var LOG_USER1 = 5;
 var LOG_USER2 = 6;
 var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
-var log = function(level, txt /*, obj, array etc*/){
+var log = function(lvl, txt /*, obj, array etc*/){
 	var level, args = Array.prototype.slice.call(arguments), prefix = [],
 		date = [true, true, true, true, true, true, true, true, true, true],
-		rev = [false, false, true, true, true, true, true, true, true, true],
-		worker = [false, true, true, true, true, true, true, true, true, true];
+		rev = [true, true, true, true, true, true, true, true, true, true],
+		worker = [true, true, true, true, true, true, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 9);
 	} else if (isError(args[0])) {
@@ -171,9 +168,13 @@ var log = function(level, txt /*, obj, array etc*/){
 
 String.prototype.trim = function(inside) {
 	if (inside) {
-		this.replace(/^\s+$/gm, ' ')
+		this.replace(/^\s+$/gm, ' ');
 	}
 	return this.replace(/^\s+|\s+$/gm, '');
+};
+
+String.prototype.innerTrim = function() {
+	return this.replace(/\s+/gm, ' ');
 };
 
 String.prototype.filepart = function() {
@@ -380,13 +381,28 @@ Array.prototype.trim = function() { // Remove empty entries
 		}
 	}
 	return arr;
-}
+};
 
 // Used for events in update(event, events)
-var isEvent = function(event, worker, type, id) {
-	if ((!worker || Worker.find(event.worker) === Worker.find(worker)) && (!type || event.type === type) && (!id || event.id === id)) {
+var isEvent = function(event, worker, type, id, path) {
+	//
+	if ((!worker || Worker.find(event.worker) === Worker.find(worker))
+	  && (!type || event.type === type)
+	  && (!id || event.id === id)
+	  && (!path || event.path === path)
+	) {
 		return true;
 	}
+	//
+	/*
+	if ((isUndefined(worker) || (worker === null ? !event.worker : Worker.find(event.worker)  === Worker.find(worker)))
+	  && (isUndefined(type) || (type === null ? !event.type : event.type === type))
+	  && (isUndefined(id) || (id === null ? !event.id : event.id === id))
+	  && (isUndefined(path) || (path === null ? !event.path : event.path === path))
+	) {
+		return true;
+	}
+	*/
 	return false;
 };
  
@@ -398,16 +414,17 @@ var isEvent = function(event, worker, type, id) {
  * @param {?string=} id The event id we're looking for
  * @return {?Object}
  */
-Array.prototype.findEvent = function(worker, type, id) {
+Array.prototype.findEvent = function(worker, type, id, path) {
 	if (worker || type || id) {
 		this._worker = worker;
 		this._type = type;
 		this._id = id;
+		this._path = path;
 		this._index = -1;
 	}
 	var length = this.length;
 	for (this._index++; this._index<length; this._index++) {
-		if (isEvent(this[this._index], this._worker, this._type, this._id)) {
+		if (isEvent(this[this._index], this._worker, this._type, this._id, this._path)) {
 			return this[this._index];
 		}
 	}
@@ -422,8 +439,8 @@ Array.prototype.findEvent = function(worker, type, id) {
  * @param {?string=} id The event id we're looking for
  * @return {?Object}
  */
-Array.prototype.getEvent = function(worker, type, id) {
-	var event = this.findEvent(worker, type, id);
+Array.prototype.getEvent = function(worker, type, id, path) {
+	var event = this.findEvent(worker, type, id, path);
 	if (this._index >= 0 && this._index < this.length) {
 		this.splice(this._index--, 1);
 	}
@@ -916,7 +933,7 @@ JSON.encode = function(obj, replacer, space, metrics) {
 };
 
 JSON.decode = function(str, metrics) {
-	var obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj) {
+	var i, obj = JSON.parse(str), keys = obj['$'], count = {}, decode = function(obj) {
 		var i, to;
 		if (isObject(obj)) {
 			to = {};
@@ -967,4 +984,108 @@ var assert = function(test, msg, type) {
 	if (!test) {
 		throw {'name':type || 'Assert Error', 'message':msg};
 	}
+};
+
+Number.prototype.toTimespan = function(allowPast) {
+	var str = '', ms = this, ago = false, u, v;
+
+	if (allowPast && ms < 0) {
+		ago = true;
+		ms = Math.abs(ms);
+	}
+
+	if (ms >= (u = 365*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' year' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 30*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' month' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 7*24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' week' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 24*60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' day' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 60*60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' hour' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 60*1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' minute' + plural(v);
+		ms -= v * u;
+	}
+	if (ms >= (u = 1000)) {
+		if (str !== '') { str += ', '; }
+		v = Math.floor(ms / u);
+		str += v + ' second' + plural(v);
+		ms -= v * u;
+	}
+	if (ms % 1000) {
+		if (str !== '') { str += ', '; }
+		v = ms % 1000;
+		str += v + ' milli' + plural(v);
+		ms -= v * u;
+	}
+
+	if (str === '') {
+		str = 'now';
+	} else if (ago) {
+		str += ' ago';
+	}
+
+	return str;
+};
+
+Number.prototype.toTimespanShort = function(words, allowPast) {
+	var str = '', ms = this, u, x = 1, ago = false;
+
+	if (allowPast && ms < 0) {
+		ago = true;
+		ms = Math.abs(ms);
+	}
+
+	if (ms >= (u = 365*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' year' : 'yr');
+	} else if (ms >= (u = 30*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' month' : 'mo');
+	} else if (ms >= (u = 7*24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' week' : 'wk');
+	} else if (ms >= (u = 24*60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' day' : 'dy');
+	} else if (ms >= (u = 60*60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' hour' : 'hr');
+	} else if (ms >= (u = 60*1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' minute' : 'm');
+	} else if (ms >= (u = 1000)) {
+		str = (x = (ms / u).SI()) + (words ? ' second' : 's');
+	} else if (ms > 0) {
+		str = '' + (x = ms) + (words ? ' milli' : 'ms');
+	} else {
+		str = 'now';
+	}
+	if (words) {
+		str += plural(x.SI());
+	}
+
+	if (ago) {
+		str = '-' + str;
+	}
+
+	return str;
 };

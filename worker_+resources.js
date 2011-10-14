@@ -1,11 +1,11 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Army, Config, Dashboard, History, Page, Queue, Resources:true,
-	Battle, Generals, LevelUp, Player,
-	APP, APPID, log, debug, userID, imagepath, isRelease, version, revision, Workers, PREFIX, Images, window, browser,
+	$, Worker, Workers,
+	APP, APPID, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	makeTimer, Divisor, length, sum, findInObject, objectIndex, getAttDef, tr, th, td, isArray, isObject, isFunction, isNumber, isString, isWorker, plural, makeTime,
-	makeImage
+	isArray, isFunction, isNumber, isObject, isString, isUndefined
 */
 /********** Worker.Resources **********
 * Store and report Resources
@@ -156,7 +156,7 @@ Resources.add = function(type, amount, absolute) {
 			// Store the new value
 			this.set(['runtime','types',type], this.runtime.types[type] + amount);
 			// Now fill any pots...
-			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type]));
+			amount -= Math.max(0, this.runtime.types[type] - parseInt(this.option.reserve[type], 10));
 			if (amount > 0 && this.option.types[type] === 2) {
 				for (worker in this.option.buckets) {
 					if (type in this.option.buckets[worker]) {
